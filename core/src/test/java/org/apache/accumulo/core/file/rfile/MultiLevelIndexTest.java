@@ -18,6 +18,7 @@ package org.apache.accumulo.core.file.rfile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -108,7 +109,7 @@ public class MultiLevelIndexTest extends TestCase {
     liter = reader.lookup(new Key(String.format("%05d000", num + 1)));
     assertFalse(liter.hasNext());
 
-    Random rand = new Random();
+    Random rand = new SecureRandom();
     for (int i = 0; i < 100; i++) {
       int k = rand.nextInt(num * 1000);
       int expected;

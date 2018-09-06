@@ -29,6 +29,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1077,7 +1078,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (maxSplits == 1)
       return Collections.singleton(range);
 
-    Random random = new Random();
+    Random random = new SecureRandom();
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     Table.ID tableId = Tables.getTableId(context, tableName);
     TabletLocator tl = TabletLocator.getLocator(context, tableId);
@@ -1511,7 +1512,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             && !entry.getValue().contains(Constants.CORE_PACKAGE_NAME)) {
           LoggerFactory.getLogger(this.getClass()).info(
               "Imported table sets '{}' to '{}'.  Ensure this class is on Accumulo classpath.",
-              entry.getKey(), entry.getValue());
+              sanitize(entry.getKey()), sanitize(entry.getValue()));
         }
       }
 
@@ -1534,6 +1535,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new AssertionError(e);
     }
 
+  }
+
+  /**
+   * Prevent potential CRLF injection into logs from read in user data See
+   * https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
+   */
+  private String sanitize(String msg) {
+    return msg.replaceAll("[\r\n]", "");
   }
 
   @Override

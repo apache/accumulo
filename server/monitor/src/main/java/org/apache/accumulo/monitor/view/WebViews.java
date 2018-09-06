@@ -19,7 +19,7 @@ package org.apache.accumulo.monitor.view;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_BLANK_OK;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
-import static org.apache.accumulo.monitor.util.ParameterValidator.SERVER_REGEX_BLANK_OK;
+import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
 import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isEmpty;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
@@ -151,7 +151,7 @@ public class WebViews {
   @Path("tservers")
   @Template(name = "/default.ftl")
   public Map<String,Object> getTabletServers(
-      @QueryParam("s") @Pattern(regexp = SERVER_REGEX_BLANK_OK) String server) {
+      @QueryParam("s") @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
 
     Map<String,Object> model = getModel();
     model.put("title", "Tablet Server Status");

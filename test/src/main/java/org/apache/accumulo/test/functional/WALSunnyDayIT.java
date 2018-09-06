@@ -29,6 +29,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -167,7 +168,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
   }
 
   private void writeSomeData(Connector conn, String tableName, int row, int col) throws Exception {
-    Random rand = new Random();
+    Random rand = new SecureRandom();
     BatchWriter bw = conn.createBatchWriter(tableName, null);
     byte[] rowData = new byte[10];
     byte[] cq = new byte[10];

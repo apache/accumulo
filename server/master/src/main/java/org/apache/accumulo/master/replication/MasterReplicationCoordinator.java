@@ -19,6 +19,7 @@ package org.apache.accumulo.master.replication;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
@@ -56,7 +57,8 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
 
   protected MasterReplicationCoordinator(Master master, ZooReader reader) {
     this.master = master;
-    this.rand = new Random(358923462L);
+    this.rand = new SecureRandom();
+    this.rand.setSeed(358923462L);
     this.reader = reader;
     this.security = SecurityOperation.getInstance(master.getContext(), false);
   }

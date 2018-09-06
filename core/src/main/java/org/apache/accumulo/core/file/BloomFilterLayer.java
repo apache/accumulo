@@ -24,12 +24,12 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -264,10 +264,10 @@ public class BloomFilterLayer {
 
           bloomFilter = null;
         } catch (ClassNotFoundException e) {
-          LOG.error("Failed to find KeyFunctor in config: " + ClassName, e);
+          LOG.error("Failed to find KeyFunctor in config: " + sanitize(ClassName), e);
           bloomFilter = null;
         } catch (InstantiationException e) {
-          LOG.error("Could not instantiate KeyFunctor: " + ClassName, e);
+          LOG.error("Could not instantiate KeyFunctor: " + sanitize(ClassName), e);
           bloomFilter = null;
         } catch (IllegalAccessException e) {
           LOG.error("Illegal acess exception", e);
@@ -290,6 +290,14 @@ public class BloomFilterLayer {
 
       initiateLoad(maxLoadThreads);
 
+    }
+
+    /**
+     * Prevent potential CRLF injection into logs from read in user data See
+     * https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
+     */
+    private String sanitize(String msg) {
+      return msg.replaceAll("[\r\n]", "");
     }
 
     private synchronized void initiateLoad(int maxLoadThreads) {
@@ -445,7 +453,7 @@ public class BloomFilterLayer {
   public static void main(String[] args) throws IOException {
     PrintStream out = System.out;
 
-    Random r = new Random();
+    SecureRandom r = new SecureRandom();
 
     HashSet<Integer> valsSet = new HashSet<>();
 

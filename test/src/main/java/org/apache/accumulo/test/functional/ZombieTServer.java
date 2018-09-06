@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -98,7 +99,8 @@ public class ZombieTServer {
   private static final Logger log = LoggerFactory.getLogger(ZombieTServer.class);
 
   public static void main(String[] args) throws Exception {
-    Random random = new Random(System.currentTimeMillis() % 1000);
+    Random random = new SecureRandom();
+    random.setSeed(System.currentTimeMillis() % 1000);
     int port = random.nextInt(30000) + 2000;
     ServerContext context = new ServerContext(new SiteConfiguration());
     TransactionWatcher watcher = new TransactionWatcher(context);

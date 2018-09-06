@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.Random;
 
@@ -41,7 +42,7 @@ public class RandomWriter {
   public static class RandomMutationGenerator implements Iterable<Mutation>, Iterator<Mutation> {
     private long max_mutations;
     private int mutations_so_far = 0;
-    private Random r = new Random();
+    private Random r = new SecureRandom();
     private static final Logger log = LoggerFactory.getLogger(RandomMutationGenerator.class);
 
     public RandomMutationGenerator(long num_mutations) {

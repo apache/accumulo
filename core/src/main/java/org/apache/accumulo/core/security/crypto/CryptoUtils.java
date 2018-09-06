@@ -24,10 +24,6 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Objects;
 
-import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.NullCipher;
-
 import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -53,38 +49,6 @@ public class CryptoUtils {
       throw new CryptoException("Unable to generate secure random.", e);
     }
     return secureRandom;
-  }
-
-  public static Cipher getCipher(String cipherSuite, String securityProvider) {
-    Cipher cipher = null;
-
-    if (cipherSuite.equals("NullCipher")) {
-      cipher = new NullCipher();
-    } else {
-      try {
-        if (securityProvider == null || securityProvider.equals("")) {
-          cipher = Cipher.getInstance(cipherSuite);
-        } else {
-          cipher = Cipher.getInstance(cipherSuite, securityProvider);
-        }
-      } catch (NoSuchAlgorithmException e) {
-        log.error(String.format("Accumulo configuration file contained a cipher"
-            + " suite \"%s\" that was not recognized by any providers", cipherSuite));
-        throw new CryptoException(e);
-      } catch (NoSuchPaddingException e) {
-        log.error(String.format(
-            "Accumulo configuration file contained a"
-                + " cipher, \"%s\" with a padding that was not recognized by any" + " providers",
-            cipherSuite));
-        throw new CryptoException(e);
-      } catch (NoSuchProviderException e) {
-        log.error(String.format(
-            "Accumulo configuration file contained a provider, \"%s\" an unrecognized provider",
-            securityProvider));
-        throw new CryptoException(e);
-      }
-    }
-    return cipher;
   }
 
   /**

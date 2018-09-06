@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.security.SecureRandom;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -108,7 +109,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    Random r = new Random();
+    Random r = new SecureRandom();
     byte rowData[] = new byte[ROW_SIZE];
     r.setSeed(SEED + 1);
     TreeSet<Text> splitPoints = new TreeSet<>();
@@ -149,7 +150,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
   private void basicTest(Connector c, String table, int expectedSplits) throws Exception {
     BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
 
-    Random r = new Random();
+    Random r = new SecureRandom();
     byte rowData[] = new byte[ROW_SIZE];
 
     r.setSeed(SEED);
@@ -188,7 +189,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
   }
 
   private void verify(Connector c, String table) throws Exception {
-    Random r = new Random();
+    Random r = new SecureRandom();
     byte rowData[] = new byte[ROW_SIZE];
 
     r.setSeed(SEED);

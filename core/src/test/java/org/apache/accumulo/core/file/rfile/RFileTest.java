@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.SecureRandom;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -537,7 +538,7 @@ public class RFileTest {
 
     // test seeking to random location and reading all data from that point
     // there was an off by one bug with this in the transient index
-    Random rand = new Random();
+    Random rand = new SecureRandom();
     for (int i = 0; i < 12; i++) {
       index = rand.nextInt(expectedKeys.size());
       trf.seek(expectedKeys.get(index));
@@ -1659,7 +1660,7 @@ public class RFileTest {
 
     Set<ByteSequence> cfs = Collections.emptySet();
 
-    Random rand = new Random();
+    Random rand = new SecureRandom();
 
     for (int count = 0; count < 100; count++) {
 
@@ -1998,9 +1999,9 @@ public class RFileTest {
     sample.seek(new Range(), columnFamilies, inclusive);
     Assert.assertEquals(sampleData, toList(sample));
 
-    Random rand = new Random();
+    Random rand = new SecureRandom();
     long seed = rand.nextLong();
-    rand = new Random(seed);
+    rand.setSeed(seed);
 
     // randomly seek sample iterator and verify
     for (int i = 0; i < 33; i++) {

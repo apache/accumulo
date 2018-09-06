@@ -17,6 +17,7 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -492,7 +493,7 @@ public class TestLruBlockCache extends TestCase {
 
   private Block[] generateRandomBlocks(int numBlocks, long maxSize) {
     Block[] blocks = new Block[numBlocks];
-    Random r = new Random();
+    Random r = new SecureRandom();
     for (int i = 0; i < numBlocks; i++) {
       blocks[i] = new Block("block" + i, r.nextInt((int) maxSize) + 1);
     }

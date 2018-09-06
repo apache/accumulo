@@ -17,12 +17,14 @@
 package org.apache.accumulo.core.client.impl;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -76,6 +78,7 @@ public class ThriftScanner {
 
   public static final Map<TabletType,Set<String>> serversWaitedForWrites = new EnumMap<>(
       TabletType.class);
+  private static Random secureRandom = new SecureRandom();
 
   static {
     for (TabletType ttype : TabletType.values()) {
@@ -225,7 +228,7 @@ public class ThriftScanner {
   static long pause(long millis, long maxSleep) throws InterruptedException {
     Thread.sleep(millis);
     // wait 2 * last time, with +-10% random jitter
-    return (long) (Math.min(millis * 2, maxSleep) * (.9 + Math.random() / 5));
+    return (long) (Math.min(millis * 2, maxSleep) * (.9 + secureRandom.nextDouble() / 5));
   }
 
   public static List<KeyValue> scan(ClientContext context, ScanState scanState, int timeOut)

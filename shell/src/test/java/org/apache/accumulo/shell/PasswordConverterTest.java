@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.security.SecureRandom;
 import java.util.Scanner;
 
 import org.apache.accumulo.shell.ShellOptionsJC.PasswordConverter;
@@ -74,7 +75,7 @@ public class PasswordConverterTest {
 
   @Test
   public void testPass() {
-    String expected = String.valueOf(Math.random());
+    String expected = String.valueOf(new SecureRandom().nextDouble());
     argv[1] = "pass:" + expected;
     new JCommander(password).parse(argv);
     assertEquals(expected, password.password);

@@ -26,6 +26,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -471,7 +472,7 @@ public class NativeMapIT {
     // insert things with varying field sizes and value sizes
 
     // generate random data
-    Random r = new Random(75);
+    Random r = new SecureRandom();
 
     ArrayList<Pair<Key,Value>> testData = new ArrayList<>();
 

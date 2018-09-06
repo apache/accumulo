@@ -24,6 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -82,7 +83,7 @@ public class BlockedIOStreamTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     // buffer will be size 12
     BlockedOutputStream blockOut = new BlockedOutputStream(baos, 16, 16);
-    Random r = new Random(22);
+    Random r = new SecureRandom();
 
     byte[] undersized = new byte[11];
     byte[] perfectSized = new byte[12];
@@ -126,7 +127,7 @@ public class BlockedIOStreamTest {
     int blockSize = 16;
     // buffer will be size 12
     BlockedOutputStream blockOut = new BlockedOutputStream(baos, blockSize, blockSize);
-    Random r = new Random(22);
+    Random r = new SecureRandom();
 
     int size = 1024 * 1024 * 128;
     byte[] giant = new byte[size];

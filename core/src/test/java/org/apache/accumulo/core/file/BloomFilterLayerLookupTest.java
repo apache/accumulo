@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -48,7 +49,7 @@ import org.slf4j.LoggerFactory;
 public class BloomFilterLayerLookupTest {
 
   private static final Logger log = LoggerFactory.getLogger(BloomFilterLayerLookupTest.class);
-  private static Random random = new Random();
+  private static Random random = new SecureRandom();
 
   @Rule
   public TestName testName = new TestName();

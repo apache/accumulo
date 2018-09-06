@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -61,7 +62,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     this.tableName = tableName;
   }
 
-  Random r = new Random();
+  Random r = new SecureRandom();
 
   @Override
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,

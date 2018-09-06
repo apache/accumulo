@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -33,7 +34,7 @@ import org.junit.Test;
 public class AuthenticationTokenTest {
   @Test
   public void testSerializeDeserializeToken() throws AccumuloSecurityException, IOException {
-    Random random = new Random();
+    Random random = new SecureRandom();
     byte[] randomBytes = new byte[12];
     random.nextBytes(randomBytes);
     boolean allZero = true;

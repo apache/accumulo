@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.monitor.rest.tservers;
 
-import static org.apache.accumulo.monitor.util.ParameterValidator.SERVER_REGEX;
+import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
 
 import java.lang.management.ManagementFactory;
 import java.security.MessageDigest;
@@ -101,7 +101,7 @@ public class TabletServerResource {
   @POST
   @Consumes(MediaType.TEXT_PLAIN)
   public void clearDeadServer(
-      @QueryParam("server") @NotNull @Pattern(regexp = SERVER_REGEX) String server) {
+      @QueryParam("server") @NotNull @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
     DeadServerList obit = new DeadServerList(Monitor.getContext(),
         Monitor.getContext().getZooKeeperRoot() + Constants.ZDEADTSERVERS);
     obit.delete(server);
@@ -148,7 +148,7 @@ public class TabletServerResource {
   @Path("{address}")
   @GET
   public TabletServerSummary getTserverDetails(
-      @PathParam("address") @NotNull @Pattern(regexp = SERVER_REGEX) String tserverAddress)
+      @PathParam("address") @NotNull @Pattern(regexp = HOSTNAME_PORT_REGEX) String tserverAddress)
       throws Exception {
 
     boolean tserverExists = false;
@@ -316,7 +316,7 @@ public class TabletServerResource {
 
       KeyExtent extent = new KeyExtent(info.extent);
       Table.ID tableId = extent.getTableId();
-      MessageDigest digester = MessageDigest.getInstance("MD5");
+      MessageDigest digester = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
       if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
         digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());
       }

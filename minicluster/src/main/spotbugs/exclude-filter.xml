@@ -16,6 +16,11 @@
 -->
 <FindBugsFilter>
   <Match>
+    <!-- TODO Fix this in _exec? -->
+    <Class name="org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl" />
+    <Bug code="COMMAND" pattern="COMMAND_INJECTION" />
+  </Match>
+  <Match>
     <!-- locking is confusing, but probably correct -->
     <Class name="org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl" />
     <Method name="start" params="" returns="void" />
@@ -26,5 +31,32 @@
     <Class name="org.apache.accumulo.minicluster.impl.ProcessReference" />
     <Method name="equals" params="java.lang.Object" returns="boolean" />
     <Bug code="EQ" pattern="EQ_CHECK_FOR_OPERAND_NOT_COMPATIBLE_WITH_THIS" />
+  </Match>
+  <Match>
+    <!-- Calling new File on input can be dangerous, but OK here -->
+    <Or>
+      <Class name="org.apache.accumulo.cluster.RemoteShellOptions" />
+      <Class name="org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster" />
+      <Class name="org.apache.accumulo.cluster.standalone.StandaloneClusterControl"/>
+      <Class name="org.apache.accumulo.minicluster.MiniAccumuloClusterExistingZooKeepersTest"/>
+      <Class name="org.apache.accumulo.minicluster.MiniAccumuloClusterStartStopTest"/>
+      <Class name="org.apache.accumulo.minicluster.MiniAccumuloRunner"/>
+      <Class name="org.apache.accumulo.minicluster.MiniAccumuloRunner$PropertiesConverter"/>
+      <Class name="org.apache.accumulo.minicluster.impl.MiniAccumuloClusterControl"/>
+      <Class name="org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl"/>
+    </Or>
+    <Bug code="PATH" pattern="PATH_TRAVERSAL_IN"/>
+  </Match>
+  <Match>
+    <!-- Socket just for shutdown -->
+    <Class name="org.apache.accumulo.minicluster.MiniAccumuloRunner" />
+    <Method name="main" params="java.lang.String[]" returns="void"/>
+    <Bug code="UNENCRYPTED" pattern="UNENCRYPTED_SERVER_SOCKET"/>
+  </Match>
+  <Match>
+    <!-- temp socket just for starting up -->
+    <Class name="org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl"/>
+    <Method name="start" params="" returns="void" />
+    <Bug code="UNENCRYPTED" pattern="UNENCRYPTED_SOCKET"/>
   </Match>
 </FindBugsFilter>

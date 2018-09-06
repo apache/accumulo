@@ -35,4 +35,34 @@
     </Or>
     <Bug code="DM" pattern="DM_EXIT" />
   </Match>
+  <Match>
+    <!-- Tests, Monitor or Proxy don't need SSL sockets -->
+    <Or>
+        <Class name="org.apache.accumulo.server.monitor.LogService$SocketServer"/>
+      <Class name="org.apache.accumulo.server.util.TServerUtilsTest"/>
+      <Class name="org.apache.accumulo.server.util.PortUtils" />
+    </Or>
+    <Bug code="UNENCRYPTED" pattern="UNENCRYPTED_SERVER_SOCKET" />
+  </Match>
+  <Match>
+    <!-- Calling new File on input can be dangerous, but OK here -->
+    <Class name="org.apache.accumulo.server.metrics.AbstractMetricsImpl" />
+    <Or>
+      <Method name="setupLogging"/>
+      <Method name="startNewLog"/>
+    </Or>
+    <Bug code="PATH" pattern="PATH_TRAVERSAL_IN"/>
+  </Match>
+  <Match>
+    <!-- Calling new File on input can be dangerous, but OK here -->
+    <Or>
+      <Class name="org.apache.accumulo.server.security.SystemCredentialsTest"/>
+      <Class name="org.apache.accumulo.server.util.Admin"/>
+      <Class name="org.apache.accumulo.server.util.FileSystemMonitor" />
+      <Class name="org.apache.accumulo.server.util.RestoreZookeeper" />
+      <Class name="org.apache.accumulo.server.util.SendLogToChainsaw" />
+      <Class name="org.apache.accumulo.server.util.ConvertConfig"/>
+    </Or>
+    <Bug code="PATH" pattern="PATH_TRAVERSAL_IN" />
+  </Match>
 </FindBugsFilter>

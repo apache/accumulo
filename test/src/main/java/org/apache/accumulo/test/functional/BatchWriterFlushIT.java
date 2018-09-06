@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -107,7 +108,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
       TableNotFoundException, MutationsRejectedException, Exception {
     BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
     try (Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
-      Random r = new Random();
+      Random r = new SecureRandom();
 
       for (int i = 0; i < 4; i++) {
         for (int j = 0; j < NUM_TO_FLUSH; j++) {

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -176,7 +177,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
 
   private long query(Connector c, String table, int depth, long start, long end, int num, int step)
       throws Exception {
-    Random r = new Random(42);
+    Random r = new SecureRandom();
 
     HashSet<Long> expected = new HashSet<>();
     List<Range> ranges = new ArrayList<>(num);

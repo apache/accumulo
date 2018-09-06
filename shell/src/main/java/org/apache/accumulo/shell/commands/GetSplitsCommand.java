@@ -23,6 +23,7 @@ import java.util.Base64;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
@@ -112,7 +113,7 @@ public class GetSplitsCommand extends Command {
   private static String obscuredTabletName(final KeyExtent extent) {
     MessageDigest digester;
     try {
-      digester = MessageDigest.getInstance("MD5");
+      digester = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException(e);
     }

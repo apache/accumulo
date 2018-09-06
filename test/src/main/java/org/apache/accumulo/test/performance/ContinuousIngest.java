@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -99,7 +100,7 @@ public class ContinuousIngest {
         bwOpts.getBatchWriterConfig());
     bw = Trace.wrapAll(bw, new CountSampler(1024));
 
-    Random r = new Random();
+    Random r = new SecureRandom();
 
     byte[] ingestInstanceId = UUID.randomUUID().toString().getBytes(UTF_8);
 

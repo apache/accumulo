@@ -117,8 +117,16 @@ public class StandaloneClusterControl implements ClusterControl {
     for (String arg : args) {
       cmd.add("'" + arg + "'");
     }
-    log.info("Running: '{}' on {}", StringUtils.join(cmd, " "), master);
+    log.info("Running: '{}' on {}", sanitize(StringUtils.join(cmd, " ")), sanitize(master));
     return exec(master, cmd.toArray(new String[cmd.size()]));
+  }
+
+  /**
+   * Prevent potential CRLF injection into logs from read in user data See
+   * https://find-sec-bugs.github.io/bugs.htm#CRLF_INJECTION_LOGS
+   */
+  private String sanitize(String msg) {
+    return msg.replaceAll("[\r\n]", "");
   }
 
   public Entry<Integer,String> execMapreduceWithStdout(Class<?> clz, String[] args)
@@ -280,7 +288,8 @@ public class StandaloneClusterControl implements ClusterControl {
     String pid = getPid(server, accumuloHome, hostname);
 
     if (pid.trim().isEmpty()) {
-      log.debug("Found no processes for {} on {}", server, hostname);
+      log.debug("Found no processes for {} on {}", sanitize(server.prettyPrint()),
+          sanitize(hostname));
       return;
     }
 

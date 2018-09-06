@@ -20,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.security.KeyStore;
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -64,7 +65,7 @@ public class ThriftUtil {
 
   public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
 
-  private static final Random SASL_BACKOFF_RAND = new Random();
+  private static final Random SASL_BACKOFF_RAND = new SecureRandom();
   private static final int RELOGIN_MAX_BACKOFF = 5000;
 
   /**

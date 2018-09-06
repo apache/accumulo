@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.Callable;
@@ -107,7 +108,7 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
 
     @Override
     public Exception call() {
-      Random r = new Random();
+      Random r = new SecureRandom();
       countDown.countDown();
       try {
         countDown.await();

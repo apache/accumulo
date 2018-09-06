@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -89,7 +90,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
 
     System.out.println("splits : " + splits);
 
-    Random random = new Random(19011230);
+    Random random = new SecureRandom();
     HashMap<Text,Value> expected = new HashMap<>();
     ArrayList<Range> ranges = new ArrayList<>();
     for (int i = 0; i < 100; i++) {

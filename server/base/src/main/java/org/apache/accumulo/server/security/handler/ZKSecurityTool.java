@@ -73,7 +73,7 @@ class ZKSecurityTool {
       log.error("Count not create hashed password", e);
       return false;
     }
-    return java.util.Arrays.equals(passwordToCheck, zkData);
+    return MessageDigest.isEqual(passwordToCheck, zkData);
   }
 
   public static byte[] createPass(byte[] password) throws AccumuloException {

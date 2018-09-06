@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,7 +26,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,7 +45,7 @@ import com.google.common.collect.Iterables;
 
 public class ThriftTransportPool {
 
-  private static final Random random = new Random();
+  private static final SecureRandom random = new SecureRandom();
   private long killTime = 1000 * 3;
 
   private static class CachedConnections {
