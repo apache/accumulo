@@ -169,11 +169,35 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
 
   /**
    *
-   * Write some data to multiple tablets Verify data Compact table Verify data Delete table.
+   * Write some data to multiple tablets
+   * Verify data
+   * Compact table
+   * Verify data
+   * Delete table.
    */
   @Test
-  public void testMultipleOperationsFunctionality() {
-
+  public void testMultipleOperationsFunctionality()
+      throws TableExistsException, AccumuloSecurityException, AccumuloException,
+      TableNotFoundException {
+    // Write data to mulitple tablets
+    tableName = getUniqueNames(1)[0];
+    SortedSet<Text> expectedSplits = generateNonBinarySplits(1000, 32);
+    NewTableConfiguration ntc = new NewTableConfiguration().withSplits(expectedSplits);
+    assertFalse(connector.tableOperations().exists(tableName));
+    connector.tableOperations().create(tableName, ntc);
+    assertTrue(connector.tableOperations().exists(tableName));
+    // verify data
+    Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
+    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    connector.tableOperations().flush(tableName);
+    // compact data
+    connector.tableOperations().compact(tableName, null, null, true, true);
+    // verify data
+    createdSplits = connector.tableOperations().listSplits(tableName);
+    assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    // delete table
+    connector.tableOperations().delete(tableName);
+    assertFalse(connector.tableOperations().exists(tableName));
   }
 
   // @Test
