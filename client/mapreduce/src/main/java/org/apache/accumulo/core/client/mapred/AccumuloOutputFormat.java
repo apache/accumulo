@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -426,7 +427,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
 
       if (!simulate) {
-        this.conn = AccumuloClient.builder().usingClientInfo(getClientInfo(job)).build();
+        this.conn = Accumulo.newClient().usingClientInfo(getClientInfo(job)).build();
         mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(job));
       }
     }
@@ -563,7 +564,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       throw new IOException("Connector info has not been set.");
     try {
       // if the instance isn't configured, it will complain here
-      AccumuloClient c = AccumuloClient.builder().usingClientInfo(getClientInfo(job)).build();
+      AccumuloClient c = Accumulo.newClient().usingClientInfo(getClientInfo(job)).build();
       String principal = getPrincipal(job);
       AuthenticationToken token = getAuthenticationToken(job);
       if (!c.securityOperations().authenticateUser(principal, token))

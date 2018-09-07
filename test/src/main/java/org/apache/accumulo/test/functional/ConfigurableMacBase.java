@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -196,7 +197,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
   }
 
   protected ClientInfo getClientInfo() {
-    return AccumuloClient.builder()
+    return Accumulo.newClient()
         .forInstance(getCluster().getInstanceName(), getCluster().getZooKeepers())
         .usingPassword("root", ROOT_PASSWORD).info();
   }

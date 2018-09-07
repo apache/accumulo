@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -167,7 +168,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      ClientInfo info = AccumuloClient.builder().forInstance(instanceName, zooKeepers)
+      ClientInfo info = Accumulo.newClient().forInstance(instanceName, zooKeepers)
           .usingPassword(user, pass).info();
 
       AccumuloInputFormat.setClientInfo(job, info);

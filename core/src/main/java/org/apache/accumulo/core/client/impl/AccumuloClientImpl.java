@@ -266,7 +266,8 @@ public class AccumuloClientImpl extends Connector implements AccumuloClient {
   @Override
   public AccumuloClient changeUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException, AccumuloException {
-    return AccumuloClient.builder().usingClientInfo(info()).usingToken(principal, token).build();
+    return new AccumuloClientBuilderImpl().usingClientInfo(info()).usingToken(principal, token)
+        .build();
   }
 
   public static class AccumuloClientBuilderImpl

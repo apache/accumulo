@@ -23,8 +23,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Properties;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -79,7 +79,7 @@ public class ConfiguratorBaseTest {
   @Test
   public void testSetClientInfo() {
     Configuration conf = new Configuration();
-    ClientInfo info = AccumuloClient.builder().forInstance("myinstance", "myzookeepers")
+    ClientInfo info = Accumulo.newClient().forInstance("myinstance", "myzookeepers")
         .usingPassword("user", "pass").info();
     ConfiguratorBase.setClientInfo(this.getClass(), conf, info);
     ClientInfo info2 = ConfiguratorBase.getClientInfo(this.getClass(), conf);

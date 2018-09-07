@@ -55,6 +55,7 @@ import javax.net.ssl.X509TrustManager;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -124,7 +125,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   @Test(expected = RuntimeException.class)
   public void invalidInstanceName() throws Exception {
-    AccumuloClient.builder().forInstance("fake_instance_name", cluster.getZooKeepers())
+    Accumulo.newClient().forInstance("fake_instance_name", cluster.getZooKeepers())
         .usingToken(getAdminPrincipal(), getAdminToken()).build();
   }
 

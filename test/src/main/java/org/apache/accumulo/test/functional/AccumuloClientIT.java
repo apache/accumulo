@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import java.util.Properties;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -37,7 +38,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     final String password = "testpassword";
     c.securityOperations().createLocalUser(user, new PasswordToken(password));
 
-    AccumuloClient conn = AccumuloClient.builder().forInstance(instanceName, zookeepers)
+    AccumuloClient conn = Accumulo.newClient().forInstance(instanceName, zookeepers)
         .usingPassword(user, password).withZkTimeout(1234).build();
 
     Assert.assertEquals(instanceName, conn.info().getInstanceName());
@@ -45,7 +46,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     Assert.assertEquals(user, conn.whoami());
     Assert.assertEquals(1234, conn.info().getZooKeepersSessionTimeOut());
 
-    ClientInfo info = AccumuloClient.builder().forInstance(instanceName, zookeepers)
+    ClientInfo info = Accumulo.newClient().forInstance(instanceName, zookeepers)
         .usingPassword(user, password).info();
     Assert.assertEquals(instanceName, info.getInstanceName());
     Assert.assertEquals(zookeepers, info.getZooKeepers());
@@ -58,7 +59,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     props.put(ClientProperty.AUTH_PRINCIPAL.getKey(), user);
     props.put(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(), "22s");
     ClientProperty.setPassword(props, password);
-    conn = AccumuloClient.builder().usingProperties(props).build();
+    conn = Accumulo.newClient().usingProperties(props).build();
 
     Assert.assertEquals(instanceName, conn.info().getInstanceName());
     Assert.assertEquals(zookeepers, conn.info().getZooKeepers());
@@ -69,7 +70,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     final String password2 = "testpassword2";
     c.securityOperations().createLocalUser(user2, new PasswordToken(password2));
 
-    AccumuloClient conn2 = AccumuloClient.builder().usingClientInfo(conn.info())
+    AccumuloClient conn2 = Accumulo.newClient().usingClientInfo(conn.info())
         .usingToken(user2, new PasswordToken(password2)).build();
     Assert.assertEquals(instanceName, conn2.info().getInstanceName());
     Assert.assertEquals(zookeepers, conn2.info().getZooKeepers());

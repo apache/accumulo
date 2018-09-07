@@ -29,6 +29,7 @@ import java.net.URISyntaxException;
 import java.util.Properties;
 import java.util.Scanner;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -119,11 +120,11 @@ public class ConfiguratorBase {
     if (info.getAuthenticationToken() instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        AccumuloClient conn = AccumuloClient.builder().usingClientInfo(info).build();
+        AccumuloClient conn = Accumulo.newClient().usingClientInfo(info).build();
         AuthenticationToken token = conn.securityOperations()
             .getDelegationToken(new DelegationTokenConfig());
-        result = AccumuloClient.builder().usingClientInfo(info)
-            .usingToken(info.getPrincipal(), token).info();
+        result = Accumulo.newClient().usingClientInfo(info).usingToken(info.getPrincipal(), token)
+            .info();
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, "
             + "Mappers/Reducers will likely fail to communicate with Accumulo", e);
@@ -351,8 +352,7 @@ public class ConfiguratorBase {
    */
   public static AccumuloClient getConnector(Class<?> implementingClass, Configuration conf) {
     try {
-      return AccumuloClient.builder().usingClientInfo(getClientInfo(implementingClass, conf))
-          .build();
+      return Accumulo.newClient().usingClientInfo(getClientInfo(implementingClass, conf)).build();
     } catch (AccumuloException | AccumuloSecurityException e) {
       throw new IllegalStateException(e);
     }

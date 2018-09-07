@@ -24,6 +24,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -166,7 +167,7 @@ public class BatchWriterIterator extends WrappingIterator {
 
   private void initBatchWriter() {
     try {
-      accumuloClient = AccumuloClient.builder().forInstance(instanceName, zookeeperHost)
+      accumuloClient = Accumulo.newClient().forInstance(instanceName, zookeeperHost)
           .usingToken(username, auth).withZkTimeout(zookeeperTimeout).build();
     } catch (Exception e) {
       log.error("failed to connect to Accumulo instance " + instanceName, e);

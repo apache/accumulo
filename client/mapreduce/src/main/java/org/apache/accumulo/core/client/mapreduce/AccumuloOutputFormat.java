@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -429,7 +430,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
 
       if (!simulate) {
-        this.conn = AccumuloClient.builder().usingClientInfo(getClientInfo(context)).build();
+        this.conn = Accumulo.newClient().usingClientInfo(getClientInfo(context)).build();
         mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(context));
       }
     }
@@ -568,7 +569,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       // if the instance isn't configured, it will complain here
       String principal = getPrincipal(job);
       AuthenticationToken token = getAuthenticationToken(job);
-      AccumuloClient c = AccumuloClient.builder().usingClientInfo(getClientInfo(job)).build();
+      AccumuloClient c = Accumulo.newClient().usingClientInfo(getClientInfo(job)).build();
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException | AccumuloSecurityException e) {

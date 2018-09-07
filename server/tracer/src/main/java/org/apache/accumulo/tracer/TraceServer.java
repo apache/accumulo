@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -272,8 +273,8 @@ public class TraceServer implements Watcher {
           at = token;
         }
 
-        accumuloClient = AccumuloClient.builder().usingClientInfo(context.getClientInfo())
-            .usingToken(principal, at).build();
+        accumuloClient = new AccumuloClientImpl.AccumuloClientBuilderImpl()
+            .usingClientInfo(context.getClientInfo()).usingToken(principal, at).build();
         if (!accumuloClient.tableOperations().exists(tableName)) {
           accumuloClient.tableOperations().create(tableName);
           IteratorSetting setting = new IteratorSetting(10, "ageoff", AgeOffFilter.class.getName());

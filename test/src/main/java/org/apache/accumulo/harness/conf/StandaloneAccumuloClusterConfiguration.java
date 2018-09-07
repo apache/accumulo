@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterUser;
-import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -101,7 +101,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
     this.conf = getConfiguration(type);
     this.clientPropsFile = clientPropsFile;
-    clientInfo = AccumuloClient.builder().forInstance(getInstanceName(), getZooKeepers())
+    clientInfo = Accumulo.newClient().forInstance(getInstanceName(), getZooKeepers())
         .usingToken(getAdminPrincipal(), getAdminToken()).info();
 
     // The user Accumulo is running as

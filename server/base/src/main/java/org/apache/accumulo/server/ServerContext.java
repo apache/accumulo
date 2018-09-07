@@ -248,7 +248,8 @@ public class ServerContext extends ClientContext {
 
   public AccumuloClient getConnector(String principal, AuthenticationToken token)
       throws AccumuloSecurityException, AccumuloException {
-    return AccumuloClient.builder().usingClientInfo(info).usingToken(principal, token).build();
+    return new AccumuloClientImpl.AccumuloClientBuilderImpl().usingClientInfo(info)
+        .usingToken(principal, token).build();
   }
 
   public synchronized TableManager getTableManager() {

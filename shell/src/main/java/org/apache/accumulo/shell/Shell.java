@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -339,7 +340,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       try {
         DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", properties);
         this.setTableName("");
-        accumuloClient = AccumuloClient.builder().usingClientInfo(info).usingToken(principal, token)
+        accumuloClient = Accumulo.newClient().usingClientInfo(info).usingToken(principal, token)
             .build();
         context = new ClientContext(accumuloClient.info());
       } catch (Exception e) {
