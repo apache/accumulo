@@ -45,7 +45,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooQueueLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;

@@ -53,18 +53,14 @@ class ChooseDir extends MasterRepo {
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableInfo.tableId);
 
-    String baseDir = master.getFileSystem().choose(chooserEnv, ServerConstants.getBaseUris())
-        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + tableInfo.tableId;
+    String baseDir = master.getFileSystem().choose(chooserEnv,
+        ServerConstants.getBaseUris(master.getConfiguration())) + Constants.HDFS_TABLES_DIR
+        + Path.SEPARATOR + tableInfo.tableId;
     tableInfo.defaultTabletDir = baseDir + Constants.DEFAULT_TABLET_LOCATION;
 
     if (tableInfo.initialSplitSize > 0) {
       createTableDirectoriesInfo(master, baseDir);
     }
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableInfo.tableId,
-        master.getContext());
-    tableInfo.dir = master.getFileSystem().choose(chooserEnv,
-        ServerConstants.getBaseUris(master.getConfiguration())) + Constants.HDFS_TABLES_DIR
-        + Path.SEPARATOR + tableInfo.tableId + Constants.DEFAULT_TABLET_LOCATION;
     return new CreateDir(tableInfo);
   }
 
@@ -81,7 +77,8 @@ class ChooseDir extends MasterRepo {
   private void createTableDirectoriesInfo(Master master, String baseDir) throws IOException {
     SortedSet<Text> splits = Utils.getSortedSetFromFile(master.getInputStream(tableInfo.splitFile),
         true);
-    SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(splits.size(), baseDir);
+    SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(master, splits.size(),
+        baseDir);
     writeTabletDirectoriesToFileSystem(master, tabletDirectoryInfo);
   }
 
@@ -89,9 +86,9 @@ class ChooseDir extends MasterRepo {
    * Create a set of unique table directories. These will be associated with splits in a follow-on
    * FATE step.
    */
-  private SortedSet<Text> createTabletDirectoriesSet(int num, String baseDir) {
+  private SortedSet<Text> createTabletDirectoriesSet(Master master, int num, String baseDir) {
     String tabletDir;
-    UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
+    UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
     SortedSet<Text> splitDirs = new TreeSet<>();
     for (int i = 0; i < num; i++) {
       tabletDir = "/" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();

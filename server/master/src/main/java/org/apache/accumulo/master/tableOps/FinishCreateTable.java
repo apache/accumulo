@@ -23,7 +23,6 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -46,9 +45,10 @@ class FinishCreateTable extends MasterRepo {
   public Repo<Master> call(long tid, Master env) throws Exception {
 
     if (tableInfo.initialTableState == InitialTableState.OFFLINE) {
-      TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.OFFLINE);
+      env.getContext().getTableManager().transitionTableState(tableInfo.tableId,
+          TableState.OFFLINE);
     } else {
-      TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
+      env.getContext().getTableManager().transitionTableState(tableInfo.tableId, TableState.ONLINE);
     }
 
     Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);

@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
@@ -57,8 +58,7 @@ class PopulateMetadata extends MasterRepo {
   public Repo<Master> call(long tid, Master environment) throws Exception {
     KeyExtent extent = new KeyExtent(tableInfo.tableId, null, null);
     MetadataTableUtil.addTablet(extent, tableInfo.defaultTabletDir, environment.getContext(),
-        tableInfo.timeType,
-        environment.getMasterLock());
+        tableInfo.timeType, environment.getMasterLock());
 
     if (tableInfo.initialSplitSize > 0) {
       SortedSet<Text> splits = Utils
@@ -67,15 +67,15 @@ class PopulateMetadata extends MasterRepo {
           .getSortedSetFromFile(environment.getInputStream(tableInfo.splitDirsFile), false);
       Map<Text,Text> splitDirMap = createSplitDirectoryMap(splits, dirs);
       try (BatchWriter bw = environment.getConnector().createBatchWriter("accumulo.metadata")) {
-        writeSplitsToMetadataTable(tableInfo.tableId, splits, splitDirMap, tableInfo.timeType,
-            environment.getMasterLock(), bw);
+        writeSplitsToMetadataTable(environment.getContext(), tableInfo.tableId, splits, splitDirMap,
+            tableInfo.timeType, environment.getMasterLock(), bw);
       }
     }
     return new FinishCreateTable(tableInfo);
   }
 
-  private void writeSplitsToMetadataTable(Table.ID tableId, SortedSet<Text> splits,
-      Map<Text,Text> data, char timeType, ZooLock lock, BatchWriter bw)
+  private void writeSplitsToMetadataTable(ServerContext ctx, Table.ID tableId,
+      SortedSet<Text> splits, Map<Text,Text> data, char timeType, ZooLock lock, BatchWriter bw)
       throws MutationsRejectedException {
     Text prevSplit = null;
     Value dirValue;
@@ -86,7 +86,7 @@ class PopulateMetadata extends MasterRepo {
       MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, dirValue);
       MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut,
           new Value(timeType + "0"));
-      MetadataTableUtil.putLockID(lock, mut);
+      MetadataTableUtil.putLockID(ctx, lock, mut);
       prevSplit = split;
       bw.addMutation(mut);
     }
