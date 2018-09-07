@@ -23,7 +23,6 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.Authorizations;
 
@@ -35,7 +34,7 @@ import org.apache.accumulo.core.security.Authorizations;
  * Supports fluent API. Various options can be provided to {@link #builder()} and when finished a
  * call to build() will return the AccumuloClient object. For example:
  *
- * {@code AccumuloClient.builder().forInstance(instanceName, zookeepers)
+ * {@code Accumulo.newClient().forInstance(instanceName, zookeepers)
  *         .usingPassword(user, password).withZkTimeout(1234).build();}
  *
  * @since 2.0.0
@@ -519,14 +518,5 @@ public interface AccumuloClient {
 
   public interface FromOptions extends ConnectionOptions, PropertyOptions, AuthenticationArgs {
 
-  }
-
-  /**
-   * Creates builder for AccumuloClient.
-   *
-   * @return this builder
-   */
-  public static ClientInfoOptions builder() {
-    return new AccumuloClientImpl.AccumuloClientBuilderImpl();
   }
 }
