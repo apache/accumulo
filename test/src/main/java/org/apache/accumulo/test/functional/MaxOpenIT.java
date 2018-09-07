@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -140,7 +139,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
       long t1 = System.currentTimeMillis();
 
       byte rval[] = new byte[50];
-      Random random = new SecureRandom();
+      Random random = new Random();
 
       for (Entry<Key,Value> entry : bs) {
         count++;
