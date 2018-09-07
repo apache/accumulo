@@ -18,8 +18,13 @@ package org.apache.accumulo.master.tableOps;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.util.Base64;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -40,6 +45,9 @@ import org.apache.accumulo.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.ZooQueueLock;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -176,5 +184,25 @@ public class Utils {
     if (n != null && !n.equals(namespaceId))
       throw new AcceptableThriftTableOperationException(null, namespace, operation,
           TableOperationExceptionType.NAMESPACE_EXISTS, null);
+  }
+
+  /**
+   * Given an input stream and a flag indicating if the file info is base64 encoded or not, retrieve
+   * the data from a file on the file system. It is assumed that the file is textual and not binary
+   * data.
+   */
+  static SortedSet<Text> getSortedSetFromFile(FSDataInputStream inputStream, boolean encoded)
+      throws IOException {
+    SortedSet<Text> data = new TreeSet<>();
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
+      String line;
+      while ((line = br.readLine()) != null) {
+        if (encoded)
+          data.add(new Text(Base64.getDecoder().decode(line)));
+        else
+          data.add(new Text(line));
+      }
+    }
+    return data;
   }
 }

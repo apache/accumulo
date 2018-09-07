@@ -16,15 +16,19 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import java.io.IOException;
+import java.util.SortedSet;
+
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 
 class CreateDir extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   CreateDir(TableInfo ti) {
     this.tableInfo = ti;
@@ -38,14 +42,37 @@ class CreateDir extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     VolumeManager fs = master.getFileSystem();
-    fs.mkdirs(new Path(tableInfo.dir));
+    fs.mkdirs(new Path(tableInfo.defaultTabletDir));
+
+    // read in the splitDir info file and create a directory for each item
+    if (tableInfo.initialSplitSize > 0) {
+      SortedSet<Text> dirInfo = Utils
+          .getSortedSetFromFile(master.getInputStream(tableInfo.splitDirsFile), false);
+      createTabletDirectories(master.getFileSystem(), dirInfo);
+    }
     return new PopulateMetadata(tableInfo);
   }
 
   @Override
   public void undo(long tid, Master master) throws Exception {
     VolumeManager fs = master.getFileSystem();
-    fs.deleteRecursively(new Path(tableInfo.dir));
+    fs.deleteRecursively(new Path(tableInfo.defaultTabletDir));
 
+    if (tableInfo.initialSplitSize > 0) {
+      SortedSet<Text> dirInfo = Utils
+          .getSortedSetFromFile(master.getInputStream(tableInfo.splitDirsFile), false);
+      for (Text dirname : dirInfo) {
+        fs.deleteRecursively(new Path(dirname.toString()));
+      }
+    }
+  }
+
+  private void createTabletDirectories(VolumeManager fs, SortedSet<Text> dirInfo)
+      throws IOException {
+
+    for (Text dir : dirInfo) {
+      if (!fs.mkdirs(new Path(dir.toString())))
+        throw new IOException("Failed to create tablet directory: " + dir);
+    }
   }
 }

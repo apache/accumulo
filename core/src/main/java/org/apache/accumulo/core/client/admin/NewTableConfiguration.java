@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -27,7 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.SortedSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -44,6 +45,8 @@ import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.collect.ImmutableSortedSet;
+
 /**
  * This object stores table creation parameters. Currently includes: {@link TimeType}, whether to
  * include default iterators, and user-specified initial properties
@@ -55,13 +58,17 @@ public class NewTableConfiguration {
   private static final TimeType DEFAULT_TIME_TYPE = TimeType.MILLIS;
   private TimeType timeType = DEFAULT_TIME_TYPE;
 
+  private static final InitialTableState DEFAULT_CREATION_MODE = InitialTableState.ONLINE;
+  private InitialTableState initialTableState = DEFAULT_CREATION_MODE;
+
   private boolean limitVersion = true;
 
   private Map<String,String> properties = Collections.emptyMap();
   private Map<String,String> samplerProps = Collections.emptyMap();
   private Map<String,String> summarizerProps = Collections.emptyMap();
   private Map<String,String> localityProps = Collections.emptyMap();
-  private Map<String,String> iteratorProps = new HashMap<>();
+  private final Map<String,String> iteratorProps = new HashMap<>();
+  private SortedSet<Text> splitProps = Collections.emptySortedSet();
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps,
       String kind) {
@@ -104,6 +111,29 @@ public class NewTableConfiguration {
   }
 
   /**
+   * Create the new table in an offline state.
+   *
+   * @return this
+   *
+   * @since 2.0.0
+   */
+  public NewTableConfiguration createOffline() {
+    this.initialTableState = InitialTableState.OFFLINE;
+    return this;
+  }
+
+  /**
+   * Return value indicating whether table is to be created in offline or online mode.
+   *
+   * @return 1 if true; 0 otherwise.
+   *
+   * @since 2.0.0
+   */
+  public InitialTableState getInitialTableState() {
+    return initialTableState;
+  }
+
+  /**
    * Sets additional properties to be applied to tables created with this configuration. Additional
    * calls to this method replace properties set by previous calls.
    *
@@ -140,6 +170,17 @@ public class NewTableConfiguration {
     propertyMap.putAll(iteratorProps);
     propertyMap.putAll(localityProps);
     return Collections.unmodifiableMap(propertyMap);
+  }
+
+  /**
+   * Return Collection of split values.
+   *
+   * @return Collection containing splits associated with this NewTableConfiguration object.
+   *
+   * @since 2.0.0
+   */
+  public Collection<Text> getSplits() {
+    return splitProps;
   }
 
   /**
@@ -192,10 +233,25 @@ public class NewTableConfiguration {
       String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
       tmp.put(Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
     }
-    tmp.put(Property.TABLE_LOCALITY_GROUPS.getKey(),
-        groups.keySet().stream().collect(Collectors.joining(",")));
+    tmp.put(Property.TABLE_LOCALITY_GROUPS.getKey(), String.join(",", groups.keySet()));
     checkDisjoint(properties, tmp, "locality groups");
     localityProps = tmp;
+    return this;
+  }
+
+  /**
+   * Create a new table with pre-configured splits from the provided input collection.
+   *
+   * @param splits
+   *          A SortedSet of String values to be used as split points in a newly created table.
+   * @return this
+   *
+   * @since 2.0.0
+   */
+  public NewTableConfiguration withSplits(final SortedSet<Text> splits) {
+    checkArgument(splits != null, "splits set is null");
+    checkArgument(!splits.isEmpty(), "splits set is empty");
+    this.splitProps = ImmutableSortedSet.copyOf(splits);
     return this;
   }
 
