@@ -16,11 +16,13 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ClientPropertyTest {
@@ -30,26 +32,26 @@ public class ClientPropertyTest {
     Properties props = new Properties();
     props.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), "user");
     ClientProperty.setPassword(props, "testpass1");
-    Assert.assertEquals("testpass1", ClientProperty.AUTH_TOKEN.getValue(props));
+    assertEquals("testpass1", ClientProperty.AUTH_TOKEN.getValue(props));
     AuthenticationToken token = ClientProperty.getAuthenticationToken(props);
-    Assert.assertTrue(token instanceof PasswordToken);
-    Assert.assertEquals("testpass1", new String(((PasswordToken) token).getPassword()));
+    assertTrue(token instanceof PasswordToken);
+    assertEquals("testpass1", new String(((PasswordToken) token).getPassword()));
 
     ClientProperty.setAuthenticationToken(props, new PasswordToken("testpass2"));
-    Assert.assertEquals("AAAAHR+LCAAAAAAAAAArSS0uKUgsLjYCANxwRH4JAAAA",
+    assertEquals("AAAAHR+LCAAAAAAAAAArSS0uKUgsLjYCANxwRH4JAAAA",
         ClientProperty.AUTH_TOKEN.getValue(props));
     token = ClientProperty.getAuthenticationToken(props);
-    Assert.assertTrue(token instanceof PasswordToken);
-    Assert.assertEquals("testpass2", new String(((PasswordToken) token).getPassword()));
+    assertTrue(token instanceof PasswordToken);
+    assertEquals("testpass2", new String(((PasswordToken) token).getPassword()));
 
     ClientProperty.setAuthenticationToken(props, new PasswordToken("testpass3"));
-    Assert.assertEquals("AAAAHR+LCAAAAAAAAAArSS0uKUgsLjYGAEpAQwkJAAAA",
+    assertEquals("AAAAHR+LCAAAAAAAAAArSS0uKUgsLjYGAEpAQwkJAAAA",
         ClientProperty.AUTH_TOKEN.getValue(props));
     token = ClientProperty.getAuthenticationToken(props);
-    Assert.assertTrue(token instanceof PasswordToken);
-    Assert.assertEquals("testpass3", new String(((PasswordToken) token).getPassword()));
+    assertTrue(token instanceof PasswordToken);
+    assertEquals("testpass3", new String(((PasswordToken) token).getPassword()));
 
     ClientProperty.setKerberosKeytab(props, "/path/to/keytab");
-    Assert.assertEquals("/path/to/keytab", ClientProperty.AUTH_TOKEN.getValue(props));
+    assertEquals("/path/to/keytab", ClientProperty.AUTH_TOKEN.getValue(props));
   }
 }

@@ -18,6 +18,7 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.create;
+import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,7 +30,6 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -59,7 +59,7 @@ public class LinkingIteratorTest {
     List<KeyExtent> actual = new ArrayList<>();
     new LinkingIterator(iterFactory, new Range())
         .forEachRemaining(tm -> actual.add(tm.getExtent()));
-    Assert.assertEquals(Lists.transform(expected, TabletMetadata::getExtent), actual);
+    assertEquals(Lists.transform(expected, TabletMetadata::getExtent), actual);
   }
 
   @Test

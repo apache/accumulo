@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -32,7 +35,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -90,8 +92,8 @@ public class ConcurrentKeyExtentCacheTest {
   private void testLookup(TestCache tc, Text lookupRow) {
     try {
       KeyExtent extent = tc.lookup(lookupRow);
-      Assert.assertTrue(extent.contains(lookupRow));
-      Assert.assertTrue(extentsSet.contains(extent));
+      assertTrue(extent.contains(lookupRow));
+      assertTrue(extentsSet.contains(extent));
     } catch (IOException | AccumuloException | AccumuloSecurityException
         | TableNotFoundException e) {
       throw new RuntimeException(e);
@@ -104,13 +106,13 @@ public class ConcurrentKeyExtentCacheTest {
     TestCache tc = new TestCache();
     rand.ints(10000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i))).sequential()
         .forEach(lookupRow -> testLookup(tc, lookupRow));
-    Assert.assertEquals(256, tc.updates.get());
+    assertEquals(256, tc.updates.get());
 
     // try parallel
     TestCache tc2 = new TestCache();
     rand.ints(10000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i))).parallel()
         .forEach(lookupRow -> testLookup(tc2, lookupRow));
-    Assert.assertEquals(256, tc2.updates.get());
+    assertEquals(256, tc2.updates.get());
   }
 
   @Test
@@ -120,12 +122,12 @@ public class ConcurrentKeyExtentCacheTest {
     Random rand = new SecureRandom();
     rand.ints(10000).mapToObj(i -> new Text(String.format("%08x", i))).sequential()
         .forEach(lookupRow -> testLookup(tc, lookupRow));
-    Assert.assertEquals(256, tc.updates.get());
+    assertEquals(256, tc.updates.get());
 
     // try parallel
     TestCache tc2 = new TestCache();
     rand.ints(10000).mapToObj(i -> new Text(String.format("%08x", i))).parallel()
         .forEach(lookupRow -> testLookup(tc2, lookupRow));
-    Assert.assertEquals(256, tc2.updates.get());
+    assertEquals(256, tc2.updates.get());
   }
 }

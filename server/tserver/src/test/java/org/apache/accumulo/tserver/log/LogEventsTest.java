@@ -16,8 +16,9 @@
  */
 package org.apache.accumulo.tserver.log;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.accumulo.tserver.logger.LogEvents;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class LogEventsTest {
@@ -29,7 +30,7 @@ public class LogEventsTest {
         LogEvents.MANY_MUTATIONS, LogEvents.COMPACTION_START, LogEvents.COMPACTION_FINISH};
 
     for (int i = 0; i < expectedOrder.length; i++) {
-      Assert.assertEquals(i, expectedOrder[i].ordinal());
+      assertEquals(i, expectedOrder[i].ordinal());
     }
   }
 }

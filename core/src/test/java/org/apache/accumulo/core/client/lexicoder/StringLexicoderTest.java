@@ -17,9 +17,11 @@
 package org.apache.accumulo.core.client.lexicoder;
 
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.junit.Test;
 
 public class StringLexicoderTest extends AbstractLexicoderTest {
 
+  @Test
   public void testDecode() throws Exception {
     assertDecodes(new StringLexicoder(), "");
     assertDecodes(new StringLexicoder(), "0");

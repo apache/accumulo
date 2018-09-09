@@ -16,11 +16,13 @@
  */
 package org.apache.accumulo.core.constraints;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class NoDeleteConstraintTest {
@@ -33,13 +35,13 @@ public class NoDeleteConstraintTest {
     NoDeleteConstraint ndc = new NoDeleteConstraint();
 
     List<Short> results = ndc.check(null, m1);
-    Assert.assertEquals(1, results.size());
-    Assert.assertEquals(1, results.get(0).intValue());
+    assertEquals(1, results.size());
+    assertEquals(1, results.get(0).intValue());
 
     Mutation m2 = new Mutation("r1");
     m2.put("f1", "q1", new Value("v1"));
 
     results = ndc.check(null, m2);
-    Assert.assertNull(results);
+    assertNull(results);
   }
 }

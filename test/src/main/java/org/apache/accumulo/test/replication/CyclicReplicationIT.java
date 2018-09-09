@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedOutputStream;
@@ -56,7 +58,6 @@ import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -121,10 +122,10 @@ public class CyclicReplicationIT {
       Map<String,String> peerSiteConfig = new HashMap<>();
       peerSiteConfig.put(Property.INSTANCE_RPC_SSL_ENABLED.getKey(), "true");
       String keystorePath = primarySiteConfig.get(Property.RPC_SSL_KEYSTORE_PATH.getKey());
-      Assert.assertNotNull("Keystore Path was null", keystorePath);
+      assertNotNull("Keystore Path was null", keystorePath);
       peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PATH.getKey(), keystorePath);
       String truststorePath = primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PATH.getKey());
-      Assert.assertNotNull("Truststore Path was null", truststorePath);
+      assertNotNull("Truststore Path was null", truststorePath);
       peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PATH.getKey(), truststorePath);
 
       // Passwords might be stored in CredentialProvider
@@ -256,12 +257,12 @@ public class CyclicReplicationIT {
       connMaster1.tableOperations().create(master1Table,
           new NewTableConfiguration().withoutDefaultIterators());
       String master1TableId = connMaster1.tableOperations().tableIdMap().get(master1Table);
-      Assert.assertNotNull(master1TableId);
+      assertNotNull(master1TableId);
 
       connMaster2.tableOperations().create(master2Table,
           new NewTableConfiguration().withoutDefaultIterators());
       String master2TableId = connMaster2.tableOperations().tableIdMap().get(master2Table);
-      Assert.assertNotNull(master2TableId);
+      assertNotNull(master2TableId);
 
       // Replicate master1 in the master1 cluster to master2 in the master2 cluster
       connMaster1.tableOperations().setProperty(master1Table, Property.TABLE_REPLICATION.getKey(),
@@ -319,7 +320,7 @@ public class CyclicReplicationIT {
       Entry<Key,Value> entry;
       try (Scanner s = connMaster1.createScanner(master1Table, Authorizations.EMPTY)) {
         entry = Iterables.getOnlyElement(s);
-        Assert.assertEquals("1", entry.getValue().toString());
+        assertEquals("1", entry.getValue().toString());
 
         // Wait for this table to replicate
         connMaster1.replicationOperations().drain(master1Table, files);
@@ -330,7 +331,7 @@ public class CyclicReplicationIT {
       // Check that the element made it to master2 only once
       try (Scanner s = connMaster2.createScanner(master2Table, Authorizations.EMPTY)) {
         entry = Iterables.getOnlyElement(s);
-        Assert.assertEquals("1", entry.getValue().toString());
+        assertEquals("1", entry.getValue().toString());
 
         // Wait for master2 to finish replicating it back
         files = connMaster2.replicationOperations().referencedFiles(master2Table);
@@ -349,7 +350,7 @@ public class CyclicReplicationIT {
       // Check that the element made it to master2 only once
       try (Scanner s = connMaster2.createScanner(master2Table, Authorizations.EMPTY)) {
         entry = Iterables.getOnlyElement(s);
-        Assert.assertEquals("1", entry.getValue().toString());
+        assertEquals("1", entry.getValue().toString());
 
         connMaster2.replicationOperations().drain(master2Table, files);
 
@@ -359,7 +360,7 @@ public class CyclicReplicationIT {
       // Verify that the entry wasn't sent back to master1
       try (Scanner s = connMaster1.createScanner(master1Table, Authorizations.EMPTY)) {
         entry = Iterables.getOnlyElement(s);
-        Assert.assertEquals("1", entry.getValue().toString());
+        assertEquals("1", entry.getValue().toString());
       }
     } finally {
       master1Cluster.stop();

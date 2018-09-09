@@ -17,6 +17,7 @@
 package org.apache.accumulo.tserver.replication;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +34,6 @@ import org.apache.accumulo.server.replication.ReplicaSystemHelper;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ReplicationProcessorTest {
@@ -52,7 +52,7 @@ public class ReplicationProcessorTest {
 
     ReplicationProcessor proc = new ReplicationProcessor(context, conf, fs);
 
-    Assert.assertEquals(configuration, proc.getPeerType(peerName));
+    assertEquals(configuration, proc.getPeerType(peerName));
   }
 
   @Test(expected = IllegalArgumentException.class)

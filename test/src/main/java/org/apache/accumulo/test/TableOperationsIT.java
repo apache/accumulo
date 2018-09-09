@@ -63,7 +63,6 @@ import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -233,17 +232,17 @@ public class TableOperationsIT extends AccumuloClusterHarness {
           rowCounts.put(row, 1);
         }
 
-        Assert.assertEquals(Integer.parseInt(cf) + Integer.parseInt(cq), Integer.parseInt(value));
+        assertEquals(Integer.parseInt(cf) + Integer.parseInt(cq), Integer.parseInt(value));
       }
     }
 
     Collection<Text> clonedSplits = tops.listSplits(clonedTable);
     Set<Text> expectedSplits = Sets.newHashSet(new Text("b"), new Text("c"), new Text("d"));
     for (Text clonedSplit : clonedSplits) {
-      Assert.assertTrue("Encountered unexpected split on the cloned table: " + clonedSplit,
+      assertTrue("Encountered unexpected split on the cloned table: " + clonedSplit,
           expectedSplits.remove(clonedSplit));
     }
-    Assert.assertTrue("Did not find all expected splits on the cloned table: " + expectedSplits,
+    assertTrue("Did not find all expected splits on the cloned table: " + expectedSplits,
         expectedSplits.isEmpty());
   }
 
@@ -343,7 +342,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
           // Cancelled the compaction before it ran. No generated entries.
           break;
         default:
-          Assert.fail("Unexpected number of entries");
+          fail("Unexpected number of entries");
           break;
       }
       connector.tableOperations().delete(tableName);

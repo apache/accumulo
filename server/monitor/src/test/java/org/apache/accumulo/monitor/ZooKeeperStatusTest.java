@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.monitor;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.TreeSet;
 
 import org.apache.accumulo.monitor.ZooKeeperStatus.ZooKeeperState;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ZooKeeperStatusTest {
@@ -45,11 +46,11 @@ public class ZooKeeperStatusTest {
     }
 
     // Assert we have 4 of each
-    Assert.assertEquals(expectedHosts.size(), actualHosts.size());
+    assertEquals(expectedHosts.size(), actualHosts.size());
 
     // Assert the ordering is correct
     for (int i = 0; i < expectedHosts.size(); i++) {
-      Assert.assertEquals(expectedHosts.get(i), actualHosts.get(i));
+      assertEquals(expectedHosts.get(i), actualHosts.get(i));
     }
 
   }

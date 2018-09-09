@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.core.util;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +26,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 public class CompletableFutureUtilTest {
@@ -41,13 +42,13 @@ public class CompletableFutureUtilTest {
 
         CompletableFuture<Integer> mergedFutures = CompletableFutureUtil.merge(futures,
             Integer::sum, () -> 0);
-        Assert.assertEquals(n * (n + 1) / 2, mergedFutures.get().intValue());
+        assertEquals(n * (n + 1) / 2, mergedFutures.get().intValue());
       }
 
       // test zero
       CompletableFuture<Integer> mergedFutures = CompletableFutureUtil
           .merge(Collections.emptyList(), Integer::sum, () -> 0);
-      Assert.assertEquals(0, mergedFutures.get().intValue());
+      assertEquals(0, mergedFutures.get().intValue());
     } finally {
       es.shutdown();
     }

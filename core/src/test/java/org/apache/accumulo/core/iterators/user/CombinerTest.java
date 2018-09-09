@@ -19,6 +19,7 @@ package org.apache.accumulo.core.iterators.user;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -54,7 +55,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.WriterAppender;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class CombinerTest {
@@ -758,7 +758,7 @@ public class CombinerTest {
 
     try {
       ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
-      Assert.fail();
+      fail();
     } catch (IllegalArgumentException e) {}
 
     is.clearOptions();
@@ -767,7 +767,7 @@ public class CombinerTest {
 
     try {
       ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
-      Assert.fail();
+      fail();
     } catch (IllegalArgumentException e) {}
   }
 
@@ -895,11 +895,10 @@ public class CombinerTest {
 
     String logMsgs = writer.toString();
     if (expectedLog == null) {
-      Assert.assertEquals("Expected 0 length log message, but got : " + logMsgs, 0,
-          logMsgs.length());
+      assertEquals("Expected 0 length log message, but got : " + logMsgs, 0, logMsgs.length());
     } else {
       logMsgs = logMsgs.replace('\n', ' ');
-      Assert.assertTrue("Did not match pattern [" + expectedLog + "] in [" + logMsgs + "]",
+      assertTrue("Did not match pattern [" + expectedLog + "] in [" + logMsgs + "]",
           logMsgs.matches(expectedLog));
     }
   }
@@ -982,7 +981,7 @@ public class CombinerTest {
     summingArrayCombiner.init(new SortedMapIterator(tm1), iteratorSetting.getOptions(), SCAN_IE);
     try {
       summingArrayCombiner.seek(new Range(), EMPTY_COL_FAMS, false);
-      Assert.fail("ValueFormatException should have been thrown");
+      fail("ValueFormatException should have been thrown");
     } catch (ValueFormatException e) {}
   }
 }

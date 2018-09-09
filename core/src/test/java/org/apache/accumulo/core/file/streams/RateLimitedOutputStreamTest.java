@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.core.file.streams;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.io.ByteStreams;
@@ -41,9 +42,9 @@ public class RateLimitedOutputStreamTest {
         os.write(bytes);
         bytesWritten += bytes.length;
       }
-      Assert.assertEquals(bytesWritten, os.position());
+      assertEquals(bytesWritten, os.position());
     }
-    Assert.assertEquals(bytesWritten, rateLimiter.getPermitsAcquired());
+    assertEquals(bytesWritten, rateLimiter.getPermitsAcquired());
   }
 
   public static class NullOutputStream extends FSDataOutputStream {

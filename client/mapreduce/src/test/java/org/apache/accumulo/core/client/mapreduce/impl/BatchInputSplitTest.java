@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.client.mapreduce.impl;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -37,7 +41,6 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class BatchInputSplitTest {
@@ -58,10 +61,10 @@ public class BatchInputSplitTest {
     DataInputStream dis = new DataInputStream(bais);
     newSplit.readFields(dis);
 
-    Assert.assertEquals(split.getTableName(), newSplit.getTableName());
-    Assert.assertEquals(split.getTableId(), newSplit.getTableId());
-    Assert.assertEquals(split.getRanges(), newSplit.getRanges());
-    Assert.assertTrue(Arrays.equals(split.getLocations(), newSplit.getLocations()));
+    assertEquals(split.getTableName(), newSplit.getTableName());
+    assertEquals(split.getTableId(), newSplit.getTableId());
+    assertEquals(split.getRanges(), newSplit.getRanges());
+    assertTrue(Arrays.equals(split.getLocations(), newSplit.getLocations()));
   }
 
   @Test
@@ -100,12 +103,12 @@ public class BatchInputSplitTest {
     DataInputStream dis = new DataInputStream(bais);
     newSplit.readFields(dis);
 
-    Assert.assertEquals(split.getRanges(), newSplit.getRanges());
-    Assert.assertArrayEquals(split.getLocations(), newSplit.getLocations());
+    assertEquals(split.getRanges(), newSplit.getRanges());
+    assertArrayEquals(split.getLocations(), newSplit.getLocations());
 
-    Assert.assertEquals(split.getTableName(), newSplit.getTableName());
-    Assert.assertEquals(split.getFetchedColumns(), newSplit.getFetchedColumns());
-    Assert.assertEquals(split.getIterators(), newSplit.getIterators());
-    Assert.assertEquals(split.getLogLevel(), newSplit.getLogLevel());
+    assertEquals(split.getTableName(), newSplit.getTableName());
+    assertEquals(split.getFetchedColumns(), newSplit.getFetchedColumns());
+    assertEquals(split.getIterators(), newSplit.getIterators());
+    assertEquals(split.getLogLevel(), newSplit.getLogLevel());
   }
 }

@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.master.tableOps.bulkVer2;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,7 +33,6 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.master.tableOps.bulkVer2.PrepBulkImport.TabletIterFactory;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -104,10 +106,10 @@ public class PrepBulkImportTest {
   public void runExceptionTest(List<KeyExtent> loadRanges, List<KeyExtent> tabletRanges) {
     try {
       runTest(loadRanges, tabletRanges);
-      Assert.fail("expected " + toRangeStrings(loadRanges) + " to fail against "
+      fail("expected " + toRangeStrings(loadRanges) + " to fail against "
           + toRangeStrings(tabletRanges));
     } catch (Exception e) {
-      Assert.assertTrue(e instanceof AcceptableThriftTableOperationException);
+      assertTrue(e instanceof AcceptableThriftTableOperationException);
     }
   }
 

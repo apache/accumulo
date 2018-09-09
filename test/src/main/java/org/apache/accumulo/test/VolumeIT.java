@@ -18,7 +18,9 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.net.URI;
@@ -77,7 +79,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class VolumeIT extends ConfigurableMacBase {
@@ -180,7 +181,7 @@ public class VolumeIT extends ConfigurableMacBase {
     Collections.sort(actual);
 
     createScanner.close();
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
   }
 
   @Test
@@ -266,7 +267,7 @@ public class VolumeIT extends ConfigurableMacBase {
       for (Entry<Key,Value> entry : metaScanner) {
         String cq = entry.getKey().getColumnQualifier().toString();
         Path path = new Path(cq);
-        Assert.assertTrue("relative path not deleted " + path, path.depth() > 2);
+        assertTrue("relative path not deleted " + path, path.depth() > 2);
       }
     }
   }
@@ -281,7 +282,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     verifyVolumesUsed(tableNames[0], false, v1, v2);
 
-    Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     cluster.stop();
 
     PropertiesConfiguration conf = new PropertiesConfiguration();
@@ -295,15 +296,15 @@ public class VolumeIT extends ConfigurableMacBase {
     conf.save(cluster.getAccumuloPropertiesPath());
 
     // initialize volume
-    Assert.assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
+    assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
 
     // check that all volumes are initialized
     for (Path volumePath : Arrays.asList(v1, v2, v3)) {
       FileSystem fs = volumePath.getFileSystem(CachedConfiguration.getInstance());
       Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
       FileStatus[] iids = fs.listStatus(vp);
-      Assert.assertEquals(1, iids.length);
-      Assert.assertEquals(uuid, iids[0].getPath().getName());
+      assertEquals(1, iids.length);
+      assertEquals(uuid, iids[0].getPath().getName());
     }
 
     // start cluster and verify that new volume is used
@@ -322,7 +323,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     verifyVolumesUsed(tableNames[0], false, v1, v2);
 
-    Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     cluster.stop();
 
     PropertiesConfiguration conf = new PropertiesConfiguration();
@@ -336,15 +337,15 @@ public class VolumeIT extends ConfigurableMacBase {
     conf.save(cluster.getAccumuloPropertiesPath());
 
     // initialize volume
-    Assert.assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
+    assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
 
     // check that all volumes are initialized
     for (Path volumePath : Arrays.asList(v1, v2, v3)) {
       FileSystem fs = volumePath.getFileSystem(CachedConfiguration.getInstance());
       Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
       FileStatus[] iids = fs.listStatus(vp);
-      Assert.assertEquals(1, iids.length);
-      Assert.assertEquals(uuid, iids[0].getPath().getName());
+      assertEquals(1, iids.length);
+      assertEquals(uuid, iids[0].getPath().getName());
     }
 
     // start cluster and verify that new volume is used
@@ -398,7 +399,7 @@ public class VolumeIT extends ConfigurableMacBase {
     }
 
     if (!conn.tableOperations().exists(tableName)) {
-      Assert.assertFalse(shouldExist);
+      assertFalse(shouldExist);
 
       writeData(tableName, conn);
 
@@ -434,7 +435,7 @@ public class VolumeIT extends ConfigurableMacBase {
           }
         }
 
-        Assert.fail("Unexpected volume " + path);
+        fail("Unexpected volume " + path);
       }
 
       // keep retrying until WAL state information in ZooKeeper stabilizes or until test times out
@@ -468,11 +469,11 @@ public class VolumeIT extends ConfigurableMacBase {
 
       int sum = 0;
       for (int count : counts) {
-        Assert.assertTrue(count > 0);
+        assertTrue(count > 0);
         sum += count;
       }
 
-      Assert.assertEquals(200, sum);
+      assertEquals(200, sum);
     }
   }
 
@@ -482,7 +483,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     verifyVolumesUsed(tableNames[0], false, v1, v2);
 
-    Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
     cluster.stop();
 
     PropertiesConfiguration conf = new PropertiesConfiguration();
@@ -502,7 +503,7 @@ public class VolumeIT extends ConfigurableMacBase {
     ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
     String zpath = ZooUtil.getRoot(getConnector().getInstanceID()) + RootTable.ZROOT_TABLET_PATH;
     String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
-    Assert.assertTrue(rootTabletDir.startsWith(v2.toString()));
+    assertTrue(rootTabletDir.startsWith(v2.toString()));
 
     conn.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<>(),
         new HashSet<>());
@@ -524,18 +525,18 @@ public class VolumeIT extends ConfigurableMacBase {
     writeData(tableNames[1], cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD)));
 
     if (cleanShutdown)
-      Assert.assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
 
     cluster.stop();
 
     File v1f = new File(v1.toUri());
     File v8f = new File(new File(v1.getParent().toUri()), "v8");
-    Assert.assertTrue("Failed to rename " + v1f + " to " + v8f, v1f.renameTo(v8f));
+    assertTrue("Failed to rename " + v1f + " to " + v8f, v1f.renameTo(v8f));
     Path v8 = new Path(v8f.toURI());
 
     File v2f = new File(v2.toUri());
     File v9f = new File(new File(v2.getParent().toUri()), "v9");
-    Assert.assertTrue("Failed to rename " + v2f + " to " + v9f, v2f.renameTo(v9f));
+    assertTrue("Failed to rename " + v2f + " to " + v9f, v2f.renameTo(v9f));
     Path v9 = new Path(v9f.toURI());
 
     PropertiesConfiguration conf = new PropertiesConfiguration();
@@ -562,8 +563,7 @@ public class VolumeIT extends ConfigurableMacBase {
     ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
     String zpath = ZooUtil.getRoot(getConnector().getInstanceID()) + RootTable.ZROOT_TABLET_PATH;
     String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
-    Assert.assertTrue(
-        rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
+    assertTrue(rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
 
     getConnector().tableOperations().clone(tableNames[1], tableNames[2], true, new HashMap<>(),
         new HashSet<>());

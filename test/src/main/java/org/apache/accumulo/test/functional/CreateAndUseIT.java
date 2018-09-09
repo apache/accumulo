@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -82,13 +82,12 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
       int ei = 1;
 
       for (Entry<Key,Value> entry : scanner1) {
-        Assert.assertEquals(String.format("%08x", (ei << 8) - 16),
-            entry.getKey().getRow().toString());
-        Assert.assertEquals(Integer.toString(ei), entry.getValue().toString());
+        assertEquals(String.format("%08x", (ei << 8) - 16), entry.getKey().getRow().toString());
+        assertEquals(Integer.toString(ei), entry.getValue().toString());
 
         ei++;
       }
-      Assert.assertEquals("Did not see expected number of rows", 257, ei);
+      assertEquals("Did not see expected number of rows", 257, ei);
     }
   }
 
@@ -125,7 +124,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
       Iterator<Entry<Key,Value>> iter = bs.iterator();
       int count = Iterators.size(iter);
 
-      Assert.assertEquals("Did not expect to find any entries", 0, count);
+      assertEquals("Did not expect to find any entries", 0, count);
     }
   }
 

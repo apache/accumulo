@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Map.Entry;
 import java.util.UUID;
 
@@ -36,7 +38,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.master.replication.FinishedWorkUpdater;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -85,13 +86,13 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
       StatusSection.limit(s);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
-      Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
-      Assert.assertEquals(entry.getKey().getColumnQualifier().toString(),
+      assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
+      assertEquals(entry.getKey().getColumnQualifier().toString(),
           target.getSourceTableId().canonicalID());
 
       // We should only rely on the correct begin attribute being returned
       Status actual = Status.parseFrom(entry.getValue().get());
-      Assert.assertEquals(stat.getBegin(), actual.getBegin());
+      assertEquals(stat.getBegin(), actual.getBegin());
     }
   }
 
@@ -130,13 +131,13 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
       StatusSection.limit(s);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
-      Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
-      Assert.assertEquals(entry.getKey().getColumnQualifier().toString(),
+      assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
+      assertEquals(entry.getKey().getColumnQualifier().toString(),
           target1.getSourceTableId().canonicalID());
 
       // We should only rely on the correct begin attribute being returned
       Status actual = Status.parseFrom(entry.getValue().get());
-      Assert.assertEquals(1, actual.getBegin());
+      assertEquals(1, actual.getBegin());
     }
   }
 
@@ -175,13 +176,13 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
       StatusSection.limit(s);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
 
-      Assert.assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
-      Assert.assertEquals(entry.getKey().getColumnQualifier().toString(),
+      assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
+      assertEquals(entry.getKey().getColumnQualifier().toString(),
           target1.getSourceTableId().canonicalID());
 
       // We should only rely on the correct begin attribute being returned
       Status actual = Status.parseFrom(entry.getValue().get());
-      Assert.assertEquals(1, actual.getBegin());
+      assertEquals(1, actual.getBegin());
     }
   }
 

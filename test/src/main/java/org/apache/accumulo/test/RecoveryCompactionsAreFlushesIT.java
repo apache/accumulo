@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertFalse;
+
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterControl;
@@ -35,7 +37,6 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
@@ -94,7 +95,7 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> entry : s) {
         String filename = entry.getKey().getColumnQualifier().toString();
         String parts[] = filename.split("/");
-        Assert.assertFalse(parts[parts.length - 1].startsWith("M"));
+        assertFalse(parts[parts.length - 1].startsWith("M"));
       }
     }
   }

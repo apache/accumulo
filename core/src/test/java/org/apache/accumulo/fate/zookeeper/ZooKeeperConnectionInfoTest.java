@@ -16,17 +16,18 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.accumulo.fate.zookeeper.ZooUtil.ZooKeeperConnectionInfo;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ZooKeeperConnectionInfoTest {
 
   @Test
   public void testEquality() {
-    Assert.assertEquals(new ZooKeeperConnectionInfo("localhost:2181", 60000, null, null),
+    assertEquals(new ZooKeeperConnectionInfo("localhost:2181", 60000, null, null),
         new ZooKeeperConnectionInfo("localhost:2181", 60000, null, null));
-    Assert.assertEquals(new ZooKeeperConnectionInfo("localhost:2181", 60000, null, null).hashCode(),
+    assertEquals(new ZooKeeperConnectionInfo("localhost:2181", 60000, null, null).hashCode(),
         new ZooKeeperConnectionInfo("localhost:2181", 60000, null, null).hashCode());
   }
 }

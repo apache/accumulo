@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Map;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -33,7 +36,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
@@ -112,17 +114,16 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
       // Scan t1 with an iterator that writes to table t2
       scanner.addScanIterator(itset);
       actual = Iterators.getOnlyElement(scanner.iterator());
-      Assert.assertTrue(actual.getKey().equals(k, PartialKey.ROW_COLFAM_COLQUAL));
-      Assert.assertEquals(BatchWriterIterator.SUCCESS_VALUE, actual.getValue());
+      assertTrue(actual.getKey().equals(k, PartialKey.ROW_COLFAM_COLQUAL));
+      assertEquals(BatchWriterIterator.SUCCESS_VALUE, actual.getValue());
     }
 
     try (Scanner scanner = c.createScanner(t2, Authorizations.EMPTY)) {
       // ensure entries correctly wrote to table t2
       actual = Iterators.getOnlyElement(scanner.iterator());
       log.debug("t2 entry is " + actual.getKey().toStringNoTime() + " -> " + actual.getValue());
-      Assert.assertTrue(actual.getKey().equals(k, PartialKey.ROW_COLFAM_COLQUAL));
-      Assert.assertEquals(numEntriesToWritePerEntry,
-          Integer.parseInt(actual.getValue().toString()));
+      assertTrue(actual.getKey().equals(k, PartialKey.ROW_COLFAM_COLQUAL));
+      assertEquals(numEntriesToWritePerEntry, Integer.parseInt(actual.getValue().toString()));
     }
 
     c.tableOperations().delete(t1);

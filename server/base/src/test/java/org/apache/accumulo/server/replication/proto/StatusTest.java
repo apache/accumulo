@@ -16,18 +16,21 @@
  */
 package org.apache.accumulo.server.replication.proto;
 
+import static org.junit.Assert.assertNotEquals;
+
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class StatusTest {
 
   @Test
   public void equality() {
-    Status replicated = Status.newBuilder().setBegin(Long.MAX_VALUE).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
-    Status unreplicated = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
+    Status replicated = Status.newBuilder().setBegin(Long.MAX_VALUE).setEnd(0).setInfiniteEnd(true)
+        .setClosed(false).build();
+    Status unreplicated = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true)
+        .setClosed(false).build();
 
-    Assert.assertNotEquals(replicated, unreplicated);
+    assertNotEquals(replicated, unreplicated);
   }
 
 }

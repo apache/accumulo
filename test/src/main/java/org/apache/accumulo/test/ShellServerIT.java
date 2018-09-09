@@ -99,7 +99,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -2309,9 +2308,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String tableName = name.getMethodName() + "_table";
     ts.exec("createtable " + tableName + " -o", true);
     String output = ts.exec("tables");
-    Assert.assertTrue(output.contains(tableName));
+    assertTrue(output.contains(tableName));
     output = ts.exec("scan -t " + tableName, false, "is offline", true);
-    Assert.assertTrue(output.contains("TableOfflineException"));
+    assertTrue(output.contains("TableOfflineException"));
     ts.exec("table " + tableName, true);
     ts.exec("online", true);
     ts.exec("scan", true);
@@ -2504,7 +2503,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String tableName1 = name.getMethodName() + "_table1";
     ts.exec("createtable " + tableName1, true);
     String output = ts.exec("tables", true);
-    Assert.assertTrue(output.contains(tableName1));
+    assertTrue(output.contains(tableName1));
     ts.exec("table " + tableName1, true);
     // add splits to this table using the addsplits command.
     List<Text> splits = new ArrayList<>();
@@ -2520,7 +2519,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + tableName2 + " --copy-splits " + tableName1, true);
     ts.exec("table " + tableName1, true);
     String tablesOutput = ts.exec("tables", true);
-    Assert.assertTrue(tablesOutput.contains(tableName2));
+    assertTrue(tablesOutput.contains(tableName2));
     Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName2);
     assertEquals(new TreeSet<>(splits), new TreeSet<>(createdSplits));
     ts.exec("deletetable -f " + tableName1, true);

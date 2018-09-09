@@ -17,7 +17,10 @@
 package org.apache.accumulo.minicluster;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.util.Collections;
@@ -47,7 +50,6 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -129,29 +131,29 @@ public class MiniAccumuloClusterTest {
     Scanner scanner = uconn.createScanner("table1", new Authorizations("A"));
     for (Entry<Key,Value> entry : scanner) {
       if (entry.getKey().getColumnQualifierData().toString().equals("COUNT")) {
-        Assert.assertEquals("2", entry.getValue().toString());
+        assertEquals("2", entry.getValue().toString());
       } else if (entry.getKey().getColumnQualifierData().toString().equals("SIZE")) {
-        Assert.assertEquals("8", entry.getValue().toString());
+        assertEquals("8", entry.getValue().toString());
       } else if (entry.getKey().getColumnQualifierData().toString().equals("CRC")) {
-        Assert.assertEquals("123", entry.getValue().toString());
+        assertEquals("123", entry.getValue().toString());
       } else {
-        Assert.fail();
+        fail();
       }
       count++;
     }
 
-    Assert.assertEquals(3, count);
+    assertEquals(3, count);
 
     count = 0;
     scanner = uconn.createScanner("table1", new Authorizations("A", "B"));
     for (Entry<Key,Value> entry : scanner) {
       if (entry.getKey().getColumnQualifierData().toString().equals("IMG")) {
-        Assert.assertEquals("ABCDEFGH", entry.getValue().toString());
+        assertEquals("ABCDEFGH", entry.getValue().toString());
       }
       count++;
     }
 
-    Assert.assertEquals(4, count);
+    assertEquals(4, count);
 
     conn.tableOperations().delete("table1");
   }
@@ -196,11 +198,11 @@ public class MiniAccumuloClusterTest {
 
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
-      Assert.assertFalse(entry.getKey().getRowData().toString().toLowerCase().contains("foo"));
+      assertFalse(entry.getKey().getRowData().toString().toLowerCase().contains("foo"));
       count++;
     }
 
-    Assert.assertEquals(2, count);
+    assertEquals(2, count);
 
     conn.instanceOperations()
         .removeProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
@@ -211,19 +213,19 @@ public class MiniAccumuloClusterTest {
   public void testDebugPorts() {
 
     Set<Pair<ServerType,Integer>> debugPorts = accumulo.getDebugPorts();
-    Assert.assertEquals(5, debugPorts.size());
+    assertEquals(5, debugPorts.size());
     for (Pair<ServerType,Integer> debugPort : debugPorts) {
-      Assert.assertTrue(debugPort.getSecond() > 0);
+      assertTrue(debugPort.getSecond() > 0);
     }
   }
 
   @Test
   public void testConfig() {
     // ensure what user passed in is what comes back
-    Assert.assertEquals(0, accumulo.getConfig().getZooKeeperPort());
+    assertEquals(0, accumulo.getConfig().getZooKeeperPort());
     HashMap<String,String> site = new HashMap<>();
     site.put(Property.TSERV_WORKQ_THREADS.getKey(), "2");
-    Assert.assertEquals(site, accumulo.getConfig().getSiteConfig());
+    assertEquals(site, accumulo.getConfig().getSiteConfig());
   }
 
   @Test
@@ -236,8 +238,8 @@ public class MiniAccumuloClusterTest {
         Property.MONITOR_LOG4J_PORT, Property.MASTER_CLIENTPORT, Property.TRACE_PORT,
         Property.GC_PORT}) {
       String value = conf.getString(randomPortProp.getKey());
-      Assert.assertNotNull("Found no value for " + randomPortProp, value);
-      Assert.assertEquals("0", value);
+      assertNotNull("Found no value for " + randomPortProp, value);
+      assertEquals("0", value);
     }
   }
 

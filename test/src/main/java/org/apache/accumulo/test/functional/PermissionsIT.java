@@ -54,7 +54,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -744,7 +743,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         List<Summary> summaries = test_user_conn.tableOperations().summaries(tableName).retrieve();
         // just make sure it's not blocked by permissions, the actual summaries are tested in
         // SummaryIT
-        Assert.assertTrue(summaries.isEmpty());
+        assertTrue(summaries.isEmpty());
         break;
       default:
         throw new IllegalArgumentException("Unrecognized table Permission: " + perm);

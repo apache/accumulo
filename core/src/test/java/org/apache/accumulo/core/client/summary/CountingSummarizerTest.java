@@ -26,6 +26,7 @@ import static org.apache.accumulo.core.client.summary.CountingSummarizer.MAX_COU
 import static org.apache.accumulo.core.client.summary.CountingSummarizer.SEEN_STAT;
 import static org.apache.accumulo.core.client.summary.CountingSummarizer.TOO_LONG_STAT;
 import static org.apache.accumulo.core.client.summary.CountingSummarizer.TOO_MANY_STAT;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class CountingSummarizerTest {
@@ -78,11 +78,11 @@ public class CountingSummarizerTest {
     collector.summarize(stats::put);
 
     CounterSummary csum = new CounterSummary(stats);
-    Assert.assertEquals(expected, csum.getCounters());
-    Assert.assertEquals(64, csum.getSeen());
-    Assert.assertEquals(3 * 64, csum.getEmitted());
-    Assert.assertEquals(0, csum.getIgnored());
-    Assert.assertEquals(0, csum.getDeletesIgnored());
+    assertEquals(expected, csum.getCounters());
+    assertEquals(64, csum.getSeen());
+    assertEquals(3 * 64, csum.getEmitted());
+    assertEquals(0, csum.getIgnored());
+    assertEquals(0, csum.getDeletesIgnored());
   }
 
   @Test
@@ -120,15 +120,15 @@ public class CountingSummarizerTest {
     expected.put(EMITTED_STAT, 15L);
     expected.put(DELETES_IGNORED_STAT, 1L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
 
     CounterSummary csum = new CounterSummary(stats);
-    Assert.assertEquals(5, csum.getIgnored());
-    Assert.assertEquals(3, csum.getTooMany());
-    Assert.assertEquals(2, csum.getTooLong());
-    Assert.assertEquals(16, csum.getSeen());
-    Assert.assertEquals(15, csum.getEmitted());
-    Assert.assertEquals(1, csum.getDeletesIgnored());
+    assertEquals(5, csum.getIgnored());
+    assertEquals(3, csum.getTooMany());
+    assertEquals(2, csum.getTooLong());
+    assertEquals(16, csum.getSeen());
+    assertEquals(15, csum.getEmitted());
+    assertEquals(1, csum.getDeletesIgnored());
 
     expected.clear();
     expected.put("f1", 4L);
@@ -136,7 +136,7 @@ public class CountingSummarizerTest {
     expected.put("f3", 2L);
     expected.put("f4", 1L);
     expected.put("f5", 1L);
-    Assert.assertEquals(expected, csum.getCounters());
+    assertEquals(expected, csum.getCounters());
 
   }
 
@@ -182,7 +182,7 @@ public class CountingSummarizerTest {
     expected.put(SEEN_STAT, 6L + 5L);
     expected.put(DELETES_IGNORED_STAT, 3L);
 
-    Assert.assertEquals(expected, sm1);
+    assertEquals(expected, sm1);
 
     sm2.clear();
     sm2.put(p + "f001", 19L);
@@ -240,19 +240,19 @@ public class CountingSummarizerTest {
 
     HashMap<String,Long> stats = new HashMap<>();
     collector.summarize(stats::put);
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
 
     CounterSummary csum = new CounterSummary(stats);
-    Assert.assertEquals(0, csum.getIgnored());
-    Assert.assertEquals(0, csum.getTooMany());
-    Assert.assertEquals(0, csum.getTooLong());
-    Assert.assertEquals(3, csum.getSeen());
-    Assert.assertEquals(3, csum.getEmitted());
-    Assert.assertEquals(0, csum.getDeletesIgnored());
+    assertEquals(0, csum.getIgnored());
+    assertEquals(0, csum.getTooMany());
+    assertEquals(0, csum.getTooLong());
+    assertEquals(3, csum.getSeen());
+    assertEquals(3, csum.getEmitted());
+    assertEquals(0, csum.getDeletesIgnored());
 
     expected.clear();
     expected.put("f1", 2L);
     expected.put("f2", 1L);
-    Assert.assertEquals(expected, csum.getCounters());
+    assertEquals(expected, csum.getCounters());
   }
 }

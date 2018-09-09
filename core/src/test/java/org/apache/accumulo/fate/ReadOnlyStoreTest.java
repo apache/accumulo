@@ -16,12 +16,14 @@
  */
 package org.apache.accumulo.fate;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.util.Collections;
 import java.util.EnumSet;
 
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -53,19 +55,19 @@ public class ReadOnlyStoreTest {
     EasyMock.replay(mock);
 
     ReadOnlyTStore<String> store = new ReadOnlyStore<>(mock);
-    Assert.assertEquals(0xdeadbeefL, store.reserve());
+    assertEquals(0xdeadbeefL, store.reserve());
     store.reserve(0xdeadbeefL);
     ReadOnlyRepo<String> top = store.top(0xdeadbeefL);
-    Assert.assertFalse(top instanceof Repo);
-    Assert.assertEquals("description", top.getDescription());
-    Assert.assertEquals(0x0L, top.isReady(0xdeadbeefL, null));
-    Assert.assertEquals(TStatus.UNKNOWN, store.getStatus(0xdeadbeefL));
+    assertFalse(top instanceof Repo);
+    assertEquals("description", top.getDescription());
+    assertEquals(0x0L, top.isReady(0xdeadbeefL, null));
+    assertEquals(TStatus.UNKNOWN, store.getStatus(0xdeadbeefL));
     store.unreserve(0xdeadbeefL, 30);
 
-    Assert.assertEquals(TStatus.UNKNOWN,
+    assertEquals(TStatus.UNKNOWN,
         store.waitForStatusChange(0xdeadbeefL, EnumSet.allOf(TStatus.class)));
-    Assert.assertEquals("property", store.getProperty(0xdeadbeefL, "com.example.anyproperty"));
-    Assert.assertEquals(Collections.<Long> emptyList(), store.list());
+    assertEquals("property", store.getProperty(0xdeadbeefL, "com.example.anyproperty"));
+    assertEquals(Collections.<Long> emptyList(), store.list());
 
     EasyMock.verify(repo);
     EasyMock.verify(mock);

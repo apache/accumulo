@@ -16,20 +16,23 @@
  */
 package org.apache.accumulo.fate.util;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.security.Security;
 
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import junit.framework.TestCase;
 
 /**
  * Test the AddressUtil class.
  */
-public class AddressUtilTest extends TestCase {
+public class AddressUtilTest {
 
   private static final Logger log = LoggerFactory.getLogger(AddressUtilTest.class);
 
+  @Test
   public void testGetNegativeTtl() {
     log.info("Checking that we can get the ttl on dns failures.");
     int expectedTtl = 20;
@@ -79,6 +82,7 @@ public class AddressUtilTest extends TestCase {
     }
   }
 
+  @Test
   public void testGetNegativeTtlThrowsOnForever() {
     log.info("When DNS is cached forever, we should throw.");
     /* TODO ACCUMULO-2242 replace all of this with Powermock on the Security class */
@@ -94,7 +98,7 @@ public class AddressUtilTest extends TestCase {
       AddressUtil.getAddressCacheNegativeTtl(null);
       fail("The JVM Security settings cache DNS failures forever, this should cause an exception.");
     } catch (IllegalArgumentException exception) {
-      assertTrue(true);
+      // expected
     }
   }
 }

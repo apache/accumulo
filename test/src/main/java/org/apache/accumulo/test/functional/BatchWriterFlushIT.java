@@ -18,6 +18,9 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -48,7 +51,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
@@ -201,7 +203,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         data.add(m);
       }
     }
-    Assert.assertEquals(NUM_THREADS * NUM_TO_FLUSH, data.size());
+    assertEquals(NUM_THREADS * NUM_TO_FLUSH, data.size());
     Collections.shuffle(data);
     for (int n = 0; n < (NUM_THREADS * NUM_TO_FLUSH); n += NUM_TO_FLUSH) {
       Set<Mutation> muts = new HashSet<>(data.subList(n, n + NUM_TO_FLUSH));
@@ -227,7 +229,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
             bw.addMutations(allMuts.get(idx));
             bw.flush();
           } catch (MutationsRejectedException e) {
-            Assert.fail("Error adding mutations to batch writer");
+            fail("Error adding mutations to batch writer");
           }
         }
       });
@@ -247,11 +249,11 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
             break;
           }
         }
-        Assert.assertTrue("Mutation not found: " + m, found);
+        assertTrue("Mutation not found: " + m, found);
       }
 
       for (int m = 0; m < NUM_THREADS; m++) {
-        Assert.assertEquals(0, allMuts.get(m).size());
+        assertEquals(0, allMuts.get(m).size());
       }
     }
   }

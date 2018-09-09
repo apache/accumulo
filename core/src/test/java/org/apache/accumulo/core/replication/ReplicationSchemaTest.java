@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.replication;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -23,7 +25,6 @@ import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ReplicationSchemaTest {
@@ -34,7 +35,7 @@ public class ReplicationSchemaTest {
     Key k = new Key(new Text(file), StatusSection.NAME);
     Text extractedFile = new Text();
     StatusSection.getFile(k, extractedFile);
-    Assert.assertEquals(file, extractedFile.toString());
+    assertEquals(file, extractedFile.toString());
   }
 
   @Test(expected = NullPointerException.class)
@@ -57,21 +58,21 @@ public class ReplicationSchemaTest {
     Key k = new Key(file);
     Text extractedFile = new Text();
     StatusSection.getFile(k, extractedFile);
-    Assert.assertEquals(file, extractedFile.toString());
+    assertEquals(file, extractedFile.toString());
   }
 
   @Test
   public void extractTableId() {
     Table.ID tableId = Table.ID.of("1");
     Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId.getUtf8()));
-    Assert.assertEquals(tableId, StatusSection.getTableId(k));
+    assertEquals(tableId, StatusSection.getTableId(k));
   }
 
   @Test
   public void extractTableIdUsingText() {
     Table.ID tableId = Table.ID.of("1");
     Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId.getUtf8()));
-    Assert.assertEquals(tableId, StatusSection.getTableId(k));
+    assertEquals(tableId, StatusSection.getTableId(k));
   }
 
   @Test(expected = NullPointerException.class)
@@ -105,8 +106,8 @@ public class ReplicationSchemaTest {
     long now = System.currentTimeMillis();
     Mutation m = OrderSection.createMutation("/accumulo/file", now);
     Key k = new Key(new Text(m.getRow()));
-    Assert.assertEquals("/accumulo/file", OrderSection.getFile(k));
-    Assert.assertEquals(now, OrderSection.getTimeClosed(k));
+    assertEquals("/accumulo/file", OrderSection.getFile(k));
+    assertEquals(now, OrderSection.getTimeClosed(k));
   }
 
   @Test
@@ -115,8 +116,8 @@ public class ReplicationSchemaTest {
     long now = System.currentTimeMillis();
     Mutation m = OrderSection.createMutation("/accumulo/file", now);
     Key k = new Key(new Text(m.getRow()));
-    Assert.assertEquals("/accumulo/file", OrderSection.getFile(k, buff));
-    Assert.assertEquals(now, OrderSection.getTimeClosed(k, buff));
+    assertEquals("/accumulo/file", OrderSection.getFile(k, buff));
+    assertEquals(now, OrderSection.getTimeClosed(k, buff));
   }
 
   @Test
@@ -126,8 +127,8 @@ public class ReplicationSchemaTest {
     for (long i = 1; i < 258; i++) {
       Mutation m = OrderSection.createMutation("/accumulo/file", i);
       Key k = new Key(new Text(m.getRow()));
-      Assert.assertEquals("/accumulo/file", OrderSection.getFile(k, buff));
-      Assert.assertEquals(i, OrderSection.getTimeClosed(k, buff));
+      assertEquals("/accumulo/file", OrderSection.getFile(k, buff));
+      assertEquals(i, OrderSection.getTimeClosed(k, buff));
     }
   }
 }

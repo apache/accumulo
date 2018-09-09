@@ -17,6 +17,9 @@
 
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,7 +46,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
@@ -98,7 +100,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
       try {
         c.createScanner(table, Authorizations.EMPTY);
-        Assert.fail("Expected table " + table + " to be gone.");
+        fail("Expected table " + table + " to be gone.");
       } catch (TableNotFoundException tnfe) {
         // expected
       }
@@ -237,7 +239,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         }
       }));
 
-      Assert.assertEquals(numOperations, futures.size());
+      assertEquals(numOperations, futures.size());
 
       for (Future<?> future : futures) {
         future.get();
@@ -245,7 +247,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
       try {
         c.createScanner(table, Authorizations.EMPTY);
-        Assert.fail("Expected table " + table + " to be gone.");
+        fail("Expected table " + table + " to be gone.");
       } catch (TableNotFoundException tnfe) {
         // expected
       }

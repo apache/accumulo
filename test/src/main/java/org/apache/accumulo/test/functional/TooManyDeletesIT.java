@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashMap;
 import java.util.List;
 
@@ -32,7 +34,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactionStrategy;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class TooManyDeletesIT extends AccumuloClusterHarness {
@@ -68,12 +69,12 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
 
     List<Summary> summaries = c.tableOperations().summaries(table).flush(true).withConfiguration(sc)
         .retrieve();
-    Assert.assertEquals(1, summaries.size());
+    assertEquals(1, summaries.size());
 
     Summary summary = summaries.get(0);
 
-    Assert.assertEquals(1000L, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
-    Assert.assertEquals(0L, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
+    assertEquals(1000L, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
+    assertEquals(0L, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
 
     try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
       for (int i = 0; i < 100; i++) {
@@ -84,12 +85,12 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
     }
 
     summaries = c.tableOperations().summaries(table).flush(true).withConfiguration(sc).retrieve();
-    Assert.assertEquals(1, summaries.size());
+    assertEquals(1, summaries.size());
 
     summary = summaries.get(0);
 
-    Assert.assertEquals(1100L, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
-    Assert.assertEquals(100L, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
+    assertEquals(1100L, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
+    assertEquals(100L, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
 
     try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
       for (int i = 100; i < 300; i++) {
@@ -109,7 +110,7 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
       // the flush should cause
       summaries = c.tableOperations().summaries(table).flush(false).withConfiguration(sc)
           .retrieve();
-      Assert.assertEquals(1, summaries.size());
+      assertEquals(1, summaries.size());
 
       summary = summaries.get(0);
       long total = summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT);

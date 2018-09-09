@@ -42,7 +42,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.system.MultiIteratorTest;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -325,9 +324,9 @@ public class IteratorUtilTest {
 
     IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
 
-    Assert.assertEquals(1, iterators.size());
+    assertEquals(1, iterators.size());
     IterInfo ii = iterators.get(0);
-    Assert.assertEquals(new IterInfo(50, SummingCombiner.class.getName(), "foo"), ii);
+    assertEquals(new IterInfo(50, SummingCombiner.class.getName(), "foo"), ii);
   }
 
   /**
@@ -376,9 +375,9 @@ public class IteratorUtilTest {
       data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobar.opt", "fakevalue");
       conf = new ConfigurationCopy(data);
       IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
-      Assert.assertEquals(1, iterators.size());
+      assertEquals(1, iterators.size());
       IterInfo ii = iterators.get(0);
-      Assert.assertEquals(new IterInfo(48, SummingCombiner.class.getName(), "foobar"), ii);
+      assertEquals(new IterInfo(48, SummingCombiner.class.getName(), "foobar"), ii);
     } catch (IllegalArgumentException ex) {
       log.debug("caught expected exception: " + ex.getMessage());
     }
@@ -393,9 +392,9 @@ public class IteratorUtilTest {
       data.put(Property.TABLE_ITERATOR_SCAN_PREFIX + "foobaz.fake.opt", "fakevalue");
       conf = new ConfigurationCopy(data);
       IteratorUtil.parseIterConf(IteratorScope.scan, iterators, options, conf);
-      Assert.assertEquals(1, iterators.size());
+      assertEquals(1, iterators.size());
       IterInfo ii = iterators.get(0);
-      Assert.assertEquals(new IterInfo(47, SummingCombiner.class.getName(), "foobaz"), ii);
+      assertEquals(new IterInfo(47, SummingCombiner.class.getName(), "foobaz"), ii);
     } catch (IllegalArgumentException ex) {
       log.debug("caught expected exception: " + ex.getMessage());
     }

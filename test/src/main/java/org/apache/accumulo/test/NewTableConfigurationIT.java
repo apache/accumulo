@@ -18,6 +18,8 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -46,7 +48,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -660,7 +661,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
         actual.put(entry.getKey(), entry.getValue());
       }
     }
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
   }
 
   private Map<String,String> getProperties(Connector connector, String tableName)
@@ -690,10 +691,10 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
           inNew = true;
           break;
         } else if (entry.getKey().equals(orig.getKey()) && !entry.getKey().equals(changedProp))
-          Assert.fail("Property " + orig.getKey() + " has different value than deprecated method");
+          fail("Property " + orig.getKey() + " has different value than deprecated method");
       }
       if (!inNew)
-        Assert.fail("Original property missing after using the new create method");
+        fail("Original property missing after using the new create method");
     }
     return countOrig;
   }
@@ -732,8 +733,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     int countNew = numProperties(connector, tableName);
     int countOrig = compareProperties(connector, tableNameOrig, tableName, null);
 
-    Assert.assertEquals("Extra properties using the new create method", countOrig, countNew);
-    Assert.assertTrue("Wrong TimeType", checkTimeType(connector, tableName, TimeType.MILLIS));
+    assertEquals("Extra properties using the new create method", countOrig, countNew);
+    assertTrue("Wrong TimeType", checkTimeType(connector, tableName, TimeType.MILLIS));
   }
 
   @SuppressWarnings("deprecation")
@@ -754,8 +755,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     int countNew = numProperties(connector, tableName);
     int countOrig = compareProperties(connector, tableNameOrig, tableName, null);
 
-    Assert.assertEquals("Extra properties using the new create method", countOrig, countNew);
-    Assert.assertTrue("Wrong TimeType", checkTimeType(connector, tableName, TimeType.MILLIS));
+    assertEquals("Extra properties using the new create method", countOrig, countNew);
+    assertTrue("Wrong TimeType", checkTimeType(connector, tableName, TimeType.MILLIS));
   }
 
   @SuppressWarnings("deprecation")
@@ -777,8 +778,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     int countNew = numProperties(connector, tableName);
     int countOrig = compareProperties(connector, tableNameOrig, tableName, null);
 
-    Assert.assertEquals("Extra properties using the new create method", countOrig, countNew);
-    Assert.assertTrue("Wrong TimeType", checkTimeType(connector, tableName, tt));
+    assertEquals("Extra properties using the new create method", countOrig, countNew);
+    assertTrue("Wrong TimeType", checkTimeType(connector, tableName, tt));
   }
 
   @SuppressWarnings("deprecation")
@@ -810,14 +811,13 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
 
     for (Entry<String,String> entry : connector.tableOperations().getProperties(tableName)) {
       if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-        Assert.assertEquals("TABLE_SPLIT_THRESHOLD has been changed", "10K", entry.getValue());
+        assertEquals("TABLE_SPLIT_THRESHOLD has been changed", "10K", entry.getValue());
       if (entry.getKey().equals("table.custom.testProp"))
-        Assert.assertEquals("table.custom.testProp has been changed", "Test property",
-            entry.getValue());
+        assertEquals("table.custom.testProp has been changed", "Test property", entry.getValue());
     }
 
-    Assert.assertEquals("Extra properties using the new create method", countOrig + 1, countNew);
-    Assert.assertTrue("Wrong TimeType", checkTimeType(connector, tableName, TimeType.MILLIS));
+    assertEquals("Extra properties using the new create method", countOrig + 1, countNew);
+    assertTrue("Wrong TimeType", checkTimeType(connector, tableName, TimeType.MILLIS));
 
   }
 }

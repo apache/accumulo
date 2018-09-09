@@ -17,14 +17,16 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.LinkedList;
 
 import org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlockQueue;
+import org.junit.Test;
 
-import junit.framework.TestCase;
+public class TestCachedBlockQueue {
 
-public class TestCachedBlockQueue extends TestCase {
-
+  @Test
   public void testQueue() throws Exception {
 
     CachedBlock cb1 = new CachedBlock(1000, "cb1", 1);
@@ -70,6 +72,7 @@ public class TestCachedBlockQueue extends TestCase {
 
   }
 
+  @Test
   public void testQueueSmallBlockEdgeCase() throws Exception {
 
     CachedBlock cb1 = new CachedBlock(1000, "cb1", 1);

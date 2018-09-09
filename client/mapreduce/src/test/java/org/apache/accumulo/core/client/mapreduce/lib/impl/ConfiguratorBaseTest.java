@@ -33,7 +33,6 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ConfiguratorBaseTest {
@@ -84,10 +83,10 @@ public class ConfiguratorBaseTest {
         .usingPassword("user", "pass").info();
     ConfiguratorBase.setClientInfo(this.getClass(), conf, info);
     ClientInfo info2 = ConfiguratorBase.getClientInfo(this.getClass(), conf);
-    Assert.assertEquals("myinstance", info2.getInstanceName());
-    Assert.assertEquals("myzookeepers", info2.getZooKeepers());
-    Assert.assertEquals("user", info2.getPrincipal());
-    Assert.assertTrue(info2.getAuthenticationToken() instanceof PasswordToken);
+    assertEquals("myinstance", info2.getInstanceName());
+    assertEquals("myzookeepers", info2.getZooKeepers());
+    assertEquals("user", info2.getPrincipal());
+    assertTrue(info2.getAuthenticationToken() instanceof PasswordToken);
   }
 
   @SuppressWarnings("deprecation")

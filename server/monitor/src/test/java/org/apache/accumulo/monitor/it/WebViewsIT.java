@@ -18,6 +18,8 @@ package org.apache.accumulo.monitor.it;
 
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -44,7 +46,6 @@ import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.glassfish.jersey.test.TestProperties;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -83,7 +84,7 @@ public class WebViewsIT extends JerseyTest {
   @Test
   public void testGetTablesConstraintViolations() {
     Response output = target("tables/f+o*o").request().get();
-    Assert.assertEquals("should return status 400", 400, output.getStatus());
+    assertEquals("should return status 400", 400, output.getStatus());
   }
 
   /**
@@ -116,9 +117,9 @@ public class WebViewsIT extends JerseyTest {
     // response.
     // Our silly HashMapWriter registered in the configure method gets wired in and used here.
     Response output = target("tables/foo").request().get();
-    Assert.assertEquals("should return status 200", 200, output.getStatus());
+    assertEquals("should return status 200", 200, output.getStatus());
     String responseBody = output.readEntity(String.class);
-    Assert.assertTrue(responseBody.contains("tableID=foo") && responseBody.contains("table=bar"));
+    assertTrue(responseBody.contains("tableID=foo") && responseBody.contains("table=bar"));
     verify(contextMock);
   }
 
@@ -129,11 +130,11 @@ public class WebViewsIT extends JerseyTest {
   public void testGetTracesSummaryValidationConstraint() {
     // Test upper bounds of constraint
     Response output = target("trace/summary").queryParam("minutes", 5000000).request().get();
-    Assert.assertEquals("should return status 400", 400, output.getStatus());
+    assertEquals("should return status 400", 400, output.getStatus());
 
     // Test lower bounds of constraint
     output = target("trace/summary").queryParam("minutes", -27).request().get();
-    Assert.assertEquals("should return status 400", 400, output.getStatus());
+    assertEquals("should return status 400", 400, output.getStatus());
   }
 
   /**

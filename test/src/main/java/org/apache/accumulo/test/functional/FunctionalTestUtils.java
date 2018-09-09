@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import java.io.FileInputStream;
@@ -59,7 +60,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
-import org.junit.Assert;
 
 import com.google.common.collect.Iterators;
 
@@ -190,9 +190,9 @@ public class FunctionalTestUtils {
 
   public static void assertNoDanglingFateLocks(ClientContext context, AccumuloCluster cluster) {
     FateStatus fateStatus = getFateStatus(context, cluster);
-    Assert.assertEquals("Dangling FATE locks : " + fateStatus.getDanglingHeldLocks(), 0,
+    assertEquals("Dangling FATE locks : " + fateStatus.getDanglingHeldLocks(), 0,
         fateStatus.getDanglingHeldLocks().size());
-    Assert.assertEquals("Dangling FATE locks : " + fateStatus.getDanglingWaitingLocks(), 0,
+    assertEquals("Dangling FATE locks : " + fateStatus.getDanglingWaitingLocks(), 0,
         fateStatus.getDanglingWaitingLocks().size());
   }
 

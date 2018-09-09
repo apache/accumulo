@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.fail;
+
 import java.util.Collections;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -27,7 +29,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.iterators.system.DeletingIterator.Behavior;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class DeleteFailIT extends AccumuloClusterHarness {
@@ -51,7 +52,7 @@ public class DeleteFailIT extends AccumuloClusterHarness {
 
     try {
       scanner.forEach(e -> {});
-      Assert.fail("Expected scan to fail because  deletes are present.");
+      fail("Expected scan to fail because  deletes are present.");
     } catch (RuntimeException e) {}
   }
 }

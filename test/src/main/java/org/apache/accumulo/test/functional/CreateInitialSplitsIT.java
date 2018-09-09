@@ -44,7 +44,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
-@SuppressWarnings("SpellCheckingInspection")
 public class CreateInitialSplitsIT extends AccumuloClusterHarness {
 
   private Connector connector;

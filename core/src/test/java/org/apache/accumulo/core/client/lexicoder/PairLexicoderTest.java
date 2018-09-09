@@ -20,8 +20,11 @@ import java.util.Arrays;
 
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
 import org.apache.accumulo.core.util.ComparablePair;
+import org.junit.Test;
 
 public class PairLexicoderTest extends AbstractLexicoderTest {
+
+  @Test
   public void testSortOrder() {
     PairLexicoder<String,String> plexc = new PairLexicoder<>(new StringLexicoder(),
         new StringLexicoder());
@@ -40,6 +43,7 @@ public class PairLexicoderTest extends AbstractLexicoderTest {
             new ComparablePair<>(0xf0L, "a"), new ComparablePair<>(0xf0L, "ab")));
   }
 
+  @Test
   public void testDecodes() {
     PairLexicoder<String,String> plexc = new PairLexicoder<>(new StringLexicoder(),
         new StringLexicoder());

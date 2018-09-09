@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.master.balancer;
 
 import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,7 +50,6 @@ import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -186,7 +186,7 @@ public class TableLoadBalancerTest {
     TableLoadBalancer tls = new TableLoadBalancer();
     tls.init(context2);
     tls.balance(state, migrations, migrationsOut);
-    Assert.assertEquals(0, migrationsOut.size());
+    assertEquals(0, migrationsOut.size());
 
     state.put(mkts("10.0.0.2", "0x02030405"), status());
     tls = new TableLoadBalancer();
@@ -203,9 +203,9 @@ public class TableLoadBalancerTest {
       Table.ID key = migration.tablet.getTableId();
       movedByTable.put(key, movedByTable.get(key) + 1);
     }
-    Assert.assertEquals(15, count);
+    assertEquals(15, count);
     for (Integer moved : movedByTable.values()) {
-      Assert.assertEquals(5, moved.intValue());
+      assertEquals(5, moved.intValue());
     }
   }
 

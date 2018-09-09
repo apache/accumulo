@@ -19,9 +19,11 @@ package org.apache.accumulo.core.client.lexicoder;
 import java.util.Arrays;
 
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.junit.Test;
 
 public class ULongLexicoderTest extends AbstractLexicoderTest {
 
+  @Test
   public void testEncoding() {
     ULongLexicoder ull = new ULongLexicoder();
 
@@ -55,12 +57,14 @@ public class ULongLexicoderTest extends AbstractLexicoderTest {
     assertEqualsB(ull.encode(-1L), new byte[] {16});
   }
 
+  @Test
   public void testSortOrder() {
     // only testing non negative
     assertSortOrder(new ULongLexicoder(), Arrays.asList(0L, 0x01L, 0x1234L, 0x123456L, 0x12345678L,
         0x1234567890L, 0x1234567890abL, 0x1234567890abcdL, 0x1234567890abcdefL, Long.MAX_VALUE));
   }
 
+  @Test
   public void testDecodes() {
     assertDecodes(new ULongLexicoder(), Long.MIN_VALUE);
     assertDecodes(new ULongLexicoder(), -1L);

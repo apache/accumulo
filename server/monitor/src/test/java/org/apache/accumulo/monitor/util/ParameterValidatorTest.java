@@ -16,9 +16,11 @@
  */
 package org.apache.accumulo.monitor.util;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.regex.Pattern;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -29,36 +31,35 @@ public class ParameterValidatorTest {
   @Test
   public void testAlphaNumRegex() {
     Pattern p = Pattern.compile(ParameterValidator.ALPHA_NUM_REGEX);
-    Assert.assertTrue(p.matcher("asdlkfj234kj324").matches());
-    Assert.assertFalse(p.matcher("234-324").matches());
-    Assert.assertFalse(p.matcher("").matches());
+    assertTrue(p.matcher("asdlkfj234kj324").matches());
+    assertFalse(p.matcher("234-324").matches());
+    assertFalse(p.matcher("").matches());
 
     p = Pattern.compile(ParameterValidator.ALPHA_NUM_REGEX_BLANK_OK);
-    Assert.assertTrue(p.matcher("asdlkfj234kj324").matches());
-    Assert.assertTrue(p.matcher("").matches());
-    Assert.assertFalse(p.matcher("234-324").matches());
+    assertTrue(p.matcher("asdlkfj234kj324").matches());
+    assertTrue(p.matcher("").matches());
+    assertFalse(p.matcher("234-324").matches());
   }
 
   @Test
   public void testServerRegex() throws Exception {
     Pattern p = Pattern.compile(ParameterValidator.HOSTNAME_PORT_REGEX);
-    Assert.assertTrue("Did not match hostname with dots",
-        p.matcher("ab3cd.12d34.3xyz.net:12").matches());
-    Assert.assertTrue("Did not match hostname with dash",
+    assertTrue("Did not match hostname with dots", p.matcher("ab3cd.12d34.3xyz.net:12").matches());
+    assertTrue("Did not match hostname with dash",
         p.matcher("abcd.123.server-foo.com:56789").matches());
-    Assert.assertTrue("Did not match hostname and port",
+    assertTrue("Did not match hostname and port",
         p.matcher("abcd.123.server-foo.com:1234").matches());
-    Assert.assertTrue("Did not match all numeric and port", p.matcher("127.0.0.1:9999").matches());
-    Assert.assertTrue("Did not match all numeric and port", p.matcher("ServerName:9999").matches());
+    assertTrue("Did not match all numeric and port", p.matcher("127.0.0.1:9999").matches());
+    assertTrue("Did not match all numeric and port", p.matcher("ServerName:9999").matches());
 
-    Assert.assertFalse("Port number required", p.matcher("127.0.0.1").matches());
-    Assert.assertFalse(p.matcher("abcd.1234.*.xyz").matches());
-    Assert.assertFalse(p.matcher("abcd.1234.;xyz").matches());
-    Assert.assertFalse(p.matcher("abcd.12{3}4.xyz").matches());
-    Assert.assertFalse(p.matcher("abcd.12[3]4.xyz").matches());
-    Assert.assertFalse(p.matcher("abcd=4.xyz").matches());
-    Assert.assertFalse(p.matcher("abcd=\"4.xyz\"").matches());
-    Assert.assertFalse(p.matcher("abcd\"4.xyz\"").matches());
+    assertFalse("Port number required", p.matcher("127.0.0.1").matches());
+    assertFalse(p.matcher("abcd.1234.*.xyz").matches());
+    assertFalse(p.matcher("abcd.1234.;xyz").matches());
+    assertFalse(p.matcher("abcd.12{3}4.xyz").matches());
+    assertFalse(p.matcher("abcd.12[3]4.xyz").matches());
+    assertFalse(p.matcher("abcd=4.xyz").matches());
+    assertFalse(p.matcher("abcd=\"4.xyz\"").matches());
+    assertFalse(p.matcher("abcd\"4.xyz\"").matches());
   }
 
 }

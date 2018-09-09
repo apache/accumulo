@@ -17,6 +17,11 @@
 
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,7 +42,6 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.impl.TabletIdImpl;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -58,7 +62,7 @@ public class LocatorIT extends AccumuloClusterHarness {
       gbr.put(entry.getKey(), new HashSet<>(entry.getValue()));
     }
 
-    Assert.assertEquals(expected1, gbr);
+    assertEquals(expected1, gbr);
 
     Map<TabletId,Set<Range>> gbt = new HashMap<>();
     for (Entry<TabletId,List<Range>> entry : locations.groupByTablet().entrySet()) {
@@ -66,13 +70,13 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       TabletId tid = entry.getKey();
       String location = locations.getTabletLocation(tid);
-      Assert.assertNotNull("Location for " + tid + " was null", location);
-      Assert.assertTrue("Unknown location " + location, tservers.contains(location));
-      Assert.assertEquals("Expected <host>:<port> " + location, 2, location.split(":").length);
+      assertNotNull("Location for " + tid + " was null", location);
+      assertTrue("Unknown location " + location, tservers.contains(location));
+      assertEquals("Expected <host>:<port> " + location, 2, location.split(":").length);
 
     }
 
-    Assert.assertEquals(expected2, gbt);
+    assertEquals(expected2, gbt);
   }
 
   private static TabletId newTabletId(String tableId, String endRow, String prevRow) {
@@ -123,7 +127,7 @@ public class LocatorIT extends AccumuloClusterHarness {
 
     try {
       conn.tableOperations().locate(tableName, ranges);
-      Assert.fail();
+      fail();
     } catch (TableOfflineException e) {
       // expected
     }
@@ -132,7 +136,7 @@ public class LocatorIT extends AccumuloClusterHarness {
 
     try {
       conn.tableOperations().locate(tableName, ranges);
-      Assert.fail();
+      fail();
     } catch (TableNotFoundException e) {
       // expected
     }

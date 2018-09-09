@@ -17,22 +17,23 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class BlockCacheManagerTest {
 
   @Test
   public void testGetPropertyPrefix() throws Exception {
-    Assert.assertEquals("tserver.cache.config.lru.data.",
+    assertEquals("tserver.cache.config.lru.data.",
         BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.DATA));
-    Assert.assertEquals("tserver.cache.config.lru.index.",
+    assertEquals("tserver.cache.config.lru.index.",
         BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.INDEX));
-    Assert.assertEquals("tserver.cache.config.lru.summary.",
+    assertEquals("tserver.cache.config.lru.summary.",
         BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.SUMMARY));
-    Assert.assertEquals("tserver.cache.config.lru.default.",
+    assertEquals("tserver.cache.config.lru.default.",
         BlockCacheManager.getFullyQualifiedPropertyPrefix("lru"));
   }
 

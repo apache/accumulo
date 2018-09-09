@@ -16,6 +16,11 @@
  */
 package org.apache.accumulo.core.iterators.system;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,13 +35,13 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.DeletingIterator.Behavior;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class DeletingIteratorTest extends TestCase {
+public class DeletingIteratorTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
+  @Test
   public void test1() {
     Text colf = new Text("a");
     Text colq = new Text("b");
@@ -118,6 +123,7 @@ public class DeletingIteratorTest extends TestCase {
   }
 
   // seek test
+  @Test
   public void test2() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
@@ -169,6 +175,7 @@ public class DeletingIteratorTest extends TestCase {
   }
 
   // test delete with same timestamp as existing key
+  @Test
   public void test3() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
@@ -195,6 +202,7 @@ public class DeletingIteratorTest extends TestCase {
   }
 
   // test range inclusiveness
+  @Test
   public void test4() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
@@ -221,6 +229,7 @@ public class DeletingIteratorTest extends TestCase {
     assertFalse(it.hasTop());
   }
 
+  @Test
   public void testFail() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 

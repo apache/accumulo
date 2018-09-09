@@ -17,6 +17,12 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Random;
@@ -35,8 +41,7 @@ import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheType;
-
-import junit.framework.TestCase;
+import org.junit.Test;
 
 /**
  * Tests the concurrent LruBlockCache.
@@ -45,8 +50,9 @@ import junit.framework.TestCase;
  * Tests will ensure it grows and shrinks in size properly, evictions run when they're supposed to
  * and do what they should, and that cached blocks are accessible when expected to be.
  */
-public class TestLruBlockCache extends TestCase {
+public class TestLruBlockCache {
 
+  @Test
   public void testConfiguration() {
     ConfigurationCopy cc = new ConfigurationCopy();
     cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
@@ -72,17 +78,18 @@ public class TestLruBlockCache extends TestCase {
     LruBlockCacheConfiguration lbcc = new LruBlockCacheConfiguration(bcc, CacheType.INDEX);
 
     assertFalse(lbcc.isUseEvictionThread());
-    assertEquals(0.93f, lbcc.getMinFactor());
-    assertEquals(0.97f, lbcc.getAcceptableFactor());
-    assertEquals(0.20f, lbcc.getSingleFactor());
-    assertEquals(0.30f, lbcc.getMultiFactor());
-    assertEquals(0.50f, lbcc.getMemoryFactor());
-    assertEquals(0.53f, lbcc.getMapLoadFactor());
+    assertEquals(0.93f, lbcc.getMinFactor(), 0.0000001);
+    assertEquals(0.97f, lbcc.getAcceptableFactor(), 0.0000001);
+    assertEquals(0.20f, lbcc.getSingleFactor(), 0.0000001);
+    assertEquals(0.30f, lbcc.getMultiFactor(), 0.0000001);
+    assertEquals(0.50f, lbcc.getMemoryFactor(), 0.0000001);
+    assertEquals(0.53f, lbcc.getMapLoadFactor(), 0.0000001);
     assertEquals(5, lbcc.getMapConcurrencyLevel());
     assertEquals(1019, lbcc.getBlockSize());
     assertEquals(1000023, lbcc.getMaxSize());
   }
 
+  @Test
   public void testBackgroundEvictionThread() throws Exception {
 
     long maxSize = 100000;
@@ -116,6 +123,7 @@ public class TestLruBlockCache extends TestCase {
     manager.stop();
   }
 
+  @Test
   public void testCacheSimple() throws Exception {
 
     long maxSize = 1000000;
@@ -173,6 +181,7 @@ public class TestLruBlockCache extends TestCase {
     manager.stop();
   }
 
+  @Test
   public void testCacheEvictionSimple() throws Exception {
 
     long maxSize = 100000;
@@ -222,6 +231,7 @@ public class TestLruBlockCache extends TestCase {
     manager.stop();
   }
 
+  @Test
   public void testCacheEvictionTwoPriorities() throws Exception {
 
     long maxSize = 100000;
@@ -291,6 +301,7 @@ public class TestLruBlockCache extends TestCase {
     manager.stop();
   }
 
+  @Test
   public void testCacheEvictionThreePriorities() throws Exception {
 
     long maxSize = 100000;
@@ -415,6 +426,7 @@ public class TestLruBlockCache extends TestCase {
   }
 
   // test scan resistance
+  @Test
   public void testScanResistance() throws Exception {
 
     long maxSize = 100000;

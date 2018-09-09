@@ -17,13 +17,14 @@
 
 package org.apache.accumulo.core.spi.scan;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
 import org.apache.accumulo.core.spi.scan.ScanInfo.Type;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class IdleRatioScanPrioritizerTest {
@@ -51,11 +52,11 @@ public class IdleRatioScanPrioritizerTest {
 
     Collections.sort(scans, comparator);
 
-    Assert.assertEquals("b", scans.get(0).testId);
-    Assert.assertEquals("a", scans.get(1).testId);
-    Assert.assertEquals("f", scans.get(2).testId);
-    Assert.assertEquals("e", scans.get(3).testId);
-    Assert.assertEquals("d", scans.get(4).testId);
-    Assert.assertEquals("c", scans.get(5).testId);
+    assertEquals("b", scans.get(0).testId);
+    assertEquals("a", scans.get(1).testId);
+    assertEquals("f", scans.get(2).testId);
+    assertEquals("e", scans.get(3).testId);
+    assertEquals("d", scans.get(4).testId);
+    assertEquals("c", scans.get(5).testId);
   }
 }

@@ -19,9 +19,11 @@ package org.apache.accumulo.core.client.lexicoder;
 import java.util.Arrays;
 
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.junit.Test;
 
 public class FloatLexicoderTest extends AbstractLexicoderTest {
 
+  @Test
   public void testSortOrder() {
     assertSortOrder(new FloatLexicoder(),
         Arrays.asList(Float.MIN_VALUE, Float.MAX_VALUE, Float.NEGATIVE_INFINITY,
@@ -31,6 +33,7 @@ public class FloatLexicoderTest extends AbstractLexicoderTest {
 
   }
 
+  @Test
   public void testDecode() {
     assertDecodes(new FloatLexicoder(), Float.MIN_VALUE);
     assertDecodes(new FloatLexicoder(), Math.nextUp(Float.NEGATIVE_INFINITY));

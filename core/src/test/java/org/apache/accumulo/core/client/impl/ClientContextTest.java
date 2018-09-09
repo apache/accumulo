@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+
 import java.io.File;
 import java.net.URL;
 import java.util.HashMap;
@@ -25,7 +29,6 @@ import java.util.Properties;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.apache.accumulo.core.conf.Property;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -50,7 +53,7 @@ public class ClientContextTest {
     if (isCredentialProviderAvailable) {
       URL keystoreUrl = ClientContextTest.class.getResource(keystoreName);
 
-      Assert.assertNotNull("Could not find " + keystoreName, keystoreUrl);
+      assertNotNull("Could not find " + keystoreName, keystoreUrl);
 
       keystore = new File(keystoreUrl.getFile());
     }
@@ -70,7 +73,7 @@ public class ClientContextTest {
     Properties props = new Properties();
     props.setProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
     AccumuloConfiguration accClientConf = ClientConfConverter.toAccumuloConf(props);
-    Assert.assertEquals("mysecret", accClientConf.get(Property.INSTANCE_SECRET));
+    assertEquals("mysecret", accClientConf.get(Property.INSTANCE_SECRET));
   }
 
   @Test
@@ -80,7 +83,7 @@ public class ClientContextTest {
     }
     Properties props = new Properties();
     AccumuloConfiguration accClientConf = ClientConfConverter.toAccumuloConf(props);
-    Assert.assertEquals(Property.INSTANCE_SECRET.getDefaultValue(),
+    assertEquals(Property.INSTANCE_SECRET.getDefaultValue(),
         accClientConf.get(Property.INSTANCE_SECRET));
   }
 
@@ -99,10 +102,10 @@ public class ClientContextTest {
     accClientConf.getProperties(props, x -> true);
 
     // Only sensitive properties are added
-    Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(),
+    assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(),
         props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
     // Only known properties are added
-    Assert.assertFalse(props.containsKey("ignored.property"));
-    Assert.assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
+    assertFalse(props.containsKey("ignored.property"));
+    assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
   }
 }

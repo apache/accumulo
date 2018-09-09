@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.server.fs;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ViewFSUtilsTest {
@@ -51,19 +52,19 @@ public class ViewFSUtilsTest {
       for (String ns : Arrays.asList("ns1", "ns2", "ns22", "ns")) {
         Path match = ViewFSUtils.matchingFileSystem(new Path("viewfs:/" + ns + "/bulk_import_01"),
             tablesDirs2, conf);
-        Assert.assertEquals(new Path("viewfs:/" + ns + "/accumulo/tables"), match);
+        assertEquals(new Path("viewfs:/" + ns + "/accumulo/tables"), match);
 
         match = ViewFSUtils.matchingFileSystem(new Path("viewfs:///" + ns + "/bulk_import_01"),
             tablesDirs1, conf);
-        Assert.assertEquals(new Path("viewfs:/" + ns + "/accumulo/tables"), match);
+        assertEquals(new Path("viewfs:/" + ns + "/accumulo/tables"), match);
 
         match = ViewFSUtils.matchingFileSystem(new Path("viewfs:/" + ns + "/bulk_import_01"),
             tablesDirs2, conf);
-        Assert.assertEquals(new Path("viewfs:/" + ns + "/accumulo/tables"), match);
+        assertEquals(new Path("viewfs:/" + ns + "/accumulo/tables"), match);
 
         match = ViewFSUtils.matchingFileSystem(new Path("viewfs:///" + ns + "/bulk_import_01"),
             tablesDirs1, conf);
-        Assert.assertEquals(new Path("viewfs:/" + ns + "/accumulo/tables"), match);
+        assertEquals(new Path("viewfs:/" + ns + "/accumulo/tables"), match);
       }
     }
   }
@@ -90,19 +91,19 @@ public class ViewFSUtilsTest {
       for (String ns : Arrays.asList("", "/ns1", "/ns1/A", "/ns1/AA", "/ns1/C", "/ns2")) {
         Path match = ViewFSUtils.matchingFileSystem(new Path("viewfs:" + ns + "/bulk_import_01"),
             tablesDirs2, conf);
-        Assert.assertEquals(new Path("viewfs:" + ns + "/accumulo/tables"), match);
+        assertEquals(new Path("viewfs:" + ns + "/accumulo/tables"), match);
 
         match = ViewFSUtils.matchingFileSystem(new Path("viewfs://" + ns + "/bulk_import_01"),
             tablesDirs1, conf);
-        Assert.assertEquals(new Path("viewfs:" + ns + "/accumulo/tables"), match);
+        assertEquals(new Path("viewfs:" + ns + "/accumulo/tables"), match);
 
         match = ViewFSUtils.matchingFileSystem(new Path("viewfs:" + ns + "/bulk_import_01"),
             tablesDirs2, conf);
-        Assert.assertEquals(new Path("viewfs:" + ns + "/accumulo/tables"), match);
+        assertEquals(new Path("viewfs:" + ns + "/accumulo/tables"), match);
 
         match = ViewFSUtils.matchingFileSystem(new Path("viewfs://" + ns + "/bulk_import_01"),
             tablesDirs1, conf);
-        Assert.assertEquals(new Path("viewfs:" + ns + "/accumulo/tables"), match);
+        assertEquals(new Path("viewfs:" + ns + "/accumulo/tables"), match);
       }
     }
   }

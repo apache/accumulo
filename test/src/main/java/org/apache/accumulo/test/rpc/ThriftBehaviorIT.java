@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.test.rpc;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +34,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.server.TSimpleServer;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -87,7 +89,7 @@ public class ThriftBehaviorIT {
 
     // make sure the property is reset before the test runs
     System.setProperty(propName, "-");
-    Assert.assertEquals("-", System.getProperty(propName));
+    assertEquals("-", System.getProperty(propName));
   }
 
   @After
@@ -99,7 +101,7 @@ public class ThriftBehaviorIT {
     });
 
     // make sure the method was actually executed by the service handler
-    Assert.assertEquals(KITTY_MSG, System.getProperty(propName));
+    assertEquals(KITTY_MSG, System.getProperty(propName));
   }
 
   @Test
@@ -113,9 +115,9 @@ public class ThriftBehaviorIT {
   public void echoFail() throws TException {
     try {
       client.echoFail(KITTY_MSG);
-      Assert.fail("Thrift client did not throw an expected exception");
+      fail("Thrift client did not throw an expected exception");
     } catch (Exception e) {
-      Assert.assertEquals(TApplicationException.class.getName(), e.getClass().getName());
+      assertEquals(TApplicationException.class.getName(), e.getClass().getName());
     }
     // verify normal two-way method still passes using same client
     echoPass();
@@ -131,9 +133,9 @@ public class ThriftBehaviorIT {
   public void echoRuntimeFail() throws TException {
     try {
       client.echoRuntimeFail(KITTY_MSG);
-      Assert.fail("Thrift client did not throw an expected exception");
+      fail("Thrift client did not throw an expected exception");
     } catch (Exception e) {
-      Assert.assertEquals(TApplicationException.class.getName(), e.getClass().getName());
+      assertEquals(TApplicationException.class.getName(), e.getClass().getName());
     }
     // verify normal two-way method still passes using same client
     echoPass();
@@ -141,12 +143,12 @@ public class ThriftBehaviorIT {
 
   @Test
   public void echoPassHandler() {
-    Assert.assertEquals(KITTY_MSG, handler.echoPass(KITTY_MSG));
+    assertEquals(KITTY_MSG, handler.echoPass(KITTY_MSG));
   }
 
   @Test
   public void echoPass() throws TException {
-    Assert.assertEquals(KITTY_MSG, client.echoPass(KITTY_MSG));
+    assertEquals(KITTY_MSG, client.echoPass(KITTY_MSG));
   }
 
   @Test

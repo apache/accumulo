@@ -17,6 +17,8 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import static org.junit.Assert.assertNotNull;
+
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -26,7 +28,6 @@ import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class BlockCacheFactoryTest {
@@ -52,6 +53,6 @@ public class BlockCacheFactoryTest {
     DefaultConfiguration dc = DefaultConfiguration.getInstance();
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(dc);
     manager.start(new BlockCacheConfiguration(dc));
-    Assert.assertNotNull(manager.getBlockCache(CacheType.INDEX));
+    assertNotNull(manager.getBlockCache(CacheType.INDEX));
   }
 }

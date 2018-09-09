@@ -17,6 +17,9 @@
 package org.apache.accumulo.test.replication;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.fail;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -33,7 +36,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +59,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
     // Wait for a tserver to come up to fulfill this request
     conn.tableOperations().create("foo");
     try (Scanner s = conn.createScanner("foo", Authorizations.EMPTY)) {
-      Assert.assertEquals(0, Iterables.size(s));
+      assertEquals(0, Iterables.size(s));
 
       ZooReader zreader = new ZooReader(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut());
@@ -75,12 +77,12 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
           replicationServices.add(replAddress);
         } catch (Exception e) {
           log.error("Could not find port for {}", tserver, e);
-          Assert.fail("Did not find replication port advertisement for " + tserver);
+          fail("Did not find replication port advertisement for " + tserver);
         }
       }
 
       // Each tserver should also have equal replication services running internally
-      Assert.assertEquals("Expected an equal number of replication servicers and tservers",
+      assertEquals("Expected an equal number of replication servicers and tservers",
           tserverHost.size(), replicationServices.size());
     }
   }
@@ -94,13 +96,13 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
     // Wait for a tserver to come up to fulfill this request
     conn.tableOperations().create("foo");
     try (Scanner s = conn.createScanner("foo", Authorizations.EMPTY)) {
-      Assert.assertEquals(0, Iterables.size(s));
+      assertEquals(0, Iterables.size(s));
 
       ZooReader zreader = new ZooReader(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut());
 
       // Should have one master instance
-      Assert.assertEquals(1, context.getMasterLocations().size());
+      assertEquals(1, context.getMasterLocations().size());
 
       // Get the master thrift service addr
       String masterAddr = Iterables.getOnlyElement(context.getMasterLocations());
@@ -111,11 +113,11 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
           null), UTF_8);
 
       // They shouldn't be the same
-      Assert.assertNotEquals(masterAddr, replCoordAddr);
+      assertNotEquals(masterAddr, replCoordAddr);
 
       // Neither should be zero as the port
-      Assert.assertNotEquals(0, HostAndPort.fromString(masterAddr).getPort());
-      Assert.assertNotEquals(0, HostAndPort.fromString(replCoordAddr).getPort());
+      assertNotEquals(0, HostAndPort.fromString(masterAddr).getPort());
+      assertNotEquals(0, HostAndPort.fromString(replCoordAddr).getPort());
     }
   }
 }

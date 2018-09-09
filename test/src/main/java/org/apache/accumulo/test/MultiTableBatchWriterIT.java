@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,7 +43,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -111,7 +114,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
           actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(),
               entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
         }
-        Assert.assertEquals("Differing results for " + table1, table1Expectations, actual);
+        assertEquals("Differing results for " + table1, table1Expectations, actual);
       }
 
       try (Scanner s = connector.createScanner(table2, new Authorizations())) {
@@ -121,7 +124,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
           actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(),
               entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
         }
-        Assert.assertEquals("Differing results for " + table2, table2Expectations, actual);
+        assertEquals("Differing results for " + table2, table2Expectations, actual);
       }
 
     } finally {
@@ -178,7 +181,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
             actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(),
                 entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
           }
-          Assert.assertEquals("Differing results for " + table, expectations, actual);
+          assertEquals("Differing results for " + table, expectations, actual);
         }
       }
     } finally {
@@ -215,7 +218,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       // after seeing the rename
       try {
         bw1 = mtbw.getBatchWriter(table1);
-        Assert.fail("Should not be able to find this table");
+        fail("Should not be able to find this table");
       } catch (TableNotFoundException e) {
         // pass
       }
@@ -224,7 +227,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
       try {
         bw2 = mtbw.getBatchWriter(table2);
-        Assert.fail("Should not be able to find this table");
+        fail("Should not be able to find this table");
       } catch (TableNotFoundException e) {
         // pass
       }
@@ -255,7 +258,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
             actual.put(Maps.immutableEntry(entry.getKey().getRow().toString(),
                 entry.getKey().getColumnFamily().toString()), entry.getValue().toString());
           }
-          Assert.assertEquals("Differing results for " + table, expectations, actual);
+          assertEquals("Differing results for " + table, expectations, actual);
         }
       }
     } finally {
@@ -292,7 +295,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
       try {
         bw1 = mtbw.getBatchWriter(table1);
-        Assert.fail("Should not have gotten batchwriter for " + table1);
+        fail("Should not have gotten batchwriter for " + table1);
       } catch (TableNotFoundException e) {
         // Pass
       }
@@ -357,7 +360,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       }
     }
 
-    Assert.assertTrue("Expected mutations to be rejected.", mutationsRejected);
+    assertTrue("Expected mutations to be rejected.", mutationsRejected);
   }
 
   @Test
@@ -406,6 +409,6 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       }
     }
 
-    Assert.assertTrue("Expected mutations to be rejected.", mutationsRejected);
+    assertTrue("Expected mutations to be rejected.", mutationsRejected);
   }
 }

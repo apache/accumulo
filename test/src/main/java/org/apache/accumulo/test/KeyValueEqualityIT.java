@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -28,7 +31,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class KeyValueEqualityIT extends AccumuloClusterHarness {
@@ -70,10 +72,10 @@ public class KeyValueEqualityIT extends AccumuloClusterHarness {
       // KeyValue, the implementation of Entry<Key,Value>, should support equality and hashCode
       // properly
       Entry<Key,Value> e1 = t1.next(), e2 = t2.next();
-      Assert.assertEquals(e1, e2);
-      Assert.assertEquals(e1.hashCode(), e2.hashCode());
+      assertEquals(e1, e2);
+      assertEquals(e1.hashCode(), e2.hashCode());
     }
-    Assert.assertFalse("table1 had more data to read", t1.hasNext());
-    Assert.assertFalse("table2 had more data to read", t2.hasNext());
+    assertFalse("table1 had more data to read", t1.hasNext());
+    assertFalse("table2 had more data to read", t2.hasNext());
   }
 }

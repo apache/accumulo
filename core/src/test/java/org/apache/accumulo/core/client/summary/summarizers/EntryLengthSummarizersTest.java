@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client.summary.summarizers;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashMap;
 
 import org.apache.accumulo.core.client.summary.Summarizer.Collector;
@@ -23,7 +25,6 @@ import org.apache.accumulo.core.client.summary.Summarizer.Combiner;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class EntryLengthSummarizersTest {
@@ -69,7 +70,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 0L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
   }
 
   @Test
@@ -135,7 +136,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 3L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
   }
 
   @Test
@@ -201,7 +202,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 3L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
   }
 
   @Test
@@ -267,7 +268,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 3L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
   }
 
   @Test
@@ -333,7 +334,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 3L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
   }
 
   @Test
@@ -399,7 +400,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 3L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
   }
 
   /* Complex Test: Each test adds to the next, all are mixed lengths. */
@@ -471,7 +472,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 3L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
   }
 
   @Test
@@ -542,7 +543,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 3L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
   }
 
   @Test
@@ -615,7 +616,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 3L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
   }
 
   @Test
@@ -689,7 +690,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 3L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
   }
 
   @Test
@@ -764,7 +765,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 3L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
   }
 
   /* Miscellaneous Test */
@@ -852,7 +853,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 6L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
   }
 
   @Test
@@ -919,7 +920,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 3L);
 
-    Assert.assertEquals(expected, stats);
+    assertEquals(expected, stats);
   }
 
   /* COMBINER TEST */
@@ -1005,7 +1006,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 6L);
 
-    Assert.assertEquals(expected, stats1);
+    assertEquals(expected, stats1);
   }
 
   @Test
@@ -1086,7 +1087,7 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 4L);
 
-    Assert.assertEquals(expected, stats1);
+    assertEquals(expected, stats1);
   }
 
   @Test
@@ -1160,6 +1161,6 @@ public class EntryLengthSummarizersTest {
 
     expected.put("total", 2L);
 
-    Assert.assertEquals(expected, stats1);
+    assertEquals(expected, stats1);
   }
 }

@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Properties;
 
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ClientConfConverterTest {
@@ -39,6 +40,6 @@ public class ClientConfConverterTest {
     before.setProperty(ClientProperty.BATCH_WRITER_MAX_WRITE_THREADS.getKey(), "5");
 
     Properties after = ClientConfConverter.toProperties(ClientConfConverter.toClientConf(before));
-    Assert.assertEquals(before, after);
+    assertEquals(before, after);
   }
 }

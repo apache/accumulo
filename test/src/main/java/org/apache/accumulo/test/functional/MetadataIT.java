@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
@@ -42,7 +43,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
@@ -83,8 +83,8 @@ public class MetadataIT extends AccumuloClusterHarness {
         files2.add(entry.getKey().getColumnQualifier().toString());
 
       // flush of metadata table should change file set in root table
-      Assert.assertTrue(files2.size() > 0);
-      Assert.assertNotEquals(files1, files2);
+      assertTrue(files2.size() > 0);
+      assertNotEquals(files1, files2);
 
       c.tableOperations().compact(MetadataTable.NAME, null, null, false, true);
 
@@ -93,7 +93,7 @@ public class MetadataIT extends AccumuloClusterHarness {
         files3.add(entry.getKey().getColumnQualifier().toString());
 
       // compaction of metadata table should change file set in root table
-      Assert.assertNotEquals(files2, files3);
+      assertNotEquals(files2, files3);
     }
   }
 

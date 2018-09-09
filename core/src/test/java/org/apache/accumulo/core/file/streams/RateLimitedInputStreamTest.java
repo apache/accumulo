@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.core.file.streams;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.hadoop.fs.Seekable;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class RateLimitedInputStreamTest {
@@ -36,11 +37,11 @@ public class RateLimitedInputStreamTest {
       for (int i = 0; i < 100; ++i) {
         int count = Math.abs(randGen.nextInt()) % 65536;
         int countRead = is.read(new byte[count]);
-        Assert.assertEquals(count, countRead);
+        assertEquals(count, countRead);
         bytesRetrieved += count;
       }
     }
-    Assert.assertEquals(bytesRetrieved, rateLimiter.getPermitsAcquired());
+    assertEquals(bytesRetrieved, rateLimiter.getPermitsAcquired());
   }
 
   private static class RandomInputStream extends InputStream implements Seekable {

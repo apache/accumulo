@@ -16,6 +16,11 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,7 +51,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class TableOperationsHelperTest {
@@ -325,7 +329,7 @@ public class TableOperationsHelperTest {
     for (Entry<String,String> entry : t.getProperties(tablename)) {
       actual.put(entry.getKey(), entry.getValue());
     }
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
   }
 
   @Test
@@ -353,14 +357,14 @@ public class TableOperationsHelperTest {
     setting = new IteratorSetting(20, "otherName", "some.classname");
     t.attachIterator("table", setting, EnumSet.of(IteratorScope.scan));
     Map<String,EnumSet<IteratorScope>> two = t.listIterators("table");
-    Assert.assertEquals(2, two.size());
-    Assert.assertTrue(two.containsKey("otherName"));
-    Assert.assertEquals(2, two.get("otherName").size());
-    Assert.assertTrue(two.get("otherName").contains(IteratorScope.majc));
-    Assert.assertTrue(two.get("otherName").contains(IteratorScope.scan));
-    Assert.assertTrue(two.containsKey("someName"));
-    Assert.assertEquals(1, two.get("someName").size());
-    Assert.assertTrue(two.get("someName").contains(IteratorScope.majc));
+    assertEquals(2, two.size());
+    assertTrue(two.containsKey("otherName"));
+    assertEquals(2, two.get("otherName").size());
+    assertTrue(two.get("otherName").contains(IteratorScope.majc));
+    assertTrue(two.get("otherName").contains(IteratorScope.scan));
+    assertTrue(two.containsKey("someName"));
+    assertEquals(1, two.get("someName").size());
+    assertTrue(two.get("someName").contains(IteratorScope.majc));
     t.removeIterator("table", "someName", EnumSet.allOf(IteratorScope.class));
     check(t, "table",
         new String[] {"table.iterator.majc.otherName=20,some.classname",
@@ -368,14 +372,14 @@ public class TableOperationsHelperTest {
             "table.iterator.scan.otherName=20,some.classname",});
 
     setting = t.getIteratorSetting("table", "otherName", IteratorScope.scan);
-    Assert.assertEquals(20, setting.getPriority());
-    Assert.assertEquals("some.classname", setting.getIteratorClass());
-    Assert.assertTrue(setting.getOptions().isEmpty());
+    assertEquals(20, setting.getPriority());
+    assertEquals("some.classname", setting.getIteratorClass());
+    assertTrue(setting.getOptions().isEmpty());
     setting = t.getIteratorSetting("table", "otherName", IteratorScope.majc);
-    Assert.assertEquals(20, setting.getPriority());
-    Assert.assertEquals("some.classname", setting.getIteratorClass());
-    Assert.assertFalse(setting.getOptions().isEmpty());
-    Assert.assertEquals(Collections.singletonMap("key", "value"), setting.getOptions());
+    assertEquals(20, setting.getPriority());
+    assertEquals("some.classname", setting.getIteratorClass());
+    assertFalse(setting.getOptions().isEmpty());
+    assertEquals(Collections.singletonMap("key", "value"), setting.getOptions());
     t.attachIterator("table", setting, EnumSet.of(IteratorScope.minc));
     check(t, "table",
         new String[] {"table.iterator.majc.otherName=20,some.classname",
@@ -386,20 +390,20 @@ public class TableOperationsHelperTest {
 
     try {
       t.attachIterator("table", setting);
-      Assert.fail();
+      fail();
     } catch (AccumuloException e) {
       // expected, ignore
     }
     setting.setName("thirdName");
     try {
       t.attachIterator("table", setting);
-      Assert.fail();
+      fail();
     } catch (AccumuloException e) {}
     setting.setPriority(10);
     t.setProperty("table", "table.iterator.minc.thirdName.opt.key", "value");
     try {
       t.attachIterator("table", setting);
-      Assert.fail();
+      fail();
     } catch (AccumuloException e) {}
     t.removeProperty("table", "table.iterator.minc.thirdName.opt.key");
     t.attachIterator("table", setting);

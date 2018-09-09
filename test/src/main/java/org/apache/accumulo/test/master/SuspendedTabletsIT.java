@@ -19,6 +19,9 @@ package org.apache.accumulo.test.master;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -57,7 +60,6 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -194,7 +196,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     } while (ds.hostedCount != TABLETS);
 
     // Pray all of our tservers have at least 1 tablet.
-    Assert.assertEquals(TSERVERS, ds.hosted.keySet().size());
+    assertEquals(TSERVERS, ds.hosted.keySet().size());
 
     // Kill two tablet servers hosting our tablets. This should put tablets into suspended state,
     // and thus halt balancing.
@@ -221,9 +223,9 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     // "belong" to the dead tablet servers, and should be in exactly the same place as before any
     // tserver death.
     for (HostAndPort server : deadTabletsByServer.keySet()) {
-      Assert.assertEquals(deadTabletsByServer.get(server), beforeDeathState.hosted.get(server));
+      assertEquals(deadTabletsByServer.get(server), beforeDeathState.hosted.get(server));
     }
-    Assert.assertEquals(TABLETS, ds.hostedCount + ds.suspendedCount);
+    assertEquals(TABLETS, ds.hostedCount + ds.suspendedCount);
 
     // Restart the first tablet server, making sure it ends up on the same port
     HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
@@ -239,7 +241,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         || ds.assignedCount != 0; ds = TabletLocations.retrieve(ctx, tableName)) {
       Thread.sleep(1000);
     }
-    Assert.assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
+    assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
 
     // Finally, after much longer, remaining suspended tablets should be reassigned.
     log.info("Awaiting tablet reassignment for remaining tablets");
@@ -249,8 +251,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     }
 
     long recoverTime = System.nanoTime();
-    Assert
-        .assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
+    assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
   }
 
   private interface TServerKiller {
@@ -306,7 +307,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         Thread.sleep(sleepTime);
         --remainingAttempts;
         if (remainingAttempts == 0) {
-          Assert.fail("Scanning of metadata failed, aborting");
+          fail("Scanning of metadata failed, aborting");
         }
       }
     }

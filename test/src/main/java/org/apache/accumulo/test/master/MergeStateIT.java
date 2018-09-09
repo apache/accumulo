@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.master;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -50,7 +52,6 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class MergeStateIT extends ConfigurableMacBase {
@@ -145,7 +146,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       if (tss != null)
         count++;
     }
-    Assert.assertEquals(0, count); // the normal case is to skip tablets in a good state
+    assertEquals(0, count); // the normal case is to skip tablets in a good state
 
     // Create the hole
     // Split the tablet at one end of the range
@@ -158,7 +159,7 @@ public class MergeStateIT extends ConfigurableMacBase {
     // do the state check
     MergeStats stats = scan(state, metaDataStateStore);
     MergeState newState = stats.nextMergeState(connector, state);
-    Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, newState);
+    assertEquals(MergeState.WAITING_FOR_OFFLINE, newState);
 
     // unassign the tablets
     BatchDeleter deleter = connector.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY,
@@ -169,7 +170,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
     // now we should be ready to merge but, we have inconsistent metadata
     stats = scan(state, metaDataStateStore);
-    Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(connector, state));
+    assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(connector, state));
 
     // finish the split
     KeyExtent tablet = new KeyExtent(tableId, new Text("p"), new Text("o"));
@@ -181,7 +182,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
     // onos... there's a new tablet online
     stats = scan(state, metaDataStateStore);
-    Assert.assertEquals(MergeState.WAITING_FOR_CHOPPED, stats.nextMergeState(connector, state));
+    assertEquals(MergeState.WAITING_FOR_CHOPPED, stats.nextMergeState(connector, state));
 
     // chop it
     m = tablet.getPrevRowUpdateMutation();
@@ -189,7 +190,7 @@ public class MergeStateIT extends ConfigurableMacBase {
     update(connector, m);
 
     stats = scan(state, metaDataStateStore);
-    Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(connector, state));
+    assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(connector, state));
 
     // take it offline
     m = tablet.getPrevRowUpdateMutation();
@@ -201,7 +202,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
     // now we can split
     stats = scan(state, metaDataStateStore);
-    Assert.assertEquals(MergeState.MERGING, stats.nextMergeState(connector, state));
+    assertEquals(MergeState.MERGING, stats.nextMergeState(connector, state));
 
   }
 

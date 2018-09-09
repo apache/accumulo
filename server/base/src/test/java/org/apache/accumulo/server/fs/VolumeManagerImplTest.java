@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.server.fs;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -25,7 +28,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -89,7 +91,7 @@ public class VolumeManagerImplTest {
         "1/t-0000001");
     for (String pathToTest : pathsToTest) {
       Path fullPath = fs.getFullPath(FileType.TABLE, pathToTest);
-      Assert.assertEquals(new Path(expectedBase, pathToTest), fullPath);
+      assertEquals(new Path(expectedBase, pathToTest), fullPath);
     }
   }
 
@@ -103,7 +105,7 @@ public class VolumeManagerImplTest {
         "1/t-0000001/C0000001.rf");
     for (String pathToTest : pathsToTest) {
       Path fullPath = fs.getFullPath(FileType.TABLE, pathToTest);
-      Assert.assertEquals(new Path(expectedBase, pathToTest), fullPath);
+      assertEquals(new Path(expectedBase, pathToTest), fullPath);
     }
   }
 
@@ -137,7 +139,6 @@ public class VolumeManagerImplTest {
     VolumeManager vm = VolumeManagerImpl.get(conf);
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Table.ID.of("sometable"));
     String choice = vm.choose(chooserEnv, volumes.toArray(new String[0]));
-    Assert.assertTrue("shouldn't see invalid options from misbehaving chooser.",
-        volumes.contains(choice));
+    assertTrue("shouldn't see invalid options from misbehaving chooser.", volumes.contains(choice));
   }
 }

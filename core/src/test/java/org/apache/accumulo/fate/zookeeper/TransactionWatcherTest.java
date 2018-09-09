@@ -16,12 +16,15 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 public class TransactionWatcherTest {
@@ -93,47 +96,47 @@ public class TransactionWatcherTest {
     sa.start(txType, txid);
     try {
       sa.start(txType, txid);
-      Assert.fail("simple arbitrator did not throw an exception");
+      fail("simple arbitrator did not throw an exception");
     } catch (Exception ex) {
       // expected
     }
     txw.isActive(txid);
-    Assert.assertFalse(txw.isActive(txid));
+    assertFalse(txw.isActive(txid));
     txw.run(txType, txid, () -> {
-      Assert.assertTrue(txw.isActive(txid));
+      assertTrue(txw.isActive(txid));
       return null;
     });
-    Assert.assertFalse(txw.isActive(txid));
-    Assert.assertFalse(sa.transactionComplete(txType, txid));
+    assertFalse(txw.isActive(txid));
+    assertFalse(sa.transactionComplete(txType, txid));
     sa.stop(txType, txid);
-    Assert.assertFalse(sa.transactionAlive(txType, txid));
-    Assert.assertFalse(sa.transactionComplete(txType, txid));
+    assertFalse(sa.transactionAlive(txType, txid));
+    assertFalse(sa.transactionComplete(txType, txid));
     sa.cleanup(txType, txid);
-    Assert.assertTrue(sa.transactionComplete(txType, txid));
+    assertTrue(sa.transactionComplete(txType, txid));
     try {
       txw.run(txType, txid, () -> {
-        Assert.fail("Should not be able to start a new work on a discontinued transaction");
+        fail("Should not be able to start a new work on a discontinued transaction");
         return null;
       });
-      Assert.fail("work against stopped transaction should fail");
+      fail("work against stopped transaction should fail");
     } catch (Exception ex) {
 
     }
     final long txid2 = 9;
     sa.start(txType, txid2);
     txw.run(txType, txid2, () -> {
-      Assert.assertTrue(txw.isActive(txid2));
+      assertTrue(txw.isActive(txid2));
       sa.stop(txType, txid2);
       try {
         txw.run(txType, txid2, () -> {
-          Assert.fail("Should not be able to start a new work on a discontinued transaction");
+          fail("Should not be able to start a new work on a discontinued transaction");
           return null;
         });
-        Assert.fail("work against a stopped transaction should fail");
+        fail("work against a stopped transaction should fail");
       } catch (Exception ex) {
         // expected
       }
-      Assert.assertTrue(txw.isActive(txid2));
+      assertTrue(txw.isActive(txid2));
       return null;
     });
 

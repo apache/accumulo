@@ -35,7 +35,6 @@ import java.util.List;
 import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class MutationTest {
@@ -200,28 +199,28 @@ public class MutationTest {
     // fam: byte[]
     Mutation actual = new Mutation("row5");
     actual.at().family(fam.getBytes(UTF_8)).qualifier(qual).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // fam: ByteBuffer
     final ByteBuffer bbFam = ByteBuffer.wrap(fam.getBytes(UTF_8));
     final int bbFamStartPos = bbFam.position();
     actual = new Mutation("row5");
     actual.at().family(bbFam).qualifier(qual).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // make sure the ByteBuffer last byte filled in the buffer (its position) is same as before the
     // API call
-    Assert.assertEquals(bbFamStartPos, bbFam.position());
+    assertEquals(bbFamStartPos, bbFam.position());
 
     // fam: CharSequence (String implementation)
     actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // fam: Text
     actual = new Mutation("row5");
     actual.at().family(new Text(fam)).qualifier(qual).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
   }
 
   @Test
@@ -237,28 +236,28 @@ public class MutationTest {
     // qual: byte[]
     Mutation actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual.getBytes(UTF_8)).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // qual: ByteBuffer
     final ByteBuffer bbQual = ByteBuffer.wrap(qual.getBytes(UTF_8));
     final int bbQualStartPos = bbQual.position();
     actual = new Mutation("row5");
     actual.at().family(fam).qualifier(bbQual).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // make sure the ByteBuffer last byte filled in the buffer (its position) is same as before the
     // API call
-    Assert.assertEquals(bbQualStartPos, bbQual.position());
+    assertEquals(bbQualStartPos, bbQual.position());
 
     // qual: CharSequence (String implementation)
     actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // qual: Text
     actual = new Mutation("row5");
     actual.at().family(fam).qualifier(new Text(qual)).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
   }
 
   @Test
@@ -275,33 +274,33 @@ public class MutationTest {
     // vis: byte[]
     Mutation actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).visibility(vis.getExpression()).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // vis: ByteBuffer
     final ByteBuffer bbVis = ByteBuffer.wrap(vis.getExpression());
     final int bbVisStartPos = bbVis.position();
     actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).visibility(bbVis).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // make sure the ByteBuffer last byte filled in the buffer (its position) is same as before the
     // API call
-    Assert.assertEquals(bbVisStartPos, bbVis.position());
+    assertEquals(bbVisStartPos, bbVis.position());
 
     // vis: CharSequence (String implementation)
     actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).visibility(new String(vis.getExpression())).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // vis: ColumnVisibility
     actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).visibility(vis).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // vis: Text
     actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).visibility(new Text(vis.getExpression())).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
   }
 
   @Test
@@ -317,7 +316,7 @@ public class MutationTest {
     // Test timestamp method, keeping fam and val constant as Strings
     Mutation actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).timestamp(ts).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
   }
 
   @Test
@@ -333,33 +332,33 @@ public class MutationTest {
     // put: byte[]
     Mutation actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).put(val.getBytes(UTF_8));
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // put: ByteBuffer
     final ByteBuffer bbVal = ByteBuffer.wrap(val.getBytes(UTF_8));
     final int bbValStartPos = bbVal.position();
     actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).put(bbVal);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // make sure the ByteBuffer last byte filled in the buffer (its position) is same as before the
     // API call
-    Assert.assertEquals(bbValStartPos, bbVal.position());
+    assertEquals(bbValStartPos, bbVal.position());
 
     // put: CharSequence (String implementation)
     actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // put: Text
     actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).put(val);
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
     // put: Value
     actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).put(new Value(val));
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
   }
 
   @Test(expected = IllegalStateException.class)
@@ -373,8 +372,8 @@ public class MutationTest {
 
     Mutation actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).put(val.getBytes());
-    Assert.assertEquals(expected, actual);
-    Assert.assertEquals(34, actual.numBytes());
+    assertEquals(expected, actual);
+    assertEquals(34, actual.numBytes());
     actual.at().family(fam).qualifier(qual).put("test2");
   }
 
@@ -385,7 +384,7 @@ public class MutationTest {
 
     Mutation m = new Mutation("row123");
     m.at().family("fam").qualifier("qual").put(largeVal);
-    Assert.assertEquals(32800, m.numBytes());
+    assertEquals(32800, m.numBytes());
   }
 
   @Test
@@ -398,7 +397,7 @@ public class MutationTest {
 
     Mutation actual = new Mutation("row5");
     actual.at().family(fam).qualifier(qual).delete();
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
   }
 
   @Test

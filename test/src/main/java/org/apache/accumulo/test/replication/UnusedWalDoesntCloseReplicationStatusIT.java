@@ -18,6 +18,9 @@ package org.apache.accumulo.test.replication;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -57,7 +60,6 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -83,7 +85,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     final int numericTableId = Integer.parseInt(tableId.canonicalID());
     final int fakeTableId = numericTableId + 1;
 
-    Assert.assertNotNull("Did not find table ID", tableId);
+    assertNotNull("Did not find table ID", tableId);
 
     conn.tableOperations().setProperty(tableName, Property.TABLE_REPLICATION.getKey(), "true");
     conn.tableOperations().setProperty(tableName,
@@ -211,7 +213,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       log.info("Bringing table online");
       conn.tableOperations().online(tableName, true);
 
-      Assert.assertEquals(1, Iterables.size(conn.createScanner(tableName, Authorizations.EMPTY)));
+      assertEquals(1, Iterables.size(conn.createScanner(tableName, Authorizations.EMPTY)));
 
       log.info("Table has performed recovery, state of metadata:");
     }
@@ -228,7 +230,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       for (Entry<Key,Value> entry : s) {
         Status status = Status.parseFrom(entry.getValue().get());
         log.info("{} {}", entry.getKey().toStringNoTruncate(), ProtobufUtil.toString(status));
-        Assert.assertFalse("Status record was closed and it should not be", status.getClosed());
+        assertFalse("Status record was closed and it should not be", status.getClosed());
       }
     }
   }

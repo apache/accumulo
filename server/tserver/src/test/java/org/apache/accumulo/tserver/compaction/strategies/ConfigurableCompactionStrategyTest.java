@@ -18,6 +18,8 @@
 package org.apache.accumulo.tserver.compaction.strategies;
 
 import static org.apache.accumulo.tserver.compaction.DefaultCompactionStrategyTest.getServerContext;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +33,6 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ConfigurableCompactionStrategyTest {
@@ -57,11 +58,11 @@ public class ConfigurableCompactionStrategyTest {
 
     CompactionPlan plan = ccs.getCompactionPlan(mcr);
 
-    Assert.assertEquals(0, plan.writeParameters.getBlockSize());
-    Assert.assertEquals(0, plan.writeParameters.getHdfsBlockSize());
-    Assert.assertEquals(0, plan.writeParameters.getIndexBlockSize());
-    Assert.assertEquals(0, plan.writeParameters.getReplication());
-    Assert.assertNull(plan.writeParameters.getCompressType());
+    assertEquals(0, plan.writeParameters.getBlockSize());
+    assertEquals(0, plan.writeParameters.getHdfsBlockSize());
+    assertEquals(0, plan.writeParameters.getIndexBlockSize());
+    assertEquals(0, plan.writeParameters.getReplication());
+    assertNull(plan.writeParameters.getCompressType());
 
     // test setting all output options
     ccs = new ConfigurableCompactionStrategy();
@@ -76,14 +77,14 @@ public class ConfigurableCompactionStrategyTest {
 
     plan = ccs.getCompactionPlan(mcr);
 
-    Assert.assertEquals(ConfigurationTypeHelper.getFixedMemoryAsBytes("64K"),
+    assertEquals(ConfigurationTypeHelper.getFixedMemoryAsBytes("64K"),
         plan.writeParameters.getBlockSize());
-    Assert.assertEquals(ConfigurationTypeHelper.getFixedMemoryAsBytes("256M"),
+    assertEquals(ConfigurationTypeHelper.getFixedMemoryAsBytes("256M"),
         plan.writeParameters.getHdfsBlockSize());
-    Assert.assertEquals(ConfigurationTypeHelper.getFixedMemoryAsBytes("32K"),
+    assertEquals(ConfigurationTypeHelper.getFixedMemoryAsBytes("32K"),
         plan.writeParameters.getIndexBlockSize());
-    Assert.assertEquals(5, plan.writeParameters.getReplication());
-    Assert.assertEquals("snappy", plan.writeParameters.getCompressType());
+    assertEquals(5, plan.writeParameters.getReplication());
+    assertEquals("snappy", plan.writeParameters.getCompressType());
 
   }
 }

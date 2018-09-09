@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.TreeMap;
@@ -30,10 +34,9 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class RowDeletingIteratorTest extends TestCase {
+public class RowDeletingIteratorTest {
 
   public static class TestIE extends BaseIteratorEnvironment {
 
@@ -75,6 +78,7 @@ public class RowDeletingIteratorTest extends TestCase {
     assertEquals(val, rdi.getTopValue().toString());
   }
 
+  @Test
   public void test1() throws Exception {
 
     TreeMap<Key,Value> tm1 = new TreeMap<>();
@@ -114,6 +118,7 @@ public class RowDeletingIteratorTest extends TestCase {
 
   }
 
+  @Test
   public void test2() throws Exception {
 
     TreeMap<Key,Value> tm1 = new TreeMap<>();
@@ -155,6 +160,7 @@ public class RowDeletingIteratorTest extends TestCase {
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
   }
 
+  @Test
   public void test3() throws Exception {
 
     TreeMap<Key,Value> tm1 = new TreeMap<>();
@@ -186,6 +192,7 @@ public class RowDeletingIteratorTest extends TestCase {
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
   }
 
+  @Test
   public void test4() throws Exception {
 
     TreeMap<Key,Value> tm1 = new TreeMap<>();

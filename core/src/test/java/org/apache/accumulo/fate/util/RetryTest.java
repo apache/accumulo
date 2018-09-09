@@ -21,6 +21,10 @@ import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.concurrent.TimeUnit;
 
@@ -31,7 +35,6 @@ import org.apache.accumulo.fate.util.Retry.NeedsRetryDelay;
 import org.apache.accumulo.fate.util.Retry.NeedsTimeIncrement;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -64,42 +67,42 @@ public class RetryTest {
   @Test
   public void canRetryDoesntAlterState() {
     for (int i = 0; i < MAX_RETRIES + 1; i++) {
-      Assert.assertTrue(retry.canRetry());
+      assertTrue(retry.canRetry());
     }
   }
 
   @Test
   public void hasRetriedAfterUse() {
-    Assert.assertFalse(retry.hasRetried());
+    assertFalse(retry.hasRetried());
     retry.useRetry();
-    Assert.assertTrue(retry.hasRetried());
+    assertTrue(retry.hasRetried());
   }
 
   @Test
   public void retriesAreCompleted() {
     for (int i = 0; i < MAX_RETRIES; i++) {
-      Assert.assertEquals(i, retry.retriesCompleted());
+      assertEquals(i, retry.retriesCompleted());
       // canRetry doesn't alter retry's state
       retry.canRetry();
-      Assert.assertEquals(i, retry.retriesCompleted());
+      assertEquals(i, retry.retriesCompleted());
       // Using the retry will increase the internal count
       retry.useRetry();
-      Assert.assertEquals(i + 1, retry.retriesCompleted());
+      assertEquals(i + 1, retry.retriesCompleted());
     }
   }
 
   @Test
   public void usingNonExistentRetryFails() {
     for (int i = 0; i < MAX_RETRIES; i++) {
-      Assert.assertTrue(retry.canRetry());
+      assertTrue(retry.canRetry());
       retry.useRetry();
     }
-    Assert.assertFalse(retry.canRetry());
+    assertFalse(retry.canRetry());
 
     // Calling useRetry when canRetry returns false throws an exception
     exception.expect(IllegalStateException.class);
     retry.useRetry();
-    Assert.fail("previous command should have thrown IllegalStateException");
+    fail("previous command should have thrown IllegalStateException");
   }
 
   @Test
@@ -157,15 +160,15 @@ public class RetryTest {
 
   @Test
   public void testIsMaxRetryDisabled() {
-    Assert.assertFalse(retry.hasInfiniteRetries());
-    Assert.assertTrue(unlimitedRetry.hasInfiniteRetries());
-    Assert.assertEquals(-1, unlimitedRetry.getMaxRetries());
+    assertFalse(retry.hasInfiniteRetries());
+    assertTrue(unlimitedRetry.hasInfiniteRetries());
+    assertEquals(-1, unlimitedRetry.getMaxRetries());
   }
 
   @Test
   public void testUnlimitedRetry() {
     for (int i = 0; i < Integer.MAX_VALUE; i++) {
-      Assert.assertTrue(unlimitedRetry.canRetry());
+      assertTrue(unlimitedRetry.canRetry());
       unlimitedRetry.useRetry();
     }
   }
@@ -195,7 +198,7 @@ public class RetryTest {
 
     // now observe what log messages we got which should be around 5 +- 1
     EasyMock.verify(testLogger);
-    Assert.assertTrue(i > 10);
+    assertTrue(i > 10);
 
   }
 
@@ -206,7 +209,7 @@ public class RetryTest {
     builder.maxRetries(0);
     exception.expect(IllegalArgumentException.class);
     builder.maxRetries(-1);
-    Assert.fail("Should not allow negative retries");
+    fail("Should not allow negative retries");
   }
 
   @Test
@@ -221,7 +224,7 @@ public class RetryTest {
 
     exception.expect(IllegalArgumentException.class);
     builder.retryAfter(-1, NANOSECONDS);
-    Assert.fail("Should not allow negative wait times");
+    fail("Should not allow negative wait times");
   }
 
   @Test
@@ -236,7 +239,7 @@ public class RetryTest {
 
     exception.expect(IllegalArgumentException.class);
     builder.incrementBy(-1, NANOSECONDS);
-    Assert.fail("Should not allow negative increments");
+    fail("Should not allow negative increments");
   }
 
   @Test
@@ -248,7 +251,7 @@ public class RetryTest {
 
     exception.expect(IllegalArgumentException.class);
     builder.maxWait(14, MILLISECONDS);
-    Assert.fail("Max wait time should be greater than or equal to initial wait time");
+    fail("Max wait time should be greater than or equal to initial wait time");
   }
 
   @Test
@@ -264,7 +267,7 @@ public class RetryTest {
 
     exception.expect(IllegalArgumentException.class);
     builder.logInterval(-1, NANOSECONDS);
-    Assert.fail("Log interval must not be negative");
+    fail("Log interval must not be negative");
   }
 
   @Test
@@ -276,11 +279,11 @@ public class RetryTest {
         .createFactory();
     Retry retry = factory.createRetry();
 
-    Assert.assertEquals(maxRetries, retry.getMaxRetries());
-    Assert.assertEquals(startWait, retry.getCurrentWait());
-    Assert.assertEquals(maxWait, retry.getMaxWait());
-    Assert.assertEquals(waitIncrement, retry.getWaitIncrement());
-    Assert.assertEquals(logInterval, retry.getLogInterval());
+    assertEquals(maxRetries, retry.getMaxRetries());
+    assertEquals(startWait, retry.getCurrentWait());
+    assertEquals(maxWait, retry.getMaxWait());
+    assertEquals(waitIncrement, retry.getWaitIncrement());
+    assertEquals(logInterval, retry.getLogInterval());
   }
 
   @Test
@@ -291,11 +294,11 @@ public class RetryTest {
         .createFactory();
     Retry retry = factory.createRetry();
 
-    Assert.assertEquals(-1, retry.getMaxRetries());
-    Assert.assertEquals(startWait, retry.getCurrentWait());
-    Assert.assertEquals(maxWait, retry.getMaxWait());
-    Assert.assertEquals(waitIncrement, retry.getWaitIncrement());
-    Assert.assertEquals(logInterval, retry.getLogInterval());
+    assertEquals(-1, retry.getMaxRetries());
+    assertEquals(startWait, retry.getCurrentWait());
+    assertEquals(maxWait, retry.getMaxWait());
+    assertEquals(waitIncrement, retry.getWaitIncrement());
+    assertEquals(logInterval, retry.getLogInterval());
   }
 
 }

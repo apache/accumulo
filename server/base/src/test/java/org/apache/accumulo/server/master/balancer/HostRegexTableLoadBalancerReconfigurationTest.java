@@ -18,6 +18,9 @@ package org.apache.accumulo.server.master.balancer;
 
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,7 +40,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.thrift.TException;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class HostRegexTableLoadBalancerReconfigurationTest
@@ -62,7 +64,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     }
     this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers),
         Collections.unmodifiableMap(unassigned), assignments);
-    Assert.assertEquals(15, assignments.size());
+    assertEquals(15, assignments.size());
     // Ensure unique tservers
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       for (Entry<KeyExtent,TServerInstance> e2 : assignments.entrySet()) {
@@ -70,7 +72,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
           continue;
         }
         if (e.getValue().equals(e2.getValue())) {
-          Assert.fail("Assignment failure. " + e.getKey() + " and " + e2.getKey()
+          fail("Assignment failure. " + e.getKey() + " and " + e2.getKey()
               + " are assigned to the same host: " + e.getValue());
         }
       }
@@ -78,7 +80,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     // Ensure assignments are correct
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (!tabletInBounds(e.getKey(), e.getValue())) {
-        Assert.fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
       }
     }
     Set<KeyExtent> migrations = new HashSet<>();
@@ -87,7 +89,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     // getOnlineTabletsForTable
     UtilWaitThread.sleep(3000);
     this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);
-    Assert.assertEquals(0, migrationsOut.size());
+    assertEquals(0, migrationsOut.size());
     // Change property, simulate call by TableConfWatcher
     DEFAULT_TABLE_PROPERTIES
         .put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r01.*");
@@ -95,9 +97,9 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     // Wait to trigger the out of bounds check and the repool check
     UtilWaitThread.sleep(10000);
     this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);
-    Assert.assertEquals(5, migrationsOut.size());
+    assertEquals(5, migrationsOut.size());
     for (TabletMigration migration : migrationsOut) {
-      Assert.assertTrue(migration.newServer.host().startsWith("192.168.0.1")
+      assertTrue(migration.newServer.host().startsWith("192.168.0.1")
           || migration.newServer.host().startsWith("192.168.0.2")
           || migration.newServer.host().startsWith("192.168.0.3")
           || migration.newServer.host().startsWith("192.168.0.4")

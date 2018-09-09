@@ -16,13 +16,14 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class DeleteTableCommandTest {
@@ -34,7 +35,7 @@ public class DeleteTableCommandTest {
     DeleteTableCommand cmd = new DeleteTableCommand();
     cmd.pruneTables("a.*", tables);
 
-    Assert.assertEquals(new HashSet<>(Arrays.asList("a1", "a2")), tables);
+    assertEquals(new HashSet<>(Arrays.asList("a1", "a2")), tables);
   }
 
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.master.replication;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Collections;
 import java.util.TreeSet;
 
@@ -27,7 +29,6 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class MasterReplicationCoordinatorTest {
@@ -47,7 +48,7 @@ public class MasterReplicationCoordinatorTest {
     MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, reader);
     TServerInstance inst1 = new TServerInstance(HostAndPort.fromParts("host1", 1234), "session");
 
-    Assert.assertEquals(inst1, coordinator.getRandomTServer(Collections.singleton(inst1), 0));
+    assertEquals(inst1, coordinator.getRandomTServer(Collections.singleton(inst1), 0));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -63,7 +64,7 @@ public class MasterReplicationCoordinatorTest {
     MasterReplicationCoordinator coordinator = new MasterReplicationCoordinator(master, reader);
     TServerInstance inst1 = new TServerInstance(HostAndPort.fromParts("host1", 1234), "session");
 
-    Assert.assertEquals(inst1, coordinator.getRandomTServer(Collections.singleton(inst1), 1));
+    assertEquals(inst1, coordinator.getRandomTServer(Collections.singleton(inst1), 1));
   }
 
   @Test
@@ -88,7 +89,7 @@ public class MasterReplicationCoordinatorTest {
     TServerInstance inst2 = new TServerInstance(HostAndPort.fromParts("host2", 1234), "session");
     instances.add(inst2);
 
-    Assert.assertEquals(inst1, coordinator.getRandomTServer(instances, 0));
-    Assert.assertEquals(inst2, coordinator.getRandomTServer(instances, 1));
+    assertEquals(inst1, coordinator.getRandomTServer(instances, 0));
+    assertEquals(inst2, coordinator.getRandomTServer(instances, 1));
   }
 }

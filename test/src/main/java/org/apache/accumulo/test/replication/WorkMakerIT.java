@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -40,7 +43,6 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -105,7 +107,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
     ReplicationTarget expected;
     try (Scanner s = ReplicationTable.getScanner(conn)) {
       StatusSection.limit(s);
-      Assert.assertEquals(1, Iterables.size(s));
+      assertEquals(1, Iterables.size(s));
 
       MockWorkMaker workMaker = new MockWorkMaker(conn);
 
@@ -124,10 +126,10 @@ public class WorkMakerIT extends ConfigurableMacBase {
       Key workKey = workEntry.getKey();
       ReplicationTarget actual = ReplicationTarget.from(workKey.getColumnQualifier());
 
-      Assert.assertEquals(file, workKey.getRow().toString());
-      Assert.assertEquals(WorkSection.NAME, workKey.getColumnFamily());
-      Assert.assertEquals(expected, actual);
-      Assert.assertEquals(workEntry.getValue(), StatusUtil.fileCreatedValue(timeCreated));
+      assertEquals(file, workKey.getRow().toString());
+      assertEquals(WorkSection.NAME, workKey.getColumnFamily());
+      assertEquals(expected, actual);
+      assertEquals(workEntry.getValue(), StatusUtil.fileCreatedValue(timeCreated));
     }
   }
 
@@ -151,7 +153,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
     Set<ReplicationTarget> expectedTargets = new HashSet<>();
     try (Scanner s = ReplicationTable.getScanner(conn)) {
       StatusSection.limit(s);
-      Assert.assertEquals(1, Iterables.size(s));
+      assertEquals(1, Iterables.size(s));
 
       MockWorkMaker workMaker = new MockWorkMaker(conn);
 
@@ -171,21 +173,19 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
       Set<ReplicationTarget> actualTargets = new HashSet<>();
       for (Entry<Key,Value> entry : s) {
-        Assert.assertEquals(file, entry.getKey().getRow().toString());
-        Assert.assertEquals(WorkSection.NAME, entry.getKey().getColumnFamily());
+        assertEquals(file, entry.getKey().getRow().toString());
+        assertEquals(WorkSection.NAME, entry.getKey().getColumnFamily());
 
         ReplicationTarget target = ReplicationTarget.from(entry.getKey().getColumnQualifier());
         actualTargets.add(target);
       }
 
       for (ReplicationTarget expected : expectedTargets) {
-        Assert.assertTrue("Did not find expected target: " + expected,
-            actualTargets.contains(expected));
+        assertTrue("Did not find expected target: " + expected, actualTargets.contains(expected));
         actualTargets.remove(expected);
       }
 
-      Assert.assertTrue("Found extra replication work entries: " + actualTargets,
-          actualTargets.isEmpty());
+      assertTrue("Found extra replication work entries: " + actualTargets, actualTargets.isEmpty());
     }
   }
 
@@ -206,7 +206,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
     // Assert that we have one record in the status section
     try (Scanner s = ReplicationTable.getScanner(conn)) {
       StatusSection.limit(s);
-      Assert.assertEquals(1, Iterables.size(s));
+      assertEquals(1, Iterables.size(s));
 
       MockWorkMaker workMaker = new MockWorkMaker(conn);
 
@@ -224,7 +224,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
     try (Scanner s = ReplicationTable.getScanner(conn)) {
       WorkSection.limit(s);
 
-      Assert.assertEquals(0, Iterables.size(s));
+      assertEquals(0, Iterables.size(s));
     }
   }
 

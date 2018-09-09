@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import java.io.File;
 import java.net.URL;
 import java.util.HashMap;
@@ -24,7 +28,6 @@ import java.util.function.Predicate;
 
 import org.apache.hadoop.conf.Configuration;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -58,7 +61,7 @@ public class SiteConfigurationTest {
     // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret',
     // 'general.rpc.timeout'=>'timeout'}
     URL keystore = SiteConfigurationTest.class.getResource("/site-cfg.jceks");
-    Assert.assertNotNull(keystore);
+    assertNotNull(keystore);
     String keystorePath = new File(keystore.getFile()).getAbsolutePath();
 
     Configuration hadoopConf = new Configuration();
@@ -73,23 +76,23 @@ public class SiteConfigurationTest {
     Predicate<String> all = x -> true;
     siteCfg.getProperties(props, all);
 
-    Assert.assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
-    Assert.assertNull(props.get("ignored.property"));
-    Assert.assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(),
+    assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
+    assertNull(props.get("ignored.property"));
+    assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(),
         props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
   }
 
   @Test
   public void testConfigOverrides() {
     SiteConfiguration conf = new SiteConfiguration();
-    Assert.assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
+    assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
 
     conf = new SiteConfiguration((URL) null,
         ImmutableMap.of(Property.INSTANCE_ZK_HOST.getKey(), "myhost:2181"));
-    Assert.assertEquals("myhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
+    assertEquals("myhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
 
     Map<String,String> results = new HashMap<>();
     conf.getProperties(results, p -> p.startsWith("instance"));
-    Assert.assertEquals("myhost:2181", results.get(Property.INSTANCE_ZK_HOST.getKey()));
+    assertEquals("myhost:2181", results.get(Property.INSTANCE_ZK_HOST.getKey()));
   }
 }

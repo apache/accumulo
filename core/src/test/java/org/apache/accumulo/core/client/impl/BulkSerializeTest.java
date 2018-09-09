@@ -33,7 +33,6 @@ import org.apache.accumulo.core.client.impl.BulkSerialize.LoadMappingIterator;
 import org.apache.accumulo.core.client.impl.Table.ID;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class BulkSerializeTest {
@@ -52,7 +51,7 @@ public class BulkSerializeTest {
     try (LoadMappingIterator lmi = BulkSerialize.readLoadMapping("/some/dir", tableId, p -> bais)) {
       SortedMap<KeyExtent,Bulk.Files> readMapping = new TreeMap<>();
       lmi.forEachRemaining(e -> readMapping.put(e.getKey(), e.getValue()));
-      Assert.assertEquals(mapping, readMapping);
+      assertEquals(mapping, readMapping);
     }
   }
 
@@ -114,7 +113,7 @@ public class BulkSerializeTest {
         input)) {
       SortedMap<KeyExtent,Bulk.Files> actual = new TreeMap<>();
       lmi.forEachRemaining(e -> actual.put(e.getKey(), e.getValue()));
-      Assert.assertEquals(newNameMapping, actual);
+      assertEquals(newNameMapping, actual);
     }
 
   }

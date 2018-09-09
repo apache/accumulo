@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.server.security.handler;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -24,14 +28,14 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ByteArraySet;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import junit.framework.TestCase;
-
-public class ZKAuthenticatorTest extends TestCase {
+public class ZKAuthenticatorTest {
   private static final Logger log = LoggerFactory.getLogger(ZKAuthenticatorTest.class);
 
+  @Test
   public void testPermissionIdConversions() {
     for (SystemPermission s : SystemPermission.values())
       assertEquals(s, SystemPermission.getPermissionById(s.getId()));
@@ -40,6 +44,7 @@ public class ZKAuthenticatorTest extends TestCase {
       assertEquals(s, TablePermission.getPermissionById(s.getId()));
   }
 
+  @Test
   public void testAuthorizationConversion() {
     ByteArraySet auths = new ByteArraySet();
     for (int i = 0; i < 300; i += 3)
@@ -54,6 +59,7 @@ public class ZKAuthenticatorTest extends TestCase {
     }
   }
 
+  @Test
   public void testSystemConversion() {
     Set<SystemPermission> perms = new TreeSet<>();
     for (SystemPermission s : SystemPermission.values())
@@ -66,6 +72,7 @@ public class ZKAuthenticatorTest extends TestCase {
       assertTrue(converted.contains(s));
   }
 
+  @Test
   public void testTableConversion() {
     Set<TablePermission> perms = new TreeSet<>();
     for (TablePermission s : TablePermission.values())
@@ -78,6 +85,7 @@ public class ZKAuthenticatorTest extends TestCase {
       assertTrue(converted.contains(s));
   }
 
+  @Test
   public void testEncryption() {
     byte[] rawPass = "myPassword".getBytes();
     byte[] storedBytes;

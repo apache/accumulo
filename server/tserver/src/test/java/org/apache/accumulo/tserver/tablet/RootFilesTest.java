@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -33,7 +34,6 @@ import org.apache.accumulo.server.fs.RandomVolumeChooser;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -100,7 +100,7 @@ public class RootFilesTest {
       for (String efile : expectedFiles)
         expected.add(new File(rootTabletDir, efile).toURI().toString());
 
-      Assert.assertEquals(expected, new HashSet<>(ret));
+      assertEquals(expected, new HashSet<>(ret));
 
       return ret;
     }
@@ -117,7 +117,7 @@ public class RootFilesTest {
       HashSet<String> expected = new HashSet<>();
       expected.addAll(Arrays.asList(files));
 
-      Assert.assertEquals(expected, actual);
+      assertEquals(expected, actual);
     }
   }
 

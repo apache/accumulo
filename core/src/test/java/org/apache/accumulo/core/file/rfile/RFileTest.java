@@ -90,7 +90,6 @@ import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -429,7 +428,7 @@ public class RFileTest {
               Key k = newKey(rowS, cfS, cqS, cvS, ts);
               // check below ensures when all key sizes are same more than one index block is
               // created
-              Assert.assertEquals(27, k.getSize());
+              assertEquals(27, k.getSize());
               k.setDeleted(true);
               Value v = newValue("" + val);
               trf.writer.append(k, v);
@@ -437,7 +436,7 @@ public class RFileTest {
               expectedValues.add(v);
 
               k = newKey(rowS, cfS, cqS, cvS, ts);
-              Assert.assertEquals(27, k.getSize());
+              assertEquals(27, k.getSize());
               v = newValue("" + val);
               trf.writer.append(k, v);
               expectedKeys.add(k);
@@ -557,7 +556,7 @@ public class RFileTest {
       count++;
       iiter.next();
     }
-    Assert.assertEquals(20, count);
+    assertEquals(20, count);
 
     trf.closeReader();
   }
@@ -1997,7 +1996,7 @@ public class RFileTest {
       throws IOException {
 
     sample.seek(new Range(), columnFamilies, inclusive);
-    Assert.assertEquals(sampleData, toList(sample));
+    assertEquals(sampleData, toList(sample));
 
     Random rand = new SecureRandom();
     long seed = rand.nextLong();
@@ -2035,8 +2034,7 @@ public class RFileTest {
 
       sample.seek(new Range(startKey, startInclusive, endKey, endInclusive), columnFamilies,
           inclusive);
-      Assert.assertEquals("seed: " + seed, sampleData.subList(startIndex, endIndex),
-          toList(sample));
+      assertEquals("seed: " + seed, sampleData.subList(startIndex, endIndex), toList(sample));
     }
   }
 
@@ -2082,7 +2080,7 @@ public class RFileTest {
 
         checkSample(sample, sampleData);
 
-        Assert.assertEquals(expectedDataHash, hash(trf.reader));
+        assertEquals(expectedDataHash, hash(trf.reader));
 
         SampleIE ie = new SampleIE(
             SamplerConfigurationImpl.newSamplerConfig(sampleConf).toSamplerConfiguration());
@@ -2098,8 +2096,8 @@ public class RFileTest {
           SortedKeyValueIterator<Key,Value> allDC1 = sampleDC1.deepCopy(new SampleIE(null));
           SortedKeyValueIterator<Key,Value> allDC2 = sample.deepCopy(new SampleIE(null));
 
-          Assert.assertEquals(expectedDataHash, hash(allDC1));
-          Assert.assertEquals(expectedDataHash, hash(allDC2));
+          assertEquals(expectedDataHash, hash(allDC1));
+          assertEquals(expectedDataHash, hash(allDC2));
 
           checkSample(sample, sampleData);
           checkSample(sampleDC1, sampleData);
@@ -2190,8 +2188,8 @@ public class RFileTest {
 
         trf.closeWriter();
 
-        Assert.assertTrue(sampleDataLG1.size() > 0);
-        Assert.assertTrue(sampleDataLG2.size() > 0);
+        assertTrue(sampleDataLG1.size() > 0);
+        assertTrue(sampleDataLG2.size() > 0);
 
         trf.openReader(false);
         FileSKVIterator sample = trf.reader
@@ -2263,7 +2261,7 @@ public class RFileTest {
     FileSKVIterator iiter = trf.reader.getIndex();
     while (iiter.hasTop()) {
       Key k = iiter.getTopKey();
-      Assert.assertTrue(k + " " + k.getSize() + " >= 20", k.getSize() < 20);
+      assertTrue(k + " " + k.getSize() + " >= 20", k.getSize() < 20);
       iiter.next();
     }
 
@@ -2271,9 +2269,9 @@ public class RFileTest {
 
     for (Key key : keys) {
       trf.reader.seek(new Range(key, null), EMPTY_COL_FAMS, false);
-      Assert.assertTrue(trf.reader.hasTop());
-      Assert.assertEquals(key, trf.reader.getTopKey());
-      Assert.assertEquals(new Value((key.hashCode() + "").getBytes()), trf.reader.getTopValue());
+      assertTrue(trf.reader.hasTop());
+      assertEquals(key, trf.reader.getTopKey());
+      assertEquals(new Value((key.hashCode() + "").getBytes()), trf.reader.getTopValue());
     }
   }
 

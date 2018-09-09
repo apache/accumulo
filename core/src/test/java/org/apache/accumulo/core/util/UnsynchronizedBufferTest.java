@@ -17,10 +17,10 @@
 package org.apache.accumulo.core.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 
 import java.nio.ByteBuffer;
 
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -38,7 +38,7 @@ public class UnsynchronizedBufferTest {
     UnsynchronizedBuffer.Reader ub = new UnsynchronizedBuffer.Reader(bb1);
     byte[] buf = new byte[10];
     ub.readBytes(buf);
-    Assert.assertEquals("0123456789", new String(buf, UTF_8));
+    assertEquals("0123456789", new String(buf, UTF_8));
 
     ByteBuffer bb2 = ByteBuffer.wrap(test, 3, 5);
 
@@ -46,7 +46,7 @@ public class UnsynchronizedBufferTest {
     buf = new byte[5];
     // should read data from offset 3 where the byte buffer starts
     ub.readBytes(buf);
-    Assert.assertEquals("34567", new String(buf, UTF_8));
+    assertEquals("34567", new String(buf, UTF_8));
 
     buf = new byte[6];
     // the byte buffer has the extra byte, but should not be able to read it...

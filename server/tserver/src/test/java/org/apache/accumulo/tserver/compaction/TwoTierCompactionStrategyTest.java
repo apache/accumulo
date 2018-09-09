@@ -17,6 +17,10 @@
 package org.apache.accumulo.tserver.compaction;
 
 import static org.apache.accumulo.tserver.compaction.DefaultCompactionStrategyTest.getServerContext;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -32,7 +36,6 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.InMemoryMapTest;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -75,13 +78,13 @@ public class TwoTierCompactionStrategyTest {
         "10M", "f5", "100M", "f6", "100M", "f7", "100M", "f8", "100M");
     mcr.setFiles(fileMap);
 
-    Assert.assertTrue(ttcs.shouldCompact(mcr));
-    Assert.assertEquals(8, mcr.getFiles().size());
+    assertTrue(ttcs.shouldCompact(mcr));
+    assertEquals(8, mcr.getFiles().size());
 
     List<FileRef> filesToCompact = ttcs.getCompactionPlan(mcr).inputFiles;
-    Assert.assertEquals(fileMap.keySet(), new HashSet<>(filesToCompact));
-    Assert.assertEquals(8, filesToCompact.size());
-    Assert.assertNull(ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
+    assertEquals(fileMap.keySet(), new HashSet<>(filesToCompact));
+    assertEquals(8, filesToCompact.size());
+    assertNull(ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
   }
 
   @Test
@@ -94,13 +97,13 @@ public class TwoTierCompactionStrategyTest {
         "2G");
     mcr.setFiles(fileMap);
 
-    Assert.assertTrue(ttcs.shouldCompact(mcr));
-    Assert.assertEquals(4, mcr.getFiles().size());
+    assertTrue(ttcs.shouldCompact(mcr));
+    assertEquals(4, mcr.getFiles().size());
 
     List<FileRef> filesToCompact = ttcs.getCompactionPlan(mcr).inputFiles;
-    Assert.assertEquals(fileMap.keySet(), new HashSet<>(filesToCompact));
-    Assert.assertEquals(4, filesToCompact.size());
-    Assert.assertEquals(largeCompressionType,
+    assertEquals(fileMap.keySet(), new HashSet<>(filesToCompact));
+    assertEquals(4, filesToCompact.size());
+    assertEquals(largeCompressionType,
         ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
   }
 
@@ -109,9 +112,9 @@ public class TwoTierCompactionStrategyTest {
     try {
       opts.clear();
       ttcs.init(opts);
-      Assert.fail("IllegalArgumentException should have been thrown.");
+      fail("IllegalArgumentException should have been thrown.");
     } catch (IllegalArgumentException iae) {} catch (Throwable t) {
-      Assert.fail("IllegalArgumentException should have been thrown.");
+      fail("IllegalArgumentException should have been thrown.");
     }
   }
 
@@ -127,13 +130,13 @@ public class TwoTierCompactionStrategyTest {
         "10M", "f5", "10M", "f6", "10M", "f7", "10M");
     mcr.setFiles(fileMap);
 
-    Assert.assertTrue(ttcs.shouldCompact(mcr));
-    Assert.assertEquals(7, mcr.getFiles().size());
+    assertTrue(ttcs.shouldCompact(mcr));
+    assertEquals(7, mcr.getFiles().size());
 
     List<FileRef> filesToCompact = ttcs.getCompactionPlan(mcr).inputFiles;
-    Assert.assertEquals(filesToCompactMap.keySet(), new HashSet<>(filesToCompact));
-    Assert.assertEquals(6, filesToCompact.size());
-    Assert.assertNull(ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
+    assertEquals(filesToCompactMap.keySet(), new HashSet<>(filesToCompact));
+    assertEquals(6, filesToCompact.size());
+    assertNull(ttcs.getCompactionPlan(mcr).writeParameters.getCompressType());
   }
 
 }

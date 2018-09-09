@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -48,9 +47,9 @@ public class ServerOptsTest {
   @Test
   public void testOverrideConfig() {
     AccumuloConfiguration defaults = DefaultConfiguration.getInstance();
-    Assert.assertEquals("localhost:2181", defaults.get(Property.INSTANCE_ZK_HOST));
+    assertEquals("localhost:2181", defaults.get(Property.INSTANCE_ZK_HOST));
     opts.parseArgs(ServerOptsTest.class.getName(),
         new String[] {"-o", "instance.zookeeper.host=test:123"});
-    Assert.assertEquals("test:123", opts.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST));
+    assertEquals("test:123", opts.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST));
   }
 }

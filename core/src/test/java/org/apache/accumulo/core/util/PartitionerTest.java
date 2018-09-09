@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.util;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -31,7 +33,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
 import org.apache.commons.lang.mutable.MutableLong;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class PartitionerTest {
@@ -90,7 +91,7 @@ public class PartitionerTest {
     m4 = new Mutation("r4");
     m4.put("cf1", "cq1", "v6");
 
-    Assert.assertEquals(toKeySet(m1, m2, m3, m4), toKeySet(partitioned.get(0)));
+    assertEquals(toKeySet(m1, m2, m3, m4), toKeySet(partitioned.get(0)));
 
     m3 = new Mutation("r3");
     m3.put("cf3", "cq2", "v5");
@@ -98,12 +99,12 @@ public class PartitionerTest {
     m4 = new Mutation("r4");
     m4.put("cf3", "cq2", "v7");
 
-    Assert.assertEquals(toKeySet(m3, m4), toKeySet(partitioned.get(1)));
+    assertEquals(toKeySet(m3, m4), toKeySet(partitioned.get(1)));
 
     m4 = new Mutation("r4");
     m4.put("cf5", "cq3", "v8");
 
-    Assert.assertEquals(toKeySet(m4, m5), toKeySet(partitioned.get(2)));
+    assertEquals(toKeySet(m4, m5), toKeySet(partitioned.get(2)));
 
   }
 

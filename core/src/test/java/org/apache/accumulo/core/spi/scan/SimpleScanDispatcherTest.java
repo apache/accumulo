@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,7 +26,6 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters;
 import org.apache.accumulo.core.spi.scan.ScanInfo.Type;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -31,9 +33,9 @@ import com.google.common.collect.ImmutableMap;
 public class SimpleScanDispatcherTest {
   @Test
   public void testProps() {
-    Assert.assertTrue(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey()
+    assertTrue(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey()
         .endsWith(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME + ".threads"));
-    Assert.assertTrue(Property.TSERV_SCAN_EXECUTORS_DEFAULT_PRIORITIZER.getKey()
+    assertTrue(Property.TSERV_SCAN_EXECUTORS_DEFAULT_PRIORITIZER.getKey()
         .endsWith(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME + ".prioritizer"));
   }
 
@@ -75,8 +77,8 @@ public class SimpleScanDispatcherTest {
     executors.put("E2", null);
     executors.put("E3", null);
 
-    Assert.assertEquals(expectedMulti, ssd1.dispatch(new DispatchParametersImps(msi, executors)));
-    Assert.assertEquals(expectedSingle, ssd1.dispatch(new DispatchParametersImps(ssi, executors)));
+    assertEquals(expectedMulti, ssd1.dispatch(new DispatchParametersImps(msi, executors)));
+    assertEquals(expectedSingle, ssd1.dispatch(new DispatchParametersImps(ssi, executors)));
   }
 
   private void runTest(Map<String,String> opts, String expectedSingle, String expectedMulti) {

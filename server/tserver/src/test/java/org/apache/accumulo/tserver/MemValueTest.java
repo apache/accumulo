@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.tserver;
 
+import static org.junit.Assert.assertEquals;
+
 import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.data.Value;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class MemValueTest {
@@ -30,6 +31,6 @@ public class MemValueTest {
     Value encodedValue = MemValue.encode(v, 3);
     MemValue m1 = MemValue.decode(encodedValue);
     MemValue m2 = MemValue.decode(encodedValue);
-    Assert.assertEquals(m1.kvCount, m2.kvCount);
+    assertEquals(m1.kvCount, m2.kvCount);
   }
 }

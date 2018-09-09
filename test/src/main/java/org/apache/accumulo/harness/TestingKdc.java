@@ -28,7 +28,6 @@ import java.util.Properties;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.hadoop.minikdc.MiniKdc;
-import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,8 +57,8 @@ public class TestingKdc {
   public static File computeKdcDir() {
     File targetDir = new File(System.getProperty("user.dir"), "target");
     if (!targetDir.exists())
-      Assert.assertTrue(targetDir.mkdirs());
-    Assert.assertTrue("Could not find Maven target directory: " + targetDir,
+      assertTrue(targetDir.mkdirs());
+    assertTrue("Could not find Maven target directory: " + targetDir,
         targetDir.exists() && targetDir.isDirectory());
 
     // Create the directories: target/kerberos/minikdc
@@ -72,7 +71,7 @@ public class TestingKdc {
 
   public static File computeKeytabDir() {
     File targetDir = new File(System.getProperty("user.dir"), "target");
-    Assert.assertTrue("Could not find Maven target directory: " + targetDir,
+    assertTrue("Could not find Maven target directory: " + targetDir,
         targetDir.exists() && targetDir.isDirectory());
 
     // Create the directories: target/kerberos/keytabs

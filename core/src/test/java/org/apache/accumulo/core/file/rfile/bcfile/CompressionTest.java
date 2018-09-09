@@ -16,6 +16,11 @@
  */
 package org.apache.accumulo.core.file.rfile.bcfile;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,7 +36,6 @@ import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,7 +56,7 @@ public class CompressionTest {
       CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz),
           myConf);
 
-      Assert.assertNotNull(codec);
+      assertNotNull(codec);
       isSupported.put(Compression.Algorithm.LZO, true);
 
     } catch (ClassNotFoundException e) {
@@ -65,7 +69,7 @@ public class CompressionTest {
       CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz),
           myConf);
 
-      Assert.assertNotNull(codec);
+      assertNotNull(codec);
 
       isSupported.put(Compression.Algorithm.SNAPPY, true);
 
@@ -82,11 +86,11 @@ public class CompressionTest {
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
         // first call to isSupported should be true
-        Assert.assertTrue(al + " is not supported, but should be", al.isSupported());
+        assertTrue(al + " is not supported, but should be", al.isSupported());
 
-        Assert.assertNotNull(al + " should have a non-null codec", al.getCodec());
+        assertNotNull(al + " should have a non-null codec", al.getCodec());
 
-        Assert.assertNotNull(al + " should have a non-null codec", al.getCodec());
+        assertNotNull(al + " should have a non-null codec", al.getCodec());
       }
     }
   }
@@ -97,14 +101,14 @@ public class CompressionTest {
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
-        Assert.assertTrue(al + " is not supported, but should be", al.isSupported());
+        assertTrue(al + " is not supported, but should be", al.isSupported());
 
-        Assert.assertNotNull(al + " should have a non-null codec", al.getCodec());
+        assertNotNull(al + " should have a non-null codec", al.getCodec());
 
         // assert that additional calls to create will not create
         // additional codecs
 
-        Assert.assertNotEquals(al + " should have created a new codec, but did not",
+        assertNotEquals(al + " should have created a new codec, but did not",
             System.identityHashCode(al.getCodec()), al.createNewCodec(88 * 1024));
       }
     }
@@ -117,11 +121,11 @@ public class CompressionTest {
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
         // first call to isSupported should be true
-        Assert.assertTrue(al + " is not supported, but should be", al.isSupported());
+        assertTrue(al + " is not supported, but should be", al.isSupported());
 
         final CompressionCodec codec = al.getCodec();
 
-        Assert.assertNotNull(al + " should not be null", codec);
+        assertNotNull(al + " should not be null", codec);
 
         ExecutorService service = Executors.newFixedThreadPool(10);
 
@@ -129,21 +133,21 @@ public class CompressionTest {
 
         for (int i = 0; i < 30; i++) {
           results.add(service.submit(() -> {
-            Assert.assertNotNull(al + " should not be null", al.getCodec());
+            assertNotNull(al + " should not be null", al.getCodec());
             return true;
           }));
         }
 
         service.shutdown();
 
-        Assert.assertNotNull(al + " should not be null", codec);
+        assertNotNull(al + " should not be null", codec);
 
         while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
           // wait
         }
 
         for (Future<Boolean> result : results) {
-          Assert.assertTrue(al + " resulted in a failed call to getcodec within the thread pool",
+          assertTrue(al + " resulted in a failed call to getcodec within the thread pool",
               result.get());
         }
       }
@@ -160,7 +164,7 @@ public class CompressionTest {
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
         // first call to isSupported should be true
-        Assert.assertTrue(al + " is not supported, but should be", al.isSupported());
+        assertTrue(al + " is not supported, but should be", al.isSupported());
 
         ExecutorService service = Executors.newFixedThreadPool(10);
 
@@ -169,7 +173,7 @@ public class CompressionTest {
         for (int i = 0; i < 30; i++) {
 
           results.add(service.submit(() -> {
-            Assert.assertNotNull(al + " should have a non-null codec", al.getCodec());
+            assertNotNull(al + " should have a non-null codec", al.getCodec());
             return true;
           }));
         }
@@ -181,7 +185,7 @@ public class CompressionTest {
         }
 
         for (Future<Boolean> result : results) {
-          Assert.assertTrue(al + " resulted in a failed call to getcodec within the thread pool",
+          assertTrue(al + " resulted in a failed call to getcodec within the thread pool",
               result.get());
         }
       }
@@ -196,7 +200,7 @@ public class CompressionTest {
       if (isSupported.get(al) != null && isSupported.get(al)) {
 
         // first call to isSupported should be true
-        Assert.assertTrue(al + " is not supported, but should be", al.isSupported());
+        assertTrue(al + " is not supported, but should be", al.isSupported());
 
         ExecutorService service = Executors.newFixedThreadPool(20);
 
@@ -210,7 +214,7 @@ public class CompressionTest {
         for (int i = 0; i < 40; i++) {
           list.add(() -> {
             CompressionCodec codec = al.getCodec();
-            Assert.assertNotNull(al + " resulted in a non-null codec", codec);
+            assertNotNull(al + " resulted in a non-null codec", codec);
             // add the identity hashcode to the set.
             synchronized (testSet) {
               testSet.add(System.identityHashCode(codec));
@@ -221,7 +225,7 @@ public class CompressionTest {
 
         results.addAll(service.invokeAll(list));
         // ensure that we
-        Assert.assertEquals(al + " created too many codecs", 1, testSet.size());
+        assertEquals(al + " created too many codecs", 1, testSet.size());
         service.shutdown();
 
         while (!service.awaitTermination(1, TimeUnit.SECONDS)) {
@@ -229,7 +233,7 @@ public class CompressionTest {
         }
 
         for (Future<Boolean> result : results) {
-          Assert.assertTrue(al + " resulted in a failed call to getcodec within the thread pool",
+          assertTrue(al + " resulted in a failed call to getcodec within the thread pool",
               result.get());
         }
       }

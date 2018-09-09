@@ -29,6 +29,9 @@ import static org.apache.accumulo.test.functional.BasicSummarizer.DELETES_STAT;
 import static org.apache.accumulo.test.functional.BasicSummarizer.MAX_TIMESTAMP_STAT;
 import static org.apache.accumulo.test.functional.BasicSummarizer.MIN_TIMESTAMP_STAT;
 import static org.apache.accumulo.test.functional.BasicSummarizer.TOTAL_STAT;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.security.SecureRandom;
@@ -84,7 +87,6 @@ import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -115,16 +117,16 @@ public class SummaryIT extends AccumuloClusterHarness {
   private void checkSummaries(Collection<Summary> summaries, SummarizerConfiguration sc, int total,
       int missing, int extra, Object... kvs) {
     Summary summary = Iterables.getOnlyElement(summaries);
-    Assert.assertEquals("total wrong", total, summary.getFileStatistics().getTotal());
-    Assert.assertEquals("missing wrong", missing, summary.getFileStatistics().getMissing());
-    Assert.assertEquals("extra wrong", extra, summary.getFileStatistics().getExtra());
-    Assert.assertEquals("deleted wrong", 0, summary.getFileStatistics().getDeleted());
-    Assert.assertEquals(sc, summary.getSummarizerConfiguration());
+    assertEquals("total wrong", total, summary.getFileStatistics().getTotal());
+    assertEquals("missing wrong", missing, summary.getFileStatistics().getMissing());
+    assertEquals("extra wrong", extra, summary.getFileStatistics().getExtra());
+    assertEquals("deleted wrong", 0, summary.getFileStatistics().getDeleted());
+    assertEquals(sc, summary.getSummarizerConfiguration());
     Map<String,Long> expected = new HashMap<>();
     for (int i = 0; i < kvs.length; i += 2) {
       expected.put((String) kvs[i], (Long) kvs[i + 1]);
     }
-    Assert.assertEquals(expected, summary.getStatistics());
+    assertEquals(expected, summary.getStatistics());
   }
 
   private void addSplits(final String table, Connector c, String... splits)
@@ -146,7 +148,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     BatchWriter bw = writeData(table, c);
 
     Collection<Summary> summaries = c.tableOperations().summaries(table).flush(false).retrieve();
-    Assert.assertEquals(0, summaries.size());
+    assertEquals(0, summaries.size());
 
     LongSummaryStatistics stats = getTimestampStats(table, c);
 
@@ -211,27 +213,27 @@ public class SummaryIT extends AccumuloClusterHarness {
     summaries = c.tableOperations().summaries(table).startRow(String.format("r%09x", 75_000))
         .endRow(String.format("r%09x", 80_000)).retrieve();
     Summary summary = Iterables.getOnlyElement(summaries);
-    Assert.assertEquals(1, summary.getFileStatistics().getTotal());
-    Assert.assertEquals(1, summary.getFileStatistics().getExtra());
+    assertEquals(1, summary.getFileStatistics().getTotal());
+    assertEquals(1, summary.getFileStatistics().getExtra());
     long total = summary.getStatistics().get(TOTAL_STAT);
-    Assert.assertTrue("Total " + total + " out of expected range", total > 0 && total <= 10_000);
+    assertTrue("Total " + total + " out of expected range", total > 0 && total <= 10_000);
 
     // test adding and removing
     c.tableOperations().removeSummarizers(table, sc -> sc.getClassName().contains("foo"));
 
     List<SummarizerConfiguration> summarizers = c.tableOperations().listSummarizers(table);
-    Assert.assertEquals(1, summarizers.size());
-    Assert.assertTrue(summarizers.contains(sc1));
+    assertEquals(1, summarizers.size());
+    assertTrue(summarizers.contains(sc1));
 
     c.tableOperations().removeSummarizers(table,
         sc -> sc.getClassName().equals(BasicSummarizer.class.getName()));
     summarizers = c.tableOperations().listSummarizers(table);
-    Assert.assertEquals(0, summarizers.size());
+    assertEquals(0, summarizers.size());
 
     c.tableOperations().compact(table, new CompactionConfig().setWait(true));
 
     summaries = c.tableOperations().summaries(table).retrieve();
-    Assert.assertEquals(0, summaries.size());
+    assertEquals(0, summaries.size());
 
     c.tableOperations().addSummarizers(table, sc1);
     c.tableOperations().compact(table, new CompactionConfig().setWait(true));
@@ -301,12 +303,12 @@ public class SummaryIT extends AccumuloClusterHarness {
 
     for (Summary summary : summaries) {
       if (summary.getSummarizerConfiguration().equals(sc)) {
-        Assert.assertEquals(expected, summary.getStatistics());
+        assertEquals(expected, summary.getStatistics());
         return;
       }
     }
 
-    Assert.fail("Did not find summary with config : " + sc);
+    fail("Did not find summary with config : " + sc);
   }
 
   @Test
@@ -329,11 +331,11 @@ public class SummaryIT extends AccumuloClusterHarness {
 
     Collection<Summary> summaries = c.tableOperations().summaries(table).withConfiguration(sc2)
         .retrieve();
-    Assert.assertEquals(1, summaries.size());
+    assertEquals(1, summaries.size());
     checkSummary(summaries, sc2, "len=14", 100_000L);
 
     summaries = c.tableOperations().summaries(table).withConfiguration(sc1).retrieve();
-    Assert.assertEquals(1, summaries.size());
+    assertEquals(1, summaries.size());
     checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
         MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
 
@@ -341,38 +343,38 @@ public class SummaryIT extends AccumuloClusterHarness {
     SummarizerConfiguration sc3 = SummarizerConfiguration.builder(KeySizeSummarizer.class.getName())
         .addOption("maxLen", "256").build();
     summaries = c.tableOperations().summaries(table).withConfiguration(sc3).retrieve();
-    Assert.assertEquals(0, summaries.size());
+    assertEquals(0, summaries.size());
 
     summaries = c.tableOperations().summaries(table).withConfiguration(sc1, sc2).retrieve();
-    Assert.assertEquals(2, summaries.size());
+    assertEquals(2, summaries.size());
     checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
         MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
     checkSummary(summaries, sc2, "len=14", 100_000L);
 
     summaries = c.tableOperations().summaries(table).retrieve();
-    Assert.assertEquals(2, summaries.size());
+    assertEquals(2, summaries.size());
     checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
         MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
     checkSummary(summaries, sc2, "len=14", 100_000L);
 
     summaries = c.tableOperations().summaries(table)
         .withMatchingConfiguration(".*BasicSummarizer \\{\\}.*").retrieve();
-    Assert.assertEquals(1, summaries.size());
+    assertEquals(1, summaries.size());
     checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
         MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
 
     summaries = c.tableOperations().summaries(table)
         .withMatchingConfiguration(".*KeySizeSummarizer \\{maxLen=512\\}.*").retrieve();
-    Assert.assertEquals(1, summaries.size());
+    assertEquals(1, summaries.size());
     checkSummary(summaries, sc2, "len=14", 100_000L);
 
     summaries = c.tableOperations().summaries(table)
         .withMatchingConfiguration(".*KeySizeSummarizer \\{maxLen=256\\}.*").retrieve();
-    Assert.assertEquals(0, summaries.size());
+    assertEquals(0, summaries.size());
 
     summaries = c.tableOperations().summaries(table)
         .withMatchingConfiguration(".*BasicSummarizer \\{\\}.*").withConfiguration(sc2).retrieve();
-    Assert.assertEquals(2, summaries.size());
+    assertEquals(2, summaries.size());
     checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
         MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
     checkSummary(summaries, sc2, "len=14", 100_000L);
@@ -381,7 +383,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     try {
       summaries = c.tableOperations().summaries(table)
           .withMatchingConfiguration(".*KeySizeSummarizer {maxLen=256}.*").retrieve();
-      Assert.fail("Bad regex should have caused exception");
+      fail("Bad regex should have caused exception");
     } catch (PatternSyntaxException e) {}
   }
 
@@ -504,9 +506,9 @@ public class SummaryIT extends AccumuloClusterHarness {
                                                                                     // row
           .map(r -> r.replaceAll("[0-9]+", "")) // strip numbers off row
           .collect(groupingBy(identity(), counting())); // count different row types
-      Assert.assertEquals(1L, (long) counts.getOrDefault("foo", 0L));
-      Assert.assertEquals(2L, (long) counts.getOrDefault("bar", 0L));
-      Assert.assertEquals(2, counts.size());
+      assertEquals(1L, (long) counts.getOrDefault("foo", 0L));
+      assertEquals(2L, (long) counts.getOrDefault("bar", 0L));
+      assertEquals(2, counts.size());
     }
 
     try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
@@ -524,9 +526,9 @@ public class SummaryIT extends AccumuloClusterHarness {
                                                                                     // row
           .map(r -> r.replaceAll("[0-9]+", "")) // strip numbers off row
           .collect(groupingBy(identity(), counting())); // count different row types
-      Assert.assertEquals(0L, (long) counts.getOrDefault("foo", 0L));
-      Assert.assertEquals(2L, (long) counts.getOrDefault("bar", 0L));
-      Assert.assertEquals(1, counts.size());
+      assertEquals(0L, (long) counts.getOrDefault("foo", 0L));
+      assertEquals(2L, (long) counts.getOrDefault("bar", 0L));
+      assertEquals(1, counts.size());
     }
   }
 
@@ -560,7 +562,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     c.tableOperations().flush(table, null, null, true);
     try {
       c.tableOperations().summaries(table).retrieve();
-      Assert.fail("Expected server side failure and did not see it");
+      fail("Expected server side failure and did not see it");
     } catch (AccumuloServerException ase) {}
 
   }
@@ -588,10 +590,9 @@ public class SummaryIT extends AccumuloClusterHarness {
     Connector c2 = c.changeUser("user1", passTok);
     try {
       c2.tableOperations().summaries(table).retrieve();
-      Assert
-          .fail("Expected operation to fail because user does not have permssion to get summaries");
+      fail("Expected operation to fail because user does not have permssion to get summaries");
     } catch (AccumuloSecurityException ase) {
-      Assert.assertEquals(SecurityErrorCode.PERMISSION_DENIED, ase.getSecurityErrorCode());
+      assertEquals(SecurityErrorCode.PERMISSION_DENIED, ase.getSecurityErrorCode());
     }
 
     c.securityOperations().grantTablePermission("user1", table, TablePermission.GET_SUMMARIES);
@@ -600,9 +601,9 @@ public class SummaryIT extends AccumuloClusterHarness {
     while (tries < 10) {
       try {
         Summary summary = c2.tableOperations().summaries(table).retrieve().get(0);
-        Assert.assertEquals(2, summary.getStatistics().size());
-        Assert.assertEquals(2L, (long) summary.getStatistics().getOrDefault("bars", 0L));
-        Assert.assertEquals(1L, (long) summary.getStatistics().getOrDefault("foos", 0L));
+        assertEquals(2, summary.getStatistics().size());
+        assertEquals(2L, (long) summary.getStatistics().getOrDefault("bars", 0L));
+        assertEquals(1L, (long) summary.getStatistics().getOrDefault("foos", 0L));
         break;
       } catch (AccumuloSecurityException ase) {
         UtilWaitThread.sleep(500);
@@ -655,13 +656,13 @@ public class SummaryIT extends AccumuloClusterHarness {
 
     c.tableOperations().flush(table, null, null, true);
     Summary summary = c.tableOperations().summaries(table).retrieve().get(0);
-    Assert.assertEquals(1, summary.getFileStatistics().getLarge());
-    Assert.assertEquals(0, summary.getFileStatistics().getMissing());
-    Assert.assertEquals(0, summary.getFileStatistics().getExtra());
-    Assert.assertEquals(0, summary.getFileStatistics().getDeleted());
-    Assert.assertEquals(1, summary.getFileStatistics().getInaccurate());
-    Assert.assertEquals(1, summary.getFileStatistics().getTotal());
-    Assert.assertEquals(Collections.emptyMap(), summary.getStatistics());
+    assertEquals(1, summary.getFileStatistics().getLarge());
+    assertEquals(0, summary.getFileStatistics().getMissing());
+    assertEquals(0, summary.getFileStatistics().getExtra());
+    assertEquals(0, summary.getFileStatistics().getDeleted());
+    assertEquals(1, summary.getFileStatistics().getInaccurate());
+    assertEquals(1, summary.getFileStatistics().getTotal());
+    assertEquals(Collections.emptyMap(), summary.getStatistics());
 
     // create situation where one tablet has summary data and one does not because the summary data
     // was too large
@@ -669,19 +670,19 @@ public class SummaryIT extends AccumuloClusterHarness {
     c.tableOperations().compact(table, new CompactionConfig().setWait(true));
 
     summary = c.tableOperations().summaries(table).retrieve().get(0);
-    Assert.assertEquals(1, summary.getFileStatistics().getLarge());
-    Assert.assertEquals(0, summary.getFileStatistics().getMissing());
-    Assert.assertEquals(0, summary.getFileStatistics().getExtra());
-    Assert.assertEquals(0, summary.getFileStatistics().getDeleted());
-    Assert.assertEquals(1, summary.getFileStatistics().getInaccurate());
-    Assert.assertEquals(2, summary.getFileStatistics().getTotal());
+    assertEquals(1, summary.getFileStatistics().getLarge());
+    assertEquals(0, summary.getFileStatistics().getMissing());
+    assertEquals(0, summary.getFileStatistics().getExtra());
+    assertEquals(0, summary.getFileStatistics().getDeleted());
+    assertEquals(1, summary.getFileStatistics().getInaccurate());
+    assertEquals(2, summary.getFileStatistics().getTotal());
 
     HashMap<String,Long> expected = new HashMap<>();
     for (int i = 0; i < 10; i++) {
       expected.put(String.format("%09x", i), i * 19L);
     }
 
-    Assert.assertEquals(expected, summary.getStatistics());
+    assertEquals(expected, summary.getStatistics());
   }
 
   private void write(BatchWriter bw, String row, String family, String qualifier, String value)
@@ -741,31 +742,30 @@ public class SummaryIT extends AccumuloClusterHarness {
     }
 
     List<Summary> summaries = c.tableOperations().summaries(table).flush(true).retrieve();
-    Assert.assertEquals(2,
-        summaries.stream().map(Summary::getSummarizerConfiguration).distinct().count());
+    assertEquals(2, summaries.stream().map(Summary::getSummarizerConfiguration).distinct().count());
     for (Summary summary : summaries) {
       if (summary.getSummarizerConfiguration().equals(sc1)) {
         Map<String,Long> expectedStats = nm("c:chocolate", 4L, "c:coffee", 2L, "c:broccoli", 2L,
             "c:cheddar", 2L, "c:cabbage", 1L, TOO_LONG_STAT, 0L, TOO_MANY_STAT, 0L, SEEN_STAT, 11L,
             EMITTED_STAT, 11L, DELETES_IGNORED_STAT, 0L);
-        Assert.assertEquals(expectedStats, summary.getStatistics());
-        Assert.assertEquals(0, summary.getFileStatistics().getInaccurate());
-        Assert.assertEquals(1, summary.getFileStatistics().getTotal());
+        assertEquals(expectedStats, summary.getStatistics());
+        assertEquals(0, summary.getFileStatistics().getInaccurate());
+        assertEquals(1, summary.getFileStatistics().getTotal());
       } else if (summary.getSummarizerConfiguration().equals(sc2)) {
         Map<String,Long> expectedStats = nm(DELETES_STAT, 0L, TOTAL_STAT, 11L, MIN_TIMESTAMP_STAT,
             3L, MAX_TIMESTAMP_STAT, 8L);
-        Assert.assertEquals(expectedStats, summary.getStatistics());
-        Assert.assertEquals(0, summary.getFileStatistics().getInaccurate());
-        Assert.assertEquals(1, summary.getFileStatistics().getTotal());
+        assertEquals(expectedStats, summary.getStatistics());
+        assertEquals(0, summary.getFileStatistics().getInaccurate());
+        assertEquals(1, summary.getFileStatistics().getTotal());
       } else {
-        Assert.fail("unexpected summary config " + summary.getSummarizerConfiguration());
+        fail("unexpected summary config " + summary.getSummarizerConfiguration());
       }
     }
 
     Map<Key,Value> actual = new HashMap<>();
     c.createScanner(table, Authorizations.EMPTY).forEach(e -> actual.put(e.getKey(), e.getValue()));
 
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
   }
 
   @Test
@@ -774,23 +774,23 @@ public class SummaryIT extends AccumuloClusterHarness {
 
     try {
       c.tableOperations().summaries("foo").retrieve();
-      Assert.fail();
+      fail();
     } catch (TableNotFoundException e) {}
 
     try {
       c.tableOperations().addSummarizers("foo",
           SummarizerConfiguration.builder(VisibilitySummarizer.class).build());
-      Assert.fail();
+      fail();
     } catch (TableNotFoundException e) {}
 
     try {
       c.tableOperations().listSummarizers("foo");
-      Assert.fail();
+      fail();
     } catch (TableNotFoundException e) {}
 
     try {
       c.tableOperations().removeSummarizers("foo", sc -> true);
-      Assert.fail();
+      fail();
     } catch (TableNotFoundException e) {}
 
     SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FamilySummarizer.class)
@@ -804,23 +804,23 @@ public class SummaryIT extends AccumuloClusterHarness {
     try {
       // adding second summarizer with same id should fail
       c.tableOperations().addSummarizers("foo", sc2);
-      Assert.fail();
+      fail();
     } catch (IllegalArgumentException e) {}
 
     c.tableOperations().removeSummarizers("foo", sc -> true);
-    Assert.assertEquals(0, c.tableOperations().listSummarizers("foo").size());
+    assertEquals(0, c.tableOperations().listSummarizers("foo").size());
 
     try {
       // adding two summarizers at the same time with same id should fail
       c.tableOperations().addSummarizers("foo", sc1, sc2);
-      Assert.fail();
+      fail();
     } catch (IllegalArgumentException e) {}
-    Assert.assertEquals(0, c.tableOperations().listSummarizers("foo").size());
+    assertEquals(0, c.tableOperations().listSummarizers("foo").size());
 
     c.tableOperations().offline("foo", true);
     try {
       c.tableOperations().summaries("foo").retrieve();
-      Assert.fail();
+      fail();
     } catch (TableOfflineException e) {}
   }
 
@@ -855,12 +855,12 @@ public class SummaryIT extends AccumuloClusterHarness {
       }
 
       List<Summary> summaries = c.tableOperations().summaries(table).flush(true).retrieve();
-      Assert.assertEquals(1, summaries.size());
+      assertEquals(1, summaries.size());
       CounterSummary cs = new CounterSummary(summaries.get(0));
-      Assert.assertEquals(famCounts, cs.getCounters());
+      assertEquals(famCounts, cs.getCounters());
       FileStatistics fileStats = summaries.get(0).getFileStatistics();
-      Assert.assertEquals(0, fileStats.getInaccurate());
-      Assert.assertTrue("Saw " + fileStats.getTotal() + " files expected >=10",
+      assertEquals(0, fileStats.getInaccurate());
+      assertTrue("Saw " + fileStats.getTotal() + " files expected >=10",
           fileStats.getTotal() >= 10);
     }
   }

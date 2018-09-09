@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.iterators.system;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.TreeMap;
@@ -27,10 +31,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class ColumnFamilySkippingIteratorTest extends TestCase {
+public class ColumnFamilySkippingIteratorTest {
 
   private static final Collection<ByteSequence> EMPTY_SET = new HashSet<>();
 
@@ -63,6 +66,7 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
     rdi.next();
   }
 
+  @Test
   public void test1() throws Exception {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
     put(tm1, "r1", "cf1", "cq1", 5, "v1");
@@ -109,6 +113,7 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
 
   }
 
+  @Test
   public void test2() throws Exception {
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
@@ -190,6 +195,7 @@ public class ColumnFamilySkippingIteratorTest extends TestCase {
     assertEquals(colfams, ocf);
   }
 
+  @Test
   public void test3() throws Exception {
     // construct test where ColumnFamilySkippingIterator might try to seek past the end of the user
     // supplied range

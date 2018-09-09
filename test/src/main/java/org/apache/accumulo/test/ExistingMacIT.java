@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -53,7 +55,6 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ExistingMacIT extends ConfigurableMacBase {
@@ -147,7 +148,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
       for (Entry<Key,Value> entry : scanner) {
         sum += Integer.parseInt(entry.getValue().toString());
       }
-      Assert.assertEquals(6569, sum);
+      assertEquals(6569, sum);
     }
 
     accumulo2.stop();
@@ -184,7 +185,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     try {
       accumulo2.start();
-      Assert.fail("A 2nd MAC instance should not be able to start over an existing MAC instance");
+      fail("A 2nd MAC instance should not be able to start over an existing MAC instance");
     } catch (RuntimeException e) {
       // TODO check message or throw more explicit exception
     }

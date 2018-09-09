@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -32,7 +33,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.categories.PerformanceTests;
 import org.apache.accumulo.test.categories.StandaloneCapableClusterTests;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -103,8 +103,8 @@ public class DeleteTableDuringSplitIT extends AccumuloClusterHarness {
     }
     // Shut down the ES
     List<Runnable> queued = es.shutdownNow();
-    Assert.assertTrue("Had more tasks to run", queued.isEmpty());
-    Assert.assertFalse("Had more tasks that needed to be submitted", itr.hasNext());
+    assertTrue("Had more tasks to run", queued.isEmpty());
+    assertFalse("Had more tasks that needed to be submitted", itr.hasNext());
     for (String tableName : tableNames) {
       assertFalse(getConnector().tableOperations().exists(tableName));
     }

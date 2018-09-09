@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,7 +40,7 @@ public class ScannerImplTest {
     s.setReadaheadThreshold(10);
     s.setReadaheadThreshold(Long.MAX_VALUE);
 
-    Assert.assertEquals(Long.MAX_VALUE, s.getReadaheadThreshold());
+    assertEquals(Long.MAX_VALUE, s.getReadaheadThreshold());
     s.close();
   }
 

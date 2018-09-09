@@ -17,6 +17,11 @@
 package org.apache.accumulo.monitor.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Enumeration;
@@ -34,7 +39,6 @@ import org.apache.accumulo.monitor.util.AccumuloMonitorAppender.MonitorLocation;
 import org.apache.accumulo.monitor.util.AccumuloMonitorAppender.MonitorTracker;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.spi.LoggingEvent;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -77,29 +81,29 @@ public class AccumuloMonitorAppenderTest {
       executorService = appender.executorService;
 
       // make sure executor service is started and running
-      Assert.assertFalse(executorService.isShutdown());
-      Assert.assertFalse(executorService.isTerminated());
+      assertFalse(executorService.isShutdown());
+      assertFalse(executorService.isTerminated());
 
       // make sure executor service executes tasks
       ScheduledFuture<Long> future = executorService.schedule(() -> counter.getAndIncrement(), 1,
           TimeUnit.MILLISECONDS);
-      Assert.assertEquals(Long.valueOf(2), future.get());
-      Assert.assertEquals(3, counter.get());
+      assertEquals(Long.valueOf(2), future.get());
+      assertEquals(3, counter.get());
 
       // schedule a task that won't finish
       executorService.schedule(() -> counter.getAndIncrement(), 1, TimeUnit.DAYS);
 
       // make sure executor service is still running
-      Assert.assertFalse(executorService.isShutdown());
-      Assert.assertFalse(executorService.isTerminated());
+      assertFalse(executorService.isShutdown());
+      assertFalse(executorService.isTerminated());
     }
     // verify that closing the appender shuts down the executor service threads
-    Assert.assertTrue(executorService.isShutdown());
+    assertTrue(executorService.isShutdown());
     executorService.awaitTermination(5, TimeUnit.SECONDS);
-    Assert.assertTrue(executorService.isTerminated());
+    assertTrue(executorService.isTerminated());
 
     // verify executor service did not wait for scheduled task to run
-    Assert.assertEquals(3, counter.get());
+    assertEquals(3, counter.get());
   }
 
   @Test
@@ -140,7 +144,7 @@ public class AccumuloMonitorAppenderTest {
       parent.activateOptions();
 
       // initially there are no appenders
-      Assert.assertNull(parent.getAllAppenders());
+      assertNull(parent.getAllAppenders());
       updateLocAndVerify(currentLoc, parent, 0);
       updateLocAndVerify(currentLoc, parent, 10);
 
@@ -152,7 +156,7 @@ public class AccumuloMonitorAppenderTest {
         Thread.sleep(10);
         AppenderSkeleton currentAppender = (AppenderSkeleton) parent.getAllAppenders()
             .nextElement();
-        Assert.assertSame(lastAppender, currentAppender);
+        assertSame(lastAppender, currentAppender);
       }
 
       updateLocAndVerify(currentLoc, parent, 3);
@@ -164,7 +168,7 @@ public class AccumuloMonitorAppenderTest {
 
       updateLocAndVerify(currentLoc, parent, 0);
       // verify we removed all the appenders
-      Assert.assertFalse(parent.getAllAppenders().hasMoreElements());
+      assertFalse(parent.getAllAppenders().hasMoreElements());
     }
   }
 
@@ -194,7 +198,7 @@ public class AccumuloMonitorAppenderTest {
       return false;
     }
     if (childAppenders.hasMoreElements()) {
-      Assert.fail("Appender should never have more than one child");
+      fail("Appender should never have more than one child");
     }
     return ("Appender for " + newLocName).equals(child.getName());
   }

@@ -17,6 +17,8 @@
 
 package org.apache.accumulo.core.summary;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,7 +29,6 @@ import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.client.summary.Summary.FileStatistics;
 import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.summary.SummaryCollection.FileSummary;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class SummaryCollectionTest {
@@ -58,15 +59,15 @@ public class SummaryCollectionTest {
 
     for (SummaryCollection sc : Arrays.asList(mergeSc, new SummaryCollection(mergeSc.toThrift()))) {
       List<Summary> summaries = sc.getSummaries();
-      Assert.assertEquals(1, summaries.size());
+      assertEquals(1, summaries.size());
       Summary summary = summaries.get(0);
       FileStatistics filestats = summary.getFileStatistics();
-      Assert.assertEquals(5, filestats.getTotal());
-      Assert.assertEquals(1, filestats.getExtra());
-      Assert.assertEquals(0, filestats.getLarge());
-      Assert.assertEquals(1, filestats.getMissing());
-      Assert.assertEquals(2, filestats.getDeleted());
-      Assert.assertEquals(4, filestats.getInaccurate());
+      assertEquals(5, filestats.getTotal());
+      assertEquals(1, filestats.getExtra());
+      assertEquals(0, filestats.getLarge());
+      assertEquals(1, filestats.getMissing());
+      assertEquals(2, filestats.getDeleted());
+      assertEquals(4, filestats.getInaccurate());
     }
   }
 }

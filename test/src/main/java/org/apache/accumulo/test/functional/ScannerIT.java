@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -32,7 +34,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.base.Stopwatch;
@@ -115,7 +116,7 @@ public class ScannerIT extends AccumuloClusterHarness {
       long millisWithNoWait = sw.elapsed(TimeUnit.MILLISECONDS);
 
       // The "no-wait" time should be much less than the "wait-time"
-      Assert.assertTrue(
+      assertTrue(
           "Expected less time to be taken with immediate readahead (" + millisWithNoWait
               + ") than without immediate readahead (" + millisWithWait + ")",
           millisWithNoWait < millisWithWait);

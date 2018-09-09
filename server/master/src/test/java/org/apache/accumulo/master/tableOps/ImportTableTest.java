@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ImportTableTest {
@@ -49,7 +50,7 @@ public class ImportTableTest {
     EasyMock.replay(master, volumeManager);
 
     PopulateMetadataTable pmt = new PopulateMetadataTable(iti);
-    Assert.assertEquals(tableDirs[1] + "/" + iti.tableId + "/" + tabletDir,
+    assertEquals(tableDirs[1] + "/" + iti.tableId + "/" + tabletDir,
         pmt.getClonedTabletDir(master, tableDirs, tabletDir));
 
     EasyMock.verify(master, volumeManager);

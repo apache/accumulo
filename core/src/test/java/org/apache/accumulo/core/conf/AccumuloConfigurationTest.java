@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.conf;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -29,7 +30,6 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration.ScanExecutorConfig;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -301,57 +301,53 @@ public class AccumuloConfigurationTest {
 
     Collection<ScanExecutorConfig> executors = tc.getScanExecutors();
 
-    Assert.assertEquals(2, executors.size());
+    assertEquals(2, executors.size());
 
     ScanExecutorConfig sec = executors.stream().filter(c -> c.name.equals(defName)).findFirst()
         .get();
-    Assert.assertEquals(
-        Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
+    assertEquals(Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
         sec.maxThreads);
-    Assert.assertFalse(sec.priority.isPresent());
-    Assert.assertTrue(sec.prioritizerClass.get().isEmpty());
-    Assert.assertTrue(sec.prioritizerOpts.isEmpty());
+    assertFalse(sec.priority.isPresent());
+    assertTrue(sec.prioritizerClass.get().isEmpty());
+    assertTrue(sec.prioritizerOpts.isEmpty());
 
     // ensure deprecated props is read if nothing else is set
     tc.set("tserver.readahead.concurrent.max", "6");
-    Assert.assertEquals(6, sec.getCurrentMaxThreads());
-    Assert.assertEquals(
-        Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
+    assertEquals(6, sec.getCurrentMaxThreads());
+    assertEquals(Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
         sec.maxThreads);
     ScanExecutorConfig sec2 = tc.getScanExecutors().stream().filter(c -> c.name.equals(defName))
         .findFirst().get();
-    Assert.assertEquals(6, sec2.maxThreads);
+    assertEquals(6, sec2.maxThreads);
 
     // ensure new prop overrides deprecated prop
     tc.set(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "9");
-    Assert.assertEquals(9, sec.getCurrentMaxThreads());
-    Assert.assertEquals(
-        Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
+    assertEquals(9, sec.getCurrentMaxThreads());
+    assertEquals(Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
         sec.maxThreads);
     ScanExecutorConfig sec3 = tc.getScanExecutors().stream().filter(c -> c.name.equals(defName))
         .findFirst().get();
-    Assert.assertEquals(9, sec3.maxThreads);
+    assertEquals(9, sec3.maxThreads);
 
     ScanExecutorConfig sec4 = executors.stream().filter(c -> c.name.equals("meta")).findFirst()
         .get();
-    Assert.assertEquals(
-        Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_META_THREADS.getDefaultValue()),
+    assertEquals(Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_META_THREADS.getDefaultValue()),
         sec4.maxThreads);
-    Assert.assertFalse(sec4.priority.isPresent());
-    Assert.assertFalse(sec4.prioritizerClass.isPresent());
-    Assert.assertTrue(sec4.prioritizerOpts.isEmpty());
+    assertFalse(sec4.priority.isPresent());
+    assertFalse(sec4.prioritizerClass.isPresent());
+    assertTrue(sec4.prioritizerOpts.isEmpty());
 
     tc.set("tserver.metadata.readahead.concurrent.max", "2");
-    Assert.assertEquals(2, sec4.getCurrentMaxThreads());
+    assertEquals(2, sec4.getCurrentMaxThreads());
     ScanExecutorConfig sec5 = tc.getScanExecutors().stream().filter(c -> c.name.equals("meta"))
         .findFirst().get();
-    Assert.assertEquals(2, sec5.maxThreads);
+    assertEquals(2, sec5.maxThreads);
 
     tc.set(Property.TSERV_SCAN_EXECUTORS_META_THREADS.getKey(), "3");
-    Assert.assertEquals(3, sec4.getCurrentMaxThreads());
+    assertEquals(3, sec4.getCurrentMaxThreads());
     ScanExecutorConfig sec6 = tc.getScanExecutors().stream().filter(c -> c.name.equals("meta"))
         .findFirst().get();
-    Assert.assertEquals(3, sec6.maxThreads);
+    assertEquals(3, sec6.maxThreads);
 
     String prefix = Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey();
     tc.set(prefix + "hulksmash.threads", "66");
@@ -361,20 +357,20 @@ public class AccumuloConfigurationTest {
     tc.set(prefix + "hulksmash.prioritizer.opts.k2", "v3");
 
     executors = tc.getScanExecutors();
-    Assert.assertEquals(3, executors.size());
+    assertEquals(3, executors.size());
     ScanExecutorConfig sec7 = executors.stream().filter(c -> c.name.equals("hulksmash")).findFirst()
         .get();
-    Assert.assertEquals(66, sec7.maxThreads);
-    Assert.assertEquals(3, sec7.priority.getAsInt());
-    Assert.assertEquals("com.foo.ScanPrioritizer", sec7.prioritizerClass.get());
-    Assert.assertEquals(ImmutableMap.of("k1", "v1", "k2", "v3"), sec7.prioritizerOpts);
+    assertEquals(66, sec7.maxThreads);
+    assertEquals(3, sec7.priority.getAsInt());
+    assertEquals("com.foo.ScanPrioritizer", sec7.prioritizerClass.get());
+    assertEquals(ImmutableMap.of("k1", "v1", "k2", "v3"), sec7.prioritizerOpts);
 
     tc.set(prefix + "hulksmash.threads", "44");
-    Assert.assertEquals(66, sec7.maxThreads);
-    Assert.assertEquals(44, sec7.getCurrentMaxThreads());
+    assertEquals(66, sec7.maxThreads);
+    assertEquals(44, sec7.getCurrentMaxThreads());
 
     ScanExecutorConfig sec8 = tc.getScanExecutors().stream().filter(c -> c.name.equals("hulksmash"))
         .findFirst().get();
-    Assert.assertEquals(44, sec8.maxThreads);
+    assertEquals(44, sec8.maxThreads);
   }
 }

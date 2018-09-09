@@ -20,8 +20,11 @@ import java.math.BigInteger;
 import java.util.Arrays;
 
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.junit.Test;
 
 public class BigIntegerLexicoderTest extends AbstractLexicoderTest {
+
+  @Test
   public void testSortOrder() {
     assertSortOrder(new BigIntegerLexicoder(), Arrays.asList(new BigInteger("-1"),
         new BigInteger("0"), new BigInteger("1"), new BigInteger("-257"), new BigInteger("-256"),
@@ -38,6 +41,7 @@ public class BigIntegerLexicoderTest extends AbstractLexicoderTest {
 
   }
 
+  @Test
   public void testDecode() {
     assertDecodes(new BigIntegerLexicoder(), new BigInteger("-2147483649"));
     assertDecodes(new BigIntegerLexicoder(), new BigInteger("-1"));

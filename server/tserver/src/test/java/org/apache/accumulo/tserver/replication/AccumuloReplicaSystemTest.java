@@ -21,6 +21,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -56,7 +58,6 @@ import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.WalClientEx
 import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.WalReplication;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class AccumuloReplicaSystemTest {
@@ -162,10 +163,10 @@ public class AccumuloReplicaSystemTest {
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<>());
 
     // We stopped because we got to the end of the file
-    Assert.assertEquals(9, repl.entriesConsumed);
-    Assert.assertEquals(2, repl.walEdits.getEditsSize());
-    Assert.assertEquals(2, repl.sizeInRecords);
-    Assert.assertNotEquals(0, repl.sizeInBytes);
+    assertEquals(9, repl.entriesConsumed);
+    assertEquals(2, repl.walEdits.getEditsSize());
+    assertEquals(2, repl.sizeInRecords);
+    assertNotEquals(0, repl.sizeInBytes);
   }
 
   @Test
@@ -273,10 +274,10 @@ public class AccumuloReplicaSystemTest {
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<>());
 
     // We stopped because we got to the end of the file
-    Assert.assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
-    Assert.assertEquals(2, repl.walEdits.getEditsSize());
-    Assert.assertEquals(2, repl.sizeInRecords);
-    Assert.assertNotEquals(0, repl.sizeInBytes);
+    assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
+    assertEquals(2, repl.walEdits.getEditsSize());
+    assertEquals(2, repl.sizeInRecords);
+    assertNotEquals(0, repl.sizeInBytes);
   }
 
   @Test
@@ -313,14 +314,14 @@ public class AccumuloReplicaSystemTest {
     DataInputStream in = new DataInputStream(bais);
 
     int numMutations = in.readInt();
-    Assert.assertEquals(1, numMutations);
+    assertEquals(1, numMutations);
 
     m = new Mutation();
     m.readFields(in);
 
-    Assert.assertEquals("row", new String(m.getRow()));
-    Assert.assertEquals(1, m.getReplicationSources().size());
-    Assert.assertTrue("Expected source cluster to be listed in mutation replication source",
+    assertEquals("row", new String(m.getRow()));
+    assertEquals(1, m.getReplicationSources().size());
+    assertTrue("Expected source cluster to be listed in mutation replication source",
         m.getReplicationSources().contains("source"));
   }
 
@@ -343,10 +344,10 @@ public class AccumuloReplicaSystemTest {
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<>());
 
     // We stopped because we got to the end of the file
-    Assert.assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
-    Assert.assertEquals(0, repl.walEdits.getEditsSize());
-    Assert.assertEquals(0, repl.sizeInRecords);
-    Assert.assertEquals(0, repl.sizeInBytes);
+    assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
+    assertEquals(0, repl.walEdits.getEditsSize());
+    assertEquals(0, repl.sizeInRecords);
+    assertEquals(0, repl.sizeInBytes);
   }
 
   @Test
@@ -368,10 +369,10 @@ public class AccumuloReplicaSystemTest {
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<>());
 
     // We stopped because we got to the end of the file
-    Assert.assertEquals(0, repl.entriesConsumed);
-    Assert.assertEquals(0, repl.walEdits.getEditsSize());
-    Assert.assertEquals(0, repl.sizeInRecords);
-    Assert.assertEquals(0, repl.sizeInBytes);
+    assertEquals(0, repl.entriesConsumed);
+    assertEquals(0, repl.walEdits.getEditsSize());
+    assertEquals(0, repl.sizeInRecords);
+    assertEquals(0, repl.sizeInBytes);
   }
 
   @Test
@@ -434,10 +435,10 @@ public class AccumuloReplicaSystemTest {
         new Path("/accumulo/wals/tserver+port/wal"), status, 1L, tids);
 
     // We stopped because we got to the end of the file
-    Assert.assertEquals(2, repl.entriesConsumed);
-    Assert.assertEquals(1, repl.walEdits.getEditsSize());
-    Assert.assertEquals(1, repl.sizeInRecords);
-    Assert.assertNotEquals(0, repl.sizeInBytes);
+    assertEquals(2, repl.entriesConsumed);
+    assertEquals(1, repl.walEdits.getEditsSize());
+    assertEquals(1, repl.sizeInRecords);
+    assertNotEquals(0, repl.sizeInBytes);
 
     status = Status.newBuilder(status).setBegin(2).build();
 
@@ -446,10 +447,10 @@ public class AccumuloReplicaSystemTest {
         new Path("/accumulo/wals/tserver+port/wal"), status, 1L, tids);
 
     // We stopped because we got to the end of the file
-    Assert.assertEquals(1, repl.entriesConsumed);
-    Assert.assertEquals(1, repl.walEdits.getEditsSize());
-    Assert.assertEquals(1, repl.sizeInRecords);
-    Assert.assertNotEquals(0, repl.sizeInBytes);
+    assertEquals(1, repl.entriesConsumed);
+    assertEquals(1, repl.walEdits.getEditsSize());
+    assertEquals(1, repl.sizeInRecords);
+    assertNotEquals(0, repl.sizeInBytes);
   }
 
   @Test
@@ -479,7 +480,7 @@ public class AccumuloReplicaSystemTest {
 
     verify(replClient, ars);
 
-    Assert.assertEquals(new ReplicationStats(0L, 0L, 0L), stats);
+    assertEquals(new ReplicationStats(0L, 0L, 0L), stats);
   }
 
   @Test
@@ -509,7 +510,7 @@ public class AccumuloReplicaSystemTest {
 
     verify(replClient, ars);
 
-    Assert.assertEquals(new ReplicationStats(0L, 0L, 5L), stats);
+    assertEquals(new ReplicationStats(0L, 0L, 5L), stats);
   }
 
   @Test

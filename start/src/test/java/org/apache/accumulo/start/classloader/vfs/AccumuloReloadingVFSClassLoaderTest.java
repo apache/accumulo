@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -28,7 +32,6 @@ import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -77,7 +80,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     VFSClassLoader cl = (VFSClassLoader) arvcl.getClassLoader();
 
     FileObject[] files = cl.getFileObjects();
-    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+    assertArrayEquals(createFileSystems(dirContents), files);
 
     arvcl.close();
   }
@@ -91,18 +94,18 @@ public class AccumuloReloadingVFSClassLoaderTest {
         ClassLoader::getSystemClassLoader, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
-    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+    assertArrayEquals(createFileSystems(dirContents), files);
 
     // set retry settings sufficiently low that not everything is reloaded in the first round
     arvcl.setMaxRetries(1);
 
     Class<?> clazz1 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
-    Assert.assertEquals("Hello World!", o1.toString());
+    assertEquals("Hello World!", o1.toString());
 
     // Check that the class is the same before the update
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-    Assert.assertEquals(clazz1, clazz1_5);
+    assertEquals(clazz1, clazz1_5);
 
     assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
 
@@ -119,11 +122,11 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
-    Assert.assertEquals("Hello World!", o2.toString());
+    assertEquals("Hello World!", o2.toString());
 
     // This is false because they are loaded by a different classloader
-    Assert.assertNotEquals(clazz1, clazz2);
-    Assert.assertNotEquals(o1, o2);
+    assertNotEquals(clazz1, clazz2);
+    assertNotEquals(o1, o2);
 
     arvcl.close();
   }
@@ -137,18 +140,18 @@ public class AccumuloReloadingVFSClassLoaderTest {
         ClassLoader::getSystemClassLoader, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
-    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+    assertArrayEquals(createFileSystems(dirContents), files);
 
     // set retry settings sufficiently high such that reloading happens in the first rounds
     arvcl.setMaxRetries(3);
 
     Class<?> clazz1 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
-    Assert.assertEquals("Hello World!", o1.toString());
+    assertEquals("Hello World!", o1.toString());
 
     // Check that the class is the same before the update
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-    Assert.assertEquals(clazz1, clazz1_5);
+    assertEquals(clazz1, clazz1_5);
 
     assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
 
@@ -165,11 +168,11 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
-    Assert.assertEquals("Hello World!", o2.toString());
+    assertEquals("Hello World!", o2.toString());
 
     // This is true because they are loaded by the same classloader due to the new retry
-    Assert.assertTrue(clazz1.equals(clazz2));
-    Assert.assertFalse(o1.equals(o2));
+    assertTrue(clazz1.equals(clazz2));
+    assertFalse(o1.equals(o2));
 
     arvcl.close();
   }
@@ -190,15 +193,15 @@ public class AccumuloReloadingVFSClassLoaderTest {
         ClassLoader::getSystemClassLoader, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
-    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+    assertArrayEquals(createFileSystems(dirContents), files);
 
     Class<?> clazz1 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
-    Assert.assertEquals("Hello World!", o1.toString());
+    assertEquals("Hello World!", o1.toString());
 
     // Check that the class is the same before the update
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-    Assert.assertEquals(clazz1, clazz1_5);
+    assertEquals(clazz1, clazz1_5);
 
     assertTrue(new File(folder1.getRoot(), "HelloWorld.jar").delete());
 
@@ -212,11 +215,11 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
-    Assert.assertEquals("Hello World!", o2.toString());
+    assertEquals("Hello World!", o2.toString());
 
     // This is false because they are loaded by a different classloader
-    Assert.assertNotEquals(clazz1, clazz2);
-    Assert.assertNotEquals(o1, o2);
+    assertNotEquals(clazz1, clazz2);
+    assertNotEquals(o1, o2);
 
     arvcl.close();
   }
@@ -232,16 +235,16 @@ public class AccumuloReloadingVFSClassLoaderTest {
         ClassLoader::getSystemClassLoader, 1000, true);
 
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
-    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+    assertArrayEquals(createFileSystems(dirContents), files);
 
     ClassLoader loader1 = arvcl.getClassLoader();
     Class<?> clazz1 = loader1.loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
-    Assert.assertEquals("Hello World!", o1.toString());
+    assertEquals("Hello World!", o1.toString());
 
     // Check that the class is the same before the update
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-    Assert.assertEquals(clazz1, clazz1_5);
+    assertEquals(clazz1, clazz1_5);
 
     // java does aggressive caching of jar files. When using java code to read jar files that are
     // created in the same second, it will only see the first jar
@@ -260,15 +263,15 @@ public class AccumuloReloadingVFSClassLoaderTest {
 
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
-    Assert.assertEquals("Hallo Welt", o2.toString());
+    assertEquals("Hallo Welt", o2.toString());
 
     // This is false because they are loaded by a different classloader
-    Assert.assertNotEquals(clazz1, clazz2);
-    Assert.assertNotEquals(o1, o2);
+    assertNotEquals(clazz1, clazz2);
+    assertNotEquals(o1, o2);
 
     Class<?> clazz3 = loader1.loadClass("test.HelloWorld");
     Object o3 = clazz3.newInstance();
-    Assert.assertEquals("Hello World!", o3.toString());
+    assertEquals("Hello World!", o3.toString());
 
     arvcl.close();
   }

@@ -17,6 +17,9 @@
 package org.apache.accumulo.tserver.compaction;
 
 import static org.apache.accumulo.tserver.compaction.DefaultCompactionStrategyTest.getServerContext;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -29,7 +32,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -61,16 +63,16 @@ public class SizeLimitCompactionStrategyTest {
 
     mcr.setFiles(nfl("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G"));
 
-    Assert.assertFalse(slcs.shouldCompact(mcr));
-    Assert.assertEquals(0, slcs.getCompactionPlan(mcr).inputFiles.size());
-    Assert.assertEquals(4, mcr.getFiles().size());
+    assertFalse(slcs.shouldCompact(mcr));
+    assertEquals(0, slcs.getCompactionPlan(mcr).inputFiles.size());
+    assertEquals(4, mcr.getFiles().size());
 
     mcr.setFiles(nfl("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G", "f5", "500M", "f6", "500M",
         "f7", "500M", "f8", "500M"));
 
-    Assert.assertTrue(slcs.shouldCompact(mcr));
-    Assert.assertEquals(nfl("f5", "500M", "f6", "500M", "f7", "500M", "f8", "500M").keySet(),
+    assertTrue(slcs.shouldCompact(mcr));
+    assertEquals(nfl("f5", "500M", "f6", "500M", "f7", "500M", "f8", "500M").keySet(),
         new HashSet<>(slcs.getCompactionPlan(mcr).inputFiles));
-    Assert.assertEquals(8, mcr.getFiles().size());
+    assertEquals(8, mcr.getFiles().size());
   }
 }

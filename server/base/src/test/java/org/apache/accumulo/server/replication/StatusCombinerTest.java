@@ -16,6 +16,11 @@
  */
 package org.apache.accumulo.server.replication;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,7 +36,6 @@ import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -63,8 +67,8 @@ public class StatusCombinerTest {
     Status status = StatusUtil.ingestedUntil(10);
     // When combining only one message, we should get back the same instance
     Status ret = combiner.typedReduce(key, Collections.singleton(status).iterator());
-    Assert.assertEquals(status, ret);
-    Assert.assertSame(status, ret);
+    assertEquals(status, ret);
+    assertSame(status, ret);
   }
 
   @Test
@@ -72,10 +76,10 @@ public class StatusCombinerTest {
     Status orig = StatusUtil.fileCreated(100);
     Status status = StatusUtil.replicatedAndIngested(10, 20);
     Status ret = combiner.typedReduce(key, Arrays.asList(orig, status).iterator());
-    Assert.assertEquals(10L, ret.getBegin());
-    Assert.assertEquals(20L, ret.getEnd());
-    Assert.assertEquals(100L, ret.getCreatedTime());
-    Assert.assertFalse(ret.getClosed());
+    assertEquals(10L, ret.getBegin());
+    assertEquals(20L, ret.getEnd());
+    assertEquals(100L, ret.getCreatedTime());
+    assertFalse(ret.getClosed());
   }
 
   @Test
@@ -83,10 +87,10 @@ public class StatusCombinerTest {
     Status orig = StatusUtil.fileCreated(100);
     Status status = StatusUtil.replicatedAndIngested(builder, 10, 20);
     Status ret = combiner.typedReduce(key, Arrays.asList(orig, status).iterator());
-    Assert.assertEquals(10L, ret.getBegin());
-    Assert.assertEquals(20L, ret.getEnd());
-    Assert.assertEquals(100L, ret.getCreatedTime());
-    Assert.assertFalse(ret.getClosed());
+    assertEquals(10L, ret.getBegin());
+    assertEquals(20L, ret.getEnd());
+    assertEquals(100L, ret.getCreatedTime());
+    assertFalse(ret.getClosed());
   }
 
   @Test
@@ -99,7 +103,7 @@ public class StatusCombinerTest {
         order2 = combiner.typedReduce(key,
             Arrays.asList(secondSync, firstSync, newFile).iterator());
 
-    Assert.assertEquals(order1, order2);
+    assertEquals(order1, order2);
   }
 
   @Test
@@ -113,7 +117,7 @@ public class StatusCombinerTest {
         order2 = combiner.typedReduce(key,
             Arrays.asList(secondSync, firstSync, newFile).iterator());
 
-    Assert.assertEquals(order1, order2);
+    assertEquals(order1, order2);
   }
 
   @Test
@@ -126,7 +130,7 @@ public class StatusCombinerTest {
         order2 = combiner.typedReduce(key,
             Arrays.asList(newFile, secondSync, firstSync).iterator());
 
-    Assert.assertEquals(order1, order2);
+    assertEquals(order1, order2);
   }
 
   @Test
@@ -140,7 +144,7 @@ public class StatusCombinerTest {
         order2 = combiner.typedReduce(key,
             Arrays.asList(newFile, secondSync, firstSync).iterator());
 
-    Assert.assertEquals(order1, order2);
+    assertEquals(order1, order2);
   }
 
   @Test
@@ -152,7 +156,7 @@ public class StatusCombinerTest {
         Arrays.asList(newFile, closed, secondSync).iterator()),
         order2 = combiner.typedReduce(key, Arrays.asList(newFile, secondSync, closed).iterator());
 
-    Assert.assertEquals(order1, order2);
+    assertEquals(order1, order2);
   }
 
   @Test
@@ -164,7 +168,7 @@ public class StatusCombinerTest {
         Arrays.asList(newFile, closed, secondSync).iterator()),
         order2 = combiner.typedReduce(key, Arrays.asList(newFile, secondSync, closed).iterator());
 
-    Assert.assertEquals(order1, order2);
+    assertEquals(order1, order2);
   }
 
   @Test
@@ -180,19 +184,19 @@ public class StatusCombinerTest {
     Status permutation = combiner.typedReduce(key,
         Arrays.asList(newFile, repl1, update1, repl2, update2).iterator());
 
-    Assert.assertEquals(order1, permutation);
+    assertEquals(order1, permutation);
 
     // All replications before updates
     permutation = combiner.typedReduce(key,
         Arrays.asList(newFile, repl1, repl2, update1, update2).iterator());
 
-    Assert.assertEquals(order1, permutation);
+    assertEquals(order1, permutation);
 
     // All updates before replications
     permutation = combiner.typedReduce(key,
         Arrays.asList(newFile, update1, update2, repl1, repl2, update1, update2).iterator());
 
-    Assert.assertEquals(order1, permutation);
+    assertEquals(order1, permutation);
   }
 
   @Test
@@ -208,19 +212,19 @@ public class StatusCombinerTest {
     Status permutation = combiner.typedReduce(key,
         Arrays.asList(newFile, repl1, update1, repl2, update2).iterator());
 
-    Assert.assertEquals(order1, permutation);
+    assertEquals(order1, permutation);
 
     // All replications before updates
     permutation = combiner.typedReduce(key,
         Arrays.asList(newFile, repl1, repl2, update1, update2).iterator());
 
-    Assert.assertEquals(order1, permutation);
+    assertEquals(order1, permutation);
 
     // All updates before replications
     permutation = combiner.typedReduce(key,
         Arrays.asList(newFile, update1, update2, repl1, repl2).iterator());
 
-    Assert.assertEquals(order1, permutation);
+    assertEquals(order1, permutation);
   }
 
   @Test
@@ -236,7 +240,7 @@ public class StatusCombinerTest {
     Status permutation = combiner.typedReduce(key,
         Arrays.asList(newFile, repl1, update1, update1, repl2, update2, update2).iterator());
 
-    Assert.assertEquals(order1, permutation);
+    assertEquals(order1, permutation);
   }
 
   @Test
@@ -248,7 +252,7 @@ public class StatusCombinerTest {
 
     Status combined = combiner.typedReduce(key, Arrays.asList(stat1, stat2).iterator());
 
-    Assert.assertEquals(stat1, combined);
+    assertEquals(stat1, combined);
   }
 
   @Test
@@ -260,14 +264,14 @@ public class StatusCombinerTest {
 
     Status combined = combiner.typedReduce(key, Arrays.asList(stat1, stat2).iterator());
 
-    Assert.assertEquals(stat1, combined);
+    assertEquals(stat1, combined);
 
     Status stat3 = Status.newBuilder().setBegin(10).setEnd(20).setClosed(true).setInfiniteEnd(false)
         .setCreatedTime(100).build();
 
     Status combined2 = combiner.typedReduce(key, Arrays.asList(combined, stat3).iterator());
 
-    Assert.assertEquals(combined, combined2);
+    assertEquals(combined, combined2);
   }
 
   @Test
@@ -281,8 +285,8 @@ public class StatusCombinerTest {
 
     Status combined = combiner.typedReduce(new Key("row"), status.iterator());
 
-    Assert.assertEquals(time, combined.getCreatedTime());
-    Assert.assertTrue(combined.getInfiniteEnd());
-    Assert.assertTrue(combined.getClosed());
+    assertEquals(time, combined.getCreatedTime());
+    assertTrue(combined.getInfiniteEnd());
+    assertTrue(combined.getClosed());
   }
 }

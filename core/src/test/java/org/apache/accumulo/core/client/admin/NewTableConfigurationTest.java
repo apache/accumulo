@@ -27,18 +27,14 @@ import java.util.TreeSet;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class NewTableConfigurationTest {
-
-  private static final Logger log = LoggerFactory.getLogger(NewTableConfigurationTest.class);
 
   private SortedSet<Text> splits;
 
   @Before
   public void populateSplits() {
-    splits = new TreeSet<Text>();
+    splits = new TreeSet<>();
     splits.add(new Text("ccccc"));
     splits.add(new Text("aaaaa"));
     splits.add(new Text("ddddd"));

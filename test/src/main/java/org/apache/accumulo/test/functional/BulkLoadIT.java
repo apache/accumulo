@@ -17,6 +17,8 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.FileNotFoundException;
@@ -60,7 +62,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -298,19 +299,19 @@ public class BulkLoadIT extends AccumuloClusterHarness {
         MetadataScanner scanner = MetadataScanner.builder().from(getConnector()).scanMetadataTable()
             .overRange(Table.ID.of(id)).fetchFiles().fetchLoaded().fetchPrev().build()) {
       for (TabletMetadata tablet : scanner) {
-        Assert.assertTrue(tablet.getLoaded().isEmpty());
+        assertTrue(tablet.getLoaded().isEmpty());
 
         Set<String> fileHashes = tablet.getFiles().stream().map(f -> hash(f))
             .collect(Collectors.toSet());
 
         String endRow = tablet.getEndRow() == null ? "null" : tablet.getEndRow().toString();
 
-        Assert.assertEquals(expectedHashes.get(endRow), fileHashes);
+        assertEquals(expectedHashes.get(endRow), fileHashes);
 
         endRowsSeen.add(endRow);
       }
 
-      Assert.assertEquals(expectedHashes.keySet(), endRowsSeen);
+      assertEquals(expectedHashes.keySet(), endRowsSeen);
     }
   }
 

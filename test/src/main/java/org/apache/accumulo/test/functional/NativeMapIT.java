@@ -44,7 +44,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.tserver.NativeMap;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -78,7 +77,7 @@ public class NativeMapIT {
   @BeforeClass
   public static void setUp() {
     System.setProperty("accumulo.native.lib.path", nativeMapLocation().getAbsolutePath());
-    Assert.assertTrue(NativeMap.isLoaded());
+    assertTrue(NativeMap.isLoaded());
   }
 
   private void verifyIterator(int start, int end, int valueOffset,

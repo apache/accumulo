@@ -32,6 +32,10 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,12 +51,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
+import org.junit.Test;
 
-import junit.framework.TestCase;
+public class WholeColumnFamilyIteratorTest {
 
-public class WholeColumnFamilyIteratorTest extends TestCase {
-
+  @Test
   public void testEmptyStuff() throws IOException {
     SortedMap<Key,Value> map = new TreeMap<>();
     SortedMap<Key,Value> map2 = new TreeMap<>();
@@ -109,7 +112,7 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
     }
 
     // we have 7 groups of row key/cf
-    Assert.assertEquals(7, numRows);
+    assertEquals(7, numRows);
 
     assertEquals(resultMap, map);
 
@@ -139,6 +142,7 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
         new Value(val.getBytes()));
   }
 
+  @Test
   public void testContinue() throws Exception {
     SortedMap<Key,Value> map1 = new TreeMap<>();
     pkv(map1, "row1", "cf1", "cq1", "cv1", 5, "foo");
@@ -182,6 +186,7 @@ public class WholeColumnFamilyIteratorTest extends TestCase {
 
   }
 
+  @Test
   public void testBug1() throws Exception {
     SortedMap<Key,Value> map1 = new TreeMap<>();
     pkv(map1, "row1", "cf1", "cq1", "cv1", 5, "foo");

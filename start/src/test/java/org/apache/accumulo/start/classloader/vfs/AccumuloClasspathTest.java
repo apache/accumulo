@@ -17,18 +17,19 @@
 package org.apache.accumulo.start.classloader.vfs;
 
 import static org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.getClassPath;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 public class AccumuloClasspathTest {
 
   private static void assertPattern(String output, String pattern, boolean shouldMatch) {
     if (shouldMatch) {
-      Assert.assertTrue("Pattern " + pattern + " did not match output: " + output,
+      assertTrue("Pattern " + pattern + " did not match output: " + output,
           output.matches(pattern));
     } else {
-      Assert.assertFalse("Pattern " + pattern + " should not match output: " + output,
+      assertFalse("Pattern " + pattern + " should not match output: " + output,
           output.matches(pattern));
     }
   }
@@ -36,13 +37,13 @@ public class AccumuloClasspathTest {
   @Test
   public void basic() {
     assertPattern(getClassPath(true), "(?s).*\\s+.*\\n$", true);
-    Assert.assertTrue(getClassPath(true).contains("Java System Classloader"));
-    Assert.assertTrue(getClassPath(true).contains("Level"));
+    assertTrue(getClassPath(true).contains("Java System Classloader"));
+    assertTrue(getClassPath(true).contains("Level"));
 
-    Assert.assertTrue(getClassPath(true).length() > getClassPath(false).length());
+    assertTrue(getClassPath(true).length() > getClassPath(false).length());
 
     assertPattern(getClassPath(false), "(?s).*\\s+.*\\n$", false);
-    Assert.assertFalse(getClassPath(false).contains("Java System Classloader"));
-    Assert.assertFalse(getClassPath(false).contains("Level"));
+    assertFalse(getClassPath(false).contains("Java System Classloader"));
+    assertFalse(getClassPath(false).contains("Level"));
   }
 }

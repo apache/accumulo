@@ -19,6 +19,8 @@ package org.apache.accumulo.test.gc.replication;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,7 +56,6 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -137,7 +138,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
       s.fetchColumnFamily(ReplicationSection.COLF);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
       Status status = Status.parseFrom(entry.getValue().get());
-      Assert.assertFalse(status.getClosed());
+      assertFalse(status.getClosed());
     }
   }
 
@@ -158,7 +159,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
       s.fetchColumnFamily(ReplicationSection.COLF);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
       Status status = Status.parseFrom(entry.getValue().get());
-      Assert.assertTrue(status.getClosed());
+      assertTrue(status.getClosed());
     }
   }
 
@@ -177,7 +178,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     try (Scanner s = ReplicationTable.getScanner(conn)) {
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
       Status status = Status.parseFrom(entry.getValue().get());
-      Assert.assertFalse(status.getClosed());
+      assertFalse(status.getClosed());
     }
   }
 }

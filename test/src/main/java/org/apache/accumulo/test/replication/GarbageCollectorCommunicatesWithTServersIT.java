@@ -16,6 +16,12 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -56,7 +62,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,7 +109,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     final Connector conn = context.getConnector();
     final String tableId = conn.tableOperations().tableIdMap().get(tableName);
 
-    Assert.assertNotNull("Could not determine table ID for " + tableName, tableId);
+    assertNotNull("Could not determine table ID for " + tableName, tableId);
 
     WalStateManager wals = new WalStateManager(context);
 
@@ -123,7 +128,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     final Connector conn = getConnector();
     final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
 
-    Assert.assertNotNull("Could not determine table ID for " + tableName, tableId);
+    assertNotNull("Could not determine table ID for " + tableName, tableId);
 
     Set<String> rfiles = new HashSet<>();
     try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
@@ -151,7 +156,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     final Connector conn = getConnector();
     final String tableId = conn.tableOperations().tableIdMap().get(tableName);
 
-    Assert.assertNotNull("Could not determine table ID for " + tableName, tableId);
+    assertNotNull("Could not determine table ID for " + tableName, tableId);
 
     Map<String,Status> fileToStatus = new HashMap<>();
     try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
@@ -201,7 +206,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
         "Checking that metadata only has two WALs recorded for this table (inUse, and opened)");
 
     Set<String> wals = getWalsForTable(table);
-    Assert.assertEquals("Expected to only find two WALs for the table", 2, wals.size());
+    assertEquals("Expected to only find two WALs for the table", 2, wals.size());
 
     // Flush our test table to remove the WAL references in it
     conn.tableOperations().flush(table, null, null, true);
@@ -214,19 +219,18 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     Map<String,Status> fileToStatus = getMetadataStatusForTable(table);
 
-    Assert.assertEquals("Expected to only find one replication status message", 1,
-        fileToStatus.size());
+    assertEquals("Expected to only find one replication status message", 1, fileToStatus.size());
 
     String walName = fileToStatus.keySet().iterator().next();
     wals.retainAll(fileToStatus.keySet());
-    Assert.assertEquals(1, wals.size());
+    assertEquals(1, wals.size());
 
     Status status = fileToStatus.get(walName);
 
-    Assert.assertFalse("Expected Status for file to not be closed", status.getClosed());
+    assertFalse("Expected Status for file to not be closed", status.getClosed());
 
     Set<String> filesForTable = getFilesForTable(table);
-    Assert.assertEquals("Expected to only find one rfile for table", 1, filesForTable.size());
+    assertEquals("Expected to only find one rfile for table", 1, filesForTable.size());
     log.info("Files for table before MajC: {}", filesForTable);
 
     // Issue a MajC to roll a new file in HDFS
@@ -236,9 +240,9 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     log.info("Files for table after MajC: {}", filesForTableAfterCompaction);
 
-    Assert.assertEquals("Expected to only find one rfile for table", 1,
+    assertEquals("Expected to only find one rfile for table", 1,
         filesForTableAfterCompaction.size());
-    Assert.assertNotEquals("Expected the files before and after compaction to differ",
+    assertNotEquals("Expected the files before and after compaction to differ",
         filesForTableAfterCompaction, filesForTable);
 
     // Use the rfile which was just replaced by the MajC to determine when the GC has ran
@@ -253,11 +257,11 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     }
 
     Map<String,Status> fileToStatusAfterMinc = getMetadataStatusForTable(table);
-    Assert.assertEquals(
+    assertEquals(
         "Expected to still find only one replication status message: " + fileToStatusAfterMinc, 1,
         fileToStatusAfterMinc.size());
 
-    Assert.assertEquals("Status before and after MinC should be identical", fileToStatus,
+    assertEquals("Status before and after MinC should be identical", fileToStatus,
         fileToStatusAfterMinc);
   }
 
@@ -293,7 +297,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     log.info("Checking that metadata only has one WAL recorded for this table");
 
     Set<String> wals = getWalsForTable(table);
-    Assert.assertEquals("Expected to only find two WAL for the table", 2, wals.size());
+    assertEquals("Expected to only find two WAL for the table", 2, wals.size());
 
     log.info("Compacting the table which will remove all WALs from the tablets");
 
@@ -306,19 +310,18 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     Map<String,Status> fileToStatus = getMetadataStatusForTable(table);
 
-    Assert.assertEquals("Expected to only find one replication status message", 1,
-        fileToStatus.size());
+    assertEquals("Expected to only find one replication status message", 1, fileToStatus.size());
 
     String walName = fileToStatus.keySet().iterator().next();
-    Assert.assertTrue("Expected log file name from tablet to equal replication entry",
+    assertTrue("Expected log file name from tablet to equal replication entry",
         wals.contains(walName));
 
     Status status = fileToStatus.get(walName);
 
-    Assert.assertFalse("Expected Status for file to not be closed", status.getClosed());
+    assertFalse("Expected Status for file to not be closed", status.getClosed());
 
     Set<String> filesForTable = getFilesForTable(table);
-    Assert.assertEquals("Expected to only find one rfile for table", 1, filesForTable.size());
+    assertEquals("Expected to only find one rfile for table", 1, filesForTable.size());
     log.info("Files for table before MajC: {}", filesForTable);
 
     // Issue a MajC to roll a new file in HDFS
@@ -328,9 +331,9 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     log.info("Files for table after MajC: {}", filesForTableAfterCompaction);
 
-    Assert.assertEquals("Expected to only find one rfile for table", 1,
+    assertEquals("Expected to only find one rfile for table", 1,
         filesForTableAfterCompaction.size());
-    Assert.assertNotEquals("Expected the files before and after compaction to differ",
+    assertNotEquals("Expected the files before and after compaction to differ",
         filesForTableAfterCompaction, filesForTable);
 
     // Use the rfile which was just replaced by the MajC to determine when the GC has ran
@@ -349,7 +352,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     // for our WAL should not be altered.
 
     Map<String,Status> fileToStatusAfterMinc = getMetadataStatusForTable(table);
-    Assert.assertEquals(
+    assertEquals(
         "Expected to still find only one replication status message: " + fileToStatusAfterMinc, 1,
         fileToStatusAfterMinc.size());
 
@@ -383,7 +386,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     List<String> tservers = MasterClient.execute(context,
         client -> client.getActiveTservers(Tracer.traceInfo(), context.rpcCreds()));
 
-    Assert.assertEquals("Expected only one active tservers", 1, tservers.size());
+    assertEquals("Expected only one active tservers", 1, tservers.size());
 
     HostAndPort tserver = HostAndPort.fromString(tservers.get(0));
 
@@ -396,12 +399,12 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     log.info("Active wals: {}", activeWalsForTserver);
 
-    Assert.assertEquals("Expected to find only one active WAL", 1, activeWalsForTserver.size());
+    assertEquals("Expected to find only one active WAL", 1, activeWalsForTserver.size());
 
     String activeWal = new Path(activeWalsForTserver.get(0)).toString();
 
-    Assert.assertNotEquals("Current active WAL on tserver should not be the original WAL we saw",
-        walName, activeWal);
+    assertNotEquals("Current active WAL on tserver should not be the original WAL we saw", walName,
+        activeWal);
 
     log.info("Ensuring that replication status does get closed after WAL is no"
         + " longer in use by Tserver");
@@ -410,7 +413,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
       Map<String,Status> replicationStatuses = getMetadataStatusForTable(table);
 
       log.info("Got replication status messages {}", replicationStatuses);
-      Assert.assertEquals("Did not expect to find additional status records", 1,
+      assertEquals("Did not expect to find additional status records", 1,
           replicationStatuses.size());
 
       status = replicationStatuses.values().iterator().next();

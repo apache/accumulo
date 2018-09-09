@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.server.client;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -46,7 +49,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class BulkImporterTest {
@@ -146,27 +148,27 @@ public class BulkImporterTest {
     VolumeManager vm = VolumeManagerImpl.get(context.getConfiguration());
     List<TabletLocation> overlaps = BulkImporter.findOverlappingTablets(context, vm, locator,
         new Path(file));
-    Assert.assertEquals(5, overlaps.size());
+    assertEquals(5, overlaps.size());
     Collections.sort(overlaps);
-    Assert.assertEquals(new KeyExtent(tableId, new Text("a"), null), overlaps.get(0).tablet_extent);
-    Assert.assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
+    assertEquals(new KeyExtent(tableId, new Text("a"), null), overlaps.get(0).tablet_extent);
+    assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
         overlaps.get(1).tablet_extent);
-    Assert.assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")),
+    assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")),
         overlaps.get(2).tablet_extent);
-    Assert.assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")),
+    assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")),
         overlaps.get(3).tablet_extent);
-    Assert.assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).tablet_extent);
+    assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).tablet_extent);
 
     List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(context, vm, locator,
         new Path(file), new KeyExtent(tableId, new Text("h"), new Text("b")));
-    Assert.assertEquals(3, overlaps2.size());
-    Assert.assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
+    assertEquals(3, overlaps2.size());
+    assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
         overlaps2.get(0).tablet_extent);
-    Assert.assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")),
+    assertEquals(new KeyExtent(tableId, new Text("dm"), new Text("d")),
         overlaps2.get(1).tablet_extent);
-    Assert.assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")),
+    assertEquals(new KeyExtent(tableId, new Text("j"), new Text("i")),
         overlaps2.get(2).tablet_extent);
-    Assert.assertEquals(locator.invalidated, 1);
+    assertEquals(locator.invalidated, 1);
   }
 
   @Test
@@ -176,18 +178,18 @@ public class BulkImporterTest {
 
     // 1;2;1
     KeyExtent extent = new KeyExtent(Table.ID.of("1"), new Text("2"), new Text("1"));
-    Assert.assertEquals(new Text("1\0"), BulkImporter.getStartRowForExtent(extent));
+    assertEquals(new Text("1\0"), BulkImporter.getStartRowForExtent(extent));
 
     // 1;2<
     extent = new KeyExtent(Table.ID.of("1"), new Text("2"), null);
-    Assert.assertNull(BulkImporter.getStartRowForExtent(extent));
+    assertNull(BulkImporter.getStartRowForExtent(extent));
 
     // 1<<
     extent = new KeyExtent(Table.ID.of("1"), null, null);
-    Assert.assertNull(BulkImporter.getStartRowForExtent(extent));
+    assertNull(BulkImporter.getStartRowForExtent(extent));
 
     // 1;8;7777777
     extent = new KeyExtent(Table.ID.of("1"), new Text("8"), new Text("7777777"));
-    Assert.assertEquals(new Text("7777777\0"), BulkImporter.getStartRowForExtent(extent));
+    assertEquals(new Text("7777777\0"), BulkImporter.getStartRowForExtent(extent));
   }
 }

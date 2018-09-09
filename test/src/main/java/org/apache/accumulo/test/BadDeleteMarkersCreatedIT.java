@@ -17,6 +17,9 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -44,7 +47,6 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -76,7 +78,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       log.warn("Could not parse integer from timeout.factor");
     }
 
-    Assert.assertTrue("timeout.factor must be greater than or equal to 1", timeoutFactor >= 1);
+    assertTrue("timeout.factor must be greater than or equal to 1", timeoutFactor >= 1);
   }
 
   private String gcCycleDelay, gcCycleStart;
@@ -147,7 +149,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
     log.info("Creating table to be deleted");
     c.tableOperations().create(tableName);
     final String tableId = c.tableOperations().tableIdMap().get(tableName);
-    Assert.assertNotNull("Expected to find a tableId", tableId);
+    assertNotNull("Expected to find a tableId", tableId);
 
     // add some splits
     SortedSet<Text> splits = new TreeSet<>();
@@ -172,7 +174,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
           log.info("Ignoring delete entry for a table other than the one we deleted");
           continue;
         }
-        Assert.fail("Delete entry should have been deleted by the garbage collector: "
+        fail("Delete entry should have been deleted by the garbage collector: "
             + entry.getKey().getRow());
       }
     }

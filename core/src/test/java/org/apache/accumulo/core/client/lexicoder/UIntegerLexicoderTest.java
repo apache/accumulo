@@ -17,8 +17,11 @@
 package org.apache.accumulo.core.client.lexicoder;
 
 import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.junit.Test;
 
 public class UIntegerLexicoderTest extends AbstractLexicoderTest {
+
+  @Test
   public void testEncoding() {
     UIntegerLexicoder uil = new UIntegerLexicoder();
 
@@ -33,6 +36,7 @@ public class UIntegerLexicoderTest extends AbstractLexicoderTest {
     assertEqualsB(uil.encode(-1), new byte[] {0x08});
   }
 
+  @Test
   public void testDecode() {
     assertDecodes(new UIntegerLexicoder(), Integer.MIN_VALUE);
     assertDecodes(new UIntegerLexicoder(), -1);
