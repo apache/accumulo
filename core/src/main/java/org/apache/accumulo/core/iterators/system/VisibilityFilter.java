@@ -80,10 +80,10 @@ public class VisibilityFilter extends SynchronizedServerFilter {
       cache.put(testVis, bb);
       return bb;
     } catch (VisibilityParseException e) {
-      log.error("VisibilityParseException with visibility of Key {}: {}", k, e.getMessage());
+      log.error("VisibilityParseException with visibility of Key: {}", k, e);
       return false;
     } catch (BadArgumentException e) {
-      log.error("BadArgumentException with visibility of Key {}: {}", k, e.getMessage());
+      log.error("BadArgumentException with visibility of Key: {}", k, e);
       return false;
     }
   }
