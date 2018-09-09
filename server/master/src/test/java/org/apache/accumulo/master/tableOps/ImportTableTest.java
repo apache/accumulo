@@ -43,7 +43,7 @@ public class ImportTableTest {
     EasyMock.expect(master.getContext()).andReturn(null);
     EasyMock.expect(master.getFileSystem()).andReturn(volumeManager);
     // Choose the 2nd element
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(iti.tableId);
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(iti.tableId, null);
     EasyMock.expect(volumeManager.choose(EasyMock.eq(chooserEnv), EasyMock.eq(tableDirs)))
         .andReturn(tableDirs[1]);
 

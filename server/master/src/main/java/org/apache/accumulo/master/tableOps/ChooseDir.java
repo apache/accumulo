@@ -51,7 +51,8 @@ class ChooseDir extends MasterRepo {
     // Constants.DEFAULT_TABLET_LOCATION has a leading slash prepended to it so we don't need to add
     // one here
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableInfo.tableId);
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableInfo.tableId,
+        master.getContext());
 
     String baseDir = master.getFileSystem().choose(chooserEnv,
         ServerConstants.getBaseUris(master.getConfiguration())) + Constants.HDFS_TABLES_DIR

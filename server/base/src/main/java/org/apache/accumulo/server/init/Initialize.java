@@ -350,7 +350,7 @@ public class Initialize implements KeywordExecutable {
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
     String[] configuredVolumes = VolumeConfiguration.getVolumeUris(siteConfig);
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.INIT);
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.INIT, null);
     final String rootTabletDir = new Path(
         fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR
             + Path.SEPARATOR + RootTable.ID + RootTable.ROOT_TABLET_LOCATION).toString();
@@ -484,7 +484,7 @@ public class Initialize implements KeywordExecutable {
     // initialize initial system tables config in zookeeper
     initSystemTablesConfig(zoo, Constants.ZROOT + "/" + uuid);
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.INIT);
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.INIT, null);
     String tableMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig))
         + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID + TABLE_TABLETS_TABLET_DIR;
     String replicationTableDefaultTabletDir = fs.choose(chooserEnv,

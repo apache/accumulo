@@ -21,8 +21,6 @@ import java.util.Objects;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.server.ServerContext;
 
-import com.google.common.annotations.VisibleForTesting;
-
 public class VolumeChooserEnvironment {
 
   /**
@@ -38,21 +36,10 @@ public class VolumeChooserEnvironment {
   private final ChooserScope scope;
   private final Table.ID tableId;
 
-  // Also for visible for initialization
-  @VisibleForTesting
-  public VolumeChooserEnvironment(ChooserScope scope) {
-    this(scope, null);
-  }
-
   public VolumeChooserEnvironment(ChooserScope scope, ServerContext context) {
     this.context = context;
     this.scope = Objects.requireNonNull(scope);
     this.tableId = null;
-  }
-
-  @VisibleForTesting
-  public VolumeChooserEnvironment(Table.ID tableId) {
-    this(tableId, null);
   }
 
   public VolumeChooserEnvironment(Table.ID tableId, ServerContext context) {
@@ -71,8 +58,8 @@ public class VolumeChooserEnvironment {
 
   public ServerContext getServerContext() {
     if (context == null) {
-      throw new IllegalStateException(
-          "Requested ServerContext from VolumeChooseEnvironment that" + " was created without it");
+      throw new IllegalStateException("Requested ServerContext from " + getClass().getSimpleName()
+          + " that was created without it");
     }
     return context;
   }

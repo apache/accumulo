@@ -184,7 +184,7 @@ public class PrintInfo implements KeywordExecutable {
       iter.printInfo(opts.printIndex);
       System.out.println();
       org.apache.accumulo.core.file.rfile.bcfile.PrintInfo
-          .main(new String[] {"-site", opts.getSitePath(), arg});
+          .main(new String[] {"-props", opts.getPropertiesPath(), arg});
 
       Map<String,ArrayList<ByteSequence>> localityGroupCF = null;
 

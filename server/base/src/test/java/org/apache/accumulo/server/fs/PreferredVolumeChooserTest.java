@@ -74,12 +74,12 @@ public class PreferredVolumeChooserTest {
   }
 
   private String[] chooseForTable() {
-    VolumeChooserEnvironment env = new VolumeChooserEnvironment(Table.ID.of("testTable"));
+    VolumeChooserEnvironment env = new VolumeChooserEnvironment(Table.ID.of("testTable"), null);
     return chooser.getPreferredVolumes(env, ALL_OPTIONS);
   }
 
   private String[] choose(ChooserScope scope) {
-    VolumeChooserEnvironment env = new VolumeChooserEnvironment(scope);
+    VolumeChooserEnvironment env = new VolumeChooserEnvironment(scope, null);
     return chooser.getPreferredVolumes(env, ALL_OPTIONS);
   }
 

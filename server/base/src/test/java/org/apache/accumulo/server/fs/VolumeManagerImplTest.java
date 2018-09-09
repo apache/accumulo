@@ -85,7 +85,6 @@ public class VolumeManagerImplTest {
   public void tabletDirWithTableId() throws Exception {
     String basePath = fs.getDefaultVolume().getBasePath();
     String scheme = fs.getDefaultVolume().getFileSystem().getUri().toURL().getProtocol();
-    System.out.println(basePath);
     Path expectedBase = new Path(scheme + ":" + basePath, FileType.TABLE.getDirectory());
     List<String> pathsToTest = Arrays.asList("1/default_tablet", "1/default_tablet/",
         "1/t-0000001");
@@ -99,7 +98,6 @@ public class VolumeManagerImplTest {
   public void tabletFileWithTableId() throws Exception {
     String basePath = fs.getDefaultVolume().getBasePath();
     String scheme = fs.getDefaultVolume().getFileSystem().getUri().toURL().getProtocol();
-    System.out.println(basePath);
     Path expectedBase = new Path(scheme + ":" + basePath, FileType.TABLE.getDirectory());
     List<String> pathsToTest = Arrays.asList("1/default_tablet/C0000001.rf",
         "1/t-0000001/C0000001.rf");
@@ -137,7 +135,8 @@ public class VolumeManagerImplTest {
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
     thrown.expect(RuntimeException.class);
     VolumeManager vm = VolumeManagerImpl.get(conf);
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Table.ID.of("sometable"));
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Table.ID.of("sometable"),
+        null);
     String choice = vm.choose(chooserEnv, volumes.toArray(new String[0]));
     assertTrue("shouldn't see invalid options from misbehaving chooser.", volumes.contains(choice));
   }

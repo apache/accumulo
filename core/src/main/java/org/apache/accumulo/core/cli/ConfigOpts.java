@@ -39,7 +39,7 @@ public class ConfigOpts extends Help {
       + "The classpath will be searched if this property is not set")
   private String propsPath;
 
-  public String getSitePath() {
+  public String getPropertiesPath() {
     return propsPath;
   }
 
