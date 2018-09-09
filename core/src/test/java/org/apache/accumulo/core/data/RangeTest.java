@@ -16,6 +16,12 @@
  */
 package org.apache.accumulo.core.data;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -28,10 +34,9 @@ import java.util.List;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class RangeTest extends TestCase {
+public class RangeTest {
   private Range newRange(String k1, String k2) {
     Key ik1 = null;
     if (k1 != null)
@@ -55,18 +60,21 @@ public class RangeTest extends TestCase {
     assertTrue("got : " + rl + " expected : " + expected, s1.equals(s2));
   }
 
+  @Test
   public void testMergeOverlapping1() {
     List<Range> rl = newRangeList(newRange("a", "c"), newRange("a", "b"));
     List<Range> expected = newRangeList(newRange("a", "c"));
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping2() {
     List<Range> rl = newRangeList(newRange("a", "c"), newRange("d", "f"));
     List<Range> expected = newRangeList(newRange("a", "c"), newRange("d", "f"));
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping3() {
     List<Range> rl = newRangeList(newRange("a", "e"), newRange("b", "f"), newRange("c", "r"),
         newRange("g", "j"), newRange("t", "x"));
@@ -74,6 +82,7 @@ public class RangeTest extends TestCase {
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping4() {
     List<Range> rl = newRangeList(newRange("a", "e"), newRange("b", "f"), newRange("c", "r"),
         newRange("g", "j"));
@@ -81,78 +90,91 @@ public class RangeTest extends TestCase {
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping5() {
     List<Range> rl = newRangeList(newRange("a", "e"));
     List<Range> expected = newRangeList(newRange("a", "e"));
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping6() {
     List<Range> rl = newRangeList();
     List<Range> expected = newRangeList();
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping7() {
     List<Range> rl = newRangeList(newRange("a", "e"), newRange("g", "q"), newRange("r", "z"));
     List<Range> expected = newRangeList(newRange("a", "e"), newRange("g", "q"), newRange("r", "z"));
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping8() {
     List<Range> rl = newRangeList(newRange("a", "c"), newRange("a", "c"));
     List<Range> expected = newRangeList(newRange("a", "c"));
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping9() {
     List<Range> rl = newRangeList(newRange(null, null));
     List<Range> expected = newRangeList(newRange(null, null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping10() {
     List<Range> rl = newRangeList(newRange(null, null), newRange("a", "c"));
     List<Range> expected = newRangeList(newRange(null, null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping11() {
     List<Range> rl = newRangeList(newRange("a", "c"), newRange(null, null));
     List<Range> expected = newRangeList(newRange(null, null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping12() {
     List<Range> rl = newRangeList(newRange("b", "d"), newRange("c", null));
     List<Range> expected = newRangeList(newRange("b", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping13() {
     List<Range> rl = newRangeList(newRange("b", "d"), newRange("a", null));
     List<Range> expected = newRangeList(newRange("a", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping14() {
     List<Range> rl = newRangeList(newRange("b", "d"), newRange("e", null));
     List<Range> expected = newRangeList(newRange("b", "d"), newRange("e", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping15() {
     List<Range> rl = newRangeList(newRange("b", "d"), newRange("e", null), newRange("c", "f"));
     List<Range> expected = newRangeList(newRange("b", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping16() {
     List<Range> rl = newRangeList(newRange("b", "d"), newRange("f", null), newRange("c", "e"));
     List<Range> expected = newRangeList(newRange("b", "e"), newRange("f", null));
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping17() {
     List<Range> rl = newRangeList(newRange("b", "d"), newRange("r", null), newRange("c", "e"),
         newRange("g", "t"));
@@ -160,6 +182,7 @@ public class RangeTest extends TestCase {
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping18() {
     List<Range> rl = newRangeList(newRange(null, "d"), newRange("r", null), newRange("c", "e"),
         newRange("g", "t"));
@@ -167,6 +190,7 @@ public class RangeTest extends TestCase {
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping19() {
     List<Range> rl = newRangeList(newRange(null, "d"), newRange("r", null), newRange("c", "e"),
         newRange("g", "t"), newRange("d", "h"));
@@ -174,6 +198,7 @@ public class RangeTest extends TestCase {
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping20() {
 
     List<Range> rl = newRangeList(new Range(new Text("a"), true, new Text("b"), false),
@@ -199,6 +224,7 @@ public class RangeTest extends TestCase {
 
   }
 
+  @Test
   public void testMergeOverlapping22() {
 
     Range ke1 = new KeyExtent("tab1", new Text("Bank"), null).toMetadataRange();
@@ -231,6 +257,7 @@ public class RangeTest extends TestCase {
     check(Range.mergeOverlapping(rl), expected);
   }
 
+  @Test
   public void testMergeOverlapping21() {
     for (boolean b1 : new boolean[] {true, false})
       for (boolean b2 : new boolean[] {true, false})
@@ -267,6 +294,7 @@ public class RangeTest extends TestCase {
 
   }
 
+  @Test
   public void testEqualsNull() {
 
     assertTrue(newRange(null, "d").equals(newRange(null, "d")));
@@ -285,6 +313,7 @@ public class RangeTest extends TestCase {
     assertFalse(newRange("a", "d").equals(newRange("a", null)));
   }
 
+  @Test
   public void testEquals() {
     assertFalse(newRange("b", "d").equals(newRange("a", "d")));
     assertFalse(newRange("a", "d").equals(newRange("b", "d")));
@@ -298,6 +327,7 @@ public class RangeTest extends TestCase {
     assertTrue(newRange("a", "z").equals(newRange("a", "z")));
   }
 
+  @Test
   public void testRow1() {
     Range rowRange = new Range(new Text("r1"));
 
@@ -310,6 +340,7 @@ public class RangeTest extends TestCase {
     assertFalse(rowRange.contains(new Key(new Text("r0"))));
   }
 
+  @Test
   public void testRow2() {
     Range rowRange = new Range(new Text("r1"), new Text("r2"));
 
@@ -328,6 +359,7 @@ public class RangeTest extends TestCase {
     assertFalse(rowRange.contains(new Key(new Text("r2")).followingKey(PartialKey.ROW)));
   }
 
+  @Test
   public void testRow3() {
     Range rowRange = new Range(new Text("r1"), false, new Text("r2"), false);
 
@@ -346,6 +378,7 @@ public class RangeTest extends TestCase {
     assertFalse(rowRange.contains(new Key(new Text("r2")).followingKey(PartialKey.ROW)));
   }
 
+  @Test
   public void testRow4() {
     Range rowRange = new Range(new Text("r1"), true, new Text("r2"), false);
 
@@ -364,6 +397,7 @@ public class RangeTest extends TestCase {
     assertFalse(rowRange.contains(new Key(new Text("r2")).followingKey(PartialKey.ROW)));
   }
 
+  @Test
   public void testRow5() {
     Range rowRange = new Range(new Text("r1"), false, new Text("r2"), true);
 
@@ -382,6 +416,7 @@ public class RangeTest extends TestCase {
     assertFalse(rowRange.contains(new Key(new Text("r2")).followingKey(PartialKey.ROW)));
   }
 
+  @Test
   public void testRow6() {
     Range rowRange = new Range(new Text("r1"), true, null, true);
 
@@ -400,6 +435,7 @@ public class RangeTest extends TestCase {
     assertTrue(rowRange.contains(new Key(new Text("r2")).followingKey(PartialKey.ROW)));
   }
 
+  @Test
   public void testRow7() {
     Range rowRange = new Range(null, true, new Text("r2"), true);
 
@@ -418,6 +454,7 @@ public class RangeTest extends TestCase {
     assertFalse(rowRange.contains(new Key(new Text("r2")).followingKey(PartialKey.ROW)));
   }
 
+  @Test
   public void testRow8() {
     Range rowRange = new Range((Text) null);
 
@@ -454,6 +491,7 @@ public class RangeTest extends TestCase {
     return new Key(new Text(r));
   }
 
+  @Test
   public void testClip1() {
     Range fence = newRange("a", false, "c", false);
 
@@ -484,6 +522,7 @@ public class RangeTest extends TestCase {
     runClipTest(fence, newRange("a", true, "c", true), newRange("a", true, "c", true));
   }
 
+  @Test
   public void testClip2() {
     Range fence = newRange("a", false, "c", false);
 
@@ -493,6 +532,7 @@ public class RangeTest extends TestCase {
     runClipTest(fence, newRange("a", true, "c", true), newRange("a", false, "c", false));
   }
 
+  @Test
   public void testClip3() {
     Range fence = newRange("a", false, "c", false);
 
@@ -517,6 +557,7 @@ public class RangeTest extends TestCase {
     runClipTest(fence, newRange("a1", true, "b", true), newRange("a1", true, "b", true));
   }
 
+  @Test
   public void testClip4() {
     Range fence = new Range(newKey("c"), false, newKey("n"), false);
 
@@ -547,6 +588,7 @@ public class RangeTest extends TestCase {
 
   }
 
+  @Test
   public void testBug1() {
 
     // unit test related to a bug that was observed (bug was not in range, but want to ensure the
@@ -603,6 +645,7 @@ public class RangeTest extends TestCase {
     return new Range(new Text(row));
   }
 
+  @Test
   public void testBound1() {
     Range range1 = newRange("row1");
 
@@ -621,6 +664,7 @@ public class RangeTest extends TestCase {
 
   }
 
+  @Test
   public void testBound2() {
     Range range1 = new Range(newKey("row1", "b", "x"), true, newKey("row1", "f", "x"), true);
 
@@ -676,6 +720,7 @@ public class RangeTest extends TestCase {
     assertFalse(range7.contains(newKey("row1", "f", "z")));
   }
 
+  @Test
   public void testString() {
     Range r1 = new Range(new Text("r1"));
     Range r2 = new Range("r1");
@@ -695,6 +740,7 @@ public class RangeTest extends TestCase {
 
   }
 
+  @Test
   public void testExactRange() {
     Range r = Range.exact("abc");
     assertTrue(r.contains(new Key("abc")));
@@ -727,6 +773,7 @@ public class RangeTest extends TestCase {
     assertFalse(r.contains(new Key("abc", "def", "ghi", "j&k", 8l)));
   }
 
+  @Test
   public void testPrefixRange() {
     Range r = Range.prefix("abc");
     assertTrue(r.contains(new Key("abc")));
@@ -790,6 +837,7 @@ public class RangeTest extends TestCase {
     return new Text(b);
   }
 
+  @Test
   public void testPrefix() {
     assertEquals(Range.followingPrefix(makeText((byte) 0x07)), new Text(makeText((byte) 0x08)));
     assertEquals(Range.followingPrefix(makeText((byte) 0xfe)), new Text(makeText((byte) 0xff)));
@@ -799,6 +847,7 @@ public class RangeTest extends TestCase {
         new Text(makeText((byte) 0x08)));
   }
 
+  @Test
   public void testReadFields() throws Exception {
     Range r = newRange("nuts", "soup");
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -814,6 +863,7 @@ public class RangeTest extends TestCase {
     assertEquals(r, r2);
   }
 
+  @Test
   public void testReadFields_Check() throws Exception {
     Range r = new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true,
         false);
@@ -834,6 +884,7 @@ public class RangeTest extends TestCase {
     }
   }
 
+  @Test
   public void testThrift() {
     Range r = newRange("nuts", "soup");
     TRange tr = r.toThrift();
@@ -841,6 +892,7 @@ public class RangeTest extends TestCase {
     assertEquals(r, r2);
   }
 
+  @Test
   public void testThrift_Check() {
     Range r = new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true,
         false);

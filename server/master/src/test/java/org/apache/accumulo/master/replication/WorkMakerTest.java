@@ -16,9 +16,11 @@
  */
 package org.apache.accumulo.master.replication;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class WorkMakerTest {
@@ -27,11 +29,10 @@ public class WorkMakerTest {
   public void closedStatusRecordsStillMakeWork() throws Exception {
     WorkMaker workMaker = new WorkMaker(null, null);
 
-    Assert.assertFalse(
-        workMaker.shouldCreateWork(StatusUtil.fileCreated(System.currentTimeMillis())));
-    Assert.assertTrue(workMaker.shouldCreateWork(StatusUtil.ingestedUntil(1000)));
+    assertFalse(workMaker.shouldCreateWork(StatusUtil.fileCreated(System.currentTimeMillis())));
+    assertTrue(workMaker.shouldCreateWork(StatusUtil.ingestedUntil(1000)));
     // We don't need to re-create work for something that's already replicated.
-    Assert.assertFalse(workMaker.shouldCreateWork(Status.newBuilder().setBegin(Long.MAX_VALUE)
-        .setEnd(0).setInfiniteEnd(true).setClosed(true).build()));
+    assertFalse(workMaker.shouldCreateWork(Status.newBuilder().setBegin(Long.MAX_VALUE).setEnd(0)
+        .setInfiniteEnd(true).setClosed(true).build()));
   }
 }

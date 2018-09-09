@@ -17,6 +17,7 @@
 package org.apache.accumulo.proxy;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -29,7 +30,6 @@ import org.apache.accumulo.proxy.ProxyServer.BatchWriterPlusProblem;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -65,7 +65,7 @@ public class ProxyServerTest {
 
     try {
       server.updateAndFlush(login, tableName, cells);
-      Assert.fail("Expected updateAndFlush to throw an exception");
+      fail("Expected updateAndFlush to throw an exception");
     } catch (org.apache.accumulo.proxy.thrift.MutationsRejectedException e) {
       // pass
     }
@@ -104,7 +104,7 @@ public class ProxyServerTest {
 
     try {
       server.updateAndFlush(login, tableName, cells);
-      Assert.fail("Expected updateAndFlush to throw an exception");
+      fail("Expected updateAndFlush to throw an exception");
     } catch (org.apache.accumulo.proxy.thrift.MutationsRejectedException e) {
       // pass
     }

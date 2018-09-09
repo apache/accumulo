@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -75,7 +76,6 @@ import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -548,7 +548,7 @@ public class KerberosProxyIT extends AccumuloITBase {
         try {
           Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
           s.iterator().hasNext();
-          Assert.fail("Expected to see an exception");
+          fail("Expected to see an exception");
         } catch (RuntimeException e) {
           int numSecurityExceptionsSeen = Iterables
               .size(Iterables.filter(Throwables.getCausalChain(e),
@@ -581,7 +581,7 @@ public class KerberosProxyIT extends AccumuloITBase {
         try {
           Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
           s.iterator().hasNext();
-          Assert.fail("Expected to see an exception");
+          fail("Expected to see an exception");
         } catch (RuntimeException e) {
           int numSecurityExceptionsSeen = Iterables
               .size(Iterables.filter(Throwables.getCausalChain(e),
@@ -599,7 +599,7 @@ public class KerberosProxyIT extends AccumuloITBase {
         ZooKeeperInstance inst = new ZooKeeperInstance(mac.getClientConfig());
         try {
           inst.getConnector(userWithoutCredentials3, new KerberosToken(userWithoutCredentials3));
-          Assert.fail("Should not be able to create a Connector as this user cannot be proxied");
+          fail("Should not be able to create a Connector as this user cannot be proxied");
         } catch (org.apache.accumulo.core.client.AccumuloSecurityException e) {
           // Expected, this user cannot be proxied
         }

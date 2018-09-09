@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterUser;
@@ -27,7 +31,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -66,7 +69,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     String description1 = "Description";
 
     // Make sure the property name is valid
-    Assert.assertTrue(Property.isValidPropertyKey(propertyName));
+    assertTrue(Property.isValidPropertyKey(propertyName));
     // Set the property to the desired value
     conn.tableOperations().setProperty(tableName, propertyName, description1);
 
@@ -76,7 +79,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
       if (property.getKey().equals(propertyName) && property.getValue().equals(description1))
         count++;
     }
-    Assert.assertEquals(count, 1);
+    assertEquals(count, 1);
 
     // Set the property as something different
     String description2 = "set second";
@@ -88,7 +91,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
       if (property.getKey().equals(propertyName) && property.getValue().equals(description2))
         count++;
     }
-    Assert.assertEquals(count, 1);
+    assertEquals(count, 1);
 
     // Remove the property and make sure there is no longer a value associated with it
     conn.tableOperations().removeProperty(tableName, propertyName);
@@ -99,7 +102,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
       if (property.getKey().equals(propertyName))
         count++;
     }
-    Assert.assertEquals(count, 0);
+    assertEquals(count, 0);
   }
 
   // Tests set, get, and remove of user added arbitrary properties using a non-root account with
@@ -127,7 +130,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     String description1 = "Description";
 
     // Make sure the property name is valid
-    Assert.assertTrue(Property.isValidPropertyKey(propertyName));
+    assertTrue(Property.isValidPropertyKey(propertyName));
 
     // Getting a fresh token will ensure we're logged in as this user (if necessary)
     Connector testConn = c.getInstance().getConnector(testUser, user.getToken());
@@ -140,7 +143,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
       if (property.getKey().equals(propertyName) && property.getValue().equals(description1))
         count++;
     }
-    Assert.assertEquals(count, 1);
+    assertEquals(count, 1);
 
     // Set the property as something different
     String description2 = "set second";
@@ -152,7 +155,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
       if (property.getKey().equals(propertyName) && property.getValue().equals(description2))
         count++;
     }
-    Assert.assertEquals(count, 1);
+    assertEquals(count, 1);
 
     // Remove the property and make sure there is no longer a value associated with it
     testConn.tableOperations().removeProperty(tableName, propertyName);
@@ -163,7 +166,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
       if (property.getKey().equals(propertyName))
         count++;
     }
-    Assert.assertEquals(count, 0);
+    assertEquals(count, 0);
 
   }
 
@@ -191,7 +194,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     String description1 = "Description";
 
     // Make sure the property name is valid
-    Assert.assertTrue(Property.isValidPropertyKey(propertyName));
+    assertTrue(Property.isValidPropertyKey(propertyName));
 
     // Getting a fresh token will ensure we're logged in as this user (if necessary)
     Connector testConn = c.getInstance().getConnector(testUser, user.getToken());
@@ -200,7 +203,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     // If able to set it, the test fails, since permission was never granted
     try {
       testConn.tableOperations().setProperty(tableName, propertyName, description1);
-      Assert.fail("Was able to set property without permissions");
+      fail("Was able to set property without permissions");
     } catch (AccumuloSecurityException e) {}
 
     // Loop through properties to make sure the new property is not added to the list
@@ -209,6 +212,6 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
       if (property.getKey().equals(propertyName))
         count++;
     }
-    Assert.assertEquals(count, 0);
+    assertEquals(count, 0);
   }
 }

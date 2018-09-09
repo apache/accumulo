@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.minicluster.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -39,7 +41,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -85,16 +86,16 @@ public class MiniAccumuloClusterImplTest {
   public void testAccurateProcessListReturned() throws Exception {
     Map<ServerType,Collection<ProcessReference>> procs = accumulo.getProcesses();
 
-    Assert.assertTrue(procs.containsKey(ServerType.GARBAGE_COLLECTOR));
+    assertTrue(procs.containsKey(ServerType.GARBAGE_COLLECTOR));
 
     for (ServerType t : new ServerType[] {ServerType.MASTER, ServerType.TABLET_SERVER,
         ServerType.ZOOKEEPER}) {
-      Assert.assertTrue(procs.containsKey(t));
+      assertTrue(procs.containsKey(t));
       Collection<ProcessReference> procRefs = procs.get(t);
-      Assert.assertTrue(1 <= procRefs.size());
+      assertTrue(1 <= procRefs.size());
 
       for (ProcessReference procRef : procRefs) {
-        Assert.assertNotNull(procRef);
+        assertNotNull(procRef);
       }
     }
   }
@@ -110,18 +111,18 @@ public class MiniAccumuloClusterImplTest {
     }
     List<MasterState> validStates = Arrays.asList(MasterState.values());
     List<MasterGoalState> validGoals = Arrays.asList(MasterGoalState.values());
-    Assert.assertTrue("master state should be valid.", validStates.contains(stats.state));
-    Assert.assertTrue("master goal state should be in " + validGoals + ". is " + stats.goalState,
+    assertTrue("master state should be valid.", validStates.contains(stats.state));
+    assertTrue("master goal state should be in " + validGoals + ". is " + stats.goalState,
         validGoals.contains(stats.goalState));
-    Assert.assertNotNull("should have a table map.", stats.tableMap);
-    Assert.assertTrue("root table should exist in " + stats.tableMap.keySet(),
+    assertNotNull("should have a table map.", stats.tableMap);
+    assertTrue("root table should exist in " + stats.tableMap.keySet(),
         stats.tableMap.keySet().contains(RootTable.ID));
-    Assert.assertTrue("meta table should exist in " + stats.tableMap.keySet(),
+    assertTrue("meta table should exist in " + stats.tableMap.keySet(),
         stats.tableMap.keySet().contains(MetadataTable.ID));
-    Assert.assertTrue("our test table should exist in " + stats.tableMap.keySet(),
+    assertTrue("our test table should exist in " + stats.tableMap.keySet(),
         stats.tableMap.keySet().contains(testTableID));
-    Assert.assertNotNull("there should be tservers.", stats.tServerInfo);
-    Assert.assertEquals(NUM_TSERVERS, stats.tServerInfo.size());
+    assertNotNull("there should be tservers.", stats.tServerInfo);
+    assertEquals(NUM_TSERVERS, stats.tServerInfo.size());
   }
 
   @AfterClass

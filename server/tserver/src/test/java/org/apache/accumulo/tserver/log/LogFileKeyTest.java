@@ -16,13 +16,15 @@
  */
 package org.apache.accumulo.tserver.log;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class LogFileKeyTest {
@@ -43,11 +45,11 @@ public class LogFileKeyTest {
     LogFileKey mut = nk(LogEvents.MUTATION, 1, 3);
     LogFileKey mmut = nk(LogEvents.MANY_MUTATIONS, 1, 3);
 
-    Assert.assertTrue(start.compareTo(finish) == 0);
-    Assert.assertTrue(finish.compareTo(start) == 0);
+    assertTrue(start.compareTo(finish) == 0);
+    assertTrue(finish.compareTo(start) == 0);
 
-    Assert.assertTrue(mut.compareTo(mmut) == 0);
-    Assert.assertTrue(mmut.compareTo(mut) == 0);
+    assertTrue(mut.compareTo(mmut) == 0);
+    assertTrue(mmut.compareTo(mut) == 0);
   }
 
   @Test
@@ -91,7 +93,7 @@ public class LogFileKeyTest {
       Collections.shuffle(testList);
       Collections.sort(testList);
 
-      Assert.assertEquals(keys, testList);
+      assertEquals(keys, testList);
     }
 
   }

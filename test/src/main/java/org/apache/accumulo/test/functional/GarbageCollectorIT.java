@@ -18,8 +18,12 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -65,7 +69,6 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
@@ -237,11 +240,11 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
     assertTrue(iter.hasNext());
     Entry<Key,Value> entry = iter.next();
-    Assert.assertEquals("r1", entry.getKey().getRow().toString());
-    Assert.assertEquals("cf1", entry.getKey().getColumnFamily().toString());
-    Assert.assertEquals("cq1", entry.getKey().getColumnQualifier().toString());
-    Assert.assertEquals("v1", entry.getValue().toString());
-    Assert.assertFalse(iter.hasNext());
+    assertEquals("r1", entry.getKey().getRow().toString());
+    assertEquals("cf1", entry.getKey().getColumnFamily().toString());
+    assertEquals("cq1", entry.getKey().getColumnQualifier().toString());
+    assertEquals("v1", entry.getValue().toString());
+    assertFalse(iter.hasNext());
   }
 
   @Test
@@ -268,27 +271,27 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
         String gcLoc = new String(zk.getData(lockPath, null));
 
-        Assert.assertTrue("Found unexpected data in zookeeper for GC location: " + gcLoc,
+        assertTrue("Found unexpected data in zookeeper for GC location: " + gcLoc,
             gcLoc.startsWith(Service.GC_CLIENT.name()));
         int loc = gcLoc.indexOf(ServerServices.SEPARATOR_CHAR);
-        Assert.assertNotEquals("Could not find split point of GC location for: " + gcLoc, -1, loc);
+        assertNotEquals("Could not find split point of GC location for: " + gcLoc, -1, loc);
         String addr = gcLoc.substring(loc + 1);
 
         int addrSplit = addr.indexOf(':');
-        Assert.assertNotEquals("Could not find split of GC host:port for: " + addr, -1, addrSplit);
+        assertNotEquals("Could not find split of GC host:port for: " + addr, -1, addrSplit);
 
         String host = addr.substring(0, addrSplit), port = addr.substring(addrSplit + 1);
         // We shouldn't have the "bindall" address in zk
-        Assert.assertNotEquals("0.0.0.0", host);
+        assertNotEquals("0.0.0.0", host);
         // Nor should we have the "random port" in zk
-        Assert.assertNotEquals(0, Integer.parseInt(port));
+        assertNotEquals(0, Integer.parseInt(port));
         return;
       }
 
       Thread.sleep(5000);
     }
 
-    Assert.fail("Could not find advertised GC address");
+    fail("Could not find advertised GC address");
   }
 
   private int countFiles() throws Exception {

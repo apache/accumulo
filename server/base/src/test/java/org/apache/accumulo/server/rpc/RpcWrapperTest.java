@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.server.rpc;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,7 +29,6 @@ import org.apache.thrift.ProcessFunction;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TProtocol;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
@@ -60,7 +62,7 @@ public class RpcWrapperTest {
     procs.put("barfoo", createProcessFunction("barfoo", false));
 
     Set<String> onewayMethods = RpcWrapper.getOnewayMethods(procs);
-    Assert.assertEquals(Sets.newHashSet("foo", "bar"), onewayMethods);
+    assertEquals(Sets.newHashSet("foo", "bar"), onewayMethods);
   }
 
   @Test
@@ -72,7 +74,7 @@ public class RpcWrapperTest {
     procs.put("barfoo", createProcessFunction("barfoo", false));
 
     Set<String> onewayMethods = RpcWrapper.getOnewayMethods(procs);
-    Assert.assertEquals(Collections.<String> emptySet(), onewayMethods);
+    assertEquals(Collections.<String> emptySet(), onewayMethods);
   }
 
   @Test
@@ -84,7 +86,7 @@ public class RpcWrapperTest {
     procs.put("barfoo", createProcessFunction("barfoo", true));
 
     Set<String> onewayMethods = RpcWrapper.getOnewayMethods(procs);
-    Assert.assertEquals(Sets.newHashSet("foo", "foobar", "bar", "barfoo"), onewayMethods);
+    assertEquals(Sets.newHashSet("foo", "foobar", "bar", "barfoo"), onewayMethods);
   }
 
   @Test
@@ -101,9 +103,9 @@ public class RpcWrapperTest {
     // Should throw an exception, but not be wrapped because the method is oneway
     try {
       handler.invoke(impl, FakeServiceImpl.class.getMethod("foo"), args);
-      Assert.fail("Expected an exception");
+      fail("Expected an exception");
     } catch (RuntimeException e) {
-      Assert.assertEquals(RTE_MESSAGE, e.getMessage());
+      assertEquals(RTE_MESSAGE, e.getMessage());
     }
 
     // Should not throw an exception
@@ -124,10 +126,10 @@ public class RpcWrapperTest {
     // Should throw an exception, but not be wrapped because the method is oneway
     try {
       handler.invoke(impl, FakeServiceImpl.class.getMethod("foo"), args);
-      Assert.fail("Expected an exception");
+      fail("Expected an exception");
     } catch (TException e) {
       // The InvocationHandler should take the exception from the RTE and make it a TException
-      Assert.assertEquals(RTE_MESSAGE, e.getMessage());
+      assertEquals(RTE_MESSAGE, e.getMessage());
     }
 
     // Should not throw an exception

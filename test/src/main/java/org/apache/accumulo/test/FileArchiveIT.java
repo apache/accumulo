@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -35,7 +38,6 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -65,7 +67,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
     conn.tableOperations().create(tableName);
 
     final String tableId = conn.tableOperations().tableIdMap().get(tableName);
-    Assert.assertNotNull("Could not get table ID", tableId);
+    assertNotNull("Could not get table ID", tableId);
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("row");
@@ -109,12 +111,12 @@ public class FileArchiveIT extends ConfigurableMacBase {
     Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(),
         ServerConstants.FILE_ARCHIVE_DIR);
 
-    Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
+    assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
 
     // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
     Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
 
-    Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile,
+    assertTrue("File doesn't exists in archive directory: " + archivedFile,
         fs.exists(archivedFile));
   }
 
@@ -126,7 +128,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
     conn.tableOperations().create(tableName);
 
     final String tableId = conn.tableOperations().tableIdMap().get(tableName);
-    Assert.assertNotNull("Could not get table ID", tableId);
+    assertNotNull("Could not get table ID", tableId);
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("row");
@@ -169,12 +171,12 @@ public class FileArchiveIT extends ConfigurableMacBase {
     Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(),
         ServerConstants.FILE_ARCHIVE_DIR);
 
-    Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
+    assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
 
     // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
     Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
 
-    Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile,
+    assertTrue("File doesn't exists in archive directory: " + archivedFile,
         fs.exists(archivedFile));
   }
 
@@ -186,7 +188,7 @@ public class FileArchiveIT extends ConfigurableMacBase {
     conn.tableOperations().create(tableName);
 
     final String tableId = conn.tableOperations().tableIdMap().get(tableName);
-    Assert.assertNotNull("Could not get table ID", tableId);
+    assertNotNull("Could not get table ID", tableId);
 
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("row");
@@ -230,12 +232,12 @@ public class FileArchiveIT extends ConfigurableMacBase {
     Path fileArchiveDir = new Path(getCluster().getConfig().getAccumuloDir().toString(),
         ServerConstants.FILE_ARCHIVE_DIR);
 
-    Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
+    assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
 
     // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
     Path archivedFile = new Path(fileArchiveDir, filePath.substring(1));
 
-    Assert.assertTrue("File doesn't exists in archive directory: " + archivedFile,
+    assertTrue("File doesn't exists in archive directory: " + archivedFile,
         fs.exists(archivedFile));
 
     // Offline the table so we can be sure there is a single file
@@ -270,12 +272,12 @@ public class FileArchiveIT extends ConfigurableMacBase {
 
     log.info("File relative to accumulo dir: " + finalFilePath);
 
-    Assert.assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
+    assertTrue("File archive directory didn't exist", fs.exists(fileArchiveDir));
 
     // Remove the leading '/' to make sure Path treats the 2nd arg as a child.
     Path finalArchivedFile = new Path(fileArchiveDir, finalFilePath.substring(1));
 
-    Assert.assertTrue("File doesn't exists in archive directory: " + finalArchivedFile,
+    assertTrue("File doesn't exists in archive directory: " + finalArchivedFile,
         fs.exists(finalArchivedFile));
   }
 

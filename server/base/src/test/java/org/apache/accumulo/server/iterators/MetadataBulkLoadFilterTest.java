@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.iterators;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +36,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -127,6 +128,6 @@ public class MetadataBulkLoadFilterTest {
       iter.next();
     }
 
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
   }
 }

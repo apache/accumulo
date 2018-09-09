@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -30,7 +33,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CleanUp;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -83,16 +85,16 @@ public class CleanUpIT extends SharedMiniClusterBase {
     for (Entry<Key,Value> entry : scanner) {
       count++;
       if (!entry.getValue().toString().equals("5")) {
-        Assert.fail("Unexpected value " + entry.getValue());
+        fail("Unexpected value " + entry.getValue());
       }
     }
 
-    Assert.assertEquals("Unexpected count", 1, count);
+    assertEquals("Unexpected count", 1, count);
 
     int threadCount = countThreads();
     if (threadCount < 2) {
       printThreadNames();
-      Assert.fail("Not seeing expected threads. Saw " + threadCount);
+      fail("Not seeing expected threads. Saw " + threadCount);
     }
 
     CleanUp.shutdownNow();
@@ -103,7 +105,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
     try {
       bw.addMutation(m1);
       bw.flush();
-      Assert.fail("batch writer did not fail");
+      fail("batch writer did not fail");
     } catch (Exception e) {
 
     }
@@ -111,7 +113,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
     try {
       // expect this to fail also, want to clean up batch writer threads
       bw.close();
-      Assert.fail("batch writer close not fail");
+      fail("batch writer close not fail");
     } catch (Exception e) {
 
     }
@@ -123,7 +125,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
         iter.next();
         count++;
       }
-      Assert.fail("scanner did not fail");
+      fail("scanner did not fail");
     } catch (Exception e) {
 
     }
@@ -131,7 +133,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
     threadCount = countThreads();
     if (threadCount > 0) {
       printThreadNames();
-      Assert.fail("Threads did not go away. Saw " + threadCount);
+      fail("Threads did not go away. Saw " + threadCount);
     }
   }
 

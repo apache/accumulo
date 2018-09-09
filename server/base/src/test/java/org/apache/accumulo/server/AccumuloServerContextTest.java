@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -42,7 +44,6 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -123,10 +124,10 @@ public class AccumuloServerContextTest {
 
         EasyMock.replay(factory, context, siteConfig);
 
-        Assert.assertEquals(ThriftServerType.SASL, context.getThriftServerType());
+        assertEquals(ThriftServerType.SASL, context.getThriftServerType());
         SaslServerConnectionParams saslParams = context.getSaslParams();
-        Assert.assertEquals(new SaslServerConnectionParams(conf, token), saslParams);
-        Assert.assertEquals(username, saslParams.getPrincipal());
+        assertEquals(new SaslServerConnectionParams(conf, token), saslParams);
+        assertEquals(username, saslParams.getPrincipal());
 
         EasyMock.verify(factory, context, siteConfig);
 

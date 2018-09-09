@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.iterators.system;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,10 +35,9 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class MultiIteratorTest extends TestCase {
+public class MultiIteratorTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
@@ -122,6 +125,7 @@ public class MultiIteratorTest extends TestCase {
     verify(start, end, seekKey, endRow, prevEndRow, true, false, maps);
   }
 
+  @Test
   public void test1() throws IOException {
     // TEST non overlapping inputs
 
@@ -145,6 +149,7 @@ public class MultiIteratorTest extends TestCase {
     }
   }
 
+  @Test
   public void test2() throws IOException {
     // TEST overlapping inputs
 
@@ -168,6 +173,7 @@ public class MultiIteratorTest extends TestCase {
     }
   }
 
+  @Test
   public void test3() throws IOException {
     // TEST single input
 
@@ -187,6 +193,7 @@ public class MultiIteratorTest extends TestCase {
     }
   }
 
+  @Test
   public void test4() throws IOException {
     // TEST empty input
 
@@ -202,6 +209,7 @@ public class MultiIteratorTest extends TestCase {
     assertFalse(mi.hasTop());
   }
 
+  @Test
   public void test5() throws IOException {
     // TEST overlapping inputs AND prevRow AND endRow AND seek
 
@@ -261,6 +269,7 @@ public class MultiIteratorTest extends TestCase {
     }
   }
 
+  @Test
   public void test6() throws IOException {
     // TEst setting an endKey
     TreeMap<Key,Value> tm1 = new TreeMap<>();
@@ -334,6 +343,7 @@ public class MultiIteratorTest extends TestCase {
 
   }
 
+  @Test
   public void test7() throws IOException {
     // TEst setting an endKey
     TreeMap<Key,Value> tm1 = new TreeMap<>();

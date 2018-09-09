@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 import java.util.Map.Entry;
@@ -43,7 +44,6 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -86,7 +86,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
           + System.getProperty("timeout.factor"));
     }
 
-    Assert.assertTrue("Timeout factor must be greater than or equal to 1", timeoutFactor >= 1);
+    assertTrue("Timeout factor must be greater than or equal to 1", timeoutFactor >= 1);
 
     String[] names = getUniqueNames(2);
     REG_TABLE_NAME = names[0];

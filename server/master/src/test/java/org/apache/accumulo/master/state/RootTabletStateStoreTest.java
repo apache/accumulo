@@ -37,7 +37,6 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class RootTabletStateStoreTest {
@@ -193,12 +192,12 @@ public class RootTabletStateStoreTest {
     KeyExtent notRoot = new KeyExtent("0", null, null);
     try {
       tstore.setLocations(Collections.singletonList(new Assignment(notRoot, server)));
-      Assert.fail("should not get here");
+      fail("should not get here");
     } catch (IllegalArgumentException ex) {}
 
     try {
       tstore.setFutureLocations(Collections.singletonList(new Assignment(notRoot, server)));
-      Assert.fail("should not get here");
+      fail("should not get here");
     } catch (IllegalArgumentException ex) {}
 
     TabletLocationState broken = null;
@@ -209,7 +208,7 @@ public class RootTabletStateStoreTest {
     }
     try {
       tstore.unassign(Collections.singletonList(broken), null);
-      Assert.fail("should not get here");
+      fail("should not get here");
     } catch (IllegalArgumentException ex) {}
   }
 

@@ -16,6 +16,12 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -29,7 +35,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -61,8 +66,8 @@ public class CredentialProviderFactoryShimTest {
         .getResource(populatedKeyStoreName),
         emptyKeyStoreUrl = CredentialProviderFactoryShimTest.class.getResource(emptyKeyStoreName);
 
-    Assert.assertNotNull("Could not find " + populatedKeyStoreName, populatedKeyStoreUrl);
-    Assert.assertNotNull("Could not find " + emptyKeyStoreName, emptyKeyStoreUrl);
+    assertNotNull("Could not find " + populatedKeyStoreName, populatedKeyStoreUrl);
+    assertNotNull("Could not find " + emptyKeyStoreName, emptyKeyStoreUrl);
 
     populatedKeyStore = new File(populatedKeyStoreUrl.getFile());
     emptyKeyStore = new File(emptyKeyStoreUrl.getFile());
@@ -85,14 +90,14 @@ public class CredentialProviderFactoryShimTest {
   protected void checkCredentialProviders(Configuration conf, Map<String,String> expectation)
       throws IOException {
     List<String> keys = CredentialProviderFactoryShim.getKeys(conf);
-    Assert.assertNotNull(keys);
+    assertNotNull(keys);
 
-    Assert.assertEquals(expectation.keySet(), new HashSet<>(keys));
+    assertEquals(expectation.keySet(), new HashSet<>(keys));
     for (String expectedKey : keys) {
       char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(conf,
           expectedKey);
-      Assert.assertNotNull(value);
-      Assert.assertEquals(expectation.get(expectedKey), new String(value));
+      assertNotNull(value);
+      assertEquals(expectation.get(expectedKey), new String(value));
     }
   }
 
@@ -136,19 +141,18 @@ public class CredentialProviderFactoryShimTest {
     Configuration conf = new Configuration();
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, "jceks://file/foo/bar.jceks");
     List<String> keys = CredentialProviderFactoryShim.getKeys(conf);
-    Assert.assertNotNull(keys);
-    Assert.assertEquals(Collections.emptyList(), keys);
+    assertNotNull(keys);
+    assertEquals(Collections.emptyList(), keys);
 
-    Assert.assertNull(CredentialProviderFactoryShim.getValueFromCredentialProvider(conf, "key1"));
+    assertNull(CredentialProviderFactoryShim.getValueFromCredentialProvider(conf, "key1"));
   }
 
   @Test
   public void testConfigurationCreation() throws IOException {
     final String path = "jceks://file/tmp/foo.jks";
     final Configuration actualConf = CredentialProviderFactoryShim.getConfiguration(path);
-    Assert.assertNotNull(actualConf);
-    Assert.assertEquals(path,
-        actualConf.get(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH));
+    assertNotNull(actualConf);
+    assertEquals(path, actualConf.get(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH));
   }
 
   @Test
@@ -169,7 +173,7 @@ public class CredentialProviderFactoryShimTest {
     char[] credential = "bar".toCharArray();
     CredentialProviderFactoryShim.createEntry(conf, alias, credential);
 
-    Assert.assertArrayEquals(credential,
+    assertArrayEquals(credential,
         CredentialProviderFactoryShim.getValueFromCredentialProvider(conf, alias));
   }
 
@@ -214,7 +218,7 @@ public class CredentialProviderFactoryShimTest {
     Configuration conf2 = CredentialProviderFactoryShim.getConfiguration(conf,
         "jceks:///file/accumulo.jceks");
     // Same object
-    Assert.assertSame(conf, conf2);
-    Assert.assertEquals("bar", conf.get("foo"));
+    assertSame(conf, conf2);
+    assertEquals("bar", conf.get("foo"));
   }
 }

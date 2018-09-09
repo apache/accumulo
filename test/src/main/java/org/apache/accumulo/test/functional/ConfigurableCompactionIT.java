@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -43,7 +44,6 @@ import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
@@ -159,7 +159,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
   private void runTest(final Connector c, final String tableName, final int n) throws Exception {
     for (int i = countFiles(c, tableName); i < n - 1; i++)
       makeFile(c, tableName);
-    Assert.assertEquals(n - 1, countFiles(c, tableName));
+    assertEquals(n - 1, countFiles(c, tableName));
     makeFile(c, tableName);
     for (int i = 0; i < 10; i++) {
       int count = countFiles(c, tableName);

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.TreeMap;
@@ -27,7 +29,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.tserver.tablet.CountingIterator;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -51,7 +52,7 @@ public class CountingIteratorTest {
     readAll(dc1);
     readAll(dc2);
 
-    Assert.assertEquals(6, ci.getCount());
+    assertEquals(6, ci.getCount());
   }
 
   private void readAll(CountingIterator ci) throws IOException {

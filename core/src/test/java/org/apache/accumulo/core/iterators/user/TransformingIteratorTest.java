@@ -52,7 +52,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -401,25 +400,25 @@ public class TransformingIteratorTest {
         ColFamReversingKeyTransformingIterator.class);
     TransformingIterator.setAuthorizations(is, new Authorizations("A", "B"));
     TransformingIterator.setMaxBufferSize(is, 10000000);
-    Assert.assertTrue(ti.validateOptions(is.getOptions()));
+    assertTrue(ti.validateOptions(is.getOptions()));
 
     Map<String,String> opts = new HashMap<>();
 
     opts.put(TransformingIterator.MAX_BUFFER_SIZE_OPT, "10M");
-    Assert.assertTrue(ti.validateOptions(is.getOptions()));
+    assertTrue(ti.validateOptions(is.getOptions()));
 
     opts.clear();
     opts.put(TransformingIterator.MAX_BUFFER_SIZE_OPT, "A,B");
     try {
       ti.validateOptions(opts);
-      Assert.assertFalse(true);
+      assertFalse(true);
     } catch (IllegalArgumentException e) {}
 
     opts.clear();
     opts.put(TransformingIterator.AUTH_OPT, Authorizations.HEADER + "~~~~");
     try {
       ti.validateOptions(opts);
-      Assert.assertFalse(true);
+      assertFalse(true);
     } catch (IllegalArgumentException e) {}
 
   }

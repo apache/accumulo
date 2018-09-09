@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.core.volume;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,7 +37,7 @@ public class NonConfiguredVolumeTest {
 
   @Test
   public void testSameFileSystem() throws IOException {
-    Assert.assertEquals(FileSystem.getLocal(new Configuration()), volume.getFileSystem());
+    assertEquals(FileSystem.getLocal(new Configuration()), volume.getFileSystem());
   }
 
   @Test(expected = UnsupportedOperationException.class)
@@ -57,12 +58,12 @@ public class NonConfiguredVolumeTest {
   @Test
   public void testEquality() throws IOException {
     Volume newVolume = new NonConfiguredVolume(FileSystem.getLocal(new Configuration()));
-    Assert.assertEquals(volume, newVolume);
+    assertEquals(volume, newVolume);
   }
 
   @Test
   public void testHashCode() throws IOException {
     Volume newVolume = new NonConfiguredVolume(FileSystem.getLocal(new Configuration()));
-    Assert.assertEquals(volume.hashCode(), newVolume.hashCode());
+    assertEquals(volume.hashCode(), newVolume.hashCode());
   }
 }

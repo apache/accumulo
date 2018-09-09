@@ -80,7 +80,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -851,15 +850,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Connector connector = getConnector();
     for (Entry<String,String> entry : connector.tableOperations().getProperties(table)) {
       if (entry.getKey().equals("table.custom.description"))
-        Assert.assertTrue("Initial property was not set correctly",
+        assertTrue("Initial property was not set correctly",
             entry.getValue().equals("description"));
 
       if (entry.getKey().equals("table.custom.testProp"))
-        Assert.assertTrue("Initial property was not set correctly",
-            entry.getValue().equals("testProp"));
+        assertTrue("Initial property was not set correctly", entry.getValue().equals("testProp"));
 
       if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-        Assert.assertTrue("Initial property was not set correctly", entry.getValue().equals("10K"));
+        assertTrue("Initial property was not set correctly", entry.getValue().equals("10K"));
 
     }
     ts.exec("deletetable -f " + table);

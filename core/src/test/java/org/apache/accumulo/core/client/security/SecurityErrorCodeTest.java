@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.core.client.security;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashSet;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -41,6 +42,6 @@ public class SecurityErrorCodeTest {
       secNames2.add(sec.name());
     // @formatter:on
 
-    Assert.assertEquals(secNames1, secNames2);
+    assertEquals(secNames1, secNames2);
   }
 }

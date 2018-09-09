@@ -20,6 +20,8 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -40,7 +42,6 @@ import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -158,12 +159,12 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
     verify(workQueue);
 
-    Assert.assertEquals(1, queuedWork.size());
-    Assert.assertTrue(queuedWork.containsKey("cluster1"));
+    assertEquals(1, queuedWork.size());
+    assertTrue(queuedWork.containsKey("cluster1"));
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
-    Assert.assertEquals(1, cluster1Work.size());
-    Assert.assertTrue(cluster1Work.containsKey(target.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target),
+    assertEquals(1, cluster1Work.size());
+    assertTrue(cluster1Work.containsKey(target.getSourceTableId()));
+    assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target),
         cluster1Work.get(target.getSourceTableId()));
   }
 
@@ -229,17 +230,17 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
     verify(workQueue);
 
-    Assert.assertEquals(1, queuedWork.size());
-    Assert.assertTrue(queuedWork.containsKey("cluster1"));
+    assertEquals(1, queuedWork.size());
+    assertTrue(queuedWork.containsKey("cluster1"));
 
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
-    Assert.assertEquals(2, cluster1Work.size());
-    Assert.assertTrue(cluster1Work.containsKey(target1.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1),
+    assertEquals(2, cluster1Work.size());
+    assertTrue(cluster1Work.containsKey(target1.getSourceTableId()));
+    assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1),
         cluster1Work.get(target1.getSourceTableId()));
 
-    Assert.assertTrue(cluster1Work.containsKey(target2.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2),
+    assertTrue(cluster1Work.containsKey(target2.getSourceTableId()));
+    assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2),
         cluster1Work.get(target2.getSourceTableId()));
   }
 
@@ -305,19 +306,19 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
     verify(workQueue);
 
-    Assert.assertEquals(2, queuedWork.size());
-    Assert.assertTrue(queuedWork.containsKey("cluster1"));
+    assertEquals(2, queuedWork.size());
+    assertTrue(queuedWork.containsKey("cluster1"));
 
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
-    Assert.assertEquals(1, cluster1Work.size());
-    Assert.assertTrue(cluster1Work.containsKey(target1.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1),
+    assertEquals(1, cluster1Work.size());
+    assertTrue(cluster1Work.containsKey(target1.getSourceTableId()));
+    assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1),
         cluster1Work.get(target1.getSourceTableId()));
 
     Map<String,String> cluster2Work = queuedWork.get("cluster2");
-    Assert.assertEquals(1, cluster2Work.size());
-    Assert.assertTrue(cluster2Work.containsKey(target2.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2),
+    assertEquals(1, cluster2Work.size());
+    assertTrue(cluster2Work.containsKey(target2.getSourceTableId()));
+    assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2),
         cluster2Work.get(target2.getSourceTableId()));
   }
 
@@ -382,12 +383,12 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
     verify(workQueue);
 
-    Assert.assertEquals(1, queuedWork.size());
-    Assert.assertTrue(queuedWork.containsKey("cluster1"));
+    assertEquals(1, queuedWork.size());
+    assertTrue(queuedWork.containsKey("cluster1"));
     Map<String,String> cluster1Work = queuedWork.get("cluster1");
-    Assert.assertEquals(1, cluster1Work.size());
-    Assert.assertTrue(cluster1Work.containsKey(target.getSourceTableId()));
-    Assert.assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target),
+    assertEquals(1, cluster1Work.size());
+    assertTrue(cluster1Work.containsKey(target.getSourceTableId()));
+    assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target),
         cluster1Work.get(target.getSourceTableId()));
   }
 }

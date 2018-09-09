@@ -16,10 +16,12 @@
  */
 package org.apache.accumulo.core.replication;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -31,11 +33,11 @@ public class ReplicationTargetTest {
   public void properEquality() {
     ReplicationTarget expected1 = new ReplicationTarget("foo", "bar", "1");
 
-    Assert.assertEquals(expected1, new ReplicationTarget("foo", "bar", "1"));
-    Assert.assertNotEquals(expected1, new ReplicationTarget("foo", "foo", "1"));
-    Assert.assertNotEquals(expected1, new ReplicationTarget("bar", "bar", "1"));
-    Assert.assertNotEquals(expected1, new ReplicationTarget(null, "bar", "1"));
-    Assert.assertNotEquals(expected1, new ReplicationTarget("foo", null, "1"));
+    assertEquals(expected1, new ReplicationTarget("foo", "bar", "1"));
+    assertNotEquals(expected1, new ReplicationTarget("foo", "foo", "1"));
+    assertNotEquals(expected1, new ReplicationTarget("bar", "bar", "1"));
+    assertNotEquals(expected1, new ReplicationTarget(null, "bar", "1"));
+    assertNotEquals(expected1, new ReplicationTarget("foo", null, "1"));
   }
 
   @Test
@@ -70,7 +72,7 @@ public class ReplicationTargetTest {
     Text t = new Text();
     t.set(buffer.getData(), 0, buffer.getLength());
 
-    Assert.assertEquals(expected, ReplicationTarget.from(t));
+    assertEquals(expected, ReplicationTarget.from(t));
   }
 
   @Test
@@ -81,7 +83,7 @@ public class ReplicationTargetTest {
     Text t = new Text();
     t.set(buffer.getData(), 0, buffer.getLength());
 
-    Assert.assertEquals(t, expected.toText());
+    assertEquals(t, expected.toText());
   }
 
   @Test
@@ -92,7 +94,7 @@ public class ReplicationTargetTest {
     Text t = new Text();
     t.set(buffer.getData(), 0, buffer.getLength());
 
-    Assert.assertEquals(expected, ReplicationTarget.from(t.toString()));
+    assertEquals(expected, ReplicationTarget.from(t.toString()));
   }
 
 }

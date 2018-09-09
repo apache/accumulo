@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.master.replication;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Map.Entry;
 import java.util.UUID;
 
@@ -23,7 +25,6 @@ import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.common.PathUtils;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -50,8 +51,8 @@ public class DistributedWorkQueueWorkAssignerHelperTest {
 
     Entry<String,ReplicationTarget> result = DistributedWorkQueueWorkAssignerHelper
         .fromQueueKey(key);
-    Assert.assertEquals(p.toString(), result.getKey());
-    Assert.assertEquals(target, result.getValue());
+    assertEquals(p.toString(), result.getKey());
+    assertEquals(target, result.getValue());
   }
 
 }

@@ -70,7 +70,6 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Level;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -354,7 +353,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(0,
+    assertEquals(0,
         MRTester.main(new String[] {TEST_TABLE_1, AccumuloInputFormat.class.getName()}));
     assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_map").size());
     assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_cleanup").size());
@@ -378,19 +377,19 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester
+    assertEquals(0, MRTester
         .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "True"}));
     assertEquals(39, assertionErrors.get(TEST_TABLE_3 + "_map").size());
     assertEquals(2, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
 
     assertionErrors.clear();
-    Assert.assertEquals(0, MRTester
+    assertEquals(0, MRTester
         .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "False"}));
     assertEquals(1, assertionErrors.get(TEST_TABLE_3 + "_map").size());
     assertEquals(1, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
 
     assertionErrors.clear();
-    Assert.assertEquals(0, MRTester
+    assertEquals(0, MRTester
         .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "True", "True"}));
     assertEquals(39, assertionErrors.get(TEST_TABLE_3 + "_map").size());
     assertEquals(2, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
@@ -410,7 +409,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(0, MRTester
+    assertEquals(0, MRTester
         .main(new String[] {TEST_TABLE_2, AccumuloInputFormat.class.getName(), "True", "False"}));
     assertEquals(1, assertionErrors.get(TEST_TABLE_2 + "_map").size());
     assertEquals(1, assertionErrors.get(TEST_TABLE_2 + "_cleanup").size());
@@ -444,23 +443,23 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     List<InputSplit> splits = aif.getSplits(job);
 
-    Assert.assertEquals(1, splits.size());
+    assertEquals(1, splits.size());
 
     InputSplit split = splits.get(0);
 
-    Assert.assertEquals(RangeInputSplit.class, split.getClass());
+    assertEquals(RangeInputSplit.class, split.getClass());
 
     RangeInputSplit risplit = (RangeInputSplit) split;
 
-    Assert.assertEquals(getAdminPrincipal(), risplit.getPrincipal());
-    Assert.assertEquals(table, risplit.getTableName());
-    Assert.assertEquals(getAdminToken(), risplit.getToken());
-    Assert.assertEquals(auths, risplit.getAuths());
-    Assert.assertEquals(getConnector().getInstance().getInstanceName(), risplit.getInstanceName());
-    Assert.assertEquals(isolated, risplit.isIsolatedScan());
-    Assert.assertEquals(localIters, risplit.usesLocalIterators());
-    Assert.assertEquals(fetchColumns, risplit.getFetchedColumns());
-    Assert.assertEquals(level, risplit.getLogLevel());
+    assertEquals(getAdminPrincipal(), risplit.getPrincipal());
+    assertEquals(table, risplit.getTableName());
+    assertEquals(getAdminToken(), risplit.getToken());
+    assertEquals(auths, risplit.getAuths());
+    assertEquals(getConnector().getInstance().getInstanceName(), risplit.getInstanceName());
+    assertEquals(isolated, risplit.isIsolatedScan());
+    assertEquals(localIters, risplit.usesLocalIterators());
+    assertEquals(fetchColumns, risplit.getFetchedColumns());
+    assertEquals(level, risplit.getLogLevel());
   }
 
   @Test
@@ -476,7 +475,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(0,
+    assertEquals(0,
         MRTester.main(new String[] {table, EmptySplitsAccumuloInputFormat.class.getName()}));
     assertEquals(1, assertionErrors.get(table + "_map").size());
     assertEquals(1, assertionErrors.get(table + "_cleanup").size());
@@ -495,7 +494,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
     bw.close();
 
-    Assert.assertEquals(1,
+    assertEquals(1,
         MRTester.main(new String[] {table, BadPasswordSplitsAccumuloInputFormat.class.getName()}));
     assertEquals(1, assertionErrors.get(table + "_map").size());
     // We should fail when the RecordReader fails to get the next key/value pair, because the record

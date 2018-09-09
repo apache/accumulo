@@ -17,6 +17,9 @@
 
 package org.apache.accumulo.tserver;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Key;
@@ -26,7 +29,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class CheckTabletMetadataTest {
@@ -52,8 +54,7 @@ public class CheckTabletMetadataTest {
 
   private static void assertFail(TreeMap<Key,Value> tabletMeta, KeyExtent ke, TServerInstance tsi) {
     try {
-      Assert
-          .assertNull(TabletServer.checkTabletMetadata(ke, tsi, tabletMeta, ke.getMetadataEntry()));
+      assertNull(TabletServer.checkTabletMetadata(ke, tsi, tabletMeta, ke.getMetadataEntry()));
     } catch (Exception e) {
 
     }
@@ -62,9 +63,9 @@ public class CheckTabletMetadataTest {
   private static void assertFail(TreeMap<Key,Value> tabletMeta, KeyExtent ke, TServerInstance tsi,
       Key keyToDelete) {
     TreeMap<Key,Value> copy = new TreeMap<>(tabletMeta);
-    Assert.assertNotNull(copy.remove(keyToDelete));
+    assertNotNull(copy.remove(keyToDelete));
     try {
-      Assert.assertNull(TabletServer.checkTabletMetadata(ke, tsi, copy, ke.getMetadataEntry()));
+      assertNull(TabletServer.checkTabletMetadata(ke, tsi, copy, ke.getMetadataEntry()));
     } catch (Exception e) {
 
     }
@@ -85,8 +86,7 @@ public class CheckTabletMetadataTest {
 
     TServerInstance tsi = new TServerInstance("127.0.0.1:9997", 4);
 
-    Assert.assertNotNull(
-        TabletServer.checkTabletMetadata(ke, tsi, tabletMeta, ke.getMetadataEntry()));
+    assertNotNull(TabletServer.checkTabletMetadata(ke, tsi, tabletMeta, ke.getMetadataEntry()));
 
     assertFail(tabletMeta, ke, new TServerInstance("127.0.0.1:9998", 4));
     assertFail(tabletMeta, ke, new TServerInstance("127.0.0.1:9998", 5));

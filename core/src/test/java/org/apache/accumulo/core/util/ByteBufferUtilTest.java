@@ -18,6 +18,7 @@
 package org.apache.accumulo.core.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -29,21 +30,20 @@ import java.util.List;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ByteBufferUtilTest {
 
-  private static void assertEquals(String expected, ByteBuffer bb) {
-    Assert.assertEquals(new Text(expected), ByteBufferUtil.toText(bb));
-    Assert.assertEquals(expected, new String(ByteBufferUtil.toBytes(bb), UTF_8));
-    Assert.assertEquals(expected, ByteBufferUtil.toString(bb));
+  private static void assertEqualsBB(String expected, ByteBuffer bb) {
+    assertEquals(new Text(expected), ByteBufferUtil.toText(bb));
+    assertEquals(expected, new String(ByteBufferUtil.toBytes(bb), UTF_8));
+    assertEquals(expected, ByteBufferUtil.toString(bb));
 
     List<byte[]> bal = ByteBufferUtil.toBytesList(Collections.singletonList(bb));
-    Assert.assertEquals(1, bal.size());
-    Assert.assertEquals(expected, new String(bal.get(0), UTF_8));
+    assertEquals(1, bal.size());
+    assertEquals(expected, new String(bal.get(0), UTF_8));
 
-    Assert.assertEquals(new ArrayByteSequence(expected), new ArrayByteSequence(bb));
+    assertEquals(new ArrayByteSequence(expected), new ArrayByteSequence(bb));
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
@@ -54,13 +54,13 @@ public class ByteBufferUtilTest {
       throw new RuntimeException(e);
     }
 
-    Assert.assertEquals(expected, new String(baos.toByteArray(), UTF_8));
+    assertEquals(expected, new String(baos.toByteArray(), UTF_8));
 
     ByteArrayInputStream bais = ByteBufferUtil.toByteArrayInputStream(bb);
     byte[] buffer = new byte[expected.length()];
     try {
       bais.read(buffer);
-      Assert.assertEquals(expected, new String(buffer, UTF_8));
+      assertEquals(expected, new String(buffer, UTF_8));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -79,17 +79,17 @@ public class ByteBufferUtilTest {
     // The following asserts are not to test ByteBuffer, but
     // ensure the behavior of slice() is as expected.
 
-    Assert.assertEquals(3, bb2.arrayOffset());
-    Assert.assertEquals(0, bb2.position());
-    Assert.assertEquals(4, bb2.limit());
+    assertEquals(3, bb2.arrayOffset());
+    assertEquals(0, bb2.position());
+    assertEquals(4, bb2.limit());
 
     // start test with non zero arrayOffset
-    assertEquals("3456", bb2);
+    assertEqualsBB("3456", bb2);
 
     // read one byte from byte buffer... this should cause position to be non-zero in addition to
     // array offset
     bb2.get();
-    assertEquals("456", bb2);
+    assertEqualsBB("456", bb2);
 
   }
 
@@ -98,14 +98,14 @@ public class ByteBufferUtilTest {
     byte[] data = "0123456789".getBytes(UTF_8);
     ByteBuffer bb1 = ByteBuffer.wrap(data, 3, 4);
 
-    assertEquals("3456", bb1);
+    assertEqualsBB("3456", bb1);
   }
 
   @Test
   public void testZeroArrayOffsetAndPosition() {
     byte[] data = "0123456789".getBytes(UTF_8);
     ByteBuffer bb1 = ByteBuffer.wrap(data, 0, 4);
-    assertEquals("0123", bb1);
+    assertEqualsBB("0123", bb1);
   }
 
   @Test
@@ -115,10 +115,10 @@ public class ByteBufferUtilTest {
     bb.put("0123456789".getBytes(UTF_8));
     bb.rewind();
 
-    assertEquals("0123456789", bb);
+    assertEqualsBB("0123456789", bb);
 
     // advance byte buffer position
     bb.get();
-    assertEquals("123456789", bb);
+    assertEqualsBB("123456789", bb);
   }
 }

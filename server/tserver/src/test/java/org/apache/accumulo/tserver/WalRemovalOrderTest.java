@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -28,7 +30,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.TabletServer.ReferencedRemover;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.ServerResources;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
@@ -83,7 +84,7 @@ public class WalRemovalOrderTest {
     List<DfsLogger> copy = TabletServer.copyClosedLogs(closedLogs);
     Set<DfsLogger> eligible = TabletServer.findOldestUnreferencedWals(copy,
         new TestRefRemover(inUseLogs));
-    Assert.assertEquals(expected, eligible);
+    assertEquals(expected, eligible);
   }
 
   @Test

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
@@ -35,7 +37,6 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -151,7 +152,7 @@ public class ZooReaderWriterTest {
 
     EasyMock.replay(zk, zrw, retryFactory, retry);
 
-    Assert.assertArrayEquals(new byte[] {1}, zrw.mutate(path, value, acls, mutator));
+    assertArrayEquals(new byte[] {1}, zrw.mutate(path, value, acls, mutator));
 
     EasyMock.verify(zk, zrw, retryFactory, retry);
   }
@@ -195,7 +196,7 @@ public class ZooReaderWriterTest {
 
     EasyMock.replay(zk, zrw, retryFactory, retry);
 
-    Assert.assertArrayEquals(new byte[] {1}, zrw.mutate(path, value, acls, mutator));
+    assertArrayEquals(new byte[] {1}, zrw.mutate(path, value, acls, mutator));
 
     EasyMock.verify(zk, zrw, retryFactory, retry);
   }

@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.mock;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,7 +49,6 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
@@ -109,11 +109,11 @@ public class MockConnectorTest {
 
     try {
       bw.addMutation(null);
-      Assert.fail("addMutation should throw IAE for null mutation");
+      fail("addMutation should throw IAE for null mutation");
     } catch (IllegalArgumentException iae) {}
     try {
       bw.addMutations(null);
-      Assert.fail("addMutations should throw IAE for null iterable");
+      fail("addMutations should throw IAE for null iterable");
     } catch (IllegalArgumentException iae) {}
 
     bw.addMutations(Collections.<Mutation> emptyList());
@@ -121,7 +121,7 @@ public class MockConnectorTest {
     Mutation bad = new Mutation("bad");
     try {
       bw.addMutation(bad);
-      Assert.fail("addMutation should throw IAE for empty mutation");
+      fail("addMutation should throw IAE for empty mutation");
     } catch (IllegalArgumentException iae) {}
 
     Mutation good = new Mutation("good");
@@ -131,7 +131,7 @@ public class MockConnectorTest {
     mutations.add(bad);
     try {
       bw.addMutations(mutations);
-      Assert.fail("addMutations should throw IAE if it contains empty mutation");
+      fail("addMutations should throw IAE if it contains empty mutation");
     } catch (IllegalArgumentException iae) {}
 
     bw.close();

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Collections;
 import java.util.Map.Entry;
 
@@ -31,7 +33,6 @@ import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.WriteParameters;
 import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -74,13 +75,12 @@ public class TabletTest {
 
     EasyMock.verify(tableConf, plan, writeParams);
 
-    Assert.assertEquals(hdfsBlockSize, Long.parseLong(aConf.get(Property.TABLE_FILE_BLOCK_SIZE)));
-    Assert.assertEquals(blockSize,
-        Long.parseLong(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE)));
-    Assert.assertEquals(indexBlockSize,
+    assertEquals(hdfsBlockSize, Long.parseLong(aConf.get(Property.TABLE_FILE_BLOCK_SIZE)));
+    assertEquals(blockSize, Long.parseLong(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE)));
+    assertEquals(indexBlockSize,
         Long.parseLong(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX)));
-    Assert.assertEquals(compressType, aConf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
-    Assert.assertEquals(replication, Integer.parseInt(aConf.get(Property.TABLE_FILE_REPLICATION)));
+    assertEquals(compressType, aConf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
+    assertEquals(replication, Integer.parseInt(aConf.get(Property.TABLE_FILE_REPLICATION)));
   }
 
 }

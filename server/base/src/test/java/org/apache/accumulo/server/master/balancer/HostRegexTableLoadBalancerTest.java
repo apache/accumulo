@@ -16,6 +16,11 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,7 +45,6 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.thrift.TException;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.base.Predicate;
@@ -50,31 +54,28 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   @Test
   public void testInit() {
     init(factory);
-    Assert.assertEquals("OOB check interval value is incorrect", 7000, this.getOobCheckMillis());
+    assertEquals("OOB check interval value is incorrect", 7000, this.getOobCheckMillis());
     @SuppressWarnings("deprecation")
     long poolRecheckMillis = this.getPoolRecheckMillis();
-    Assert.assertEquals("Pool check interval value is incorrect", 0, poolRecheckMillis);
-    Assert.assertEquals("Max migrations is incorrect", 4, this.getMaxMigrations());
-    Assert.assertEquals("Max outstanding migrations is incorrect", 10,
-        this.getMaxOutstandingMigrations());
-    Assert.assertFalse(isIpBasedRegex());
+    assertEquals("Pool check interval value is incorrect", 0, poolRecheckMillis);
+    assertEquals("Max migrations is incorrect", 4, this.getMaxMigrations());
+    assertEquals("Max outstanding migrations is incorrect", 10, this.getMaxOutstandingMigrations());
+    assertFalse(isIpBasedRegex());
     Map<String,Pattern> patterns = this.getPoolNameToRegexPattern();
-    Assert.assertEquals(2, patterns.size());
-    Assert.assertTrue(patterns.containsKey(FOO.getTableName()));
-    Assert.assertEquals(Pattern.compile("r01.*").pattern(),
-        patterns.get(FOO.getTableName()).pattern());
-    Assert.assertTrue(patterns.containsKey(BAR.getTableName()));
-    Assert.assertEquals(Pattern.compile("r02.*").pattern(),
-        patterns.get(BAR.getTableName()).pattern());
+    assertEquals(2, patterns.size());
+    assertTrue(patterns.containsKey(FOO.getTableName()));
+    assertEquals(Pattern.compile("r01.*").pattern(), patterns.get(FOO.getTableName()).pattern());
+    assertTrue(patterns.containsKey(BAR.getTableName()));
+    assertEquals(Pattern.compile("r02.*").pattern(), patterns.get(BAR.getTableName()).pattern());
     Map<String,String> tids = this.getTableIdToTableName();
-    Assert.assertEquals(3, tids.size());
-    Assert.assertTrue(tids.containsKey(FOO.getId()));
-    Assert.assertEquals(FOO.getTableName(), tids.get(FOO.getId()));
-    Assert.assertTrue(tids.containsKey(BAR.getId()));
-    Assert.assertEquals(BAR.getTableName(), tids.get(BAR.getId()));
-    Assert.assertTrue(tids.containsKey(BAZ.getId()));
-    Assert.assertEquals(BAZ.getTableName(), tids.get(BAZ.getId()));
-    Assert.assertEquals(false, this.isIpBasedRegex());
+    assertEquals(3, tids.size());
+    assertTrue(tids.containsKey(FOO.getId()));
+    assertEquals(FOO.getTableName(), tids.get(FOO.getId()));
+    assertTrue(tids.containsKey(BAR.getId()));
+    assertEquals(BAR.getTableName(), tids.get(BAR.getId()));
+    assertTrue(tids.containsKey(BAZ.getId()));
+    assertEquals(BAZ.getTableName(), tids.get(BAZ.getId()));
+    assertEquals(false, this.isIpBasedRegex());
   }
 
   @Test
@@ -84,9 +85,9 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     List<TabletMigration> migrationsOut = new ArrayList<>();
     long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations,
         migrationsOut);
-    Assert.assertEquals(20000, wait);
+    assertEquals(20000, wait);
     // should balance four tablets in one of the tables before reaching max
-    Assert.assertEquals(4, migrationsOut.size());
+    assertEquals(4, migrationsOut.size());
 
     // now balance again passing in the new migrations
     for (TabletMigration m : migrationsOut) {
@@ -95,9 +96,9 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     migrationsOut.clear();
     wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations,
         migrationsOut);
-    Assert.assertEquals(20000, wait);
+    assertEquals(20000, wait);
     // should balance four tablets in one of the other tables before reaching max
-    Assert.assertEquals(4, migrationsOut.size());
+    assertEquals(4, migrationsOut.size());
 
     // now balance again passing in the new migrations
     for (TabletMigration m : migrationsOut) {
@@ -106,9 +107,9 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     migrationsOut.clear();
     wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations,
         migrationsOut);
-    Assert.assertEquals(20000, wait);
+    assertEquals(20000, wait);
     // should balance four tablets in one of the other tables before reaching max
-    Assert.assertEquals(4, migrationsOut.size());
+    assertEquals(4, migrationsOut.size());
 
     // now balance again passing in the new migrations
     for (TabletMigration m : migrationsOut) {
@@ -117,9 +118,9 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     migrationsOut.clear();
     wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations,
         migrationsOut);
-    Assert.assertEquals(20000, wait);
+    assertEquals(20000, wait);
     // no more balancing to do
-    Assert.assertEquals(0, migrationsOut.size());
+    assertEquals(0, migrationsOut.size());
   }
 
   @Test
@@ -133,9 +134,9 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     migrations.addAll(tableExtents.get(BAR.getTableName()));
     long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations,
         migrationsOut);
-    Assert.assertEquals(20000, wait);
+    assertEquals(20000, wait);
     // no migrations should have occurred as 10 is the maxOutstandingMigrations
-    Assert.assertEquals(0, migrationsOut.size());
+    assertEquals(0, migrationsOut.size());
   }
 
   @Test
@@ -143,31 +144,31 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     init(factory);
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups = this
         .splitCurrentByRegex(createCurrent(15));
-    Assert.assertEquals(3, groups.size());
-    Assert.assertTrue(groups.containsKey(FOO.getTableName()));
+    assertEquals(3, groups.size());
+    assertTrue(groups.containsKey(FOO.getTableName()));
     SortedMap<TServerInstance,TabletServerStatus> fooHosts = groups.get(FOO.getTableName());
-    Assert.assertEquals(5, fooHosts.size());
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.3:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.4:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.5:9997", 1)));
-    Assert.assertTrue(groups.containsKey(BAR.getTableName()));
+    assertEquals(5, fooHosts.size());
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.3:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.4:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.5:9997", 1)));
+    assertTrue(groups.containsKey(BAR.getTableName()));
     SortedMap<TServerInstance,TabletServerStatus> barHosts = groups.get(BAR.getTableName());
-    Assert.assertEquals(5, barHosts.size());
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.6:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.7:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.8:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.9:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.10:9997", 1)));
-    Assert.assertTrue(groups.containsKey(DEFAULT_POOL));
+    assertEquals(5, barHosts.size());
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.6:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.7:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.8:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.9:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.10:9997", 1)));
+    assertTrue(groups.containsKey(DEFAULT_POOL));
     SortedMap<TServerInstance,TabletServerStatus> defHosts = groups.get(DEFAULT_POOL);
-    Assert.assertEquals(5, defHosts.size());
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.11:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.12:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.13:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.14:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.15:9997", 1)));
+    assertEquals(5, defHosts.size());
+    assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.11:9997", 1)));
+    assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.12:9997", 1)));
+    assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.13:9997", 1)));
+    assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.14:9997", 1)));
+    assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.15:9997", 1)));
   }
 
   @Test
@@ -208,38 +209,38 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     });
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups = this
         .splitCurrentByRegex(createCurrent(15));
-    Assert.assertEquals(2, groups.size());
-    Assert.assertTrue(groups.containsKey(FOO.getTableName()));
+    assertEquals(2, groups.size());
+    assertTrue(groups.containsKey(FOO.getTableName()));
     SortedMap<TServerInstance,TabletServerStatus> fooHosts = groups.get(FOO.getTableName());
-    Assert.assertEquals(15, fooHosts.size());
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.3:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.4:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.5:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.6:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.7:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.8:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.9:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.10:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.11:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.12:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.13:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.14:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.15:9997", 1)));
-    Assert.assertTrue(groups.containsKey(BAR.getTableName()));
+    assertEquals(15, fooHosts.size());
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.3:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.4:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.5:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.6:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.7:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.8:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.9:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.10:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.11:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.12:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.13:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.14:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.15:9997", 1)));
+    assertTrue(groups.containsKey(BAR.getTableName()));
     SortedMap<TServerInstance,TabletServerStatus> barHosts = groups.get(BAR.getTableName());
-    Assert.assertEquals(10, barHosts.size());
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.3:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.4:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.5:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.6:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.7:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.8:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.9:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.10:9997", 1)));
+    assertEquals(10, barHosts.size());
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.3:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.4:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.5:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.6:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.7:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.8:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.9:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.10:9997", 1)));
   }
 
   @Test
@@ -287,34 +288,34 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
         };
       }
     });
-    Assert.assertTrue(isIpBasedRegex());
+    assertTrue(isIpBasedRegex());
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups = this
         .splitCurrentByRegex(createCurrent(15));
-    Assert.assertEquals(3, groups.size());
-    Assert.assertTrue(groups.containsKey(FOO.getTableName()));
+    assertEquals(3, groups.size());
+    assertTrue(groups.containsKey(FOO.getTableName()));
     SortedMap<TServerInstance,TabletServerStatus> fooHosts = groups.get(FOO.getTableName());
-    Assert.assertEquals(5, fooHosts.size());
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.3:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.4:9997", 1)));
-    Assert.assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.5:9997", 1)));
-    Assert.assertTrue(groups.containsKey(BAR.getTableName()));
+    assertEquals(5, fooHosts.size());
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.3:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.4:9997", 1)));
+    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.5:9997", 1)));
+    assertTrue(groups.containsKey(BAR.getTableName()));
     SortedMap<TServerInstance,TabletServerStatus> barHosts = groups.get(BAR.getTableName());
-    Assert.assertEquals(5, barHosts.size());
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.6:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.7:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.8:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.9:9997", 1)));
-    Assert.assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.10:9997", 1)));
-    Assert.assertTrue(groups.containsKey(DEFAULT_POOL));
+    assertEquals(5, barHosts.size());
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.6:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.7:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.8:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.9:9997", 1)));
+    assertTrue(barHosts.containsKey(new TServerInstance("192.168.0.10:9997", 1)));
+    assertTrue(groups.containsKey(DEFAULT_POOL));
     SortedMap<TServerInstance,TabletServerStatus> defHosts = groups.get(DEFAULT_POOL);
-    Assert.assertEquals(5, defHosts.size());
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.11:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.12:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.13:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.14:9997", 1)));
-    Assert.assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.15:9997", 1)));
+    assertEquals(5, defHosts.size());
+    assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.11:9997", 1)));
+    assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.12:9997", 1)));
+    assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.13:9997", 1)));
+    assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.14:9997", 1)));
+    assertTrue(defHosts.containsKey(new TServerInstance("192.168.0.15:9997", 1)));
   }
 
   @Test
@@ -329,7 +330,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers),
         Collections.unmodifiableMap(unassigned), assignments);
-    Assert.assertEquals(15, assignments.size());
+    assertEquals(15, assignments.size());
     // Ensure unique tservers
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       for (Entry<KeyExtent,TServerInstance> e2 : assignments.entrySet()) {
@@ -337,14 +338,14 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
           continue;
         }
         if (e.getValue().equals(e2.getValue())) {
-          Assert.fail("Assignment failure");
+          fail("Assignment failure");
         }
       }
     }
     // Ensure assignments are correct
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (!tabletInBounds(e.getKey(), e.getValue())) {
-        Assert.fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
       }
     }
   }
@@ -356,7 +357,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
     this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers),
         Collections.unmodifiableMap(unassigned), assignments);
-    Assert.assertEquals(0, assignments.size());
+    assertEquals(0, assignments.size());
   }
 
   @Test
@@ -375,7 +376,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers),
         Collections.unmodifiableMap(unassigned), assignments);
-    Assert.assertEquals(unassigned.size(), assignments.size());
+    assertEquals(unassigned.size(), assignments.size());
     // Ensure unique tservers
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       for (Entry<KeyExtent,TServerInstance> e2 : assignments.entrySet()) {
@@ -383,14 +384,14 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
           continue;
         }
         if (e.getValue().equals(e2.getValue())) {
-          Assert.fail("Assignment failure");
+          fail("Assignment failure");
         }
       }
     }
     // Ensure assignments are correct
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (!tabletInBounds(e.getKey(), e.getValue())) {
-        Assert.fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
       }
     }
   }
@@ -418,11 +419,11 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers),
         Collections.unmodifiableMap(unassigned), assignments);
-    Assert.assertEquals(unassigned.size(), assignments.size());
+    assertEquals(unassigned.size(), assignments.size());
     // Ensure assignments are correct
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (!tabletInBounds(e.getKey(), e.getValue())) {
-        Assert.fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
       }
     }
   }
@@ -436,7 +437,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     Set<KeyExtent> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
     this.balance(createCurrent(15), migrations, migrationsOut);
-    Assert.assertEquals(2, migrationsOut.size());
+    assertEquals(2, migrationsOut.size());
   }
 
   @Override

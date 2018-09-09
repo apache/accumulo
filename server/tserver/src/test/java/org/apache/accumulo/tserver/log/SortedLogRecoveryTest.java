@@ -21,6 +21,9 @@ import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.MUTATION;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,7 +53,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.MapFile.Writer;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -207,9 +209,9 @@ public class SortedLogRecoveryTest {
     List<Mutation> mutations = recover(logs, extent);
 
     // Verify recovered data
-    Assert.assertEquals(2, mutations.size());
-    Assert.assertTrue(mutations.contains(m));
-    Assert.assertTrue(mutations.contains(m2));
+    assertEquals(2, mutations.size());
+    assertTrue(mutations.contains(m));
+    assertTrue(mutations.contains(m2));
   }
 
   @Test
@@ -251,11 +253,11 @@ public class SortedLogRecoveryTest {
     // Recover
     List<Mutation> mutations = recover(logs, extent);
     // Verify recovered data
-    Assert.assertEquals(4, mutations.size());
-    Assert.assertEquals(m, mutations.get(0));
-    Assert.assertEquals(m2, mutations.get(1));
-    Assert.assertEquals(m3, mutations.get(2));
-    Assert.assertEquals(m4, mutations.get(3));
+    assertEquals(4, mutations.size());
+    assertEquals(m, mutations.get(0));
+    assertEquals(m2, mutations.get(1));
+    assertEquals(m3, mutations.get(2));
+    assertEquals(m4, mutations.get(3));
   }
 
   @Test
@@ -289,9 +291,9 @@ public class SortedLogRecoveryTest {
     List<Mutation> mutations = recover(logs, extent);
 
     // Verify recovered data
-    Assert.assertEquals(2, mutations.size());
-    Assert.assertEquals(m, mutations.get(0));
-    Assert.assertEquals(m2, mutations.get(1));
+    assertEquals(2, mutations.size());
+    assertEquals(m, mutations.get(0));
+    assertEquals(m2, mutations.get(1));
   }
 
   @Test
@@ -304,7 +306,7 @@ public class SortedLogRecoveryTest {
     // Recover
     List<Mutation> mutations = recover(logs, extent);
     // Verify recovered data
-    Assert.assertEquals(0, mutations.size());
+    assertEquals(0, mutations.size());
 
   }
 
@@ -317,7 +319,7 @@ public class SortedLogRecoveryTest {
     // Recover
     try {
       recover(logs, extent);
-      Assert.fail("tablet should not have been found");
+      fail("tablet should not have been found");
     } catch (Throwable t) {}
   }
 
@@ -333,8 +335,8 @@ public class SortedLogRecoveryTest {
     // Recover
     List<Mutation> mutations = recover(logs, extent);
     // Verify recovered data
-    Assert.assertEquals(1, mutations.size());
-    Assert.assertEquals(m, mutations.get(0));
+    assertEquals(1, mutations.size());
+    assertEquals(m, mutations.get(0));
   }
 
   @Test
@@ -354,8 +356,8 @@ public class SortedLogRecoveryTest {
     // Recover
     List<Mutation> mutations = recover(logs, extent);
     // Verify recovered data
-    Assert.assertEquals(1, mutations.size());
-    Assert.assertEquals(m, mutations.get(0));
+    assertEquals(1, mutations.size());
+    assertEquals(m, mutations.get(0));
   }
 
   @Test
@@ -377,8 +379,8 @@ public class SortedLogRecoveryTest {
     // Recover
     List<Mutation> mutations = recover(logs, extent);
     // Verify recovered data
-    Assert.assertEquals(1, mutations.size());
-    Assert.assertEquals(m, mutations.get(0));
+    assertEquals(1, mutations.size());
+    assertEquals(m, mutations.get(0));
   }
 
   @Test
@@ -403,9 +405,9 @@ public class SortedLogRecoveryTest {
     // Recover
     List<Mutation> mutations = recover(logs, extent);
     // Verify recovered data
-    Assert.assertEquals(2, mutations.size());
-    Assert.assertEquals(m, mutations.get(0));
-    Assert.assertEquals(m2, mutations.get(1));
+    assertEquals(2, mutations.size());
+    assertEquals(m, mutations.get(0));
+    assertEquals(m2, mutations.get(1));
   }
 
   @Test
@@ -427,9 +429,9 @@ public class SortedLogRecoveryTest {
     // Recover
     List<Mutation> mutations = recover(logs, extent);
     // Verify recovered data
-    Assert.assertEquals(2, mutations.size());
-    Assert.assertEquals(m, mutations.get(0));
-    Assert.assertEquals(m2, mutations.get(1));
+    assertEquals(2, mutations.size());
+    assertEquals(m, mutations.get(0));
+    assertEquals(m2, mutations.get(1));
   }
 
   @Test
@@ -459,10 +461,10 @@ public class SortedLogRecoveryTest {
     // Recover
     List<Mutation> mutations = recover(logs, extent);
     // Verify recovered data
-    Assert.assertEquals(3, mutations.size());
-    Assert.assertTrue(mutations.contains(m));
-    Assert.assertTrue(mutations.contains(m2));
-    Assert.assertTrue(mutations.contains(m3));
+    assertEquals(3, mutations.size());
+    assertTrue(mutations.contains(m));
+    assertTrue(mutations.contains(m2));
+    assertTrue(mutations.contains(m3));
   }
 
   @Test
@@ -482,7 +484,7 @@ public class SortedLogRecoveryTest {
     // Recover
     List<Mutation> mutations = recover(logs, extent);
     // Verify recovered data
-    Assert.assertEquals(0, mutations.size());
+    assertEquals(0, mutations.size());
   }
 
   @Test
@@ -510,10 +512,10 @@ public class SortedLogRecoveryTest {
     // Recover
     List<Mutation> mutations = recover(logs, extent);
     // Verify recovered data
-    Assert.assertEquals(3, mutations.size());
-    Assert.assertEquals(m, mutations.get(0));
-    Assert.assertEquals(m2, mutations.get(1));
-    Assert.assertEquals(m3, mutations.get(2));
+    assertEquals(3, mutations.size());
+    assertEquals(m, mutations.get(0));
+    assertEquals(m2, mutations.get(1));
+    assertEquals(m3, mutations.get(2));
   }
 
   @Test
@@ -560,13 +562,13 @@ public class SortedLogRecoveryTest {
     List<Mutation> mutations = recover(logs, extent);
 
     // Verify recovered data
-    Assert.assertEquals(6, mutations.size());
-    Assert.assertEquals(m, mutations.get(0));
-    Assert.assertEquals(m2, mutations.get(1));
-    Assert.assertEquals(m3, mutations.get(2));
-    Assert.assertEquals(m4, mutations.get(3));
-    Assert.assertEquals(m5, mutations.get(4));
-    Assert.assertEquals(m6, mutations.get(5));
+    assertEquals(6, mutations.size());
+    assertEquals(m, mutations.get(0));
+    assertEquals(m2, mutations.get(1));
+    assertEquals(m3, mutations.get(2));
+    assertEquals(m4, mutations.get(3));
+    assertEquals(m5, mutations.get(4));
+    assertEquals(m6, mutations.get(5));
   }
 
   @Test
@@ -599,12 +601,12 @@ public class SortedLogRecoveryTest {
     // Recover
     List<Mutation> mutations = recover(logs, extent);
     // Verify recovered data
-    Assert.assertEquals(5, mutations.size());
-    Assert.assertTrue(mutations.contains(m));
-    Assert.assertTrue(mutations.contains(m2));
-    Assert.assertTrue(mutations.contains(m3));
-    Assert.assertTrue(mutations.contains(m4));
-    Assert.assertTrue(mutations.contains(m5));
+    assertEquals(5, mutations.size());
+    assertTrue(mutations.contains(m));
+    assertTrue(mutations.contains(m2));
+    assertTrue(mutations.contains(m3));
+    assertTrue(mutations.contains(m4));
+    assertTrue(mutations.contains(m5));
   }
 
   @Test
@@ -630,8 +632,8 @@ public class SortedLogRecoveryTest {
 
     List<Mutation> mutations = recover(logs, extent);
 
-    Assert.assertEquals(1, mutations.size());
-    Assert.assertEquals(m, mutations.get(0));
+    assertEquals(1, mutations.size());
+    assertEquals(m, mutations.get(0));
   }
 
   @Test
@@ -652,7 +654,7 @@ public class SortedLogRecoveryTest {
 
     List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent);
 
-    Assert.assertEquals(0, mutations.size());
+    assertEquals(0, mutations.size());
   }
 
   @Test
@@ -675,8 +677,8 @@ public class SortedLogRecoveryTest {
 
     List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent);
 
-    Assert.assertEquals(1, mutations.size());
-    Assert.assertEquals(m, mutations.get(0));
+    assertEquals(1, mutations.size());
+    assertEquals(m, mutations.get(0));
   }
 
   @Test
@@ -706,8 +708,8 @@ public class SortedLogRecoveryTest {
 
     List<Mutation> mutations = recover(logs, extent);
 
-    Assert.assertEquals(1, mutations.size());
-    Assert.assertEquals(m2, mutations.get(0));
+    assertEquals(1, mutations.size());
+    assertEquals(m2, mutations.get(0));
   }
 
   @Test
@@ -740,13 +742,13 @@ public class SortedLogRecoveryTest {
     logs.put("entries1", entries1);
 
     List<Mutation> mutations1 = recover(logs, e1);
-    Assert.assertEquals(1, mutations1.size());
-    Assert.assertEquals(m2, mutations1.get(0));
+    assertEquals(1, mutations1.size());
+    assertEquals(m2, mutations1.get(0));
 
     List<Mutation> mutations2 = recover(logs, e2);
-    Assert.assertEquals(2, mutations2.size());
-    Assert.assertEquals(m3, mutations2.get(0));
-    Assert.assertEquals(m4, mutations2.get(1));
+    assertEquals(2, mutations2.size());
+    assertEquals(m3, mutations2.get(0));
+    assertEquals(m4, mutations2.get(1));
 
     KeyValue entries2[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"),
         createKeyValue(DEFINE_TABLET, 9, 11, e2), createKeyValue(COMPACTION_FINISH, 8, 11, null)};
@@ -754,8 +756,8 @@ public class SortedLogRecoveryTest {
     logs.put("entries2", entries2);
 
     mutations2 = recover(logs, e2);
-    Assert.assertEquals(1, mutations2.size());
-    Assert.assertEquals(m4, mutations2.get(0));
+    assertEquals(1, mutations2.size());
+    assertEquals(m4, mutations2.get(0));
   }
 
   private void runPathTest(boolean startMatches, String compactionStartFile, String... tabletFiles)
@@ -779,12 +781,12 @@ public class SortedLogRecoveryTest {
     List<Mutation> mutations = recover(logs, filesSet, extent);
 
     if (!startMatches) {
-      Assert.assertEquals(2, mutations.size());
-      Assert.assertEquals(m1, mutations.get(0));
-      Assert.assertEquals(m2, mutations.get(1));
+      assertEquals(2, mutations.size());
+      assertEquals(m1, mutations.get(0));
+      assertEquals(m2, mutations.get(1));
     } else {
-      Assert.assertEquals(1, mutations.size());
-      Assert.assertEquals(m2, mutations.get(0));
+      assertEquals(1, mutations.size());
+      assertEquals(m2, mutations.get(0));
     }
   }
 
@@ -836,8 +838,8 @@ public class SortedLogRecoveryTest {
     logs.put("entries1", entries1);
 
     List<Mutation> mutations = recover(logs, extent);
-    Assert.assertEquals(1, mutations.size());
-    Assert.assertEquals(m1, mutations.get(0));
+    assertEquals(1, mutations.size());
+    assertEquals(m1, mutations.get(0));
   }
 
   @Test
@@ -889,8 +891,8 @@ public class SortedLogRecoveryTest {
     logs.put("entries1", entries1);
 
     List<Mutation> mutations1 = recover(logs, extent);
-    Assert.assertEquals(1, mutations1.size());
-    Assert.assertEquals(m2, mutations1.get(0));
+    assertEquals(1, mutations1.size());
+    assertEquals(m2, mutations1.get(0));
   }
 
   @Test
@@ -931,37 +933,37 @@ public class SortedLogRecoveryTest {
     logs.put("entries1", entries1);
 
     List<Mutation> mutations = recover(logs, extent);
-    Assert.assertEquals(1, mutations.size());
-    Assert.assertEquals(m1, mutations.get(0));
+    assertEquals(1, mutations.size());
+    assertEquals(m1, mutations.get(0));
 
     logs.put("entries2", entries2);
 
     mutations = recover(logs, extent);
-    Assert.assertEquals(1, mutations.size());
-    Assert.assertEquals(m1, mutations.get(0));
+    assertEquals(1, mutations.size());
+    assertEquals(m1, mutations.get(0));
 
     logs.put("entries3", entries3);
 
     mutations = recover(logs, extent);
-    Assert.assertEquals(1, mutations.size());
-    Assert.assertEquals(m1, mutations.get(0));
+    assertEquals(1, mutations.size());
+    assertEquals(m1, mutations.get(0));
 
     logs.put("entries4", entries4);
 
     mutations = recover(logs, extent);
-    Assert.assertEquals(1, mutations.size());
-    Assert.assertEquals(m1, mutations.get(0));
+    assertEquals(1, mutations.size());
+    assertEquals(m1, mutations.get(0));
 
     logs.put("entries5", entries5);
 
     mutations = recover(logs, extent);
-    Assert.assertEquals(0, mutations.size());
+    assertEquals(0, mutations.size());
 
     logs.put("entries6", entries6);
 
     mutations = recover(logs, extent);
-    Assert.assertEquals(1, mutations.size());
-    Assert.assertEquals(m2, mutations.get(0));
+    assertEquals(1, mutations.size());
+    assertEquals(m2, mutations.get(0));
   }
 
   @Test

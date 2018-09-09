@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Random;
@@ -36,11 +39,11 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.junit.Test;
 
-import junit.framework.TestCase;
+public class MultiLevelIndexTest {
 
-public class MultiLevelIndexTest extends TestCase {
-
+  @Test
   public void test1() throws Exception {
 
     runTest(500, 1);

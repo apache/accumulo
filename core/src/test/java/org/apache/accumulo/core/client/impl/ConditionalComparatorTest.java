@@ -17,10 +17,11 @@
 
 package org.apache.accumulo.core.client.impl;
 
+import static org.junit.Assert.assertTrue;
+
 import org.apache.accumulo.core.client.impl.ConditionalWriterImpl.ConditionComparator;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ConditionalComparatorTest {
@@ -36,18 +37,18 @@ public class ConditionalComparatorTest {
 
     ConditionComparator comparator = new ConditionComparator();
 
-    Assert.assertTrue(comparator.compare(c1, c1) == 0);
-    Assert.assertTrue(comparator.compare(c1, c2) < 0);
-    Assert.assertTrue(comparator.compare(c2, c1) > 0);
-    Assert.assertTrue(comparator.compare(c1, c3) < 0);
-    Assert.assertTrue(comparator.compare(c3, c1) > 0);
-    Assert.assertTrue(comparator.compare(c1, c4) < 0);
-    Assert.assertTrue(comparator.compare(c4, c1) > 0);
-    Assert.assertTrue(comparator.compare(c5, c4) < 0);
-    Assert.assertTrue(comparator.compare(c4, c5) > 0);
-    Assert.assertTrue(comparator.compare(c1, c7) < 0);
-    Assert.assertTrue(comparator.compare(c7, c1) > 0);
-    Assert.assertTrue(comparator.compare(c6, c7) < 0);
-    Assert.assertTrue(comparator.compare(c7, c6) > 0);
+    assertTrue(comparator.compare(c1, c1) == 0);
+    assertTrue(comparator.compare(c1, c2) < 0);
+    assertTrue(comparator.compare(c2, c1) > 0);
+    assertTrue(comparator.compare(c1, c3) < 0);
+    assertTrue(comparator.compare(c3, c1) > 0);
+    assertTrue(comparator.compare(c1, c4) < 0);
+    assertTrue(comparator.compare(c4, c1) > 0);
+    assertTrue(comparator.compare(c5, c4) < 0);
+    assertTrue(comparator.compare(c4, c5) > 0);
+    assertTrue(comparator.compare(c1, c7) < 0);
+    assertTrue(comparator.compare(c7, c1) > 0);
+    assertTrue(comparator.compare(c6, c7) < 0);
+    assertTrue(comparator.compare(c7, c6) > 0);
   }
 }

@@ -17,6 +17,9 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.UUID;
@@ -45,7 +48,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -124,7 +126,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
     fs.create(new Path(emptyWalog.toURI())).close();
 
-    Assert.assertTrue("root user did not have write permission to metadata table",
+    assertTrue("root user did not have write permission to metadata table",
         conn.securityOperations().hasTablePermission("root", MetadataTable.NAME,
             TablePermission.WRITE));
 
@@ -132,7 +134,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     conn.tableOperations().create(tableName);
 
     String tableId = conn.tableOperations().tableIdMap().get(tableName);
-    Assert.assertNotNull("Table ID was null", tableId);
+    assertNotNull("Table ID was null", tableId);
 
     LogEntry logEntry = new LogEntry(new KeyExtent(tableId, null, null), 0, "127.0.0.1:12345",
         emptyWalog.toURI().toString());
@@ -158,7 +160,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     // Reading the table implies that recovery completed successfully (the empty file was ignored)
     // otherwise the tablet will never come online and we won't be able to read it.
     Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
-    Assert.assertEquals(0, Iterables.size(s));
+    assertEquals(0, Iterables.size(s));
   }
 
   @Test
@@ -182,7 +184,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
         DfsLogger.LOG_FILE_HEADER_V3.length() / 2);
     wal.close();
 
-    Assert.assertTrue("root user did not have write permission to metadata table",
+    assertTrue("root user did not have write permission to metadata table",
         conn.securityOperations().hasTablePermission("root", MetadataTable.NAME,
             TablePermission.WRITE));
 
@@ -190,7 +192,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     conn.tableOperations().create(tableName);
 
     String tableId = conn.tableOperations().tableIdMap().get(tableName);
-    Assert.assertNotNull("Table ID was null", tableId);
+    assertNotNull("Table ID was null", tableId);
 
     LogEntry logEntry = new LogEntry(null, 0, "127.0.0.1:12345",
         partialHeaderWalog.toURI().toString());
@@ -216,7 +218,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     // Reading the table implies that recovery completed successfully (the empty file was ignored)
     // otherwise the tablet will never come online and we won't be able to read it.
     Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
-    Assert.assertEquals(0, Iterables.size(s));
+    assertEquals(0, Iterables.size(s));
   }
 
 }

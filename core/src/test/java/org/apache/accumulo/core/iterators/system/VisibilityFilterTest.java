@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.iterators.system;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.TreeMap;
@@ -29,11 +33,11 @@ import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Test;
 
-import junit.framework.TestCase;
+public class VisibilityFilterTest {
 
-public class VisibilityFilterTest extends TestCase {
-
+  @Test
   public void testBadVisibility() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
@@ -51,6 +55,7 @@ public class VisibilityFilterTest extends TestCase {
     Logger.getLogger(VisibilityFilter.class).setLevel(prevLevel);
   }
 
+  @Test
   public void testEmptyAuths() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 

@@ -17,13 +17,14 @@
 
 package org.apache.accumulo.core.file.rfile;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.Random;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.distribution.ZipfDistribution;
 import org.apache.commons.math3.random.Well19937c;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.math.DoubleMath;
@@ -33,7 +34,7 @@ public class RolllingStatsTest {
   private static final double TOLERANCE = 1.0 / 1000;
 
   private static void assertFuzzyEquals(double expected, double actual) {
-    Assert.assertTrue(String.format("expected: %f, actual: %f diff: %f", expected, actual,
+    assertTrue(String.format("expected: %f, actual: %f diff: %f", expected, actual,
         Math.abs(expected - actual)), DoubleMath.fuzzyEquals(expected, actual, TOLERANCE));
   }
 
@@ -48,12 +49,12 @@ public class RolllingStatsTest {
     assertFuzzyEquals(expVar, rs.getVariance());
     assertFuzzyEquals(expStdDev, rs.getStandardDeviation());
 
-    Assert.assertTrue(expMean >= 0);
-    Assert.assertTrue(rs.getMean() >= 0);
-    Assert.assertTrue(expVar >= 0);
-    Assert.assertTrue(rs.getVariance() >= 0);
-    Assert.assertTrue(expStdDev >= 0);
-    Assert.assertTrue(rs.getStandardDeviation() >= 0);
+    assertTrue(expMean >= 0);
+    assertTrue(rs.getMean() >= 0);
+    assertTrue(expVar >= 0);
+    assertTrue(rs.getVariance() >= 0);
+    assertTrue(expStdDev >= 0);
+    assertTrue(rs.getStandardDeviation() >= 0);
   }
 
   private static class StatTester {

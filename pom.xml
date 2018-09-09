@@ -973,6 +973,14 @@
                   <property name="format" value="org[.]apache[.]commons[.]math[.]" />
                   <property name="message" value="Use commons-math3 (org.apache.commons.math3.*)" />
                 </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="junit[.]framework[.]TestCase" />
+                  <property name="message" value="Use JUnit4+ @Test annotation instead of TestCase" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="import org[.]junit[.]Assert;" />
+                  <property name="message" value="Use static imports for Assert.* methods for consistency" />
+                </module>
                 <module name="OuterTypeFilename" />
                 <module name="LineLength">
                   <property name="max" value="100" />

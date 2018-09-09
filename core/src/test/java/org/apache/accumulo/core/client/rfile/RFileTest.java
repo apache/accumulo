@@ -17,6 +17,10 @@
 
 package org.apache.accumulo.core.client.rfile;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.AbstractMap;
@@ -53,7 +57,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -139,22 +142,22 @@ public class RFileTest {
 
     while (scnIter1.hasNext() || scnIter2.hasNext()) {
       if (scnIter1.hasNext()) {
-        Assert.assertTrue(mapIter1.hasNext());
-        Assert.assertEquals(scnIter1.next(), mapIter1.next());
+        assertTrue(mapIter1.hasNext());
+        assertEquals(scnIter1.next(), mapIter1.next());
       } else {
-        Assert.assertFalse(mapIter1.hasNext());
+        assertFalse(mapIter1.hasNext());
       }
 
       if (scnIter2.hasNext()) {
-        Assert.assertTrue(mapIter2.hasNext());
-        Assert.assertEquals(scnIter2.next(), mapIter2.next());
+        assertTrue(mapIter2.hasNext());
+        assertEquals(scnIter2.next(), mapIter2.next());
       } else {
-        Assert.assertFalse(mapIter2.hasNext());
+        assertFalse(mapIter2.hasNext());
       }
     }
 
-    Assert.assertFalse(mapIter1.hasNext());
-    Assert.assertFalse(mapIter2.hasNext());
+    assertFalse(mapIter1.hasNext());
+    assertFalse(mapIter2.hasNext());
 
     scanner.close();
   }
@@ -181,11 +184,11 @@ public class RFileTest {
     TreeMap<Key,Value> expected = new TreeMap<>(testData1);
     expected.putAll(testData2);
 
-    Assert.assertEquals(expected, toMap(scanner));
+    assertEquals(expected, toMap(scanner));
 
     Range range = new Range(rowStr(3), true, rowStr(14), true);
     scanner.setRange(range);
-    Assert.assertEquals(expected.subMap(range.getStartKey(), range.getEndKey()), toMap(scanner));
+    assertEquals(expected.subMap(range.getStartKey(), range.getEndKey()), toMap(scanner));
 
     scanner.close();
   }
@@ -216,12 +219,12 @@ public class RFileTest {
     }
 
     // if settings are used then should create multiple index entries
-    Assert.assertTrue(count > 10);
+    assertTrue(count > 10);
 
     reader.close();
 
     Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).build();
-    Assert.assertEquals(testData1, toMap(scanner));
+    assertEquals(testData1, toMap(scanner));
     scanner.close();
   }
 
@@ -251,31 +254,31 @@ public class RFileTest {
 
     scanner.fetchColumnFamily(new Text(colStr(0)));
     scanner.fetchColumnFamily(new Text(colStr(1)));
-    Assert.assertEquals(testData1, toMap(scanner));
+    assertEquals(testData1, toMap(scanner));
 
     scanner.clearColumns();
     scanner.fetchColumnFamily(new Text(colStr(2)));
-    Assert.assertEquals(testData2, toMap(scanner));
+    assertEquals(testData2, toMap(scanner));
 
     scanner.clearColumns();
     for (int i = 3; i < 10; i++) {
       scanner.fetchColumnFamily(new Text(colStr(i)));
     }
-    Assert.assertEquals(defaultData, toMap(scanner));
+    assertEquals(defaultData, toMap(scanner));
 
     scanner.clearColumns();
-    Assert.assertEquals(createTestData(10, 10, 10), toMap(scanner));
+    assertEquals(createTestData(10, 10, 10), toMap(scanner));
 
     scanner.close();
 
     Reader reader = getReader(localFs, testFile);
     Map<String,ArrayList<ByteSequence>> lGroups = reader.getLocalityGroupCF();
-    Assert.assertTrue(lGroups.containsKey("z"));
-    Assert.assertTrue(lGroups.get("z").size() == 2);
-    Assert.assertTrue(lGroups.get("z").contains(new ArrayByteSequence(colStr(0))));
-    Assert.assertTrue(lGroups.get("z").contains(new ArrayByteSequence(colStr(1))));
-    Assert.assertTrue(lGroups.containsKey("h"));
-    Assert.assertEquals(Arrays.asList(new ArrayByteSequence(colStr(2))), lGroups.get("h"));
+    assertTrue(lGroups.containsKey("z"));
+    assertTrue(lGroups.get("z").size() == 2);
+    assertTrue(lGroups.get("z").contains(new ArrayByteSequence(colStr(0))));
+    assertTrue(lGroups.get("z").contains(new ArrayByteSequence(colStr(1))));
+    assertTrue(lGroups.containsKey("h"));
+    assertEquals(Arrays.asList(new ArrayByteSequence(colStr(2))), lGroups.get("h"));
     reader.close();
   }
 
@@ -292,7 +295,7 @@ public class RFileTest {
     Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).build();
     scanner.addScanIterator(is);
 
-    Assert.assertEquals(createTestData(7, 2, 0, 10, 10), toMap(scanner));
+    assertEquals(createTestData(7, 2, 0, 10, 10), toMap(scanner));
 
     scanner.close();
   }
@@ -318,20 +321,20 @@ public class RFileTest {
 
     Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
         .withAuthorizations(new Authorizations("A")).build();
-    Assert.assertEquals(ImmutableMap.of(k2, v2, k3, v3), toMap(scanner));
-    Assert.assertEquals(new Authorizations("A"), scanner.getAuthorizations());
+    assertEquals(ImmutableMap.of(k2, v2, k3, v3), toMap(scanner));
+    assertEquals(new Authorizations("A"), scanner.getAuthorizations());
     scanner.close();
 
     scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
         .withAuthorizations(new Authorizations("A", "B")).build();
-    Assert.assertEquals(ImmutableMap.of(k1, v1, k2, v2, k3, v3), toMap(scanner));
-    Assert.assertEquals(new Authorizations("A", "B"), scanner.getAuthorizations());
+    assertEquals(ImmutableMap.of(k1, v1, k2, v2, k3, v3), toMap(scanner));
+    assertEquals(new Authorizations("A", "B"), scanner.getAuthorizations());
     scanner.close();
 
     scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
         .withAuthorizations(new Authorizations("B")).build();
-    Assert.assertEquals(ImmutableMap.of(k3, v3), toMap(scanner));
-    Assert.assertEquals(new Authorizations("B"), scanner.getAuthorizations());
+    assertEquals(ImmutableMap.of(k3, v3), toMap(scanner));
+    assertEquals(new Authorizations("B"), scanner.getAuthorizations());
     scanner.close();
   }
 
@@ -356,14 +359,14 @@ public class RFileTest {
     writer.close();
 
     Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).build();
-    Assert.assertFalse(scanner.iterator().hasNext());
+    assertFalse(scanner.iterator().hasNext());
     scanner.close();
 
     scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withoutSystemIterators()
         .build();
-    Assert.assertEquals(ImmutableMap.of(k2, v2, k1, v1), toMap(scanner));
+    assertEquals(ImmutableMap.of(k2, v2, k1, v1), toMap(scanner));
     scanner.setRange(new Range("r2"));
-    Assert.assertFalse(scanner.iterator().hasNext());
+    assertFalse(scanner.iterator().hasNext());
     scanner.close();
   }
 
@@ -377,25 +380,25 @@ public class RFileTest {
     Range bounds = new Range(rowStr(3), false, null, true);
     Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withBounds(bounds)
         .build();
-    Assert.assertEquals(createTestData(4, 6, 0, 10, 10), toMap(scanner));
+    assertEquals(createTestData(4, 6, 0, 10, 10), toMap(scanner));
     scanner.close();
 
     // set an upper bound row
     bounds = new Range(null, false, rowStr(7), true);
     scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withBounds(bounds).build();
-    Assert.assertEquals(createTestData(8, 10, 10), toMap(scanner));
+    assertEquals(createTestData(8, 10, 10), toMap(scanner));
     scanner.close();
 
     // set row bounds
     bounds = new Range(rowStr(3), false, rowStr(7), true);
     scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withBounds(bounds).build();
-    Assert.assertEquals(createTestData(4, 4, 0, 10, 10), toMap(scanner));
+    assertEquals(createTestData(4, 4, 0, 10, 10), toMap(scanner));
     scanner.close();
 
     // set a row family bound
     bounds = Range.exact(rowStr(3), colStr(5));
     scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withBounds(bounds).build();
-    Assert.assertEquals(createTestData(3, 1, 5, 1, 10), toMap(scanner));
+    assertEquals(createTestData(3, 1, 5, 1, 10), toMap(scanner));
     scanner.close();
   }
 
@@ -423,11 +426,11 @@ public class RFileTest {
     // pass in table config that has versioning iterator configured
     Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs)
         .withTableProperties(ntc.getProperties()).build();
-    Assert.assertEquals(ImmutableMap.of(k2, v2), toMap(scanner));
+    assertEquals(ImmutableMap.of(k2, v2), toMap(scanner));
     scanner.close();
 
     scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).build();
-    Assert.assertEquals(ImmutableMap.of(k2, v2, k1, v1), toMap(scanner));
+    assertEquals(ImmutableMap.of(k2, v2, k1, v1), toMap(scanner));
     scanner.close();
   }
 
@@ -460,13 +463,13 @@ public class RFileTest {
       }
     }
 
-    Assert.assertTrue(sampleData.size() < testData1.size());
+    assertTrue(sampleData.size() < testData1.size());
 
-    Assert.assertEquals(sampleData, toMap(scanner));
+    assertEquals(sampleData, toMap(scanner));
 
     scanner.clearSamplerConfiguration();
 
-    Assert.assertEquals(testData1, toMap(scanner));
+    assertEquals(testData1, toMap(scanner));
 
   }
 
@@ -486,7 +489,7 @@ public class RFileTest {
     scanner.close();
 
     scanner = RFile.newScanner().from(testFile2).withFileSystem(localFs).build();
-    Assert.assertEquals(testData, toMap(scanner));
+    assertEquals(testData, toMap(scanner));
     scanner.close();
   }
 
@@ -505,9 +508,9 @@ public class RFileTest {
       int r = rand.nextInt(10000);
       scanner.setRange(new Range(rowStr(r)));
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      Assert.assertTrue(iter.hasNext());
-      Assert.assertEquals(rowStr(r), iter.next().getKey().getRow().toString());
-      Assert.assertFalse(iter.hasNext());
+      assertTrue(iter.hasNext());
+      assertEquals(rowStr(r), iter.next().getKey().getRow().toString());
+      assertFalse(iter.hasNext());
     }
 
     scanner.close();
@@ -662,7 +665,7 @@ public class RFileTest {
 
     Scanner scanner = RFile.newScanner().from(files.toArray(new String[files.size()]))
         .withFileSystem(localFs).withIndexCache(1000000).withDataCache(10000000).build();
-    Assert.assertEquals(testData, toMap(scanner));
+    assertEquals(testData, toMap(scanner));
     scanner.close();
   }
 }

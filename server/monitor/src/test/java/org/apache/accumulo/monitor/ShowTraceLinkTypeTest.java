@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.monitor;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.ArrayList;
 import java.util.Collections;
 
 import org.apache.accumulo.tracer.thrift.Annotation;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ShowTraceLinkTypeTest {
@@ -60,6 +61,6 @@ public class ShowTraceLinkTypeTest {
 
     Collections.sort(spans);
 
-    Assert.assertEquals(expectedOrdering, spans);
+    assertEquals(expectedOrdering, spans);
   }
 }

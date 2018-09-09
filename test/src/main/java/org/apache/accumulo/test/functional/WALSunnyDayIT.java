@@ -62,7 +62,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
@@ -163,7 +162,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     Scanner scan = c.createScanner(tableName, EMPTY);
     int result = Iterators.size(scan.iterator());
     scan.close();
-    Assert.assertEquals(expected, result);
+    assertEquals(expected, result);
   }
 
   private void writeSomeData(Connector conn, String tableName, int row, int col) throws Exception {

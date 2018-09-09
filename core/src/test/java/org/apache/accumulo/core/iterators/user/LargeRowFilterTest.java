@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.TreeMap;
@@ -31,10 +34,9 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class LargeRowFilterTest extends TestCase {
+public class LargeRowFilterTest {
 
   private String genRow(int r) {
     return String.format("row%03d", r);
@@ -68,6 +70,7 @@ public class LargeRowFilterTest extends TestCase {
     return lrfi;
   }
 
+  @Test
   public void testBasic() throws Exception {
     TreeMap<Key,Value> testData = new TreeMap<>();
 
@@ -91,6 +94,7 @@ public class LargeRowFilterTest extends TestCase {
     }
   }
 
+  @Test
   public void testSeek() throws Exception {
     TreeMap<Key,Value> testData = new TreeMap<>();
 
@@ -119,6 +123,7 @@ public class LargeRowFilterTest extends TestCase {
     }
   }
 
+  @Test
   public void testSeek2() throws Exception {
     TreeMap<Key,Value> testData = new TreeMap<>();
 
@@ -149,6 +154,7 @@ public class LargeRowFilterTest extends TestCase {
     assertEquals(expectedData, filteredData);
   }
 
+  @Test
   public void testCompaction() throws Exception {
     TreeMap<Key,Value> testData = new TreeMap<>();
 
@@ -204,6 +210,7 @@ public class LargeRowFilterTest extends TestCase {
 
   // in other test data is generated in such a way that once a row
   // is suppressed, all subsequent rows are suppressed
+  @Test
   public void testSuppressInner() throws Exception {
     TreeMap<Key,Value> testData = new TreeMap<>();
     genRow(testData, 1, 0, 2);

@@ -18,7 +18,9 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 
@@ -32,7 +34,6 @@ import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.ShellServerIT.TestShell;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -84,10 +85,10 @@ public class ShellConfigIT extends AccumuloClusterHarness {
         clientConfFile = standaloneConf.getClientConfFile();
         break;
       default:
-        Assert.fail("Unknown cluster type");
+        fail("Unknown cluster type");
     }
 
-    Assert.assertNotNull(clientConfFile);
+    assertNotNull(clientConfFile);
 
     TestShell ts = null;
     if (token instanceof PasswordToken) {
@@ -98,7 +99,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
       ts = new TestShell(getAdminPrincipal(), null, getCluster().getInstanceName(),
           getCluster().getZooKeepers(), clientConfFile);
     } else {
-      Assert.fail("Unknown token type");
+      fail("Unknown token type");
     }
 
     assertTrue(Property.TABLE_VOLUME_CHOOSER.isExperimental());

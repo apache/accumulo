@@ -19,6 +19,8 @@ package org.apache.accumulo.server.util;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -34,7 +36,6 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.fs.Path;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -73,10 +74,10 @@ public class FileUtilTest {
     c.add(r2);
 
     Collection<String> cs = FileUtil.toPathStrings(c);
-    Assert.assertEquals(2, cs.size());
+    assertEquals(2, cs.size());
     Iterator<String> iter = cs.iterator();
-    Assert.assertEquals("/foo", iter.next());
-    Assert.assertEquals("/bar", iter.next());
+    assertEquals("/foo", iter.next());
+    assertEquals("/bar", iter.next());
   }
 
   @SuppressWarnings("deprecation")
@@ -94,7 +95,7 @@ public class FileUtilTest {
 
     FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<FileSKVIterator>());
 
-    Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
+    assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
   }
 
   @Test
@@ -120,11 +121,11 @@ public class FileUtilTest {
 
     FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<FileSKVIterator>());
 
-    Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
+    assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
 
     FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<FileSKVIterator>());
 
-    Assert.assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
   }
 
   @Test
@@ -153,11 +154,11 @@ public class FileUtilTest {
 
     FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<FileSKVIterator>());
 
-    Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
+    assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
 
     FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<FileSKVIterator>());
 
-    Assert.assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
   }
 
   @Test
@@ -180,11 +181,11 @@ public class FileUtilTest {
 
     FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<FileSKVIterator>());
 
-    Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
+    assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
 
     FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<FileSKVIterator>());
 
-    Assert.assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
   }
 
   @Test
@@ -210,10 +211,10 @@ public class FileUtilTest {
 
     FileUtil.cleanupIndexOp(tmpPath1, fs, new ArrayList<FileSKVIterator>());
 
-    Assert.assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
+    assertFalse("Expected " + tmp1 + " to be cleaned up but it wasn't", tmp1.exists());
 
     FileUtil.cleanupIndexOp(tmpPath2, fs, new ArrayList<FileSKVIterator>());
 
-    Assert.assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
+    assertFalse("Expected " + tmp2 + " to be cleaned up but it wasn't", tmp2.exists());
   }
 }

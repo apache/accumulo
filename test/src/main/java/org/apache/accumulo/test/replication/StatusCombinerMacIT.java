@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.test.replication;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +45,6 @@ import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -70,12 +72,12 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
     TableOperations tops = getConnector().tableOperations();
     Map<String,EnumSet<IteratorScope>> iterators = tops.listIterators(MetadataTable.NAME);
 
-    Assert.assertTrue(iterators.containsKey(ReplicationTableUtil.COMBINER_NAME));
+    assertTrue(iterators.containsKey(ReplicationTableUtil.COMBINER_NAME));
     EnumSet<IteratorScope> scopes = iterators.get(ReplicationTableUtil.COMBINER_NAME);
-    Assert.assertEquals(3, scopes.size());
-    Assert.assertTrue(scopes.contains(IteratorScope.scan));
-    Assert.assertTrue(scopes.contains(IteratorScope.minc));
-    Assert.assertTrue(scopes.contains(IteratorScope.majc));
+    assertEquals(3, scopes.size());
+    assertTrue(scopes.contains(IteratorScope.scan));
+    assertTrue(scopes.contains(IteratorScope.minc));
+    assertTrue(scopes.contains(IteratorScope.majc));
 
     Iterable<Entry<String,String>> propIter = tops.getProperties(MetadataTable.NAME);
     HashMap<String,String> properties = new HashMap<>();
@@ -86,8 +88,8 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
     for (IteratorScope scope : scopes) {
       String key = Property.TABLE_ITERATOR_PREFIX.getKey() + scope.name() + "."
           + ReplicationTableUtil.COMBINER_NAME + ".opt.columns";
-      Assert.assertTrue("Properties did not contain key : " + key, properties.containsKey(key));
-      Assert.assertEquals(MetadataSchema.ReplicationSection.COLF.toString(), properties.get(key));
+      assertTrue("Properties did not contain key : " + key, properties.containsKey(key));
+      assertEquals(MetadataSchema.ReplicationSection.COLF.toString(), properties.get(key));
     }
   }
 
@@ -112,7 +114,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
     Scanner s = ReplicationTable.getScanner(conn);
     Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-    Assert.assertEquals(StatusUtil.fileCreatedValue(createTime), entry.getValue());
+    assertEquals(StatusUtil.fileCreatedValue(createTime), entry.getValue());
 
     bw = ReplicationTable.getBatchWriter(conn);
     try {
@@ -127,7 +129,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
     s = ReplicationTable.getScanner(conn);
     entry = Iterables.getOnlyElement(s);
     Status stat = Status.parseFrom(entry.getValue().get());
-    Assert.assertEquals(Long.MAX_VALUE, stat.getBegin());
+    assertEquals(Long.MAX_VALUE, stat.getBegin());
   }
 
 }

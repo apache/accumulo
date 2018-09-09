@@ -18,6 +18,7 @@ package org.apache.accumulo.shell;
 
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
+import static org.junit.Assert.assertTrue;
 import static org.powermock.api.easymock.PowerMock.createMock;
 import static org.powermock.api.easymock.PowerMock.expectLastCall;
 import static org.powermock.api.easymock.PowerMock.expectNew;
@@ -47,7 +48,6 @@ import org.apache.log4j.Level;
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -130,8 +130,7 @@ public class ShellSetInstanceTest {
     replay(opts);
 
     shell.setInstance(opts);
-    Assert.assertTrue(
-        shell.getInstance() instanceof org.apache.accumulo.core.client.mock.MockInstance);
+    assertTrue(shell.getInstance() instanceof org.apache.accumulo.core.client.mock.MockInstance);
   }
 
   @Test

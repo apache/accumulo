@@ -16,6 +16,11 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.HashSet;
 
@@ -27,7 +32,6 @@ import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -106,23 +110,23 @@ public class ContextManagerTest {
     FileObject[] dirContents = testDir.getChildren();
     ClassLoader cl1 = cm.getClassLoader("CX1");
     FileObject[] files = ((VFSClassLoader) cl1).getFileObjects();
-    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+    assertArrayEquals(createFileSystems(dirContents), files);
 
     FileObject testDir2 = vfs.resolveFile(folder2.getRoot().toURI().toString());
     FileObject[] dirContents2 = testDir2.getChildren();
     ClassLoader cl2 = cm.getClassLoader("CX2");
     FileObject[] files2 = ((VFSClassLoader) cl2).getFileObjects();
-    Assert.assertArrayEquals(createFileSystems(dirContents2), files2);
+    assertArrayEquals(createFileSystems(dirContents2), files2);
 
     Class<?> defaultContextClass = cl1.loadClass("test.HelloWorld");
     Object o1 = defaultContextClass.newInstance();
-    Assert.assertEquals("Hello World!", o1.toString());
+    assertEquals("Hello World!", o1.toString());
 
     Class<?> myContextClass = cl2.loadClass("test.HelloWorld");
     Object o2 = myContextClass.newInstance();
-    Assert.assertEquals("Hello World!", o2.toString());
+    assertEquals("Hello World!", o2.toString());
 
-    Assert.assertFalse(defaultContextClass.equals(myContextClass));
+    assertFalse(defaultContextClass.equals(myContextClass));
 
     cm.removeUnusedContexts(new HashSet<String>());
   }
@@ -152,8 +156,8 @@ public class ContextManagerTest {
       }
     });
 
-    Assert.assertTrue(cm.getClassLoader("CX1").loadClass("test.HelloWorld") == pclass);
-    Assert.assertFalse(cm.getClassLoader("CX2").loadClass("test.HelloWorld") == pclass);
+    assertTrue(cm.getClassLoader("CX1").loadClass("test.HelloWorld") == pclass);
+    assertFalse(cm.getClassLoader("CX2").loadClass("test.HelloWorld") == pclass);
   }
 
   @After
