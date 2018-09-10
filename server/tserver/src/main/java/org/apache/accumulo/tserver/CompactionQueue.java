@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.htrace.wrappers.TraceRunnable;
 
 /**
- * {@link TraceRunnable} objects placed in this queue <b>must</a> wrap a {@link Runnable} which is
+ * {@link TraceRunnable} objects placed in this queue <b>must</b> wrap a {@link Runnable} which is
  * also {@link Comparable}
  */
 class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQueue<TraceRunnable> {
