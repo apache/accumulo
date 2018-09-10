@@ -51,8 +51,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.crypto.impl.AESCryptoService;
+import org.apache.accumulo.core.security.crypto.impl.AESKeyUtils;
 import org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl;
-import org.apache.accumulo.core.security.crypto.impl.KeyManager;
 import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
 import org.apache.accumulo.core.security.crypto.streams.NoFlushOutputStream;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
@@ -272,12 +272,12 @@ public class CryptoTest {
       NoSuchPaddingException, InvalidKeyException {
     SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
     java.security.Key key;
-    key = KeyManager.generateKey(sr, 16);
+    key = AESKeyUtils.generateKey(sr, 16);
     Cipher.getInstance("AES/CBC/NoPadding").init(Cipher.ENCRYPT_MODE, key);
 
-    key = KeyManager.generateKey(sr, 24);
-    key = KeyManager.generateKey(sr, 32);
-    key = KeyManager.generateKey(sr, 11);
+    key = AESKeyUtils.generateKey(sr, 24);
+    key = AESKeyUtils.generateKey(sr, 32);
+    key = AESKeyUtils.generateKey(sr, 11);
 
     exception.expect(InvalidKeyException.class);
     Cipher.getInstance("AES/CBC/NoPadding").init(Cipher.ENCRYPT_MODE, key);
@@ -287,17 +287,17 @@ public class CryptoTest {
   public void testKeyManagerWrapAndUnwrap()
       throws NoSuchAlgorithmException, NoSuchProviderException {
     SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
-    java.security.Key kek = KeyManager.generateKey(sr, 16);
-    java.security.Key fek = KeyManager.generateKey(sr, 16);
-    byte[] wrapped = KeyManager.wrapKey(fek, kek);
+    java.security.Key kek = AESKeyUtils.generateKey(sr, 16);
+    java.security.Key fek = AESKeyUtils.generateKey(sr, 16);
+    byte[] wrapped = AESKeyUtils.wrapKey(fek, kek);
     assertFalse(Arrays.equals(fek.getEncoded(), wrapped));
-    java.security.Key unwrapped = KeyManager.unwrapKey(wrapped, kek);
+    java.security.Key unwrapped = AESKeyUtils.unwrapKey(wrapped, kek);
     assertEquals(unwrapped, fek);
   }
 
   @Test
   public void testKeyManagerLoadKekFromUri() throws IOException {
-    SecretKeySpec fileKey = KeyManager.loadKekFromUri("file:///tmp/testAESFile");
+    SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri("file:///tmp/testAESFile");
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     dos.writeUTF("sixteenbytekey");

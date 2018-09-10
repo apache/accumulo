@@ -38,7 +38,7 @@
       <Class name="org.apache.accumulo.core.security.crypto.CryptoTest"/>
       <Class name="org.apache.accumulo.core.security.crypto.impl.AESCryptoService$AESCBCCryptoModule$AESCBCFileEncrypter"/>
       <Class name="org.apache.accumulo.core.security.crypto.impl.AESCryptoService$AESCBCCryptoModule$AESCBCFileDecrypter"/>
-      <Class name="org.apache.accumulo.core.security.crypto.impl.KeyManager"/>
+      <Class name="org.apache.accumulo.core.security.crypto.impl.AESKeyUtils"/>
     </Or>
     <Bug code="CIPHER" pattern="CIPHER_INTEGRITY" />
   </Match>
@@ -95,7 +95,7 @@
   </Match>
   <Match>
     <!-- Calling new File on input can be dangerous, but OK here -->
-    <Class name="org.apache.accumulo.core.security.crypto.impl.KeyManager" />
+    <Class name="org.apache.accumulo.core.security.crypto.impl.AESKeyUtils" />
     <Method name="loadKekFromUri" params="java.lang.String"/>
     <Bug code="PATH" pattern="PATH_TRAVERSAL_IN" />
   </Match>

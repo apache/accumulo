@@ -62,25 +62,27 @@ public class AESCryptoService implements CryptoService {
   private static final String NO_CRYPTO_VERSION = "U+1F47B";
 
   private Key encryptingKek = null;
-  private String encryptingKekId = null;
-  private String encryptingKeyManager = null;
+  private String keyLocation = null;
+  private String keyManager = null;
   // Lets just load keks for reading once
   private HashMap<String,Key> decryptingKeys = null;
   private SecureRandom sr = null;
 
   @Override
   public void init(Map<String,String> conf) throws CryptoException {
-    String kekId = conf.get("instance.crypto.opts.kekId");
-    String keyMgr = conf.get("instance.crypto.opts.keyManager");
-    Objects.requireNonNull(kekId, "Config property instance.crypto.opts.kekId is required.");
-    Objects.requireNonNull(keyMgr, "Config property instance.crypto.opts.keyManager is required.");
+    String keyLocation = conf.get("instance.crypto.opts.key.location");
+    String keyMgr = conf.get("instance.crypto.opts.key.provider");
+    Objects.requireNonNull(keyLocation,
+        "Config property instance.crypto.opts.key.location is required.");
+    Objects.requireNonNull(keyMgr,
+        "Config property instance.crypto.opts.key.provider is required.");
     this.sr = CryptoUtils.newSha1SecureRandom();
     this.decryptingKeys = new HashMap<>();
     switch (keyMgr) {
-      case KeyManager.URI:
-        this.encryptingKeyManager = keyMgr;
-        this.encryptingKekId = kekId;
-        this.encryptingKek = KeyManager.loadKekFromUri(kekId);
+      case AESKeyUtils.URI:
+        this.keyManager = keyMgr;
+        this.keyLocation = keyLocation;
+        this.encryptingKek = AESKeyUtils.loadKekFromUri(keyLocation);
         break;
       default:
         throw new CryptoException("Unrecognized key manager");
@@ -93,13 +95,11 @@ public class AESCryptoService implements CryptoService {
     CryptoModule cm;
     switch (environment.getScope()) {
       case WAL:
-        cm = new AESCBCCryptoModule(this.encryptingKek, this.encryptingKekId,
-            this.encryptingKeyManager);
+        cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
         return cm.getEncrypter();
 
       case RFILE:
-        cm = new AESGCMCryptoModule(this.encryptingKek, this.encryptingKekId,
-            this.encryptingKeyManager);
+        cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
         return cm.getEncrypter();
 
       default:
@@ -116,15 +116,13 @@ public class AESCryptoService implements CryptoService {
 
     ParsedCryptoParameters parsed = parseCryptoParameters(decryptionParams);
     Key kek = loadDecryptionKek(parsed);
-    Key fek = KeyManager.unwrapKey(parsed.getEncFek(), kek);
+    Key fek = AESKeyUtils.unwrapKey(parsed.getEncFek(), kek);
     switch (parsed.getCryptoServiceVersion()) {
       case AESCBCCryptoModule.VERSION:
-        cm = new AESCBCCryptoModule(this.encryptingKek, this.encryptingKekId,
-            this.encryptingKeyManager);
+        cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
         return (cm.getDecrypter(fek));
       case AESGCMCryptoModule.VERSION:
-        cm = new AESGCMCryptoModule(this.encryptingKek, this.encryptingKekId,
-            this.encryptingKeyManager);
+        cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
         return (cm.getDecrypter(fek));
       default:
         throw new CryptoException(
@@ -196,7 +194,7 @@ public class AESCryptoService implements CryptoService {
       params.writeUTF(version);
       params.writeUTF(encryptingKeyManager);
       params.writeUTF(encryptingKekId);
-      byte[] wrappedFek = KeyManager.wrapKey(fek, encryptingKek);
+      byte[] wrappedFek = AESKeyUtils.wrapKey(fek, encryptingKek);
       params.writeInt(wrappedFek.length);
       params.write(wrappedFek);
 
@@ -235,8 +233,8 @@ public class AESCryptoService implements CryptoService {
     }
 
     switch (params.keyManagerVersion) {
-      case KeyManager.URI:
-        ret = KeyManager.loadKekFromUri(params.kekId);
+      case AESKeyUtils.URI:
+        ret = AESKeyUtils.loadKekFromUri(params.kekId);
         break;
       default:
         throw new CryptoException("Unable to load kek: " + params.kekId);
@@ -271,14 +269,13 @@ public class AESCryptoService implements CryptoService {
     private final String transformation = "AES/GCM/NoPadding";
     private boolean ivReused = false;
     private Key encryptingKek;
-    private String encryptingKekId;
-    private String encryptingKeyManager;
+    private String keyLocation;
+    private String keyManager;
 
-    public AESGCMCryptoModule(Key encryptingKek, String encryptingKekId,
-        String encryptingKeyManager) {
+    public AESGCMCryptoModule(Key encryptingKek, String keyLocation, String keyManager) {
       this.encryptingKek = encryptingKek;
-      this.encryptingKekId = encryptingKekId;
-      this.encryptingKeyManager = encryptingKeyManager;
+      this.keyLocation = keyLocation;
+      this.keyManager = keyManager;
     }
 
     @Override
@@ -298,7 +295,7 @@ public class AESCryptoService implements CryptoService {
       private byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
 
       AESGCMFileEncrypter() {
-        fek = KeyManager.generateKey(sr, KEY_LENGTH_IN_BYTES);
+        fek = AESKeyUtils.generateKey(sr, KEY_LENGTH_IN_BYTES);
         sr.nextBytes(initVector);
         firstInitVector = Arrays.copyOf(initVector, initVector.length);
       }
@@ -365,8 +362,7 @@ public class AESCryptoService implements CryptoService {
 
       @Override
       public byte[] getDecryptionParameters() {
-        return createCryptoParameters(VERSION, encryptingKek, encryptingKekId, encryptingKeyManager,
-            fek);
+        return createCryptoParameters(VERSION, encryptingKek, keyLocation, keyManager, fek);
       }
     }
 
@@ -409,14 +405,13 @@ public class AESCryptoService implements CryptoService {
     private final Integer KEY_LENGTH_IN_BYTES = 16;
     private final String transformation = "AES/CBC/NoPadding";
     private Key encryptingKek;
-    private String encryptingKekId;
-    private String encryptingKeyManager;
+    private String keyLocation;
+    private String keyManager;
 
-    public AESCBCCryptoModule(Key encryptingKek, String encryptingKekId,
-        String encryptingKeyManager) {
+    public AESCBCCryptoModule(Key encryptingKek, String keyLocation, String keyManager) {
       this.encryptingKek = encryptingKek;
-      this.encryptingKekId = encryptingKekId;
-      this.encryptingKeyManager = encryptingKeyManager;
+      this.keyLocation = keyLocation;
+      this.keyManager = keyManager;
     }
 
     @Override
@@ -431,7 +426,7 @@ public class AESCryptoService implements CryptoService {
 
     public class AESCBCFileEncrypter implements FileEncrypter {
 
-      private Key fek = KeyManager.generateKey(sr, KEY_LENGTH_IN_BYTES);
+      private Key fek = AESKeyUtils.generateKey(sr, KEY_LENGTH_IN_BYTES);
       private byte[] initVector = new byte[IV_LENGTH_IN_BYTES];
 
       @Override
@@ -465,8 +460,7 @@ public class AESCryptoService implements CryptoService {
 
       @Override
       public byte[] getDecryptionParameters() {
-        return createCryptoParameters(VERSION, encryptingKek, encryptingKekId, encryptingKeyManager,
-            fek);
+        return createCryptoParameters(VERSION, encryptingKek, keyLocation, keyManager, fek);
       }
     }
 
