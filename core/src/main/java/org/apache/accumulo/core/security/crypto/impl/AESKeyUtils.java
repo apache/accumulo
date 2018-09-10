@@ -34,9 +34,11 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 
-public class KeyManager {
+public class AESKeyUtils {
 
   public static final String URI = "uri";
+  public static final String KEY_WRAP_TRANSFORM = "AESWrap";
+  public static final String KEY_PROVIDER = "SunJCE";
 
   public static Key generateKey(SecureRandom sr, int size) {
     byte[] bytes = new byte[size];
@@ -47,7 +49,7 @@ public class KeyManager {
   public static Key unwrapKey(byte[] fek, Key kek) {
     Key result = null;
     try {
-      Cipher c = Cipher.getInstance("AESWrap", "SunJCE");
+      Cipher c = Cipher.getInstance(KEY_WRAP_TRANSFORM, KEY_PROVIDER);
       c.init(Cipher.UNWRAP_MODE, kek);
       result = c.unwrap(fek, "AES", Cipher.SECRET_KEY);
     } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchProviderException
@@ -60,7 +62,7 @@ public class KeyManager {
   public static byte[] wrapKey(Key fek, Key kek) {
     byte[] result = null;
     try {
-      Cipher c = Cipher.getInstance("AESWrap", "SunJCE");
+      Cipher c = Cipher.getInstance(KEY_WRAP_TRANSFORM, KEY_PROVIDER);
       c.init(Cipher.WRAP_MODE, kek);
       result = c.wrap(fek);
     } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchProviderException
