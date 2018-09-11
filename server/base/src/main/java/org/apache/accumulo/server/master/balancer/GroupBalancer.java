@@ -800,7 +800,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     public Iterator<Pair<KeyExtent,Location>> iterator() {
       try {
         Scanner scanner = new IsolatedScanner(
-            context.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+            context.getClient().createScanner(MetadataTable.NAME, Authorizations.EMPTY));
         scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
         MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
         scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));

@@ -381,7 +381,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @since 1.5.0
    */
   protected static void validateOptions(JobConf job) throws IOException {
-    AccumuloClient conn = InputConfigurator.getConnector(CLASS, job);
+    AccumuloClient conn = InputConfigurator.getClient(CLASS, job);
     InputConfigurator.validatePermissions(CLASS, job, conn);
   }
 
@@ -484,7 +484,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       ClientContext context = new ClientContext(getClientInfo(job));
       AccumuloClient conn;
       try {
-        conn = context.getConnector();
+        conn = context.getClient();
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new IllegalStateException(e);
       }

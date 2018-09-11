@@ -215,7 +215,7 @@ public class CollectTabletStats {
 
       ArrayList<Test> tests = new ArrayList<>();
 
-      final AccumuloClient conn = opts.getConnector();
+      final AccumuloClient conn = opts.getClient();
 
       for (final KeyExtent ke : tabletsToTest) {
         Test test = new Test(ke) {
@@ -233,7 +233,7 @@ public class CollectTabletStats {
     }
 
     for (final KeyExtent ke : tabletsToTest) {
-      final AccumuloClient conn = opts.getConnector();
+      final AccumuloClient conn = opts.getClient();
 
       threadPool.submit(new Runnable() {
         @Override

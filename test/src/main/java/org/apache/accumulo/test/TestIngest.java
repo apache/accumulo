@@ -197,7 +197,7 @@ public class TestIngest {
 
       // test batch update
 
-      ingest(opts.getConnector(), opts, bwOpts);
+      ingest(opts.getClient(), opts, bwOpts);
     } catch (Exception e) {
       throw new RuntimeException(e);
     } finally {

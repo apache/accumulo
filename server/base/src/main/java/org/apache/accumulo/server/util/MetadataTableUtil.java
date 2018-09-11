@@ -650,7 +650,7 @@ public class MetadataTableUtil {
       rootTableEntries = getLogEntries(context, new KeyExtent(MetadataTable.ID, null, null))
           .iterator();
       try {
-        Scanner scanner = context.getConnector().createScanner(MetadataTable.NAME,
+        Scanner scanner = context.getClient().createScanner(MetadataTable.NAME,
             Authorizations.EMPTY);
         log.info("Setting range to {}", MetadataSchema.TabletsSection.getRange());
         scanner.setRange(MetadataSchema.TabletsSection.getRange());
@@ -882,7 +882,7 @@ public class MetadataTableUtil {
   public static void cloneTable(ServerContext context, Table.ID srcTableId, Table.ID tableId,
       VolumeManager volumeManager) throws Exception {
 
-    AccumuloClient conn = context.getConnector();
+    AccumuloClient conn = context.getClient();
     try (BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
 
       while (true) {

@@ -174,8 +174,8 @@ public class SimpleGarbageCollector implements Iface {
     return context.getConfiguration();
   }
 
-  AccumuloClient getConnector() throws AccumuloSecurityException, AccumuloException {
-    return context.getConnector();
+  AccumuloClient getClient() throws AccumuloSecurityException, AccumuloException {
+    return context.getClient();
   }
 
   /**
@@ -242,7 +242,7 @@ public class SimpleGarbageCollector implements Iface {
             range.getEndKey(), range.isEndKeyInclusive());
       }
 
-      Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY);
+      Scanner scanner = getClient().createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(range);
       result.clear();
       // find candidates for deletion; chop off the prefix
@@ -265,7 +265,7 @@ public class SimpleGarbageCollector implements Iface {
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
       @SuppressWarnings("resource")
       IsolatedScanner scanner = new IsolatedScanner(
-          getConnector().createScanner(tableName, Authorizations.EMPTY));
+          getClient().createScanner(tableName, Authorizations.EMPTY));
 
       scanner.setRange(MetadataSchema.BlipSection.getRange());
 
@@ -277,7 +277,7 @@ public class SimpleGarbageCollector implements Iface {
     public Stream<Reference> getReferences()
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
-      Stream<TabletMetadata> tabletStream = MetadataScanner.builder().from(getConnector())
+      Stream<TabletMetadata> tabletStream = MetadataScanner.builder().from(getClient())
           .scanTable(tableName).overTabletRange().checkConsistency().fetchDir().fetchFiles()
           .fetchScans().build().stream();
 
@@ -314,7 +314,7 @@ public class SimpleGarbageCollector implements Iface {
         return;
       }
 
-      AccumuloClient c = getConnector();
+      AccumuloClient c = getClient();
       BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig());
 
       // when deleting a dir and all files in that dir, only need to delete the dir
@@ -482,7 +482,7 @@ public class SimpleGarbageCollector implements Iface {
     @Override
     public Iterator<Entry<String,Status>> getReplicationNeededIterator()
         throws AccumuloException, AccumuloSecurityException {
-      AccumuloClient conn = getConnector();
+      AccumuloClient conn = getClient();
       try {
         Scanner s = ReplicationTable.getScanner(conn);
         StatusSection.limit(s);
@@ -588,7 +588,7 @@ public class SimpleGarbageCollector implements Iface {
 
       // we just made a lot of metadata changes: flush them out
       try {
-        AccumuloClient accumuloClient = getConnector();
+        AccumuloClient accumuloClient = getClient();
         accumuloClient.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
         accumuloClient.tableOperations().compact(RootTable.NAME, null, null, true, true);
       } catch (Exception e) {

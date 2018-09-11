@@ -45,7 +45,7 @@ public class LocalityCheck {
     opts.parseArgs(LocalityCheck.class.getName(), args);
 
     VolumeManager fs = opts.getServerContext().getVolumeManager();
-    AccumuloClient accumuloClient = opts.getConnector();
+    AccumuloClient accumuloClient = opts.getClient();
     Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(DataFileColumnFamily.NAME);

@@ -108,7 +108,7 @@ public class MergeStateIT extends ConfigurableMacBase {
   public void test() throws Exception {
     ServerContext context = EasyMock.createMock(ServerContext.class);
     AccumuloClient accumuloClient = getClient();
-    EasyMock.expect(context.getConnector()).andReturn(accumuloClient).anyTimes();
+    EasyMock.expect(context.getClient()).andReturn(accumuloClient).anyTimes();
     EasyMock.replay(context);
     accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
         MetadataTable.NAME, TablePermission.WRITE);
@@ -170,8 +170,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
     // now we should be ready to merge but, we have inconsistent metadata
     stats = scan(state, metaDataStateStore);
-    assertEquals(MergeState.WAITING_FOR_OFFLINE,
-        stats.nextMergeState(accumuloClient, state));
+    assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(accumuloClient, state));
 
     // finish the split
     KeyExtent tablet = new KeyExtent(tableId, new Text("p"), new Text("o"));
@@ -183,8 +182,7 @@ public class MergeStateIT extends ConfigurableMacBase {
 
     // onos... there's a new tablet online
     stats = scan(state, metaDataStateStore);
-    assertEquals(MergeState.WAITING_FOR_CHOPPED,
-        stats.nextMergeState(accumuloClient, state));
+    assertEquals(MergeState.WAITING_FOR_CHOPPED, stats.nextMergeState(accumuloClient, state));
 
     // chop it
     m = tablet.getPrevRowUpdateMutation();
@@ -192,8 +190,7 @@ public class MergeStateIT extends ConfigurableMacBase {
     update(accumuloClient, m);
 
     stats = scan(state, metaDataStateStore);
-    assertEquals(MergeState.WAITING_FOR_OFFLINE,
-        stats.nextMergeState(accumuloClient, state));
+    assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(accumuloClient, state));
 
     // take it offline
     m = tablet.getPrevRowUpdateMutation();

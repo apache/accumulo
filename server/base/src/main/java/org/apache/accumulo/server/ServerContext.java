@@ -238,7 +238,7 @@ public class ServerContext extends ClientContext {
   }
 
   @Override
-  public synchronized AccumuloClient getConnector()
+  public synchronized AccumuloClient getClient()
       throws AccumuloException, AccumuloSecurityException {
     if (conn == null) {
       conn = new AccumuloClientImpl(this);
@@ -246,7 +246,7 @@ public class ServerContext extends ClientContext {
     return conn;
   }
 
-  public AccumuloClient getConnector(String principal, AuthenticationToken token)
+  public AccumuloClient getClient(String principal, AuthenticationToken token)
       throws AccumuloSecurityException, AccumuloException {
     return new AccumuloClientImpl.AccumuloClientBuilderImpl().usingClientInfo(info)
         .usingToken(principal, token).build();

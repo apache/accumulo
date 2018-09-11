@@ -595,7 +595,7 @@ public class Monitor implements HighlyAvailableService {
   public static void fetchScans() throws Exception {
     if (context == null)
       return;
-    AccumuloClient c = context.getConnector();
+    AccumuloClient c = context.getClient();
     for (String server : c.instanceOperations().getTabletServers()) {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
       Client tserver = ThriftUtil.getTServerClient(parsedServer, context);

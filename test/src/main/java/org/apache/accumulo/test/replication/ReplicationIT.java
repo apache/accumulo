@@ -146,7 +146,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   private Multimap<String,Table.ID> getLogs(ServerContext context) throws Exception {
     // Map of server to tableId
-    AccumuloClient conn = context.getConnector();
+    AccumuloClient conn = context.getClient();
     Multimap<TServerInstance,String> serverToTableID = HashMultimap.create();
     try (Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
@@ -174,7 +174,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   private Multimap<String,Table.ID> getAllLogs(ServerContext context) throws Exception {
     Multimap<String,Table.ID> logs = getLogs(context);
-    try (Scanner scanner = context.getConnector().createScanner(ReplicationTable.NAME,
+    try (Scanner scanner = context.getClient().createScanner(ReplicationTable.NAME,
         Authorizations.EMPTY)) {
       StatusSection.limit(scanner);
       Text buff = new Text();

@@ -66,7 +66,7 @@ class PopulateMetadata extends MasterRepo {
       SortedSet<Text> dirs = Utils
           .getSortedSetFromFile(environment.getInputStream(tableInfo.splitDirsFile), false);
       Map<Text,Text> splitDirMap = createSplitDirectoryMap(splits, dirs);
-      try (BatchWriter bw = environment.getConnector().createBatchWriter("accumulo.metadata")) {
+      try (BatchWriter bw = environment.getClient().createBatchWriter("accumulo.metadata")) {
         writeSplitsToMetadataTable(environment.getContext(), tableInfo.tableId, splits, splitDirMap,
             tableInfo.timeType, environment.getMasterLock(), bw);
       }

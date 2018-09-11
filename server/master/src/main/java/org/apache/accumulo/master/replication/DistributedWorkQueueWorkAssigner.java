@@ -70,7 +70,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
   /*
    * Getters/setters for testing purposes
    */
-  protected AccumuloClient getConnector() {
+  protected AccumuloClient getClient() {
     return conn;
   }
 

@@ -76,7 +76,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
     }
     AccumuloClient conn;
     try {
-      conn = context.getConnector(creds.getPrincipal(), creds.getToken());
+      conn = context.getClient(creds.getPrincipal(), creds.getToken());
     } catch (AccumuloSecurityException e) {
       e.printStackTrace(System.err);
       System.exit(BAD_PASSWD_FAIL_CODE);

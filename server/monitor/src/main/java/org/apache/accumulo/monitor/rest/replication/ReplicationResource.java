@@ -74,7 +74,7 @@ public class ReplicationResource {
   @GET
   public List<ReplicationInformation> getReplicationInformation()
       throws AccumuloException, AccumuloSecurityException {
-    final AccumuloClient conn = Monitor.getContext().getConnector();
+    final AccumuloClient conn = Monitor.getContext().getClient();
 
     final TableOperations tops = conn.tableOperations();
 

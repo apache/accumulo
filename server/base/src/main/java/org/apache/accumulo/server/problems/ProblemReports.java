@@ -168,7 +168,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
       return;
     }
 
-    AccumuloClient accumuloClient = context.getConnector();
+    AccumuloClient accumuloClient = context.getClient();
     Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.addScanIterator(new IteratorSetting(1, "keys-only", SortedKeyIterator.class));
 
@@ -223,7 +223,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
           if (iter2 == null) {
             try {
               if ((table == null || !isMeta(table)) && iter1Count == 0) {
-                AccumuloClient accumuloClient = context.getConnector();
+                AccumuloClient accumuloClient = context.getClient();
                 Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME,
                     Authorizations.EMPTY);
 

@@ -89,7 +89,7 @@ public class ContinuousIngest {
     if (opts.min < 0 || opts.max < 0 || opts.max <= opts.min) {
       throw new IllegalArgumentException("bad min and max");
     }
-    AccumuloClient conn = clientOpts.getConnector();
+    AccumuloClient conn = clientOpts.getClient();
 
     if (!conn.tableOperations().exists(clientOpts.getTableName())) {
       throw new TableNotFoundException(null, clientOpts.getTableName(),

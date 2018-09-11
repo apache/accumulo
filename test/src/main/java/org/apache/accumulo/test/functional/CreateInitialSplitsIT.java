@@ -64,7 +64,7 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
 
   @Before
   public void setupInitialSplits() {
-    connector = getConnector();
+    connector = getClient();
   }
 
   /**

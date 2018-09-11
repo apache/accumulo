@@ -842,8 +842,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
       Range metadataRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(),
           true, null, false);
-      Scanner scanner = context.getConnector().createScanner(MetadataTable.NAME,
-          Authorizations.EMPTY);
+      Scanner scanner = context.getClient().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME);
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);

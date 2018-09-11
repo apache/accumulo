@@ -140,7 +140,7 @@ public class ClientContext {
       @Override
       public Connector getConnector(String principal, AuthenticationToken token)
           throws AccumuloException, AccumuloSecurityException {
-        return Connector.from(context.getConnector().changeUser(principal, token));
+        return Connector.from(context.getClient().changeUser(principal, token));
       }
     };
   }
@@ -212,7 +212,7 @@ public class ClientContext {
   /**
    * Retrieve a connector
    */
-  public synchronized AccumuloClient getConnector()
+  public synchronized AccumuloClient getClient()
       throws AccumuloException, AccumuloSecurityException {
     if (conn == null) {
       conn = new AccumuloClientImpl(this);

@@ -85,7 +85,7 @@ class CompactionDriver extends MasterRepo {
     }
 
     MapCounter<TServerInstance> serversToFlush = new MapCounter<>();
-    AccumuloClient conn = master.getConnector();
+    AccumuloClient conn = master.getClient();
 
     Scanner scanner;
 

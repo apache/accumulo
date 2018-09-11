@@ -88,7 +88,7 @@ public class Merge {
     opts.parseArgs(Merge.class.getName(), args);
 
     try {
-      AccumuloClient conn = opts.getConnector();
+      AccumuloClient conn = opts.getClient();
 
       if (!conn.tableOperations().exists(opts.getTableName())) {
         System.err.println("table " + opts.getTableName() + " does not exist");

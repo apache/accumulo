@@ -69,7 +69,7 @@ public class VerifyIngest {
         Trace.data("cmdLine", Arrays.asList(args).toString());
       }
 
-      verifyIngest(opts.getConnector(), opts, scanOpts);
+      verifyIngest(opts.getClient(), opts, scanOpts);
 
     } finally {
       Trace.off();

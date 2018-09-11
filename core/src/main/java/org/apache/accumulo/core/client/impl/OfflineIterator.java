@@ -175,7 +175,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.readers = new ArrayList<>();
 
     try {
-      conn = context.getConnector();
+      conn = context.getClient();
       config = new ConfigurationCopy(conn.instanceOperations().getSiteConfiguration());
       nextTablet();
 

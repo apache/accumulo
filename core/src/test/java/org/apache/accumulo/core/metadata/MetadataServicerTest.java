@@ -55,7 +55,7 @@ public class MetadataServicerTest {
     TableOperations tableOps = EasyMock.createMock(TableOperations.class);
     EasyMock.expect(tableOps.tableIdMap()).andReturn(tableNameToIdMap).anyTimes();
     EasyMock.expect(conn.tableOperations()).andReturn(tableOps).anyTimes();
-    EasyMock.expect(context.getConnector()).andReturn(conn).anyTimes();
+    EasyMock.expect(context.getClient()).andReturn(conn).anyTimes();
     EasyMock.replay(context, conn, tableOps);
   }
 

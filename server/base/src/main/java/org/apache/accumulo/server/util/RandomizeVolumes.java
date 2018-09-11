@@ -56,9 +56,9 @@ public class RandomizeVolumes {
     ServerContext context = opts.getServerContext();
     AccumuloClient c;
     if (opts.getToken() == null) {
-      c = context.getConnector();
+      c = context.getClient();
     } else {
-      c = opts.getConnector();
+      c = opts.getClient();
     }
     try {
       int status = randomize(context, c, opts.getTableName());

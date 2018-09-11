@@ -85,7 +85,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private ReplicationOperationsImpl getReplicationOperations() throws Exception {
     Master master = EasyMock.createMock(Master.class);
     ServerContext serverContext = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(master.getConnector()).andReturn(conn).anyTimes();
+    EasyMock.expect(master.getClient()).andReturn(conn).anyTimes();
     EasyMock.expect(master.getContext()).andReturn(serverContext).anyTimes();
     EasyMock.replay(master);
 

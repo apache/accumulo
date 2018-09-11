@@ -286,7 +286,7 @@ public class AccumuloClientImpl extends Connector implements AccumuloClient {
 
     @Override
     public AccumuloClient build() throws AccumuloException, AccumuloSecurityException {
-      return org.apache.accumulo.core.client.impl.ClientInfoFactory.getConnector(getClientInfo());
+      return org.apache.accumulo.core.client.impl.ClientInfoFactory.getClient(getClientInfo());
     }
 
     @Override

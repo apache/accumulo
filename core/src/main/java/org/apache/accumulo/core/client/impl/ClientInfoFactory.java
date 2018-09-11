@@ -39,7 +39,7 @@ public class ClientInfoFactory {
     return property.getLong(info.getProperties());
   }
 
-  public static AccumuloClient getConnector(ClientInfo info)
+  public static AccumuloClient getClient(ClientInfo info)
       throws AccumuloSecurityException, AccumuloException {
     return new AccumuloClientImpl(new ClientContext(info));
   }

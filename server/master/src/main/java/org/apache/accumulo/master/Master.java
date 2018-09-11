@@ -638,8 +638,8 @@ public class Master
     return context.getTableManager();
   }
 
-  public AccumuloClient getConnector() throws AccumuloSecurityException, AccumuloException {
-    return context.getConnector();
+  public AccumuloClient getClient() throws AccumuloSecurityException, AccumuloException {
+    return context.getClient();
   }
 
   public Master(ServerContext context) throws IOException {
@@ -928,7 +928,7 @@ public class Master
         if (!migrations.isEmpty()) {
           try {
             cleanupOfflineMigrations();
-            cleanupNonexistentMigrations(context.getConnector());
+            cleanupNonexistentMigrations(context.getClient());
           } catch (Exception ex) {
             log.error("Error cleaning up migrations", ex);
           }

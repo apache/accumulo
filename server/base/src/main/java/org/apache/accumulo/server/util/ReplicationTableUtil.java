@@ -86,7 +86,7 @@ public class ReplicationTableUtil {
     if (replicationTable == null) {
       AccumuloClient conn;
       try {
-        conn = context.getConnector();
+        conn = context.getClient();
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new RuntimeException(e);
       }

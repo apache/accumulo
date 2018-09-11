@@ -60,7 +60,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     // scan over metadata table, looking for tablets in the wrong state based on the live servers
     // and online tables
     try {
-      AccumuloClient accumuloClient = context.getConnector();
+      AccumuloClient accumuloClient = context.getClient();
       mdScanner = accumuloClient.createBatchScanner(tableName, Authorizations.EMPTY, 8);
       configureScanner(mdScanner, state);
       mdScanner.setRanges(Collections.singletonList(range));

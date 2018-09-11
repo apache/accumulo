@@ -261,7 +261,7 @@ public class MergeStats {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(MergeStats.class.getName(), args);
 
-    AccumuloClient conn = opts.getConnector();
+    AccumuloClient conn = opts.getClient();
     Map<String,String> tableIdMap = conn.tableOperations().tableIdMap();
     ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooReaderWriter();
     for (Entry<String,String> entry : tableIdMap.entrySet()) {

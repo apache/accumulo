@@ -100,7 +100,7 @@ public class RandomWriter {
     long start = System.currentTimeMillis();
     log.info("starting at {} for user {}", start, opts.getPrincipal());
     try {
-      AccumuloClient accumuloClient = opts.getConnector();
+      AccumuloClient accumuloClient = opts.getClient();
       BatchWriter bw = accumuloClient.createBatchWriter(opts.getTableName(),
           bwOpts.getBatchWriterConfig());
       log.info("Writing {} mutations...", opts.count);

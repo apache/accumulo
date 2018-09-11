@@ -106,7 +106,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    */
   private Set<String> getWalsForTable(String tableName) throws Exception {
     final ServerContext context = getServerContext();
-    final AccumuloClient conn = context.getConnector();
+    final AccumuloClient conn = context.getClient();
     final String tableId = conn.tableOperations().tableIdMap().get(tableName);
 
     assertNotNull("Could not determine table ID for " + tableName, tableId);

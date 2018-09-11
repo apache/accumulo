@@ -84,7 +84,7 @@ public class TestMultiTableIngest {
     // create the test table within accumulo
     AccumuloClient accumuloClient;
     try {
-      accumuloClient = opts.getConnector();
+      accumuloClient = opts.getClient();
     } catch (AccumuloException | AccumuloSecurityException e) {
       throw new RuntimeException(e);
     }

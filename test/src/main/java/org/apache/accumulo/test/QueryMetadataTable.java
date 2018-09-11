@@ -100,7 +100,7 @@ public class QueryMetadataTable {
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(QueryMetadataTable.class.getName(), args, scanOpts);
 
-    AccumuloClient accumuloClient = opts.getConnector();
+    AccumuloClient accumuloClient = opts.getClient();
     HashSet<Text> rowSet = new HashSet<>();
 
     int count = 0;

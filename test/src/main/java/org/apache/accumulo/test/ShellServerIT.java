@@ -56,9 +56,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -2333,7 +2333,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2355,7 +2355,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2377,7 +2377,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2399,7 +2399,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2421,7 +2421,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2443,7 +2443,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2465,7 +2465,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2487,7 +2487,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, false);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2521,7 +2521,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("table " + tableName1, true);
     String tablesOutput = ts.exec("tables", true);
     assertTrue(tablesOutput.contains(tableName2));
-    Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName2);
+    Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName2);
     assertEquals(new TreeSet<>(splits), new TreeSet<>(createdSplits));
     ts.exec("deletetable -f " + tableName1, true);
     ts.exec("deletetable -f " + tableName2, true);
@@ -2542,7 +2542,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2564,7 +2564,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2586,7 +2586,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2608,7 +2608,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2630,7 +2630,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2652,7 +2652,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
@@ -2674,7 +2674,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
-      Collection<Text> createdSplits = getConnector().tableOperations().listSplits(tableName);
+      Collection<Text> createdSplits = getClient().tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));

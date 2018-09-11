@@ -163,8 +163,7 @@ public class ReplicationUtil {
     // Read over the queued work
     BatchScanner bs;
     try {
-      bs = context.getConnector().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY,
-          4);
+      bs = context.getClient().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
     } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
       log.debug("No replication table exists", e);
       return counts;
@@ -201,8 +200,7 @@ public class ReplicationUtil {
     // Read over the queued work
     BatchScanner bs;
     try {
-      bs = context.getConnector().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY,
-          4);
+      bs = context.getClient().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
     } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
       log.debug("No replication table exists", e);
       return paths;

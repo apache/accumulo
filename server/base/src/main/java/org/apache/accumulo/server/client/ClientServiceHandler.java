@@ -469,7 +469,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
       // use the same set of tableIds that were validated above to avoid race conditions
       Map<TreeSet<String>,Long> diskUsage = TableDiskUsage.getDiskUsage(tableIds, fs,
-          context.getConnector());
+          context.getClient());
       List<TDiskUsage> retUsages = new ArrayList<>();
       for (Map.Entry<TreeSet<String>,Long> usageItem : diskUsage.entrySet()) {
         retUsages.add(new TDiskUsage(new ArrayList<>(usageItem.getKey()), usageItem.getValue()));

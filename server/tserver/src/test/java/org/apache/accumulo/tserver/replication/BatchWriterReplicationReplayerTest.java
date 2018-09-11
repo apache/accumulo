@@ -63,7 +63,7 @@ public class BatchWriterReplicationReplayerTest {
     bw = createMock(BatchWriter.class);
     context = createMock(ClientContext.class);
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
-    expect(context.getConnector()).andReturn(conn).anyTimes();
+    expect(context.getClient()).andReturn(conn).anyTimes();
     replay(context);
   }
 

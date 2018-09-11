@@ -90,7 +90,7 @@ class CleanUp extends MasterRepo {
 
     boolean done = true;
     Range tableRange = new KeyExtent(tableId, null, null).toMetadataRange();
-    Scanner scanner = master.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner scanner = master.getClient().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, master);
     scanner.setRange(tableRange);
 
@@ -121,7 +121,7 @@ class CleanUp extends MasterRepo {
 
     try {
       // look for other tables that references this table's files
-      AccumuloClient conn = master.getConnector();
+      AccumuloClient conn = master.getClient();
       try (BatchScanner bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
         Range allTables = MetadataSchema.TabletsSection.getRange();
         Range tableRange = MetadataSchema.TabletsSection.getRange(tableId);

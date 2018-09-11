@@ -337,7 +337,7 @@ public class ConfiguratorBase {
   @Deprecated
   public static org.apache.accumulo.core.client.Instance getInstance(Class<?> implementingClass,
       Configuration conf) {
-    return Connector.from(getConnector(implementingClass, conf)).getInstance();
+    return Connector.from(getClient(implementingClass, conf)).getInstance();
   }
 
   /**
@@ -350,7 +350,7 @@ public class ConfiguratorBase {
    * @return Accumulo connector
    * @since 2.0.0
    */
-  public static AccumuloClient getConnector(Class<?> implementingClass, Configuration conf) {
+  public static AccumuloClient getClient(Class<?> implementingClass, Configuration conf) {
     try {
       return Accumulo.newClient().usingClientInfo(getClientInfo(implementingClass, conf)).build();
     } catch (AccumuloException | AccumuloSecurityException e) {

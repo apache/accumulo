@@ -128,7 +128,7 @@ public class RemoveEntriesForMissingFiles {
     System.out.printf("Scanning : %s %s\n", tableName, range);
 
     VolumeManager fs = context.getVolumeManager();
-    AccumuloClient accumuloClient = context.getConnector();
+    AccumuloClient accumuloClient = context.getClient();
     Scanner metadata = accumuloClient.createScanner(tableName, Authorizations.EMPTY);
     metadata.setRange(range);
     metadata.fetchColumnFamily(DataFileColumnFamily.NAME);

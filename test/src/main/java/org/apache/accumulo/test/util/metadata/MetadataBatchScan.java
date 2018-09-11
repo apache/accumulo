@@ -63,7 +63,7 @@ public class MetadataBatchScan {
 
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(MetadataBatchScan.class.getName(), args);
-    final AccumuloClient accumuloClient = opts.getConnector();
+    final AccumuloClient accumuloClient = opts.getClient();
 
     TreeSet<Long> splits = new TreeSet<>();
     Random r = new SecureRandom();

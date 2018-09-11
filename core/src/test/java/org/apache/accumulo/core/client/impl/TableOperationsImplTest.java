@@ -41,7 +41,7 @@ public class TableOperationsImplTest {
 
     Range range = new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange();
 
-    EasyMock.expect(context.getConnector()).andReturn(accumuloClient);
+    EasyMock.expect(context.getClient()).andReturn(accumuloClient);
     EasyMock.expect(accumuloClient.createScanner(tableName, Authorizations.EMPTY))
         .andReturn(scanner);
 

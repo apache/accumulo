@@ -237,7 +237,7 @@ public class TestBinaryRows {
     opts.parseArgs(TestBinaryRows.class.getName(), args, scanOpts, bwOpts);
 
     try {
-      runTest(opts.getConnector(), opts, bwOpts, scanOpts);
+      runTest(opts.getClient(), opts, bwOpts, scanOpts);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

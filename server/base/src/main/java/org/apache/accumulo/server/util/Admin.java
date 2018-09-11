@@ -244,7 +244,7 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
       } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
-        rc = RandomizeVolumes.randomize(context, context.getConnector(),
+        rc = RandomizeVolumes.randomize(context, context.getClient(),
             randomizeVolumesOpts.tableName);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
@@ -272,7 +272,7 @@ public class Admin implements KeywordExecutable {
   private static int ping(ClientContext context, List<String> args)
       throws AccumuloException, AccumuloSecurityException {
 
-    InstanceOperations io = context.getConnector().instanceOperations();
+    InstanceOperations io = context.getClient().instanceOperations();
 
     if (args.size() == 0) {
       args = io.getTabletServers();
@@ -309,7 +309,7 @@ public class Admin implements KeywordExecutable {
       @Override
       public void run() {
         try {
-          AccumuloClient conn = context.getConnector();
+          AccumuloClient conn = context.getClient();
           Set<String> tables = conn.tableOperations().tableIdMap().keySet();
           for (String table : tables) {
             if (table.equals(MetadataTable.NAME))
@@ -447,7 +447,7 @@ public class Admin implements KeywordExecutable {
         throw new IllegalArgumentException(opts.directory + " is not writable");
       }
     }
-    AccumuloClient accumuloClient = context.getConnector();
+    AccumuloClient accumuloClient = context.getClient();
     defaultConfig = DefaultConfiguration.getInstance();
     siteConfig = accumuloClient.instanceOperations().getSiteConfiguration();
     systemConfig = accumuloClient.instanceOperations().getSystemConfiguration();

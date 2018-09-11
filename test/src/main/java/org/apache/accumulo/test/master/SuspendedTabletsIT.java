@@ -168,7 +168,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
     String tableName = getUniqueNames(1)[0];
 
-    AccumuloClient conn = ctx.getConnector();
+    AccumuloClient conn = ctx.getClient();
 
     // Create a table with a bunch of splits
     log.info("Creating table " + tableName);
@@ -313,7 +313,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     }
 
     private void scan(ClientContext ctx, String tableName) throws Exception {
-      Map<String,String> idMap = ctx.getConnector().tableOperations().tableIdMap();
+      Map<String,String> idMap = ctx.getClient().tableOperations().tableIdMap();
       String tableId = Objects.requireNonNull(idMap.get(tableName));
       try (MetaDataTableScanner scanner = new MetaDataTableScanner(ctx, new Range())) {
         while (scanner.hasNext()) {

@@ -88,7 +88,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
 
     AccumuloClient conn;
     try {
-      conn = context.getConnector();
+      conn = context.getClient();
     } catch (Exception e) {
       log.error("Could not create connector", e);
       throw new RuntimeException(e);

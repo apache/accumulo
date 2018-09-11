@@ -181,7 +181,7 @@ public class ClientOpts extends Help {
     return cachedInfo;
   }
 
-  public AccumuloClient getConnector() throws AccumuloException, AccumuloSecurityException {
+  public AccumuloClient getClient() throws AccumuloException, AccumuloSecurityException {
     if (cachedAccumuloClient == null) {
       cachedAccumuloClient = Accumulo.newClient().usingClientInfo(getClientInfo()).build();
     }

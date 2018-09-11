@@ -99,7 +99,7 @@ public class CheckForMetadataProblems {
 
     Scanner scanner;
 
-    scanner = opts.getConnector().createScanner(tableNameToCheck, Authorizations.EMPTY);
+    scanner = opts.getClient().createScanner(tableNameToCheck, Authorizations.EMPTY);
 
     scanner.setRange(MetadataSchema.TabletsSection.getRange());
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);

@@ -182,7 +182,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       serversToFlush.clear();
 
       try {
-        AccumuloClient conn = master.getConnector();
+        AccumuloClient conn = master.getClient();
         Scanner scanner;
         if (tableId.equals(MetadataTable.ID)) {
           scanner = new IsolatedScanner(conn.createScanner(RootTable.NAME, Authorizations.EMPTY));
@@ -554,7 +554,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       Set<String> logsToWatch) throws TException {
     AccumuloClient conn;
     try {
-      conn = master.getConnector();
+      conn = master.getClient();
     } catch (AccumuloException | AccumuloSecurityException e) {
       throw new RuntimeException("Failed to obtain connector", e);
     }

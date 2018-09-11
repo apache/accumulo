@@ -352,7 +352,7 @@ public class GarbageCollectWriteAheadLogs {
       throws IOException, KeeperException, InterruptedException {
     AccumuloClient conn;
     try {
-      conn = context.getConnector();
+      conn = context.getClient();
       try {
         final Scanner s = ReplicationTable.getScanner(conn);
         StatusSection.limit(s);
