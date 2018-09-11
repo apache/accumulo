@@ -89,7 +89,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -130,11 +129,6 @@ public class RFileTest {
   @BeforeClass
   public static void setupCryptoKeyFile() throws Exception {
     CryptoTest.setupKeyFile();
-  }
-
-  @AfterClass
-  public static void removeCryptoKeyFile() throws Exception {
-    CryptoTest.cleanupKeyFile();
   }
 
   static class SeekableByteArrayInputStream extends ByteArrayInputStream

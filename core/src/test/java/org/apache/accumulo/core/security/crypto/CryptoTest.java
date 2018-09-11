@@ -66,7 +66,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -88,18 +87,9 @@ public class CryptoTest {
   public static void setupKeyFile() throws Exception {
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
     Path aesPath = new Path(keyPath);
-    fs.delete(aesPath, true);
-    fs.createNewFile(aesPath);
     try (FSDataOutputStream out = fs.create(aesPath)) {
       out.writeUTF("sixteenbytekey"); // 14 + 2 from writeUTF
     }
-  }
-
-  @AfterClass
-  public static void cleanupKeyFile() throws Exception {
-    FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
-    Path aesPath = new Path(keyPath);
-    fs.delete(aesPath, true);
   }
 
   @Test
