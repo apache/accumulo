@@ -30,7 +30,8 @@ import org.apache.accumulo.core.security.Authorizations;
  * The Connector enforces security on the client side by forcing all API calls to be accompanied by
  * user credentials.
  *
- * @deprecated For backwards compatibility only, use {@link AccumuloClient}
+ * @deprecated since 2.0.0. Use {@link AccumuloClient} for wiriting new code. Connector is available
+ *             for existing code. Use {@link #from(AccumuloClient)} as a bridge between the two.
  */
 public abstract class Connector {
 

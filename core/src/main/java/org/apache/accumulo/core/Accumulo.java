@@ -21,13 +21,18 @@ import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
 
 /**
  * The main entry point for Accumulo public API.
+ *
+ * @since 2.0.0
  */
 public final class Accumulo {
 
   private Accumulo() {}
 
   /**
-   * Create an Accumulo client builder, used to construct a client.
+   * Create an Accumulo client builder, used to construct a client. For example:
+   *
+   * {@code Accumulo.newClient().forInstance(instanceName, zookeepers)
+   *         .usingPassword(user, password).withZkTimeout(1234).build();}
    *
    * @return a builder object for Accumulo clients
    */

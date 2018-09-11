@@ -21,7 +21,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -76,7 +76,7 @@ public class MiniAccumuloClusterStartStopTest {
   public void multipleStopsIsAllowed() throws Exception {
     accumulo.start();
 
-    AccumuloClient conn = accumulo.getConnector("root", "superSecret");
+    Connector conn = accumulo.getConnector("root", "superSecret");
     conn.tableOperations().create("foo");
 
     accumulo.stop();

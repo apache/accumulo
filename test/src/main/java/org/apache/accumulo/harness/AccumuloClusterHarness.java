@@ -359,7 +359,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     }
   }
 
-  public Connector getClient() {
+  public Connector getConnector() {
     try {
       log.warn("No longer used since version 2.0, please call getAccumuloClient() instead.");
       String princ = getAdminPrincipal();
