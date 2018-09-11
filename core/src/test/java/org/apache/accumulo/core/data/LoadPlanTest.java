@@ -31,45 +31,45 @@ import org.junit.Test;
 public class LoadPlanTest {
   @Test(expected = IllegalArgumentException.class)
   public void testBadRange1() {
-    LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLET, "a", "a").build();
+    LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, "a", "a").build();
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testBadRange2() {
-    LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLET, "b", "a").build();
+    LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, "b", "a").build();
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testBadRange3() {
-    LoadPlan.builder().loadFileTo("f1.rf", RangeType.DATA, "b", "a").build();
+    LoadPlan.builder().loadFileTo("f1.rf", RangeType.FILE, "b", "a").build();
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testBadRange4() {
-    LoadPlan.builder().loadFileTo("f1.rf", RangeType.DATA, null, "a").build();
+    LoadPlan.builder().loadFileTo("f1.rf", RangeType.FILE, null, "a").build();
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testBadRange5() {
-    LoadPlan.builder().loadFileTo("f1.rf", RangeType.DATA, "a", null).build();
+    LoadPlan.builder().loadFileTo("f1.rf", RangeType.FILE, "a", null).build();
   }
 
   @Test
   public void testTypes() {
-    LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.DATA, "1112", "1145")
-        .loadFileTo("f2.rf", RangeType.DATA, "abc".getBytes(UTF_8), "def".getBytes(UTF_8))
-        .loadFileTo("f3.rf", RangeType.DATA, new Text("368"), new Text("479"))
-        .loadFileTo("f4.rf", RangeType.TABLET, null, "aaa")
-        .loadFileTo("f5.rf", RangeType.TABLET, "yyy", null)
-        .loadFileTo("f6.rf", RangeType.TABLET, null, "bbb".getBytes(UTF_8))
-        .loadFileTo("f7.rf", RangeType.TABLET, "www".getBytes(UTF_8), null)
-        .loadFileTo("f8.rf", RangeType.TABLET, null, new Text("ccc"))
-        .loadFileTo("f9.rf", RangeType.TABLET, new Text("xxx"), null)
-        .loadFileTo("fa.rf", RangeType.TABLET, "1138", "1147")
-        .loadFileTo("fb.rf", RangeType.TABLET, "heg".getBytes(UTF_8), "klt".getBytes(UTF_8))
-        .loadFileTo("fc.rf", RangeType.TABLET, new Text("agt"), new Text("ctt"))
+    LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.FILE, "1112", "1145")
+        .loadFileTo("f2.rf", RangeType.FILE, "abc".getBytes(UTF_8), "def".getBytes(UTF_8))
+        .loadFileTo("f3.rf", RangeType.FILE, new Text("368"), new Text("479"))
+        .loadFileTo("f4.rf", RangeType.TABLE, null, "aaa")
+        .loadFileTo("f5.rf", RangeType.TABLE, "yyy", null)
+        .loadFileTo("f6.rf", RangeType.TABLE, null, "bbb".getBytes(UTF_8))
+        .loadFileTo("f7.rf", RangeType.TABLE, "www".getBytes(UTF_8), null)
+        .loadFileTo("f8.rf", RangeType.TABLE, null, new Text("ccc"))
+        .loadFileTo("f9.rf", RangeType.TABLE, new Text("xxx"), null)
+        .loadFileTo("fa.rf", RangeType.TABLE, "1138", "1147")
+        .loadFileTo("fb.rf", RangeType.TABLE, "heg".getBytes(UTF_8), "klt".getBytes(UTF_8))
+        .loadFileTo("fc.rf", RangeType.TABLE, new Text("agt"), new Text("ctt"))
         .addPlan(
-            LoadPlan.builder().loadFileTo("fd.rf", RangeType.TABLET, (String) null, null).build())
+            LoadPlan.builder().loadFileTo("fd.rf", RangeType.TABLE, (String) null, null).build())
         .build();
 
     Set<String> expected = new HashSet<>();

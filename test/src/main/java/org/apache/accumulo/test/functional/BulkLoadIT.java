@@ -240,10 +240,10 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     hashes.get("null").add(h4);
 
     if (usePlan) {
-      LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLET, null, row(333))
-          .loadFileTo("f2.rf", RangeType.TABLET, row(333), row(999))
-          .loadFileTo("f3.rf", RangeType.DATA, row(1000), row(1499))
-          .loadFileTo("f4.rf", RangeType.DATA, row(1500), row(1999)).build();
+      LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
+          .loadFileTo("f2.rf", RangeType.TABLE, row(333), row(999))
+          .loadFileTo("f3.rf", RangeType.FILE, row(1000), row(1499))
+          .loadFileTo("f4.rf", RangeType.FILE, row(1500), row(1999)).build();
       c.tableOperations().addFilesTo(tableName).from(dir).usingPlan(loadPlan).load();
     } else {
       c.tableOperations().addFilesTo(tableName).from(dir).load();
@@ -287,9 +287,9 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     writeData(dir + "/f2.", aconf, 0, 666);
 
     // Create a plan with more files than exists in dir
-    LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLET, null, row(333))
-        .loadFileTo("f2.rf", RangeType.TABLET, null, row(666))
-        .loadFileTo("f3.rf", RangeType.TABLET, null, row(666)).build();
+    LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
+        .loadFileTo("f2.rf", RangeType.TABLE, null, row(666))
+        .loadFileTo("f3.rf", RangeType.TABLE, null, row(666)).build();
     try {
       c.tableOperations().addFilesTo(tableName).from(dir).usingPlan(loadPlan).load();
       Assert.fail();
@@ -298,7 +298,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     }
 
     // Create a plan with less files than exists in dir
-    loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLET, null, row(333)).build();
+    loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333)).build();
     try {
       c.tableOperations().addFilesTo(tableName).from(dir).usingPlan(loadPlan).load();
       Assert.fail();
@@ -307,8 +307,8 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     }
 
     // Create a plan with tablet boundary that does not exits
-    loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLET, null, row(555))
-        .loadFileTo("f2.rf", RangeType.TABLET, null, row(555)).build();
+    loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(555))
+        .loadFileTo("f2.rf", RangeType.TABLE, null, row(555)).build();
     try {
       c.tableOperations().addFilesTo(tableName).from(dir).usingPlan(loadPlan).load();
       Assert.fail();

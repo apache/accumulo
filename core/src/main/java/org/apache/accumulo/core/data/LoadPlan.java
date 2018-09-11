@@ -66,13 +66,13 @@ public class LoadPlan {
      * tables splits. When using this range type the start and end row must exist as splits in the
      * table or an exception will be thrown at load time.
      */
-    TABLET,
+    TABLE,
     /**
      * Range that correspond to known rows in a file. For this range type the start row and end row
      * must be non-null. The start row and end row are both considered inclusive. At load time these
      * data ranges will be mapped to tablet ranges.
      */
-    DATA
+    FILE
   }
 
   /**
@@ -88,9 +88,9 @@ public class LoadPlan {
     private final RangeType rangeType;
 
     private byte[] checkRow(RangeType type, byte[] row) {
-      if (type == RangeType.DATA && row == null) {
+      if (type == RangeType.FILE && row == null) {
         throw new IllegalArgumentException(
-            "Row can not be null when range type is " + RangeType.DATA);
+            "Row can not be null when range type is " + RangeType.FILE);
       }
       return row;
     }
@@ -101,14 +101,14 @@ public class LoadPlan {
       this.startRow = checkRow(rangeType, startRow);
       this.endRow = checkRow(rangeType, endRow);
 
-      if (rangeType == RangeType.DATA) {
+      if (rangeType == RangeType.FILE) {
         if (UnsignedBytes.lexicographicalComparator().compare(startRow, endRow) > 0) {
           String srs = new String(startRow, StandardCharsets.UTF_8);
           String ers = new String(endRow, StandardCharsets.UTF_8);
           throw new IllegalArgumentException(
               "Start row is greater than end row : " + srs + " " + ers);
         }
-      } else if (rangeType == RangeType.TABLET) {
+      } else if (rangeType == RangeType.TABLE) {
         if (startRow != null && endRow != null
             && UnsignedBytes.lexicographicalComparator().compare(startRow, endRow) >= 0) {
           String srs = new String(startRow, StandardCharsets.UTF_8);

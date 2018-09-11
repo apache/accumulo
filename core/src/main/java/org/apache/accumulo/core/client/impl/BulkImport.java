@@ -355,7 +355,7 @@ public class BulkImport implements ImportSourceArguments, ImportDestinationOptio
     // Pre-populate cache by looking up all end rows in sorted order. Doing this in sorted order
     // leverages read ahead.
     fileDestinations.values().stream().flatMap(List::stream)
-        .filter(dest -> dest.getRangeType() == RangeType.DATA)
+        .filter(dest -> dest.getRangeType() == RangeType.FILE)
         .flatMap(dest -> Stream.of(dest.getStartRow(), dest.getEndRow())).filter(row -> row != null)
         .map(Text::new).sorted().distinct().forEach(row -> {
           try {
@@ -394,9 +394,9 @@ public class BulkImport implements ImportSourceArguments, ImportDestinationOptio
 
     for (Destination dest : destinations) {
 
-      if (dest.getRangeType() == RangeType.TABLET) {
+      if (dest.getRangeType() == RangeType.TABLE) {
         extents.add(new KeyExtent(tableId, toText(dest.getEndRow()), toText(dest.getStartRow())));
-      } else if (dest.getRangeType() == RangeType.DATA) {
+      } else if (dest.getRangeType() == RangeType.FILE) {
         Text startRow = new Text(dest.getStartRow());
         Text endRow = new Text(dest.getEndRow());
 
