@@ -66,7 +66,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -76,8 +75,10 @@ public class CryptoTest {
 
   public static final int MARKER_INT = 0xCADEFEDD;
   public static final String MARKER_STRING = "1 2 3 4 5 6 7 8 a b c d e f g h ";
-  public static final String CRYPTO_ON_CONF = "crypto-on-accumulo.properties";
-  public static final String CRYPTO_OFF_CONF = "accumulo.properties";
+  public static final String CRYPTO_ON_CONF = "ON";
+  public static final String CRYPTO_OFF_CONF = "OFF";
+  public static final String keyPath = System.getProperty("user.dir")
+      + "/target/CryptoTest-testkeyfile";
 
   @Rule
   public ExpectedException exception = ExpectedException.none();
@@ -85,21 +86,10 @@ public class CryptoTest {
   @BeforeClass
   public static void setupKeyFile() throws Exception {
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
-    String file = "/tmp/testAESFile";
-    Path aesPath = new Path(file);
-    fs.delete(aesPath, true);
-    fs.createNewFile(aesPath);
+    Path aesPath = new Path(keyPath);
     try (FSDataOutputStream out = fs.create(aesPath)) {
       out.writeUTF("sixteenbytekey"); // 14 + 2 from writeUTF
     }
-  }
-
-  @AfterClass
-  public static void cleanupKeyFile() throws Exception {
-    FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
-    String file = "/tmp/testAESFile";
-    Path aesPath = new Path(file);
-    fs.delete(aesPath, true);
   }
 
   @Test
@@ -297,7 +287,7 @@ public class CryptoTest {
 
   @Test
   public void testKeyManagerLoadKekFromUri() throws IOException {
-    SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri("file:///tmp/testAESFile");
+    SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri(keyPath);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     dos.writeUTF("sixteenbytekey");
