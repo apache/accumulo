@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -54,7 +55,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -1787,8 +1787,16 @@ public class RFileTest {
     reader.close();
   }
 
-  public static AccumuloConfiguration getAccumuloConfig(String cryptoConfSetting) {
-    return new SiteConfiguration(CryptoTest.class.getClassLoader().getResource(cryptoConfSetting));
+  public static AccumuloConfiguration getAccumuloConfig(String cryptoOn) {
+    ConfigurationCopy cfg = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    switch (cryptoOn) {
+      case CryptoTest.CRYPTO_ON_CONF:
+        cfg.set(Property.INSTANCE_CRYPTO_SERVICE,
+            "org.apache.accumulo.core.security.crypto.impl.AESCryptoService");
+        cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "key.location", CryptoTest.keyPath);
+        cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "key.provider", "uri");
+    }
+    return cfg;
   }
 
   @Test

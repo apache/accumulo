@@ -76,8 +76,10 @@ public class CryptoTest {
 
   public static final int MARKER_INT = 0xCADEFEDD;
   public static final String MARKER_STRING = "1 2 3 4 5 6 7 8 a b c d e f g h ";
-  public static final String CRYPTO_ON_CONF = "crypto-on-accumulo.properties";
-  public static final String CRYPTO_OFF_CONF = "accumulo.properties";
+  public static final String CRYPTO_ON_CONF = "ON";
+  public static final String CRYPTO_OFF_CONF = "OFF";
+  public static final String keyPath = System.getProperty("user.dir")
+      + "/target/CryptoTest-testkeyfile";
 
   @Rule
   public ExpectedException exception = ExpectedException.none();
@@ -85,8 +87,7 @@ public class CryptoTest {
   @BeforeClass
   public static void setupKeyFile() throws Exception {
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
-    String file = "/tmp/testAESFile";
-    Path aesPath = new Path(file);
+    Path aesPath = new Path(keyPath);
     fs.delete(aesPath, true);
     fs.createNewFile(aesPath);
     try (FSDataOutputStream out = fs.create(aesPath)) {
@@ -97,8 +98,7 @@ public class CryptoTest {
   @AfterClass
   public static void cleanupKeyFile() throws Exception {
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
-    String file = "/tmp/testAESFile";
-    Path aesPath = new Path(file);
+    Path aesPath = new Path(keyPath);
     fs.delete(aesPath, true);
   }
 
@@ -297,7 +297,7 @@ public class CryptoTest {
 
   @Test
   public void testKeyManagerLoadKekFromUri() throws IOException {
-    SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri("file:///tmp/testAESFile");
+    SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri(keyPath);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     dos.writeUTF("sixteenbytekey");
