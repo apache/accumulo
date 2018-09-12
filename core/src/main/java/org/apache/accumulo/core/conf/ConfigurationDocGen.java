@@ -30,23 +30,12 @@ import java.util.TreeMap;
 class ConfigurationDocGen {
   private PrintStream doc;
   private final TreeMap<String,Property> sortedProps = new TreeMap<>();
-  private final TreeMap<String,Property> experimentalProps = new TreeMap<>();
 
   void generate() {
     pageHeader();
 
     beginTable("Property");
     for (Property prop : sortedProps.values()) {
-      if (prop.getType() == PropertyType.PREFIX) {
-        prefixSection(prop);
-      } else {
-        property(prop);
-      }
-    }
-
-    beginSection("Experimental Properties");
-    beginTable("Property");
-    for (Property prop : experimentalProps.values()) {
       if (prop.getType() == PropertyType.PREFIX) {
         prefixSection(prop);
       } else {
@@ -80,7 +69,8 @@ class ConfigurationDocGen {
         + " that is copied from Accumulo build (from core/target/generated-docs)" + " -->\n");
     doc.println("Below are properties set in `accumulo.properties` or the"
         + " Accumulo shell that configure Accumulo servers (i.e tablet server,"
-        + " master, etc):\n");
+        + " master, etc). Properties labeled 'Experimental' could be part of an incomplete"
+        + " feature or have a higher risk of changing in the future.\n");
   }
 
   void prefixSection(Property prefix) {
@@ -138,11 +128,7 @@ class ConfigurationDocGen {
   private ConfigurationDocGen(PrintStream doc) {
     this.doc = doc;
     for (Property prop : Property.values()) {
-      if (!prop.isExperimental()) {
-        this.sortedProps.put(prop.getKey(), prop);
-      } else {
-        this.experimentalProps.put(prop.getKey(), prop);
-      }
+      this.sortedProps.put(prop.getKey(), prop);
     }
   }
 
