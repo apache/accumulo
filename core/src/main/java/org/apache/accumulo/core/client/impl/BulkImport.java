@@ -51,7 +51,6 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationOptions;
-import org.apache.accumulo.core.client.admin.TableOperations.ImportFinalOptions;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportSourceArguments;
 import org.apache.accumulo.core.client.impl.Bulk.FileInfo;
 import org.apache.accumulo.core.client.impl.Bulk.Files;
@@ -105,7 +104,7 @@ public class BulkImport implements ImportSourceArguments, ImportDestinationOptio
   }
 
   @Override
-  public ImportFinalOptions settingLogicalTime() {
+  public ImportDestinationOptions usingTableTime() {
     this.setTime = true;
     return this;
   }
@@ -172,16 +171,22 @@ public class BulkImport implements ImportSourceArguments, ImportDestinationOptio
   }
 
   @Override
-  public ImportFinalOptions examiningWith(Executor service) {
+  public ImportDestinationOptions usingExecutor(Executor service) {
     this.executor = Objects.requireNonNull(service);
     return this;
   }
 
   @Override
-  public ImportFinalOptions examiningWith(int numThreads) {
+  public ImportDestinationOptions usingExecutor(int numThreads) {
     Preconditions.checkArgument(numThreads > 0, "Non positive number of threads given : %s",
         numThreads);
     this.numThreads = numThreads;
+    return this;
+  }
+
+  @Override
+  public ImportDestinationOptions usingPlan(LoadPlan plan) {
+    this.plan = plan;
     return this;
   }
 
@@ -540,11 +545,4 @@ public class BulkImport implements ImportSourceArguments, ImportDestinationOptio
       throw new AssertionError(e);
     }
   }
-
-  @Override
-  public ImportFinalOptions usingPlan(LoadPlan plan) {
-    this.plan = plan;
-    return this;
-  }
-
 }

@@ -36,6 +36,7 @@ public class ImportDirectoryCommand extends Command {
         + "arguments: <directory> true|false";
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
@@ -51,7 +52,7 @@ public class ImportDirectoryCommand extends Command {
       TableOperations.ImportDestinationOptions bulk = shellState.getConnector().tableOperations()
           .addFilesTo(shellState.getTableName()).from(dir);
       if (setTime)
-        bulk.settingLogicalTime().load();
+        bulk.usingTableTime().load();
       else
         bulk.load();
     } else if (args.length == 3) {
