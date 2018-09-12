@@ -618,6 +618,9 @@ public interface TableOperations {
   void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
 
+  /**
+   * @since 2.0.0
+   */
   interface ImportOptions {
 
     /**
