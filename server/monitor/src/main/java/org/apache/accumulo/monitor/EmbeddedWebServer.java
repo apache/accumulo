@@ -29,8 +29,12 @@ import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EmbeddedWebServer {
+  private static final Logger LOG = LoggerFactory.getLogger(EmbeddedWebServer.class);
+
   private final Server server;
   private final ServerConnector connector;
   private final ServletContextHandler handler;
@@ -51,17 +55,21 @@ public class EmbeddedWebServer {
   private static AbstractConnectionFactory[] getConnectionFactories(AccumuloConfiguration conf) {
     HttpConnectionFactory httpFactory = new HttpConnectionFactory();
     EnumSet<Property> requireForSecure = EnumSet.of(Property.MONITOR_SSL_KEYSTORE,
-        Property.MONITOR_SSL_KEYSTOREPASS, Property.MONITOR_SSL_TRUSTSTORE,
-        Property.MONITOR_SSL_TRUSTSTOREPASS);
+        Property.MONITOR_SSL_KEYSTOREPASS, Property.MONITOR_SSL_TRUSTSTORE);
+
     if (requireForSecure.stream().map(p -> conf.get(p)).anyMatch(s -> s == null || s.isEmpty())) {
       return new AbstractConnectionFactory[] {httpFactory};
     } else {
+      final String trustStorePass = conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS);
+      if (trustStorePass.isEmpty()) {
+        LOG.warn("Truststore JKS file has an empty password which prevents any integrity checks.");
+      }
       SslContextFactory sslContextFactory = new SslContextFactory();
       sslContextFactory.setKeyStorePath(conf.get(Property.MONITOR_SSL_KEYSTORE));
       sslContextFactory.setKeyStorePassword(conf.get(Property.MONITOR_SSL_KEYSTOREPASS));
       sslContextFactory.setKeyStoreType(conf.get(Property.MONITOR_SSL_KEYSTORETYPE));
       sslContextFactory.setTrustStorePath(conf.get(Property.MONITOR_SSL_TRUSTSTORE));
-      sslContextFactory.setTrustStorePassword(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS));
+      sslContextFactory.setTrustStorePassword(trustStorePass);
       sslContextFactory.setTrustStoreType(conf.get(Property.MONITOR_SSL_TRUSTSTORETYPE));
 
       final String includedCiphers = conf.get(Property.MONITOR_SSL_INCLUDE_CIPHERS);
