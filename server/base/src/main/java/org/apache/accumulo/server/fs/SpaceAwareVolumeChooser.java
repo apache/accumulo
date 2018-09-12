@@ -1,0 +1,143 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.accumulo.server.fs;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.NavigableMap;
+import java.util.Random;
+import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FsStatus;
+import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
+/**
+ * A {@link PreferredVolumeChooser} that takes remaining HDFS space into account when making a
+ * volume choice rather than a simpler round robin. The list of volumes to use can be limited using
+ * the same properties as {@link PreferredVolumeChooser}
+ */
+public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
+
+  public static final String HDFS_SPACE_RECOMPUTE_INTERVAL = Property.GENERAL_ARBITRARY_PROP_PREFIX
+      .getKey() + "spaceaware.volume.chooser.recompute.interval";
+
+  // Default time to wait in ms. Defaults to 5 min
+  private long defaultComputationCacheDuration = 300000;
+  LoadingCache<List<String>,WeightedRandomCollection> choiceCache = null;
+
+  private static final Logger log = LoggerFactory.getLogger(SpaceAwareVolumeChooser.class);
+
+  @Override
+  public String choose(VolumeChooserEnvironment env, String[] options)
+      throws VolumeChooserException {
+
+    options = getPreferredVolumes(env, options);
+
+    try {
+      return getCache(env).get(Arrays.asList(options)).next();
+    } catch (ExecutionException e) {
+      throw new IllegalStateException("Execution exception when attempting to cache choice", e);
+    }
+  }
+
+  private synchronized LoadingCache<List<String>,WeightedRandomCollection> getCache(
+      VolumeChooserEnvironment env) {
+
+    if (choiceCache == null) {
+      ServerConfigurationFactory scf = loadConfFactory(env);
+      AccumuloConfiguration systemConfiguration = scf.getSystemConfiguration();
+      String propertyValue = systemConfiguration.get(HDFS_SPACE_RECOMPUTE_INTERVAL);
+
+      long computationCacheDuration = StringUtils.isNotBlank(propertyValue)
+          ? Long.parseLong(propertyValue)
+          : defaultComputationCacheDuration;
+
+      choiceCache = CacheBuilder.newBuilder()
+          .expireAfterWrite(computationCacheDuration, TimeUnit.MILLISECONDS)
+          .build(new CacheLoader<List<String>,WeightedRandomCollection>() {
+            public WeightedRandomCollection load(List<String> key) {
+              return new WeightedRandomCollection(key, env);
+            }
+          });
+    }
+
+    return choiceCache;
+  }
+
+  public class WeightedRandomCollection {
+    private final NavigableMap<Double,String> map = new TreeMap<Double,String>();
+    private final Random random;
+    private double total = 0;
+
+    public WeightedRandomCollection(List<String> options, VolumeChooserEnvironment env) {
+      this.random = new Random();
+
+      if (options.size() < 1) {
+        throw new IllegalStateException("Options was empty! No valid volumes to choose from.");
+      }
+
+      VolumeManager manager = env.getServerContext().getVolumeManager();
+
+      // Compute percentage space available on each volume
+      for (String option : options) {
+        FileSystem pathFs = manager.getVolumeByPath(new Path(option)).getFileSystem();
+        try {
+          FsStatus optionStatus = pathFs.getStatus();
+          double percentFree = ((double) optionStatus.getRemaining() / optionStatus.getCapacity());
+          add(percentFree, option);
+        } catch (IOException e) {
+          log.error("Unable to get file system status for" + option, e);
+        }
+      }
+
+      if (map.size() < 1) {
+        throw new IllegalStateException(
+            "Weighted options was empty! Could indicate an issue getting file system status or "
+                + "no free space on any volume");
+      }
+    }
+
+    public WeightedRandomCollection add(double weight, String result) {
+      if (weight <= 0) {
+        log.info("Weight was 0. Not adding " + result);
+        return this;
+      }
+      total += weight;
+      map.put(total, result);
+      return this;
+    }
+
+    public String next() {
+      double value = random.nextDouble() * total;
+      return map.higherEntry(value).getValue();
+    }
+  }
+}
