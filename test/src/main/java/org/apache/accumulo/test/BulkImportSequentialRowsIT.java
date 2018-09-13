@@ -96,7 +96,7 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
     // Then import a single rfile to all the tablets, hoping that we get a failure to import because
     // of the balancer moving tablets around
     // and then we get to verify that the bug is actually fixed.
-    to.addFilesTo(tableName).from(bulk.toString()).load();
+    to.importDirectory(bulk.toString()).to(tableName).load();
 
     // The bug is that some tablets don't get imported into.
     assertEquals(NR * NV,

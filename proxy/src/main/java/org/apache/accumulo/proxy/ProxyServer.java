@@ -59,7 +59,7 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationOptions;
+import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.Credentials;
@@ -1765,8 +1765,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
     try {
-      ImportDestinationOptions loader = getConnector(login).tableOperations().addFilesTo(tableName)
-          .from(importDir);
+      ImportMappingOptions loader = getConnector(login).tableOperations().importDirectory(importDir)
+          .to(tableName);
       if (setTime) {
         loader.tableTime().load();
       } else {

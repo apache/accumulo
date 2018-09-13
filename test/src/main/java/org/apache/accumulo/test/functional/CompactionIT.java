@@ -114,7 +114,7 @@ public class CompactionIT extends AccumuloClusterHarness {
     Path testrf = new Path(root, "testrf");
     FunctionalTestUtils.createRFiles(c, fs, testrf.toString(), 500000, 59, 4);
 
-    c.tableOperations().addFilesTo(tableName).from(testrf.toString()).load();
+    c.tableOperations().importDirectory(testrf.toString()).to(tableName).load();
     int beforeCount = countFiles(c);
 
     final AtomicBoolean fail = new AtomicBoolean(false);

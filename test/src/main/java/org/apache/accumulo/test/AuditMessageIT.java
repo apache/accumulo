@@ -334,8 +334,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Now do a Directory (bulk) import of the same data.
     auditConnector.tableOperations().create(THIRD_TEST_TABLE_NAME);
-    auditConnector.tableOperations().addFilesTo(THIRD_TEST_TABLE_NAME)
-        .from(exportDirBulk.toString()).load();
+    auditConnector.tableOperations().importDirectory(exportDirBulk.toString())
+        .to(THIRD_TEST_TABLE_NAME).load();
     auditConnector.tableOperations().online(OLD_TEST_TABLE_NAME);
 
     // Stop testing activities here

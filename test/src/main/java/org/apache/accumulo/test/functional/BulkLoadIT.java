@@ -123,7 +123,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
     String h1 = writeData(dir + "/f1.", aconf, 0, 332);
 
-    c.tableOperations().addFilesTo(tableName).from(dir).load();
+    c.tableOperations().importDirectory(dir).to(tableName).load();
 
     if (offline)
       c.tableOperations().online(tableName);
@@ -153,7 +153,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
     String h1 = writeData(dir + "/f1.", aconf, 0, 333);
 
-    c.tableOperations().addFilesTo(tableName).from(dir).load();
+    c.tableOperations().importDirectory(dir).to(tableName).load();
 
     if (offline)
       c.tableOperations().online(tableName);
@@ -185,7 +185,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     FsPermission originalPerms = fs.getFileStatus(rFilePath).getPermission();
     fs.setPermission(rFilePath, FsPermission.valueOf("----------"));
     try {
-      c.tableOperations().addFilesTo(tableName).from(dir).load();
+      c.tableOperations().importDirectory(dir).to(tableName).load();
     } catch (Exception e) {
       Throwable cause = e.getCause();
       if (!(cause instanceof FileNotFoundException)
@@ -198,7 +198,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     originalPerms = fs.getFileStatus(new Path(dir)).getPermission();
     fs.setPermission(new Path(dir), FsPermission.valueOf("dr--r--r--"));
     try {
-      c.tableOperations().addFilesTo(tableName).from(dir).load();
+      c.tableOperations().importDirectory(dir).to(tableName).load();
     } catch (AccumuloException ae) {
       if (!(ae.getCause() instanceof FileNotFoundException))
         fail("Expected FileNotFoundException but threw " + ae.getCause());
@@ -245,9 +245,9 @@ public class BulkLoadIT extends AccumuloClusterHarness {
           .loadFileTo("f2.rf", RangeType.TABLE, row(333), row(999))
           .loadFileTo("f3.rf", RangeType.FILE, row(1000), row(1499))
           .loadFileTo("f4.rf", RangeType.FILE, row(1500), row(1999)).build();
-      c.tableOperations().addFilesTo(tableName).from(dir).plan(loadPlan).load();
+      c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
     } else {
-      c.tableOperations().addFilesTo(tableName).from(dir).load();
+      c.tableOperations().importDirectory(dir).to(tableName).load();
     }
 
     if (offline)
@@ -292,7 +292,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
         .loadFileTo("f2.rf", RangeType.TABLE, null, row(666))
         .loadFileTo("f3.rf", RangeType.TABLE, null, row(666)).build();
     try {
-      c.tableOperations().addFilesTo(tableName).from(dir).plan(loadPlan).load();
+      c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
       fail();
     } catch (IllegalArgumentException e) {
       // ignore
@@ -301,7 +301,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     // Create a plan with less files than exists in dir
     loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333)).build();
     try {
-      c.tableOperations().addFilesTo(tableName).from(dir).plan(loadPlan).load();
+      c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
       fail();
     } catch (IllegalArgumentException e) {
       // ignore
@@ -311,7 +311,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(555))
         .loadFileTo("f2.rf", RangeType.TABLE, null, row(555)).build();
     try {
-      c.tableOperations().addFilesTo(tableName).from(dir).plan(loadPlan).load();
+      c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
       fail();
     } catch (AccumuloException e) {
       // ignore

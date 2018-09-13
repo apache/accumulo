@@ -1949,7 +1949,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public ImportSourceArguments addFilesTo(String tableName) {
-    return new BulkImport(tableName, context);
+  public ImportDestinationArguments importDirectory(String directory) {
+    return new BulkImport(directory, context);
   }
 }
