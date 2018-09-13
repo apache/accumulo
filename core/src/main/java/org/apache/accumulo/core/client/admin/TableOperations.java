@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
@@ -620,9 +621,19 @@ public interface TableOperations {
   /**
    * @since 2.0.0
    */
-  interface ImportSourceOptions {
-    ImportSourceOptions settingLogicalTime();
+  interface ImportOptions {
 
+    /**
+     * Use table's next timestamp to override all timestamps in imported files. The type of
+     * timestamp used depends on how the table was created.
+     *
+     * @see NewTableConfiguration#setTimeType(TimeType)
+     */
+    ImportDestinationOptions tableTime();
+
+    /**
+     * Loads the files into the table.
+     */
     void load()
         throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
   }
@@ -630,28 +641,46 @@ public interface TableOperations {
   /**
    * @since 2.0.0
    */
-  interface ImportExecutorOptions extends ImportSourceOptions {
+  interface ImportDestinationOptions extends ImportOptions {
+
+    /**
+     * This is the default number of threads used to determine where to load files. A suffix of
+     * {@code C} means to multiply by the number of cores.
+     */
+    public static final String BULK_LOAD_THREADS_DEFAULT = "8C";
+
+    /**
+     * Load files in the directory to the row ranges specified in the plan. The plan should contain
+     * at least one entry for every file in the directory. When this option is specified, the files
+     * are never examined so it is possible to send files to the wrong tablet.
+     */
+    ImportOptions plan(LoadPlan service);
+
+    // The javadoc below intentionally used a fully qualified class name in the value tag, otherwise
+    // it would not render properly.
     /**
      * Files are examined to determine where to load them. This examination is done in the current
-     * process using multiple threads. If this property is not set, then the client property
-     * {@code bulk.threads} is used to create a thread pool.
+     * process using multiple threads. If this method is not called, then the client property
+     * {@code bulk.threads} is used to create a thread pool. This property defaults to
+     * {@value ImportDestinationOptions#BULK_LOAD_THREADS_DEFAULT}.
      *
      * @param service
      *          Use this executor to run file examination task
-     * @return ImportSourceOptions
      */
-    ImportSourceOptions usingExecutor(Executor service);
+    ImportOptions executor(Executor service);
 
+    // The javadoc below intentionally use a fully qualified class name in the value tag, otherwise
+    // it would not render properly.
     /**
      * Files are examined to determine where to load them. This examination is done in the current
-     * process using multiple threads. If this property is not set, then the client property
-     * {@code bulk.threads} is used to create a thread pool.
+     * process using multiple threads. If this method is not called, then the client property
+     * {@code bulk.threads} is used to create a thread pool. This property defaults to
+     * {@value org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationOptions#BULK_LOAD_THREADS_DEFAULT}.
      *
      * @param numThreads
      *          Create a thread pool with this many thread to run file examination task.
-     * @return ImportSourceOptions
      */
-    ImportSourceOptions usingThreads(int numThreads);
+    ImportOptions threads(int numThreads);
   }
 
   /**
@@ -662,9 +691,8 @@ public interface TableOperations {
      *
      * @param directory
      *          Load files from this directory
-     * @return ImportSourceOptions
      */
-    ImportExecutorOptions from(String directory);
+    ImportDestinationOptions from(String directory);
   }
 
   /**

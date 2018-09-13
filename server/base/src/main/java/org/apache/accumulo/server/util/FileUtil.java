@@ -548,7 +548,7 @@ public class FileUtil {
       throws IOException {
 
     FileSystem ns = fs.getVolumeByPath(mapFile).getFileSystem();
-    return BulkImport.estimateSizes(acuConf, mapFile, fileSize, extents, ns);
+    return BulkImport.estimateSizes(acuConf, mapFile, fileSize, extents, ns, null);
   }
 
   public static Collection<String> toPathStrings(Collection<FileRef> refs) {

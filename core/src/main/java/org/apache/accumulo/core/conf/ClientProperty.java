@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationOptions;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.CredentialProviderToken;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
@@ -70,7 +71,7 @@ public enum ClientProperty {
       "Number of concurrent query threads to spawn for querying"),
 
   // Bulk load
-  BULK_LOAD_THREADS("bulk.threads", "8C",
+  BULK_LOAD_THREADS("bulk.threads", ImportDestinationOptions.BULK_LOAD_THREADS_DEFAULT,
       "The number of threads used to inspect bulk load files to determine where files go.  "
           + "If the value ends with C, then it will be multiplied by the number of cores on the "
           + "system. This property is only used by the bulk import API introduced in 2.0.0."),
