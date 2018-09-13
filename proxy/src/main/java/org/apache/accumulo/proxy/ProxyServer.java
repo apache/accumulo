@@ -1768,7 +1768,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       ImportDestinationOptions loader = getConnector(login).tableOperations().addFilesTo(tableName)
           .from(importDir);
       if (setTime) {
-        loader.usingTableTime().load();
+        loader.tableTime().load();
       } else {
         loader.load();
       }

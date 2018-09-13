@@ -104,7 +104,7 @@ public class BulkImport implements ImportSourceArguments, ImportDestinationOptio
   }
 
   @Override
-  public ImportDestinationOptions usingTableTime() {
+  public ImportDestinationOptions tableTime() {
     this.setTime = true;
     return this;
   }
@@ -171,13 +171,13 @@ public class BulkImport implements ImportSourceArguments, ImportDestinationOptio
   }
 
   @Override
-  public ImportDestinationOptions usingExecutor(Executor service) {
+  public ImportDestinationOptions executor(Executor service) {
     this.executor = Objects.requireNonNull(service);
     return this;
   }
 
   @Override
-  public ImportDestinationOptions usingExecutor(int numThreads) {
+  public ImportDestinationOptions threads(int numThreads) {
     Preconditions.checkArgument(numThreads > 0, "Non positive number of threads given : %s",
         numThreads);
     this.numThreads = numThreads;
@@ -185,7 +185,7 @@ public class BulkImport implements ImportSourceArguments, ImportDestinationOptio
   }
 
   @Override
-  public ImportDestinationOptions usingPlan(LoadPlan plan) {
+  public ImportDestinationOptions plan(LoadPlan plan) {
     this.plan = plan;
     return this;
   }

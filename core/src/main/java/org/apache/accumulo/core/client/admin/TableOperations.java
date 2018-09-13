@@ -629,7 +629,7 @@ public interface TableOperations {
      *
      * @see NewTableConfiguration#setTimeType(TimeType)
      */
-    ImportDestinationOptions usingTableTime();
+    ImportDestinationOptions tableTime();
 
     /**
      * Loads the files into the table.
@@ -654,7 +654,7 @@ public interface TableOperations {
      * at least one entry for every file in the directory. When this option is specified, the files
      * are never examined so it is possible to send files to the wrong tablet.
      */
-    ImportOptions usingPlan(LoadPlan service);
+    ImportOptions plan(LoadPlan service);
 
     // The javadoc below intentionally used a fully qualified class name in the value tag, otherwise
     // it would not render properly.
@@ -667,7 +667,7 @@ public interface TableOperations {
      * @param service
      *          Use this executor to run file examination task
      */
-    ImportOptions usingExecutor(Executor service);
+    ImportOptions executor(Executor service);
 
     // The javadoc below intentionally use a fully qualified class name in the value tag, otherwise
     // it would not render properly.
@@ -680,8 +680,7 @@ public interface TableOperations {
      * @param numThreads
      *          Create a thread pool with this many thread to run file examination task.
      */
-    ImportOptions usingExecutor(int numThreads);
-
+    ImportOptions threads(int numThreads);
   }
 
   /**

@@ -52,7 +52,7 @@ public class ImportDirectoryCommand extends Command {
       TableOperations.ImportDestinationOptions bulk = shellState.getConnector().tableOperations()
           .addFilesTo(shellState.getTableName()).from(dir);
       if (setTime)
-        bulk.usingTableTime().load();
+        bulk.tableTime().load();
       else
         bulk.load();
     } else if (args.length == 3) {

@@ -31,7 +31,7 @@ import com.google.common.primitives.UnsignedBytes;
 /**
  * Information about where to load files into an Accumulo table.
  *
- * @see ImportDestinationOptions#usingPlan(LoadPlan)
+ * @see ImportDestinationOptions#plan(LoadPlan)
  * @since 2.0.0
  */
 public class LoadPlan {
