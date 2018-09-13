@@ -1352,7 +1352,6 @@
         <enforcer.skip>true</enforcer.skip>
         <formatter.skip>true</formatter.skip>
         <impsort.skip>true</impsort.skip>
-        <maven.plugin.skip>true</maven.plugin.skip>
         <mdep.analyze.skip>true</mdep.analyze.skip>
         <modernizer.skip>true</modernizer.skip>
         <rat.skip>true</rat.skip>
