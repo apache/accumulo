@@ -30,8 +30,11 @@ import org.eclipse.jetty.server.session.SessionHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EmbeddedWebServer {
+  private static final Logger LOG = LoggerFactory.getLogger(EmbeddedWebServer.class);
   private static String EMPTY = "";
 
   Server server = null;
@@ -48,17 +51,20 @@ public class EmbeddedWebServer {
     final AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
     if (EMPTY.equals(conf.get(Property.MONITOR_SSL_KEYSTORE))
         || EMPTY.equals(conf.get(Property.MONITOR_SSL_KEYSTOREPASS))
-        || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTORE))
-        || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS))) {
+        || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTORE))) {
       connector = new ServerConnector(server, new HttpConnectionFactory());
       usingSsl = false;
     } else {
+      final String trustStorePass = conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS);
+      if (trustStorePass.isEmpty()) {
+        LOG.warn("Truststore JKS file has an empty password which prevents any integrity checks.");
+      }
       SslContextFactory sslContextFactory = new SslContextFactory();
       sslContextFactory.setKeyStorePath(conf.get(Property.MONITOR_SSL_KEYSTORE));
       sslContextFactory.setKeyStorePassword(conf.get(Property.MONITOR_SSL_KEYSTOREPASS));
       sslContextFactory.setKeyStoreType(conf.get(Property.MONITOR_SSL_KEYSTORETYPE));
       sslContextFactory.setTrustStorePath(conf.get(Property.MONITOR_SSL_TRUSTSTORE));
-      sslContextFactory.setTrustStorePassword(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS));
+      sslContextFactory.setTrustStorePassword(trustStorePass);
       sslContextFactory.setTrustStoreType(conf.get(Property.MONITOR_SSL_TRUSTSTORETYPE));
 
       final String includedCiphers = conf.get(Property.MONITOR_SSL_INCLUDE_CIPHERS);
