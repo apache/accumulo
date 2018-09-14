@@ -709,6 +709,9 @@ public interface TableOperations {
    * <p>
    * This API supports adding files to online and offline tables.
    *
+   * <p>
+   * Example usage: client.tableOperations().importDirectory(dir).to(tableName).load();
+   *
    * @since 2.0.0
    */
   default ImportDestinationArguments importDirectory(String directory) {
