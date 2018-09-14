@@ -50,8 +50,8 @@ import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationOptions;
-import org.apache.accumulo.core.client.admin.TableOperations.ImportSourceArguments;
+import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationArguments;
+import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
 import org.apache.accumulo.core.client.impl.Bulk.FileInfo;
 import org.apache.accumulo.core.client.impl.Bulk.Files;
 import org.apache.accumulo.core.client.impl.Table.ID;
@@ -84,27 +84,27 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Sets;
 
-public class BulkImport implements ImportSourceArguments, ImportDestinationOptions {
+public class BulkImport implements ImportDestinationArguments, ImportMappingOptions {
 
   private static final Logger log = LoggerFactory.getLogger(BulkImport.class);
 
   private boolean setTime = false;
   private Executor executor = null;
-  private String dir;
+  private final String dir;
   private int numThreads = -1;
 
   private final ClientContext context;
-  private final String tableName;
+  private String tableName;
 
   private LoadPlan plan = null;
 
-  BulkImport(String tableName, ClientContext context) {
+  BulkImport(String directory, ClientContext context) {
     this.context = context;
-    this.tableName = Objects.requireNonNull(tableName);
+    this.dir = Objects.requireNonNull(directory);
   }
 
   @Override
-  public ImportDestinationOptions tableTime() {
+  public ImportMappingOptions tableTime() {
     this.setTime = true;
     return this;
   }
@@ -170,13 +170,13 @@ public class BulkImport implements ImportSourceArguments, ImportDestinationOptio
   }
 
   @Override
-  public ImportDestinationOptions executor(Executor service) {
+  public ImportMappingOptions executor(Executor service) {
     this.executor = Objects.requireNonNull(service);
     return this;
   }
 
   @Override
-  public ImportDestinationOptions threads(int numThreads) {
+  public ImportMappingOptions threads(int numThreads) {
     Preconditions.checkArgument(numThreads > 0, "Non positive number of threads given : %s",
         numThreads);
     this.numThreads = numThreads;
@@ -184,14 +184,14 @@ public class BulkImport implements ImportSourceArguments, ImportDestinationOptio
   }
 
   @Override
-  public ImportDestinationOptions plan(LoadPlan plan) {
+  public ImportMappingOptions plan(LoadPlan plan) {
     this.plan = plan;
     return this;
   }
 
   @Override
-  public ImportDestinationOptions from(String directory) {
-    this.dir = Objects.requireNonNull(directory);
+  public ImportMappingOptions to(String tableName) {
+    this.tableName = Objects.requireNonNull(tableName);
     return this;
   }
 

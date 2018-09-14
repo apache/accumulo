@@ -21,7 +21,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 
-import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationOptions;
+import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
@@ -31,7 +31,7 @@ import com.google.common.primitives.UnsignedBytes;
 /**
  * Information about where to load files into an Accumulo table.
  *
- * @see ImportDestinationOptions#plan(LoadPlan)
+ * @see ImportMappingOptions#plan(LoadPlan)
  * @since 2.0.0
  */
 public class LoadPlan {

@@ -49,8 +49,8 @@ public class ImportDirectoryCommand extends Command {
     // new bulk import only takes 2 args
     if (args.length == 2) {
       setTime = Boolean.parseBoolean(cl.getArgs()[1]);
-      TableOperations.ImportDestinationOptions bulk = shellState.getConnector().tableOperations()
-          .addFilesTo(shellState.getTableName()).from(dir);
+      TableOperations.ImportMappingOptions bulk = shellState.getConnector().tableOperations()
+          .importDirectory(dir).to(shellState.getTableName());
       if (setTime)
         bulk.tableTime().load();
       else

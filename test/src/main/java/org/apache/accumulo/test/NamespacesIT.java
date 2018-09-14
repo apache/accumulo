@@ -1245,7 +1245,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
             fail();
             break;
           case 18:
-            ops.addFilesTo(tableName).from("").load();
+            ops.importDirectory("").to(tableName).load();
             fail();
             break;
           case 19:

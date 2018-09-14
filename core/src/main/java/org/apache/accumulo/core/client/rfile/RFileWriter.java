@@ -37,7 +37,7 @@ import com.google.common.base.Preconditions;
 
 /**
  * This class provides an API for writing RFiles. It can be used to create file for bulk import into
- * Accumulo using {@link TableOperations#addFilesTo(String)}
+ * Accumulo using {@link TableOperations#importDirectory(String)}
  *
  * <p>
  * A RFileWriter has the following constraints. Violating these constraints will result in runtime

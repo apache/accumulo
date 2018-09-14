@@ -612,7 +612,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           when the table no longer exists
    *
-   * @deprecated since 2.0.0 use {@link #addFilesTo(String)} instead.
+   * @deprecated since 2.0.0 use {@link #importDirectory(String)} instead.
    */
   @Deprecated
   void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
@@ -629,7 +629,7 @@ public interface TableOperations {
      *
      * @see NewTableConfiguration#setTimeType(TimeType)
      */
-    ImportDestinationOptions tableTime();
+    ImportMappingOptions tableTime();
 
     /**
      * Loads the files into the table.
@@ -639,9 +639,11 @@ public interface TableOperations {
   }
 
   /**
+   * Options giving control of how the bulk import file mapping is done.
+   *
    * @since 2.0.0
    */
-  interface ImportDestinationOptions extends ImportOptions {
+  interface ImportMappingOptions extends ImportOptions {
 
     /**
      * This is the default number of threads used to determine where to load files. A suffix of
@@ -662,7 +664,7 @@ public interface TableOperations {
      * Files are examined to determine where to load them. This examination is done in the current
      * process using multiple threads. If this method is not called, then the client property
      * {@code bulk.threads} is used to create a thread pool. This property defaults to
-     * {@value ImportDestinationOptions#BULK_LOAD_THREADS_DEFAULT}.
+     * {@value ImportMappingOptions#BULK_LOAD_THREADS_DEFAULT}.
      *
      * @param service
      *          Use this executor to run file examination task
@@ -675,7 +677,7 @@ public interface TableOperations {
      * Files are examined to determine where to load them. This examination is done in the current
      * process using multiple threads. If this method is not called, then the client property
      * {@code bulk.threads} is used to create a thread pool. This property defaults to
-     * {@value org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationOptions#BULK_LOAD_THREADS_DEFAULT}.
+     * {@value ImportMappingOptions#BULK_LOAD_THREADS_DEFAULT}.
      *
      * @param numThreads
      *          Create a thread pool with this many thread to run file examination task.
@@ -686,30 +688,35 @@ public interface TableOperations {
   /**
    * @since 2.0.0
    */
-  interface ImportSourceArguments {
+  interface ImportDestinationArguments {
     /**
      *
-     * @param directory
-     *          Load files from this directory
+     * @param tableName
+     *          Import files to this tableName
      */
-    ImportDestinationOptions from(String directory);
+    ImportMappingOptions to(String tableName);
   }
 
   /**
    * Bulk import the files in a directory into a table. Files can be created using
    * {@code AccumuloFileOutputFormat} and {@link RFile#newWriter()}.
-   *
    * <p>
    * This new method of bulk import examines files in the current process outside of holding a table
    * lock. The old bulk import method ({@link #importDirectory(String, String, String, boolean)})
    * examines files on the server side while holding a table read lock.
-   *
    * <p>
    * This API supports adding files to online and offline tables.
+   * <p>
+   * For example, to bulk import files from the directory 'dir1' into the table 'table1' use the
+   * following code.
+   *
+   * <pre>
+   * client.tableOperations().importDirectory("dir1").to("table1").load();
+   * </pre>
    *
    * @since 2.0.0
    */
-  default ImportSourceArguments addFilesTo(String tableName) {
+  default ImportDestinationArguments importDirectory(String directory) {
     throw new UnsupportedOperationException();
   }
 

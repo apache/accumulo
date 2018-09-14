@@ -134,7 +134,7 @@ public class BulkIT extends AccumuloClusterHarness {
       c.tableOperations().importDirectory(tableName, files.toString(), bulkFailures.toString(),
           false);
     } else {
-      c.tableOperations().addFilesTo(tableName).from(files.toString()).load();
+      c.tableOperations().importDirectory(files.toString()).to(tableName).load();
     }
 
   }
