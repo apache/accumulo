@@ -896,14 +896,7 @@ public enum Property {
       "The sampling percentage to use for replication traces"),
   REPLICATION_RPC_TIMEOUT("replication.rpc.timeout", "2m", PropertyType.TIMEDURATION,
       "Amount of time for a single replication RPC call to last before failing"
-          + " the attempt. See replication.work.attempts."),
-  VOLUME_CHOOSER_UPDATE_INTERVAL("general.volume.chooser.update.interval", "2h",
-      PropertyType.TIMEDURATION,
-      "Amount of time that must elapse before the volume choice is considered stale."
-          + " After this interval, the VolumeChooser will make a new volume choice. Set to a"
-          + " negative number to disable the volume update")
-
-  ;
+          + " the attempt. See replication.work.attempts.");
 
   private String key;
   private String defaultValue;

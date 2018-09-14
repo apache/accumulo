@@ -56,7 +56,6 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -160,9 +159,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 
 /**
- *
  * Provide access to a single row range in a living TabletServer.
- *
  */
 public class Tablet implements TabletCommitter {
   static private final Logger log = LoggerFactory.getLogger(Tablet.class);
@@ -175,12 +172,7 @@ public class Tablet implements TabletCommitter {
   private final TableConfiguration tableConfiguration;
   private String tabletDirectory;
   private Path location; // absolute path of this tablets dir
-  private long lastVolumeChooserUpdate = 0;
-  private final long volumeChooserUpdateInterval;
-  // @formatter:off
-  public static final String TABLE_VOLUME_CHOOSER_INTERVAL_PROPERTY =
-      Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "volume.chooser.update.interval";
-  // @formatter:on
+
   private final TabletMemory tabletMemory;
 
   private final TabletTime tabletTime;
@@ -188,7 +180,6 @@ public class Tablet implements TabletCommitter {
   private long persistedTime;
 
   private TServerInstance lastLocation = null;
-  private volatile boolean tableDirChecked = false;
 
   private final AtomicLong dataSourceDeletions = new AtomicLong(0);
 
@@ -277,30 +268,29 @@ public class Tablet implements TabletCommitter {
 
   FileRef getNextMapFilename(String prefix) throws IOException {
     String extension = FileOperations.getNewFileExtension(tableConfiguration);
+    updateTabletLocation();
     checkTabletDir();
     return new FileRef(
         location + "/" + prefix + context.getUniqueNameAllocator().getNextName() + "." + extension);
   }
 
   private void checkTabletDir() throws IOException {
-    if (!tableDirChecked) {
-      FileStatus[] files = null;
-      try {
-        files = getTabletServer().getFileSystem().listStatus(location);
-      } catch (FileNotFoundException ex) {
-        // ignored
-      }
-
-      if (files == null) {
-        if (location.getName().startsWith(Constants.CLONE_PREFIX))
-          log.debug("Tablet {} had no dir, creating {}", extent, location); // its a clone dir...
-        else
-          log.warn("Tablet {} had no dir, creating {}", extent, location);
-
-        getTabletServer().getFileSystem().mkdirs(location);
-      }
-      tableDirChecked = true;
+    FileStatus[] files = null;
+    try {
+      files = getTabletServer().getFileSystem().listStatus(location);
+    } catch (FileNotFoundException ex) {
+      // ignored
     }
+
+    if (files == null) {
+      if (location.getName().startsWith(Constants.CLONE_PREFIX))
+        log.debug("Tablet {} had no dir, creating {}", extent, location); // its a clone dir...
+      else
+        log.warn("Tablet {} had no dir, creating {}", extent, location);
+
+      getTabletServer().getFileSystem().mkdirs(location);
+    }
+
   }
 
   /**
@@ -326,7 +316,6 @@ public class Tablet implements TabletCommitter {
     this.configObserver = configObserver;
     this.splitCreationTime = 0;
 
-    this.volumeChooserUpdateInterval = setUpVolumeChooserInterval(tableConfiguration);
   }
 
   public Tablet(final TabletServer tabletServer, final KeyExtent extent,
@@ -359,11 +348,10 @@ public class Tablet implements TabletCommitter {
         this.tableConfiguration);
     TabletFiles tabletPaths = new TabletFiles(data.getDirectory(), data.getLogEntries(),
         data.getDataFiles());
-    volumeChooserUpdateInterval = setUpVolumeChooserInterval(tblConf);
     tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
         fs, extent, tabletPaths, replicationEnabled);
-
     updateTabletLocation();
+
     for (Entry<Long,List<FileRef>> entry : data.getBulkImported().entrySet()) {
       this.bulkImported.put(entry.getKey(), new CopyOnWriteArrayList<>(entry.getValue()));
     }
@@ -531,48 +519,32 @@ public class Tablet implements TabletCommitter {
     log.debug("TABLET_HIST {} opened", extent);
   }
 
-  private long setUpVolumeChooserInterval(TableConfiguration tblConf) {
-    long generalVolumeChooseSetting = tblConf
-        .getTimeInMillis(Property.VOLUME_CHOOSER_UPDATE_INTERVAL);
-    String tableSpecificSetting = tblConf.get(TABLE_VOLUME_CHOOSER_INTERVAL_PROPERTY);
-    long tableSpecificVolumeChooserSetting = tableSpecificSetting == null ? 0
-        : ConfigurationTypeHelper.getTimeInMillis(tableSpecificSetting);
-    if (tableSpecificVolumeChooserSetting > 0) {
-      return tableSpecificVolumeChooserSetting;
-    } else {
-      return  generalVolumeChooseSetting;
-    }
-  }
-
   public ServerContext getContext() {
     return context;
   }
 
   private void updateTabletLocation() {
     Path locationPath;
-    if (volumeChooserUpdateInterval > 0
-        && (lastVolumeChooserUpdate + volumeChooserUpdateInterval < System.currentTimeMillis())) {
-      VolumeManager fs = this.tabletServer.getFileSystem();
-      UniqueNameAllocator namer = context.getUniqueNameAllocator();
-      VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
-          context);
+    VolumeManager fs = this.tabletServer.getFileSystem();
+    UniqueNameAllocator namer = context.getUniqueNameAllocator();
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
+        context);
 
-      Text endRow = extent.getEndRow();
-      String directory = fs.choose(chooserEnv,
-          ServerConstants.getBaseUris(context.getConfiguration())) + Constants.HDFS_TABLES_DIR
-          + Path.SEPARATOR + extent.getTableId().toString() + Path.SEPARATOR;
-      if (endRow == null) {
-        directory += Constants.DEFAULT_TABLET_LOCATION;
-      } else {
-        directory += Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
-      }
-
-      locationPath = new Path(directory);
-
-      this.location = locationPath;
-
-      this.tabletDirectory = locationPath.toString();
+    Text endRow = extent.getEndRow();
+    String directory = fs.choose(chooserEnv,
+        ServerConstants.getBaseUris(context.getConfiguration())) + Constants.HDFS_TABLES_DIR
+        + Path.SEPARATOR + extent.getTableId().toString() + Path.SEPARATOR;
+    if (endRow == null) {
+      directory += Constants.DEFAULT_TABLET_LOCATION;
+    } else {
+      directory += Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
     }
+
+    locationPath = new Path(directory);
+
+    this.location = locationPath;
+
+    this.tabletDirectory = locationPath.toString();
   }
 
   private void removeOldTemporaryFiles() {
@@ -903,7 +875,6 @@ public class Tablet implements TabletCommitter {
 
   /**
    * Determine if a JVM shutdown is in progress.
-   *
    */
   boolean shutdownInProgress() {
     try {
@@ -1579,9 +1550,7 @@ public class Tablet implements TabletCommitter {
    * @return location
    */
   public Path getLocation() {
-    if (System.currentTimeMillis() > (lastVolumeChooserUpdate + volumeChooserUpdateInterval)) {
-      updateTabletLocation();
-    }
+    updateTabletLocation();
     return location;
   }
 
@@ -1606,7 +1575,6 @@ public class Tablet implements TabletCommitter {
 
   /**
    * Returns true if a major compaction should be performed on the tablet.
-   *
    */
   public boolean needsMajorCompaction(MajorCompactionReason reason) {
     if (isMajorCompactionRunning())
@@ -1818,7 +1786,6 @@ public class Tablet implements TabletCommitter {
 
   /**
    * Returns true if this tablet needs to be split
-   *
    */
   public synchronized boolean needsSplit() {
     if (isClosing() || isClosed())
