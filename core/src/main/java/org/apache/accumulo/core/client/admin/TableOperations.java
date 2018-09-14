@@ -700,17 +700,19 @@ public interface TableOperations {
   /**
    * Bulk import the files in a directory into a table. Files can be created using
    * {@code AccumuloFileOutputFormat} and {@link RFile#newWriter()}.
-   *
    * <p>
    * This new method of bulk import examines files in the current process outside of holding a table
    * lock. The old bulk import method ({@link #importDirectory(String, String, String, boolean)})
    * examines files on the server side while holding a table read lock.
-   *
    * <p>
    * This API supports adding files to online and offline tables.
-   *
    * <p>
-   * Example usage: client.tableOperations().importDirectory(dir).to(tableName).load();
+   * For example, to bulk import files from the directory 'dir1' into the table 'table1' use the
+   * following code.
+   *
+   * <pre>
+   * client.tableOperations().importDirectory("dir1").to("table1").load();
+   * </pre>
    *
    * @since 2.0.0
    */
