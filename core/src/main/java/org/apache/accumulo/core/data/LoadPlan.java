@@ -60,17 +60,17 @@ public class LoadPlan {
    */
   public enum RangeType {
     /**
-     * Range that correspond to one or more tablets in a table. For a range of this type the start
+     * Range that corresponds to one or more tablets in a table. For a range of this type, the start
      * row and end row can be null. The start row is exclusive and the end row is inclusive (like
      * Accumulo tablets). A common use case for this would be when files were partitioned using a
-     * tables splits. When using this range type the start and end row must exist as splits in the
+     * table's splits. When using this range type, the start and end row must exist as splits in the
      * table or an exception will be thrown at load time.
      */
     TABLE,
     /**
-     * Range that correspond to known rows in a file. For this range type the start row and end row
-     * must be non-null. The start row and end row are both considered inclusive. At load time these
-     * data ranges will be mapped to tablet ranges.
+     * Range that correspond to known rows in a file. For this range type, the start row and end row
+     * must be non-null. The start row and end row are both considered inclusive. At load time,
+     * these data ranges will be mapped to table ranges.
      */
     FILE
   }

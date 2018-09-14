@@ -73,19 +73,19 @@ public class LoadPlanTest {
         .build();
 
     Set<String> expected = new HashSet<>();
-    expected.add("f1.rf:DATA:1112:1145");
-    expected.add("f2.rf:DATA:abc:def");
-    expected.add("f3.rf:DATA:368:479");
-    expected.add("f4.rf:TABLET:null:aaa");
-    expected.add("f5.rf:TABLET:yyy:null");
-    expected.add("f6.rf:TABLET:null:bbb");
-    expected.add("f7.rf:TABLET:www:null");
-    expected.add("f8.rf:TABLET:null:ccc");
-    expected.add("f9.rf:TABLET:xxx:null");
-    expected.add("fa.rf:TABLET:1138:1147");
-    expected.add("fb.rf:TABLET:heg:klt");
-    expected.add("fc.rf:TABLET:agt:ctt");
-    expected.add("fd.rf:TABLET:null:null");
+    expected.add("f1.rf:FILE:1112:1145");
+    expected.add("f2.rf:FILE:abc:def");
+    expected.add("f3.rf:FILE:368:479");
+    expected.add("f4.rf:TABLE:null:aaa");
+    expected.add("f5.rf:TABLE:yyy:null");
+    expected.add("f6.rf:TABLE:null:bbb");
+    expected.add("f7.rf:TABLE:www:null");
+    expected.add("f8.rf:TABLE:null:ccc");
+    expected.add("f9.rf:TABLE:xxx:null");
+    expected.add("fa.rf:TABLE:1138:1147");
+    expected.add("fb.rf:TABLE:heg:klt");
+    expected.add("fc.rf:TABLE:agt:ctt");
+    expected.add("fd.rf:TABLE:null:null");
 
     Set<String> actual = loadPlan.getDestinations().stream().map(LoadPlanTest::toString)
         .collect(toSet());
