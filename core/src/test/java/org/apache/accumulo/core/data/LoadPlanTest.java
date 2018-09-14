@@ -18,6 +18,7 @@ package org.apache.accumulo.core.data;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toSet;
+import static org.junit.Assert.assertEquals;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -25,7 +26,6 @@ import java.util.Set;
 import org.apache.accumulo.core.data.LoadPlan.Destination;
 import org.apache.accumulo.core.data.LoadPlan.RangeType;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class LoadPlanTest {
@@ -90,7 +90,7 @@ public class LoadPlanTest {
     Set<String> actual = loadPlan.getDestinations().stream().map(LoadPlanTest::toString)
         .collect(toSet());
 
-    Assert.assertEquals(expected, actual);
+    assertEquals(expected, actual);
 
   }
 

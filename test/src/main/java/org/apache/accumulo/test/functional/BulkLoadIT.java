@@ -64,7 +64,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -294,7 +293,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
         .loadFileTo("f3.rf", RangeType.TABLE, null, row(666)).build();
     try {
       c.tableOperations().addFilesTo(tableName).from(dir).plan(loadPlan).load();
-      Assert.fail();
+      fail();
     } catch (IllegalArgumentException e) {
       // ignore
     }
@@ -303,7 +302,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333)).build();
     try {
       c.tableOperations().addFilesTo(tableName).from(dir).plan(loadPlan).load();
-      Assert.fail();
+      fail();
     } catch (IllegalArgumentException e) {
       // ignore
     }
@@ -313,7 +312,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
         .loadFileTo("f2.rf", RangeType.TABLE, null, row(555)).build();
     try {
       c.tableOperations().addFilesTo(tableName).from(dir).plan(loadPlan).load();
-      Assert.fail();
+      fail();
     } catch (AccumuloException e) {
       // ignore
     }
