@@ -276,7 +276,9 @@ public class TServerUtils {
       TProtocolFactory protocolFactory, long maxMessageSize, String serverName, int numThreads,
       int numSimpleTimerThreads, long timeBetweenThreadChecks) throws TTransportException {
 
-    TServerSocket transport = new TServerSocket(address.getPort());
+    InetSocketAddress isa = new InetSocketAddress(address.getHost(), address.getPort());
+    // Must use an ISA, providing only a port would ignore the hostname given
+    TServerSocket transport = new TServerSocket(isa);
     ThreadPoolExecutor pool = createSelfResizingThreadPool(serverName, numThreads,
         numSimpleTimerThreads, timeBetweenThreadChecks);
     TThreadPoolServer server = createTThreadPoolServer(transport, processor,
@@ -433,7 +435,9 @@ public class TServerUtils {
     // when the server does an accept() to (presumably) wake up the eventing system.
     log.info("Creating SASL thread pool thrift server on listening on {}:{}", address.getHost(),
         address.getPort());
-    TServerSocket transport = new TServerSocket(address.getPort(), (int) socketTimeout);
+    InetSocketAddress isa = new InetSocketAddress(address.getHost(), address.getPort());
+    // Must use an ISA, providing only a port would ignore the hostname given
+    TServerSocket transport = new TServerSocket(isa, (int) socketTimeout);
 
     String hostname, fqdn;
     try {
