@@ -879,9 +879,9 @@
           <artifactId>maven-javadoc-plugin</artifactId>
           <configuration>
             <quiet>true</quiet>
-            <javadocVersion>${maven.compiler.target}</javadocVersion>
+            <javadocVersion>1.8.0</javadocVersion>
             <additionalJOption>-J-Xmx512m</additionalJOption>
-            <additionalparam>-Xdoclint:all,-Xdoclint:-missing</additionalparam>
+            <doclint>all,-missing</doclint>
           </configuration>
         </plugin>
         <plugin>
