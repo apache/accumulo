@@ -32,7 +32,7 @@ CONTINUOUS_CONF_DIR=${CONTINUOUS_CONF_DIR:-${bin}}
 
 DEBUG_OPT=''
 if [[ $DEBUG_INGEST == on ]] ; then
-	DEBUG_OPT="--debug $CONTINUOUS_LOG_DIR/\`date +%Y%m%d%H%M%S\`_\`hostname\`_ingest.log";
+	DEBUG_OPT="--debugLog $CONTINUOUS_LOG_DIR/\`date +%Y%m%d%H%M%S\`_\`hostname\`_ingest.log";
 fi
 
 VIS_OPT=''
