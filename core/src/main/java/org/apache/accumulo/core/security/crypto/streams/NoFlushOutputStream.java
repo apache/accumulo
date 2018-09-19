@@ -29,7 +29,6 @@ public class NoFlushOutputStream extends FilterOutputStream {
   /**
    * It is very important to override this method!! The underlying method from FilterOutputStream
    * calls write a single byte at a time and will kill performance.
-   *
    */
   @Override
   public void write(byte[] b, int off, int len) throws IOException {
