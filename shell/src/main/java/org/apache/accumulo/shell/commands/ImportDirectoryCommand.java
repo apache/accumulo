@@ -49,7 +49,7 @@ public class ImportDirectoryCommand extends Command {
     // new bulk import only takes 2 args
     if (args.length == 2) {
       setTime = Boolean.parseBoolean(cl.getArgs()[1]);
-      TableOperations.ImportMappingOptions bulk = shellState.getConnector().tableOperations()
+      TableOperations.ImportMappingOptions bulk = shellState.getAccumuloClient().tableOperations()
           .importDirectory(dir).to(shellState.getTableName());
       if (setTime)
         bulk.tableTime().load();
@@ -62,8 +62,8 @@ public class ImportDirectoryCommand extends Command {
               + "as an argument.");
       String failureDir = args[1];
       setTime = Boolean.parseBoolean(cl.getArgs()[2]);
-      shellState.getConnector().tableOperations().importDirectory(shellState.getTableName(), dir,
-          failureDir, setTime);
+      shellState.getAccumuloClient().tableOperations().importDirectory(shellState.getTableName(),
+          dir, failureDir, setTime);
       return 0;
     } else {
       shellState.printException(

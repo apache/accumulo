@@ -29,7 +29,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -82,7 +82,7 @@ public class TraceDump {
     PrintStream out = System.out;
     long endTime = System.currentTimeMillis();
     long startTime = endTime - opts.length;
-    Connector conn = opts.getConnector();
+    AccumuloClient conn = opts.getClient();
     Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
     Range range = new Range(new Text("start:" + Long.toHexString(startTime)),
@@ -104,7 +104,7 @@ public class TraceDump {
 
   private static int dumpTrace(Opts opts, ScannerOpts scanOpts) throws Exception {
     final PrintStream out = System.out;
-    Connector conn = opts.getConnector();
+    AccumuloClient conn = opts.getClient();
 
     int count = 0;
     for (String traceId : opts.traceIds) {

@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -51,7 +52,7 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Tracer;
 
-public class ConnectorImpl extends Connector {
+public class AccumuloClientImpl extends Connector implements AccumuloClient {
   private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security."
       + "SystemCredentials$SystemToken";
   private final ClientContext context;
@@ -62,7 +63,7 @@ public class ConnectorImpl extends Connector {
   private InstanceOperations instanceops = null;
   private ReplicationOperations replicationops = null;
 
-  public ConnectorImpl(final ClientContext context)
+  public AccumuloClientImpl(final ClientContext context)
       throws AccumuloSecurityException, AccumuloException {
     checkArgument(context != null, "Context is null");
     checkArgument(context.getCredentials() != null, "Credentials are null");
@@ -263,14 +264,15 @@ public class ConnectorImpl extends Connector {
   }
 
   @Override
-  public Connector changeUser(String principal, AuthenticationToken token)
+  public AccumuloClient changeUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException, AccumuloException {
-    return Connector.builder().usingClientInfo(info()).usingToken(principal, token).build();
+    return new AccumuloClientBuilderImpl().usingClientInfo(info()).usingToken(principal, token)
+        .build();
   }
 
-  public static class ConnectorBuilderImpl
+  public static class AccumuloClientBuilderImpl
       implements InstanceArgs, PropertyOptions, ClientInfoOptions, AuthenticationArgs,
-      ConnectionOptions, SslOptions, SaslOptions, ConnectorFactory, FromOptions {
+      ConnectionOptions, SslOptions, SaslOptions, AccumuloClientFactory, FromOptions {
 
     private Properties properties = new Properties();
     private AuthenticationToken token = null;
@@ -283,8 +285,8 @@ public class ConnectorImpl extends Connector {
     }
 
     @Override
-    public Connector build() throws AccumuloException, AccumuloSecurityException {
-      return org.apache.accumulo.core.client.impl.ClientInfoFactory.getConnector(getClientInfo());
+    public AccumuloClient build() throws AccumuloException, AccumuloSecurityException {
+      return org.apache.accumulo.core.client.impl.ClientInfoFactory.getClient(getClientInfo());
     }
 
     @Override
@@ -390,7 +392,7 @@ public class ConnectorImpl extends Connector {
     }
 
     @Override
-    public ConnectorFactory usingProperties(String configFile) {
+    public AccumuloClientFactory usingProperties(String configFile) {
       Properties properties = new Properties();
       try (InputStream is = new FileInputStream(configFile)) {
         properties.load(is);
@@ -401,7 +403,7 @@ public class ConnectorImpl extends Connector {
     }
 
     @Override
-    public ConnectorFactory usingProperties(Properties properties) {
+    public AccumuloClientFactory usingProperties(Properties properties) {
       this.properties = properties;
       return this;
     }

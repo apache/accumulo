@@ -28,8 +28,8 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
@@ -85,7 +85,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    InstanceOperations iops = getConnector().instanceOperations();
+    InstanceOperations iops = getAccumuloClient().instanceOperations();
     Map<String,String> config = iops.getSystemConfiguration();
     gcCycleDelay = config.get(Property.GC_CYCLE_DELAY.getKey());
     gcCycleStart = config.get(Property.GC_CYCLE_START.getKey());
@@ -95,7 +95,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
 
     getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     ClientInfo info = conn.info();
     ZooCache zcache = new ZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
     zcache.clear();
@@ -128,7 +128,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
 
   @After
   public void restoreConfig() throws Exception {
-    InstanceOperations iops = getConnector().instanceOperations();
+    InstanceOperations iops = getAccumuloClient().instanceOperations();
     if (null != gcCycleDelay) {
       iops.setProperty(Property.GC_CYCLE_DELAY.getKey(), gcCycleDelay);
     }
@@ -145,7 +145,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     // make a table
     String tableName = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     log.info("Creating table to be deleted");
     c.tableOperations().create(tableName);
     final String tableId = c.tableOperations().tableIdMap().get(tableName);

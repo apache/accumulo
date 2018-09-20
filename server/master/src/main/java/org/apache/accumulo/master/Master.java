@@ -41,9 +41,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -638,8 +638,8 @@ public class Master
     return context.getTableManager();
   }
 
-  public Connector getConnector() throws AccumuloSecurityException, AccumuloException {
-    return context.getConnector();
+  public AccumuloClient getClient() throws AccumuloSecurityException, AccumuloException {
+    return context.getClient();
   }
 
   public Master(ServerContext context) throws IOException {
@@ -928,7 +928,7 @@ public class Master
         if (!migrations.isEmpty()) {
           try {
             cleanupOfflineMigrations();
-            cleanupNonexistentMigrations(context.getConnector());
+            cleanupNonexistentMigrations(context.getClient());
           } catch (Exception ex) {
             log.error("Error cleaning up migrations", ex);
           }
@@ -942,9 +942,9 @@ public class Master
      * migration will refer to a non-existing tablet, so it can never complete. Periodically scan
      * the metadata table and remove any migrating tablets that no longer exist.
      */
-    private void cleanupNonexistentMigrations(final Connector connector)
+    private void cleanupNonexistentMigrations(final AccumuloClient accumuloClient)
         throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-      Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       Set<KeyExtent> found = new HashSet<>();
       for (Entry<Key,Value> entry : scanner) {

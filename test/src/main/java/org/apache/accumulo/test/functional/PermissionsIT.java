@@ -30,11 +30,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -77,7 +77,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
   @Before
   public void limitToMini() throws Exception {
     Assume.assumeTrue(ClusterType.MINI == getClusterType());
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     Set<String> users = c.securityOperations().listLocalUsers();
     ClusterUser user = getUser(0);
     if (users.contains(user.getPrincipal())) {
@@ -95,7 +95,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
     ClusterUser testUser = getUser(0), rootUser = getAdminUser();
 
     // verify that the test is being run by root
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     verifyHasOnlyTheseSystemPermissions(c, c.whoami(), SystemPermission.values());
 
     // create the test user
@@ -108,7 +108,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
     loginAs(rootUser);
     c.securityOperations().createLocalUser(principal, passwordToken);
     loginAs(testUser);
-    Connector test_user_conn = c.changeUser(principal, token);
+    AccumuloClient test_user_conn = c.changeUser(principal, token);
     loginAs(rootUser);
     verifyHasNoSystemPermissions(c, principal, SystemPermission.values());
 
@@ -137,9 +137,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
     return result;
   }
 
-  private void testMissingSystemPermission(String tableNamePrefix, Connector root_conn,
-      ClusterUser rootUser, Connector test_user_conn, ClusterUser testUser, SystemPermission perm)
-      throws Exception {
+  private void testMissingSystemPermission(String tableNamePrefix, AccumuloClient root_conn,
+      ClusterUser rootUser, AccumuloClient test_user_conn, ClusterUser testUser,
+      SystemPermission perm) throws Exception {
     String tableName, user, password = "password", namespace;
     boolean passwordBased = testUser.getPassword() != null;
     log.debug("Confirming that the lack of the {} permission properly restricts the user", perm);
@@ -367,9 +367,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void testGrantedSystemPermission(String tableNamePrefix, Connector root_conn,
-      ClusterUser rootUser, Connector test_user_conn, ClusterUser testUser, SystemPermission perm)
-      throws Exception {
+  private void testGrantedSystemPermission(String tableNamePrefix, AccumuloClient root_conn,
+      ClusterUser rootUser, AccumuloClient test_user_conn, ClusterUser testUser,
+      SystemPermission perm) throws Exception {
     String tableName, user, password = "password", namespace;
     boolean passwordBased = testUser.getPassword() != null;
     log.debug("Confirming that the presence of the {} permission properly permits the user", perm);
@@ -526,7 +526,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void verifyHasOnlyTheseSystemPermissions(Connector root_conn, String user,
+  private void verifyHasOnlyTheseSystemPermissions(AccumuloClient root_conn, String user,
       SystemPermission... perms) throws AccumuloException, AccumuloSecurityException {
     List<SystemPermission> permList = Arrays.asList(perms);
     for (SystemPermission p : SystemPermission.values()) {
@@ -542,7 +542,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void verifyHasNoSystemPermissions(Connector root_conn, String user,
+  private void verifyHasNoSystemPermissions(AccumuloClient root_conn, String user,
       SystemPermission... perms) throws AccumuloException, AccumuloSecurityException {
     for (SystemPermission p : perms)
       if (root_conn.securityOperations().hasSystemPermission(user, p))
@@ -561,10 +561,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
       passwordToken = (PasswordToken) token;
     }
     loginAs(rootUser);
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.securityOperations().createLocalUser(principal, passwordToken);
     loginAs(testUser);
-    Connector test_user_conn = c.changeUser(principal, token);
+    AccumuloClient test_user_conn = c.changeUser(principal, token);
 
     // check for read-only access to metadata table
     loginAs(rootUser);
@@ -594,7 +594,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void createTestTable(Connector c, String testUser, String tableName)
+  private void createTestTable(AccumuloClient c, String testUser, String tableName)
       throws Exception, MutationsRejectedException {
     if (!c.tableOperations().exists(tableName)) {
       // create the test table
@@ -613,7 +613,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void testMissingTablePermission(Connector test_user_conn, ClusterUser testUser,
+  private void testMissingTablePermission(AccumuloClient test_user_conn, ClusterUser testUser,
       TablePermission perm, String tableName) throws Exception {
     BatchWriter writer;
     Mutation m;
@@ -702,7 +702,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void testGrantedTablePermission(Connector test_user_conn, ClusterUser normalUser,
+  private void testGrantedTablePermission(AccumuloClient test_user_conn, ClusterUser normalUser,
       TablePermission perm, String tableName) throws AccumuloException, TableExistsException,
       AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
     BatchWriter writer;
@@ -750,8 +750,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void verifyHasOnlyTheseTablePermissions(Connector root_conn, String user, String table,
-      TablePermission... perms) throws AccumuloException, AccumuloSecurityException {
+  private void verifyHasOnlyTheseTablePermissions(AccumuloClient root_conn, String user,
+      String table, TablePermission... perms) throws AccumuloException, AccumuloSecurityException {
     List<TablePermission> permList = Arrays.asList(perms);
     for (TablePermission p : TablePermission.values()) {
       if (permList.contains(p)) {
@@ -768,7 +768,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void verifyHasNoTablePermissions(Connector root_conn, String user, String table,
+  private void verifyHasNoTablePermissions(AccumuloClient root_conn, String user, String table,
       TablePermission... perms) throws AccumuloException, AccumuloSecurityException {
     for (TablePermission p : perms)
       if (root_conn.securityOperations().hasTablePermission(user, table, p))

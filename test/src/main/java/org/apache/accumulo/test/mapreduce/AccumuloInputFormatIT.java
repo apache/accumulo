@@ -31,11 +31,11 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
@@ -94,7 +94,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
    */
   @Test
   public void testGetSplits() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String table = getUniqueNames(1)[0];
     conn.tableOperations().create(table);
     insertData(table, currentTimeMillis());
@@ -199,7 +199,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
   private void insertData(String tableName, long ts)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    BatchWriter bw = getConnector().createBatchWriter(tableName, null);
+    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, null);
 
     for (int i = 0; i < 10000; i++) {
       String row = String.format("%09d", i);
@@ -313,7 +313,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void testMap() throws Exception {
     final String TEST_TABLE_1 = getUniqueNames(1)[0];
 
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.tableOperations().create(TEST_TABLE_1);
     BatchWriter bw = c.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
@@ -336,7 +336,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void testSample() throws Exception {
     final String TEST_TABLE_3 = getUniqueNames(1)[0];
 
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.tableOperations().create(TEST_TABLE_3,
         new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
     BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
@@ -369,7 +369,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void testMapWithBatchScanner() throws Exception {
     final String TEST_TABLE_2 = getUniqueNames(1)[0];
 
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.tableOperations().create(TEST_TABLE_2);
     BatchWriter bw = c.createBatchWriter(TEST_TABLE_2, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
@@ -396,8 +396,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
-    Connector connector = getConnector();
-    connector.tableOperations().create(table);
+    AccumuloClient accumuloClient = getAccumuloClient();
+    accumuloClient.tableOperations().create(table);
 
     AccumuloInputFormat.setClientInfo(job, getClientInfo());
     AccumuloInputFormat.setInputTableName(job, table);
@@ -429,7 +429,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   @Test
   public void testPartialInputSplitDelegationToConfiguration() throws Exception {
     String table = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.tableOperations().create(table);
     BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {

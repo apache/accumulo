@@ -28,7 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -59,7 +59,7 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     getCluster().getClusterControl().start(ServerType.MONITOR);
-    final Connector c = getConnector();
+    final AccumuloClient c = getClient();
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1");

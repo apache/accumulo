@@ -22,9 +22,9 @@ import static org.junit.Assert.assertNull;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -50,7 +50,7 @@ public class FindMaxIT extends AccumuloClusterHarness {
 
   @Test
   public void test1() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
 
     conn.tableOperations().create(tableName);

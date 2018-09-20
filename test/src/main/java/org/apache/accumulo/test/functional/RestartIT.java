@@ -33,7 +33,7 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -106,7 +106,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void restartMaster() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     OPTS.setTableName(tableName);
     VOPTS.setTableName(tableName);
@@ -147,7 +147,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void restartMasterRecovery() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
@@ -197,7 +197,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void restartMasterSplit() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     final AuthenticationToken token = getAdminToken();
     final ClusterControl control = getCluster().getClusterControl();
@@ -253,7 +253,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void killedTabletServer() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
@@ -269,7 +269,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void killedTabletServer2() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getAccumuloClient();
     final String[] names = getUniqueNames(2);
     final String tableName = names[0];
     final ClusterControl control = getCluster().getClusterControl();
@@ -284,7 +284,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void killedTabletServerDuringShutdown() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     OPTS.setTableName(tableName);
@@ -300,7 +300,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void shutdownDuringCompactingSplitting() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     VOPTS.setTableName(tableName);
     OPTS.setClientInfo(getClientInfo());

@@ -32,10 +32,10 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -74,7 +74,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @Test
   public void testDropA() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
 
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
@@ -105,7 +105,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   private void testDropNone(Map<String,String> options) throws Exception {
 
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
 
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
@@ -146,7 +146,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
     // test per-table classpath + user specified compaction strategy
 
-    final Connector c = getConnector();
+    final AccumuloClient c = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     File target = new File(System.getProperty("user.dir"), "target");
     assertTrue(target.mkdirs() || target.isDirectory());
@@ -191,7 +191,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   public void testIterators() throws Exception {
     // test compaction strategy + iterators
 
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
 
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
@@ -233,7 +233,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @Test
   public void testFileSize() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
 
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
@@ -269,7 +269,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   public void testConcurrent() throws Exception {
     // two compactions without iterators or strategy should be able to run concurrently
 
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
 
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
@@ -299,7 +299,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     } catch (AccumuloException e) {}
   }
 
-  void writeRandomValue(Connector c, String tableName, int size) throws Exception {
+  void writeRandomValue(AccumuloClient c, String tableName, int size) throws Exception {
     Random rand = new SecureRandom();
 
     byte data1[] = new byte[size];
@@ -315,7 +315,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     c.tableOperations().flush(tableName, null, null, true);
   }
 
-  private Set<String> getRows(Connector c, String tableName) throws TableNotFoundException {
+  private Set<String> getRows(AccumuloClient c, String tableName) throws TableNotFoundException {
     Set<String> rows = new HashSet<>();
     try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
       for (Entry<Key,Value> entry : scanner)
@@ -324,7 +324,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     return rows;
   }
 
-  private void writeFlush(Connector conn, String tablename, String row) throws Exception {
+  private void writeFlush(AccumuloClient conn, String tablename, String row) throws Exception {
     BatchWriter bw = conn.createBatchWriter(tablename, new BatchWriterConfig());
     Mutation m = new Mutation(row);
     m.put("", "", "");

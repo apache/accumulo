@@ -216,7 +216,7 @@ class LoadFiles extends MasterRepo {
     void start(Path bulkDir, Master master, long tid, boolean setTime) throws Exception {
       Preconditions.checkArgument(!setTime);
       super.start(bulkDir, master, tid, setTime);
-      bw = master.getConnector().createBatchWriter(MetadataTable.NAME);
+      bw = master.getClient().createBatchWriter(MetadataTable.NAME);
       unloadingTablets = new MapCounter<>();
     }
 

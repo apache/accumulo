@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.io.Text;
@@ -41,7 +41,7 @@ public class FateStarvationIT extends AccumuloClusterHarness {
   @Test
   public void run() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.tableOperations().create(tableName);
 
     c.tableOperations().addSplits(tableName, TestIngest.getSplitPoints(0, 100000, 50));

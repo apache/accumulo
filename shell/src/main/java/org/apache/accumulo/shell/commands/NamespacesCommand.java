@@ -41,7 +41,7 @@ public class NamespacesCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, IOException {
     Map<String,String> namespaces = new TreeMap<>(
-        shellState.getConnector().namespaceOperations().namespaceIdMap());
+        shellState.getAccumuloClient().namespaceOperations().namespaceIdMap());
 
     Iterator<String> it = Iterators.transform(namespaces.entrySet().iterator(), entry -> {
       String name = entry.getKey();

@@ -30,10 +30,10 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -62,13 +62,13 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   @Before
   public void emptyAuths() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     origAuths = c.securityOperations().getUserAuthorizations(getAdminPrincipal());
   }
 
   @After
   public void resetAuths() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     if (null != origAuths) {
       c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), origAuths);
     }
@@ -76,7 +76,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String[] tableNames = getUniqueNames(2);
     String table = tableNames[0];
     c.tableOperations().create(table);
@@ -114,7 +114,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
     m.putDelete(new Text(cf), new Text(cq), le);
   }
 
-  private void insertData(Connector c, String tableName) throws Exception {
+  private void insertData(AccumuloClient c, String tableName) throws Exception {
 
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m1 = new Mutation(new Text("row1"));
@@ -137,7 +137,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
     bw.close();
   }
 
-  private void deleteData(Connector c, String tableName) throws Exception {
+  private void deleteData(AccumuloClient c, String tableName) throws Exception {
 
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m1 = new Mutation(new Text("row1"));
@@ -170,7 +170,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
         nss("A", "B", "FOO", "L", "M", "Z"), expected);
   }
 
-  private void insertDefaultData(Connector c, String tableName) throws Exception {
+  private void insertDefaultData(AccumuloClient c, String tableName) throws Exception {
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m1 = new Mutation(new Text("row1"));
 
@@ -197,7 +197,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
     }
   }
 
-  private void queryData(Connector c, String tableName) throws Exception {
+  private void queryData(AccumuloClient c, String tableName) throws Exception {
     Map<Set<String>,Set<String>> expected = new HashMap<>();
     expected.put(nss(), nss("v1"));
     expected.put(nss("A"), nss("v2"));
@@ -227,8 +227,8 @@ public class VisibilityIT extends AccumuloClusterHarness {
     queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss(), expected);
   }
 
-  private void queryData(Connector c, String tableName, Set<String> allAuths, Set<String> userAuths,
-      Map<Set<String>,Set<String>> expected) throws Exception {
+  private void queryData(AccumuloClient c, String tableName, Set<String> allAuths,
+      Set<String> userAuths, Map<Set<String>,Set<String>> expected) throws Exception {
 
     c.securityOperations().changeUserAuthorizations(getAdminPrincipal(),
         new Authorizations(nbas(userAuths)));
@@ -254,21 +254,22 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   }
 
-  private void queryDefaultData(Connector c, String tableName) throws Exception {
+  private void queryDefaultData(AccumuloClient c, String tableName) throws Exception {
     // should return no records
     c.securityOperations().changeUserAuthorizations(getAdminPrincipal(),
         new Authorizations("BASE", "DEFLABEL"));
-    try (Scanner scanner = getConnector().createScanner(tableName, new Authorizations())) {
+    try (Scanner scanner = getAccumuloClient().createScanner(tableName, new Authorizations())) {
       verifyDefault(scanner, 0);
     }
 
     // should return one record
-    try (Scanner scanner = getConnector().createScanner(tableName, new Authorizations("BASE"))) {
+    try (Scanner scanner = getAccumuloClient().createScanner(tableName,
+        new Authorizations("BASE"))) {
       verifyDefault(scanner, 1);
     }
 
     // should return all three records
-    try (Scanner scanner = getConnector().createScanner(tableName,
+    try (Scanner scanner = getAccumuloClient().createScanner(tableName,
         new Authorizations("BASE", "DEFLABEL"))) {
       verifyDefault(scanner, 3);
     }
@@ -280,8 +281,8 @@ public class VisibilityIT extends AccumuloClusterHarness {
       throw new Exception("actual count " + actual + " != expected count " + expectedCount);
   }
 
-  private void verify(Connector c, String tableName, Set<String> auths, Set<String> expectedValues)
-      throws Exception {
+  private void verify(AccumuloClient c, String tableName, Set<String> auths,
+      Set<String> expectedValues) throws Exception {
     ByteArraySet bas = nbas(auths);
 
     try {
@@ -299,10 +300,10 @@ public class VisibilityIT extends AccumuloClusterHarness {
     return bas;
   }
 
-  private void verify(Connector c, String tableName, ByteArraySet nss, String... expected)
+  private void verify(AccumuloClient c, String tableName, ByteArraySet nss, String... expected)
       throws Exception {
     try (Scanner scanner = c.createScanner(tableName, new Authorizations(nss));
-        BatchScanner bs = getConnector().createBatchScanner(tableName, new Authorizations(nss),
+        BatchScanner bs = getAccumuloClient().createBatchScanner(tableName, new Authorizations(nss),
             3)) {
 
       verify(scanner.iterator(), expected);

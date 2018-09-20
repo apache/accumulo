@@ -28,8 +28,8 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
@@ -55,7 +55,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TABLE_BLOCKCACHE_ENABLED, "false");
   }
 
-  private static Thread slowScan(final Connector c, final String tableName,
+  private static Thread slowScan(final AccumuloClient c, final String tableName,
       final AtomicBoolean stop) {
     return new Thread(() -> {
       try {
@@ -80,7 +80,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     final String tableName = getUniqueNames(1)[0];
-    final Connector c = getConnector();
+    final AccumuloClient c = getClient();
     c.tableOperations().create(tableName);
     Random random = new SecureRandom();
     BatchWriter bw = c.createBatchWriter(tableName, null);

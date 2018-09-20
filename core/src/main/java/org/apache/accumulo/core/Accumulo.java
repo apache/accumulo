@@ -14,28 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.replication;
+package org.apache.accumulo.core;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
 
 /**
- * Interface to allow for multiple implementations that assign replication work
+ * The main entry point for Accumulo public API.
+ *
+ * @since 2.0.0
  */
-public interface WorkAssigner {
+public final class Accumulo {
+
+  private Accumulo() {}
 
   /**
-   * @return The name for this WorkAssigner
+   * Create an Accumulo client builder, used to construct a client. For example:
+   *
+   * {@code Accumulo.newClient().forInstance(instanceName, zookeepers)
+   *         .usingPassword(user, password).withZkTimeout(1234).build();}
+   *
+   * @return a builder object for Accumulo clients
    */
-  String getName();
+  public static AccumuloClient.ClientInfoOptions newClient() {
+    return new AccumuloClientImpl.AccumuloClientBuilderImpl();
+  }
 
-  /**
-   * Configure the WorkAssigner implementation
-   */
-  void configure(AccumuloConfiguration conf, AccumuloClient conn);
-
-  /**
-   * Assign work for replication
-   */
-  void assignWork();
 }

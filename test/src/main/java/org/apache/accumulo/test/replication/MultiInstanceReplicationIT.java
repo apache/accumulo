@@ -35,9 +35,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -176,8 +176,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peerCluster.start();
 
     try {
-      final Connector connMaster = getConnector();
-      final Connector connPeer = peerCluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
+      final AccumuloClient connMaster = getClient();
+      final AccumuloClient connPeer = peerCluster.getAccumuloClient("root",
+          new PasswordToken(ROOT_PASSWORD));
 
       ReplicationTable.setOnline(connMaster);
 
@@ -349,8 +350,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peer1Cluster.start();
 
     try {
-      Connector connMaster = getConnector();
-      Connector connPeer = peer1Cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
+      AccumuloClient connMaster = getClient();
+      AccumuloClient connPeer = peer1Cluster.getAccumuloClient("root",
+          new PasswordToken(ROOT_PASSWORD));
 
       String peerClusterName = "peer";
       String peerUserName = "peer", peerPassword = "foo";
@@ -508,8 +510,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
     peerCluster.start();
 
-    Connector connMaster = getConnector();
-    Connector connPeer = peerCluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
+    AccumuloClient connMaster = getClient();
+    AccumuloClient connPeer = peerCluster.getAccumuloClient("root",
+        new PasswordToken(ROOT_PASSWORD));
 
     String peerUserName = "repl";
     String peerPassword = "passwd";
@@ -623,8 +626,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peer1Cluster.start();
 
     try {
-      Connector connMaster = getConnector();
-      Connector connPeer = peer1Cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
+      AccumuloClient connMaster = getClient();
+      AccumuloClient connPeer = peer1Cluster.getAccumuloClient("root",
+          new PasswordToken(ROOT_PASSWORD));
 
       String peerClusterName = "peer";
 

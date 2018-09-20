@@ -25,9 +25,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.impl.Table;
@@ -57,9 +57,9 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class RemoveCompleteReplicationRecords implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(RemoveCompleteReplicationRecords.class);
 
-  private Connector conn;
+  private AccumuloClient conn;
 
-  public RemoveCompleteReplicationRecords(Connector conn) {
+  public RemoveCompleteReplicationRecords(AccumuloClient conn) {
     this.conn = conn;
   }
 
@@ -123,7 +123,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
    *          A BatchWriter to write deletes to
    * @return Number of records removed
    */
-  protected long removeCompleteRecords(Connector conn, BatchScanner bs, BatchWriter bw) {
+  protected long removeCompleteRecords(AccumuloClient conn, BatchScanner bs, BatchWriter bw) {
     Text row = new Text(), colf = new Text(), colq = new Text();
     long recordsRemoved = 0;
 

@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.replication.ReplicationConstants;
@@ -53,7 +53,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
   @Test
   public void tserverReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     ClientContext context = getClientContext();
 
     // Wait for a tserver to come up to fulfill this request
@@ -90,7 +90,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
   @Test
   public void masterReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     ClientContext context = getClientContext();
 
     // Wait for a tserver to come up to fulfill this request

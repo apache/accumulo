@@ -24,9 +24,9 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -69,7 +69,7 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     // make some tablets, spread 'em around
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     ClientContext context = getClientContext();
     String table = this.getUniqueNames(1)[0];
     c.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);

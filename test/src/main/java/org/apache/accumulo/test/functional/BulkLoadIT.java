@@ -39,6 +39,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -98,7 +99,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Before
   public void setupBulkTest() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     aconf = getCluster().getServerContext().getConfiguration();
@@ -113,7 +114,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
   }
 
   private void testSingleTabletSingleFile(boolean offline) throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     addSplits(tableName, "0333");
 
     if (offline)
@@ -144,7 +145,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
   }
 
   private void testSingleTabletSingleFileNoSplits(boolean offline) throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
 
     if (offline)
       c.tableOperations().offline(tableName);
@@ -174,7 +175,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Test
   public void testBadPermissions() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     addSplits(tableName, "0333");
 
     String dir = getDir("/testBadPermissions-");
@@ -208,7 +209,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
   }
 
   private void testBulkFile(boolean offline, boolean usePlan) throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     addSplits(tableName, "0333 0666 0999 1333 1666");
 
     if (offline)
@@ -322,11 +323,11 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     SortedSet<Text> splits = new TreeSet<>();
     for (String split : splitString.split(" "))
       splits.add(new Text(split));
-    getConnector().tableOperations().addSplits(tableName, splits);
+    getAccumuloClient().tableOperations().addSplits(tableName, splits);
   }
 
   private void verifyData(String table, int s, int e) throws Exception {
-    try (Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY)) {
+    try (Scanner scanner = getAccumuloClient().createScanner(table, Authorizations.EMPTY)) {
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
@@ -355,10 +356,10 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
     Set<String> endRowsSeen = new HashSet<>();
 
-    String id = getConnector().tableOperations().tableIdMap().get(tableName);
-    try (
-        MetadataScanner scanner = MetadataScanner.builder().from(getConnector()).scanMetadataTable()
-            .overRange(Table.ID.of(id)).fetchFiles().fetchLoaded().fetchPrev().build()) {
+    String id = getAccumuloClient().tableOperations().tableIdMap().get(tableName);
+    try (MetadataScanner scanner = MetadataScanner.builder().from(getAccumuloClient())
+        .scanMetadataTable().overRange(Table.ID.of(id)).fetchFiles().fetchLoaded().fetchPrev()
+        .build()) {
       for (TabletMetadata tablet : scanner) {
         assertTrue(tablet.getLoaded().isEmpty());
 

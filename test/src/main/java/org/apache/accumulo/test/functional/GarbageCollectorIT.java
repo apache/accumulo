@@ -36,11 +36,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -115,7 +115,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void gcTest() throws Exception {
     killMacGc();
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     c.tableOperations().create("test_ingest");
     c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
     TestIngest.Opts opts = new TestIngest.Opts();
@@ -148,7 +148,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     killMacGc();
 
     log.info("Filling metadata table with bogus delete flags");
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     addEntries(c, new BatchWriterOpts());
     cluster.getConfig().setDefaultMemory(10, MemoryUnit.MEGABYTE);
     Process gc = cluster.exec(SimpleGarbageCollector.class);
@@ -171,7 +171,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   public void dontGCRootLog() throws Exception {
     killMacGc();
     // dirty metadata
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     String table = getUniqueNames(1)[0];
     c.tableOperations().create(table);
     // let gc run for a bit
@@ -202,20 +202,20 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     killMacGc();
 
     String table = getUniqueNames(1)[0];
-    getConnector().tableOperations().create(table);
+    getClient().tableOperations().create(table);
 
-    BatchWriter bw2 = getConnector().createBatchWriter(table, new BatchWriterConfig());
+    BatchWriter bw2 = getClient().createBatchWriter(table, new BatchWriterConfig());
     Mutation m1 = new Mutation("r1");
     m1.put("cf1", "cq1", "v1");
     bw2.addMutation(m1);
     bw2.close();
 
-    getConnector().tableOperations().flush(table, null, null, true);
+    getClient().tableOperations().flush(table, null, null, true);
 
     // ensure an invalid delete entry does not cause GC to go berserk ACCUMULO-2520
-    getConnector().securityOperations().grantTablePermission(getConnector().whoami(),
-        MetadataTable.NAME, TablePermission.WRITE);
-    BatchWriter bw3 = getConnector().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    getClient().securityOperations().grantTablePermission(getClient().whoami(), MetadataTable.NAME,
+        TablePermission.WRITE);
+    BatchWriter bw3 = getClient().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
     bw3.addMutation(createDelMutation("", "", "", ""));
     bw3.addMutation(createDelMutation("", "testDel", "test", "valueTest"));
@@ -237,7 +237,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       gc.destroy();
     }
 
-    try (Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY)) {
+    try (Scanner scanner = getClient().createScanner(table, Authorizations.EMPTY)) {
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
       assertTrue(iter.hasNext());
       Entry<Key,Value> entry = iter.next();
@@ -252,7 +252,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void testProperPortAdvertisement() throws Exception {
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
 
     ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
     String path = ZooUtil.getRoot(conn.getInstanceID()) + Constants.ZGC_LOCK;
@@ -300,7 +300,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     return Iterators.size(Arrays.asList(cluster.getFileSystem().globStatus(path)).iterator());
   }
 
-  public static void addEntries(Connector conn, BatchWriterOpts bwOpts) throws Exception {
+  public static void addEntries(AccumuloClient conn, BatchWriterOpts bwOpts) throws Exception {
     conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, bwOpts.getBatchWriterConfig());

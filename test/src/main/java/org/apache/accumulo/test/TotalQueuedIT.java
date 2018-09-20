@@ -23,9 +23,9 @@ import java.security.SecureRandom;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -56,7 +56,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
     Random random = new SecureRandom();
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
         "" + SMALL_QUEUE_SIZE);
     String tableName = getUniqueNames(1)[0];
@@ -122,7 +122,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   }
 
   private long getSyncs() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     ServerContext context = getServerContext();
     for (String address : c.instanceOperations().getTabletServers()) {
       TabletClientService.Client client = ThriftUtil

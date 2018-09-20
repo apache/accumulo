@@ -63,7 +63,7 @@ public class CompactCommand extends TableOperation {
 
     if (cancel) {
       try {
-        shellState.getConnector().tableOperations().cancelCompaction(tableName);
+        shellState.getAccumuloClient().tableOperations().cancelCompaction(tableName);
         Shell.log.info("Compaction canceled for table " + tableName);
       } catch (TableNotFoundException e) {
         throw new AccumuloException(e);
@@ -79,7 +79,7 @@ public class CompactCommand extends TableOperation {
               iteratorSetting.getIteratorClass());
         }
 
-        shellState.getConnector().tableOperations().compact(tableName, compactionConfig);
+        shellState.getAccumuloClient().tableOperations().compact(tableName, compactionConfig);
 
         Shell.log.info("Compaction of table " + tableName + " "
             + (compactionConfig.getWait() ? "completed" : "started") + " for given range");

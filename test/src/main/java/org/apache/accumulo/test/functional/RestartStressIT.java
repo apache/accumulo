@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -98,7 +98,7 @@ public class RestartStressIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     final AuthenticationToken token = getAdminToken();
     c.tableOperations().create(tableName);

@@ -23,7 +23,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -44,7 +44,7 @@ public class MetadataSplitIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     assertEquals(1, c.tableOperations().listSplits(MetadataTable.NAME).size());
     c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
         "500");

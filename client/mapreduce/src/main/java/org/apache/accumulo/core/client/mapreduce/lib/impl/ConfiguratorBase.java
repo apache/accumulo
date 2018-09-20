@@ -29,7 +29,9 @@ import java.net.URISyntaxException;
 import java.util.Properties;
 import java.util.Scanner;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
@@ -118,10 +120,10 @@ public class ConfiguratorBase {
     if (info.getAuthenticationToken() instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        Connector conn = Connector.builder().usingClientInfo(info).build();
+        AccumuloClient conn = Accumulo.newClient().usingClientInfo(info).build();
         AuthenticationToken token = conn.securityOperations()
             .getDelegationToken(new DelegationTokenConfig());
-        result = Connector.builder().usingClientInfo(info).usingToken(info.getPrincipal(), token)
+        result = Accumulo.newClient().usingClientInfo(info).usingToken(info.getPrincipal(), token)
             .info();
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, "
@@ -335,11 +337,11 @@ public class ConfiguratorBase {
   @Deprecated
   public static org.apache.accumulo.core.client.Instance getInstance(Class<?> implementingClass,
       Configuration conf) {
-    return getConnector(implementingClass, conf).getInstance();
+    return Connector.from(getClient(implementingClass, conf)).getInstance();
   }
 
   /**
-   * Creates an Accumulo {@link Connector} based on the configuration
+   * Creates an Accumulo {@link AccumuloClient} based on the configuration
    *
    * @param implementingClass
    *          class whose name will be used as a prefix for the property configuration
@@ -348,9 +350,9 @@ public class ConfiguratorBase {
    * @return Accumulo connector
    * @since 2.0.0
    */
-  public static Connector getConnector(Class<?> implementingClass, Configuration conf) {
+  public static AccumuloClient getClient(Class<?> implementingClass, Configuration conf) {
     try {
-      return Connector.builder().usingClientInfo(getClientInfo(implementingClass, conf)).build();
+      return Accumulo.newClient().usingClientInfo(getClientInfo(implementingClass, conf)).build();
     } catch (AccumuloException | AccumuloSecurityException e) {
       throw new IllegalStateException(e);
     }

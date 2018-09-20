@@ -22,9 +22,9 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -100,13 +100,13 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
 
   }
 
-  public static void addSplits(Connector connector, String tableName)
+  public static void addSplits(AccumuloClient accumuloClient, String tableName)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // Add 10 splits to the table
     SortedSet<Text> partitions = new TreeSet<>();
     for (String s : rows)
       partitions.add(new Text(s));
-    connector.tableOperations().addSplits(tableName, partitions);
+    accumuloClient.tableOperations().addSplits(tableName, partitions);
   }
 
   // Test that uses one table with 10 split points each. It uses the PreferredVolumeChooser, but no
@@ -117,18 +117,18 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
     log.info("Starting missingVolumePreferredVolumeChooser");
 
     // Create namespace
-    Connector connector = getConnector();
-    connector.namespaceOperations().create(namespace1);
+    AccumuloClient accumuloClient = getClient();
+    accumuloClient.namespaceOperations().create(namespace1);
 
     // Set properties on the namespace
-    connector.namespaceOperations().setProperty(namespace1,
+    accumuloClient.namespaceOperations().setProperty(namespace1,
         PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
     // deliberately do not set preferred volumes
 
     // Create table1 on namespace1 (will fail)
     String tableName = namespace1 + ".1";
     thrown.expect(AccumuloException.class);
-    connector.tableOperations().create(tableName);
+    accumuloClient.tableOperations().create(tableName);
   }
 
   // Test that uses one table with 10 split points each. It uses the PreferredVolumeChooser, but
@@ -139,24 +139,24 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
     log.info("Starting notInstancePreferredVolumeChooser");
 
     // Create namespace
-    Connector connector = getConnector();
-    connector.namespaceOperations().create(namespace1);
+    AccumuloClient accumuloClient = getClient();
+    accumuloClient.namespaceOperations().create(namespace1);
 
     // Set properties on the namespace
     String propertyName = PerTableVolumeChooser.TABLE_VOLUME_CHOOSER;
     String volume = PreferredVolumeChooser.class.getName();
-    connector.namespaceOperations().setProperty(namespace1, propertyName, volume);
+    accumuloClient.namespaceOperations().setProperty(namespace1, propertyName, volume);
 
     // set to v3 which is not included in the list of instance volumes, so it should go to the
     // system default preferred volumes
     propertyName = PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES;
     volume = v3.toString();
-    connector.namespaceOperations().setProperty(namespace1, propertyName, volume);
+    accumuloClient.namespaceOperations().setProperty(namespace1, propertyName, volume);
 
     // Create table1 on namespace1 (will fail)
     String tableName = namespace1 + ".1";
     thrown.expect(AccumuloException.class);
-    connector.tableOperations().create(tableName);
+    accumuloClient.tableOperations().create(tableName);
   }
 
 }

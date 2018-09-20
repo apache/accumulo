@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
@@ -61,7 +61,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
 
   @Before
   public void updateMajcDelay() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     majcDelay = c.instanceOperations().getSystemConfiguration()
         .get(Property.TSERV_MAJC_DELAY.getKey());
     c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
@@ -72,7 +72,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
 
   @After
   public void resetMajcDelay() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
   }
 
@@ -80,7 +80,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     final String[] tables = getUniqueNames(15);
     String firstTable = tables[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "5");
     TestIngest.Opts opts = new TestIngest.Opts();
     opts.rows = 500 * 1000;

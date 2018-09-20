@@ -21,7 +21,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestBinaryRows;
 import org.apache.hadoop.io.Text;
@@ -36,7 +36,7 @@ public class BinaryIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     runTest(c, tableName);
@@ -45,7 +45,7 @@ public class BinaryIT extends AccumuloClusterHarness {
   @Test
   public void testPreSplit() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.tableOperations().create(tableName);
     SortedSet<Text> splits = new TreeSet<>();
     splits.add(new Text("8"));
@@ -54,7 +54,7 @@ public class BinaryIT extends AccumuloClusterHarness {
     runTest(c, tableName);
   }
 
-  public static void runTest(Connector c, String tableName) throws Exception {
+  public static void runTest(AccumuloClient c, String tableName) throws Exception {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     ScannerOpts scanOpts = new ScannerOpts();
     TestBinaryRows.Opts opts = new TestBinaryRows.Opts();

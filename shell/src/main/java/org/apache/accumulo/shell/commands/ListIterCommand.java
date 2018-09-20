@@ -46,10 +46,10 @@ public class ListIterCommand extends Command {
 
     final Map<String,EnumSet<IteratorScope>> iterators;
     if (namespaces) {
-      iterators = shellState.getConnector().namespaceOperations()
+      iterators = shellState.getAccumuloClient().namespaceOperations()
           .listIterators(OptUtil.getNamespaceOpt(cl, shellState));
     } else if (tables) {
-      iterators = shellState.getConnector().tableOperations()
+      iterators = shellState.getAccumuloClient().tableOperations()
           .listIterators(OptUtil.getTableOpt(cl, shellState));
     } else {
       throw new IllegalArgumentException("No table or namespace specified");
@@ -83,10 +83,10 @@ public class ListIterCommand extends Command {
         if (desiredScopes.contains(scope)) {
           IteratorSetting setting;
           if (namespaces) {
-            setting = shellState.getConnector().namespaceOperations()
+            setting = shellState.getAccumuloClient().namespaceOperations()
                 .getIteratorSetting(OptUtil.getNamespaceOpt(cl, shellState), name, scope);
           } else if (tables) {
-            setting = shellState.getConnector().tableOperations()
+            setting = shellState.getAccumuloClient().tableOperations()
                 .getIteratorSetting(OptUtil.getTableOpt(cl, shellState), name, scope);
           } else {
             throw new IllegalArgumentException("No table or namespace specified");

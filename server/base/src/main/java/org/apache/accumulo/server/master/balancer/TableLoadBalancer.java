@@ -139,7 +139,7 @@ public class TableLoadBalancer extends TabletBalancer {
   protected TableOperations getTableOperations() {
     if (tops == null)
       try {
-        tops = this.context.getConnector().tableOperations();
+        tops = this.context.getClient().tableOperations();
       } catch (AccumuloException | AccumuloSecurityException e) {
         log.error("Unable to access table operations from within table balancer", e);
       }

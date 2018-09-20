@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.commons.configuration.CompositeConfiguration;
@@ -45,7 +46,7 @@ import org.slf4j.LoggerFactory;
  * setting them.
  *
  * @since 1.6.0
- * @deprecated since 2.0.0, replaced {@link Connector#builder()}
+ * @deprecated since 2.0.0, replaced by {@link Accumulo#newClient()}
  */
 @Deprecated
 public class ClientConfiguration {

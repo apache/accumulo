@@ -24,11 +24,12 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.Properties;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -158,7 +159,7 @@ public class ClientOpts extends Help {
   }
 
   private ClientInfo cachedInfo = null;
-  private Connector cachedConnector = null;
+  private AccumuloClient cachedAccumuloClient = null;
   private Properties cachedProps = null;
 
   public String getPrincipal() {
@@ -175,16 +176,16 @@ public class ClientOpts extends Help {
 
   public ClientInfo getClientInfo() {
     if (cachedInfo == null) {
-      cachedInfo = Connector.builder().usingProperties(getClientProperties()).info();
+      cachedInfo = Accumulo.newClient().usingProperties(getClientProperties()).info();
     }
     return cachedInfo;
   }
 
-  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    if (cachedConnector == null) {
-      cachedConnector = Connector.builder().usingClientInfo(getClientInfo()).build();
+  public AccumuloClient getClient() throws AccumuloException, AccumuloSecurityException {
+    if (cachedAccumuloClient == null) {
+      cachedAccumuloClient = Accumulo.newClient().usingClientInfo(getClientInfo()).build();
     }
-    return cachedConnector;
+    return cachedAccumuloClient;
   }
 
   public String getClientConfigFile() {

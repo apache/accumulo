@@ -25,9 +25,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -166,8 +166,8 @@ public class KerberosReplicationIT extends AccumuloITBase {
     ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
       log.info("testing {}", ugi);
       final KerberosToken token = new KerberosToken();
-      final Connector primaryConn = primary.getConnector(rootUser.getPrincipal(), token);
-      final Connector peerConn = peer.getConnector(rootUser.getPrincipal(), token);
+      final AccumuloClient primaryConn = primary.getAccumuloClient(rootUser.getPrincipal(), token);
+      final AccumuloClient peerConn = peer.getAccumuloClient(rootUser.getPrincipal(), token);
 
       ClusterUser replicationUser = kdc.getClientPrincipal(0);
 

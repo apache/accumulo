@@ -20,7 +20,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.Socket;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -43,7 +43,7 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     String[] tableNames = getUniqueNames(3);
     for (String tableName : tableNames) {
       c.tableOperations().create(tableName);

@@ -25,8 +25,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -49,11 +49,11 @@ import org.junit.Test;
 
 public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
-  private Connector conn;
+  private AccumuloClient conn;
   private MockUnorderedWorkAssigner assigner;
 
   private static class MockUnorderedWorkAssigner extends UnorderedWorkAssigner {
-    public MockUnorderedWorkAssigner(Connector conn) {
+    public MockUnorderedWorkAssigner(AccumuloClient conn) {
       super(null, conn);
     }
 
@@ -83,7 +83,7 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
     }
 
     @Override
-    protected void setConnector(Connector conn) {
+    protected void setConnector(AccumuloClient conn) {
       super.setConnector(conn);
     }
 
@@ -110,7 +110,7 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
   @Before
   public void init() throws Exception {
-    conn = getConnector();
+    conn = getClient();
     assigner = new MockUnorderedWorkAssigner(conn);
     ReplicationTable.setOnline(conn);
     conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,

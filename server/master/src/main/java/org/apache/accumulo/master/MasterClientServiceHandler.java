@@ -29,10 +29,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
@@ -182,7 +182,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       serversToFlush.clear();
 
       try {
-        Connector conn = master.getConnector();
+        AccumuloClient conn = master.getClient();
         Scanner scanner;
         if (tableId.equals(MetadataTable.ID)) {
           scanner = new IsolatedScanner(conn.createScanner(RootTable.NAME, Authorizations.EMPTY));
@@ -552,9 +552,9 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public boolean drainReplicationTable(TInfo tfino, TCredentials credentials, String tableName,
       Set<String> logsToWatch) throws TException {
-    Connector conn;
+    AccumuloClient conn;
     try {
-      conn = master.getConnector();
+      conn = master.getClient();
     } catch (AccumuloException | AccumuloSecurityException e) {
       throw new RuntimeException("Failed to obtain connector", e);
     }

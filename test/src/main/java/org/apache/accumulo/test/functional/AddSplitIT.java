@@ -25,10 +25,10 @@ import java.util.Map.Entry;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -51,7 +51,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
   public void addSplitTest() throws Exception {
 
     String tableName = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.tableOperations().create(tableName);
 
     insertData(tableName, 1L);
@@ -94,7 +94,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
   }
 
   private void verifyData(String tableName, long ts) throws Exception {
-    try (Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner scanner = getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)) {
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
@@ -128,7 +128,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
 
   private void insertData(String tableName, long ts) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
-    BatchWriter bw = getConnector().createBatchWriter(tableName, null);
+    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, null);
 
     for (int i = 0; i < 10000; i++) {
       String row = String.format("%09d", i);

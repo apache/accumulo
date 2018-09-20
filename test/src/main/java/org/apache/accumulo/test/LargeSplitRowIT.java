@@ -27,9 +27,9 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.AccumuloServerException;
 import org.apache.accumulo.core.client.impl.Namespace;
@@ -67,7 +67,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // make a table and lower the TABLE_END_ROW_MAX_SIZE property
     final String tableName = getUniqueNames(1)[0];
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getClient();
     conn.tableOperations().create(tableName);
     conn.tableOperations().setProperty(tableName, Property.TABLE_MAX_END_ROW_SIZE.getKey(), "1000");
 
@@ -118,7 +118,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // make a table and lower the configure properties
     final String tableName = getUniqueNames(1)[0];
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getClient();
     conn.tableOperations().create(tableName);
     conn.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     conn.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(),
@@ -191,7 +191,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     log.info("Split later");
     automaticSplit(15, 1);
 
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getClient();
 
     String tableName = new String();
     java.util.Iterator<String> iterator = conn.tableOperations().list().iterator();
@@ -238,7 +238,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   private void automaticSplit(int max, int spacing) throws Exception {
     // make a table and lower the configure properties
     final String tableName = getUniqueNames(1)[0];
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getClient();
     conn.tableOperations().create(tableName);
     conn.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     conn.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(),

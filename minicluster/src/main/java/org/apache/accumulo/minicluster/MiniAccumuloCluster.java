@@ -20,10 +20,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
+import org.apache.accumulo.core.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
@@ -116,10 +119,21 @@ public class MiniAccumuloCluster {
    * Utility method to get a connector to the MAC.
    *
    * @since 1.6.0
+   * @deprecated since 2.0.0, replaced by {@link #getAccumuloClient(String, AuthenticationToken)}
    */
   public Connector getConnector(String user, String passwd)
       throws AccumuloException, AccumuloSecurityException {
-    return impl.getConnector(user, new PasswordToken(passwd));
+    return Connector.from(impl.getAccumuloClient(user, new PasswordToken(passwd)));
+  }
+
+  /**
+   * Utility method to get a client connection to the MAC.
+   *
+   * @since 2.0.0
+   */
+  public AccumuloClient getAccumuloClient(String user, AuthenticationToken token)
+      throws AccumuloException, AccumuloSecurityException {
+    return impl.getAccumuloClient(user, token);
   }
 
   /**
@@ -150,6 +164,6 @@ public class MiniAccumuloCluster {
   public static ClientInfo getClientInfo(File directory) {
     File clientProps = new File(new File(directory, "conf"), "accumulo-client.properties");
     Preconditions.checkArgument(clientProps.exists());
-    return Connector.builder().usingProperties(clientProps.getAbsolutePath()).info();
+    return Accumulo.newClient().usingProperties(clientProps.getAbsolutePath()).info();
   }
 }

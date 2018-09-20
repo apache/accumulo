@@ -79,7 +79,7 @@ public class CreateTableCommand extends Command {
     }
 
     final String tableName = cl.getArgs()[0];
-    if (shellState.getConnector().tableOperations().exists(tableName)) {
+    if (shellState.getAccumuloClient().tableOperations().exists(tableName)) {
       throw new TableExistsException(null, tableName, null);
     }
 
@@ -93,16 +93,16 @@ public class CreateTableCommand extends Command {
           ShellUtil.scanFile(cl.getOptionValue(createTableOptSplit.getOpt()), decode)));
     } else if (cl.hasOption(createTableOptCopySplits.getOpt())) {
       final String oldTable = cl.getOptionValue(createTableOptCopySplits.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(oldTable)) {
+      if (!shellState.getAccumuloClient().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
       }
       ntc = ntc.withSplits(
-          new TreeSet<>(shellState.getConnector().tableOperations().listSplits(oldTable)));
+          new TreeSet<>(shellState.getAccumuloClient().tableOperations().listSplits(oldTable)));
     }
 
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       final String oldTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(oldTable)) {
+      if (!shellState.getAccumuloClient().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
       }
     }
@@ -130,25 +130,25 @@ public class CreateTableCommand extends Command {
     }
 
     // create table.
-    shellState.getConnector().tableOperations().create(tableName,
+    shellState.getAccumuloClient().tableOperations().create(tableName,
         ntc.setTimeType(timeType).setProperties(props));
 
     shellState.setTableName(tableName); // switch shell to new table context
 
     if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
       for (String key : IteratorUtil.generateInitialTableProperties(true).keySet()) {
-        shellState.getConnector().tableOperations().removeProperty(tableName, key);
+        shellState.getAccumuloClient().tableOperations().removeProperty(tableName, key);
       }
     }
 
     // Copy options if flag was set
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
-      if (shellState.getConnector().tableOperations().exists(tableName)) {
-        final Iterable<Entry<String,String>> configuration = shellState.getConnector()
+      if (shellState.getAccumuloClient().tableOperations().exists(tableName)) {
+        final Iterable<Entry<String,String>> configuration = shellState.getAccumuloClient()
             .tableOperations().getProperties(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
         for (Entry<String,String> entry : configuration) {
           if (Property.isValidTablePropertyKey(entry.getKey())) {
-            shellState.getConnector().tableOperations().setProperty(tableName, entry.getKey(),
+            shellState.getAccumuloClient().tableOperations().setProperty(tableName, entry.getKey(),
                 entry.getValue());
           }
         }
@@ -157,7 +157,7 @@ public class CreateTableCommand extends Command {
 
     if (cl.hasOption(createTableOptEVC.getOpt())) {
       try {
-        shellState.getConnector().tableOperations().addConstraint(tableName,
+        shellState.getAccumuloClient().tableOperations().addConstraint(tableName,
             VisibilityConstraint.class.getName());
       } catch (AccumuloException e) {
         Shell.log
@@ -169,7 +169,7 @@ public class CreateTableCommand extends Command {
     if (cl.hasOption(createTableOptFormatter.getOpt())) {
       final String formatterClass = cl.getOptionValue(createTableOptFormatter.getOpt());
 
-      shellState.getConnector().tableOperations().setProperty(tableName,
+      shellState.getAccumuloClient().tableOperations().setProperty(tableName,
           Property.TABLE_FORMATTER_CLASS.toString(), formatterClass);
     }
     return 0;

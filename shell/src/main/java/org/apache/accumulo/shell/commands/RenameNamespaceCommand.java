@@ -51,7 +51,7 @@ public class RenameNamespaceCommand extends Command {
       resetContext = tableIds.contains(currentTableId);
     }
 
-    shellState.getConnector().namespaceOperations().rename(old, newer);
+    shellState.getAccumuloClient().namespaceOperations().rename(old, newer);
 
     if (resetContext) {
       shellState.setTableName(Tables.getTableName(shellState.getContext(), currentTableId));

@@ -22,7 +22,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
@@ -51,7 +51,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     log.info("verifying that everything is up");
     Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
 
@@ -84,7 +84,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
     assertEquals(1, stats.deadTabletServers.size());
   }
 
-  private MasterMonitorInfo getStats(Connector c) throws Exception {
+  private MasterMonitorInfo getStats(AccumuloClient c) throws Exception {
     ClientContext context = getClientContext();
     Client client = null;
     while (true) {

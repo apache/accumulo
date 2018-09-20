@@ -93,7 +93,7 @@ class PopulateMetadataTable extends MasterRepo {
     try {
       VolumeManager fs = master.getFileSystem();
 
-      mbw = master.getConnector().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      mbw = master.getClient().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
       zis = new ZipInputStream(fs.open(path));
 

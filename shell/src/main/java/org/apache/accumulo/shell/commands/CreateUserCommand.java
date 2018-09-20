@@ -37,7 +37,7 @@ public class CreateUserCommand extends Command {
       TableExistsException, IOException {
     final String user = cl.getArgs()[0];
 
-    AuthenticationToken userToken = shellState.getConnector().info().getAuthenticationToken();
+    AuthenticationToken userToken = shellState.getAccumuloClient().info().getAuthenticationToken();
     PasswordToken passwordToken;
     if (userToken instanceof KerberosToken) {
       passwordToken = new PasswordToken();
@@ -61,7 +61,7 @@ public class CreateUserCommand extends Command {
       passwordToken = new PasswordToken(password);
     }
 
-    shellState.getConnector().securityOperations().createLocalUser(user, passwordToken);
+    shellState.getAccumuloClient().securityOperations().createLocalUser(user, passwordToken);
     Shell.log.debug("Created user " + user);
     return 0;
   }

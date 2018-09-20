@@ -33,9 +33,9 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -244,7 +244,7 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
       } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
-        rc = RandomizeVolumes.randomize(context, context.getConnector(),
+        rc = RandomizeVolumes.randomize(context, context.getClient(),
             randomizeVolumesOpts.tableName);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
@@ -272,7 +272,7 @@ public class Admin implements KeywordExecutable {
   private static int ping(ClientContext context, List<String> args)
       throws AccumuloException, AccumuloSecurityException {
 
-    InstanceOperations io = context.getConnector().instanceOperations();
+    InstanceOperations io = context.getClient().instanceOperations();
 
     if (args.size() == 0) {
       args = io.getTabletServers();
@@ -309,7 +309,7 @@ public class Admin implements KeywordExecutable {
       @Override
       public void run() {
         try {
-          Connector conn = context.getConnector();
+          AccumuloClient conn = context.getClient();
           Set<String> tables = conn.tableOperations().tableIdMap().keySet();
           for (String table : tables) {
             if (table.equals(MetadataTable.NAME))
@@ -447,12 +447,12 @@ public class Admin implements KeywordExecutable {
         throw new IllegalArgumentException(opts.directory + " is not writable");
       }
     }
-    Connector connector = context.getConnector();
+    AccumuloClient accumuloClient = context.getClient();
     defaultConfig = DefaultConfiguration.getInstance();
-    siteConfig = connector.instanceOperations().getSiteConfiguration();
-    systemConfig = connector.instanceOperations().getSystemConfiguration();
+    siteConfig = accumuloClient.instanceOperations().getSiteConfiguration();
+    systemConfig = accumuloClient.instanceOperations().getSystemConfiguration();
     if (opts.allConfiguration || opts.users) {
-      localUsers = Lists.newArrayList(connector.securityOperations().listLocalUsers());
+      localUsers = Lists.newArrayList(accumuloClient.securityOperations().listLocalUsers());
       Collections.sort(localUsers);
     }
 
@@ -460,35 +460,35 @@ public class Admin implements KeywordExecutable {
       // print accumulo site
       printSystemConfiguration(outputDirectory);
       // print namespaces
-      for (String namespace : connector.namespaceOperations().list()) {
-        printNameSpaceConfiguration(connector, namespace, outputDirectory);
+      for (String namespace : accumuloClient.namespaceOperations().list()) {
+        printNameSpaceConfiguration(accumuloClient, namespace, outputDirectory);
       }
       // print tables
-      SortedSet<String> tableNames = connector.tableOperations().list();
+      SortedSet<String> tableNames = accumuloClient.tableOperations().list();
       for (String tableName : tableNames) {
-        printTableConfiguration(connector, tableName, outputDirectory);
+        printTableConfiguration(accumuloClient, tableName, outputDirectory);
       }
       // print users
       for (String user : localUsers) {
-        printUserConfiguration(connector, user, outputDirectory);
+        printUserConfiguration(accumuloClient, user, outputDirectory);
       }
     } else {
       if (opts.systemConfiguration) {
         printSystemConfiguration(outputDirectory);
       }
       if (opts.namespaceConfiguration) {
-        for (String namespace : connector.namespaceOperations().list()) {
-          printNameSpaceConfiguration(connector, namespace, outputDirectory);
+        for (String namespace : accumuloClient.namespaceOperations().list()) {
+          printNameSpaceConfiguration(accumuloClient, namespace, outputDirectory);
         }
       }
       if (opts.tables.size() > 0) {
         for (String tableName : opts.tables) {
-          printTableConfiguration(connector, tableName, outputDirectory);
+          printTableConfiguration(accumuloClient, tableName, outputDirectory);
         }
       }
       if (opts.users) {
         for (String user : localUsers) {
-          printUserConfiguration(connector, user, outputDirectory);
+          printUserConfiguration(accumuloClient, user, outputDirectory);
         }
       }
     }
@@ -510,14 +510,14 @@ public class Admin implements KeywordExecutable {
     return defaultValue;
   }
 
-  private void printNameSpaceConfiguration(Connector connector, String namespace,
+  private void printNameSpaceConfiguration(AccumuloClient accumuloClient, String namespace,
       File outputDirectory)
       throws IOException, AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
     FileWriter nsWriter = new FileWriter(namespaceScript);
     nsWriter.write(createNsFormat.format(new String[] {namespace}));
     TreeMap<String,String> props = new TreeMap<>();
-    for (Entry<String,String> p : connector.namespaceOperations().getProperties(namespace)) {
+    for (Entry<String,String> p : accumuloClient.namespaceOperations().getProperties(namespace)) {
       props.put(p.getKey(), p.getValue());
     }
     for (Entry<String,String> entry : props.entrySet()) {
@@ -533,28 +533,28 @@ public class Admin implements KeywordExecutable {
     nsWriter.close();
   }
 
-  private static void printUserConfiguration(Connector connector, String user, File outputDirectory)
-      throws IOException, AccumuloException, AccumuloSecurityException {
+  private static void printUserConfiguration(AccumuloClient accumuloClient, String user,
+      File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
     File userScript = new File(outputDirectory, user + USER_FILE_SUFFIX);
     FileWriter userWriter = new FileWriter(userScript);
     userWriter.write(createUserFormat.format(new String[] {user}));
-    Authorizations auths = connector.securityOperations().getUserAuthorizations(user);
+    Authorizations auths = accumuloClient.securityOperations().getUserAuthorizations(user);
     userWriter.write(userAuthsFormat.format(new String[] {user, auths.toString()}));
     for (SystemPermission sp : SystemPermission.values()) {
-      if (connector.securityOperations().hasSystemPermission(user, sp)) {
+      if (accumuloClient.securityOperations().hasSystemPermission(user, sp)) {
         userWriter.write(sysPermFormat.format(new String[] {sp.name(), user}));
       }
     }
-    for (String namespace : connector.namespaceOperations().list()) {
+    for (String namespace : accumuloClient.namespaceOperations().list()) {
       for (NamespacePermission np : NamespacePermission.values()) {
-        if (connector.securityOperations().hasNamespacePermission(user, namespace, np)) {
+        if (accumuloClient.securityOperations().hasNamespacePermission(user, namespace, np)) {
           userWriter.write(nsPermFormat.format(new String[] {np.name(), namespace, user}));
         }
       }
     }
-    for (String tableName : connector.tableOperations().list()) {
+    for (String tableName : accumuloClient.tableOperations().list()) {
       for (TablePermission perm : TablePermission.values()) {
-        if (connector.securityOperations().hasTablePermission(user, tableName, perm)) {
+        if (accumuloClient.securityOperations().hasTablePermission(user, tableName, perm)) {
           userWriter.write(tablePermFormat.format(new String[] {perm.name(), tableName, user}));
         }
       }
@@ -588,13 +588,14 @@ public class Admin implements KeywordExecutable {
     }
   }
 
-  private void printTableConfiguration(Connector connector, String tableName, File outputDirectory)
+  private void printTableConfiguration(AccumuloClient accumuloClient, String tableName,
+      File outputDirectory)
       throws AccumuloException, TableNotFoundException, IOException, AccumuloSecurityException {
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
     FileWriter writer = new FileWriter(tableBackup);
     writer.write(createTableFormat.format(new String[] {tableName}));
     TreeMap<String,String> props = new TreeMap<>();
-    for (Entry<String,String> p : connector.tableOperations().getProperties(tableName)) {
+    for (Entry<String,String> p : accumuloClient.tableOperations().getProperties(tableName)) {
       props.put(p.getKey(), p.getValue());
     }
     for (Entry<String,String> prop : props.entrySet()) {

@@ -26,9 +26,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -56,7 +56,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
 
   @Before
   public void createLocalUser() throws AccumuloException, AccumuloSecurityException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     ClusterUser user = getUser(0);
     username = user.getPrincipal();
     saslEnabled = saslEnabled();
@@ -79,7 +79,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
       UserGroupInformation.loginUserFromKeytab(root.getPrincipal(),
           root.getKeytab().getAbsolutePath());
     }
-    getConnector().securityOperations().dropLocalUser(username);
+    getAccumuloClient().securityOperations().dropLocalUser(username);
   }
 
   @Test
@@ -89,7 +89,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
     token.destroy();
     assertTrue(token.isDestroyed());
     try {
-      getConnector().changeUser("non_existent_user", token);
+      getAccumuloClient().changeUser("non_existent_user", token);
       fail();
     } catch (AccumuloSecurityException e) {
       assertEquals(e.getSecurityErrorCode(), SecurityErrorCode.TOKEN_EXPIRED);
@@ -99,8 +99,9 @@ public class CredentialsIT extends AccumuloClusterHarness {
   @Test
   public void testDestroyTokenBeforeRPC() throws Exception {
     AuthenticationToken token = getUser(0).getToken();
-    Connector userConnector = getConnector().changeUser(username, token);
-    try (Scanner scanner = userConnector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    AccumuloClient userAccumuloClient = getAccumuloClient().changeUser(username, token);
+    try (Scanner scanner = userAccumuloClient.createScanner(MetadataTable.NAME,
+        Authorizations.EMPTY)) {
       assertFalse(token.isDestroyed());
       token.destroy();
       assertTrue(token.isDestroyed());

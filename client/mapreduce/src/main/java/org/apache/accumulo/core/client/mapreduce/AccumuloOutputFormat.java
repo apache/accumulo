@@ -22,12 +22,13 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -410,7 +411,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     private long mutCount = 0;
     private long valCount = 0;
 
-    private Connector conn;
+    private AccumuloClient conn;
 
     protected AccumuloRecordWriter(TaskAttemptContext context)
         throws AccumuloException, AccumuloSecurityException, IOException {
@@ -429,7 +430,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
 
       if (!simulate) {
-        this.conn = Connector.builder().usingClientInfo(getClientInfo(context)).build();
+        this.conn = Accumulo.newClient().usingClientInfo(getClientInfo(context)).build();
         mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(context));
       }
     }
@@ -568,7 +569,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       // if the instance isn't configured, it will complain here
       String principal = getPrincipal(job);
       AuthenticationToken token = getAuthenticationToken(job);
-      Connector c = Connector.builder().usingClientInfo(getClientInfo(job)).build();
+      AccumuloClient c = Accumulo.newClient().usingClientInfo(getClientInfo(job)).build();
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException | AccumuloSecurityException e) {

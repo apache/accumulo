@@ -74,11 +74,12 @@ public class ConfigCommand extends Command {
     reader = shellState.getReader();
 
     final String tableName = cl.getOptionValue(tableOpt.getOpt());
-    if (tableName != null && !shellState.getConnector().tableOperations().exists(tableName)) {
+    if (tableName != null && !shellState.getAccumuloClient().tableOperations().exists(tableName)) {
       throw new TableNotFoundException(null, tableName, null);
     }
     final String namespace = cl.getOptionValue(namespaceOpt.getOpt());
-    if (namespace != null && !shellState.getConnector().namespaceOperations().exists(namespace)) {
+    if (namespace != null
+        && !shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
     }
     if (cl.hasOption(deleteOpt.getOpt())) {
@@ -93,21 +94,21 @@ public class ConfigCommand extends Command {
           Shell.log.warn("Invalid per-table property : " + property
               + ", still removing from zookeeper if it's there.");
         }
-        shellState.getConnector().tableOperations().removeProperty(tableName, property);
+        shellState.getAccumuloClient().tableOperations().removeProperty(tableName, property);
         Shell.log.debug("Successfully deleted table configuration option.");
       } else if (namespace != null) {
         if (!Property.isValidTablePropertyKey(property)) {
           Shell.log.warn("Invalid per-table property : " + property
               + ", still removing from zookeeper if it's there.");
         }
-        shellState.getConnector().namespaceOperations().removeProperty(namespace, property);
+        shellState.getAccumuloClient().namespaceOperations().removeProperty(namespace, property);
         Shell.log.debug("Successfully deleted namespace configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
           Shell.log.warn("Invalid per-table property : " + property
               + ", still removing from zookeeper if it's there.");
         }
-        shellState.getConnector().instanceOperations().removeProperty(property);
+        shellState.getAccumuloClient().instanceOperations().removeProperty(property);
         Shell.log.debug("Successfully deleted system configuration option");
       }
     } else if (cl.hasOption(setOpt.getOpt())) {
@@ -129,7 +130,7 @@ public class ConfigCommand extends Command {
         if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) {
           new ColumnVisibility(value); // validate that it is a valid expression
         }
-        shellState.getConnector().tableOperations().setProperty(tableName, property, value);
+        shellState.getAccumuloClient().tableOperations().setProperty(tableName, property, value);
         Shell.log.debug("Successfully set table configuration option.");
       } else if (namespace != null) {
         if (!Property.isValidTablePropertyKey(property)) {
@@ -139,26 +140,28 @@ public class ConfigCommand extends Command {
         if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) {
           new ColumnVisibility(value); // validate that it is a valid expression
         }
-        shellState.getConnector().namespaceOperations().setProperty(namespace, property, value);
+        shellState.getAccumuloClient().namespaceOperations().setProperty(namespace, property,
+            value);
         Shell.log.debug("Successfully set table configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
           throw new BadArgumentException("Property cannot be modified in zookeeper", fullCommand,
               fullCommand.indexOf(property));
         }
-        shellState.getConnector().instanceOperations().setProperty(property, value);
+        shellState.getAccumuloClient().instanceOperations().setProperty(property, value);
         Shell.log.debug("Successfully set system configuration option");
       }
     } else {
       // display properties
       final TreeMap<String,String> systemConfig = new TreeMap<>();
-      systemConfig.putAll(shellState.getConnector().instanceOperations().getSystemConfiguration());
+      systemConfig
+          .putAll(shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
 
       final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
       final PrintFile printFile = outputFile == null ? null : new PrintFile(outputFile);
 
       final TreeMap<String,String> siteConfig = new TreeMap<>();
-      siteConfig.putAll(shellState.getConnector().instanceOperations().getSiteConfiguration());
+      siteConfig.putAll(shellState.getAccumuloClient().instanceOperations().getSiteConfiguration());
 
       final TreeMap<String,String> defaults = new TreeMap<>();
       for (Entry<String,String> defaultEntry : DefaultConfiguration.getInstance()) {
@@ -169,18 +172,18 @@ public class ConfigCommand extends Command {
       if (tableName != null) {
         String n = Namespaces.getNamespaceName(shellState.getContext(), Tables.getNamespaceId(
             shellState.getContext(), Tables.getTableId(shellState.getContext(), tableName)));
-        for (Entry<String,String> e : shellState.getConnector().namespaceOperations()
+        for (Entry<String,String> e : shellState.getAccumuloClient().namespaceOperations()
             .getProperties(n)) {
           namespaceConfig.put(e.getKey(), e.getValue());
         }
       }
 
-      Iterable<Entry<String,String>> acuconf = shellState.getConnector().instanceOperations()
+      Iterable<Entry<String,String>> acuconf = shellState.getAccumuloClient().instanceOperations()
           .getSystemConfiguration().entrySet();
       if (tableName != null) {
-        acuconf = shellState.getConnector().tableOperations().getProperties(tableName);
+        acuconf = shellState.getAccumuloClient().tableOperations().getProperties(tableName);
       } else if (namespace != null) {
-        acuconf = shellState.getConnector().namespaceOperations().getProperties(namespace);
+        acuconf = shellState.getAccumuloClient().namespaceOperations().getProperties(namespace);
       }
       final TreeMap<String,String> sortedConf = new TreeMap<>();
       for (Entry<String,String> propEntry : acuconf) {

@@ -26,8 +26,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -48,17 +48,17 @@ import org.junit.Test;
 
 public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
-  private Connector conn;
+  private AccumuloClient conn;
   private MockSequentialWorkAssigner assigner;
 
   private static class MockSequentialWorkAssigner extends SequentialWorkAssigner {
 
-    public MockSequentialWorkAssigner(Connector conn) {
+    public MockSequentialWorkAssigner(AccumuloClient conn) {
       super(null, conn);
     }
 
     @Override
-    public void setConnector(Connector conn) {
+    public void setConnector(AccumuloClient conn) {
       super.setConnector(conn);
     }
 
@@ -96,7 +96,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   @Before
   public void init() throws Exception {
-    conn = getConnector();
+    conn = getClient();
     assigner = new MockSequentialWorkAssigner(conn);
     // grant ourselves write to the replication table
     conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,

@@ -31,8 +31,8 @@ import java.util.zip.Checksum;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
@@ -89,7 +89,7 @@ public class ContinuousIngest {
     if (opts.min < 0 || opts.max < 0 || opts.max <= opts.min) {
       throw new IllegalArgumentException("bad min and max");
     }
-    Connector conn = clientOpts.getConnector();
+    AccumuloClient conn = clientOpts.getClient();
 
     if (!conn.tableOperations().exists(clientOpts.getTableName())) {
       throw new TableNotFoundException(null, clientOpts.getTableName(),

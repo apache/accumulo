@@ -51,11 +51,11 @@ import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -97,7 +97,7 @@ import com.google.common.collect.Lists;
 
 public class SummaryIT extends AccumuloClusterHarness {
 
-  private LongSummaryStatistics getTimestampStats(final String table, Connector c)
+  private LongSummaryStatistics getTimestampStats(final String table, AccumuloClient c)
       throws TableNotFoundException {
     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
       Stream<Entry<Key,Value>> stream = StreamSupport.stream(scanner.spliterator(), false);
@@ -105,8 +105,8 @@ public class SummaryIT extends AccumuloClusterHarness {
     }
   }
 
-  private LongSummaryStatistics getTimestampStats(final String table, Connector c, String startRow,
-      String endRow) throws TableNotFoundException {
+  private LongSummaryStatistics getTimestampStats(final String table, AccumuloClient c,
+      String startRow, String endRow) throws TableNotFoundException {
     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
       scanner.setRange(new Range(startRow, false, endRow, true));
       Stream<Entry<Key,Value>> stream = StreamSupport.stream(scanner.spliterator(), false);
@@ -129,7 +129,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     assertEquals(expected, summary.getStatistics());
   }
 
-  private void addSplits(final String table, Connector c, String... splits)
+  private void addSplits(final String table, AccumuloClient c, String... splits)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     c.tableOperations().addSplits(table,
         new TreeSet<>(Lists.transform(Arrays.asList(splits), Text::new)));
@@ -138,7 +138,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void basicSummaryTest() throws Exception {
     final String table = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     NewTableConfiguration ntc = new NewTableConfiguration();
     SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BasicSummarizer.class.getName())
         .build();
@@ -242,7 +242,7 @@ public class SummaryIT extends AccumuloClusterHarness {
         stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
   }
 
-  private BatchWriter writeData(final String table, Connector c)
+  private BatchWriter writeData(final String table, AccumuloClient c)
       throws TableNotFoundException, MutationsRejectedException {
     BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
     for (int i = 0; i < 100_000; i++) {
@@ -314,7 +314,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void selectionTest() throws Exception {
     final String table = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     NewTableConfiguration ntc = new NewTableConfiguration();
     SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BasicSummarizer.class).build();
     SummarizerConfiguration sc2 = SummarizerConfiguration.builder(KeySizeSummarizer.class)
@@ -476,7 +476,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void compactionTest() throws Exception {
     final String table = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     NewTableConfiguration ntc = new NewTableConfiguration();
     SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FooCounter.class.getName())
         .build();
@@ -544,7 +544,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void testBuggySummarizer() throws Exception {
     final String table = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     NewTableConfiguration ntc = new NewTableConfiguration();
     SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BuggySummarizer.class).build();
     ntc.enableSummarization(sc1);
@@ -570,7 +570,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void testPermissions() throws Exception {
     final String table = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     NewTableConfiguration ntc = new NewTableConfiguration();
     SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FooCounter.class).build();
     ntc.enableSummarization(sc1);
@@ -587,7 +587,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     PasswordToken passTok = new PasswordToken("letmesee");
     c.securityOperations().createLocalUser("user1", passTok);
 
-    Connector c2 = c.changeUser("user1", passTok);
+    AccumuloClient c2 = c.changeUser("user1", passTok);
     try {
       c2.tableOperations().summaries(table).retrieve();
       fail("Expected operation to fail because user does not have permssion to get summaries");
@@ -643,7 +643,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void tooLargeTest() throws Exception {
     final String table = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     NewTableConfiguration ntc = new NewTableConfiguration();
     SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BigSummarizer.class).build();
     ntc.enableSummarization(sc1);
@@ -712,7 +712,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void testLocalityGroups() throws Exception {
     final String table = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     NewTableConfiguration ntc = new NewTableConfiguration();
     SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FamilySummarizer.class).build();
     SummarizerConfiguration sc2 = SummarizerConfiguration.builder(BasicSummarizer.class).build();
@@ -770,7 +770,7 @@ public class SummaryIT extends AccumuloClusterHarness {
 
   @Test
   public void testExceptions() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
 
     try {
       c.tableOperations().summaries("foo").retrieve();
@@ -827,7 +827,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void testManyFiles() throws Exception {
     final String table = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     NewTableConfiguration ntc = new NewTableConfiguration();
     ntc.enableSummarization(SummarizerConfiguration.builder(FamilySummarizer.class).build());
     c.tableOperations().create(table, ntc);

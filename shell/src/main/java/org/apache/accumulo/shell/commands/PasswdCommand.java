@@ -37,7 +37,7 @@ public class PasswdCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, IOException {
-    final String currentUser = shellState.getConnector().whoami();
+    final String currentUser = shellState.getAccumuloClient().whoami();
     final String user = cl.getOptionValue(userOpt.getOpt(), currentUser);
 
     String password = null;
@@ -51,7 +51,7 @@ public class PasswdCommand extends Command {
       return 0;
     } // user canceled
 
-    if (!shellState.getConnector().securityOperations().authenticateUser(currentUser,
+    if (!shellState.getAccumuloClient().securityOperations().authenticateUser(currentUser,
         new PasswordToken(oldPassword)))
       throw new AccumuloSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
 
@@ -71,11 +71,11 @@ public class PasswdCommand extends Command {
       throw new IllegalArgumentException("Passwords do not match");
     }
     byte[] pass = password.getBytes(UTF_8);
-    shellState.getConnector().securityOperations().changeLocalUserPassword(user,
+    shellState.getAccumuloClient().securityOperations().changeLocalUserPassword(user,
         new PasswordToken(pass));
     // update the current credentials if the password changed was for
     // the current user
-    if (shellState.getConnector().whoami().equals(user)) {
+    if (shellState.getAccumuloClient().whoami().equals(user)) {
       shellState.updateUser(user, new PasswordToken(pass));
     }
     Shell.log.debug("Changed password for user " + user);

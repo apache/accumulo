@@ -41,7 +41,7 @@ public class AuthenticateCommand extends Command {
       return 0;
     } // user canceled
     final byte[] password = p.getBytes(UTF_8);
-    final boolean valid = shellState.getConnector().securityOperations().authenticateUser(user,
+    final boolean valid = shellState.getAccumuloClient().securityOperations().authenticateUser(user,
         new PasswordToken(password));
     shellState.getReader().println((valid ? "V" : "Not v") + "alid");
     return 0;

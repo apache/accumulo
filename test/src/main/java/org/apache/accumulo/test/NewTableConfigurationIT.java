@@ -29,9 +29,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -80,7 +80,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testSetPropertiesOverwriteOlderProperties() throws AccumuloSecurityException,
       AccumuloException, TableExistsException, TableNotFoundException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
     Map<String,String> initialProps = new HashMap<>();
@@ -125,7 +125,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testSimpleLocalityGroupCreation() throws AccumuloSecurityException, AccumuloException,
       TableExistsException, TableNotFoundException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
     // set locality groups map
@@ -151,7 +151,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testMulitpleCallsToSetLocalityGroups() throws AccumuloSecurityException,
       AccumuloException, TableExistsException, TableNotFoundException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
     // set first locality groups map
@@ -177,7 +177,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testSetPropertiesAndGroups() throws AccumuloSecurityException, AccumuloException,
       TableExistsException, TableNotFoundException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
 
@@ -243,7 +243,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testSetGroupsWithoutDefaultIterators() throws AccumuloSecurityException,
       AccumuloException, TableExistsException, TableNotFoundException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
     NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
 
@@ -267,7 +267,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testPreconfigureIteratorWithDefaultIterator1() throws AccumuloException,
       TableNotFoundException, AccumuloSecurityException, TableExistsException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
 
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -294,7 +294,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testPreconfiguredIteratorWithDefaultIterator2() throws AccumuloException,
       TableNotFoundException, AccumuloSecurityException, TableExistsException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
 
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -323,7 +323,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testPreconfiguredIteratorWithDefaultIterator3() throws AccumuloException,
       TableNotFoundException, AccumuloSecurityException, TableExistsException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
 
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -349,7 +349,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testSettingInitialIteratorWithAdditionalIteratorOptions() throws AccumuloException,
       TableNotFoundException, AccumuloSecurityException, TableExistsException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
 
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -370,7 +370,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testSetIteratorWithoutDefaultIterators() throws AccumuloException,
       TableNotFoundException, AccumuloSecurityException, TableExistsException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
 
     NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
@@ -397,7 +397,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testSettingIteratorAndProperties() throws AccumuloException, TableNotFoundException,
       AccumuloSecurityException, TableExistsException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
 
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -435,7 +435,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test(expected = IllegalArgumentException.class)
   public void testIteratorConflictFound1() throws AccumuloException, TableNotFoundException,
       AccumuloSecurityException, TableExistsException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
 
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -449,7 +449,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test(expected = IllegalArgumentException.class)
   public void testIteratorConflictFound2() throws AccumuloException, TableNotFoundException,
       AccumuloSecurityException, TableExistsException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
 
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -463,7 +463,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test(expected = IllegalArgumentException.class)
   public void testIteratorConflictFound3() throws AccumuloException, TableNotFoundException,
       AccumuloSecurityException, TableExistsException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
 
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -481,7 +481,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testMultipleIteratorValid() throws AccumuloException, TableNotFoundException,
       AccumuloSecurityException, TableExistsException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
 
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -510,7 +510,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testGroupsIteratorAndPropsTogether() throws AccumuloException, TableNotFoundException,
       AccumuloSecurityException, TableExistsException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
 
     NewTableConfiguration ntc = new NewTableConfiguration();
@@ -550,7 +550,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testNtcChaining() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(2)[0];
 
     IteratorSetting setting = new IteratorSetting(10, "anIterator", "it.class",
@@ -642,7 +642,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   /**
    * Verify the expected iterator properties exist.
    */
-  private void verifyIterators(Connector conn, String tablename, String[] values,
+  private void verifyIterators(AccumuloClient conn, String tablename, String[] values,
       boolean withDefaultIts) throws AccumuloException, TableNotFoundException {
     Map<String,String> expected = new TreeMap<>();
     if (withDefaultIts) {
@@ -664,9 +664,9 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     assertEquals(expected, actual);
   }
 
-  private Map<String,String> getProperties(Connector connector, String tableName)
+  private Map<String,String> getProperties(AccumuloClient accumuloClient, String tableName)
       throws AccumuloException, TableNotFoundException {
-    Iterable<Entry<String,String>> properties = connector.tableOperations()
+    Iterable<Entry<String,String>> properties = accumuloClient.tableOperations()
         .getProperties(tableName);
     Map<String,String> propertyMap = new HashMap<>();
     for (Entry<String,String> entry : properties) {
@@ -675,18 +675,19 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     return propertyMap;
   }
 
-  public int numProperties(Connector connector, String tableName)
+  public int numProperties(AccumuloClient accumuloClient, String tableName)
       throws AccumuloException, TableNotFoundException {
-    return Iterators.size(connector.tableOperations().getProperties(tableName).iterator());
+    return Iterators.size(accumuloClient.tableOperations().getProperties(tableName).iterator());
   }
 
-  public int compareProperties(Connector connector, String tableNameOrig, String tableName,
-      String changedProp) throws AccumuloException, TableNotFoundException {
+  public int compareProperties(AccumuloClient accumuloClient, String tableNameOrig,
+      String tableName, String changedProp) throws AccumuloException, TableNotFoundException {
     boolean inNew = false;
     int countOrig = 0;
-    for (Entry<String,String> orig : connector.tableOperations().getProperties(tableNameOrig)) {
+    for (Entry<String,String> orig : accumuloClient.tableOperations()
+        .getProperties(tableNameOrig)) {
       countOrig++;
-      for (Entry<String,String> entry : connector.tableOperations().getProperties(tableName)) {
+      for (Entry<String,String> entry : accumuloClient.tableOperations().getProperties(tableName)) {
         if (entry.equals(orig)) {
           inNew = true;
           break;
@@ -699,10 +700,10 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     return countOrig;
   }
 
-  public boolean checkTimeType(Connector connector, String tableName, TimeType expectedTimeType)
-      throws TableNotFoundException {
-    final Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    String tableID = connector.tableOperations().tableIdMap().get(tableName) + "<";
+  public boolean checkTimeType(AccumuloClient accumuloClient, String tableName,
+      TimeType expectedTimeType) throws TableNotFoundException {
+    final Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    String tableID = accumuloClient.tableOperations().tableIdMap().get(tableName) + "<";
     for (Entry<Key,Value> entry : scanner) {
       Key k = entry.getKey();
 
@@ -723,18 +724,18 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     log.info("Starting tableNameOnly");
 
     // Create a table with the initial properties
-    Connector connector = getConnector();
+    AccumuloClient accumuloClient = getClient();
     String tableName = getUniqueNames(2)[0];
-    connector.tableOperations().create(tableName, new NewTableConfiguration());
+    accumuloClient.tableOperations().create(tableName, new NewTableConfiguration());
 
     String tableNameOrig = "original";
-    connector.tableOperations().create(tableNameOrig, true);
+    accumuloClient.tableOperations().create(tableNameOrig, true);
 
-    int countNew = numProperties(connector, tableName);
-    int countOrig = compareProperties(connector, tableNameOrig, tableName, null);
+    int countNew = numProperties(accumuloClient, tableName);
+    int countOrig = compareProperties(accumuloClient, tableNameOrig, tableName, null);
 
     assertEquals("Extra properties using the new create method", countOrig, countNew);
-    assertTrue("Wrong TimeType", checkTimeType(connector, tableName, TimeType.MILLIS));
+    assertTrue("Wrong TimeType", checkTimeType(accumuloClient, tableName, TimeType.MILLIS));
   }
 
   @SuppressWarnings("deprecation")
@@ -743,20 +744,20 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     log.info("Starting tableNameAndLimitVersion");
 
     // Create a table with the initial properties
-    Connector connector = getConnector();
+    AccumuloClient accumuloClient = getClient();
     String tableName = getUniqueNames(2)[0];
     boolean limitVersion = false;
-    connector.tableOperations().create(tableName,
+    accumuloClient.tableOperations().create(tableName,
         new NewTableConfiguration().withoutDefaultIterators());
 
     String tableNameOrig = "originalWithLimitVersion";
-    connector.tableOperations().create(tableNameOrig, limitVersion);
+    accumuloClient.tableOperations().create(tableNameOrig, limitVersion);
 
-    int countNew = numProperties(connector, tableName);
-    int countOrig = compareProperties(connector, tableNameOrig, tableName, null);
+    int countNew = numProperties(accumuloClient, tableName);
+    int countOrig = compareProperties(accumuloClient, tableNameOrig, tableName, null);
 
     assertEquals("Extra properties using the new create method", countOrig, countNew);
-    assertTrue("Wrong TimeType", checkTimeType(connector, tableName, TimeType.MILLIS));
+    assertTrue("Wrong TimeType", checkTimeType(accumuloClient, tableName, TimeType.MILLIS));
   }
 
   @SuppressWarnings("deprecation")
@@ -765,21 +766,21 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     log.info("Starting tableNameLimitVersionAndTimeType");
 
     // Create a table with the initial properties
-    Connector connector = getConnector();
+    AccumuloClient accumuloClient = getClient();
     String tableName = getUniqueNames(2)[0];
     boolean limitVersion = false;
     TimeType tt = TimeType.LOGICAL;
-    connector.tableOperations().create(tableName,
+    accumuloClient.tableOperations().create(tableName,
         new NewTableConfiguration().withoutDefaultIterators().setTimeType(tt));
 
     String tableNameOrig = "originalWithLimitVersionAndTimeType";
-    connector.tableOperations().create(tableNameOrig, limitVersion, tt);
+    accumuloClient.tableOperations().create(tableNameOrig, limitVersion, tt);
 
-    int countNew = numProperties(connector, tableName);
-    int countOrig = compareProperties(connector, tableNameOrig, tableName, null);
+    int countNew = numProperties(accumuloClient, tableName);
+    int countOrig = compareProperties(accumuloClient, tableNameOrig, tableName, null);
 
     assertEquals("Extra properties using the new create method", countOrig, countNew);
-    assertTrue("Wrong TimeType", checkTimeType(connector, tableName, tt));
+    assertTrue("Wrong TimeType", checkTimeType(accumuloClient, tableName, tt));
   }
 
   @SuppressWarnings("deprecation")
@@ -798,18 +799,18 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     properties.put(propertyName2, volume2);
 
     // Create a table with the initial properties
-    Connector connector = getConnector();
+    AccumuloClient accumuloClient = getClient();
     String tableName = getUniqueNames(2)[0];
-    connector.tableOperations().create(tableName,
+    accumuloClient.tableOperations().create(tableName,
         new NewTableConfiguration().setProperties(properties));
 
     String tableNameOrig = "originalWithTableName";
-    connector.tableOperations().create(tableNameOrig, true);
+    accumuloClient.tableOperations().create(tableNameOrig, true);
 
-    int countNew = numProperties(connector, tableName);
-    int countOrig = compareProperties(connector, tableNameOrig, tableName, propertyName);
+    int countNew = numProperties(accumuloClient, tableName);
+    int countOrig = compareProperties(accumuloClient, tableNameOrig, tableName, propertyName);
 
-    for (Entry<String,String> entry : connector.tableOperations().getProperties(tableName)) {
+    for (Entry<String,String> entry : accumuloClient.tableOperations().getProperties(tableName)) {
       if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
         assertEquals("TABLE_SPLIT_THRESHOLD has been changed", "10K", entry.getValue());
       if (entry.getKey().equals("table.custom.testProp"))
@@ -817,7 +818,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     }
 
     assertEquals("Extra properties using the new create method", countOrig + 1, countNew);
-    assertTrue("Wrong TimeType", checkTimeType(connector, tableName, TimeType.MILLIS));
+    assertTrue("Wrong TimeType", checkTimeType(accumuloClient, tableName, TimeType.MILLIS));
 
   }
 }

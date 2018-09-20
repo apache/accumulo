@@ -22,10 +22,10 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -86,9 +86,9 @@ public class CloseWriteAheadLogReferences implements Runnable {
     // what the version they bundle uses.
     Stopwatch sw = Stopwatch.createUnstarted();
 
-    Connector conn;
+    AccumuloClient conn;
     try {
-      conn = context.getConnector();
+      conn = context.getClient();
     } catch (Exception e) {
       log.error("Could not create connector", e);
       throw new RuntimeException(e);
@@ -157,7 +157,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
    * @param closedWals
    *          {@link Set} of paths to WALs that marked as closed or unreferenced in zookeeper
    */
-  protected long updateReplicationEntries(Connector conn, Set<String> closedWals) {
+  protected long updateReplicationEntries(AccumuloClient conn, Set<String> closedWals) {
     BatchScanner bs = null;
     BatchWriter bw = null;
     long recordsClosed = 0;

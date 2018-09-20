@@ -25,9 +25,9 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -52,7 +52,7 @@ public class TestMultiTableIngest {
     String prefix = "test_";
   }
 
-  private static void readBack(Opts opts, ScannerOpts scanOpts, Connector conn,
+  private static void readBack(Opts opts, ScannerOpts scanOpts, AccumuloClient conn,
       List<String> tableNames) throws Exception {
     int i = 0;
     for (String table : tableNames) {
@@ -82,9 +82,9 @@ public class TestMultiTableIngest {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(TestMultiTableIngest.class.getName(), args, scanOpts, bwOpts);
     // create the test table within accumulo
-    Connector connector;
+    AccumuloClient accumuloClient;
     try {
-      connector = opts.getConnector();
+      accumuloClient = opts.getClient();
     } catch (AccumuloException | AccumuloSecurityException e) {
       throw new RuntimeException(e);
     }
@@ -94,11 +94,11 @@ public class TestMultiTableIngest {
 
     if (!opts.readonly) {
       for (String table : tableNames)
-        connector.tableOperations().create(table);
+        accumuloClient.tableOperations().create(table);
 
       MultiTableBatchWriter b;
       try {
-        b = connector.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
+        b = accumuloClient.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -117,7 +117,7 @@ public class TestMultiTableIngest {
       }
     }
     try {
-      readBack(opts, scanOpts, connector, tableNames);
+      readBack(opts, scanOpts, accumuloClient, tableNames);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

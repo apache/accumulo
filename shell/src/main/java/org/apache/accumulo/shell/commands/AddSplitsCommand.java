@@ -50,10 +50,10 @@ public class AddSplitsCommand extends Command {
       }
     }
 
-    if (!shellState.getConnector().tableOperations().exists(tableName)) {
+    if (!shellState.getAccumuloClient().tableOperations().exists(tableName)) {
       throw new TableNotFoundException(null, tableName, null);
     }
-    shellState.getConnector().tableOperations().addSplits(tableName, splits);
+    shellState.getAccumuloClient().tableOperations().addSplits(tableName, splits);
 
     return 0;
   }

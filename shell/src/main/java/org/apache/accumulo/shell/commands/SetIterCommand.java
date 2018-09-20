@@ -155,7 +155,7 @@ public class SetIterCommand extends Command {
     String deprecatedAggregatorClassName =
       org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
     // @formatter:on
-    if (aggregatorClass != null && !shellState.getConnector().tableOperations()
+    if (aggregatorClass != null && !shellState.getAccumuloClient().tableOperations()
         .testClassLoad(tableName, aggregatorClass, deprecatedAggregatorClassName)) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
           "Servers are unable to load " + aggregatorClass + " as type "
@@ -182,7 +182,7 @@ public class SetIterCommand extends Command {
       throw new IllegalArgumentException("You must select at least one scope to configure");
     }
     final IteratorSetting setting = new IteratorSetting(priority, name, classname, options);
-    shellState.getConnector().tableOperations().attachIterator(tableName, setting, scopes);
+    shellState.getAccumuloClient().tableOperations().attachIterator(tableName, setting, scopes);
   }
 
   protected void setNamespaceProperties(final CommandLine cl, final Shell shellState,
@@ -193,7 +193,7 @@ public class SetIterCommand extends Command {
 
     final String namespace = OptUtil.getNamespaceOpt(cl, shellState);
 
-    if (!shellState.getConnector().namespaceOperations().testClassLoad(namespace, classname,
+    if (!shellState.getAccumuloClient().namespaceOperations().testClassLoad(namespace, classname,
         SortedKeyValueIterator.class.getName())) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
           "Servers are unable to load " + classname + " as type "
@@ -206,7 +206,7 @@ public class SetIterCommand extends Command {
     String deprecatedAggregatorClassName =
       org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
     // @formatter:on
-    if (aggregatorClass != null && !shellState.getConnector().namespaceOperations()
+    if (aggregatorClass != null && !shellState.getAccumuloClient().namespaceOperations()
         .testClassLoad(namespace, aggregatorClass, deprecatedAggregatorClassName)) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
           "Servers are unable to load " + aggregatorClass + " as type "
@@ -233,7 +233,7 @@ public class SetIterCommand extends Command {
       throw new IllegalArgumentException("You must select at least one scope to configure");
     }
     final IteratorSetting setting = new IteratorSetting(priority, name, classname, options);
-    shellState.getConnector().namespaceOperations().attachIterator(namespace, setting, scopes);
+    shellState.getAccumuloClient().namespaceOperations().attachIterator(namespace, setting, scopes);
   }
 
   private static String setUpOptions(ClassLoader classloader, final ConsoleReader reader,

@@ -24,10 +24,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -71,12 +71,12 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     assertEquals(i, results.size());
   }
 
-  private Connector conn;
+  private AccumuloClient conn;
   private String tableName;
 
   @Before
   public void setupInstance() throws Exception {
-    conn = getConnector();
+    conn = getAccumuloClient();
     tableName = getUniqueNames(1)[0];
   }
 

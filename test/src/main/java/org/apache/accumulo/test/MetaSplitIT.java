@@ -24,9 +24,9 @@ import java.util.Collections;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -52,7 +52,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   @Before
   public void saveMetadataSplits() throws Exception {
     if (ClusterType.STANDALONE == getClusterType()) {
-      Connector conn = getConnector();
+      AccumuloClient conn = getAccumuloClient();
       Collection<Text> splits = conn.tableOperations().listSplits(MetadataTable.NAME);
       // We expect a single split
       if (!splits.equals(Arrays.asList(new Text("~")))) {
@@ -70,7 +70,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   public void restoreMetadataSplits() throws Exception {
     if (null != metadataSplits) {
       log.info("Restoring split on metadata table");
-      Connector conn = getConnector();
+      AccumuloClient conn = getAccumuloClient();
       conn.tableOperations().merge(MetadataTable.NAME, null, null);
       conn.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(metadataSplits));
     }
@@ -78,7 +78,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
 
   @Test(expected = AccumuloException.class)
   public void testRootTableSplit() throws Exception {
-    TableOperations opts = getConnector().tableOperations();
+    TableOperations opts = getAccumuloClient().tableOperations();
     SortedSet<Text> splits = new TreeSet<>();
     splits.add(new Text("5"));
     opts.addSplits(RootTable.NAME, splits);
@@ -86,7 +86,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
 
   @Test
   public void testRootTableMerge() throws Exception {
-    TableOperations opts = getConnector().tableOperations();
+    TableOperations opts = getAccumuloClient().tableOperations();
     opts.merge(RootTable.NAME, null, null);
   }
 
@@ -100,7 +100,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
 
   @Test
   public void testMetadataTableSplit() throws Exception {
-    TableOperations opts = getConnector().tableOperations();
+    TableOperations opts = getAccumuloClient().tableOperations();
     for (int i = 1; i <= 10; i++) {
       opts.create(Integer.toString(i));
     }

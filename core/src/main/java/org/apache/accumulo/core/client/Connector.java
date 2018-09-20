@@ -16,15 +16,11 @@
  */
 package org.apache.accumulo.core.client;
 
-import java.util.Properties;
-
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.impl.ConnectorImpl;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
@@ -33,6 +29,9 @@ import org.apache.accumulo.core.security.Authorizations;
  *
  * The Connector enforces security on the client side by forcing all API calls to be accompanied by
  * user credentials.
+ *
+ * @deprecated since 2.0.0. Use {@link AccumuloClient} for wiriting new code. Connector is available
+ *             for existing code. Use {@link #from(AccumuloClient)} as a bridge between the two.
  */
 public abstract class Connector {
 
@@ -285,7 +284,7 @@ public abstract class Connector {
    * Accessor method for internal instance object.
    *
    * @return the internal instance object
-   * @deprecated since 2.0.0, use {@link #info()} instead
+   * @deprecated since 2.0.0, use {@link AccumuloClient#info()} instead
    */
   @Deprecated
   public abstract Instance getInstance();
@@ -343,293 +342,11 @@ public abstract class Connector {
   public abstract ReplicationOperations replicationOperations();
 
   /**
-   * @return {@link ClientInfo} which contains information about client connection to Accumulo
-   * @since 2.0.0
-   */
-  public abstract ClientInfo info();
-
-  /**
-   * Change user
+   * Creates a Connector from an AccumuloClient.
    *
-   * @param principal
-   *          Principal/username
-   * @param token
-   *          Authentication token
-   * @return {@link Connector} for new user
-   * @since 2.0.0
+   * @since 2.0
    */
-  public abstract Connector changeUser(String principal, AuthenticationToken token)
-      throws AccumuloSecurityException, AccumuloException;
-
-  /**
-   * Builds ClientInfo after all options have been specified
-   *
-   * @since 2.0.0
-   */
-  public interface ClientInfoFactory {
-
-    /**
-     * Builds ClientInfo after all options have been specified
-     *
-     * @return ClientInfo
-     */
-    ClientInfo info();
-  }
-
-  /**
-   * Builds Connector
-   *
-   * @since 2.0.0
-   */
-  public interface ConnectorFactory extends ClientInfoFactory {
-
-    /**
-     * Builds Connector after all options have been specified
-     *
-     * @return Connector
-     */
-    Connector build() throws AccumuloException, AccumuloSecurityException;
-
-  }
-
-  /**
-   * Builder method for setting Accumulo instance and zookeepers
-   *
-   * @since 2.0.0
-   */
-  public interface InstanceArgs {
-    AuthenticationArgs forInstance(String instanceName, String zookeepers);
-  }
-
-  /**
-   * Builder methods for creating Connector using properties
-   *
-   * @since 2.0.0
-   */
-  public interface PropertyOptions extends InstanceArgs {
-
-    /**
-     * Build using properties file. An example properties file can be found at
-     * conf/accumulo-client.properties in the Accumulo tarball distribution.
-     *
-     * @param propertiesFile
-     *          Path to properties file
-     * @return this builder
-     */
-    ConnectorFactory usingProperties(String propertiesFile);
-
-    /**
-     * Build using Java properties object. A list of available properties can be found in the
-     * documentation on the project website (http://accumulo.apache.org) under 'Development' -&gt;
-     * 'Client Properties'
-     *
-     * @param properties
-     *          Properties object
-     * @return this builder
-     */
-    ConnectorFactory usingProperties(Properties properties);
-  }
-
-  public interface ClientInfoOptions extends PropertyOptions {
-
-    /**
-     * Build using Accumulo client information
-     *
-     * @param clientInfo
-     *          ClientInfo object
-     * @return this builder
-     */
-    FromOptions usingClientInfo(ClientInfo clientInfo);
-  }
-
-  /**
-   * Build methods for authentication
-   *
-   * @since 2.0.0
-   */
-  public interface AuthenticationArgs {
-
-    /**
-     * Build using password-based credentials
-     *
-     * @param username
-     *          User name
-     * @param password
-     *          Password
-     * @return this builder
-     */
-    ConnectionOptions usingPassword(String username, CharSequence password);
-
-    /**
-     * Build using Kerberos credentials
-     *
-     * @param principal
-     *          Principal
-     * @param keyTabFile
-     *          Path to keytab file
-     * @return this builder
-     */
-    ConnectionOptions usingKerberos(String principal, String keyTabFile);
-
-    /**
-     * Build using specified credentials
-     *
-     * @param principal
-     *          Principal/username
-     * @param token
-     *          Authentication token
-     * @return this builder
-     */
-    ConnectionOptions usingToken(String principal, AuthenticationToken token);
-  }
-
-  /**
-   * Build methods for SSL/TLS
-   *
-   * @since 2.0.0
-   */
-  public interface SslOptions extends ConnectorFactory {
-
-    /**
-     * Build with SSL trust store
-     *
-     * @param path
-     *          Path to trust store
-     * @return this builder
-     */
-    SslOptions withTruststore(String path);
-
-    /**
-     * Build with SSL trust store
-     *
-     * @param path
-     *          Path to trust store
-     * @param password
-     *          Password used to encrypt trust store
-     * @param type
-     *          Trust store type
-     * @return this builder
-     */
-    SslOptions withTruststore(String path, String password, String type);
-
-    /**
-     * Build with SSL key store
-     *
-     * @param path
-     *          Path to SSL key store
-     * @return this builder
-     */
-    SslOptions withKeystore(String path);
-
-    /**
-     * Build with SSL key store
-     *
-     * @param path
-     *          Path to keystore
-     * @param password
-     *          Password used to encrypt key store
-     * @param type
-     *          Key store type
-     * @return this builder
-     */
-    SslOptions withKeystore(String path, String password, String type);
-
-    /**
-     * Use JSSE system properties to configure SSL
-     *
-     * @return this builder
-     */
-    SslOptions useJsse();
-  }
-
-  /**
-   * Build methods for SASL
-   *
-   * @since 2.0.0
-   */
-  public interface SaslOptions extends ConnectorFactory {
-
-    /**
-     * Build with Kerberos Server Primary
-     *
-     * @param kerberosServerPrimary
-     *          Kerberos server primary
-     * @return this builder
-     */
-    SaslOptions withPrimary(String kerberosServerPrimary);
-
-    /**
-     * Build with SASL quality of protection
-     *
-     * @param qualityOfProtection
-     *          Quality of protection
-     * @return this builder
-     */
-    SaslOptions withQop(String qualityOfProtection);
-  }
-
-  /**
-   * Build methods for connection options
-   *
-   * @since 2.0.0
-   */
-  public interface ConnectionOptions extends ConnectorFactory {
-
-    /**
-     * Build using Zookeeper timeout
-     *
-     * @param timeout
-     *          Zookeeper timeout (in milliseconds)
-     * @return this builder
-     */
-    ConnectionOptions withZkTimeout(int timeout);
-
-    /**
-     * Build with SSL/TLS options
-     *
-     * @return this builder
-     */
-    SslOptions withSsl();
-
-    /**
-     * Build with SASL options
-     *
-     * @return this builder
-     */
-    SaslOptions withSasl();
-
-    /**
-     * Build with BatchWriterConfig defaults for BatchWriter, MultiTableBatchWriter &amp;
-     * BatchDeleter
-     *
-     * @param batchWriterConfig
-     *          BatchWriterConfig
-     * @return this builder
-     */
-    ConnectionOptions withBatchWriterConfig(BatchWriterConfig batchWriterConfig);
-
-    /**
-     * Build with default number of query threads for BatchScanner
-     */
-    ConnectionOptions withBatchScannerQueryThreads(int numQueryThreads);
-
-    /**
-     * Build with default batch size for Scanner
-     */
-    ConnectionOptions withScannerBatchSize(int batchSize);
-  }
-
-  public interface FromOptions extends ConnectionOptions, PropertyOptions, AuthenticationArgs {
-
-  }
-
-  /**
-   * Creates builder for Connector
-   *
-   * @return this builder
-   * @since 2.0.0
-   */
-  public static ClientInfoOptions builder() {
-    return new ConnectorImpl.ConnectorBuilderImpl();
+  public static Connector from(AccumuloClient client) {
+    return (Connector) client;
   }
 }

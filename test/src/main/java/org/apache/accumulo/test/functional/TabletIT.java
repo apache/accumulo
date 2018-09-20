@@ -23,9 +23,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -65,7 +65,7 @@ public class TabletIT extends AccumuloClusterHarness {
 
   public void createTableTest(String tableName, boolean readOnly) throws Exception {
     // create the test table within accumulo
-    Connector connector = getConnector();
+    AccumuloClient accumuloClient = getAccumuloClient();
 
     if (!readOnly) {
       TreeSet<Text> keys = new TreeSet<>();
@@ -74,11 +74,11 @@ public class TabletIT extends AccumuloClusterHarness {
       }
 
       // presplit
-      connector.tableOperations().create(tableName);
-      connector.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-          "200");
-      connector.tableOperations().addSplits(tableName, keys);
-      BatchWriter b = connector.createBatchWriter(tableName, new BatchWriterConfig());
+      accumuloClient.tableOperations().create(tableName);
+      accumuloClient.tableOperations().setProperty(tableName,
+          Property.TABLE_SPLIT_THRESHOLD.getKey(), "200");
+      accumuloClient.tableOperations().addSplits(tableName, keys);
+      BatchWriter b = accumuloClient.createBatchWriter(tableName, new BatchWriterConfig());
 
       // populate
       for (int i = 0; i < N; i++) {
@@ -90,7 +90,7 @@ public class TabletIT extends AccumuloClusterHarness {
       b.close();
     }
 
-    try (Scanner scanner = getConnector().createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner scanner = getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)) {
       int count = 0;
       for (Entry<Key,Value> elt : scanner) {
         String expected = String.format("%05d", count);

@@ -41,7 +41,7 @@ public class OfflineCommand extends TableOperation {
     if (tableName.equals(MetadataTable.NAME)) {
       Shell.log.info("  You cannot take the " + MetadataTable.NAME + " offline.");
     } else {
-      shellState.getConnector().tableOperations().offline(tableName, wait);
+      shellState.getAccumuloClient().tableOperations().offline(tableName, wait);
       Shell.log.info("Offline of table " + tableName + (wait ? " completed." : " initiated..."));
     }
   }

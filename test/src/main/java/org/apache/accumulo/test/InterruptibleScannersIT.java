@@ -21,7 +21,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.ActiveScan;
@@ -51,7 +51,7 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     // make a table
     final String tableName = getUniqueNames(1)[0];
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getAccumuloClient();
     conn.tableOperations().create(tableName);
 
     // make the world's slowest scanner

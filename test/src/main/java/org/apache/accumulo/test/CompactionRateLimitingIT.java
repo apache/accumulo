@@ -21,9 +21,9 @@ import static org.junit.Assert.assertTrue;
 import java.security.SecureRandom;
 import java.util.Random;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -47,7 +47,7 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
   public void majorCompactionsAreRateLimited() throws Exception {
     long bytesWritten = 0;
     String tableName = getUniqueNames(1)[0];
-    Connector conn = getCluster().getConnector("root", new PasswordToken(ROOT_PASSWORD));
+    AccumuloClient conn = getCluster().getAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
     conn.tableOperations().create(tableName);
     try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
       Random r = new SecureRandom();

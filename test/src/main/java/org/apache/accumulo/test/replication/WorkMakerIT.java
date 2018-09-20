@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.Property;
@@ -51,11 +51,11 @@ import com.google.common.collect.Iterables;
 
 public class WorkMakerIT extends ConfigurableMacBase {
 
-  private Connector conn;
+  private AccumuloClient conn;
 
   private static class MockWorkMaker extends WorkMaker {
 
-    public MockWorkMaker(Connector conn) {
+    public MockWorkMaker(AccumuloClient conn) {
       super(null, conn);
     }
 
@@ -79,7 +79,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
   @Before
   public void setupInstance() throws Exception {
-    conn = getConnector();
+    conn = getClient();
     ReplicationTable.setOnline(conn);
     conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);

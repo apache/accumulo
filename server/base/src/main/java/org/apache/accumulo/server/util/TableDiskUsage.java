@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
@@ -146,13 +146,13 @@ public class TableDiskUsage {
     void print(String line);
   }
 
-  public static void printDiskUsage(Collection<String> tableNames, VolumeManager fs, Connector conn,
-      boolean humanReadable) throws TableNotFoundException, IOException {
+  public static void printDiskUsage(Collection<String> tableNames, VolumeManager fs,
+      AccumuloClient conn, boolean humanReadable) throws TableNotFoundException, IOException {
     printDiskUsage(tableNames, fs, conn, line -> System.out.println(line), humanReadable);
   }
 
   public static Map<TreeSet<String>,Long> getDiskUsage(Set<Table.ID> tableIds, VolumeManager fs,
-      Connector conn) throws IOException {
+      AccumuloClient conn) throws IOException {
     TableDiskUsage tdu = new TableDiskUsage();
 
     // Add each tableID
@@ -266,8 +266,9 @@ public class TableDiskUsage {
     return usage;
   }
 
-  public static void printDiskUsage(Collection<String> tableNames, VolumeManager fs, Connector conn,
-      Printer printer, boolean humanReadable) throws TableNotFoundException, IOException {
+  public static void printDiskUsage(Collection<String> tableNames, VolumeManager fs,
+      AccumuloClient conn, Printer printer, boolean humanReadable)
+      throws TableNotFoundException, IOException {
 
     HashSet<Table.ID> tableIds = new HashSet<>();
     ClientContext context = new ClientContext(conn.info());
@@ -298,7 +299,7 @@ public class TableDiskUsage {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(TableDiskUsage.class.getName(), args);
-    Connector conn = opts.getConnector();
+    AccumuloClient conn = opts.getClient();
     VolumeManager fs = opts.getServerContext().getVolumeManager();
     org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, fs, conn, false);
   }

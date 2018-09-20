@@ -25,11 +25,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ReplicationOperationsImpl;
@@ -65,11 +65,11 @@ import org.slf4j.LoggerFactory;
 public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplIT.class);
 
-  private Connector conn;
+  private AccumuloClient conn;
 
   @Before
   public void configureInstance() throws Exception {
-    conn = getConnector();
+    conn = getClient();
     ReplicationTable.setOnline(conn);
     conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
@@ -85,7 +85,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private ReplicationOperationsImpl getReplicationOperations() throws Exception {
     Master master = EasyMock.createMock(Master.class);
     ServerContext serverContext = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(master.getConnector()).andReturn(conn).anyTimes();
+    EasyMock.expect(master.getClient()).andReturn(conn).anyTimes();
     EasyMock.expect(master.getContext()).andReturn(serverContext).anyTimes();
     EasyMock.replay(master);
 

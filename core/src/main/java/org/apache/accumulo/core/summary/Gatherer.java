@@ -203,7 +203,7 @@ public class Gatherer {
 
       if (location == null) {
         if (tservers == null) {
-          tservers = ctx.getConnector().instanceOperations().getTabletServers();
+          tservers = ctx.getClient().instanceOperations().getTabletServers();
           Collections.sort(tservers);
         }
 

@@ -24,7 +24,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -48,7 +48,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
 
   @Before
   public void checkProperty() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     // TABLE_VOLUME_CHOOSER is a valid property that can be updated in ZK, whereas the crypto
     // properties are not.
     // This lets us run this test more generically rather than forcibly needing to update some
@@ -62,7 +62,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
   @After
   public void resetProperty() throws Exception {
     if (null != origPropValue) {
-      Connector conn = getConnector();
+      AccumuloClient conn = getAccumuloClient();
       conn.instanceOperations().setProperty(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER,
           origPropValue);
     }

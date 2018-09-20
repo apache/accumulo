@@ -1148,7 +1148,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private Path checkPath(String dir, String kind, String type)
       throws IOException, AccumuloException, AccumuloSecurityException {
     Path ret;
-    Map<String,String> props = context.getConnector().instanceOperations().getSystemConfiguration();
+    Map<String,String> props = context.getClient().instanceOperations().getSystemConfiguration();
     AccumuloConfiguration conf = new ConfigurationCopy(props);
 
     FileSystem fs = VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), conf)
@@ -1332,7 +1332,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   protected IsolatedScanner createMetadataScanner(String metaTable, Range range)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    Scanner scanner = context.getConnector().createScanner(metaTable, Authorizations.EMPTY);
+    Scanner scanner = context.getClient().createScanner(metaTable, Authorizations.EMPTY);
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(TabletsSection.FutureLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
@@ -1428,7 +1428,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(auths != null, "auths is null");
-    Scanner scanner = context.getConnector().createScanner(tableName, auths);
+    Scanner scanner = context.getClient().createScanner(tableName, auths);
     return FindMax.findMax(scanner, startRow, startInclusive, endRow, endInclusive);
   }
 

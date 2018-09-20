@@ -32,13 +32,13 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -124,7 +124,7 @@ public class SampleIT extends AccumuloClusterHarness {
   @Test
   public void testBasic() throws Exception {
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     String clone = tableName + "_clone";
 
@@ -204,7 +204,7 @@ public class SampleIT extends AccumuloClusterHarness {
     check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
   }
 
-  private Scanner newOfflineScanner(Connector conn, String tableName, String clone,
+  private Scanner newOfflineScanner(AccumuloClient conn, String tableName, String clone,
       SamplerConfiguration sc) throws Exception {
     if (conn.tableOperations().exists(clone)) {
       conn.tableOperations().delete(clone);
@@ -306,7 +306,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
   @Test
   public void testIterator() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     String clone = tableName + "_clone";
 
@@ -418,7 +418,7 @@ public class SampleIT extends AccumuloClusterHarness {
   @Test
   public void testSampleNotPresent() throws Exception {
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     String clone = tableName + "_clone";
 
@@ -482,7 +482,7 @@ public class SampleIT extends AccumuloClusterHarness {
     check(expected, scanner, isoScanner, bScanner, csiScanner, oScanner);
   }
 
-  private void updateSamplingConfig(Connector conn, String tableName, SamplerConfiguration sc)
+  private void updateSamplingConfig(AccumuloClient conn, String tableName, SamplerConfiguration sc)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     conn.tableOperations().setSamplerConfiguration(tableName, sc);
     // wait for for config change

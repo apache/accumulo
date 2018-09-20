@@ -24,9 +24,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -64,7 +64,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
 
   @Before
   public void reduceSessionIdle() throws Exception {
-    InstanceOperations ops = getConnector().instanceOperations();
+    InstanceOperations ops = getAccumuloClient().instanceOperations();
     sessionIdle = ops.getSystemConfiguration().get(Property.TSERV_SESSION_MAXIDLE.getKey());
     ops.setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
     log.info("Waiting for existing session idle time to expire");
@@ -84,14 +84,14 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
   @After
   public void resetSessionIdle() throws Exception {
     if (null != sessionIdle) {
-      getConnector().instanceOperations().setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(),
+      getAccumuloClient().instanceOperations().setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(),
           sessionIdle);
     }
   }
 
   @Test
   public void run() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
 

@@ -30,7 +30,7 @@ import java.util.Properties;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -81,7 +81,7 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
 
   @Test
   public void testDurability() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     Properties proxyProps = new Properties();
     // Avoid issues with locally installed client configuration files with custom properties
     File emptyFile = Files.createTempFile(null, null).toFile();
@@ -142,8 +142,7 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
   }
 
   private int count(String tableName) throws Exception {
-    return Iterators
-        .size((getConnector().createScanner(tableName, Authorizations.EMPTY)).iterator());
+    return Iterators.size((getClient().createScanner(tableName, Authorizations.EMPTY)).iterator());
   }
 
 }

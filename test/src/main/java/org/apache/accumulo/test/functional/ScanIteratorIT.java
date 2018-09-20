@@ -26,12 +26,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -61,17 +61,17 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     return 60;
   }
 
-  private Connector connector;
+  private AccumuloClient accumuloClient;
   private String tableName;
   private String user;
   private boolean saslEnabled;
 
   @Before
   public void setup() throws Exception {
-    connector = getConnector();
+    accumuloClient = getAccumuloClient();
     tableName = getUniqueNames(1)[0];
 
-    connector.tableOperations().create(tableName);
+    accumuloClient.tableOperations().create(tableName);
     ClusterUser clusterUser = getUser(0);
     user = clusterUser.getPrincipal();
     PasswordToken userToken;
@@ -82,14 +82,15 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
       userToken = new PasswordToken(clusterUser.getPassword());
       saslEnabled = false;
     }
-    if (connector.securityOperations().listLocalUsers().contains(user)) {
+    if (accumuloClient.securityOperations().listLocalUsers().contains(user)) {
       log.info("Dropping {}", user);
-      connector.securityOperations().dropLocalUser(user);
+      accumuloClient.securityOperations().dropLocalUser(user);
     }
-    connector.securityOperations().createLocalUser(user, userToken);
-    connector.securityOperations().grantTablePermission(user, tableName, TablePermission.READ);
-    connector.securityOperations().grantTablePermission(user, tableName, TablePermission.WRITE);
-    connector.securityOperations().changeUserAuthorizations(user, AuthsIterator.AUTHS);
+    accumuloClient.securityOperations().createLocalUser(user, userToken);
+    accumuloClient.securityOperations().grantTablePermission(user, tableName, TablePermission.READ);
+    accumuloClient.securityOperations().grantTablePermission(user, tableName,
+        TablePermission.WRITE);
+    accumuloClient.securityOperations().changeUserAuthorizations(user, AuthsIterator.AUTHS);
   }
 
   @After
@@ -100,14 +101,14 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
         UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
             rootUser.getKeytab().getAbsolutePath());
       }
-      connector.securityOperations().dropLocalUser(user);
+      accumuloClient.securityOperations().dropLocalUser(user);
     }
   }
 
   @Test
   public void run() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
 
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
 
@@ -222,7 +223,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
   private void runTest(Authorizations auths, boolean shouldFail) throws Exception {
     ClusterUser clusterUser = getUser(0);
-    Connector userC = getCluster().getConnector(clusterUser.getPrincipal(), clusterUser.getToken());
+    AccumuloClient userC = getCluster().getAccumuloClient(clusterUser.getPrincipal(),
+        clusterUser.getToken());
     writeTestMutation(userC);
 
     IteratorSetting setting = new IteratorSetting(10, AuthsIterator.class);
@@ -239,7 +241,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     }
   }
 
-  private void writeTestMutation(Connector userC)
+  private void writeTestMutation(AccumuloClient userC)
       throws TableNotFoundException, MutationsRejectedException {
     BatchWriter batchWriter = userC.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("1");

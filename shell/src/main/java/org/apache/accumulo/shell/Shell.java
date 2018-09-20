@@ -43,11 +43,12 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -196,7 +197,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   protected int exitCode = 0;
   private String tableName;
-  private Connector connector;
+  private AccumuloClient accumuloClient;
   private ClientContext context;
   protected ConsoleReader reader;
   private final Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
@@ -297,7 +298,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     tabCompletion = !options.isTabCompletionDisabled();
     this.setTableName("");
 
-    if (connector == null) {
+    if (accumuloClient == null) {
       Properties props = options.getClientProperties();
       if (ClientProperty.INSTANCE_ZOOKEEPERS.isEmpty(props)) {
         throw new IllegalArgumentException("ZooKeepers must be set using -z or -zh on command line"
@@ -339,8 +340,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       try {
         DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", properties);
         this.setTableName("");
-        connector = Connector.builder().usingClientInfo(info).usingToken(principal, token).build();
-        context = new ClientContext(connector.info());
+        accumuloClient = Accumulo.newClient().usingClientInfo(info).usingToken(principal, token)
+            .build();
+        context = new ClientContext(accumuloClient.info());
       } catch (Exception e) {
         printException(e);
         exitCode = 1;
@@ -418,8 +420,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return true;
   }
 
-  public Connector getConnector() {
-    return connector;
+  public AccumuloClient getAccumuloClient() {
+    return accumuloClient;
   }
 
   public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState)
@@ -435,13 +437,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     if (namespaces) {
       try {
-        tableProps = shellState.getConnector().namespaceOperations()
+        tableProps = shellState.getAccumuloClient().namespaceOperations()
             .getProperties(OptUtil.getNamespaceOpt(cl, shellState));
       } catch (NamespaceNotFoundException e) {
         throw new IllegalArgumentException(e);
       }
     } else if (tables) {
-      tableProps = shellState.getConnector().tableOperations()
+      tableProps = shellState.getAccumuloClient().tableOperations()
           .getProperties(OptUtil.getTableOpt(cl, shellState));
     } else {
       throw new IllegalArgumentException("No table or namespace specified");
@@ -455,12 +457,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     ClassLoader classloader;
 
     if (classpath != null && !classpath.equals("")) {
-      shellState.getConnector().instanceOperations().getSystemConfiguration()
+      shellState.getAccumuloClient().instanceOperations().getSystemConfiguration()
           .get(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + classpath);
 
       try {
 
-        final Map<String,String> systemConfig = shellState.getConnector().instanceOperations()
+        final Map<String,String> systemConfig = shellState.getAccumuloClient().instanceOperations()
             .getSystemConfiguration();
 
         AccumuloVFSClassLoader.getContextManager()
@@ -612,15 +614,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void printInfo() throws IOException {
     reader.print("\n" + SHELL_DESCRIPTION + "\n" + "- \n" + "- version: " + Constants.VERSION + "\n"
-        + "- instance name: " + connector.info().getInstanceName() + "\n" + "- instance id: "
-        + connector.getInstanceID() + "\n" + "- \n"
+        + "- instance name: " + accumuloClient.info().getInstanceName() + "\n" + "- instance id: "
+        + accumuloClient.getInstanceID() + "\n" + "- \n"
         + "- type 'help' for a list of available commands\n" + "- \n");
     reader.flush();
   }
 
   public void printVerboseInfo() throws IOException {
     StringBuilder sb = new StringBuilder("-\n");
-    sb.append("- Current user: ").append(connector.whoami()).append("\n");
+    sb.append("- Current user: ").append(accumuloClient.whoami()).append("\n");
     if (execFile != null)
       sb.append("- Executing commands from: ").append(execFile).append("\n");
     if (disableAuthTimeout)
@@ -650,9 +652,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public String getDefaultPrompt() {
-    Objects.nonNull(connector);
-    Objects.nonNull(connector.info());
-    return connector.whoami() + "@" + connector.info().getInstanceName()
+    Objects.nonNull(accumuloClient);
+    Objects.nonNull(accumuloClient.info());
+    return accumuloClient.whoami() + "@" + accumuloClient.info().getInstanceName()
         + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
   }
 
@@ -708,16 +710,16 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           reader.println("Shell has been idle for too long. Please re-authenticate.");
           boolean authFailed = true;
           do {
-            String pwd = readMaskedLine("Enter current password for '" + connector.whoami() + "': ",
-                '*');
+            String pwd = readMaskedLine(
+                "Enter current password for '" + accumuloClient.whoami() + "': ", '*');
             if (pwd == null) {
               reader.println();
               return;
             } // user canceled
 
             try {
-              authFailed = !connector.securityOperations().authenticateUser(connector.whoami(),
-                  new PasswordToken(pwd));
+              authFailed = !accumuloClient.securityOperations()
+                  .authenticateUser(accumuloClient.whoami(), new PasswordToken(pwd));
             } catch (Exception e) {
               ++exitCode;
               printException(e);
@@ -796,7 +798,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     Set<String> tableNames = null;
     try {
-      tableNames = connector.tableOperations().list();
+      tableNames = accumuloClient.tableOperations().list();
     } catch (Exception e) {
       log.debug("Unable to obtain list of tables", e);
       tableNames = Collections.emptySet();
@@ -804,7 +806,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     Set<String> userlist = null;
     try {
-      userlist = connector.securityOperations().listLocalUsers();
+      userlist = accumuloClient.securityOperations().listLocalUsers();
     } catch (Exception e) {
       log.debug("Unable to obtain list of users", e);
       userlist = Collections.emptySet();
@@ -812,7 +814,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     Set<String> namespaces = null;
     try {
-      namespaces = connector.namespaceOperations().list();
+      namespaces = accumuloClient.namespaceOperations().list();
     } catch (Exception e) {
       log.debug("Unable to obtain list of namespaces", e);
       namespaces = Collections.emptySet();
@@ -1164,8 +1166,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void updateUser(String principal, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
-    connector = connector.changeUser(principal, token);
-    context = new ClientContext(connector.info());
+    accumuloClient = accumuloClient.changeUser(principal, token);
+    context = new ClientContext(accumuloClient.info());
   }
 
   public ClientContext getContext() {

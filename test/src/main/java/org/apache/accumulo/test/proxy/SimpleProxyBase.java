@@ -46,7 +46,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterUser;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -161,7 +161,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   // Implementations can set this
   static TProtocolFactory factory = null;
 
-  private static void waitForAccumulo(Connector c) throws Exception {
+  private static void waitForAccumulo(AccumuloClient c) throws Exception {
     Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
   }
 
@@ -176,7 +176,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   public static void setUpProxy() throws Exception {
     assertNotNull("Implementations must initialize the TProtocolFactory", factory);
 
-    Connector c = SharedMiniClusterBase.getConnector();
+    AccumuloClient c = SharedMiniClusterBase.getClient();
     waitForAccumulo(c);
 
     hostname = InetAddress.getLocalHost().getCanonicalHostName();

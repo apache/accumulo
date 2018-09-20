@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.master.replication;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.ProbabilitySampler;
@@ -42,7 +42,7 @@ public class ReplicationDriver extends Daemon {
   private StatusMaker statusMaker;
   private FinishedWorkUpdater finishedWorkUpdater;
   private RemoveCompleteReplicationRecords rcrr;
-  private Connector conn;
+  private AccumuloClient conn;
 
   public ReplicationDriver(Master master) {
     super("Replication Driver");
@@ -65,7 +65,7 @@ public class ReplicationDriver extends Daemon {
     while (master.stillMaster()) {
       if (null == workMaker) {
         try {
-          conn = master.getConnector();
+          conn = master.getClient();
         } catch (AccumuloException | AccumuloSecurityException e) {
           // couldn't get a connector, try again in a "short" amount of time
           log.warn("Error trying to get connector to process replication records", e);

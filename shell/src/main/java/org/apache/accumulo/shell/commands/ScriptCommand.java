@@ -87,7 +87,7 @@ public class ScriptCommand extends Command {
       // are available to the scripts
       // TODO: What else should go in here?
       Bindings b = engine.getBindings(ScriptContext.ENGINE_SCOPE);
-      b.put("connection", shellState.getConnector());
+      b.put("connection", shellState.getAccumuloClient());
 
       List<Object> argValues = new ArrayList<>();
       if (cl.hasOption(args.getOpt())) {

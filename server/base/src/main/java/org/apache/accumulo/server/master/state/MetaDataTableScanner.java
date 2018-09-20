@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.impl.ClientContext;
@@ -60,8 +60,8 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     // scan over metadata table, looking for tablets in the wrong state based on the live servers
     // and online tables
     try {
-      Connector connector = context.getConnector();
-      mdScanner = connector.createBatchScanner(tableName, Authorizations.EMPTY, 8);
+      AccumuloClient accumuloClient = context.getClient();
+      mdScanner = accumuloClient.createBatchScanner(tableName, Authorizations.EMPTY, 8);
       configureScanner(mdScanner, state);
       mdScanner.setRanges(Collections.singletonList(range));
       iter = mdScanner.iterator();

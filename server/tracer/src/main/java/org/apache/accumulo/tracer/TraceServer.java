@@ -30,15 +30,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -86,7 +87,7 @@ public class TraceServer implements Watcher {
   final private ServerContext context;
   final private TServer server;
   final private AtomicReference<BatchWriter> writer;
-  final private Connector connector;
+  final private AccumuloClient accumuloClient;
   final String tableName;
   final private static int BATCH_WRITER_MAX_LATENCY = 5;
   final private static long SCHEDULE_PERIOD = 1000;
@@ -193,7 +194,7 @@ public class TraceServer implements Watcher {
     log.info("Instance {}", context.getInstanceID());
     AccumuloConfiguration conf = serverConfiguration.getSystemConfiguration();
     tableName = conf.get(Property.TRACE_TABLE);
-    connector = ensureTraceTableExists(conf);
+    accumuloClient = ensureTraceTableExists(conf);
 
     int ports[] = conf.getPort(Property.TRACE_PORT);
     ServerSocket sock = null;
@@ -218,7 +219,7 @@ public class TraceServer implements Watcher {
     server = new TThreadPoolServer(options);
     registerInZooKeeper(sock.getInetAddress().getHostAddress() + ":" + sock.getLocalPort(),
         conf.get(Property.TRACE_ZK_PATH));
-    writer = new AtomicReference<>(this.connector.createBatchWriter(tableName,
+    writer = new AtomicReference<>(this.accumuloClient.createBatchWriter(tableName,
         new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS)));
   }
 
@@ -236,10 +237,10 @@ public class TraceServer implements Watcher {
    * @throws AccumuloSecurityException
    *           if the trace user has the wrong permissions
    */
-  private Connector ensureTraceTableExists(final AccumuloConfiguration conf)
+  private AccumuloClient ensureTraceTableExists(final AccumuloConfiguration conf)
       throws AccumuloSecurityException, ClassNotFoundException, InstantiationException,
       IllegalAccessException {
-    Connector connector = null;
+    AccumuloClient accumuloClient = null;
     while (true) {
       try {
         final boolean isDefaultTokenType = conf.get(Property.TRACE_TOKEN_TYPE)
@@ -272,16 +273,16 @@ public class TraceServer implements Watcher {
           at = token;
         }
 
-        connector = Connector.builder().usingClientInfo(context.getClientInfo())
-            .usingToken(principal, at).build();
-        if (!connector.tableOperations().exists(tableName)) {
-          connector.tableOperations().create(tableName);
+        accumuloClient = new AccumuloClientImpl.AccumuloClientBuilderImpl()
+            .usingClientInfo(context.getClientInfo()).usingToken(principal, at).build();
+        if (!accumuloClient.tableOperations().exists(tableName)) {
+          accumuloClient.tableOperations().create(tableName);
           IteratorSetting setting = new IteratorSetting(10, "ageoff", AgeOffFilter.class.getName());
           AgeOffFilter.setTTL(setting, 7 * 24 * 60 * 60 * 1000L);
-          connector.tableOperations().attachIterator(tableName, setting);
+          accumuloClient.tableOperations().attachIterator(tableName, setting);
         }
-        connector.tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(),
-            TraceFormatter.class.getName());
+        accumuloClient.tableOperations().setProperty(tableName,
+            Property.TABLE_FORMATTER_CLASS.getKey(), TraceFormatter.class.getName());
         break;
       } catch (AccumuloException | TableExistsException | TableNotFoundException | IOException
           | RuntimeException ex) {
@@ -289,7 +290,7 @@ public class TraceServer implements Watcher {
         sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
     }
-    return connector;
+    return accumuloClient;
   }
 
   public void run() throws Exception {
@@ -309,7 +310,7 @@ public class TraceServer implements Watcher {
         writer.flush();
       } else {
         // We don't have a writer. If the table exists, try to make a new writer.
-        if (connector.tableOperations().exists(tableName)) {
+        if (accumuloClient.tableOperations().exists(tableName)) {
           resetWriter();
         }
       }
@@ -325,7 +326,7 @@ public class TraceServer implements Watcher {
   private void resetWriter() {
     BatchWriter writer = null;
     try {
-      writer = connector.createBatchWriter(tableName,
+      writer = accumuloClient.createBatchWriter(tableName,
           new BatchWriterConfig().setMaxLatency(BATCH_WRITER_MAX_LATENCY, TimeUnit.SECONDS));
     } catch (Exception ex) {
       log.warn("Unable to create a batch writer, will retry. Set log level to"

@@ -21,8 +21,8 @@ import static org.junit.Assert.assertEquals;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
@@ -45,12 +45,12 @@ import com.google.common.collect.Iterables;
 
 public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
-  private Connector conn;
+  private AccumuloClient conn;
   private FinishedWorkUpdater updater;
 
   @Before
   public void configureUpdater() throws Exception {
-    conn = getConnector();
+    conn = getClient();
     updater = new FinishedWorkUpdater(conn);
   }
 

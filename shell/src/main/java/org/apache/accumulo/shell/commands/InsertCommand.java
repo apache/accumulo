@@ -103,8 +103,8 @@ public class InsertCommand extends Command {
           throw new IllegalArgumentException("Unknown durability: " + userDurability);
       }
     }
-    final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(),
-        cfg);
+    final BatchWriter bw = shellState.getAccumuloClient()
+        .createBatchWriter(shellState.getTableName(), cfg);
     bw.addMutation(m);
     try {
       bw.close();

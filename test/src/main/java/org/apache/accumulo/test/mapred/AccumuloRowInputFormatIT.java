@@ -27,9 +27,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.mapred.AccumuloRowInputFormat;
 import org.apache.accumulo.core.data.Key;
@@ -183,7 +183,7 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
     BatchWriter writer = null;

@@ -44,30 +44,30 @@ public class SslIT extends ConfigurableMacBase {
   @Test
   public void binary() throws AccumuloException, AccumuloSecurityException, Exception {
     String tableName = getUniqueNames(1)[0];
-    getConnector().tableOperations().create(tableName);
-    BinaryIT.runTest(getConnector(), tableName);
+    getClient().tableOperations().create(tableName);
+    BinaryIT.runTest(getClient(), tableName);
   }
 
   @Test
   public void concurrency() throws Exception {
-    ConcurrencyIT.runTest(getConnector(), getUniqueNames(1)[0]);
+    ConcurrencyIT.runTest(getClient(), getUniqueNames(1)[0]);
   }
 
   @Test
   public void adminStop() throws Exception {
-    ShutdownIT.runAdminStopTest(getConnector(), getCluster());
+    ShutdownIT.runAdminStopTest(getClient(), getCluster());
   }
 
   @Test
   public void bulk() throws Exception {
-    BulkIT.runTest(getConnector(), getClientInfo(), cluster.getFileSystem(),
+    BulkIT.runTest(getClient(), getClientInfo(), cluster.getFileSystem(),
         new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"), getUniqueNames(1)[0],
         this.getClass().getName(), testName.getMethodName(), true);
   }
 
   @Test
   public void mapReduce() throws Exception {
-    MapReduceIT.runTest(getConnector(), getCluster());
+    MapReduceIT.runTest(getClient(), getCluster());
   }
 
 }

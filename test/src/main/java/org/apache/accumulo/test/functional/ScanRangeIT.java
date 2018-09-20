@@ -21,9 +21,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -48,7 +48,7 @@ public class ScanRangeIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String[] tableNames = getUniqueNames(2);
     String table1 = tableNames[0];
     c.tableOperations().create(table1);
@@ -67,7 +67,7 @@ public class ScanRangeIT extends AccumuloClusterHarness {
     scanTable(c, table2);
   }
 
-  private void scanTable(Connector c, String table) throws Exception {
+  private void scanTable(AccumuloClient c, String table) throws Exception {
     scanRange(c, table, new IntKey(0, 0, 0, 0), new IntKey(1, 0, 0, 0));
 
     scanRange(c, table, new IntKey(0, 0, 0, 0),
@@ -152,14 +152,14 @@ public class ScanRangeIT extends AccumuloClusterHarness {
 
   }
 
-  private void scanRange(Connector c, String table, IntKey ik1, IntKey ik2) throws Exception {
+  private void scanRange(AccumuloClient c, String table, IntKey ik1, IntKey ik2) throws Exception {
     scanRange(c, table, ik1, false, ik2, false);
     scanRange(c, table, ik1, false, ik2, true);
     scanRange(c, table, ik1, true, ik2, false);
     scanRange(c, table, ik1, true, ik2, true);
   }
 
-  private void scanRange(Connector c, String table, IntKey ik1, boolean inclusive1, IntKey ik2,
+  private void scanRange(AccumuloClient c, String table, IntKey ik1, boolean inclusive1, IntKey ik2,
       boolean inclusive2) throws Exception {
     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
 
@@ -224,7 +224,7 @@ public class ScanRangeIT extends AccumuloClusterHarness {
     return new Text(String.format("r_%06d", row));
   }
 
-  private void insertData(Connector c, String table) throws Exception {
+  private void insertData(AccumuloClient c, String table) throws Exception {
 
     BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
 

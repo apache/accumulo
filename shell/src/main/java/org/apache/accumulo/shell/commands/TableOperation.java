@@ -48,7 +48,7 @@ public abstract class TableOperation extends Command {
     final SortedSet<String> tableSet = new TreeSet<>();
     if (cl.hasOption(optTablePattern.getOpt())) {
       String tablePattern = cl.getOptionValue(optTablePattern.getOpt());
-      for (String table : shellState.getConnector().tableOperations().list())
+      for (String table : shellState.getAccumuloClient().tableOperations().list())
         if (table.matches(tablePattern)) {
           tableSet.add(table);
         }
@@ -79,7 +79,7 @@ public abstract class TableOperation extends Command {
       if (!more) {
         break;
       }
-      if (!shellState.getConnector().tableOperations().exists(tableName)) {
+      if (!shellState.getAccumuloClient().tableOperations().exists(tableName)) {
         throw new TableNotFoundException(null, tableName, null);
       }
       boolean operate = true;

@@ -37,7 +37,7 @@ public class DeleteRowsCommand extends Command {
           .println("Not deleting unbounded range. Specify both ends, or use --force");
       return 1;
     }
-    shellState.getConnector().tableOperations().deleteRows(tableName, startRow, endRow);
+    shellState.getAccumuloClient().tableOperations().deleteRows(tableName, startRow, endRow);
     return 0;
   }
 

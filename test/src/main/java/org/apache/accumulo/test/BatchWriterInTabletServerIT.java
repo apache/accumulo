@@ -21,9 +21,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -60,7 +60,7 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
   public void testNormalWrite() throws Exception {
     String[] uniqueNames = getUniqueNames(2);
     String t1 = uniqueNames[0], t2 = uniqueNames[1];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     int numEntriesToWritePerEntry = 50;
     IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000,
         numEntriesToWritePerEntry, t2, c, getAdminToken(), false, false);
@@ -79,14 +79,14 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
   public void testClearLocatorAndSplitWrite() throws Exception {
     String[] uniqueNames = getUniqueNames(2);
     String t1 = uniqueNames[0], t2 = uniqueNames[1];
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     int numEntriesToWritePerEntry = 50;
     IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000,
         numEntriesToWritePerEntry, t2, c, getAdminToken(), true, true);
     test(t1, t2, c, itset, numEntriesToWritePerEntry);
   }
 
-  private void test(String t1, String t2, Connector c, IteratorSetting itset,
+  private void test(String t1, String t2, AccumuloClient c, IteratorSetting itset,
       int numEntriesToWritePerEntry) throws Exception {
     // Write an entry to t1
     c.tableOperations().create(t1);

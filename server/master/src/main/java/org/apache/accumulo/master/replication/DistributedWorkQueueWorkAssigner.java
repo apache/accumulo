@@ -23,7 +23,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -61,7 +61,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
     return StatusUtil.isWorkRequired(status);
   }
 
-  protected Connector conn;
+  protected AccumuloClient conn;
   protected AccumuloConfiguration conf;
   protected DistributedWorkQueue workQueue;
   protected int maxQueueSize;
@@ -70,11 +70,11 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
   /*
    * Getters/setters for testing purposes
    */
-  protected Connector getConnector() {
+  protected AccumuloClient getClient() {
     return conn;
   }
 
-  protected void setConnector(Connector conn) {
+  protected void setConnector(AccumuloClient conn) {
     this.conn = conn;
   }
 
@@ -119,7 +119,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
   }
 
   @Override
-  public void configure(AccumuloConfiguration conf, Connector conn) {
+  public void configure(AccumuloConfiguration conf, AccumuloClient conn) {
     this.conf = conf;
     this.conn = conn;
   }

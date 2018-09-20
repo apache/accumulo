@@ -180,7 +180,7 @@ public class ReplicationProcessor implements Processor {
   protected Status getStatus(String file, ReplicationTarget target)
       throws ReplicationTableOfflineException, AccumuloException, AccumuloSecurityException,
       InvalidProtocolBufferException {
-    Scanner s = ReplicationTable.getScanner(context.getConnector());
+    Scanner s = ReplicationTable.getScanner(context.getClient());
     s.setRange(Range.exact(file));
     s.fetchColumn(WorkSection.NAME, target.toText());
 

@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -40,13 +40,13 @@ public class DropUserCommandTest {
 
   @Test
   public void dropUserWithoutForcePrompts() throws Exception {
-    Connector conn = EasyMock.createMock(Connector.class);
+    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
     ConsoleReader reader = EasyMock.createMock(ConsoleReader.class);
     SecurityOperations secOps = EasyMock.createMock(SecurityOperations.class);
 
-    EasyMock.expect(shellState.getConnector()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
 
     // The user we want to remove
     EasyMock.expect(cli.getArgs()).andReturn(new String[] {"user"});
@@ -63,7 +63,7 @@ public class DropUserCommandTest {
     // Fake a "yes" response
     EasyMock.expect(shellState.getReader()).andReturn(reader);
     EasyMock.expect(reader.readLine(EasyMock.anyObject(String.class))).andReturn("yes");
-    EasyMock.expect(shellState.getConnector()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
 
     EasyMock.expect(conn.securityOperations()).andReturn(secOps);
     secOps.dropLocalUser("user");

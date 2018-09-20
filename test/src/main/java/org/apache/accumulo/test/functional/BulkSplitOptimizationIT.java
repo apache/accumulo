@@ -21,7 +21,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -55,7 +55,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     majcDelay = conn.instanceOperations().getSystemConfiguration()
         .get(Property.TSERV_MAJC_DELAY.getKey());
     if (!"1s".equals(majcDelay)) {
@@ -68,7 +68,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
   @After
   public void resetConfig() throws Exception {
     if (null != majcDelay) {
-      Connector conn = getConnector();
+      AccumuloClient conn = getAccumuloClient();
       conn.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);
@@ -80,7 +80,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
   @Test
   public void testBulkSplitOptimization() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1000");
@@ -97,13 +97,13 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
     FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 100, 100);
 
     // initiate splits
-    getConnector().tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-        "100K");
+    getAccumuloClient().tableOperations().setProperty(tableName,
+        Property.TABLE_SPLIT_THRESHOLD.getKey(), "100K");
 
     sleepUninterruptibly(2, TimeUnit.SECONDS);
 
     // wait until over split threshold -- should be 78 splits
-    while (getConnector().tableOperations().listSplits(tableName).size() < 75) {
+    while (getAccumuloClient().tableOperations().listSplits(tableName).size() < 75) {
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }
 

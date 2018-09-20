@@ -25,7 +25,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.ReplicationConstants;
@@ -39,13 +39,13 @@ import org.junit.Test;
 
 public class SequentialWorkAssignerTest {
 
-  private Connector conn;
+  private AccumuloClient conn;
   private SequentialWorkAssigner assigner;
 
   @Before
   public void init() throws Exception {
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
-    conn = createMock(Connector.class);
+    conn = createMock(AccumuloClient.class);
     assigner = new SequentialWorkAssigner(conf, conn);
   }
 

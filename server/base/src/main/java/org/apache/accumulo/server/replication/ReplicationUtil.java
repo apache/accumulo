@@ -26,10 +26,10 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
@@ -163,8 +163,7 @@ public class ReplicationUtil {
     // Read over the queued work
     BatchScanner bs;
     try {
-      bs = context.getConnector().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY,
-          4);
+      bs = context.getClient().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
     } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
       log.debug("No replication table exists", e);
       return counts;
@@ -201,8 +200,7 @@ public class ReplicationUtil {
     // Read over the queued work
     BatchScanner bs;
     try {
-      bs = context.getConnector().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY,
-          4);
+      bs = context.getClient().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
     } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
       log.debug("No replication table exists", e);
       return paths;
@@ -235,7 +233,7 @@ public class ReplicationUtil {
    *          The Replication work queue key
    * @return The absolute path for the file, or null if the key is no longer in ZooKeeper
    */
-  public String getAbsolutePath(Connector conn, String workQueuePath, String queueKey) {
+  public String getAbsolutePath(AccumuloClient conn, String workQueuePath, String queueKey) {
     byte[] data = zooCache.get(workQueuePath + "/" + queueKey);
     if (null != data) {
       return new String(data, UTF_8);
@@ -255,7 +253,7 @@ public class ReplicationUtil {
    *          ReplicationTarget the WAL is being replicated to
    * @return A status message for a file being replicated
    */
-  public String getProgress(Connector conn, String path, ReplicationTarget target) {
+  public String getProgress(AccumuloClient conn, String path, ReplicationTarget target) {
     // We could try to grep over the table, but without knowing the full file path, we
     // can't find the status quickly
     String status = "Unknown";

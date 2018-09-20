@@ -25,7 +25,7 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -48,7 +48,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    final Connector c = getConnector();
+    final AccumuloClient c = getClient();
     // ensure the metadata table is online
     Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
     c.instanceOperations().waitForBalance();
@@ -69,7 +69,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
   private boolean isBalanced() throws Exception {
     final Map<String,Integer> counts = new HashMap<>();
     int offline = 0;
-    final Connector c = getConnector();
+    final AccumuloClient c = getClient();
     for (String tableName : new String[] {MetadataTable.NAME, RootTable.NAME}) {
       try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
         s.setRange(MetadataSchema.TabletsSection.getRange());

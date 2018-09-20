@@ -61,7 +61,7 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
   @Test
   public void testBulkImportFailure() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    TableOperations to = getConnector().tableOperations();
+    TableOperations to = getAccumuloClient().tableOperations();
     to.create(tableName);
     FileSystem fs = getFileSystem();
     Path rootPath = new Path(fs.makeQualified(getUsableDir()), getClass().getSimpleName());
@@ -100,7 +100,7 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
 
     // The bug is that some tablets don't get imported into.
     assertEquals(NR * NV,
-        Iterables.size(getConnector().createScanner(tableName, Authorizations.EMPTY)));
+        Iterables.size(getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)));
   }
 
   private TreeSet<Text> getSplits() {

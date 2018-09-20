@@ -35,11 +35,11 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
@@ -431,7 +431,7 @@ abstract class TabletGroupWatcher extends Daemon {
       String table = MetadataTable.NAME;
       if (extent.isMeta())
         table = RootTable.NAME;
-      Scanner scanner = this.master.getConnector().createScanner(table, Authorizations.EMPTY);
+      Scanner scanner = this.master.getClient().createScanner(table, Authorizations.EMPTY);
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
       scanner.setRange(new Range(row));
@@ -460,7 +460,7 @@ abstract class TabletGroupWatcher extends Daemon {
         TServerInstance alive = master.tserverSet.find(entry.getValue().toString());
         if (alive == null) {
           Master.log.info("Removing entry  {}", entry);
-          BatchWriter bw = this.master.getConnector().createBatchWriter(table,
+          BatchWriter bw = this.master.getClient().createBatchWriter(table,
               new BatchWriterConfig());
           Mutation m = new Mutation(entry.getKey().getRow());
           m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
@@ -555,7 +555,7 @@ abstract class TabletGroupWatcher extends Daemon {
   private void updateMergeState(Map<Table.ID,MergeStats> mergeStatsCache) {
     for (MergeStats stats : mergeStatsCache.values()) {
       try {
-        MergeState update = stats.nextMergeState(this.master.getConnector(), this.master);
+        MergeState update = stats.nextMergeState(this.master.getClient(), this.master);
         // when next state is MERGING, its important to persist this before
         // starting the merge... the verification check that is done before
         // moving into the merging state could fail if merge starts but does
@@ -598,7 +598,7 @@ abstract class TabletGroupWatcher extends Daemon {
       Master.log.debug("Found following tablet {}", followingTablet);
     }
     try {
-      Connector conn = this.master.getConnector();
+      AccumuloClient conn = this.master.getClient();
       Text start = extent.getPrevEndRow();
       if (start == null) {
         start = new Text();
@@ -704,7 +704,7 @@ abstract class TabletGroupWatcher extends Daemon {
     BatchWriter bw = null;
     try {
       long fileCount = 0;
-      Connector conn = this.master.getConnector();
+      AccumuloClient conn = this.master.getClient();
       // Make file entries in highest tablet
       bw = conn.createBatchWriter(targetSystemTable, new BatchWriterConfig());
       Scanner scanner = conn.createScanner(targetSystemTable, Authorizations.EMPTY);
@@ -786,7 +786,7 @@ abstract class TabletGroupWatcher extends Daemon {
     }
   }
 
-  private void deleteTablets(MergeInfo info, Range scanRange, BatchWriter bw, Connector conn)
+  private void deleteTablets(MergeInfo info, Range scanRange, BatchWriter bw, AccumuloClient conn)
       throws TableNotFoundException, MutationsRejectedException {
     Scanner scanner;
     Mutation m;
@@ -820,7 +820,7 @@ abstract class TabletGroupWatcher extends Daemon {
 
   private KeyExtent getHighTablet(KeyExtent range) throws AccumuloException {
     try {
-      Connector conn = this.master.getConnector();
+      AccumuloClient conn = this.master.getClient();
       Scanner scanner = conn.createScanner(range.isMeta() ? RootTable.NAME : MetadataTable.NAME,
           Authorizations.EMPTY);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);

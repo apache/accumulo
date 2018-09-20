@@ -38,11 +38,11 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -650,7 +650,7 @@ public class MetadataTableUtil {
       rootTableEntries = getLogEntries(context, new KeyExtent(MetadataTable.ID, null, null))
           .iterator();
       try {
-        Scanner scanner = context.getConnector().createScanner(MetadataTable.NAME,
+        Scanner scanner = context.getClient().createScanner(MetadataTable.NAME,
             Authorizations.EMPTY);
         log.info("Setting range to {}", MetadataSchema.TabletsSection.getRange());
         scanner.setRange(MetadataSchema.TabletsSection.getRange());
@@ -750,7 +750,7 @@ public class MetadataTableUtil {
   }
 
   private static Iterable<TabletMetadata> createCloneScanner(String testTableName, Table.ID tableId,
-      Connector conn) throws TableNotFoundException {
+      AccumuloClient conn) throws TableNotFoundException {
 
     String tableName;
     Range range;
@@ -777,7 +777,8 @@ public class MetadataTableUtil {
 
   @VisibleForTesting
   public static void initializeClone(String testTableName, Table.ID srcTableId, Table.ID tableId,
-      Connector conn, BatchWriter bw) throws TableNotFoundException, MutationsRejectedException {
+      AccumuloClient conn, BatchWriter bw)
+      throws TableNotFoundException, MutationsRejectedException {
 
     Iterator<TabletMetadata> ti = createCloneScanner(testTableName, srcTableId, conn).iterator();
 
@@ -797,7 +798,8 @@ public class MetadataTableUtil {
 
   @VisibleForTesting
   public static int checkClone(String testTableName, Table.ID srcTableId, Table.ID tableId,
-      Connector conn, BatchWriter bw) throws TableNotFoundException, MutationsRejectedException {
+      AccumuloClient conn, BatchWriter bw)
+      throws TableNotFoundException, MutationsRejectedException {
 
     Iterator<TabletMetadata> srcIter = createCloneScanner(testTableName, srcTableId, conn)
         .iterator();
@@ -880,7 +882,7 @@ public class MetadataTableUtil {
   public static void cloneTable(ServerContext context, Table.ID srcTableId, Table.ID tableId,
       VolumeManager volumeManager) throws Exception {
 
-    Connector conn = context.getConnector();
+    AccumuloClient conn = context.getClient();
     try (BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
 
       while (true) {
@@ -944,7 +946,7 @@ public class MetadataTableUtil {
     update(context, zooLock, m, extent);
   }
 
-  public static void removeBulkLoadEntries(Connector conn, Table.ID tableId, long tid)
+  public static void removeBulkLoadEntries(AccumuloClient conn, Table.ID tableId, long tid)
       throws Exception {
     try (
         Scanner mscanner = new IsolatedScanner(
@@ -966,7 +968,7 @@ public class MetadataTableUtil {
     }
   }
 
-  public static List<FileRef> getBulkFilesLoaded(ServerContext context, Connector conn,
+  public static List<FileRef> getBulkFilesLoaded(ServerContext context, AccumuloClient conn,
       KeyExtent extent, long tid) throws IOException {
     List<FileRef> result = new ArrayList<>();
     try (Scanner mscanner = new IsolatedScanner(conn.createScanner(

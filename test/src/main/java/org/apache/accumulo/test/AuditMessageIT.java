@@ -29,12 +29,12 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -87,8 +87,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   // Must be static to survive Junit re-initialising the class every time.
   private static String lastAuditTimestamp;
-  private Connector auditConnector;
-  private Connector conn;
+  private AccumuloClient auditAccumuloClient;
+  private AccumuloClient conn;
 
   private static long findAuditMessage(ArrayList<String> input, String pattern) {
     return input.stream().filter(s -> s.matches(".*" + pattern + ".*")).count();
@@ -153,7 +153,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     return result;
   }
 
-  private void grantEverySystemPriv(Connector conn, String user)
+  private void grantEverySystemPriv(AccumuloClient conn, String user)
       throws AccumuloSecurityException, AccumuloException {
     SystemPermission[] arrayOfP = {SystemPermission.SYSTEM, SystemPermission.ALTER_TABLE,
         SystemPermission.ALTER_USER, SystemPermission.CREATE_TABLE, SystemPermission.CREATE_USER,
@@ -165,7 +165,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   @Before
   public void resetInstance() throws Exception {
-    conn = getConnector();
+    conn = getClient();
 
     removeUsersAndTables();
 
@@ -200,16 +200,16 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Connect as Audit User and do a bunch of stuff.
     // Testing activity begins here
-    auditConnector = getCluster().getConnector(AUDIT_USER_1, new PasswordToken(PASSWORD));
-    auditConnector.tableOperations().create(OLD_TEST_TABLE_NAME);
-    auditConnector.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
+    auditAccumuloClient = getCluster().getAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    auditAccumuloClient.tableOperations().create(OLD_TEST_TABLE_NAME);
+    auditAccumuloClient.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
     Map<String,String> emptyMap = Collections.emptyMap();
     Set<String> emptySet = Collections.emptySet();
-    auditConnector.tableOperations().clone(NEW_TEST_TABLE_NAME, OLD_TEST_TABLE_NAME, true, emptyMap,
-        emptySet);
-    auditConnector.tableOperations().delete(OLD_TEST_TABLE_NAME);
-    auditConnector.tableOperations().offline(NEW_TEST_TABLE_NAME);
-    auditConnector.tableOperations().delete(NEW_TEST_TABLE_NAME);
+    auditAccumuloClient.tableOperations().clone(NEW_TEST_TABLE_NAME, OLD_TEST_TABLE_NAME, true,
+        emptyMap, emptySet);
+    auditAccumuloClient.tableOperations().delete(OLD_TEST_TABLE_NAME);
+    auditAccumuloClient.tableOperations().offline(NEW_TEST_TABLE_NAME);
+    auditAccumuloClient.tableOperations().delete(NEW_TEST_TABLE_NAME);
     // Testing activity ends here
 
     ArrayList<String> auditMessages = getAuditMessages("testTableOperationsAudits");
@@ -240,21 +240,22 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditConnector = getCluster().getConnector(AUDIT_USER_1, new PasswordToken(PASSWORD));
-    auditConnector.securityOperations().createLocalUser(AUDIT_USER_2, new PasswordToken(PASSWORD));
+    auditAccumuloClient = getCluster().getAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    auditAccumuloClient.securityOperations().createLocalUser(AUDIT_USER_2,
+        new PasswordToken(PASSWORD));
 
     // It seems only root can grant stuff.
     conn.securityOperations().grantSystemPermission(AUDIT_USER_2, SystemPermission.ALTER_TABLE);
     conn.securityOperations().revokeSystemPermission(AUDIT_USER_2, SystemPermission.ALTER_TABLE);
-    auditConnector.tableOperations().create(NEW_TEST_TABLE_NAME);
+    auditAccumuloClient.tableOperations().create(NEW_TEST_TABLE_NAME);
     conn.securityOperations().grantTablePermission(AUDIT_USER_2, NEW_TEST_TABLE_NAME,
         TablePermission.READ);
     conn.securityOperations().revokeTablePermission(AUDIT_USER_2, NEW_TEST_TABLE_NAME,
         TablePermission.READ);
-    auditConnector.securityOperations().changeLocalUserPassword(AUDIT_USER_2,
+    auditAccumuloClient.securityOperations().changeLocalUserPassword(AUDIT_USER_2,
         new PasswordToken("anything"));
-    auditConnector.securityOperations().changeUserAuthorizations(AUDIT_USER_2, auths);
-    auditConnector.securityOperations().dropLocalUser(AUDIT_USER_2);
+    auditAccumuloClient.securityOperations().changeUserAuthorizations(AUDIT_USER_2, auths);
+    auditAccumuloClient.securityOperations().dropLocalUser(AUDIT_USER_2);
     // Stop testing activities here
 
     ArrayList<String> auditMessages = getAuditMessages("testUserOperationsAudits");
@@ -293,11 +294,12 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditConnector = getCluster().getConnector(AUDIT_USER_1, new PasswordToken(PASSWORD));
-    auditConnector.tableOperations().create(OLD_TEST_TABLE_NAME);
+    auditAccumuloClient = getCluster().getAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    auditAccumuloClient.tableOperations().create(OLD_TEST_TABLE_NAME);
 
     // Insert some play data
-    BatchWriter bw = auditConnector.createBatchWriter(OLD_TEST_TABLE_NAME, new BatchWriterConfig());
+    BatchWriter bw = auditAccumuloClient.createBatchWriter(OLD_TEST_TABLE_NAME,
+        new BatchWriterConfig());
     Mutation m = new Mutation("myRow");
     m.put("cf1", "cq1", "v1");
     m.put("cf1", "cq2", "v3");
@@ -309,8 +311,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
     File exportDirBulk = new File(getCluster().getConfig().getDir() + "/export_bulk");
     assertTrue(exportDirBulk.mkdir() || exportDirBulk.isDirectory());
 
-    auditConnector.tableOperations().offline(OLD_TEST_TABLE_NAME, true);
-    auditConnector.tableOperations().exportTable(OLD_TEST_TABLE_NAME, exportDir.toString());
+    auditAccumuloClient.tableOperations().offline(OLD_TEST_TABLE_NAME, true);
+    auditAccumuloClient.tableOperations().exportTable(OLD_TEST_TABLE_NAME, exportDir.toString());
 
     // We've exported the table metadata to the MiniAccumuloCluster root dir. Grab the .rf file path
     // to re-import it
@@ -330,13 +332,13 @@ public class AuditMessageIT extends ConfigurableMacBase {
     }
     FileUtils.copyFileToDirectory(importFile, exportDir);
     FileUtils.copyFileToDirectory(importFile, exportDirBulk);
-    auditConnector.tableOperations().importTable(NEW_TEST_TABLE_NAME, exportDir.toString());
+    auditAccumuloClient.tableOperations().importTable(NEW_TEST_TABLE_NAME, exportDir.toString());
 
     // Now do a Directory (bulk) import of the same data.
-    auditConnector.tableOperations().create(THIRD_TEST_TABLE_NAME);
-    auditConnector.tableOperations().importDirectory(exportDirBulk.toString())
+    auditAccumuloClient.tableOperations().create(THIRD_TEST_TABLE_NAME);
+    auditAccumuloClient.tableOperations().importDirectory(exportDirBulk.toString())
         .to(THIRD_TEST_TABLE_NAME).load();
-    auditConnector.tableOperations().online(OLD_TEST_TABLE_NAME);
+    auditAccumuloClient.tableOperations().online(OLD_TEST_TABLE_NAME);
 
     // Stop testing activities here
 
@@ -380,11 +382,12 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditConnector = getCluster().getConnector(AUDIT_USER_1, new PasswordToken(PASSWORD));
-    auditConnector.tableOperations().create(OLD_TEST_TABLE_NAME);
+    auditAccumuloClient = getCluster().getAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    auditAccumuloClient.tableOperations().create(OLD_TEST_TABLE_NAME);
 
     // Insert some play data
-    BatchWriter bw = auditConnector.createBatchWriter(OLD_TEST_TABLE_NAME, new BatchWriterConfig());
+    BatchWriter bw = auditAccumuloClient.createBatchWriter(OLD_TEST_TABLE_NAME,
+        new BatchWriterConfig());
     Mutation m = new Mutation("myRow");
     m.put("cf1", "cq1", "v1");
     m.put("cf1", "cq2", "v3");
@@ -393,14 +396,14 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Start testing activities here
     // A regular scan
-    try (Scanner scanner = auditConnector.createScanner(OLD_TEST_TABLE_NAME, auths)) {
+    try (Scanner scanner = auditAccumuloClient.createScanner(OLD_TEST_TABLE_NAME, auths)) {
       for (Map.Entry<Key,Value> entry : scanner) {
         System.out.println("Scanner row: " + entry.getKey() + " " + entry.getValue());
       }
     }
 
     // A batch scan
-    try (BatchScanner bs = auditConnector.createBatchScanner(OLD_TEST_TABLE_NAME, auths, 1)) {
+    try (BatchScanner bs = auditAccumuloClient.createBatchScanner(OLD_TEST_TABLE_NAME, auths, 1)) {
       bs.fetchColumn(new Text("cf1"), new Text("cq1"));
       bs.setRanges(Arrays.asList(new Range("myRow", "myRow~")));
       for (Map.Entry<Key,Value> entry : bs) {
@@ -409,7 +412,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     }
 
     // Delete some data.
-    auditConnector.tableOperations().deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"),
+    auditAccumuloClient.tableOperations().deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"),
         new Text("myRow~"));
 
     // End of testing activities
@@ -433,7 +436,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // Create our user with no privs
     conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     conn.tableOperations().create(OLD_TEST_TABLE_NAME);
-    auditConnector = getCluster().getConnector(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    auditAccumuloClient = getCluster().getAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
 
     // Start testing activities
     // We should get denied or / failed audit messages here.
@@ -441,26 +444,26 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // Exceptions are thrown.
 
     try {
-      auditConnector.tableOperations().create(NEW_TEST_TABLE_NAME);
+      auditAccumuloClient.tableOperations().create(NEW_TEST_TABLE_NAME);
     } catch (AccumuloSecurityException ex) {}
     try {
-      auditConnector.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
+      auditAccumuloClient.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
     } catch (AccumuloSecurityException ex) {}
     try {
-      auditConnector.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, true,
+      auditAccumuloClient.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, true,
           Collections.emptyMap(), Collections.emptySet());
     } catch (AccumuloSecurityException ex) {}
     try {
-      auditConnector.tableOperations().delete(OLD_TEST_TABLE_NAME);
+      auditAccumuloClient.tableOperations().delete(OLD_TEST_TABLE_NAME);
     } catch (AccumuloSecurityException ex) {}
     try {
-      auditConnector.tableOperations().offline(OLD_TEST_TABLE_NAME);
+      auditAccumuloClient.tableOperations().offline(OLD_TEST_TABLE_NAME);
     } catch (AccumuloSecurityException ex) {}
-    try (Scanner scanner = auditConnector.createScanner(OLD_TEST_TABLE_NAME, auths)) {
+    try (Scanner scanner = auditAccumuloClient.createScanner(OLD_TEST_TABLE_NAME, auths)) {
       scanner.iterator().next().getKey();
     } catch (RuntimeException ex) {}
     try {
-      auditConnector.tableOperations().deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"),
+      auditAccumuloClient.tableOperations().deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"),
           new Text("myRow~"));
     } catch (AccumuloSecurityException ex) {}
 

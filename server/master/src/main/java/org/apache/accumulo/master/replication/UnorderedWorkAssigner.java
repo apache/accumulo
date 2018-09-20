@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationTarget;
@@ -54,7 +54,7 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   public UnorderedWorkAssigner() {}
 
-  public UnorderedWorkAssigner(AccumuloConfiguration conf, Connector conn) {
+  public UnorderedWorkAssigner(AccumuloConfiguration conf, AccumuloClient conn) {
     configure(conf, conn);
   }
 

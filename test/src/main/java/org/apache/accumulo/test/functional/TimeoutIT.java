@@ -23,10 +23,10 @@ import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TimedOutException;
@@ -47,13 +47,13 @@ public class TimeoutIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String[] tableNames = getUniqueNames(2);
     testBatchWriterTimeout(conn, tableNames[0]);
     testBatchScannerTimeout(conn, tableNames[1]);
   }
 
-  public void testBatchWriterTimeout(Connector conn, String tableName) throws Exception {
+  public void testBatchWriterTimeout(AccumuloClient conn, String tableName) throws Exception {
     conn.tableOperations().create(tableName);
     conn.tableOperations().addConstraint(tableName, SlowConstraint.class.getName());
 
@@ -77,10 +77,10 @@ public class TimeoutIT extends AccumuloClusterHarness {
     }
   }
 
-  public void testBatchScannerTimeout(Connector conn, String tableName) throws Exception {
-    getConnector().tableOperations().create(tableName);
+  public void testBatchScannerTimeout(AccumuloClient conn, String tableName) throws Exception {
+    getAccumuloClient().tableOperations().create(tableName);
 
-    BatchWriter bw = getConnector().createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
 
     Mutation m = new Mutation("r1");
     m.put("cf1", "cq1", "v1");
@@ -91,7 +91,8 @@ public class TimeoutIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.close();
 
-    try (BatchScanner bs = getConnector().createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
+    try (BatchScanner bs = getAccumuloClient().createBatchScanner(tableName, Authorizations.EMPTY,
+        2)) {
       bs.setRanges(Collections.singletonList(new Range()));
 
       // should not timeout

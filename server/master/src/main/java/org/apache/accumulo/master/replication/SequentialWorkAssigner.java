@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.ReplicationConstants;
@@ -60,7 +60,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   public SequentialWorkAssigner() {}
 
-  public SequentialWorkAssigner(AccumuloConfiguration conf, Connector conn) {
+  public SequentialWorkAssigner(AccumuloConfiguration conf, AccumuloClient conn) {
     configure(conf, conn);
   }
 

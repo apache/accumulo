@@ -21,7 +21,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -40,11 +40,11 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class PrintReplicationRecords implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(PrintReplicationRecords.class);
 
-  private Connector conn;
+  private AccumuloClient conn;
   private PrintStream out;
   private SimpleDateFormat sdf;
 
-  public PrintReplicationRecords(Connector conn, PrintStream out) {
+  public PrintReplicationRecords(AccumuloClient conn, PrintStream out) {
     this.conn = conn;
     this.out = out;
     this.sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");

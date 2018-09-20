@@ -26,9 +26,9 @@ import java.util.Random;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -92,7 +92,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
     REG_TABLE_NAME = names[0];
     PRE_SPLIT_TABLE_NAME = names[1];
 
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     tservMajcDelay = c.instanceOperations().getSystemConfiguration()
         .get(Property.TSERV_MAJC_DELAY.getKey());
     c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "10ms");
@@ -101,7 +101,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
   @After
   public void resetMajcDelay() throws Exception {
     if (null != tservMajcDelay) {
-      Connector conn = getConnector();
+      AccumuloClient conn = getAccumuloClient();
       conn.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
     }
   }
@@ -117,7 +117,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
       TestIngest.toPrintableChars(rowData);
       splitPoints.add(new Text(rowData));
     }
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.tableOperations().create(REG_TABLE_NAME);
     c.tableOperations().create(PRE_SPLIT_TABLE_NAME);
     c.tableOperations().setProperty(PRE_SPLIT_TABLE_NAME, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
@@ -128,7 +128,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
     test2(c);
   }
 
-  private void test1(Connector c) throws Exception {
+  private void test1(AccumuloClient c) throws Exception {
 
     basicTest(c, REG_TABLE_NAME, 0);
 
@@ -142,11 +142,11 @@ public class LargeRowIT extends AccumuloClusterHarness {
     verify(c, REG_TABLE_NAME);
   }
 
-  private void test2(Connector c) throws Exception {
+  private void test2(AccumuloClient c) throws Exception {
     basicTest(c, PRE_SPLIT_TABLE_NAME, NUM_PRE_SPLITS);
   }
 
-  private void basicTest(Connector c, String table, int expectedSplits) throws Exception {
+  private void basicTest(AccumuloClient c, String table, int expectedSplits) throws Exception {
     BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
 
     Random r = new Random();
@@ -187,7 +187,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
     FunctionalTestUtils.checkSplits(c, table, expectedSplits, expectedSplits);
   }
 
-  private void verify(Connector c, String table) throws Exception {
+  private void verify(AccumuloClient c, String table) throws Exception {
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];
 

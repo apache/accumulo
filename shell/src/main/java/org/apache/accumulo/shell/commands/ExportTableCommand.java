@@ -42,7 +42,7 @@ public class ExportTableCommand extends Command {
 
     final String tableName = OptUtil.getTableOpt(cl, shellState);
 
-    shellState.getConnector().tableOperations().exportTable(tableName, cl.getArgs()[0]);
+    shellState.getAccumuloClient().tableOperations().exportTable(tableName, cl.getArgs()[0]);
     return 0;
   }
 

@@ -30,9 +30,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
@@ -90,7 +90,7 @@ class WriteExportFiles extends MasterRepo {
     if (reserved > 0)
       return reserved;
 
-    Connector conn = master.getConnector();
+    AccumuloClient conn = master.getClient();
 
     checkOffline(master.getContext());
 
@@ -216,7 +216,7 @@ class WriteExportFiles extends MasterRepo {
 
     Map<String,String> uniqueFiles = new HashMap<>();
 
-    Scanner metaScanner = context.getConnector().createScanner(MetadataTable.NAME,
+    Scanner metaScanner = context.getClient().createScanner(MetadataTable.NAME,
         Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);
@@ -254,7 +254,7 @@ class WriteExportFiles extends MasterRepo {
   private static void exportConfig(ServerContext context, Table.ID tableID, ZipOutputStream zipOut,
       DataOutputStream dataOut)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
-    Connector conn = context.getConnector();
+    AccumuloClient conn = context.getClient();
 
     DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
     Map<String,String> siteConfig = conn.instanceOperations().getSiteConfiguration();

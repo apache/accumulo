@@ -31,9 +31,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
@@ -64,12 +64,12 @@ import com.google.common.collect.Sets;
 
 public class StatusMakerIT extends ConfigurableMacBase {
 
-  private Connector conn;
+  private AccumuloClient conn;
   private VolumeManager fs;
 
   @Before
   public void setupInstance() throws Exception {
-    conn = getConnector();
+    conn = getClient();
     ReplicationTable.setOnline(conn);
     conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);

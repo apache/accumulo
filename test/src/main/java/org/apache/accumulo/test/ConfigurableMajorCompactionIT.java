@@ -23,9 +23,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -81,7 +81,7 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
     conn.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
@@ -101,7 +101,7 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
     }
   }
 
-  private int countFiles(Connector conn) throws Exception {
+  private int countFiles(AccumuloClient conn) throws Exception {
     try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.TabletsSection.getRange());
       s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
@@ -109,7 +109,7 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
     }
   }
 
-  private void writeFile(Connector conn, String tableName) throws Exception {
+  private void writeFile(AccumuloClient conn, String tableName) throws Exception {
     BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("row");
     m.put("cf", "cq", "value");

@@ -24,7 +24,7 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
@@ -57,7 +57,7 @@ public class BulkFileIT extends AccumuloClusterHarness {
 
   @Test
   public void testBulkFile() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     SortedSet<Text> splits = new TreeSet<>();
@@ -100,7 +100,7 @@ public class BulkFileIT extends AccumuloClusterHarness {
   }
 
   private void verifyData(String table, int s, int e) throws Exception {
-    try (Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY)) {
+    try (Scanner scanner = getAccumuloClient().createScanner(table, Authorizations.EMPTY)) {
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 

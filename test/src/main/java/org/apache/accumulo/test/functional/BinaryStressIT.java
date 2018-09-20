@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
@@ -63,7 +63,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
       return;
     }
 
-    InstanceOperations iops = getConnector().instanceOperations();
+    InstanceOperations iops = getAccumuloClient().instanceOperations();
     Map<String,String> conf = iops.getSystemConfiguration();
     majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
     maxMem = conf.get(Property.TSERV_MAXMEM.getKey());
@@ -78,7 +78,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
   @After
   public void resetConfig() throws Exception {
     if (null != majcDelay) {
-      InstanceOperations iops = getConnector().instanceOperations();
+      InstanceOperations iops = getAccumuloClient().instanceOperations();
       iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
       iops.setProperty(Property.TSERV_MAXMEM.getKey(), maxMem);
 
@@ -89,7 +89,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
 
   @Test
   public void binaryStressTest() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");

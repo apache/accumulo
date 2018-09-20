@@ -25,8 +25,8 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -82,7 +82,7 @@ public class TestRandomDeletes {
   private static TreeSet<RowColumn> scanAll(ClientOnDefaultTable opts, ScannerOpts scanOpts,
       String tableName) throws Exception {
     TreeSet<RowColumn> result = new TreeSet<>();
-    Connector conn = opts.getConnector();
+    AccumuloClient conn = opts.getClient();
     try (Scanner scanner = conn.createScanner(tableName, auths)) {
       scanner.setBatchSize(scanOpts.scanBatchSize);
       for (Entry<Key,Value> entry : scanner) {
@@ -102,8 +102,9 @@ public class TestRandomDeletes {
     ArrayList<RowColumn> entries = new ArrayList<>(rows);
     java.util.Collections.shuffle(entries);
 
-    Connector connector = opts.getConnector();
-    BatchWriter mutations = connector.createBatchWriter(tableName, bwOpts.getBatchWriterConfig());
+    AccumuloClient accumuloClient = opts.getClient();
+    BatchWriter mutations = accumuloClient.createBatchWriter(tableName,
+        bwOpts.getBatchWriterConfig());
 
     for (int i = 0; i < (entries.size() + 1) / 2; i++) {
       RowColumn rc = entries.get(i);

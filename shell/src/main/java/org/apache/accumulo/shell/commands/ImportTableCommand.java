@@ -31,7 +31,7 @@ public class ImportTableCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TableExistsException {
 
-    shellState.getConnector().tableOperations().importTable(cl.getArgs()[0], cl.getArgs()[1]);
+    shellState.getAccumuloClient().tableOperations().importTable(cl.getArgs()[0], cl.getArgs()[1]);
     return 0;
   }
 

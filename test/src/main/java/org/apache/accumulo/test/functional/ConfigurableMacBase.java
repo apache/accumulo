@@ -25,10 +25,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
 
+import org.apache.accumulo.core.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -187,8 +188,8 @@ public class ConfigurableMacBase extends AccumuloITBase {
     return cluster;
   }
 
-  protected Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return getCluster().getConnector("root", new PasswordToken(ROOT_PASSWORD));
+  protected AccumuloClient getClient() throws AccumuloException, AccumuloSecurityException {
+    return getCluster().getAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
   }
 
   protected ClientContext getClientContext() {
@@ -196,7 +197,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
   }
 
   protected ClientInfo getClientInfo() {
-    return Connector.builder()
+    return Accumulo.newClient()
         .forInstance(getCluster().getInstanceName(), getCluster().getZooKeepers())
         .usingPassword("root", ROOT_PASSWORD).info();
   }

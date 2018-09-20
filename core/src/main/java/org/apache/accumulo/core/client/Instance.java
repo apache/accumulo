@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 
@@ -26,7 +27,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
  * This class represents the information a client needs to know to connect to an instance of
  * accumulo.
  *
- * @deprecated since 2.0.0, use {@link Connector#builder()} and {@link ClientInfo} instead
+ * @deprecated since 2.0.0, use {@link Accumulo#newClient()} and {@link ClientInfo} instead
  */
 @Deprecated
 public interface Instance {

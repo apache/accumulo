@@ -26,9 +26,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -52,10 +52,10 @@ public class QueryMetadataTable {
 
   static class MDTQuery implements Runnable {
 
-    private Connector conn;
+    private AccumuloClient conn;
     private Text row;
 
-    MDTQuery(Connector conn, Text row) {
+    MDTQuery(AccumuloClient conn, Text row) {
       this.conn = conn;
       this.row = row;
     }
@@ -100,12 +100,12 @@ public class QueryMetadataTable {
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(QueryMetadataTable.class.getName(), args, scanOpts);
 
-    Connector connector = opts.getConnector();
+    AccumuloClient accumuloClient = opts.getClient();
     HashSet<Text> rowSet = new HashSet<>();
 
     int count = 0;
 
-    try (Scanner scanner = connector.createScanner(MetadataTable.NAME, opts.auths)) {
+    try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, opts.auths)) {
       scanner.setBatchSize(scanOpts.scanBatchSize);
       Text mdrow = new Text(KeyExtent.getMetadataEntry(MetadataTable.ID, null));
 
@@ -138,7 +138,7 @@ public class QueryMetadataTable {
 
     for (int i = 0; i < opts.numQueries; i++) {
       int index = r.nextInt(rows.size());
-      MDTQuery mdtq = new MDTQuery(connector, rows.get(index));
+      MDTQuery mdtq = new MDTQuery(accumuloClient, rows.get(index));
       tp.submit(mdtq);
     }
 

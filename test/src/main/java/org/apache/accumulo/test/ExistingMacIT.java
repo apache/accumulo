@@ -29,9 +29,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -87,7 +87,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
   @Test
   public void testExistingInstance() throws Exception {
 
-    Connector conn = getCluster().getConnector("root", new PasswordToken(ROOT_PASSWORD));
+    AccumuloClient conn = getCluster().getAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
 
     conn.tableOperations().create("table1");
 
@@ -141,7 +141,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     accumulo2.start();
 
-    conn = accumulo2.getConnector("root", new PasswordToken(ROOT_PASSWORD));
+    conn = accumulo2.getAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
 
     try (Scanner scanner = conn.createScanner("table1", Authorizations.EMPTY)) {
       int sum = 0;
@@ -157,7 +157,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
   @Test
   public void testExistingRunningInstance() throws Exception {
     final String table = getUniqueNames(1)[0];
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     // Ensure that a master and tserver are up so the existing instance check won't fail.
     conn.tableOperations().create(table);
     BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());

@@ -24,7 +24,7 @@ import java.security.SecureRandom;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -117,12 +117,13 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
       // permissions to)
       UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
           systemUser.getKeytab().getAbsolutePath());
-      Connector conn = cluster.getConnector(systemUser.getPrincipal(), new KerberosToken());
+      AccumuloClient conn = cluster.getAccumuloClient(systemUser.getPrincipal(),
+          new KerberosToken());
 
       // Then, log back in as the "root" user and do the grant
       UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
           rootUser.getKeytab().getAbsolutePath());
-      conn = cluster.getConnector(principal, token);
+      conn = cluster.getAccumuloClient(principal, token);
 
       // Create the trace table
       conn.tableOperations().create(traceTable);
@@ -187,9 +188,9 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
     return cluster.getConfig().getDir();
   }
 
-  public static Connector getConnector() {
+  public static AccumuloClient getClient() {
     try {
-      return getCluster().getConnector(principal, getToken());
+      return getCluster().getAccumuloClient(principal, getToken());
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

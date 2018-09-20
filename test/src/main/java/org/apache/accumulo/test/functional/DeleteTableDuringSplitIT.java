@@ -52,7 +52,7 @@ public class DeleteTableDuringSplitIT extends AccumuloClusterHarness {
     String[] tableNames = getUniqueNames(batches * batchSize);
     // make a bunch of tables
     for (String tableName : tableNames) {
-      getConnector().tableOperations().create(tableName);
+      getAccumuloClient().tableOperations().create(tableName);
     }
     final SortedSet<Text> splits = new TreeSet<>();
     for (byte i = 0; i < 100; i++) {
@@ -68,7 +68,7 @@ public class DeleteTableDuringSplitIT extends AccumuloClusterHarness {
         @Override
         public void run() {
           try {
-            getConnector().tableOperations().addSplits(finalName, splits);
+            getAccumuloClient().tableOperations().addSplits(finalName, splits);
           } catch (TableNotFoundException ex) {
             // expected, ignore
           } catch (Exception ex) {
@@ -81,7 +81,7 @@ public class DeleteTableDuringSplitIT extends AccumuloClusterHarness {
         public void run() {
           try {
             UtilWaitThread.sleep(500);
-            getConnector().tableOperations().delete(finalName);
+            getAccumuloClient().tableOperations().delete(finalName);
           } catch (Exception ex) {
             throw new RuntimeException(ex);
           }
@@ -106,7 +106,7 @@ public class DeleteTableDuringSplitIT extends AccumuloClusterHarness {
     assertTrue("Had more tasks to run", queued.isEmpty());
     assertFalse("Had more tasks that needed to be submitted", itr.hasNext());
     for (String tableName : tableNames) {
-      assertFalse(getConnector().tableOperations().exists(tableName));
+      assertFalse(getAccumuloClient().tableOperations().exists(tableName));
     }
   }
 

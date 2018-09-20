@@ -28,11 +28,11 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table;
@@ -123,21 +123,22 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   }
 
-  public static void addSplits(Connector connector, String tableName)
+  public static void addSplits(AccumuloClient accumuloClient, String tableName)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // Add 10 splits to the table
     SortedSet<Text> partitions = new TreeSet<>();
     for (String s : rows)
       partitions.add(new Text(s));
-    connector.tableOperations().addSplits(tableName, partitions);
+    accumuloClient.tableOperations().addSplits(tableName, partitions);
   }
 
-  public static void writeAndReadData(Connector connector, String tableName) throws Exception {
-    writeDataToTable(connector, tableName);
+  public static void writeAndReadData(AccumuloClient accumuloClient, String tableName)
+      throws Exception {
+    writeDataToTable(accumuloClient, tableName);
 
     // Write the data to disk, read it back
-    connector.tableOperations().flush(tableName, null, null, true);
-    try (Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY)) {
+    accumuloClient.tableOperations().flush(tableName, null, null, true);
+    try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
       int i = 0;
       for (Entry<Key,Value> entry : scanner) {
         assertEquals("Data read is not data written", rows[i++],
@@ -146,9 +147,10 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     }
   }
 
-  public static void writeDataToTable(Connector connector, String tableName) throws Exception {
+  public static void writeDataToTable(AccumuloClient accumuloClient, String tableName)
+      throws Exception {
     // Write some data to the table
-    BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = accumuloClient.createBatchWriter(tableName, new BatchWriterConfig());
     for (String s : rows) {
       Mutation m = new Mutation(new Text(s));
       m.put(EMPTY, EMPTY, EMPTY_VALUE);
@@ -157,8 +159,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     bw.close();
   }
 
-  public static void verifyVolumes(Connector connector, String tableName, Range tableRange,
-      String vol) throws Exception {
+  public static void verifyVolumes(AccumuloClient accumuloClient, String tableName,
+      Range tableRange, String vol) throws Exception {
     // Verify the new files are written to the Volumes specified
     ArrayList<String> volumes = new ArrayList<>();
     for (String s : vol.split(","))
@@ -166,7 +168,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     TreeSet<String> volumesSeen = new TreeSet<>();
     int fileCount = 0;
-    try (Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
@@ -189,9 +191,9 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     assertEquals("Wrong number of files", 26, fileCount);
   }
 
-  public static void verifyNoVolumes(Connector connector, String tableName, Range tableRange)
-      throws Exception {
-    try (Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+  public static void verifyNoVolumes(AccumuloClient accumuloClient, String tableName,
+      Range tableRange) throws Exception {
+    try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
@@ -200,32 +202,32 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     }
   }
 
-  private void configureNamespace(Connector connector, String volumeChooserClassName,
+  private void configureNamespace(AccumuloClient accumuloClient, String volumeChooserClassName,
       String configuredVolumes, String namespace) throws Exception {
-    connector.namespaceOperations().create(namespace);
+    accumuloClient.namespaceOperations().create(namespace);
     // Set properties on the namespace
-    connector.namespaceOperations().setProperty(namespace,
+    accumuloClient.namespaceOperations().setProperty(namespace,
         PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, volumeChooserClassName);
-    connector.namespaceOperations().setProperty(namespace,
+    accumuloClient.namespaceOperations().setProperty(namespace,
         PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, configuredVolumes);
   }
 
-  private void verifyVolumesForWritesToNewTable(Connector connector, String myNamespace,
+  private void verifyVolumesForWritesToNewTable(AccumuloClient accumuloClient, String myNamespace,
       String expectedVolumes) throws Exception {
     String tableName = myNamespace + ".1";
 
-    connector.tableOperations().create(tableName);
-    Table.ID tableID = Table.ID.of(connector.tableOperations().tableIdMap().get(tableName));
+    accumuloClient.tableOperations().create(tableName);
+    Table.ID tableID = Table.ID.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
 
     // Add 10 splits to the table
-    addSplits(connector, tableName);
+    addSplits(accumuloClient, tableName);
     // Write some data to the table
-    writeAndReadData(connector, tableName);
+    writeAndReadData(accumuloClient, tableName);
     // Verify the new files are written to the Volumes specified
-    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), expectedVolumes);
+    verifyVolumes(accumuloClient, tableName, TabletsSection.getRange(tableID), expectedVolumes);
   }
 
-  public static void verifyWaLogVolumes(Connector connector, Range tableRange, String vol)
+  public static void verifyWaLogVolumes(AccumuloClient accumuloClient, Range tableRange, String vol)
       throws TableNotFoundException {
     // Verify the new files are written to the Volumes specified
     ArrayList<String> volumes = new ArrayList<>();
@@ -233,7 +235,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       volumes.add(s);
 
     TreeSet<String> volumesSeen = new TreeSet<>();
-    try (Scanner scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
@@ -257,28 +259,28 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     log.info("Starting twoTablesPreferredVolumeChooser");
 
     // Create namespace
-    Connector connector = getConnector();
-    connector.namespaceOperations().create(namespace1);
+    AccumuloClient accumuloClient = getClient();
+    accumuloClient.namespaceOperations().create(namespace1);
 
     // Set properties on the namespace
     // namespace 1 -> v2
-    connector.namespaceOperations().setProperty(namespace1,
+    accumuloClient.namespaceOperations().setProperty(namespace1,
         PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
-    connector.namespaceOperations().setProperty(namespace1,
+    accumuloClient.namespaceOperations().setProperty(namespace1,
         PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, v2.toString());
 
     // Create table1 on namespace1
-    verifyVolumesForWritesToNewTable(connector, namespace1, v2.toString());
+    verifyVolumesForWritesToNewTable(accumuloClient, namespace1, v2.toString());
 
-    connector.namespaceOperations().create(namespace2);
+    accumuloClient.namespaceOperations().create(namespace2);
     // Set properties on the namespace
-    connector.namespaceOperations().setProperty(namespace2,
+    accumuloClient.namespaceOperations().setProperty(namespace2,
         PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
-    connector.namespaceOperations().setProperty(namespace2,
+    accumuloClient.namespaceOperations().setProperty(namespace2,
         PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, v1.toString());
 
     // Create table2 on namespace2
-    verifyVolumesForWritesToNewTable(connector, namespace2, v1.toString());
+    verifyVolumesForWritesToNewTable(accumuloClient, namespace2, v1.toString());
   }
 
   // Test that uses two tables with 10 split points each. They each use the RandomVolumeChooser to
@@ -288,43 +290,44 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     log.info("Starting twoTablesRandomVolumeChooser()");
 
     // Create namespace
-    Connector connector = getConnector();
-    connector.namespaceOperations().create(namespace1);
+    AccumuloClient accumuloClient = getClient();
+    accumuloClient.namespaceOperations().create(namespace1);
 
     // Set properties on the namespace
-    connector.namespaceOperations().setProperty(namespace1,
+    accumuloClient.namespaceOperations().setProperty(namespace1,
         PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
     // Create table1 on namespace1
     String tableName = namespace1 + ".1";
-    connector.tableOperations().create(tableName);
-    Table.ID tableID = Table.ID.of(connector.tableOperations().tableIdMap().get(tableName));
+    accumuloClient.tableOperations().create(tableName);
+    Table.ID tableID = Table.ID.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
 
     // Add 10 splits to the table
-    addSplits(connector, tableName);
+    addSplits(accumuloClient, tableName);
     // Write some data to the table
-    writeAndReadData(connector, tableName);
+    writeAndReadData(accumuloClient, tableName);
     // Verify the new files are written to the Volumes specified
 
-    verifyVolumes(connector, tableName, TabletsSection.getRange(tableID), v1 + "," + v2 + "," + v4);
+    verifyVolumes(accumuloClient, tableName, TabletsSection.getRange(tableID),
+        v1 + "," + v2 + "," + v4);
 
-    connector.namespaceOperations().create(namespace2);
+    accumuloClient.namespaceOperations().create(namespace2);
 
     // Set properties on the namespace
-    connector.namespaceOperations().setProperty(namespace2,
+    accumuloClient.namespaceOperations().setProperty(namespace2,
         PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
     // Create table2 on namespace2
     String tableName2 = namespace2 + ".1";
-    connector.tableOperations().create(tableName2);
-    Table.ID tableID2 = Table.ID.of(connector.tableOperations().tableIdMap().get(tableName2));
+    accumuloClient.tableOperations().create(tableName2);
+    Table.ID tableID2 = Table.ID.of(accumuloClient.tableOperations().tableIdMap().get(tableName2));
 
     // / Add 10 splits to the table
-    addSplits(connector, tableName2);
+    addSplits(accumuloClient, tableName2);
     // Write some data to the table
-    writeAndReadData(connector, tableName2);
+    writeAndReadData(accumuloClient, tableName2);
     // Verify the new files are written to the Volumes specified
-    verifyVolumes(connector, tableName2, TabletsSection.getRange(tableID2),
+    verifyVolumes(accumuloClient, tableName2, TabletsSection.getRange(tableID2),
         v1 + "," + v2 + "," + v4);
   }
 
@@ -336,49 +339,49 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     log.info("Starting twoTablesDiffChoosers");
 
     // Create namespace
-    Connector connector = getConnector();
-    connector.namespaceOperations().create(namespace1);
+    AccumuloClient accumuloClient = getClient();
+    accumuloClient.namespaceOperations().create(namespace1);
 
     // Set properties on the namespace
-    connector.namespaceOperations().setProperty(namespace1,
+    accumuloClient.namespaceOperations().setProperty(namespace1,
         PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
     // Create table1 on namespace1
-    verifyVolumesForWritesToNewTable(connector, namespace1, v1 + "," + v2 + "," + v4);
-    connector.namespaceOperations().create(namespace2);
+    verifyVolumesForWritesToNewTable(accumuloClient, namespace1, v1 + "," + v2 + "," + v4);
+    accumuloClient.namespaceOperations().create(namespace2);
 
-    connector.namespaceOperations().setProperty(namespace2,
+    accumuloClient.namespaceOperations().setProperty(namespace2,
         PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
-    connector.namespaceOperations().setProperty(namespace2,
+    accumuloClient.namespaceOperations().setProperty(namespace2,
         PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, v1.toString());
 
     // Create table2 on namespace2
-    verifyVolumesForWritesToNewTable(connector, namespace2, v1.toString());
+    verifyVolumesForWritesToNewTable(accumuloClient, namespace2, v1.toString());
   }
 
   @Test
   public void includeSpecialVolumeForTable() throws Exception {
     log.info("Starting includeSpecialVolumeForTable");
-    Connector connector = getConnector();
+    AccumuloClient accumuloClient = getClient();
 
     // the following table will be configured to go to the excluded volume
     String configuredVolumes = v4.toString();
-    configureNamespace(connector, PreferredVolumeChooser.class.getName(), configuredVolumes,
+    configureNamespace(accumuloClient, PreferredVolumeChooser.class.getName(), configuredVolumes,
         namespace2);
-    verifyVolumesForWritesToNewTable(connector, namespace2, configuredVolumes);
+    verifyVolumesForWritesToNewTable(accumuloClient, namespace2, configuredVolumes);
   }
 
   @Test
   public void waLogsSentToConfiguredVolumes() throws Exception {
     log.info("Starting waLogsSentToConfiguredVolumes");
 
-    Connector connector = getConnector();
+    AccumuloClient accumuloClient = getClient();
     String tableName = "anotherTable";
-    connector.tableOperations().create(tableName);
+    accumuloClient.tableOperations().create(tableName);
 
-    VolumeChooserIT.addSplits(connector, tableName);
-    VolumeChooserIT.writeDataToTable(connector, tableName);
+    VolumeChooserIT.addSplits(accumuloClient, tableName);
+    VolumeChooserIT.writeDataToTable(accumuloClient, tableName);
     // should only go to v2 as per configuration in configure()
-    VolumeChooserIT.verifyWaLogVolumes(connector, new Range(), v2.toString());
+    VolumeChooserIT.verifyWaLogVolumes(accumuloClient, new Range(), v2.toString());
   }
 }

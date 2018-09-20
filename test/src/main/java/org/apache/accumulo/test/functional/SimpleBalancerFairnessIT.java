@@ -26,7 +26,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.impl.MasterClient;
@@ -63,7 +63,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
 
   @Test
   public void simpleBalancerFairness() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getClient();
     c.tableOperations().create("test_ingest");
     c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     c.tableOperations().create("unused");

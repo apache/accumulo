@@ -25,9 +25,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
@@ -55,17 +55,17 @@ import com.google.common.collect.Iterables;
 public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
   private MockRemoveCompleteReplicationRecords rcrr;
-  private Connector conn;
+  private AccumuloClient conn;
 
   private static class MockRemoveCompleteReplicationRecords
       extends RemoveCompleteReplicationRecords {
 
-    public MockRemoveCompleteReplicationRecords(Connector conn) {
+    public MockRemoveCompleteReplicationRecords(AccumuloClient conn) {
       super(conn);
     }
 
     @Override
-    public long removeCompleteRecords(Connector conn, BatchScanner bs, BatchWriter bw) {
+    public long removeCompleteRecords(AccumuloClient conn, BatchScanner bs, BatchWriter bw) {
       return super.removeCompleteRecords(conn, bs, bw);
     }
 
@@ -73,7 +73,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
   @Before
   public void initialize() throws Exception {
-    conn = getConnector();
+    conn = getClient();
     rcrr = new MockRemoveCompleteReplicationRecords(conn);
     conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
         TablePermission.READ);

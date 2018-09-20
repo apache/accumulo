@@ -37,11 +37,11 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.NamespaceExistsException;
@@ -92,7 +92,7 @@ import org.junit.experimental.categories.Category;
 @Category(MiniClusterOnlyTests.class)
 public class NamespacesIT extends AccumuloClusterHarness {
 
-  private Connector c;
+  private AccumuloClient c;
   private String namespace;
 
   @Override
@@ -105,7 +105,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
     Assume.assumeTrue(ClusterType.MINI == getClusterType());
 
     // prepare a unique namespace and get a new root connector for each test
-    c = getConnector();
+    c = getAccumuloClient();
     namespace = "ns_" + getUniqueNames(1)[0];
   }
 
@@ -677,7 +677,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
     c.securityOperations().createLocalUser(u1, pass);
 
     loginAs(user1);
-    Connector user1Con = c.changeUser(u1, user1.getToken());
+    AccumuloClient user1Con = c.changeUser(u1, user1.getToken());
 
     try {
       user1Con.tableOperations().create(t2);

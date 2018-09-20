@@ -24,9 +24,9 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -74,7 +74,7 @@ public class TraceTableStats {
 
   public void count(Opts opts)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    Connector conn = opts.getConnector();
+    AccumuloClient conn = opts.getClient();
     Scanner scanner = conn.createScanner(opts.getTableName(), Authorizations.EMPTY);
     scanner.setRange(new Range(null, true, "idx:", false));
     Map<String,SpanTypeCount> counts = new TreeMap<>();

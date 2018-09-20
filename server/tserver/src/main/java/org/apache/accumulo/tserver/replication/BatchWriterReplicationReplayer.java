@@ -83,7 +83,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
           BatchWriterConfig bwConfig = new BatchWriterConfig();
           bwConfig.setMaxMemory(memoryInBytes);
           try {
-            bw = context.getConnector().createBatchWriter(tableName, bwConfig);
+            bw = context.getClient().createBatchWriter(tableName, bwConfig);
           } catch (TableNotFoundException e) {
             throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST,
                 "Table " + tableName + " does not exist");

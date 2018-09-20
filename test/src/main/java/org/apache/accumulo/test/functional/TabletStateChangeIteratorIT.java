@@ -28,12 +28,12 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -105,7 +105,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
         findTabletsNeedingAttention(cloned, state));
 
     // test the cases where the assignment is to a dead tserver
-    getConnector().tableOperations().delete(cloned);
+    getAccumuloClient().tableOperations().delete(cloned);
     cloneMetadataTable(cloned);
     reassignLocation(cloned, t3);
     assertEquals("Should have one tablet that needs to be unassigned", 1,
@@ -116,7 +116,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       @Override
       public Collection<MergeInfo> merges() {
         Table.ID tableIdToModify = Table.ID
-            .of(getConnector().tableOperations().tableIdMap().get(t3));
+            .of(getAccumuloClient().tableOperations().tableIdMap().get(t3));
         return Collections.singletonList(
             new MergeInfo(new KeyExtent(tableIdToModify, null, null), MergeInfo.Operation.MERGE));
       }
@@ -138,11 +138,11 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   private void addDuplicateLocation(String table, String tableNameToModify)
       throws TableNotFoundException, MutationsRejectedException {
     Table.ID tableIdToModify = Table.ID
-        .of(getConnector().tableOperations().tableIdMap().get(tableNameToModify));
+        .of(getAccumuloClient().tableOperations().tableIdMap().get(tableNameToModify));
     Mutation m = new Mutation(new KeyExtent(tableIdToModify, null, null).getMetadataEntry());
     m.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME, new Text("1234567"),
         new Value("fake:9005".getBytes(UTF_8)));
-    BatchWriter bw = getConnector().createBatchWriter(table, null);
+    BatchWriter bw = getAccumuloClient().createBatchWriter(table, null);
     bw.addMutation(m);
     bw.close();
   }
@@ -150,8 +150,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   private void reassignLocation(String table, String tableNameToModify)
       throws TableNotFoundException, MutationsRejectedException {
     Table.ID tableIdToModify = Table.ID
-        .of(getConnector().tableOperations().tableIdMap().get(tableNameToModify));
-    try (Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY)) {
+        .of(getAccumuloClient().tableOperations().tableIdMap().get(tableNameToModify));
+    try (Scanner scanner = getAccumuloClient().createScanner(table, Authorizations.EMPTY)) {
       scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetadataRange());
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
       Entry<Key,Value> entry = scanner.iterator().next();
@@ -160,7 +160,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
           entry.getKey().getTimestamp());
       m.put(entry.getKey().getColumnFamily(), new Text("1234567"),
           entry.getKey().getTimestamp() + 1, new Value("fake:9005".getBytes(UTF_8)));
-      BatchWriter bw = getConnector().createBatchWriter(table, null);
+      BatchWriter bw = getAccumuloClient().createBatchWriter(table, null);
       bw.addMutation(m);
       bw.close();
     }
@@ -169,8 +169,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   private void removeLocation(String table, String tableNameToModify)
       throws TableNotFoundException, MutationsRejectedException {
     Table.ID tableIdToModify = Table.ID
-        .of(getConnector().tableOperations().tableIdMap().get(tableNameToModify));
-    BatchDeleter deleter = getConnector().createBatchDeleter(table, Authorizations.EMPTY, 1,
+        .of(getAccumuloClient().tableOperations().tableIdMap().get(tableNameToModify));
+    BatchDeleter deleter = getAccumuloClient().createBatchDeleter(table, Authorizations.EMPTY, 1,
         new BatchWriterConfig());
     deleter.setRanges(
         Collections.singleton(new KeyExtent(tableIdToModify, null, null).toMetadataRange()));
@@ -181,7 +181,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   private int findTabletsNeedingAttention(String table, State state) throws TableNotFoundException {
     int results = 0;
-    try (Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY)) {
+    try (Scanner scanner = getAccumuloClient().createScanner(table, Authorizations.EMPTY)) {
       MetaDataTableScanner.configureScanner(scanner, state);
       scanner.updateScanIteratorOption("tabletChange", "debug", "1");
       for (Entry<Key,Value> e : scanner) {
@@ -194,7 +194,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   private void createTable(String t, boolean online) throws AccumuloSecurityException,
       AccumuloException, TableNotFoundException, TableExistsException {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     conn.tableOperations().create(t);
     conn.tableOperations().online(t, true);
     SortedSet<Text> partitionKeys = new TreeSet<>();
@@ -212,13 +212,13 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     } catch (TableNotFoundException ex) {
       // ignored
     }
-    getConnector().tableOperations().clone(MetadataTable.NAME, cloned, true, null, null);
+    getAccumuloClient().tableOperations().clone(MetadataTable.NAME, cloned, true, null, null);
   }
 
   private void dropTables(String... tables)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     for (String t : tables) {
-      getConnector().tableOperations().delete(t);
+      getAccumuloClient().tableOperations().delete(t);
     }
   }
 
@@ -227,12 +227,12 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     @Override
     public Set<TServerInstance> onlineTabletServers() {
       HashSet<TServerInstance> tservers = new HashSet<>();
-      for (String tserver : getConnector().instanceOperations().getTabletServers()) {
+      for (String tserver : getAccumuloClient().instanceOperations().getTabletServers()) {
         try {
-          String zPath = ZooUtil.getRoot(getConnector().getInstanceID()) + Constants.ZTSERVERS + "/"
-              + tserver;
+          String zPath = ZooUtil.getRoot(getAccumuloClient().getInstanceID()) + Constants.ZTSERVERS
+              + "/" + tserver;
           long sessionId = ZooLock.getSessionId(new ZooCache(getCluster().getZooKeepers(),
-              getConnector().info().getZooKeepersSessionTimeOut()), zPath);
+              getAccumuloClient().info().getZooKeepersSessionTimeOut()), zPath);
           tservers.add(new TServerInstance(tserver, sessionId));
         } catch (Exception e) {
           throw new RuntimeException(e);

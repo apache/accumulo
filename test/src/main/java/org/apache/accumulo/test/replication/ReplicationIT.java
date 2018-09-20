@@ -41,11 +41,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
@@ -146,7 +146,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   private Multimap<String,Table.ID> getLogs(ServerContext context) throws Exception {
     // Map of server to tableId
-    Connector conn = context.getConnector();
+    AccumuloClient conn = context.getClient();
     Multimap<TServerInstance,String> serverToTableID = HashMultimap.create();
     try (Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
@@ -174,7 +174,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   private Multimap<String,Table.ID> getAllLogs(ServerContext context) throws Exception {
     Multimap<String,Table.ID> logs = getLogs(context);
-    try (Scanner scanner = context.getConnector().createScanner(ReplicationTable.NAME,
+    try (Scanner scanner = context.getClient().createScanner(ReplicationTable.NAME,
         Authorizations.EMPTY)) {
       StatusSection.limit(scanner);
       Text buff = new Text();
@@ -196,7 +196,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     return logs;
   }
 
-  private void waitForGCLock(Connector conn) throws InterruptedException {
+  private void waitForGCLock(AccumuloClient conn) throws InterruptedException {
     // Check if the GC process has the lock before wasting our retry attempts
     ZooCacheFactory zcf = new ZooCacheFactory();
     ZooCache zcache = zcf.getZooCache(conn.info().getZooKeepers(),
@@ -213,15 +213,15 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void replicationTableCreated() throws AccumuloException, AccumuloSecurityException {
-    assertTrue(getConnector().tableOperations().exists(ReplicationTable.NAME));
+    assertTrue(getClient().tableOperations().exists(ReplicationTable.NAME));
     assertEquals(ReplicationTable.ID.canonicalID(),
-        getConnector().tableOperations().tableIdMap().get(ReplicationTable.NAME));
+        getClient().tableOperations().tableIdMap().get(ReplicationTable.NAME));
   }
 
   @Test
   public void verifyReplicationTableConfig()
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
-    TableOperations tops = getConnector().tableOperations();
+    TableOperations tops = getClient().tableOperations();
     Map<String,EnumSet<IteratorScope>> iterators = tops.listIterators(ReplicationTable.NAME);
 
     // verify combiners are only iterators (no versioning)
@@ -288,7 +288,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void correctRecordsCompleteFile() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String table = "table1";
     conn.tableOperations().create(table);
     // If we have more than one tserver, this is subject to a race condition.
@@ -363,7 +363,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void noRecordsWithoutReplication() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     List<String> tables = new ArrayList<>();
 
     // replication shouldn't be online when we begin
@@ -402,7 +402,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void twoEntriesForTwoTables() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String table1 = "table1", table2 = "table2";
 
     // replication shouldn't exist when we begin
@@ -513,7 +513,8 @@ public class ReplicationIT extends ConfigurableMacBase {
     }
   }
 
-  private void writeSomeData(Connector conn, String table, int rows, int cols) throws Exception {
+  private void writeSomeData(AccumuloClient conn, String table, int rows, int cols)
+      throws Exception {
     BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
     for (int row = 0; row < rows; row++) {
       Mutation m = new Mutation(Integer.toString(row));
@@ -529,7 +530,7 @@ public class ReplicationIT extends ConfigurableMacBase {
   @Test
   public void replicationEntriesPrecludeWalDeletion() throws Exception {
     final ServerContext context = getServerContext();
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getClient();
     String table1 = "table1", table2 = "table2", table3 = "table3";
     final Multimap<String,Table.ID> logs = HashMultimap.create();
     final AtomicBoolean keepRunning = new AtomicBoolean(true);
@@ -628,7 +629,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     }
   }
 
-  private Set<String> getReferencesToFilesToBeReplicated(final Connector conn)
+  private Set<String> getReferencesToFilesToBeReplicated(final AccumuloClient conn)
       throws ReplicationTableOfflineException {
     try (Scanner s = ReplicationTable.getScanner(conn)) {
       StatusSection.limit(s);
@@ -642,7 +643,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void combinerWorksOnMetadata() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
 
     conn.securityOperations().grantTablePermission("root", MetadataTable.NAME,
         TablePermission.WRITE);
@@ -686,7 +687,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void noDeadlock() throws Exception {
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getClient();
 
     ReplicationTable.setOnline(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME,
@@ -730,7 +731,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void filesClosedAfterUnused() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
 
     String table = "table";
     conn.tableOperations().create(table);
@@ -845,7 +846,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     // against expected Status messages.
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
 
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String table1 = "table1";
 
     // replication shouldn't be online when we begin
@@ -1016,7 +1017,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void correctClusterNameInWorkEntry() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String table1 = "table1";
 
     // replication shouldn't be online when we begin
@@ -1100,7 +1101,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
 
     final ServerContext context = getServerContext();
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getClient();
 
     ReplicationTable.setOnline(conn);
     conn.securityOperations().grantTablePermission("root", ReplicationTable.NAME,
@@ -1275,7 +1276,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     // Just stop it now, we'll restart it after we restart the tserver
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
 
-    final Connector conn = getConnector();
+    final AccumuloClient conn = getClient();
     log.info("Got connector to MAC");
     String table1 = "table1";
 

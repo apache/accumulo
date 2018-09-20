@@ -39,7 +39,7 @@ public abstract class OptUtil {
 
     if (cl.hasOption(ShellOptions.tableOption)) {
       tableName = cl.getOptionValue(ShellOptions.tableOption);
-      if (!shellState.getConnector().tableOperations().exists(tableName)) {
+      if (!shellState.getAccumuloClient().tableOperations().exists(tableName)) {
         throw new TableNotFoundException(tableName, tableName,
             "specified table that doesn't exist");
       }
@@ -56,7 +56,7 @@ public abstract class OptUtil {
     String namespace = null;
     if (cl.hasOption(ShellOptions.namespaceOption)) {
       namespace = cl.getOptionValue(ShellOptions.namespaceOption);
-      if (!shellState.getConnector().namespaceOperations().exists(namespace)) {
+      if (!shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
         throw new NamespaceNotFoundException(namespace, namespace,
             "specified namespace that doesn't exist");
       }

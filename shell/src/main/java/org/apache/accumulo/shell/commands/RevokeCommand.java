@@ -45,12 +45,12 @@ public class RevokeCommand extends TableOperation {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
     user = cl.hasOption(userOpt.getOpt()) ? cl.getOptionValue(userOpt.getOpt())
-        : shellState.getConnector().whoami();
+        : shellState.getAccumuloClient().whoami();
 
     permission = cl.getArgs()[0].split("\\.", 2);
     if (cl.hasOption(systemOpt.getOpt()) && permission[0].equalsIgnoreCase("System")) {
       try {
-        shellState.getConnector().securityOperations().revokeSystemPermission(user,
+        shellState.getAccumuloClient().securityOperations().revokeSystemPermission(user,
             SystemPermission.valueOf(permission[1]));
         Shell.log.debug("Revoked from " + user + " the " + permission[1] + " permission");
       } catch (IllegalArgumentException e) {
@@ -62,7 +62,7 @@ public class RevokeCommand extends TableOperation {
     } else if (permission[0].equalsIgnoreCase("Namespace")) {
       if (cl.hasOption(optNamespace.getOpt())) {
         try {
-          shellState.getConnector().securityOperations().revokeNamespacePermission(user,
+          shellState.getAccumuloClient().securityOperations().revokeNamespacePermission(user,
               cl.getOptionValue(optNamespace.getOpt()), NamespacePermission.valueOf(permission[1]));
         } catch (IllegalArgumentException e) {
           throw new BadArgumentException("No such namespace permission", fullCommand,
@@ -82,7 +82,7 @@ public class RevokeCommand extends TableOperation {
   @Override
   protected void doTableOp(final Shell shellState, final String tableName) throws Exception {
     try {
-      shellState.getConnector().securityOperations().revokeTablePermission(user, tableName,
+      shellState.getAccumuloClient().securityOperations().revokeTablePermission(user, tableName,
           TablePermission.valueOf(permission[1]));
       Shell.log.debug(
           "Revoked from " + user + " the " + permission[1] + " permission on table " + tableName);

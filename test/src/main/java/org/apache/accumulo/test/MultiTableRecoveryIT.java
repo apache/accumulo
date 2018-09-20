@@ -26,8 +26,8 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -57,7 +57,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
   @Test(timeout = 4 * 60 * 1000)
   public void testRecoveryOverMultipleTables() throws Exception {
     final int N = 3;
-    final Connector c = getConnector();
+    final AccumuloClient c = getClient();
     final String[] tables = getUniqueNames(N);
     final BatchWriter[] writers = new BatchWriter[N];
     final byte[][] values = new byte[N][];
@@ -124,7 +124,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
             getCluster().start();
             // read the metadata table to know everything is back up
             Iterators.size(
-                getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+                getClient().createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
             i++;
           }
           System.out.println("Restarted " + i + " times");

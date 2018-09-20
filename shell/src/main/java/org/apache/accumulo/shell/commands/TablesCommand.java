@@ -50,7 +50,7 @@ public class TablesCommand extends Command {
     final String namespace = cl.hasOption(OptUtil.namespaceOpt().getOpt())
         ? OptUtil.getNamespaceOpt(cl, shellState)
         : null;
-    Map<String,String> tables = shellState.getConnector().tableOperations().tableIdMap();
+    Map<String,String> tables = shellState.getAccumuloClient().tableOperations().tableIdMap();
 
     // filter only specified namespace
     tables = Maps.filterKeys(tables,

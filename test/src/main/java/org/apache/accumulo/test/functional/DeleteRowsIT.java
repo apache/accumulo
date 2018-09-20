@@ -27,8 +27,8 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -69,7 +69,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
 
   @Test(timeout = 5 * 60 * 1000)
   public void testDeleteAllRows() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     String[] tableNames = this.getUniqueNames(20);
     for (String tableName : tableNames) {
       c.tableOperations().create(tableName);
@@ -116,7 +116,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
   private void testSplit(String table, String start, String end, String result, int entries)
       throws Exception {
     // Put a bunch of rows on each tablet
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     c.tableOperations().create(table);
     BatchWriter bw = c.createBatchWriter(table, null);
     for (String row : ROWS) {

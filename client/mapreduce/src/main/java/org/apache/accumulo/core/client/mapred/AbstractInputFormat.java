@@ -31,12 +31,13 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -180,7 +181,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        Connector conn = Connector.builder().usingClientInfo(getClientInfo(job))
+        AccumuloClient conn = Accumulo.newClient().usingClientInfo(getClientInfo(job))
             .usingToken(principal, token).build();
         token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
@@ -380,7 +381,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @since 1.5.0
    */
   protected static void validateOptions(JobConf job) throws IOException {
-    Connector conn = InputConfigurator.getConnector(CLASS, job);
+    AccumuloClient conn = InputConfigurator.getClient(CLASS, job);
     InputConfigurator.validatePermissions(CLASS, job, conn);
   }
 
@@ -481,9 +482,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       log.debug("Initializing input split: " + baseSplit);
 
       ClientContext context = new ClientContext(getClientInfo(job));
-      Connector conn;
+      AccumuloClient conn;
       try {
-        conn = context.getConnector();
+        conn = context.getClient();
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new IllegalStateException(e);
       }

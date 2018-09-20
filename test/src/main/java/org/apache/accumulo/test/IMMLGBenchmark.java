@@ -30,11 +30,12 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -50,7 +51,7 @@ import com.google.common.collect.Iterators;
 public class IMMLGBenchmark {
   public static void main(String[] args) throws Exception {
 
-    Connector conn = Connector.builder().forInstance("test16", "localhost")
+    AccumuloClient conn = Accumulo.newClient().forInstance("test16", "localhost")
         .usingPassword("root", "secret").build();
 
     int numlg = Integer.parseInt(args[0]);
@@ -74,7 +75,7 @@ public class IMMLGBenchmark {
 
   }
 
-  private static void runTest(Connector conn, int numlg, ArrayList<byte[]> cfset,
+  private static void runTest(AccumuloClient conn, int numlg, ArrayList<byte[]> cfset,
       Map<String,Stat> stats) throws Exception {
     String table = "immlgb";
 
@@ -114,7 +115,7 @@ public class IMMLGBenchmark {
     stat.addStat(wt);
   }
 
-  private static long scan(Connector conn, ArrayList<byte[]> cfset, String table, boolean cq)
+  private static long scan(AccumuloClient conn, ArrayList<byte[]> cfset, String table, boolean cq)
       throws TableNotFoundException {
     try (Scanner scanner = conn.createScanner(table, Authorizations.EMPTY)) {
 
@@ -133,7 +134,7 @@ public class IMMLGBenchmark {
     }
   }
 
-  private static long write(Connector conn, ArrayList<byte[]> cfset, String table)
+  private static long write(AccumuloClient conn, ArrayList<byte[]> cfset, String table)
       throws TableNotFoundException, MutationsRejectedException {
     Random rand = new SecureRandom();
 
@@ -163,7 +164,7 @@ public class IMMLGBenchmark {
     return t2 - t1;
   }
 
-  private static void setupLocalityGroups(Connector conn, int numlg, ArrayList<byte[]> cfset,
+  private static void setupLocalityGroups(AccumuloClient conn, int numlg, ArrayList<byte[]> cfset,
       String table) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (numlg > 1) {
       int numCF = cfset.size() / numlg;

@@ -24,7 +24,7 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Table.ID;
@@ -53,7 +53,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
   @Test(timeout = 120000)
   public void testBalancing() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getClient();
     String tablename = getUniqueNames(1)[0];
     conn.tableOperations().create(tablename);
 
@@ -166,7 +166,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
         && counts.size() == tsevers;
   }
 
-  private Table<String,String,MutableInt> getCounts(Connector conn, String tablename)
+  private Table<String,String,MutableInt> getCounts(AccumuloClient conn, String tablename)
       throws TableNotFoundException {
     try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);

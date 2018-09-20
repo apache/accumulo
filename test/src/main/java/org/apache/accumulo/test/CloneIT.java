@@ -23,9 +23,9 @@ import static org.junit.Assert.fail;
 import java.util.HashSet;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Key;
@@ -46,7 +46,7 @@ public class CloneIT extends AccumuloClusterHarness {
 
   @Test
   public void testNoFiles() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
@@ -77,7 +77,7 @@ public class CloneIT extends AccumuloClusterHarness {
 
   @Test
   public void testFilesChange() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
@@ -132,7 +132,7 @@ public class CloneIT extends AccumuloClusterHarness {
   // test split where files of children are the same
   @Test
   public void testSplit1() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
@@ -175,7 +175,7 @@ public class CloneIT extends AccumuloClusterHarness {
   // test split where files of children differ... like majc and split occurred
   @Test
   public void testSplit2() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
@@ -251,7 +251,7 @@ public class CloneIT extends AccumuloClusterHarness {
   // test two tablets splitting into four
   @Test
   public void testSplit3() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
@@ -298,7 +298,7 @@ public class CloneIT extends AccumuloClusterHarness {
   // test cloned marker
   @Test
   public void testClonedMarker() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
@@ -363,7 +363,7 @@ public class CloneIT extends AccumuloClusterHarness {
   // test two tablets splitting into four
   @Test
   public void testMerge() throws Exception {
-    Connector conn = getConnector();
+    AccumuloClient conn = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);
 
