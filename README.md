@@ -46,30 +46,7 @@ This command produces `assemble/target/accumulo-<version>-bin.tar.gz`
 
 ## Accumulo API
 
-The public Accumulo API is composed of all public types in the following packages
-and their subpackages excluding those named *impl*, *thrift*, or *crypto*.
-
-   * org.apache.accumulo.core.client
-   * org.apache.accumulo.core.data
-   * org.apache.accumulo.core.security
-   * org.apache.accumulo.minicluster
-
-A type is a class, interface, or enum.  Anything with public or protected
-acccess in an API type is in the API.  This includes, but is not limited to:
-methods, members classes, interfaces, and enums.  Package-private types in
-the above packages are *not* considered public API.
-
-The following regex matches imports that are *not* Accumulo public API. This
-regex can be used with [RegexpSingleline][regex] to automatically find
-suspicious imports in a project using Accumulo.
-
-```
-import\s+org\.apache\.accumulo\.(.*\.(impl|thrift|crypto)\..*|(?!core|minicluster).*|core\.(?!client|data|security).*)
-```
-
-The Accumulo project maintains binary compatibility across this API within a
-major release, as defined in the Java Language Specification 3rd ed. Starting
-with Accumulo 1.6.2 and 1.7.0 all API changes will follow [semver 2.0][semver]
+The javadoc in [Accumulo.java] defines Accumulo's public API.
 
 ## Export Control
 
@@ -99,6 +76,7 @@ the bouncycastle library for some crypographic technology as well. See
 [the BouncyCastle FAQ][bouncy-faq] for
 more details on bouncycastle's cryptography features.
 
+[Accumulo.java]: core/src/main/java/org/apache/accumulo/core/client/Accumulo.java
 [accumulo]: https://accumulo.apache.org
 [logo]: contrib/accumulo-logo.png
 [install]: INSTALL.md
@@ -109,8 +87,6 @@ more details on bouncycastle's cryptography features.
 [docs]: https://accumulo.apache.org/latest/accumulo_user_manual
 [examples]: https://github.com/apache/accumulo-examples
 [javadocs]: https://accumulo.apache.org/latest/apidocs
-[semver]: http://semver.org/spec/v2.0.0
-[regex]: http://checkstyle.sourceforge.net/config_regexp.html
 [li]: https://img.shields.io/badge/license-ASL-blue.svg
 [ll]: https://www.apache.org/licenses/LICENSE-2.0
 [mi]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/badge.svg
