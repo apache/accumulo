@@ -20,7 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
-import org.apache.accumulo.core.Accumulo;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;

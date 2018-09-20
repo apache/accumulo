@@ -23,8 +23,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;

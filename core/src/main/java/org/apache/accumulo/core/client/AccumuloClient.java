@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
