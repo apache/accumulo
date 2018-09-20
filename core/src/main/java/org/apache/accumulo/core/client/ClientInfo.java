@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.client.impl.ClientInfoImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
