@@ -21,13 +21,12 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Properties;
-import java.util.Scanner;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -44,9 +43,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -73,7 +69,7 @@ public class ConfiguratorBase {
   }
 
   public enum ClientOpts {
-    CLIENT_PROPS, CLIENT_PROPS_FILE
+    CLIENT_PROPS
   }
 
   /**
@@ -157,13 +153,13 @@ public class ConfiguratorBase {
 
   public static void setClientPropertiesFile(Class<?> implementingClass, Configuration conf,
       String clientPropertiesFile) {
-    try {
-      DistributedCacheHelper.addCacheFile(new URI(clientPropertiesFile), conf);
-    } catch (URISyntaxException e) {
-      throw new IllegalStateException("Unable to add client properties file \""
-          + clientPropertiesFile + "\" to distributed cache.");
+    Properties properties = new Properties();
+    try (InputStream is = new FileInputStream(clientPropertiesFile)) {
+      properties.load(is);
+    } catch (IOException e) {
+      throw new IllegalArgumentException(e);
     }
-    conf.set(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS_FILE), clientPropertiesFile);
+    setClientProperties(implementingClass, conf, properties);
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
   }
 
@@ -179,34 +175,7 @@ public class ConfiguratorBase {
   }
 
   public static Properties getClientProperties(Class<?> implementingClass, Configuration conf) {
-    String propString;
-    String clientPropsFile = conf
-        .get(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS_FILE), "");
-    if (!clientPropsFile.isEmpty()) {
-      try {
-        URI[] uris = DistributedCacheHelper.getCacheFiles(conf);
-        Path path = null;
-        for (URI u : uris) {
-          if (u.toString().equals(clientPropsFile)) {
-            path = new Path(u);
-          }
-        }
-        FileSystem fs = FileSystem.get(conf);
-        FSDataInputStream inputStream = fs.open(path);
-        StringBuilder sb = new StringBuilder();
-        try (Scanner scanner = new Scanner(inputStream)) {
-          while (scanner.hasNextLine()) {
-            sb.append(scanner.nextLine() + "\n");
-          }
-        }
-        propString = sb.toString();
-      } catch (IOException e) {
-        throw new IllegalStateException(
-            "Failed to read client properties from distributed cache: " + clientPropsFile);
-      }
-    } else {
-      propString = conf.get(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS), "");
-    }
+    String propString = conf.get(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS), "");
     Properties props = new Properties();
     if (!propString.isEmpty()) {
       try {
