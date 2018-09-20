@@ -448,13 +448,7 @@ public class AESCryptoService implements CryptoService {
           throw new CryptoException("Unable to initialize cipher", e);
         }
 
-        CipherOutputStream cos = new CipherOutputStream(new DiscardCloseOutputStream(outputStream),
-            cipher);
-        // Prevent underlying stream from being closed with DiscardCloseOutputStream
-        // Without this, when the crypto stream is closed (in order to flush its last bytes)
-        // the underlying RFile stream will *also* be closed, and that's undesirable as the
-        // cipher
-        // stream is closed for every block written.
+        CipherOutputStream cos = new CipherOutputStream(outputStream, cipher);
         return new BlockedOutputStream(cos, cipher.getBlockSize(), 1024);
       }
 

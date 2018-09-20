@@ -16,13 +16,23 @@
  */
 package org.apache.accumulo.core.security.crypto.streams;
 
-import java.io.DataOutputStream;
+import java.io.FilterOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 
-public class NoFlushOutputStream extends DataOutputStream {
+public class NoFlushOutputStream extends FilterOutputStream {
 
   public NoFlushOutputStream(OutputStream out) {
     super(out);
+  }
+
+  /**
+   * It is very important to override this method!! The underlying method from FilterOutputStream
+   * calls write a single byte at a time and will kill performance.
+   */
+  @Override
+  public void write(byte[] b, int off, int len) throws IOException {
+    out.write(b, off, len);
   }
 
   @Override
