@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
@@ -32,8 +31,8 @@ import org.apache.accumulo.core.security.Authorizations;
  * writer for the instance as well as various objects that permit administrative operations.
  * Enforces security on the client side with by requiring user credentials.
  *
- * Supports fluent API. Various options can be provided to {@link Accumulo#newClient()} and when
- * finished a call to build() will return the AccumuloClient object. For example:
+ * Supports fluent API for creation. Various options can be provided to {@link Accumulo#newClient()}
+ * and when finished a call to build() will return the AccumuloClient object. For example:
  *
  * {@code Accumulo.newClient().forInstance(instanceName, zookeepers)
  *         .usingPassword(user, password).withZkTimeout(1234).build();}
@@ -188,6 +187,8 @@ public interface AccumuloClient {
    * @return Scanner object for configuring and querying data with
    * @throws TableNotFoundException
    *           when the specified table doesn't exist
+   *
+   * @see IsolatedScanner
    */
   public Scanner createScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException;

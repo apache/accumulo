@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.core.client.mapreduce.lib.impl;
 
-import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
