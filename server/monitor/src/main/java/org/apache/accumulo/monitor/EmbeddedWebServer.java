@@ -30,8 +30,11 @@ import org.eclipse.jetty.server.session.SessionHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EmbeddedWebServer {
+  private static final Logger LOG = LoggerFactory.getLogger(EmbeddedWebServer.class);
   private static String EMPTY = "";
 
   Server server = null;
@@ -50,9 +53,17 @@ public class EmbeddedWebServer {
         || EMPTY.equals(conf.get(Property.MONITOR_SSL_KEYSTOREPASS))
         || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTORE))
         || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS))) {
+      LOG.debug("Not configuring Jetty to use TLS");
       connector = new ServerConnector(server, new HttpConnectionFactory());
       usingSsl = false;
     } else {
+      LOG.debug("Configuring Jetty to use TLS");
+      // The password for the private key inside of the keystore Convention is that when one is not
+      // provided, it's set to be the same as they keystore's password. Use that same logic here.
+      String keyPass = conf.get(Property.MONITOR_SSL_KEYPASS);
+      if (Property.MONITOR_SSL_KEYPASS.getDefaultValue().equals(keyPass)) {
+        keyPass = conf.get(Property.MONITOR_SSL_KEYSTOREPASS);
+      }
       SslContextFactory sslContextFactory = new SslContextFactory();
       sslContextFactory.setKeyStorePath(conf.get(Property.MONITOR_SSL_KEYSTORE));
       sslContextFactory.setKeyStorePassword(conf.get(Property.MONITOR_SSL_KEYSTOREPASS));
@@ -60,6 +71,7 @@ public class EmbeddedWebServer {
       sslContextFactory.setTrustStorePath(conf.get(Property.MONITOR_SSL_TRUSTSTORE));
       sslContextFactory.setTrustStorePassword(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS));
       sslContextFactory.setTrustStoreType(conf.get(Property.MONITOR_SSL_TRUSTSTORETYPE));
+      sslContextFactory.setKeyManagerPassword(keyPass);
 
       final String includedCiphers = conf.get(Property.MONITOR_SSL_INCLUDE_CIPHERS);
       if (!Property.MONITOR_SSL_INCLUDE_CIPHERS.getDefaultValue().equals(includedCiphers)) {
