@@ -20,6 +20,7 @@ import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.rfile.RFile;
 
+//CHECKSTYLE:OFF
 /**
  * Entry point for majority of Accumulo's public API. Other Accumulo API entry points are linked
  * later.
@@ -78,6 +79,7 @@ import org.apache.accumulo.core.client.rfile.RFile;
  * @see <a href="http://semver.org/spec/v2.0.0">Semver 2.0</a>
  * @since 2.0.0
  */
+// CHECKSTYLE:ON
 public final class Accumulo {
 
   private Accumulo() {}
