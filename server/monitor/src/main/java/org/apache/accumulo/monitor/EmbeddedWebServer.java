@@ -30,8 +30,11 @@ import org.eclipse.jetty.server.session.SessionHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EmbeddedWebServer {
+  private static final Logger LOG = LoggerFactory.getLogger(EmbeddedWebServer.class);
   private static String EMPTY = "";
 
   Server server = null;
@@ -50,10 +53,19 @@ public class EmbeddedWebServer {
         || EMPTY.equals(conf.get(Property.MONITOR_SSL_KEYSTOREPASS))
         || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTORE))
         || EMPTY.equals(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS))) {
+      LOG.debug("Not configuring Jetty to use TLS");
       connector = new ServerConnector(server, new HttpConnectionFactory());
       usingSsl = false;
     } else {
-      SslContextFactory sslContextFactory = new SslContextFactory();
+      LOG.debug("Configuring Jetty to use TLS");
+      final SslContextFactory sslContextFactory = new SslContextFactory();
+      // If the key password is the same as the keystore password, we don't
+      // have to explicitly set it. Thus, if the user doesn't provide a key
+      // password, don't set anything.
+      final String keyPass = conf.get(Property.MONITOR_SSL_KEYPASS);
+      if (!Property.MONITOR_SSL_KEYPASS.getDefaultValue().equals(keyPass)) {
+        sslContextFactory.setKeyManagerPassword(keyPass);
+      }
       sslContextFactory.setKeyStorePath(conf.get(Property.MONITOR_SSL_KEYSTORE));
       sslContextFactory.setKeyStorePassword(conf.get(Property.MONITOR_SSL_KEYSTOREPASS));
       sslContextFactory.setKeyStoreType(conf.get(Property.MONITOR_SSL_KEYSTORETYPE));
