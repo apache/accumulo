@@ -111,6 +111,7 @@ To execute everything except these tests, use `mvn verify -Dfailsafe.excludedGro
 The following properties can be used to configure a standalone cluster:
 
 - `accumulo.it.cluster.type`, Required: The type of cluster is being defined (valid options: MINI and STANDALONE)
+- `accumulo.it.cluster.clientconf`, Required: Path to accumulo-client.properties
 - `accumulo.it.cluster.standalone.admin.principal`, Required: Standalone cluster principal (user) with all System permissions
 - `accumulo.it.cluster.standalone.admin.password`, Required: Password for the principal (only valid w/o Kerberos)
 - `accumulo.it.cluster.standalone.admin.keytab`, Required: Keytab for the principal (only valid w/ Kerberos)
