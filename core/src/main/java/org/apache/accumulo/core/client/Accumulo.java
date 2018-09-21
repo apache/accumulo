@@ -23,7 +23,7 @@ import org.apache.accumulo.core.client.rfile.RFile;
 //CHECKSTYLE:OFF
 /**
  * Entry point for majority of Accumulo's public API. Other Accumulo API entry points are linked
- * later.
+ * below.
  *
  * <H2>API Definition</H2>
  *
