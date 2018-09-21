@@ -23,12 +23,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -46,13 +46,13 @@ import org.junit.Test;
 public class PluginIT {
 
   private static ClientInfo info;
-  private static Connector connector;
+  private static AccumuloClient connector;
 
   @BeforeClass
   public static void setUp() throws Exception {
     String instanceName = "plugin-it-instance";
     info = MiniAccumuloCluster.getClientInfo(new File("target/accumulo-maven-plugin/" + instanceName));
-    connector = Connector.builder().usingClientInfo(info).build();
+    connector = AccumuloClient.newClient().usingClientInfo(info).build();
   }
 
   @Test
