@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -52,14 +53,14 @@ public class PluginIT {
   public static void setUp() throws Exception {
     String instanceName = "plugin-it-instance";
     info = MiniAccumuloCluster.getClientInfo(new File("target/accumulo-maven-plugin/" + instanceName));
-    connector = AccumuloClient.newClient().usingClientInfo(info).build();
+    connector = Accumulo.newClient().usingClientInfo(info).build();
   }
 
   @Test
   public void testConnection() {
     assertTrue(info != null);
     assertTrue(connector != null);
-    assertTrue(connector instanceof Connector);
+    assertTrue(connector instanceof AccumuloClient);
   }
 
   @Test
