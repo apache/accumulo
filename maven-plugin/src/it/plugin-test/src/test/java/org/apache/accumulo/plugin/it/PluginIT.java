@@ -23,7 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Accumulo;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -47,40 +47,40 @@ import org.junit.Test;
 public class PluginIT {
 
   private static ClientInfo info;
-  private static AccumuloClient connector;
+  private static AccumuloClient client;
 
   @BeforeClass
   public static void setUp() throws Exception {
     String instanceName = "plugin-it-instance";
     info = MiniAccumuloCluster.getClientInfo(new File("target/accumulo-maven-plugin/" + instanceName));
-    connector = Accumulo.newClient().usingClientInfo(info).build();
+    client = Accumulo.newClient().usingClientInfo(info).build();
   }
 
   @Test
   public void testConnection() {
     assertTrue(info != null);
-    assertTrue(connector != null);
-    assertTrue(connector instanceof AccumuloClient);
+    assertTrue(client != null);
+    assertTrue(client instanceof AccumuloClient);
   }
 
   @Test
   public void testCreateTable() throws AccumuloException, AccumuloSecurityException, TableExistsException, IOException {
     String tableName = "testCreateTable";
-    connector.tableOperations().create(tableName);
-    assertTrue(connector.tableOperations().exists(tableName));
+    client.tableOperations().create(tableName);
+    assertTrue(client.tableOperations().exists(tableName));
     assertTrue(new File("target/accumulo-maven-plugin/" + info.getInstanceName() + "/testCreateTablePassed").createNewFile());
   }
 
   @Test
   public void writeToTable() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException {
     String tableName = "writeToTable";
-    connector.tableOperations().create(tableName);
-    BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
+    client.tableOperations().create(tableName);
+    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("ROW");
     m.put("CF", "CQ", "V");
     bw.addMutation(m);
     bw.close();
-    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
+    Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
       count++;
@@ -96,8 +96,8 @@ public class PluginIT {
   @Test
   public void checkIterator() throws IOException, AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
     String tableName = "checkIterator";
-    connector.tableOperations().create(tableName);
-    BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
+    client.tableOperations().create(tableName);
+    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("ROW1");
     m.put("allowed", "CQ1", "V1");
     m.put("denied", "CQ2", "V2");
@@ -111,7 +111,7 @@ public class PluginIT {
     bw.close();
 
     // check filter
-    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
+    Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
     IteratorSetting is = new IteratorSetting(5, CustomFilter.class);
     scanner.addScanIterator(is);
     int count = 0;

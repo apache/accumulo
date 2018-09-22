@@ -20,12 +20,11 @@ under the License.
 -->
 
 <settings>
+  <!-- This allows the invoked Maven to use the normal local repo as an additional "remote" repo -->
+  <!-- see also https://maven.apache.org/plugins/maven-invoker-plugin/examples/fast-use.html -->
   <profiles>
     <profile>
       <id>it-repo</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
       <repositories>
         <repository>
           <id>local.central</id>
@@ -52,4 +51,7 @@ under the License.
       </pluginRepositories>
     </profile>
   </profiles>
+  <activeProfiles>
+    <activeProfile>it-repo</activeProfile>
+  </activeProfiles>
 </settings>
