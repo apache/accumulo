@@ -58,20 +58,20 @@ public class EmbeddedWebServer {
       usingSsl = false;
     } else {
       LOG.debug("Configuring Jetty to use TLS");
-      // The password for the private key inside of the keystore Convention is that when one is not
-      // provided, it's set to be the same as they keystore's password. Use that same logic here.
-      String keyPass = conf.get(Property.MONITOR_SSL_KEYPASS);
-      if (Property.MONITOR_SSL_KEYPASS.getDefaultValue().equals(keyPass)) {
-        keyPass = conf.get(Property.MONITOR_SSL_KEYSTOREPASS);
+      final SslContextFactory sslContextFactory = new SslContextFactory();
+      // If the key password is the same as the keystore password, we don't
+      // have to explicitly set it. Thus, if the user doesn't provide a key
+      // password, don't set anything.
+      final String keyPass = conf.get(Property.MONITOR_SSL_KEYPASS);
+      if (!Property.MONITOR_SSL_KEYPASS.getDefaultValue().equals(keyPass)) {
+        sslContextFactory.setKeyManagerPassword(keyPass);
       }
-      SslContextFactory sslContextFactory = new SslContextFactory();
       sslContextFactory.setKeyStorePath(conf.get(Property.MONITOR_SSL_KEYSTORE));
       sslContextFactory.setKeyStorePassword(conf.get(Property.MONITOR_SSL_KEYSTOREPASS));
       sslContextFactory.setKeyStoreType(conf.get(Property.MONITOR_SSL_KEYSTORETYPE));
       sslContextFactory.setTrustStorePath(conf.get(Property.MONITOR_SSL_TRUSTSTORE));
       sslContextFactory.setTrustStorePassword(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS));
       sslContextFactory.setTrustStoreType(conf.get(Property.MONITOR_SSL_TRUSTSTORETYPE));
-      sslContextFactory.setKeyManagerPassword(keyPass);
 
       final String includedCiphers = conf.get(Property.MONITOR_SSL_INCLUDE_CIPHERS);
       if (!Property.MONITOR_SSL_INCLUDE_CIPHERS.getDefaultValue().equals(includedCiphers)) {
