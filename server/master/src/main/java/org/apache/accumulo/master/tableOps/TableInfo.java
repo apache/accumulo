@@ -22,26 +22,100 @@ import java.util.Map;
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.impl.Namespace;
 import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.client.impl.Table.ID;
 
-class TableInfo implements Serializable {
+public class TableInfo implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  String tableName;
-  Table.ID tableId;
-  Namespace.ID namespaceId;
-  char timeType;
-  String user;
+  private String tableName;
+  private Table.ID tableId;
+  private Namespace.ID namespaceId;
+
+  private char timeType;
+  private String user;
 
   // Record requested initial state at creation
-  InitialTableState initialTableState;
+  private InitialTableState initialTableState;
 
   // Track information related to initial split creation
-  int initialSplitSize;
-  String splitFile;
-  String splitDirsFile;
+  private int initialSplitSize;
+  private String splitFile;
+  private String splitDirsFile;
 
   public Map<String,String> props;
-
   public String defaultTabletDir = null;
+
+  public String getTableName() {
+    return tableName;
+  }
+
+  public void setTableName(String tableName) {
+    this.tableName = tableName;
+  }
+
+  public ID getTableId() {
+    return tableId;
+  }
+
+  public void setTableId(ID tableId) {
+    this.tableId = tableId;
+  }
+
+  public Namespace.ID getNamespaceId() {
+    return namespaceId;
+  }
+
+  public void setNamespaceId(Namespace.ID namespaceId) {
+    this.namespaceId = namespaceId;
+  }
+
+  public char getTimeType() {
+    return timeType;
+  }
+
+  public void setTimeType(char timeType) {
+    this.timeType = timeType;
+  }
+
+  public String getUser() {
+    return user;
+  }
+
+  public void setUser(String user) {
+    this.user = user;
+  }
+
+  public String getSplitFile() {
+    return splitFile;
+  }
+
+  public void setSplitFile(String splitFile) {
+    this.splitFile = splitFile;
+  }
+
+  public String getSplitDirsFile() {
+    return splitDirsFile;
+  }
+
+  public void setSplitDirsFile(String splitDirsFile) {
+    this.splitDirsFile = splitDirsFile;
+  }
+
+  public InitialTableState getInitialTableState() {
+    return initialTableState;
+  }
+
+  public void setInitialTableState(InitialTableState initialTableState) {
+    this.initialTableState = initialTableState;
+  }
+
+  public int getInitialSplitSize() {
+    return initialSplitSize;
+  }
+
+  public void setInitialSplitSize(int initialSplitSize) {
+    this.initialSplitSize = initialSplitSize;
+  }
+
 }
