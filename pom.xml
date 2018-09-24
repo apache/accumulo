@@ -1145,7 +1145,6 @@
                 <property name="eachLine" value="true" />
               </module>
               <module name="TreeWalker">
-                <module name="SuppressionCommentFilter" />
                 <module name="OneTopLevelClass" />
                 <module name="RegexpSinglelineJava">
                   <property name="format" value="\s+$" />
