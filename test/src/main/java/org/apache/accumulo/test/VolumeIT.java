@@ -367,7 +367,7 @@ public class VolumeIT extends ConfigurableMacBase {
     verifyVolumesUsed(tableNames[1], false, v2, v3);
   }
 
-  private void writeData(String tableName, AccumuloClient conn)
+  private void writeData(String tableName, AccumuloClient client)
       throws AccumuloException, AccumuloSecurityException, TableExistsException,
       TableNotFoundException, MutationsRejectedException {
     TreeSet<Text> splits = new TreeSet<>();
@@ -375,10 +375,10 @@ public class VolumeIT extends ConfigurableMacBase {
       splits.add(new Text(String.format("%06d", i * 100)));
     }
 
-    conn.tableOperations().create(tableName);
-    conn.tableOperations().addSplits(tableName, splits);
+    client.tableOperations().create(tableName);
+    client.tableOperations().addSplits(tableName, splits);
 
-    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       String row = String.format("%06d", i * 100 + 3);
       Mutation m = new Mutation(row);
@@ -392,7 +392,7 @@ public class VolumeIT extends ConfigurableMacBase {
   private void verifyVolumesUsed(String tableName, boolean shouldExist, Path... paths)
       throws Exception {
 
-    AccumuloClient conn = getClient();
+    AccumuloClient client = getClient();
 
     List<String> expected = new ArrayList<>();
     for (int i = 0; i < 100; i++) {
@@ -400,20 +400,20 @@ public class VolumeIT extends ConfigurableMacBase {
       expected.add(row + ":cf1:cq1:1");
     }
 
-    if (!conn.tableOperations().exists(tableName)) {
+    if (!client.tableOperations().exists(tableName)) {
       assertFalse(shouldExist);
 
-      writeData(tableName, conn);
+      writeData(tableName, client);
 
-      verifyData(expected, conn.createScanner(tableName, Authorizations.EMPTY));
+      verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
 
-      conn.tableOperations().flush(tableName, null, null, true);
+      client.tableOperations().flush(tableName, null, null, true);
     }
 
-    verifyData(expected, conn.createScanner(tableName, Authorizations.EMPTY));
+    verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
 
-    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
-    try (Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
+    try (Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(metaScanner);
       metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
@@ -496,8 +496,8 @@ public class VolumeIT extends ConfigurableMacBase {
     // start cluster and verify that volume was decommissioned
     cluster.start();
 
-    AccumuloClient conn = cluster.getAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
-    conn.tableOperations().compact(tableNames[0], null, null, true, true);
+    AccumuloClient client = cluster.getAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
+    client.tableOperations().compact(tableNames[0], null, null, true, true);
 
     verifyVolumesUsed(tableNames[0], true, v2);
 
@@ -507,11 +507,11 @@ public class VolumeIT extends ConfigurableMacBase {
     String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
     assertTrue(rootTabletDir.startsWith(v2.toString()));
 
-    conn.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<>(),
+    client.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<>(),
         new HashSet<>());
 
-    conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
-    conn.tableOperations().flush(RootTable.NAME, null, null, true);
+    client.tableOperations().flush(MetadataTable.NAME, null, null, true);
+    client.tableOperations().flush(RootTable.NAME, null, null, true);
 
     verifyVolumesUsed(tableNames[0], true, v2);
     verifyVolumesUsed(tableNames[1], true, v2);

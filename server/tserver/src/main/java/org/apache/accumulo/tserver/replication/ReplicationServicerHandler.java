@@ -110,7 +110,7 @@ public class ReplicationServicerHandler implements Iface {
     } catch (AccumuloException | AccumuloSecurityException e) {
       log.error("Could not get connection", e);
       throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_AUTHENTICATE,
-          "Cannot get connector as " + tabletServer.getContext().getCredentials().getPrincipal());
+          "Cannot get connection as " + tabletServer.getContext().getCredentials().getPrincipal());
     }
 
     log.debug("Replicated {} mutations to {}", entriesReplicated, tableName);

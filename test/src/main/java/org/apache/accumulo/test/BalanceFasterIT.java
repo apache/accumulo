@@ -65,18 +65,18 @@ public class BalanceFasterIT extends ConfigurableMacBase {
   public void test() throws Exception {
     // create a table, add a bunch of splits
     String tableName = getUniqueNames(1)[0];
-    AccumuloClient conn = getClient();
-    conn.tableOperations().create(tableName);
+    AccumuloClient client = getClient();
+    client.tableOperations().create(tableName);
     SortedSet<Text> splits = new TreeSet<>();
     for (int i = 0; i < 1000; i++) {
       splits.add(new Text("" + i));
     }
-    conn.tableOperations().addSplits(tableName, splits);
+    client.tableOperations().addSplits(tableName, splits);
     // give a short wait for balancing
     sleepUninterruptibly(10, TimeUnit.SECONDS);
     // find out where the tablets are
     Iterator<Integer> i;
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
       s.setRange(MetadataSchema.TabletsSection.getRange());
       Map<String,Integer> counts = new HashMap<>();

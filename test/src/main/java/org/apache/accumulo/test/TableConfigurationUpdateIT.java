@@ -52,11 +52,11 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient conn = getAccumuloClient();
+    AccumuloClient client = getAccumuloClient();
     ServerContext context = getCluster().getServerContext();
 
     String table = getUniqueNames(1)[0];
-    conn.tableOperations().create(table);
+    client.tableOperations().create(table);
 
     final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT,
         context, DefaultConfiguration.getInstance());

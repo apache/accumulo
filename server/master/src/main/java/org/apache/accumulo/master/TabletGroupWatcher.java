@@ -342,9 +342,9 @@ abstract class TabletGroupWatcher extends Daemon {
                 }
                 break;
               case HOSTED:
-                TServerConnection conn = this.master.tserverSet.getConnection(server);
-                if (conn != null) {
-                  conn.unloadTablet(this.master.masterLock, tls.extent, goal.howUnload(),
+                TServerConnection client = this.master.tserverSet.getConnection(server);
+                if (client != null) {
+                  client.unloadTablet(this.master.masterLock, tls.extent, goal.howUnload(),
                       master.getSteadyTime());
                   unloaded++;
                   totalUnloaded++;
@@ -598,7 +598,7 @@ abstract class TabletGroupWatcher extends Daemon {
       Master.log.debug("Found following tablet {}", followingTablet);
     }
     try {
-      AccumuloClient conn = this.master.getClient();
+      AccumuloClient client = this.master.getClient();
       Text start = extent.getPrevEndRow();
       if (start == null) {
         start = new Text();
@@ -606,7 +606,7 @@ abstract class TabletGroupWatcher extends Daemon {
       Master.log.debug("Making file deletion entries for {}", extent);
       Range deleteRange = new Range(KeyExtent.getMetadataEntry(extent.getTableId(), start), false,
           KeyExtent.getMetadataEntry(extent.getTableId(), extent.getEndRow()), true);
-      Scanner scanner = conn.createScanner(targetSystemTable, Authorizations.EMPTY);
+      Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(deleteRange);
       TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
       TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
@@ -645,16 +645,16 @@ abstract class TabletGroupWatcher extends Daemon {
         }
       }
       MetadataTableUtil.addDeleteEntries(extent, datafiles, master.getContext());
-      BatchWriter bw = conn.createBatchWriter(targetSystemTable, new BatchWriterConfig());
+      BatchWriter bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig());
       try {
-        deleteTablets(info, deleteRange, bw, conn);
+        deleteTablets(info, deleteRange, bw, client);
       } finally {
         bw.close();
       }
 
       if (followingTablet != null) {
         Master.log.debug("Updating prevRow of {} to {}", followingTablet, extent.getPrevEndRow());
-        bw = conn.createBatchWriter(targetSystemTable, new BatchWriterConfig());
+        bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig());
         try {
           Mutation m = new Mutation(followingTablet.getMetadataEntry());
           TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m,
@@ -704,10 +704,10 @@ abstract class TabletGroupWatcher extends Daemon {
     BatchWriter bw = null;
     try {
       long fileCount = 0;
-      AccumuloClient conn = this.master.getClient();
+      AccumuloClient client = this.master.getClient();
       // Make file entries in highest tablet
-      bw = conn.createBatchWriter(targetSystemTable, new BatchWriterConfig());
-      Scanner scanner = conn.createScanner(targetSystemTable, Authorizations.EMPTY);
+      bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig());
+      Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(scanRange);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
@@ -735,7 +735,7 @@ abstract class TabletGroupWatcher extends Daemon {
 
       // read the logical time from the last tablet in the merge range, it is not included in
       // the loop above
-      scanner = conn.createScanner(targetSystemTable, Authorizations.EMPTY);
+      scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(new Range(stopRow));
       TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(scanner);
       for (Entry<Key,Value> entry : scanner) {
@@ -766,7 +766,7 @@ abstract class TabletGroupWatcher extends Daemon {
       bw.addMutation(updatePrevRow);
       bw.flush();
 
-      deleteTablets(info, scanRange, bw, conn);
+      deleteTablets(info, scanRange, bw, client);
 
       // Clean-up the last chopped marker
       m = new Mutation(stopRow);
@@ -786,7 +786,7 @@ abstract class TabletGroupWatcher extends Daemon {
     }
   }
 
-  private void deleteTablets(MergeInfo info, Range scanRange, BatchWriter bw, AccumuloClient conn)
+  private void deleteTablets(MergeInfo info, Range scanRange, BatchWriter bw, AccumuloClient client)
       throws TableNotFoundException, MutationsRejectedException {
     Scanner scanner;
     Mutation m;
@@ -794,7 +794,7 @@ abstract class TabletGroupWatcher extends Daemon {
     // group all deletes into tablet into one mutation, this makes tablets
     // either disappear entirely or not all.. this is important for the case
     // where the process terminates in the loop below...
-    scanner = conn.createScanner(info.getExtent().isMeta() ? RootTable.NAME : MetadataTable.NAME,
+    scanner = client.createScanner(info.getExtent().isMeta() ? RootTable.NAME : MetadataTable.NAME,
         Authorizations.EMPTY);
     Master.log.debug("Deleting range {}", scanRange);
     scanner.setRange(scanRange);
@@ -820,8 +820,8 @@ abstract class TabletGroupWatcher extends Daemon {
 
   private KeyExtent getHighTablet(KeyExtent range) throws AccumuloException {
     try {
-      AccumuloClient conn = this.master.getClient();
-      Scanner scanner = conn.createScanner(range.isMeta() ? RootTable.NAME : MetadataTable.NAME,
+      AccumuloClient client = this.master.getClient();
+      Scanner scanner = client.createScanner(range.isMeta() ? RootTable.NAME : MetadataTable.NAME,
           Authorizations.EMPTY);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       KeyExtent start = new KeyExtent(range.getTableId(), range.getEndRow(), null);
@@ -925,9 +925,9 @@ abstract class TabletGroupWatcher extends Daemon {
     }
     assignments.addAll(assigned);
     for (Assignment a : assignments) {
-      TServerConnection conn = this.master.tserverSet.getConnection(a.server);
-      if (conn != null) {
-        conn.assignTablet(this.master.masterLock, a.tablet);
+      TServerConnection client = this.master.tserverSet.getConnection(a.server);
+      if (client != null) {
+        client.assignTablet(this.master.masterLock, a.tablet);
       } else {
         Master.log.warn("Could not connect to server {}", a.server);
       }

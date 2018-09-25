@@ -358,11 +358,12 @@ public class TracesResource {
   private Scanner getScanner(String table, String principal, AuthenticationToken at)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      AccumuloClient conn = Monitor.getContext().getClient(principal, at);
-      if (!conn.tableOperations().exists(table)) {
+      AccumuloClient client = Monitor.getContext().getClient(principal, at);
+      if (!client.tableOperations().exists(table)) {
         return null;
       }
-      return conn.createScanner(table, conn.securityOperations().getUserAuthorizations(principal));
+      return client.createScanner(table,
+          client.securityOperations().getUserAuthorizations(principal));
     } catch (AccumuloSecurityException | TableNotFoundException ex) {
       return null;
     }

@@ -39,14 +39,14 @@ import org.junit.Test;
 
 public class SequentialWorkAssignerTest {
 
-  private AccumuloClient conn;
+  private AccumuloClient client;
   private SequentialWorkAssigner assigner;
 
   @Before
   public void init() throws Exception {
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
-    conn = createMock(AccumuloClient.class);
-    assigner = new SequentialWorkAssigner(conf, conn);
+    client = createMock(AccumuloClient.class);
+    assigner = new SequentialWorkAssigner(conf, client);
   }
 
   @Test
@@ -66,12 +66,12 @@ public class SequentialWorkAssignerTest {
 
     queuedWork.put("cluster1", cluster1Work);
 
-    assigner.setConnector(conn);
+    assigner.setClient(client);
     assigner.setZooCache(zooCache);
     assigner.setWorkQueue(workQueue);
     assigner.setQueuedWork(queuedWork);
 
-    expect(conn.getInstanceID()).andReturn("instance");
+    expect(client.getInstanceID()).andReturn("instance");
 
     // file1 replicated
     expect(zooCache.get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE + "/"
@@ -85,11 +85,11 @@ public class SequentialWorkAssignerTest {
                     new ReplicationTarget("cluster1", "2", Table.ID.of("2")))))
                         .andReturn(new byte[0]);
 
-    replay(workQueue, zooCache, conn);
+    replay(workQueue, zooCache, client);
 
     assigner.cleanupFinishedWork();
 
-    verify(workQueue, zooCache, conn);
+    verify(workQueue, zooCache, client);
 
     assertEquals(1, cluster1Work.size());
     assertEquals(

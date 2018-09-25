@@ -46,14 +46,14 @@ import org.junit.Test;
 
 public class UnorderedWorkAssignerTest {
 
-  private AccumuloClient conn;
+  private AccumuloClient client;
   private UnorderedWorkAssigner assigner;
 
   @Before
   public void init() throws Exception {
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
-    conn = createMock(AccumuloClient.class);
-    assigner = new UnorderedWorkAssigner(conf, conn);
+    client = createMock(AccumuloClient.class);
+    assigner = new UnorderedWorkAssigner(conf, client);
   }
 
   @Test
@@ -112,17 +112,17 @@ public class UnorderedWorkAssignerTest {
     ZooCache cache = createMock(ZooCache.class);
     assigner.setZooCache(cache);
 
-    expect(conn.getInstanceID()).andReturn("id");
+    expect(client.getInstanceID()).andReturn("id");
     expect(cache.get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal1"))
         .andReturn(null);
     expect(cache.get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal2"))
         .andReturn(null);
 
-    replay(cache, conn);
+    replay(cache, client);
 
     assigner.cleanupFinishedWork();
 
-    verify(cache, conn);
+    verify(cache, client);
     assertTrue("Queued work was not emptied", queuedWork.isEmpty());
   }
 

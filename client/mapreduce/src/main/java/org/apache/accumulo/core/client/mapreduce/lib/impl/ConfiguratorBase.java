@@ -120,8 +120,8 @@ public class ConfiguratorBase {
     if (info.getAuthenticationToken() instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        AccumuloClient conn = Accumulo.newClient().usingClientInfo(info).build();
-        AuthenticationToken token = conn.securityOperations()
+        AccumuloClient client = Accumulo.newClient().usingClientInfo(info).build();
+        AuthenticationToken token = client.securityOperations()
             .getDelegationToken(new DelegationTokenConfig());
         result = Accumulo.newClient().usingClientInfo(info).usingToken(info.getPrincipal(), token)
             .info();

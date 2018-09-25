@@ -53,9 +53,9 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
   @Test(timeout = 120000)
   public void testBalancing() throws Exception {
-    AccumuloClient conn = getClient();
+    AccumuloClient client = getClient();
     String tablename = getUniqueNames(1)[0];
-    conn.tableOperations().create(tablename);
+    client.tableOperations().create(tablename);
 
     SortedSet<Text> splits = new TreeSet<>();
     splits.add(new Text("01a"));
@@ -72,18 +72,19 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
     splits.add(new Text("03m"));
     splits.add(new Text("03r"));
 
-    conn.tableOperations().setProperty(tablename, RegexGroupBalancer.REGEX_PROPERTY, "(\\d\\d).*");
-    conn.tableOperations().setProperty(tablename, RegexGroupBalancer.DEFAUT_GROUP_PROPERTY, "03");
-    conn.tableOperations().setProperty(tablename, RegexGroupBalancer.WAIT_TIME_PROPERTY, "50ms");
-    conn.tableOperations().setProperty(tablename, Property.TABLE_LOAD_BALANCER.getKey(),
+    client.tableOperations().setProperty(tablename, RegexGroupBalancer.REGEX_PROPERTY,
+        "(\\d\\d).*");
+    client.tableOperations().setProperty(tablename, RegexGroupBalancer.DEFAUT_GROUP_PROPERTY, "03");
+    client.tableOperations().setProperty(tablename, RegexGroupBalancer.WAIT_TIME_PROPERTY, "50ms");
+    client.tableOperations().setProperty(tablename, Property.TABLE_LOAD_BALANCER.getKey(),
         RegexGroupBalancer.class.getName());
 
-    conn.tableOperations().addSplits(tablename, splits);
+    client.tableOperations().addSplits(tablename, splits);
 
     while (true) {
       Thread.sleep(250);
 
-      Table<String,String,MutableInt> groupLocationCounts = getCounts(conn, tablename);
+      Table<String,String,MutableInt> groupLocationCounts = getCounts(client, tablename);
 
       boolean allGood = true;
       allGood &= checkGroup(groupLocationCounts, "01", 1, 1, 3);
@@ -101,12 +102,12 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
     splits.add(new Text("01f"));
     splits.add(new Text("01l"));
     splits.add(new Text("01r"));
-    conn.tableOperations().addSplits(tablename, splits);
+    client.tableOperations().addSplits(tablename, splits);
 
     while (true) {
       Thread.sleep(250);
 
-      Table<String,String,MutableInt> groupLocationCounts = getCounts(conn, tablename);
+      Table<String,String,MutableInt> groupLocationCounts = getCounts(client, tablename);
 
       boolean allGood = true;
       allGood &= checkGroup(groupLocationCounts, "01", 1, 2, 4);
@@ -120,12 +121,12 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
     }
 
     // merge group 01 down to one tablet
-    conn.tableOperations().merge(tablename, null, new Text("01z"));
+    client.tableOperations().merge(tablename, null, new Text("01z"));
 
     while (true) {
       Thread.sleep(250);
 
-      Table<String,String,MutableInt> groupLocationCounts = getCounts(conn, tablename);
+      Table<String,String,MutableInt> groupLocationCounts = getCounts(client, tablename);
 
       boolean allGood = true;
       allGood &= checkGroup(groupLocationCounts, "01", 1, 1, 1);
@@ -166,11 +167,11 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
         && counts.size() == tsevers;
   }
 
-  private Table<String,String,MutableInt> getCounts(AccumuloClient conn, String tablename)
+  private Table<String,String,MutableInt> getCounts(AccumuloClient client, String tablename)
       throws TableNotFoundException {
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-      ID tableId = ID.of(conn.tableOperations().tableIdMap().get(tablename));
+      ID tableId = ID.of(client.tableOperations().tableIdMap().get(tablename));
       s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
 
       Table<String,String,MutableInt> groupLocationCounts = HashBasedTable.create();

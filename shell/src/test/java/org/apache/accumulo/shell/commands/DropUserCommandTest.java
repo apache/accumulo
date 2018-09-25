@@ -40,19 +40,19 @@ public class DropUserCommandTest {
 
   @Test
   public void dropUserWithoutForcePrompts() throws Exception {
-    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
+    AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
     ConsoleReader reader = EasyMock.createMock(ConsoleReader.class);
     SecurityOperations secOps = EasyMock.createMock(SecurityOperations.class);
 
-    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
 
     // The user we want to remove
     EasyMock.expect(cli.getArgs()).andReturn(new String[] {"user"});
 
     // We're the root user
-    EasyMock.expect(conn.whoami()).andReturn("root");
+    EasyMock.expect(client.whoami()).andReturn("root");
 
     // Force option was not provided
     EasyMock.expect(cli.hasOption("f")).andReturn(false);
@@ -63,17 +63,17 @@ public class DropUserCommandTest {
     // Fake a "yes" response
     EasyMock.expect(shellState.getReader()).andReturn(reader);
     EasyMock.expect(reader.readLine(EasyMock.anyObject(String.class))).andReturn("yes");
-    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
 
-    EasyMock.expect(conn.securityOperations()).andReturn(secOps);
+    EasyMock.expect(client.securityOperations()).andReturn(secOps);
     secOps.dropLocalUser("user");
     EasyMock.expectLastCall();
 
-    EasyMock.replay(conn, cli, shellState, reader, secOps);
+    EasyMock.replay(client, cli, shellState, reader, secOps);
 
     cmd.execute("dropuser foo -f", cli, shellState);
 
-    EasyMock.verify(conn, cli, shellState, reader, secOps);
+    EasyMock.verify(client, cli, shellState, reader, secOps);
   }
 
 }

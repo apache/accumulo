@@ -86,15 +86,15 @@ public class CloseWriteAheadLogReferences implements Runnable {
     // what the version they bundle uses.
     Stopwatch sw = Stopwatch.createUnstarted();
 
-    AccumuloClient conn;
+    AccumuloClient client;
     try {
-      conn = context.getClient();
+      client = context.getClient();
     } catch (Exception e) {
-      log.error("Could not create connector", e);
+      log.error("Could not create client", e);
       throw new RuntimeException(e);
     }
 
-    if (!ReplicationTable.isOnline(conn)) {
+    if (!ReplicationTable.isOnline(client)) {
       log.debug("Replication table isn't online, not attempting to clean up wals");
       return;
     }
@@ -116,7 +116,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
     long recordsClosed = 0;
     try {
       sw.start();
-      recordsClosed = updateReplicationEntries(conn, closed);
+      recordsClosed = updateReplicationEntries(client, closed);
     } finally {
       sw.stop();
       updateReplicationSpan.stop();
@@ -152,18 +152,18 @@ public class CloseWriteAheadLogReferences implements Runnable {
    * Given the set of WALs which have references in the metadata table, close any status messages
    * with reference that WAL.
    *
-   * @param conn
-   *          Connector
+   * @param client
+   *          Accumulo client
    * @param closedWals
    *          {@link Set} of paths to WALs that marked as closed or unreferenced in zookeeper
    */
-  protected long updateReplicationEntries(AccumuloClient conn, Set<String> closedWals) {
+  protected long updateReplicationEntries(AccumuloClient client, Set<String> closedWals) {
     BatchScanner bs = null;
     BatchWriter bw = null;
     long recordsClosed = 0;
     try {
-      bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
+      bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      bs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
       bs.setRanges(Collections.singleton(Range.prefix(ReplicationSection.getRowPrefix())));
       bs.fetchColumnFamily(ReplicationSection.COLF);
 

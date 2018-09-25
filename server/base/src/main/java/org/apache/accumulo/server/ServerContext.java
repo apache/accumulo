@@ -240,10 +240,10 @@ public class ServerContext extends ClientContext {
   @Override
   public synchronized AccumuloClient getClient()
       throws AccumuloException, AccumuloSecurityException {
-    if (conn == null) {
-      conn = new AccumuloClientImpl(this);
+    if (client == null) {
+      client = new AccumuloClientImpl(this);
     }
-    return conn;
+    return client;
   }
 
   public AccumuloClient getClient(String principal, AuthenticationToken token)

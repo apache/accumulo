@@ -109,23 +109,23 @@ public class ScanIdIT extends AccumuloClusterHarness {
   public void testScanId() throws Exception {
 
     final String tableName = getUniqueNames(1)[0];
-    AccumuloClient conn = getAccumuloClient();
-    conn.tableOperations().create(tableName);
+    AccumuloClient client = getAccumuloClient();
+    client.tableOperations().create(tableName);
 
-    addSplits(conn, tableName);
+    addSplits(client, tableName);
 
     log.info("Splits added");
 
-    generateSampleData(conn, tableName);
+    generateSampleData(client, tableName);
 
     log.info("Generated data for {}", tableName);
 
-    attachSlowIterator(conn, tableName);
+    attachSlowIterator(client, tableName);
 
     CountDownLatch latch = new CountDownLatch(NUM_SCANNERS);
 
     for (int scannerIndex = 0; scannerIndex < NUM_SCANNERS; scannerIndex++) {
-      ScannerThread st = new ScannerThread(conn, scannerIndex, tableName, latch);
+      ScannerThread st = new ScannerThread(client, scannerIndex, tableName, latch);
       pool.submit(st);
     }
 
@@ -150,7 +150,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
     // all scanner have reported at least 1 result, so check for unique scan ids.
     Set<Long> scanIds = new HashSet<>();
 
-    List<String> tservers = conn.instanceOperations().getTabletServers();
+    List<String> tservers = client.instanceOperations().getTabletServers();
 
     log.debug("tablet servers {}", tservers);
 
@@ -159,7 +159,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
       List<ActiveScan> activeScans = null;
       for (int i = 0; i < 10; i++) {
         try {
-          activeScans = conn.instanceOperations().getActiveScans(tserver);
+          activeScans = client.instanceOperations().getActiveScans(tserver);
           break;
         } catch (AccumuloException e) {
           if (e.getCause() instanceof TableNotFoundException) {
@@ -284,23 +284,23 @@ public class ScanIdIT extends AccumuloClusterHarness {
    * Create splits on table and force migration by taking table offline and then bring back online
    * for test.
    *
-   * @param conn
-   *          Accumulo connector Accumulo connector to test cluster or MAC instance.
+   * @param client
+   *          Accumulo client to test cluster or MAC instance.
    */
-  private void addSplits(final AccumuloClient conn, final String tableName) {
+  private void addSplits(final AccumuloClient client, final String tableName) {
 
     SortedSet<Text> splits = createSplits();
 
     try {
 
-      conn.tableOperations().addSplits(tableName, splits);
+      client.tableOperations().addSplits(tableName, splits);
 
-      conn.tableOperations().offline(tableName, true);
+      client.tableOperations().offline(tableName, true);
 
       sleepUninterruptibly(2, TimeUnit.SECONDS);
-      conn.tableOperations().online(tableName, true);
+      client.tableOperations().online(tableName, true);
 
-      for (Text split : conn.tableOperations().listSplits(tableName)) {
+      for (Text split : client.tableOperations().listSplits(tableName)) {
         log.trace("Split {}", split);
       }
 
@@ -335,7 +335,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
    * secondary consideration for this test, that is included for completeness.
    *
    * @param accumuloClient
-   *          Accumulo connector Accumulo connector to test cluster or MAC instance.
+   *          Accumulo client to test cluster or MAC instance.
    */
   private void generateSampleData(AccumuloClient accumuloClient, final String tablename) {
 
@@ -374,7 +374,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
    * scan id.
    *
    * @param accumuloClient
-   *          Accumulo connector Accumulo connector to test cluster or MAC instance.
+   *          Accumulo client to test cluster or MAC instance.
    */
   private void attachSlowIterator(AccumuloClient accumuloClient, final String tablename) {
     try {

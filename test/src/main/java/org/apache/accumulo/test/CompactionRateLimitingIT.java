@@ -47,9 +47,10 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
   public void majorCompactionsAreRateLimited() throws Exception {
     long bytesWritten = 0;
     String tableName = getUniqueNames(1)[0];
-    AccumuloClient conn = getCluster().getAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
-    conn.tableOperations().create(tableName);
-    try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
+    AccumuloClient client = getCluster().getAccumuloClient("root",
+        new PasswordToken(ROOT_PASSWORD));
+    client.tableOperations().create(tableName);
+    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
       Random r = new SecureRandom();
       while (bytesWritten < BYTES_TO_WRITE) {
         byte[] rowKey = new byte[32];
@@ -69,10 +70,10 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
       }
     }
 
-    conn.tableOperations().flush(tableName, null, null, true);
+    client.tableOperations().flush(tableName, null, null, true);
 
     long compactionStart = System.currentTimeMillis();
-    conn.tableOperations().compact(tableName, null, null, false, true);
+    client.tableOperations().compact(tableName, null, null, false, true);
     long duration = System.currentTimeMillis() - compactionStart;
     // The rate will be "bursty", try to account for that by taking 80% of the expected rate (allow
     // for 20% under the maximum expected duration)

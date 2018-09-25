@@ -51,7 +51,7 @@ import com.google.common.collect.Iterators;
 public class IMMLGBenchmark {
   public static void main(String[] args) throws Exception {
 
-    AccumuloClient conn = Accumulo.newClient().forInstance("test16", "localhost")
+    AccumuloClient client = Accumulo.newClient().forInstance("test16", "localhost")
         .usingPassword("root", "secret").build();
 
     int numlg = Integer.parseInt(args[0]);
@@ -65,7 +65,7 @@ public class IMMLGBenchmark {
     Map<String,Stat> stats = new TreeMap<>();
 
     for (int i = 0; i < 5; i++) {
-      runTest(conn, numlg, cfset, i > 1 ? stats : null);
+      runTest(client, numlg, cfset, i > 1 ? stats : null);
       System.out.println();
     }
 
@@ -75,27 +75,27 @@ public class IMMLGBenchmark {
 
   }
 
-  private static void runTest(AccumuloClient conn, int numlg, ArrayList<byte[]> cfset,
+  private static void runTest(AccumuloClient client, int numlg, ArrayList<byte[]> cfset,
       Map<String,Stat> stats) throws Exception {
     String table = "immlgb";
 
     try {
-      conn.tableOperations().delete(table);
+      client.tableOperations().delete(table);
     } catch (TableNotFoundException tnfe) {}
 
-    conn.tableOperations().create(table);
-    conn.tableOperations().setProperty(table, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(),
+    client.tableOperations().create(table);
+    client.tableOperations().setProperty(table, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(),
         "snappy");
 
-    setupLocalityGroups(conn, numlg, cfset, table);
+    setupLocalityGroups(client, numlg, cfset, table);
 
-    addStat(stats, "write", write(conn, cfset, table));
-    addStat(stats, "scan cf", scan(conn, cfset, table, false));
-    addStat(stats, "scan cf:cq", scan(conn, cfset, table, true));
+    addStat(stats, "write", write(client, cfset, table));
+    addStat(stats, "scan cf", scan(client, cfset, table, false));
+    addStat(stats, "scan cf:cq", scan(client, cfset, table, true));
     // TODO time reading all data
 
     long t1 = System.currentTimeMillis();
-    conn.tableOperations().flush(table, null, null, true);
+    client.tableOperations().flush(table, null, null, true);
     long t2 = System.currentTimeMillis();
 
     addStat(stats, "flush", t2 - t1);
@@ -115,9 +115,9 @@ public class IMMLGBenchmark {
     stat.addStat(wt);
   }
 
-  private static long scan(AccumuloClient conn, ArrayList<byte[]> cfset, String table, boolean cq)
+  private static long scan(AccumuloClient client, ArrayList<byte[]> cfset, String table, boolean cq)
       throws TableNotFoundException {
-    try (Scanner scanner = conn.createScanner(table, Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
 
       if (!cq)
         scanner.fetchColumnFamily(new Text(cfset.get(15)));
@@ -134,13 +134,13 @@ public class IMMLGBenchmark {
     }
   }
 
-  private static long write(AccumuloClient conn, ArrayList<byte[]> cfset, String table)
+  private static long write(AccumuloClient client, ArrayList<byte[]> cfset, String table)
       throws TableNotFoundException, MutationsRejectedException {
     Random rand = new SecureRandom();
 
     byte val[] = new byte[50];
 
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
 
     long t1 = System.currentTimeMillis();
 
@@ -164,7 +164,7 @@ public class IMMLGBenchmark {
     return t2 - t1;
   }
 
-  private static void setupLocalityGroups(AccumuloClient conn, int numlg, ArrayList<byte[]> cfset,
+  private static void setupLocalityGroups(AccumuloClient client, int numlg, ArrayList<byte[]> cfset,
       String table) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (numlg > 1) {
       int numCF = cfset.size() / numlg;
@@ -181,10 +181,10 @@ public class IMMLGBenchmark {
         groups.put("lg" + (gNum++), groupCols);
       }
 
-      conn.tableOperations().setLocalityGroups(table, groups);
-      conn.tableOperations().offline(table);
+      client.tableOperations().setLocalityGroups(table, groups);
+      client.tableOperations().offline(table);
       sleepUninterruptibly(1, TimeUnit.SECONDS);
-      conn.tableOperations().online(table);
+      client.tableOperations().online(table);
     }
   }
 

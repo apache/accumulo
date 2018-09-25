@@ -166,49 +166,51 @@ public class KerberosReplicationIT extends AccumuloITBase {
     ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
       log.info("testing {}", ugi);
       final KerberosToken token = new KerberosToken();
-      final AccumuloClient primaryConn = primary.getAccumuloClient(rootUser.getPrincipal(), token);
-      final AccumuloClient peerConn = peer.getAccumuloClient(rootUser.getPrincipal(), token);
+      final AccumuloClient primaryclient = primary.getAccumuloClient(rootUser.getPrincipal(),
+          token);
+      final AccumuloClient peerclient = peer.getAccumuloClient(rootUser.getPrincipal(), token);
 
       ClusterUser replicationUser = kdc.getClientPrincipal(0);
 
       // Create user for replication to the peer
-      peerConn.securityOperations().createLocalUser(replicationUser.getPrincipal(), null);
+      peerclient.securityOperations().createLocalUser(replicationUser.getPrincipal(), null);
 
-      primaryConn.instanceOperations().setProperty(
+      primaryclient.instanceOperations().setProperty(
           Property.REPLICATION_PEER_USER.getKey() + PEER_NAME, replicationUser.getPrincipal());
-      primaryConn.instanceOperations().setProperty(
+      primaryclient.instanceOperations().setProperty(
           Property.REPLICATION_PEER_KEYTAB.getKey() + PEER_NAME,
           replicationUser.getKeytab().getAbsolutePath());
 
       // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
-      primaryConn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + PEER_NAME,
+      primaryclient.instanceOperations().setProperty(
+          Property.REPLICATION_PEERS.getKey() + PEER_NAME,
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
-              AccumuloReplicaSystem.buildConfiguration(peerConn.info().getInstanceName(),
-                  peerConn.info().getZooKeepers())));
+              AccumuloReplicaSystem.buildConfiguration(peerclient.info().getInstanceName(),
+                  peerclient.info().getZooKeepers())));
 
       String primaryTable1 = "primary", peerTable1 = "peer";
 
       // Create tables
-      primaryConn.tableOperations().create(primaryTable1);
-      String masterTableId1 = primaryConn.tableOperations().tableIdMap().get(primaryTable1);
+      primaryclient.tableOperations().create(primaryTable1);
+      String masterTableId1 = primaryclient.tableOperations().tableIdMap().get(primaryTable1);
       assertNotNull(masterTableId1);
 
-      peerConn.tableOperations().create(peerTable1);
-      String peerTableId1 = peerConn.tableOperations().tableIdMap().get(peerTable1);
+      peerclient.tableOperations().create(peerTable1);
+      String peerTableId1 = peerclient.tableOperations().tableIdMap().get(peerTable1);
       assertNotNull(peerTableId1);
 
       // Grant write permission
-      peerConn.securityOperations().grantTablePermission(replicationUser.getPrincipal(), peerTable1,
-          TablePermission.WRITE);
+      peerclient.securityOperations().grantTablePermission(replicationUser.getPrincipal(),
+          peerTable1, TablePermission.WRITE);
 
       // Replicate this table to the peerClusterName in a table with the peerTableId table id
-      primaryConn.tableOperations().setProperty(primaryTable1, Property.TABLE_REPLICATION.getKey(),
-          "true");
-      primaryConn.tableOperations().setProperty(primaryTable1,
+      primaryclient.tableOperations().setProperty(primaryTable1,
+          Property.TABLE_REPLICATION.getKey(), "true");
+      primaryclient.tableOperations().setProperty(primaryTable1,
           Property.TABLE_REPLICATION_TARGET.getKey() + PEER_NAME, peerTableId1);
 
       // Write some data to table1
-      BatchWriter bw = primaryConn.createBatchWriter(primaryTable1, new BatchWriterConfig());
+      BatchWriter bw = primaryclient.createBatchWriter(primaryTable1, new BatchWriterConfig());
       long masterTable1Records = 0L;
       for (int rows = 0; rows < 2500; rows++) {
         Mutation m = new Mutation(primaryTable1 + rows);
@@ -224,7 +226,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
 
       log.info("Wrote all data to primary cluster");
 
-      Set<String> filesFor1 = primaryConn.replicationOperations().referencedFiles(primaryTable1);
+      Set<String> filesFor1 = primaryclient.replicationOperations().referencedFiles(primaryTable1);
 
       // Restart the tserver to force a close on the WAL
       for (ProcessReference proc : primary.getProcesses().get(ServerType.TABLET_SERVER)) {
@@ -235,14 +237,14 @@ public class KerberosReplicationIT extends AccumuloITBase {
       log.info("Restarted the tserver");
 
       // Read the data -- the tserver is back up and running and tablets are assigned
-      Iterators.size(primaryConn.createScanner(primaryTable1, Authorizations.EMPTY).iterator());
+      Iterators.size(primaryclient.createScanner(primaryTable1, Authorizations.EMPTY).iterator());
 
       // Wait for both tables to be replicated
       log.info("Waiting for {} for {}", filesFor1, primaryTable1);
-      primaryConn.replicationOperations().drain(primaryTable1, filesFor1);
+      primaryclient.replicationOperations().drain(primaryTable1, filesFor1);
 
       long countTable = 0L;
-      for (Entry<Key,Value> entry : peerConn.createScanner(peerTable1, Authorizations.EMPTY)) {
+      for (Entry<Key,Value> entry : peerclient.createScanner(peerTable1, Authorizations.EMPTY)) {
         countTable++;
         assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
             + entry.getValue(), entry.getKey().getRow().toString().startsWith(primaryTable1));

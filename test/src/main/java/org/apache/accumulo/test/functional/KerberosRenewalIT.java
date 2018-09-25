@@ -155,16 +155,16 @@ public class KerberosRenewalIT extends AccumuloITBase {
         rootUser.getKeytab().getAbsolutePath());
     log.info("Logged in as {}", rootUser.getPrincipal());
 
-    AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
-    log.info("Created connector as {}", rootUser.getPrincipal());
-    assertEquals(rootUser.getPrincipal(), conn.whoami());
+    AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
+    log.info("Created client as {}", rootUser.getPrincipal());
+    assertEquals(rootUser.getPrincipal(), client.whoami());
 
     long duration = 0;
     long last = System.currentTimeMillis();
     // Make sure we have a couple renewals happen
     while (duration < TICKET_TEST_LIFETIME) {
       // Create a table, write a record, compact, read the record, drop the table.
-      createReadWriteDrop(conn);
+      createReadWriteDrop(client);
       // Wait a bit after
       Thread.sleep(5000);
 
@@ -180,22 +180,22 @@ public class KerberosRenewalIT extends AccumuloITBase {
    * that the system user exists (since the master does an RPC to the tserver which will create the
    * system user if it doesn't already exist).
    */
-  private void createReadWriteDrop(AccumuloClient conn) throws TableNotFoundException,
+  private void createReadWriteDrop(AccumuloClient client) throws TableNotFoundException,
       AccumuloSecurityException, AccumuloException, TableExistsException {
     final String table = testName.getMethodName() + "_table";
-    conn.tableOperations().create(table);
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+    client.tableOperations().create(table);
+    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
     Mutation m = new Mutation("a");
     m.put("b", "c", "d");
     bw.addMutation(m);
     bw.close();
-    conn.tableOperations().compact(table, new CompactionConfig().setFlush(true).setWait(true));
-    try (Scanner s = conn.createScanner(table, Authorizations.EMPTY)) {
+    client.tableOperations().compact(table, new CompactionConfig().setFlush(true).setWait(true));
+    try (Scanner s = client.createScanner(table, Authorizations.EMPTY)) {
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
       assertEquals("Did not find the expected key", 0,
           new Key("a", "b", "c").compareTo(entry.getKey(), PartialKey.ROW_COLFAM_COLQUAL));
       assertEquals("d", entry.getValue().toString());
-      conn.tableOperations().delete(table);
+      client.tableOperations().delete(table);
     }
   }
 }

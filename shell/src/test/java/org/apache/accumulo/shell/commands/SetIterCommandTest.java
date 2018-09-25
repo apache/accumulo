@@ -48,7 +48,7 @@ public class SetIterCommandTest {
 
   @Test
   public void addColumnAgeOffFilter() throws Exception {
-    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
+    AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
     ConsoleReader reader = EasyMock.createMock(ConsoleReader.class);
@@ -98,33 +98,33 @@ public class SetIterCommandTest {
     // Shell asking for another unnamed option; we pass in an empty string to signal that we are
     // done adding options
     EasyMock.expect(reader.readLine(EasyMock.anyObject(String.class))).andReturn("");
-    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
 
     // Table exists
-    EasyMock.expect(conn.tableOperations()).andReturn(tableOperations);
+    EasyMock.expect(client.tableOperations()).andReturn(tableOperations);
     EasyMock.expect(tableOperations.exists("foo")).andReturn(true);
 
     // Testing class load
-    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
-    EasyMock.expect(conn.tableOperations()).andReturn(tableOperations);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
+    EasyMock.expect(client.tableOperations()).andReturn(tableOperations);
     EasyMock.expect(tableOperations.testClassLoad("foo",
         "org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter",
         SortedKeyValueIterator.class.getName())).andReturn(true);
 
     // Attach iterator
-    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
-    EasyMock.expect(conn.tableOperations()).andReturn(tableOperations);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
+    EasyMock.expect(client.tableOperations()).andReturn(tableOperations);
     tableOperations.attachIterator(EasyMock.eq("foo"), EasyMock.anyObject(IteratorSetting.class),
         EasyMock.eq(EnumSet.allOf(IteratorScope.class)));
     EasyMock.expectLastCall().once();
 
-    EasyMock.replay(conn, cli, shellState, reader, tableOperations);
+    EasyMock.replay(client, cli, shellState, reader, tableOperations);
 
     cmd.execute(
         "setiter -all -p 21 -t foo"
             + " -class org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter",
         cli, shellState);
 
-    EasyMock.verify(conn, cli, shellState, reader, tableOperations);
+    EasyMock.verify(client, cli, shellState, reader, tableOperations);
   }
 }

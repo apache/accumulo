@@ -88,7 +88,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
   // Must be static to survive Junit re-initialising the class every time.
   private static String lastAuditTimestamp;
   private AccumuloClient auditAccumuloClient;
-  private AccumuloClient conn;
+  private AccumuloClient client;
 
   private static long findAuditMessage(ArrayList<String> input, String pattern) {
     return input.stream().filter(s -> s.matches(".*" + pattern + ".*")).count();
@@ -153,19 +153,19 @@ public class AuditMessageIT extends ConfigurableMacBase {
     return result;
   }
 
-  private void grantEverySystemPriv(AccumuloClient conn, String user)
+  private void grantEverySystemPriv(AccumuloClient client, String user)
       throws AccumuloSecurityException, AccumuloException {
     SystemPermission[] arrayOfP = {SystemPermission.SYSTEM, SystemPermission.ALTER_TABLE,
         SystemPermission.ALTER_USER, SystemPermission.CREATE_TABLE, SystemPermission.CREATE_USER,
         SystemPermission.DROP_TABLE, SystemPermission.DROP_USER};
     for (SystemPermission p : arrayOfP) {
-      conn.securityOperations().grantSystemPermission(user, p);
+      client.securityOperations().grantSystemPermission(user, p);
     }
   }
 
   @Before
   public void resetInstance() throws Exception {
-    conn = getClient();
+    client = getClient();
 
     removeUsersAndTables();
 
@@ -176,12 +176,12 @@ public class AuditMessageIT extends ConfigurableMacBase {
   @After
   public void removeUsersAndTables() throws Exception {
     for (String user : Arrays.asList(AUDIT_USER_1, AUDIT_USER_2)) {
-      if (conn.securityOperations().listLocalUsers().contains(user)) {
-        conn.securityOperations().dropLocalUser(user);
+      if (client.securityOperations().listLocalUsers().contains(user)) {
+        client.securityOperations().dropLocalUser(user);
       }
     }
 
-    TableOperations tops = conn.tableOperations();
+    TableOperations tops = client.tableOperations();
     for (String table : Arrays.asList(THIRD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME,
         OLD_TEST_TABLE_NAME)) {
       if (tops.exists(table)) {
@@ -194,9 +194,9 @@ public class AuditMessageIT extends ConfigurableMacBase {
   public void testTableOperationsAudits() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException, IOException, InterruptedException {
 
-    conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
-    conn.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
-    conn.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.CREATE_TABLE);
+    client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    client.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
+    client.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.CREATE_TABLE);
 
     // Connect as Audit User and do a bunch of stuff.
     // Testing activity begins here
@@ -233,10 +233,10 @@ public class AuditMessageIT extends ConfigurableMacBase {
   public void testUserOperationsAudits() throws AccumuloSecurityException, AccumuloException,
       TableExistsException, InterruptedException, IOException {
 
-    conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
-    conn.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
-    conn.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.CREATE_USER);
-    grantEverySystemPriv(conn, AUDIT_USER_1);
+    client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    client.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
+    client.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.CREATE_USER);
+    grantEverySystemPriv(client, AUDIT_USER_1);
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
@@ -245,12 +245,12 @@ public class AuditMessageIT extends ConfigurableMacBase {
         new PasswordToken(PASSWORD));
 
     // It seems only root can grant stuff.
-    conn.securityOperations().grantSystemPermission(AUDIT_USER_2, SystemPermission.ALTER_TABLE);
-    conn.securityOperations().revokeSystemPermission(AUDIT_USER_2, SystemPermission.ALTER_TABLE);
+    client.securityOperations().grantSystemPermission(AUDIT_USER_2, SystemPermission.ALTER_TABLE);
+    client.securityOperations().revokeSystemPermission(AUDIT_USER_2, SystemPermission.ALTER_TABLE);
     auditAccumuloClient.tableOperations().create(NEW_TEST_TABLE_NAME);
-    conn.securityOperations().grantTablePermission(AUDIT_USER_2, NEW_TEST_TABLE_NAME,
+    client.securityOperations().grantTablePermission(AUDIT_USER_2, NEW_TEST_TABLE_NAME,
         TablePermission.READ);
-    conn.securityOperations().revokeTablePermission(AUDIT_USER_2, NEW_TEST_TABLE_NAME,
+    client.securityOperations().revokeTablePermission(AUDIT_USER_2, NEW_TEST_TABLE_NAME,
         TablePermission.READ);
     auditAccumuloClient.securityOperations().changeLocalUserPassword(AUDIT_USER_2,
         new PasswordToken("anything"));
@@ -287,10 +287,10 @@ public class AuditMessageIT extends ConfigurableMacBase {
       throws AccumuloSecurityException, AccumuloException, TableExistsException,
       TableNotFoundException, IOException, InterruptedException {
 
-    conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
-    conn.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
-    conn.securityOperations().changeUserAuthorizations(AUDIT_USER_1, auths);
-    grantEverySystemPriv(conn, AUDIT_USER_1);
+    client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    client.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
+    client.securityOperations().changeUserAuthorizations(AUDIT_USER_1, auths);
+    grantEverySystemPriv(client, AUDIT_USER_1);
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
@@ -375,10 +375,10 @@ public class AuditMessageIT extends ConfigurableMacBase {
   public void testDataOperationsAudits() throws AccumuloSecurityException, AccumuloException,
       TableExistsException, TableNotFoundException, IOException, InterruptedException {
 
-    conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
-    conn.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
-    conn.securityOperations().changeUserAuthorizations(AUDIT_USER_1, auths);
-    grantEverySystemPriv(conn, AUDIT_USER_1);
+    client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    client.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
+    client.securityOperations().changeUserAuthorizations(AUDIT_USER_1, auths);
+    grantEverySystemPriv(client, AUDIT_USER_1);
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
@@ -434,8 +434,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
       TableExistsException, TableNotFoundException, IOException, InterruptedException {
 
     // Create our user with no privs
-    conn.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
-    conn.tableOperations().create(OLD_TEST_TABLE_NAME);
+    client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    client.tableOperations().create(OLD_TEST_TABLE_NAME);
     auditAccumuloClient = getCluster().getAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
 
     // Start testing activities
@@ -508,13 +508,14 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // We don't want the thrown exceptions to stop our tests, and we are not testing that the
     // Exceptions are thrown.
     try {
-      conn.securityOperations().dropLocalUser(AUDIT_USER_2);
+      client.securityOperations().dropLocalUser(AUDIT_USER_2);
     } catch (AccumuloSecurityException ex) {}
     try {
-      conn.securityOperations().revokeSystemPermission(AUDIT_USER_2, SystemPermission.ALTER_TABLE);
+      client.securityOperations().revokeSystemPermission(AUDIT_USER_2,
+          SystemPermission.ALTER_TABLE);
     } catch (AccumuloSecurityException ex) {}
     try {
-      conn.securityOperations().createLocalUser("root", new PasswordToken("super secret"));
+      client.securityOperations().createLocalUser("root", new PasswordToken("super secret"));
     } catch (AccumuloSecurityException ex) {}
     ArrayList<String> auditMessages = getAuditMessages("testFailedAudits");
     // ... that will do for now.

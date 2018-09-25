@@ -113,29 +113,29 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
       final String traceTable = Property.TRACE_TABLE.getDefaultValue();
       final ClusterUser systemUser = krb.getAccumuloServerUser(), rootUser = krb.getRootUser();
       // Login as the trace user
-      // Open a connector as the system user (ensures the user will exist for us to assign
+      // Open a client as the system user (ensures the user will exist for us to assign
       // permissions to)
       UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
           systemUser.getKeytab().getAbsolutePath());
-      AccumuloClient conn = cluster.getAccumuloClient(systemUser.getPrincipal(),
+      AccumuloClient client = cluster.getAccumuloClient(systemUser.getPrincipal(),
           new KerberosToken());
 
       // Then, log back in as the "root" user and do the grant
       UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
           rootUser.getKeytab().getAbsolutePath());
-      conn = cluster.getAccumuloClient(principal, token);
+      client = cluster.getAccumuloClient(principal, token);
 
       // Create the trace table
-      conn.tableOperations().create(traceTable);
+      client.tableOperations().create(traceTable);
 
       // Trace user (which is the same kerberos principal as the system user, but using a normal
       // KerberosToken) needs
       // to have the ability to read, write and alter the trace table
-      conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+      client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
           TablePermission.READ);
-      conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+      client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
           TablePermission.WRITE);
-      conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+      client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
           TablePermission.ALTER_TABLE);
     }
   }

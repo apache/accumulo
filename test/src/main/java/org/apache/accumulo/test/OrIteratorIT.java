@@ -59,11 +59,11 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testMultipleRowsInTablet() throws Exception {
-    final AccumuloClient conn = getAccumuloClient();
+    final AccumuloClient client = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
-    conn.tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
 
-    try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
+    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
       Mutation m = new Mutation("row1");
       m.put("bob", "2", EMPTY);
       m.put("frank", "3", EMPTY);
@@ -84,7 +84,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
     expectedData.put("frank", "3");
     expectedData.put("mort", "6");
 
-    try (BatchScanner bs = conn.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+    try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
       Set<Range> ranges = new HashSet<>(Arrays.asList(Range.exact("row1"), Range.exact("row2")));
       bs.setRanges(ranges);
       bs.addScanIterator(is);
@@ -100,11 +100,11 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testMultipleTablets() throws Exception {
-    final AccumuloClient conn = getAccumuloClient();
+    final AccumuloClient client = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
-    conn.tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
 
-    try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
+    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
       Mutation m = new Mutation("row1");
       m.put("bob", "2", EMPTY);
       m.put("frank", "3", EMPTY);
@@ -126,7 +126,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
       bw.addMutation(m);
     }
 
-    conn.tableOperations().addSplits(tableName,
+    client.tableOperations().addSplits(tableName,
         new TreeSet<>(Arrays.asList(new Text("row2"), new Text("row3"))));
 
     IteratorSetting is = new IteratorSetting(50, OrIterator.class);
@@ -136,7 +136,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
     expectedData.put("mort", "6");
     expectedData.put("nick", "3");
 
-    try (BatchScanner bs = conn.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+    try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
       bs.setRanges(Collections.singleton(new Range()));
       bs.addScanIterator(is);
       for (Entry<Key,Value> entry : bs) {
@@ -151,12 +151,12 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testSingleLargeRow() throws Exception {
-    final AccumuloClient conn = getAccumuloClient();
+    final AccumuloClient client = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
-    conn.tableOperations().create(tableName);
-    conn.tableOperations().setProperty(tableName, Property.TABLE_SCAN_MAXMEM.getKey(), "1");
+    client.tableOperations().create(tableName);
+    client.tableOperations().setProperty(tableName, Property.TABLE_SCAN_MAXMEM.getKey(), "1");
 
-    try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
+    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
       Mutation m = new Mutation("row1");
       m.put("bob", "02", EMPTY);
       m.put("carl", "07", EMPTY);
@@ -182,7 +182,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
     expectedData.put("nick", "12");
     expectedData.put("richard", "18");
 
-    try (BatchScanner bs = conn.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+    try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
       bs.setRanges(Collections.singleton(new Range()));
       bs.addScanIterator(is);
       for (Entry<Key,Value> entry : bs) {
@@ -198,11 +198,11 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testNoMatchesForTable() throws Exception {
-    final AccumuloClient conn = getAccumuloClient();
+    final AccumuloClient client = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
-    conn.tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
 
-    try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
+    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
       Mutation m = new Mutation("row1");
       m.put("bob", "02", EMPTY);
       m.put("carl", "07", EMPTY);
@@ -222,7 +222,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
     is.addOption(OrIterator.COLUMNS_KEY, "theresa,sally");
     Map<String,String> expectedData = Collections.emptyMap();
 
-    try (BatchScanner bs = conn.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+    try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
       bs.setRanges(Collections.singleton(new Range()));
       bs.addScanIterator(is);
       for (Entry<Key,Value> entry : bs) {
@@ -238,11 +238,11 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testNoMatchesInSingleTablet() throws Exception {
-    final AccumuloClient conn = getAccumuloClient();
+    final AccumuloClient client = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
-    conn.tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
 
-    try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
+    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
       Mutation m = new Mutation("row1");
       m.put("bob", "02", EMPTY);
       m.put("carl", "07", EMPTY);
@@ -273,10 +273,10 @@ public class OrIteratorIT extends AccumuloClusterHarness {
     expectedData.put("steve", "01");
 
     // Split each row into its own tablet
-    conn.tableOperations().addSplits(tableName,
+    client.tableOperations().addSplits(tableName,
         new TreeSet<>(Arrays.asList(new Text("row2"), new Text("row3"))));
 
-    try (BatchScanner bs = conn.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+    try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
       bs.setRanges(Collections.singleton(new Range()));
       bs.addScanIterator(is);
       for (Entry<Key,Value> entry : bs) {
@@ -292,11 +292,11 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testResultOrder() throws Exception {
-    final AccumuloClient conn = getAccumuloClient();
+    final AccumuloClient client = getAccumuloClient();
     final String tableName = getUniqueNames(1)[0];
-    conn.tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
 
-    try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
+    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
       Mutation m = new Mutation("row1");
       m.put("bob", "2", EMPTY);
       m.put("frank", "3", EMPTY);
@@ -307,7 +307,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
     IteratorSetting is = new IteratorSetting(50, OrIterator.class);
     is.addOption(OrIterator.COLUMNS_KEY, "bob,steve");
 
-    try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
       s.addScanIterator(is);
       Iterator<Entry<Key,Value>> iter = s.iterator();
       assertTrue(iter.hasNext());

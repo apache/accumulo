@@ -168,16 +168,16 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
     String tableName = getUniqueNames(1)[0];
 
-    AccumuloClient conn = ctx.getClient();
+    AccumuloClient client = ctx.getClient();
 
     // Create a table with a bunch of splits
     log.info("Creating table " + tableName);
-    conn.tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
     SortedSet<Text> splitPoints = new TreeSet<>();
     for (int i = 1; i < TABLETS; ++i) {
       splitPoints.add(new Text("" + i));
     }
-    conn.tableOperations().addSplits(tableName, splitPoints);
+    client.tableOperations().addSplits(tableName, splitPoints);
 
     // Wait for all of the tablets to hosted ...
     log.info("Waiting on hosting and balance");
@@ -188,7 +188,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     }
 
     // ... and balanced.
-    conn.instanceOperations().waitForBalance();
+    client.instanceOperations().waitForBalance();
     do {
       // Give at least another 5 seconds for migrations to finish up
       Thread.sleep(5000);

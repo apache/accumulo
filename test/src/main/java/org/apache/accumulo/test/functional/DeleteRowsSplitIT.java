@@ -67,16 +67,16 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits
     final String tableName = getUniqueNames(1)[0];
-    final AccumuloClient conn = getAccumuloClient();
+    final AccumuloClient client = getAccumuloClient();
 
     // Eliminate whole tablets
     for (int test = 0; test < 10; test++) {
       // create a table
       log.info("Test {}", test);
-      conn.tableOperations().create(tableName);
+      client.tableOperations().create(tableName);
 
       // put some data in it
-      fillTable(conn, tableName);
+      fillTable(client, tableName);
 
       // generate a random delete range
       final Text start = new Text();
@@ -91,7 +91,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
           try {
             // split the table
             final SortedSet<Text> afterEnd = SPLITS.tailSet(new Text(end + "\0"));
-            conn.tableOperations().addSplits(tableName, afterEnd);
+            client.tableOperations().addSplits(tableName, afterEnd);
           } catch (Exception ex) {
             log.error("Exception", ex);
             synchronized (fail) {
@@ -104,7 +104,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
 
       sleepUninterruptibly(test * 2, TimeUnit.MILLISECONDS);
 
-      conn.tableOperations().deleteRows(tableName, start, end);
+      client.tableOperations().deleteRows(tableName, start, end);
 
       t.join();
       synchronized (fail) {
@@ -112,14 +112,14 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
       }
 
       // scan the table
-      try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         for (Entry<Key,Value> entry : scanner) {
           Text row = entry.getKey().getRow();
           assertTrue(row.compareTo(start) <= 0 || row.compareTo(end) > 0);
         }
 
         // delete the table
-        conn.tableOperations().delete(tableName);
+        client.tableOperations().delete(tableName);
       }
     }
   }
@@ -137,8 +137,8 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
 
   }
 
-  private void fillTable(AccumuloClient conn, String table) throws Exception {
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+  private void fillTable(AccumuloClient client, String table) throws Exception {
+    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
     for (String row : ROWS) {
       Mutation m = new Mutation(row);
       m.put("cf", "cq", "value");

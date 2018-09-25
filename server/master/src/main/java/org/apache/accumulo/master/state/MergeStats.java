@@ -261,12 +261,12 @@ public class MergeStats {
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(MergeStats.class.getName(), args);
 
-    AccumuloClient conn = opts.getClient();
-    Map<String,String> tableIdMap = conn.tableOperations().tableIdMap();
+    AccumuloClient client = opts.getClient();
+    Map<String,String> tableIdMap = client.tableOperations().tableIdMap();
     ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooReaderWriter();
     for (Entry<String,String> entry : tableIdMap.entrySet()) {
       final String table = entry.getKey(), tableId = entry.getValue();
-      String path = ZooUtil.getRoot(conn.getInstanceID()) + Constants.ZTABLES + "/" + tableId
+      String path = ZooUtil.getRoot(client.getInstanceID()) + Constants.ZTABLES + "/" + tableId
           + "/merge";
       MergeInfo info = new MergeInfo();
       if (zooReaderWriter.exists(path)) {

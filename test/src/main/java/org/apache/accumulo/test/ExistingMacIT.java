@@ -87,11 +87,12 @@ public class ExistingMacIT extends ConfigurableMacBase {
   @Test
   public void testExistingInstance() throws Exception {
 
-    AccumuloClient conn = getCluster().getAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
+    AccumuloClient client = getCluster().getAccumuloClient("root",
+        new PasswordToken(ROOT_PASSWORD));
 
-    conn.tableOperations().create("table1");
+    client.tableOperations().create("table1");
 
-    BatchWriter bw = conn.createBatchWriter("table1", new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter("table1", new BatchWriterConfig());
 
     Mutation m1 = new Mutation("00081");
     m1.put("math", "sqroot", "9");
@@ -100,10 +101,10 @@ public class ExistingMacIT extends ConfigurableMacBase {
     bw.addMutation(m1);
     bw.close();
 
-    conn.tableOperations().flush("table1", null, null, true);
+    client.tableOperations().flush("table1", null, null, true);
     // TODO use constants
-    conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
-    conn.tableOperations().flush(RootTable.NAME, null, null, true);
+    client.tableOperations().flush(MetadataTable.NAME, null, null, true);
+    client.tableOperations().flush(RootTable.NAME, null, null, true);
 
     Set<Entry<ServerType,Collection<ProcessReference>>> procs = getCluster().getProcesses()
         .entrySet();
@@ -119,7 +120,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
         getCluster().getConfig().getSiteConfig().get(Property.INSTANCE_ZK_TIMEOUT.getKey()));
     IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(
         getCluster().getZooKeepers(), (int) zkTimeout, defaultConfig.get(Property.INSTANCE_SECRET));
-    final String zInstanceRoot = Constants.ZROOT + "/" + conn.getInstanceID();
+    final String zInstanceRoot = Constants.ZROOT + "/" + client.getInstanceID();
     while (!AccumuloStatus.isAccumuloOffline(zrw, zInstanceRoot)) {
       log.debug("Accumulo services still have their ZK locks held");
       Thread.sleep(1000);
@@ -141,9 +142,9 @@ public class ExistingMacIT extends ConfigurableMacBase {
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     accumulo2.start();
 
-    conn = accumulo2.getAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
+    client = accumulo2.getAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
 
-    try (Scanner scanner = conn.createScanner("table1", Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner("table1", Authorizations.EMPTY)) {
       int sum = 0;
       for (Entry<Key,Value> entry : scanner) {
         sum += Integer.parseInt(entry.getValue().toString());
@@ -157,10 +158,10 @@ public class ExistingMacIT extends ConfigurableMacBase {
   @Test
   public void testExistingRunningInstance() throws Exception {
     final String table = getUniqueNames(1)[0];
-    AccumuloClient conn = getClient();
+    AccumuloClient client = getClient();
     // Ensure that a master and tserver are up so the existing instance check won't fail.
-    conn.tableOperations().create(table);
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+    client.tableOperations().create(table);
+    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
     Mutation m = new Mutation("foo");
     m.put("cf", "cq", "value");
     bw.addMutation(m);

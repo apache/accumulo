@@ -54,8 +54,8 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   public UnorderedWorkAssigner() {}
 
-  public UnorderedWorkAssigner(AccumuloConfiguration conf, AccumuloClient conn) {
-    configure(conf, conn);
+  public UnorderedWorkAssigner(AccumuloConfiguration conf, AccumuloClient client) {
+    configure(conf, client);
   }
 
   @Override
@@ -137,7 +137,7 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
   @Override
   protected void cleanupFinishedWork() {
     final Iterator<String> work = queuedWork.iterator();
-    final String instanceId = conn.getInstanceID();
+    final String instanceId = client.getInstanceID();
     while (work.hasNext()) {
       String filename = work.next();
       // Null equates to the work was finished

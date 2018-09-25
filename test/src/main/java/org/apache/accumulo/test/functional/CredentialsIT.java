@@ -56,19 +56,19 @@ public class CredentialsIT extends AccumuloClusterHarness {
 
   @Before
   public void createLocalUser() throws AccumuloException, AccumuloSecurityException {
-    AccumuloClient conn = getAccumuloClient();
+    AccumuloClient client = getAccumuloClient();
     ClusterUser user = getUser(0);
     username = user.getPrincipal();
     saslEnabled = saslEnabled();
     // Create the user if it doesn't exist
-    Set<String> users = conn.securityOperations().listLocalUsers();
+    Set<String> users = client.securityOperations().listLocalUsers();
     if (!users.contains(username)) {
       PasswordToken passwdToken = null;
       if (!saslEnabled) {
         password = user.getPassword();
         passwdToken = new PasswordToken(password);
       }
-      conn.securityOperations().createLocalUser(username, passwdToken);
+      client.securityOperations().createLocalUser(username, passwdToken);
     }
   }
 

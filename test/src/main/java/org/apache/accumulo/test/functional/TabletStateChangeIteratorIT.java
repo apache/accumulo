@@ -194,14 +194,14 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   private void createTable(String t, boolean online) throws AccumuloSecurityException,
       AccumuloException, TableNotFoundException, TableExistsException {
-    AccumuloClient conn = getAccumuloClient();
-    conn.tableOperations().create(t);
-    conn.tableOperations().online(t, true);
+    AccumuloClient client = getAccumuloClient();
+    client.tableOperations().create(t);
+    client.tableOperations().online(t, true);
     SortedSet<Text> partitionKeys = new TreeSet<>();
     partitionKeys.add(new Text("some split"));
-    conn.tableOperations().addSplits(t, partitionKeys);
+    client.tableOperations().addSplits(t, partitionKeys);
     if (!online) {
-      conn.tableOperations().offline(t, true);
+      client.tableOperations().offline(t, true);
     }
   }
 

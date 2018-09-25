@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -134,13 +133,6 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
       context = new ServerContext(siteConfig, getClientInfo());
     }
     return context;
-  }
-
-  @Override
-  public Connector getConnector(String user, AuthenticationToken token)
-      throws AccumuloException, AccumuloSecurityException {
-    return Connector.from(Accumulo.newClient().forInstance(getInstanceName(), getZooKeepers())
-        .usingToken(user, token).build());
   }
 
   @Override

@@ -51,11 +51,11 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     // make a table
     final String tableName = getUniqueNames(1)[0];
-    final AccumuloClient conn = getAccumuloClient();
-    conn.tableOperations().create(tableName);
+    final AccumuloClient client = getAccumuloClient();
+    client.tableOperations().create(tableName);
 
     // make the world's slowest scanner
-    try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
       final IteratorSetting cfg = new IteratorSetting(100, SlowIterator.class);
       // Wait long enough to be sure we can catch it, but not indefinitely.
       SlowIterator.setSeekSleepTime(cfg, 60 * 1000);
@@ -67,10 +67,10 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
         public void run() {
           try {
             // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
-            String tserver = conn.instanceOperations().getTabletServers().iterator().next();
+            String tserver = client.instanceOperations().getTabletServers().iterator().next();
             do {
               ArrayList<ActiveScan> scans = new ArrayList<>(
-                  conn.instanceOperations().getActiveScans(tserver));
+                  client.instanceOperations().getActiveScans(tserver));
               Iterator<ActiveScan> iter = scans.iterator();
               while (iter.hasNext()) {
                 ActiveScan scan = iter.next();

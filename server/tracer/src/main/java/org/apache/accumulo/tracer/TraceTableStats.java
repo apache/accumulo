@@ -74,8 +74,8 @@ public class TraceTableStats {
 
   public void count(Opts opts)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    AccumuloClient conn = opts.getClient();
-    Scanner scanner = conn.createScanner(opts.getTableName(), Authorizations.EMPTY);
+    AccumuloClient client = opts.getClient();
+    Scanner scanner = client.createScanner(opts.getTableName(), Authorizations.EMPTY);
     scanner.setRange(new Range(null, true, "idx:", false));
     Map<String,SpanTypeCount> counts = new TreeMap<>();
     final SpanTypeCount hdfs = new SpanTypeCount();

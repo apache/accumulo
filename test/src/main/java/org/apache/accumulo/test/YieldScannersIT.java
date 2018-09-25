@@ -62,9 +62,9 @@ public class YieldScannersIT extends AccumuloClusterHarness {
   public void testScan() throws Exception {
     // make a table
     final String tableName = getUniqueNames(1)[0];
-    final AccumuloClient conn = getAccumuloClient();
-    conn.tableOperations().create(tableName);
-    final BatchWriter writer = conn.createBatchWriter(tableName, new BatchWriterConfig());
+    final AccumuloClient client = getAccumuloClient();
+    client.tableOperations().create(tableName);
+    final BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig());
     for (int i = 0; i < 10; i++) {
       byte[] row = {(byte) (START_ROW + i)};
       Mutation m = new Mutation(new Text(row));
@@ -76,7 +76,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
 
     log.info("Creating scanner");
     // make a scanner for a table with 10 keys
-    try (Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
       final IteratorSetting cfg = new IteratorSetting(100, YieldingIterator.class);
       scanner.addScanIterator(cfg);
 
@@ -116,9 +116,9 @@ public class YieldScannersIT extends AccumuloClusterHarness {
   public void testBatchScan() throws Exception {
     // make a table
     final String tableName = getUniqueNames(1)[0];
-    final AccumuloClient conn = getAccumuloClient();
-    conn.tableOperations().create(tableName);
-    final BatchWriter writer = conn.createBatchWriter(tableName, new BatchWriterConfig());
+    final AccumuloClient client = getAccumuloClient();
+    client.tableOperations().create(tableName);
+    final BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig());
     for (int i = 0; i < 10; i++) {
       byte[] row = {(byte) (START_ROW + i)};
       Mutation m = new Mutation(new Text(row));
@@ -130,7 +130,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
 
     log.info("Creating batch scanner");
     // make a scanner for a table with 10 keys
-    try (BatchScanner scanner = conn.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+    try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
       final IteratorSetting cfg = new IteratorSetting(100, YieldingIterator.class);
       scanner.addScanIterator(cfg);
       scanner.setRanges(Collections.singleton(new Range()));

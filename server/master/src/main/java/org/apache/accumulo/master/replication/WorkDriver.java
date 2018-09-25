@@ -38,7 +38,7 @@ public class WorkDriver extends Daemon {
   private static final Logger log = LoggerFactory.getLogger(WorkDriver.class);
 
   private Master master;
-  private AccumuloClient conn;
+  private AccumuloClient client;
   private AccumuloConfiguration conf;
 
   private WorkAssigner assigner;
@@ -47,7 +47,7 @@ public class WorkDriver extends Daemon {
   public WorkDriver(Master master) throws AccumuloException, AccumuloSecurityException {
     super();
     this.master = master;
-    this.conn = master.getClient();
+    this.client = master.getClient();
     this.conf = master.getConfiguration();
     configureWorkAssigner();
   }
@@ -67,7 +67,7 @@ public class WorkDriver extends Daemon {
         throw new RuntimeException(e);
       }
 
-      this.assigner.configure(conf, conn);
+      this.assigner.configure(conf, client);
       this.assignerImplName = assigner.getClass().getName();
       this.setName(assigner.getName());
     }
@@ -77,11 +77,11 @@ public class WorkDriver extends Daemon {
    * Getters/setters for testing purposes
    */
   protected AccumuloClient getClient() {
-    return conn;
+    return client;
   }
 
-  protected void setConnector(AccumuloClient conn) {
-    this.conn = conn;
+  protected void setClient(AccumuloClient client) {
+    this.client = client;
   }
 
   protected AccumuloConfiguration getConf() {

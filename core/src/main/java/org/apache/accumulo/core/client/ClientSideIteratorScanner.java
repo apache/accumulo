@@ -57,7 +57,7 @@ import org.apache.hadoop.io.Text;
  *
  * <pre>
  * <code>
- * Scanner scanner = connector.createScanner(tableName, authorizations);
+ * Scanner scanner = client.createScanner(tableName, authorizations);
  * scanner = new ClientSideIteratorScanner(scanner);
  * </code>
  * </pre>

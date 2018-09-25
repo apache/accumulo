@@ -90,11 +90,11 @@ class WriteExportFiles extends MasterRepo {
     if (reserved > 0)
       return reserved;
 
-    AccumuloClient conn = master.getClient();
+    AccumuloClient client = master.getClient();
 
     checkOffline(master.getContext());
 
-    Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     metaScanner.setRange(new KeyExtent(tableInfo.tableID, null, null).toMetadataRange());
 
     // scan for locations
@@ -254,11 +254,11 @@ class WriteExportFiles extends MasterRepo {
   private static void exportConfig(ServerContext context, Table.ID tableID, ZipOutputStream zipOut,
       DataOutputStream dataOut)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
-    AccumuloClient conn = context.getClient();
+    AccumuloClient client = context.getClient();
 
     DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
-    Map<String,String> siteConfig = conn.instanceOperations().getSiteConfiguration();
-    Map<String,String> systemConfig = conn.instanceOperations().getSystemConfiguration();
+    Map<String,String> siteConfig = client.instanceOperations().getSiteConfiguration();
+    Map<String,String> systemConfig = client.instanceOperations().getSystemConfiguration();
 
     TableConfiguration tableConfig = context.getServerConfFactory().getTableConfiguration(tableID);
 

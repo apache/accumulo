@@ -324,12 +324,12 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     return rows;
   }
 
-  private void writeFlush(AccumuloClient conn, String tablename, String row) throws Exception {
-    BatchWriter bw = conn.createBatchWriter(tablename, new BatchWriterConfig());
+  private void writeFlush(AccumuloClient client, String tablename, String row) throws Exception {
+    BatchWriter bw = client.createBatchWriter(tablename, new BatchWriterConfig());
     Mutation m = new Mutation(row);
     m.put("", "", "");
     bw.addMutation(m);
     bw.close();
-    conn.tableOperations().flush(tablename, null, null, true);
+    client.tableOperations().flush(tablename, null, null, true);
   }
 }

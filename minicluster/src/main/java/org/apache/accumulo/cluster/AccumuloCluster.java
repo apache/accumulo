@@ -22,7 +22,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.server.ServerContext;
@@ -52,14 +51,6 @@ public interface AccumuloCluster {
    * @return ServerContext
    */
   ServerContext getServerContext();
-
-  /**
-   * Utility method to get a connector to the cluster.
-   *
-   * @deprecated since 2.0.0, replaced by {@link #getAccumuloClient(String, AuthenticationToken)}
-   */
-  Connector getConnector(String user, AuthenticationToken token)
-      throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Utility method to get a client connection to the cluster.

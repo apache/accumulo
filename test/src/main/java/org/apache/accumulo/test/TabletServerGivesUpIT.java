@@ -46,11 +46,11 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
 
   @Test(timeout = 45 * 1000)
   public void test() throws Exception {
-    final AccumuloClient conn = this.getClient();
+    final AccumuloClient client = this.getClient();
     // Yes, there's a tabletserver
-    assertEquals(1, conn.instanceOperations().getTabletServers().size());
+    assertEquals(1, client.instanceOperations().getTabletServers().size());
     final String tableName = getUniqueNames(1)[0];
-    conn.tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
     // Kill dfs
     cluster.getMiniDfs().shutdown();
     // ask the tserver to do something
@@ -61,7 +61,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
         try {
           TreeSet<Text> splits = new TreeSet<>();
           splits.add(new Text("X"));
-          conn.tableOperations().addSplits(tableName, splits);
+          client.tableOperations().addSplits(tableName, splits);
         } catch (Exception e) {
           ex.set(e);
         }
@@ -69,7 +69,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
     };
     splitter.start();
     // wait for the tserver to give up on writing to the WAL
-    while (conn.instanceOperations().getTabletServers().size() == 1) {
+    while (client.instanceOperations().getTabletServers().size() == 1) {
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
   }

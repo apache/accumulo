@@ -142,11 +142,11 @@ public class UnusedWALIT extends ConfigurableMacBase {
     return result;
   }
 
-  private void writeSomeData(AccumuloClient conn, String table, int startRow, int rowCount,
+  private void writeSomeData(AccumuloClient client, String table, int startRow, int rowCount,
       int startCol, int colCount) throws Exception {
     BatchWriterConfig config = new BatchWriterConfig();
     config.setMaxMemory(10 * 1024 * 1024);
-    BatchWriter bw = conn.createBatchWriter(table, config);
+    BatchWriter bw = client.createBatchWriter(table, config);
     for (int r = startRow; r < startRow + rowCount; r++) {
       Mutation m = new Mutation(Integer.toHexString(r));
       for (int c = startCol; c < startCol + colCount; c++) {

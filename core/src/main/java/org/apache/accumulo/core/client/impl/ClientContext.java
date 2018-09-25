@@ -68,7 +68,7 @@ public class ClientContext {
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
   private AccumuloConfiguration serverConf;
-  protected AccumuloClient conn;
+  protected AccumuloClient client;
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
   // compute, so cache them.
@@ -210,14 +210,14 @@ public class ClientContext {
   }
 
   /**
-   * Retrieve a connector
+   * Retrieve an Accumulo client
    */
   public synchronized AccumuloClient getClient()
       throws AccumuloException, AccumuloSecurityException {
-    if (conn == null) {
-      conn = new AccumuloClientImpl(this);
+    if (client == null) {
+      client = new AccumuloClientImpl(this);
     }
-    return conn;
+    return client;
   }
 
   public BatchWriterConfig getBatchWriterConfig() {

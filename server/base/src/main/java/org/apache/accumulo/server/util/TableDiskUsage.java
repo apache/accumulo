@@ -147,12 +147,12 @@ public class TableDiskUsage {
   }
 
   public static void printDiskUsage(Collection<String> tableNames, VolumeManager fs,
-      AccumuloClient conn, boolean humanReadable) throws TableNotFoundException, IOException {
-    printDiskUsage(tableNames, fs, conn, line -> System.out.println(line), humanReadable);
+      AccumuloClient client, boolean humanReadable) throws TableNotFoundException, IOException {
+    printDiskUsage(tableNames, fs, client, line -> System.out.println(line), humanReadable);
   }
 
   public static Map<TreeSet<String>,Long> getDiskUsage(Set<Table.ID> tableIds, VolumeManager fs,
-      AccumuloClient conn) throws IOException {
+      AccumuloClient client) throws IOException {
     TableDiskUsage tdu = new TableDiskUsage();
 
     // Add each tableID
@@ -167,7 +167,7 @@ public class TableDiskUsage {
     for (Table.ID tableId : tableIds) {
       Scanner mdScanner;
       try {
-        mdScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+        mdScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       }
@@ -216,7 +216,7 @@ public class TableDiskUsage {
       }
     }
 
-    ClientContext context = new ClientContext(conn.info());
+    ClientContext context = new ClientContext(client.info());
     Map<Table.ID,String> reverseTableIdMap = Tables.getIdToNameMap(context);
 
     TreeMap<TreeSet<String>,Long> usage = new TreeMap<>((o1, o2) -> {
@@ -267,11 +267,11 @@ public class TableDiskUsage {
   }
 
   public static void printDiskUsage(Collection<String> tableNames, VolumeManager fs,
-      AccumuloClient conn, Printer printer, boolean humanReadable)
+      AccumuloClient client, Printer printer, boolean humanReadable)
       throws TableNotFoundException, IOException {
 
     HashSet<Table.ID> tableIds = new HashSet<>();
-    ClientContext context = new ClientContext(conn.info());
+    ClientContext context = new ClientContext(client.info());
 
     // Get table IDs for all tables requested to be 'du'
     for (String tableName : tableNames) {
@@ -282,7 +282,7 @@ public class TableDiskUsage {
       tableIds.add(tableId);
     }
 
-    Map<TreeSet<String>,Long> usage = getDiskUsage(tableIds, fs, conn);
+    Map<TreeSet<String>,Long> usage = getDiskUsage(tableIds, fs, client);
 
     String valueFormat = humanReadable ? "%9s" : "%,24d";
     for (Entry<TreeSet<String>,Long> entry : usage.entrySet()) {
@@ -299,9 +299,9 @@ public class TableDiskUsage {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(TableDiskUsage.class.getName(), args);
-    AccumuloClient conn = opts.getClient();
+    AccumuloClient client = opts.getClient();
     VolumeManager fs = opts.getServerContext().getVolumeManager();
-    org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, fs, conn, false);
+    org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, fs, client, false);
   }
 
 }

@@ -225,15 +225,15 @@ public class ReplicationUtil {
   /**
    * Fetches the absolute path of the file to be replicated.
    *
-   * @param conn
-   *          Accumulo Connector
+   * @param client
+   *          Accumulo Client
    * @param workQueuePath
    *          Root path for the Replication WorkQueue
    * @param queueKey
    *          The Replication work queue key
    * @return The absolute path for the file, or null if the key is no longer in ZooKeeper
    */
-  public String getAbsolutePath(AccumuloClient conn, String workQueuePath, String queueKey) {
+  public String getAbsolutePath(AccumuloClient client, String workQueuePath, String queueKey) {
     byte[] data = zooCache.get(workQueuePath + "/" + queueKey);
     if (null != data) {
       return new String(data, UTF_8);
@@ -245,22 +245,22 @@ public class ReplicationUtil {
   /**
    * Compute a progress string for the replication of the given WAL
    *
-   * @param conn
-   *          Accumulo Connector
+   * @param client
+   *          Accumulo Client
    * @param path
    *          Absolute path to a WAL, or null
    * @param target
    *          ReplicationTarget the WAL is being replicated to
    * @return A status message for a file being replicated
    */
-  public String getProgress(AccumuloClient conn, String path, ReplicationTarget target) {
+  public String getProgress(AccumuloClient client, String path, ReplicationTarget target) {
     // We could try to grep over the table, but without knowing the full file path, we
     // can't find the status quickly
     String status = "Unknown";
     if (null != path) {
       Scanner s;
       try {
-        s = ReplicationTable.getScanner(conn);
+        s = ReplicationTable.getScanner(client);
       } catch (ReplicationTableOfflineException e) {
         log.debug("Replication table no longer online", e);
         return status;

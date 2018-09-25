@@ -41,89 +41,89 @@ public class DeleteAuthsCommandTest {
 
   @Test
   public void deleteExistingAuth() throws Exception {
-    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
+    AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
     ConsoleReader reader = EasyMock.createMock(ConsoleReader.class);
     SecurityOperations secOps = EasyMock.createMock(SecurityOperations.class);
 
-    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
 
     // We're the root user
-    EasyMock.expect(conn.whoami()).andReturn("root");
+    EasyMock.expect(client.whoami()).andReturn("root");
     EasyMock.expect(cli.getOptionValue("u", "root")).andReturn("foo");
     EasyMock.expect(cli.getOptionValue("s")).andReturn("abc");
 
-    EasyMock.expect(conn.securityOperations()).andReturn(secOps);
-    EasyMock.expect(conn.securityOperations()).andReturn(secOps);
+    EasyMock.expect(client.securityOperations()).andReturn(secOps);
+    EasyMock.expect(client.securityOperations()).andReturn(secOps);
     EasyMock.expect(secOps.getUserAuthorizations("foo"))
         .andReturn(new Authorizations("abc", "123"));
     secOps.changeUserAuthorizations("foo", new Authorizations("123"));
     EasyMock.expectLastCall();
 
-    EasyMock.replay(conn, cli, shellState, reader, secOps);
+    EasyMock.replay(client, cli, shellState, reader, secOps);
 
     cmd.execute("deleteauths -u foo -s abc", cli, shellState);
 
-    EasyMock.verify(conn, cli, shellState, reader, secOps);
+    EasyMock.verify(client, cli, shellState, reader, secOps);
   }
 
   @Test
   public void deleteNonExistingAuth() throws Exception {
-    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
+    AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
     ConsoleReader reader = EasyMock.createMock(ConsoleReader.class);
     SecurityOperations secOps = EasyMock.createMock(SecurityOperations.class);
 
-    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
 
     // We're the root user
-    EasyMock.expect(conn.whoami()).andReturn("root");
+    EasyMock.expect(client.whoami()).andReturn("root");
     EasyMock.expect(cli.getOptionValue("u", "root")).andReturn("foo");
     EasyMock.expect(cli.getOptionValue("s")).andReturn("def");
 
-    EasyMock.expect(conn.securityOperations()).andReturn(secOps);
-    EasyMock.expect(conn.securityOperations()).andReturn(secOps);
+    EasyMock.expect(client.securityOperations()).andReturn(secOps);
+    EasyMock.expect(client.securityOperations()).andReturn(secOps);
     EasyMock.expect(secOps.getUserAuthorizations("foo"))
         .andReturn(new Authorizations("abc", "123"));
     secOps.changeUserAuthorizations("foo", new Authorizations("abc", "123"));
     EasyMock.expectLastCall();
 
-    EasyMock.replay(conn, cli, shellState, reader, secOps);
+    EasyMock.replay(client, cli, shellState, reader, secOps);
 
     cmd.execute("deleteauths -u foo -s def", cli, shellState);
 
-    EasyMock.verify(conn, cli, shellState, reader, secOps);
+    EasyMock.verify(client, cli, shellState, reader, secOps);
   }
 
   @Test
   public void deleteAllAuth() throws Exception {
-    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
+    AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     CommandLine cli = EasyMock.createMock(CommandLine.class);
     Shell shellState = EasyMock.createMock(Shell.class);
     ConsoleReader reader = EasyMock.createMock(ConsoleReader.class);
     SecurityOperations secOps = EasyMock.createMock(SecurityOperations.class);
 
-    EasyMock.expect(shellState.getAccumuloClient()).andReturn(conn);
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client);
 
     // We're the root user
-    EasyMock.expect(conn.whoami()).andReturn("root");
+    EasyMock.expect(client.whoami()).andReturn("root");
     EasyMock.expect(cli.getOptionValue("u", "root")).andReturn("foo");
     EasyMock.expect(cli.getOptionValue("s")).andReturn("abc,123");
 
-    EasyMock.expect(conn.securityOperations()).andReturn(secOps);
-    EasyMock.expect(conn.securityOperations()).andReturn(secOps);
+    EasyMock.expect(client.securityOperations()).andReturn(secOps);
+    EasyMock.expect(client.securityOperations()).andReturn(secOps);
     EasyMock.expect(secOps.getUserAuthorizations("foo"))
         .andReturn(new Authorizations("abc", "123"));
     secOps.changeUserAuthorizations("foo", new Authorizations());
     EasyMock.expectLastCall();
 
-    EasyMock.replay(conn, cli, shellState, reader, secOps);
+    EasyMock.replay(client, cli, shellState, reader, secOps);
 
     cmd.execute("deleteauths -u foo -s abc,123", cli, shellState);
 
-    EasyMock.verify(conn, cli, shellState, reader, secOps);
+    EasyMock.verify(client, cli, shellState, reader, secOps);
   }
 
 }

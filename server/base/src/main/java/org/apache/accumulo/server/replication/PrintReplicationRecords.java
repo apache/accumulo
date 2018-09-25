@@ -40,12 +40,12 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class PrintReplicationRecords implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(PrintReplicationRecords.class);
 
-  private AccumuloClient conn;
+  private AccumuloClient client;
   private PrintStream out;
   private SimpleDateFormat sdf;
 
-  public PrintReplicationRecords(AccumuloClient conn, PrintStream out) {
-    this.conn = conn;
+  public PrintReplicationRecords(AccumuloClient client, PrintStream out) {
+    this.client = client;
     this.out = out;
     this.sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
   }
@@ -57,7 +57,7 @@ public class PrintReplicationRecords implements Runnable {
     out.println(sdf.format(new Date()) + " Replication entries from metadata table");
     out.println("------------------------------------------------------------------");
     try {
-      s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     } catch (TableNotFoundException e) {
       log.error("Metadata table does not exist");
       return;
@@ -79,7 +79,7 @@ public class PrintReplicationRecords implements Runnable {
     out.println("--------------------------------------------------------------------");
 
     try {
-      s = conn.createScanner(ReplicationTable.NAME, Authorizations.EMPTY);
+      s = client.createScanner(ReplicationTable.NAME, Authorizations.EMPTY);
     } catch (TableNotFoundException e) {
       log.error("Replication table does not exist");
       return;

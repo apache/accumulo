@@ -68,13 +68,13 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
   @Test
   public void testExportImportThenScan() throws Exception {
-    AccumuloClient conn = getAccumuloClient();
+    AccumuloClient client = getAccumuloClient();
 
     String[] tableNames = getUniqueNames(2);
     String srcTable = tableNames[0], destTable = tableNames[1];
-    conn.tableOperations().create(srcTable);
+    client.tableOperations().create(srcTable);
 
-    BatchWriter bw = conn.createBatchWriter(srcTable, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(srcTable, new BatchWriterConfig());
     for (int row = 0; row < 1000; row++) {
       Mutation m = new Mutation(Integer.toString(row));
       for (int col = 0; col < 100; col++) {
@@ -85,7 +85,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
     bw.close();
 
-    conn.tableOperations().compact(srcTable, null, null, true, true);
+    client.tableOperations().compact(srcTable, null, null, true, true);
 
     // Make a directory we can use to throw the export and import directories
     // Must exist on the filesystem the cluster is running.
@@ -109,9 +109,9 @@ public class ImportExportIT extends AccumuloClusterHarness {
     log.info("Importing table from {}", importDir);
 
     // Offline the table
-    conn.tableOperations().offline(srcTable, true);
+    client.tableOperations().offline(srcTable, true);
     // Then export it
-    conn.tableOperations().exportTable(srcTable, exportDir.toString());
+    client.tableOperations().exportTable(srcTable, exportDir.toString());
 
     // Make sure the distcp.txt file that exporttable creates is available
     Path distcp = new Path(exportDir, "distcp.txt");
@@ -135,16 +135,16 @@ public class ImportExportIT extends AccumuloClusterHarness {
     log.info("Import dir: {}", Arrays.toString(fs.listStatus(importDir)));
 
     // Import the exported data into a new table
-    conn.tableOperations().importTable(destTable, importDir.toString());
+    client.tableOperations().importTable(destTable, importDir.toString());
 
     // Get the table ID for the table that the importtable command created
-    final String tableId = conn.tableOperations().tableIdMap().get(destTable);
+    final String tableId = client.tableOperations().tableIdMap().get(destTable);
     assertNotNull(tableId);
 
     // Get all `file` colfams from the metadata table for the new table
     log.info("Imported into table with ID: {}", tableId);
 
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.TabletsSection
           .getRange(org.apache.accumulo.core.client.impl.Table.ID.of(tableId)));
       s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
@@ -171,15 +171,15 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
     }
     // Online the original table before we verify equivalence
-    conn.tableOperations().online(srcTable, true);
+    client.tableOperations().online(srcTable, true);
 
-    verifyTableEquality(conn, srcTable, destTable);
+    verifyTableEquality(client, srcTable, destTable);
   }
 
-  private void verifyTableEquality(AccumuloClient conn, String srcTable, String destTable)
+  private void verifyTableEquality(AccumuloClient client, String srcTable, String destTable)
       throws Exception {
-    Iterator<Entry<Key,Value>> src = conn.createScanner(srcTable, Authorizations.EMPTY).iterator(),
-        dest = conn.createScanner(destTable, Authorizations.EMPTY).iterator();
+    Iterator<Entry<Key,Value>> src = client.createScanner(srcTable, Authorizations.EMPTY)
+        .iterator(), dest = client.createScanner(destTable, Authorizations.EMPTY).iterator();
     assertTrue("Could not read any data from source table", src.hasNext());
     assertTrue("Could not read any data from destination table", dest.hasNext());
     while (src.hasNext() && dest.hasNext()) {

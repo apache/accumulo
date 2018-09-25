@@ -57,10 +57,10 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class RemoveCompleteReplicationRecords implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(RemoveCompleteReplicationRecords.class);
 
-  private AccumuloClient conn;
+  private AccumuloClient client;
 
-  public RemoveCompleteReplicationRecords(AccumuloClient conn) {
-    this.conn = conn;
+  public RemoveCompleteReplicationRecords(AccumuloClient client) {
+    this.client = client;
   }
 
   @Override
@@ -68,8 +68,8 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     BatchScanner bs;
     BatchWriter bw;
     try {
-      bs = ReplicationTable.getBatchScanner(conn, 4);
-      bw = ReplicationTable.getBatchWriter(conn);
+      bs = ReplicationTable.getBatchScanner(client, 4);
+      bw = ReplicationTable.getBatchWriter(client);
 
       if (bs == null || bw == null)
         throw new AssertionError("Inconceivable; an exception should have been"
@@ -90,7 +90,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     long recordsRemoved = 0;
     try {
       sw.start();
-      recordsRemoved = removeCompleteRecords(conn, bs, bw);
+      recordsRemoved = removeCompleteRecords(client, bs, bw);
     } finally {
       if (null != bs) {
         bs.close();
@@ -115,15 +115,15 @@ public class RemoveCompleteReplicationRecords implements Runnable {
    * given {@code bw}, when that {@link Status} is fully replicated and closed, as defined by
    * {@link StatusUtil#isSafeForRemoval(org.apache.accumulo.server.replication.proto.Replication.Status)}.
    *
-   * @param conn
-   *          A Connector
+   * @param client
+   *          Accumulo client
    * @param bs
    *          A BatchScanner to read replication status records from
    * @param bw
    *          A BatchWriter to write deletes to
    * @return Number of records removed
    */
-  protected long removeCompleteRecords(AccumuloClient conn, BatchScanner bs, BatchWriter bw) {
+  protected long removeCompleteRecords(AccumuloClient client, BatchScanner bs, BatchWriter bw) {
     Text row = new Text(), colf = new Text(), colq = new Text();
     long recordsRemoved = 0;
 

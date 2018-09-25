@@ -60,7 +60,7 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
   public interface SourceOptions {
     TableOptions from(ClientContext ctx);
 
-    TableOptions from(AccumuloClient conn);
+    TableOptions from(AccumuloClient client);
   }
 
   public interface TableOptions {
@@ -147,7 +147,7 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
 
     private List<Text> families = new ArrayList<>();
     private List<ColumnFQ> qualifiers = new ArrayList<>();
-    private AccumuloClient conn;
+    private AccumuloClient client;
     private String table = MetadataTable.NAME;
     private Range range;
     private EnumSet<FetchedColumns> fetchedCols = EnumSet.noneOf(FetchedColumns.class);
@@ -223,7 +223,7 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
     public MetadataScanner build()
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
-      Scanner scanner = new IsolatedScanner(conn.createScanner(table, Authorizations.EMPTY));
+      Scanner scanner = new IsolatedScanner(client.createScanner(table, Authorizations.EMPTY));
       scanner.setRange(range);
 
       if (checkConsistency && !fetchedCols.contains(FetchedColumns.PREV_ROW)) {
@@ -257,7 +257,7 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
     @Override
     public TableOptions from(ClientContext ctx) {
       try {
-        this.conn = ctx.getClient();
+        this.client = ctx.getClient();
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new RuntimeException(e);
       }
@@ -265,8 +265,8 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
-    public TableOptions from(AccumuloClient conn) {
-      this.conn = conn;
+    public TableOptions from(AccumuloClient client) {
+      this.client = client;
       return this;
     }
 

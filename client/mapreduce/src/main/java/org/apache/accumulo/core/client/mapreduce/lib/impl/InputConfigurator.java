@@ -734,12 +734,12 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
-   * @param conn
-   *          the Connector
+   * @param client
+   *          the Accumulo client
    * @since 1.7.0
    */
   public static void validatePermissions(Class<?> implementingClass, Configuration conf,
-      AccumuloClient conn) throws IOException {
+      AccumuloClient client) throws IOException {
     Map<String,InputTableConfig> inputTableConfigs = getInputTableConfigs(implementingClass, conf);
     try {
       if (getInputTableConfigs(implementingClass, conf).size() == 0)
@@ -751,7 +751,7 @@ public class InputConfigurator extends ConfiguratorBase {
       }
 
       for (Map.Entry<String,InputTableConfig> tableConfig : inputTableConfigs.entrySet()) {
-        if (!conn.securityOperations().hasTablePermission(principal, tableConfig.getKey(),
+        if (!client.securityOperations().hasTablePermission(principal, tableConfig.getKey(),
             TablePermission.READ))
           throw new IOException("Unable to access table");
       }
@@ -760,7 +760,7 @@ public class InputConfigurator extends ConfiguratorBase {
         if (!tableConfig.shouldUseLocalIterators()) {
           if (tableConfig.getIterators() != null) {
             for (IteratorSetting iter : tableConfig.getIterators()) {
-              if (!conn.tableOperations().testClassLoad(tableConfigEntry.getKey(),
+              if (!client.tableOperations().testClassLoad(tableConfigEntry.getKey(),
                   iter.getIteratorClass(), SortedKeyValueIterator.class.getName()))
                 throw new AccumuloException("Servers are unable to load " + iter.getIteratorClass()
                     + " as a " + SortedKeyValueIterator.class.getName());

@@ -58,9 +58,9 @@ public class ReplicationTable {
   public static final Map<String,Set<Text>> LOCALITY_GROUPS = ImmutableMap.of(STATUS_LG_NAME,
       STATUS_LG_COLFAMS, WORK_LG_NAME, WORK_LG_COLFAMS);
 
-  public static Scanner getScanner(AccumuloClient conn) throws ReplicationTableOfflineException {
+  public static Scanner getScanner(AccumuloClient client) throws ReplicationTableOfflineException {
     try {
-      return conn.createScanner(NAME, Authorizations.EMPTY);
+      return client.createScanner(NAME, Authorizations.EMPTY);
     } catch (TableNotFoundException e) {
       throw new AssertionError(NAME + " should exist, but doesn't.");
     } catch (TableOfflineException e) {
@@ -68,10 +68,10 @@ public class ReplicationTable {
     }
   }
 
-  public static BatchWriter getBatchWriter(AccumuloClient conn)
+  public static BatchWriter getBatchWriter(AccumuloClient client)
       throws ReplicationTableOfflineException {
     try {
-      return conn.createBatchWriter(NAME, new BatchWriterConfig());
+      return client.createBatchWriter(NAME, new BatchWriterConfig());
     } catch (TableNotFoundException e) {
       throw new AssertionError(NAME + " should exist, but doesn't.");
     } catch (TableOfflineException e) {
@@ -79,10 +79,10 @@ public class ReplicationTable {
     }
   }
 
-  public static BatchScanner getBatchScanner(AccumuloClient conn, int queryThreads)
+  public static BatchScanner getBatchScanner(AccumuloClient client, int queryThreads)
       throws ReplicationTableOfflineException {
     try {
-      return conn.createBatchScanner(NAME, Authorizations.EMPTY, queryThreads);
+      return client.createBatchScanner(NAME, Authorizations.EMPTY, queryThreads);
     } catch (TableNotFoundException e) {
       throw new AssertionError(NAME + " should exist, but doesn't.");
     } catch (TableOfflineException e) {
@@ -90,15 +90,15 @@ public class ReplicationTable {
     }
   }
 
-  public static boolean isOnline(AccumuloClient conn) {
-    return TableState.ONLINE == Tables.getTableState(new ClientContext(conn.info()), ID);
+  public static boolean isOnline(AccumuloClient client) {
+    return TableState.ONLINE == Tables.getTableState(new ClientContext(client.info()), ID);
   }
 
-  public static void setOnline(AccumuloClient conn)
+  public static void setOnline(AccumuloClient client)
       throws AccumuloSecurityException, AccumuloException {
     try {
       log.info("Bringing replication table online");
-      conn.tableOperations().online(NAME, true);
+      client.tableOperations().online(NAME, true);
     } catch (TableNotFoundException e) {
       throw new AssertionError(NAME + " should exist, but doesn't.");
     }

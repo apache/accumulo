@@ -54,7 +54,7 @@ public class MergeTest {
     protected void message(String format, Object... args) {}
 
     @Override
-    protected Iterator<Size> getSizeIterator(AccumuloClient conn, String tablename,
+    protected Iterator<Size> getSizeIterator(AccumuloClient client, String tablename,
         final Text start, final Text end) throws MergeException {
       final Iterator<Size> impl = tablets.iterator();
       return new Iterator<Size>() {
@@ -98,7 +98,7 @@ public class MergeTest {
     }
 
     @Override
-    protected void merge(AccumuloClient conn, String table, List<Size> sizes, int numToMerge)
+    protected void merge(AccumuloClient client, String table, List<Size> sizes, int numToMerge)
         throws MergeException {
       List<Size> merge = new ArrayList<>();
       for (int i = 0; i < numToMerge; i++) {

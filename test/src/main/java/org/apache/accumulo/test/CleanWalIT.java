@@ -68,22 +68,22 @@ public class CleanWalIT extends AccumuloClusterHarness {
 
   @Before
   public void offlineTraceTable() throws Exception {
-    AccumuloClient conn = getAccumuloClient();
-    String traceTable = conn.instanceOperations().getSystemConfiguration()
+    AccumuloClient client = getAccumuloClient();
+    String traceTable = client.instanceOperations().getSystemConfiguration()
         .get(Property.TRACE_TABLE.getKey());
-    if (conn.tableOperations().exists(traceTable)) {
-      conn.tableOperations().offline(traceTable, true);
+    if (client.tableOperations().exists(traceTable)) {
+      client.tableOperations().offline(traceTable, true);
     }
   }
 
   @After
   public void onlineTraceTable() throws Exception {
     if (null != cluster) {
-      AccumuloClient conn = getAccumuloClient();
-      String traceTable = conn.instanceOperations().getSystemConfiguration()
+      AccumuloClient client = getAccumuloClient();
+      String traceTable = client.instanceOperations().getSystemConfiguration()
           .get(Property.TRACE_TABLE.getKey());
-      if (conn.tableOperations().exists(traceTable)) {
-        conn.tableOperations().online(traceTable, true);
+      if (client.tableOperations().exists(traceTable)) {
+        client.tableOperations().online(traceTable, true);
       }
     }
   }
@@ -91,10 +91,10 @@ public class CleanWalIT extends AccumuloClusterHarness {
   // test for ACCUMULO-1830
   @Test
   public void test() throws Exception {
-    AccumuloClient conn = getAccumuloClient();
+    AccumuloClient client = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
-    conn.tableOperations().create(tableName);
-    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+    client.tableOperations().create(tableName);
+    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("row");
     m.put("cf", "cq", "value");
     bw.addMutation(m);
@@ -105,35 +105,35 @@ public class CleanWalIT extends AccumuloClusterHarness {
     getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
 
     for (String table : new String[] {MetadataTable.NAME, RootTable.NAME})
-      conn.tableOperations().flush(table, null, null, true);
+      client.tableOperations().flush(table, null, null, true);
     log.debug("Checking entries for {}", tableName);
-    assertEquals(1, count(tableName, conn));
+    assertEquals(1, count(tableName, client));
     for (String table : new String[] {MetadataTable.NAME, RootTable.NAME}) {
       log.debug("Checking logs for {}", table);
-      assertEquals("Found logs for " + table, 0, countLogs(table, conn));
+      assertEquals("Found logs for " + table, 0, countLogs(table, client));
     }
 
-    bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+    bw = client.createBatchWriter(tableName, new BatchWriterConfig());
     m = new Mutation("row");
     m.putDelete("cf", "cq");
     bw.addMutation(m);
     bw.close();
-    assertEquals(0, count(tableName, conn));
-    conn.tableOperations().flush(tableName, null, null, true);
-    conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
-    conn.tableOperations().flush(RootTable.NAME, null, null, true);
+    assertEquals(0, count(tableName, client));
+    client.tableOperations().flush(tableName, null, null, true);
+    client.tableOperations().flush(MetadataTable.NAME, null, null, true);
+    client.tableOperations().flush(RootTable.NAME, null, null, true);
     try {
       getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       sleepUninterruptibly(3, TimeUnit.SECONDS);
     } finally {
       getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
     }
-    assertEquals(0, count(tableName, conn));
+    assertEquals(0, count(tableName, client));
   }
 
-  private int countLogs(String tableName, AccumuloClient conn) throws TableNotFoundException {
+  private int countLogs(String tableName, AccumuloClient client) throws TableNotFoundException {
     int count = 0;
-    try (Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
       for (Entry<Key,Value> entry : scanner) {
@@ -144,8 +144,8 @@ public class CleanWalIT extends AccumuloClusterHarness {
     return count;
   }
 
-  int count(String tableName, AccumuloClient conn) throws Exception {
-    try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
+  int count(String tableName, AccumuloClient client) throws Exception {
+    try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
       return Iterators.size(s.iterator());
     }
   }

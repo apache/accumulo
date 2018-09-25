@@ -252,10 +252,10 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void testProperPortAdvertisement() throws Exception {
 
-    AccumuloClient conn = getClient();
+    AccumuloClient client = getClient();
 
     ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
-    String path = ZooUtil.getRoot(conn.getInstanceID()) + Constants.ZGC_LOCK;
+    String path = ZooUtil.getRoot(client.getInstanceID()) + Constants.ZGC_LOCK;
     for (int i = 0; i < 5; i++) {
       List<String> locks;
       try {
@@ -300,10 +300,10 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     return Iterators.size(Arrays.asList(cluster.getFileSystem().globStatus(path)).iterator());
   }
 
-  public static void addEntries(AccumuloClient conn, BatchWriterOpts bwOpts) throws Exception {
-    conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME,
+  public static void addEntries(AccumuloClient client, BatchWriterOpts bwOpts) throws Exception {
+    client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
-    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, bwOpts.getBatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, bwOpts.getBatchWriterConfig());
 
     for (int i = 0; i < 100000; ++i) {
       final Text emptyText = new Text("");

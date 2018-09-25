@@ -96,13 +96,13 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient conn = getClient();
+    AccumuloClient client = getClient();
     ClusterUser user = getAdminUser();
 
-    ReplicationTable.setOnline(conn);
-    conn.securityOperations().grantTablePermission(user.getPrincipal(), ReplicationTable.NAME,
+    ReplicationTable.setOnline(client);
+    client.securityOperations().grantTablePermission(user.getPrincipal(), ReplicationTable.NAME,
         TablePermission.WRITE);
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     long createTime = System.currentTimeMillis();
     try {
       Mutation m = new Mutation(
@@ -114,11 +114,11 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
     }
 
     Entry<Key,Value> entry;
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       entry = Iterables.getOnlyElement(s);
       assertEquals(StatusUtil.fileCreatedValue(createTime), entry.getValue());
 
-      bw = ReplicationTable.getBatchWriter(conn);
+      bw = ReplicationTable.getBatchWriter(client);
       try {
         Mutation m = new Mutation(
             "file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
@@ -130,7 +130,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
       }
     }
 
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       entry = Iterables.getOnlyElement(s);
       Status stat = Status.parseFrom(entry.getValue().get());
       assertEquals(Long.MAX_VALUE, stat.getBegin());

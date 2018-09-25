@@ -58,7 +58,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.MasterClient;
@@ -771,13 +770,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    */
   public MiniAccumuloConfigImpl getConfig() {
     return config;
-  }
-
-  @Override
-  public Connector getConnector(String user, AuthenticationToken token)
-      throws AccumuloException, AccumuloSecurityException {
-    return Connector.from(new AccumuloClientImpl.AccumuloClientBuilderImpl()
-        .usingClientInfo(getClientInfo()).usingToken(user, token).build());
   }
 
   @Override

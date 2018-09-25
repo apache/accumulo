@@ -482,9 +482,9 @@ public class SimpleGarbageCollector implements Iface {
     @Override
     public Iterator<Entry<String,Status>> getReplicationNeededIterator()
         throws AccumuloException, AccumuloSecurityException {
-      AccumuloClient conn = getClient();
+      AccumuloClient client = getClient();
       try {
-        Scanner s = ReplicationTable.getScanner(conn);
+        Scanner s = ReplicationTable.getScanner(client);
         StatusSection.limit(s);
         return Iterators.transform(s.iterator(), input -> {
           String file = input.getKey().getRow().toString();

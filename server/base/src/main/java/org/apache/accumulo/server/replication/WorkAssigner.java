@@ -32,7 +32,7 @@ public interface WorkAssigner {
   /**
    * Configure the WorkAssigner implementation
    */
-  void configure(AccumuloConfiguration conf, AccumuloClient conn);
+  void configure(AccumuloConfiguration conf, AccumuloClient client);
 
   /**
    * Assign work for replication

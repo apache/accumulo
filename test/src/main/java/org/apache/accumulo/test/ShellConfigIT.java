@@ -48,22 +48,22 @@ public class ShellConfigIT extends AccumuloClusterHarness {
 
   @Before
   public void checkProperty() throws Exception {
-    AccumuloClient conn = getAccumuloClient();
+    AccumuloClient client = getAccumuloClient();
     // TABLE_VOLUME_CHOOSER is a valid property that can be updated in ZK, whereas the crypto
     // properties are not.
     // This lets us run this test more generically rather than forcibly needing to update some
     // property in accumulo.properties
-    origPropValue = conn.instanceOperations().getSystemConfiguration()
+    origPropValue = client.instanceOperations().getSystemConfiguration()
         .get(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER);
-    conn.instanceOperations().setProperty(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER,
+    client.instanceOperations().setProperty(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER,
         FairVolumeChooser.class.getName());
   }
 
   @After
   public void resetProperty() throws Exception {
     if (null != origPropValue) {
-      AccumuloClient conn = getAccumuloClient();
-      conn.instanceOperations().setProperty(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER,
+      AccumuloClient client = getAccumuloClient();
+      client.instanceOperations().setProperty(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER,
           origPropValue);
     }
   }

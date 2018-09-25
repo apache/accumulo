@@ -124,36 +124,36 @@ public class SampleIT extends AccumuloClusterHarness {
   @Test
   public void testBasic() throws Exception {
 
-    AccumuloClient conn = getAccumuloClient();
+    AccumuloClient client = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     String clone = tableName + "_clone";
 
-    conn.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
+    client.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
 
-    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
 
     TreeMap<Key,Value> expected = new TreeMap<>();
     String someRow = writeData(bw, SC1, expected);
     assertEquals(20, expected.size());
 
-    Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    Scanner isoScanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
+    Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
+    Scanner isoScanner = new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY));
     Scanner csiScanner = new ClientSideIteratorScanner(
-        conn.createScanner(tableName, Authorizations.EMPTY));
+        client.createScanner(tableName, Authorizations.EMPTY));
     scanner.setSamplerConfiguration(SC1);
     csiScanner.setSamplerConfiguration(SC1);
     isoScanner.setSamplerConfiguration(SC1);
     isoScanner.setBatchSize(10);
 
-    BatchScanner bScanner = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2);
+    BatchScanner bScanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 2);
     bScanner.setSamplerConfiguration(SC1);
     bScanner.setRanges(Arrays.asList(new Range()));
 
     check(expected, scanner, bScanner, isoScanner, csiScanner);
 
-    conn.tableOperations().flush(tableName, null, null, true);
+    client.tableOperations().flush(tableName, null, null, true);
 
-    Scanner oScanner = newOfflineScanner(conn, tableName, clone, SC1);
+    Scanner oScanner = newOfflineScanner(client, tableName, clone, SC1);
     check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
 
     // ensure non sample data can be scanned after scanning sample data
@@ -185,9 +185,9 @@ public class SampleIT extends AccumuloClusterHarness {
 
     check(expected, scanner, bScanner, isoScanner, csiScanner);
 
-    conn.tableOperations().flush(tableName, null, null, true);
+    client.tableOperations().flush(tableName, null, null, true);
 
-    oScanner = newOfflineScanner(conn, tableName, clone, SC1);
+    oScanner = newOfflineScanner(client, tableName, clone, SC1);
     check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
 
     scanner.setRange(new Range(someRow));
@@ -204,17 +204,17 @@ public class SampleIT extends AccumuloClusterHarness {
     check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
   }
 
-  private Scanner newOfflineScanner(AccumuloClient conn, String tableName, String clone,
+  private Scanner newOfflineScanner(AccumuloClient client, String tableName, String clone,
       SamplerConfiguration sc) throws Exception {
-    if (conn.tableOperations().exists(clone)) {
-      conn.tableOperations().delete(clone);
+    if (client.tableOperations().exists(clone)) {
+      client.tableOperations().delete(clone);
     }
     Map<String,String> em = Collections.emptyMap();
     Set<String> es = Collections.emptySet();
-    conn.tableOperations().clone(tableName, clone, false, em, es);
-    conn.tableOperations().offline(clone, true);
-    Table.ID cloneID = Table.ID.of(conn.tableOperations().tableIdMap().get(clone));
-    ClientContext context = new ClientContext(conn.info());
+    client.tableOperations().clone(tableName, clone, false, em, es);
+    client.tableOperations().offline(clone, true);
+    Table.ID cloneID = Table.ID.of(client.tableOperations().tableIdMap().get(clone));
+    ClientContext context = new ClientContext(client.info());
     OfflineScanner oScanner = new OfflineScanner(context, cloneID, Authorizations.EMPTY);
     if (sc != null) {
       oScanner.setSamplerConfiguration(sc);
@@ -306,13 +306,13 @@ public class SampleIT extends AccumuloClusterHarness {
 
   @Test
   public void testIterator() throws Exception {
-    AccumuloClient conn = getAccumuloClient();
+    AccumuloClient client = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     String clone = tableName + "_clone";
 
-    conn.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
+    client.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
 
-    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
 
     TreeMap<Key,Value> expected = new TreeMap<>();
     writeData(bw, SC1, expected);
@@ -327,11 +327,11 @@ public class SampleIT extends AccumuloClusterHarness {
     BatchScanner bScanner = null;
     Scanner oScanner = null;
     try {
-      scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-      isoScanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
+      scanner = client.createScanner(tableName, Authorizations.EMPTY);
+      isoScanner = new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY));
       csiScanner = new ClientSideIteratorScanner(
-          conn.createScanner(tableName, Authorizations.EMPTY));
-      bScanner = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2);
+          client.createScanner(tableName, Authorizations.EMPTY));
+      bScanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 2);
 
       csiScanner.setIteratorSamplerConfiguration(SC1);
 
@@ -357,9 +357,9 @@ public class SampleIT extends AccumuloClusterHarness {
       }
 
       // flush an rerun same test against files
-      conn.tableOperations().flush(tableName, null, null, true);
+      client.tableOperations().flush(tableName, null, null, true);
 
-      oScanner = newOfflineScanner(conn, tableName, clone, null);
+      oScanner = newOfflineScanner(client, tableName, clone, null);
       oScanner.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
       scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
 
@@ -373,11 +373,11 @@ public class SampleIT extends AccumuloClusterHarness {
         assertEquals(0, countEntries(s));
       }
 
-      updateSamplingConfig(conn, tableName, SC2);
+      updateSamplingConfig(client, tableName, SC2);
 
       csiScanner.setIteratorSamplerConfiguration(SC2);
 
-      oScanner = newOfflineScanner(conn, tableName, clone, null);
+      oScanner = newOfflineScanner(client, tableName, clone, null);
       oScanner.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
       scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
 
@@ -418,76 +418,77 @@ public class SampleIT extends AccumuloClusterHarness {
   @Test
   public void testSampleNotPresent() throws Exception {
 
-    AccumuloClient conn = getAccumuloClient();
+    AccumuloClient client = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
     String clone = tableName + "_clone";
 
-    conn.tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
 
-    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
 
     TreeMap<Key,Value> expected = new TreeMap<>();
     writeData(bw, SC1, expected);
 
-    Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-    Scanner isoScanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
+    Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
+    Scanner isoScanner = new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY));
     isoScanner.setBatchSize(10);
     Scanner csiScanner = new ClientSideIteratorScanner(
-        conn.createScanner(tableName, Authorizations.EMPTY));
-    BatchScanner bScanner = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2);
+        client.createScanner(tableName, Authorizations.EMPTY));
+    BatchScanner bScanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 2);
     bScanner.setRanges(Arrays.asList(new Range()));
 
     // ensure sample not present exception occurs when sampling is not configured
     assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner);
 
-    conn.tableOperations().flush(tableName, null, null, true);
+    client.tableOperations().flush(tableName, null, null, true);
 
-    Scanner oScanner = newOfflineScanner(conn, tableName, clone, SC1);
+    Scanner oScanner = newOfflineScanner(client, tableName, clone, SC1);
     assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner, oScanner);
 
     // configure sampling, however there exist an rfile w/o sample data... so should still see
     // sample not present exception
 
-    updateSamplingConfig(conn, tableName, SC1);
+    updateSamplingConfig(client, tableName, SC1);
 
     // create clone with new config
-    oScanner = newOfflineScanner(conn, tableName, clone, SC1);
+    oScanner = newOfflineScanner(client, tableName, clone, SC1);
 
     assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner, oScanner);
 
     // create rfile with sample data present
-    conn.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+    client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
     // should be able to scan sample now
-    oScanner = newOfflineScanner(conn, tableName, clone, SC1);
+    oScanner = newOfflineScanner(client, tableName, clone, SC1);
     setSamplerConfig(SC1, scanner, csiScanner, isoScanner, bScanner, oScanner);
     check(expected, scanner, isoScanner, bScanner, csiScanner, oScanner);
 
     // change sampling config
-    updateSamplingConfig(conn, tableName, SC2);
+    updateSamplingConfig(client, tableName, SC2);
 
     // create clone with new config
-    oScanner = newOfflineScanner(conn, tableName, clone, SC2);
+    oScanner = newOfflineScanner(client, tableName, clone, SC2);
 
     // rfile should have different sample config than table, and scan should not work
     assertSampleNotPresent(SC2, scanner, isoScanner, bScanner, csiScanner, oScanner);
 
     // create rfile that has same sample data as table config
-    conn.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+    client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
     // should be able to scan sample now
     updateExpected(SC2, expected);
-    oScanner = newOfflineScanner(conn, tableName, clone, SC2);
+    oScanner = newOfflineScanner(client, tableName, clone, SC2);
     setSamplerConfig(SC2, scanner, csiScanner, isoScanner, bScanner, oScanner);
     check(expected, scanner, isoScanner, bScanner, csiScanner, oScanner);
   }
 
-  private void updateSamplingConfig(AccumuloClient conn, String tableName, SamplerConfiguration sc)
+  private void updateSamplingConfig(AccumuloClient client, String tableName,
+      SamplerConfiguration sc)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    conn.tableOperations().setSamplerConfiguration(tableName, sc);
+    client.tableOperations().setSamplerConfiguration(tableName, sc);
     // wait for for config change
-    conn.tableOperations().offline(tableName, true);
-    conn.tableOperations().online(tableName, true);
+    client.tableOperations().offline(tableName, true);
+    client.tableOperations().online(tableName, true);
   }
 
   private void assertSampleNotPresent(SamplerConfiguration sc, ScannerBase... scanners) {

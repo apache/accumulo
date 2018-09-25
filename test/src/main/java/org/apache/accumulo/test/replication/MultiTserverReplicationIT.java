@@ -53,25 +53,25 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
   @Test
   public void tserverReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
-    AccumuloClient conn = getClient();
+    AccumuloClient client = getClient();
     ClientContext context = getClientContext();
 
     // Wait for a tserver to come up to fulfill this request
-    conn.tableOperations().create("foo");
-    try (Scanner s = conn.createScanner("foo", Authorizations.EMPTY)) {
+    client.tableOperations().create("foo");
+    try (Scanner s = client.createScanner("foo", Authorizations.EMPTY)) {
       assertEquals(0, Iterables.size(s));
 
       ZooReader zreader = new ZooReader(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut());
       Set<String> tserverHost = new HashSet<>();
-      tserverHost
-          .addAll(zreader.getChildren(ZooUtil.getRoot(conn.getInstanceID()) + Constants.ZTSERVERS));
+      tserverHost.addAll(
+          zreader.getChildren(ZooUtil.getRoot(client.getInstanceID()) + Constants.ZTSERVERS));
 
       Set<HostAndPort> replicationServices = new HashSet<>();
 
       for (String tserver : tserverHost) {
         try {
-          byte[] portData = zreader.getData(ZooUtil.getRoot(conn.getInstanceID())
+          byte[] portData = zreader.getData(ZooUtil.getRoot(client.getInstanceID())
               + ReplicationConstants.ZOO_TSERVERS + "/" + tserver, null);
           HostAndPort replAddress = HostAndPort.fromString(new String(portData, UTF_8));
           replicationServices.add(replAddress);
@@ -90,12 +90,12 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
   @Test
   public void masterReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
-    AccumuloClient conn = getClient();
+    AccumuloClient client = getClient();
     ClientContext context = getClientContext();
 
     // Wait for a tserver to come up to fulfill this request
-    conn.tableOperations().create("foo");
-    try (Scanner s = conn.createScanner("foo", Authorizations.EMPTY)) {
+    client.tableOperations().create("foo");
+    try (Scanner s = client.createScanner("foo", Authorizations.EMPTY)) {
       assertEquals(0, Iterables.size(s));
 
       ZooReader zreader = new ZooReader(context.getZooKeepers(),
@@ -109,7 +109,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
 
       // Get the master replication coordinator addr
       String replCoordAddr = new String(zreader.getData(
-          ZooUtil.getRoot(conn.getInstanceID()) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
+          ZooUtil.getRoot(client.getInstanceID()) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
           null), UTF_8);
 
       // They shouldn't be the same
