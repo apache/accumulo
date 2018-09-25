@@ -58,7 +58,7 @@ public interface AccumuloClient {
    * @throws TableNotFoundException
    *           when the specified table doesn't exist
    */
-  public BatchScanner createBatchScanner(String tableName, Authorizations authorizations,
+  BatchScanner createBatchScanner(String tableName, Authorizations authorizations,
       int numQueryThreads) throws TableNotFoundException;
 
   /**
@@ -78,7 +78,7 @@ public interface AccumuloClient {
    * @throws TableNotFoundException
    *           when the specified table doesn't exist
    */
-  public BatchScanner createBatchScanner(String tableName, Authorizations authorizations)
+  BatchScanner createBatchScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException;
 
   /**
@@ -101,7 +101,7 @@ public interface AccumuloClient {
    * @return BatchDeleter object for configuring and deleting
    */
 
-  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
+  BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException;
 
   /**
@@ -121,7 +121,7 @@ public interface AccumuloClient {
    * @throws TableNotFoundException
    *           if table not found
    */
-  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
+  BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads) throws TableNotFoundException;
 
   /**
@@ -135,7 +135,7 @@ public interface AccumuloClient {
    *          was set during AccumuloClient creation, BatchWriterConfig defaults will be used.
    * @return BatchWriter object for configuring and writing data to
    */
-  public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
+  BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
       throws TableNotFoundException;
 
   /**
@@ -148,7 +148,7 @@ public interface AccumuloClient {
    * @throws TableNotFoundException
    *           if table not found
    */
-  public BatchWriter createBatchWriter(String tableName) throws TableNotFoundException;
+  BatchWriter createBatchWriter(String tableName) throws TableNotFoundException;
 
   /**
    * Factory method to create a Multi-Table BatchWriter connected to Accumulo. Multi-table batch
@@ -163,7 +163,7 @@ public interface AccumuloClient {
    *          defaults will be used.
    * @return MultiTableBatchWriter object for configuring and writing data to
    */
-  public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config);
+  MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config);
 
   /**
    * Factory method to create a Multi-Table BatchWriter. This method uses BatchWriterConfig set when
@@ -171,7 +171,7 @@ public interface AccumuloClient {
    *
    * @return MultiTableBatchWriter object
    */
-  public MultiTableBatchWriter createMultiTableBatchWriter();
+  MultiTableBatchWriter createMultiTableBatchWriter();
 
   /**
    * Factory method to create a Scanner connected to Accumulo.
@@ -190,7 +190,7 @@ public interface AccumuloClient {
    *
    * @see IsolatedScanner
    */
-  public Scanner createScanner(String tableName, Authorizations authorizations)
+  Scanner createScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException;
 
   /**
@@ -205,7 +205,7 @@ public interface AccumuloClient {
    * @throws TableNotFoundException
    *           when the specified table doesn't exist
    */
-  public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
+  ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
       throws TableNotFoundException;
 
   /**
@@ -213,21 +213,21 @@ public interface AccumuloClient {
    *
    * @return the user name
    */
-  public String whoami();
+  String whoami();
 
   /**
    * Returns a unique string that identifies this instance of accumulo.
    *
    * @return a UUID
    */
-  public String getInstanceID();
+  String getInstanceID();
 
   /**
    * Retrieves a TableOperations object to perform table functions, such as create and delete.
    *
    * @return an object to manipulate tables
    */
-  public abstract TableOperations tableOperations();
+  TableOperations tableOperations();
 
   /**
    * Retrieves a NamespaceOperations object to perform namespace functions, such as create and
@@ -235,7 +235,7 @@ public interface AccumuloClient {
    *
    * @return an object to manipulate namespaces
    */
-  public NamespaceOperations namespaceOperations();
+  NamespaceOperations namespaceOperations();
 
   /**
    * Retrieves a SecurityOperations object to perform user security operations, such as creating
@@ -243,26 +243,26 @@ public interface AccumuloClient {
    *
    * @return an object to modify users and permissions
    */
-  public SecurityOperations securityOperations();
+  SecurityOperations securityOperations();
 
   /**
    * Retrieves an InstanceOperations object to modify instance configuration.
    *
    * @return an object to modify instance configuration
    */
-  public InstanceOperations instanceOperations();
+  InstanceOperations instanceOperations();
 
   /**
    * Retrieves a ReplicationOperations object to manage replication configuration.
    *
    * @return an object to modify replication configuration
    */
-  public ReplicationOperations replicationOperations();
+  ReplicationOperations replicationOperations();
 
   /**
    * @return {@link ClientInfo} which contains information about client connection to Accumulo
    */
-  public abstract ClientInfo info();
+  ClientInfo info();
 
   /**
    * Change user
@@ -273,13 +273,13 @@ public interface AccumuloClient {
    *          Authentication token
    * @return {@link AccumuloClient} for new user
    */
-  public abstract AccumuloClient changeUser(String principal, AuthenticationToken token)
+  AccumuloClient changeUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException, AccumuloException;
 
   /**
    * Builds ClientInfo after all options have been specified
    */
-  public interface ClientInfoFactory {
+  interface ClientInfoFactory {
 
     /**
      * Builds ClientInfo after all options have been specified
@@ -292,7 +292,7 @@ public interface AccumuloClient {
   /**
    * Builds AccumuloClient
    */
-  public interface AccumuloClientFactory extends ClientInfoFactory {
+  interface AccumuloClientFactory extends ClientInfoFactory {
 
     /**
      * Builds AccumuloClient after all options have been specified
@@ -306,14 +306,14 @@ public interface AccumuloClient {
   /**
    * Builder method for setting Accumulo instance and zookeepers
    */
-  public interface InstanceArgs {
+  interface InstanceArgs {
     AuthenticationArgs forInstance(String instanceName, String zookeepers);
   }
 
   /**
    * Builder methods for creating AccumuloClient using properties
    */
-  public interface PropertyOptions extends InstanceArgs {
+  interface PropertyOptions extends InstanceArgs {
 
     /**
      * Build using properties file. An example properties file can be found at
@@ -337,7 +337,7 @@ public interface AccumuloClient {
     AccumuloClientFactory usingProperties(Properties properties);
   }
 
-  public interface ClientInfoOptions extends PropertyOptions {
+  interface ClientInfoOptions extends PropertyOptions {
 
     /**
      * Build using Accumulo client information
@@ -352,7 +352,7 @@ public interface AccumuloClient {
   /**
    * Build methods for authentication
    */
-  public interface AuthenticationArgs {
+  interface AuthenticationArgs {
 
     /**
      * Build using password-based credentials
@@ -391,7 +391,7 @@ public interface AccumuloClient {
   /**
    * Build methods for SSL/TLS
    */
-  public interface SslOptions extends AccumuloClientFactory {
+  interface SslOptions extends AccumuloClientFactory {
 
     /**
      * Build with SSL trust store
@@ -448,7 +448,7 @@ public interface AccumuloClient {
   /**
    * Build methods for SASL
    */
-  public interface SaslOptions extends AccumuloClientFactory {
+  interface SaslOptions extends AccumuloClientFactory {
 
     /**
      * Build with Kerberos Server Primary
@@ -472,7 +472,7 @@ public interface AccumuloClient {
   /**
    * Build methods for connection options
    */
-  public interface ConnectionOptions extends AccumuloClientFactory {
+  interface ConnectionOptions extends AccumuloClientFactory {
 
     /**
      * Build using Zookeeper timeout
@@ -518,7 +518,7 @@ public interface AccumuloClient {
     ConnectionOptions withScannerBatchSize(int batchSize);
   }
 
-  public interface FromOptions extends ConnectionOptions, PropertyOptions, AuthenticationArgs {
+  interface FromOptions extends ConnectionOptions, PropertyOptions, AuthenticationArgs {
 
   }
 }
