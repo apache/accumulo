@@ -20,49 +20,10 @@ import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.rfile.RFile;
 
-//CHECKSTYLE:OFF
 /**
- * Entry point for majority of Accumulo's public API. Other Accumulo API entry points are linked
- * below.
- *
- * <H2>API Definition</H2>
- *
- * Accumulo's public API is composed of all public types in the following packages and their
- * sub-packages excluding those named <i>impl</i>, <i>thrift</i>, or <i>crypto</i>.
- *
- * <UL>
- * <LI>org.apache.accumulo.core.client
- * <LI>org.apache.accumulo.core.data
- * <LI>org.apache.accumulo.core.security
- * <LI>org.apache.accumulo.minicluster
- * </UL>
- *
- * <p>
- * A type is a class, interface, or enum. Anything with public or protected access in an API type is
- * in the API. This includes, but is not limited to: methods, members classes, interfaces, and
- * enums. Package-private types in the above packages are <i>not</i> considered public API.
- *
- * <p>
- * API changes are made according to semver 2.0. Accumulo did not always follow semver, it was
- * adopted for Accumulo 1.6.2 and 1.7.0. The Accumulo project maintains binary compatibility across
- * this API within a major release, as defined in the Java Language Specification 3rd ed. Accumulo
- * code outside of the API does not follow semver and may change in incompatible ways at any
- * release.
- *
- * <p>
- * The following regex matches imports that are <i>not</i> Accumulo public API. This regex can be
- * used with <a href="http://checkstyle.sourceforge.net/config_regexp.html">RegexpSingleline</a> to
- * automatically find suspicious imports in a project using Accumulo.
- *
- * <p>
- * {@code import\s+org\.apache\.accumulo\.(.*\.(impl|thrift|crypto)\..*|(?!core|minicluster).*|core\.(?!client|data|security).*)}
- *
- * <H2>API Entry Points</H2>
- *
- * <p>
  * This class contains all API entry points created in 2.0.0 or later. The majority of the API is
- * accessible indirectly via methods in this class. Below are a list of APIs entry points that were
- * created before Accumulo 2.0 and not accessible from here.
+ * accessible indirectly via methods in this class. Below are a list of APIs entry points that are
+ * not accessible from here.
  *
  * <UL>
  * <LI>Hadoop input, output formats and partitioners in
@@ -76,6 +37,7 @@ import org.apache.accumulo.core.client.rfile.RFile;
  * </UL>
  *
  * @see <a href="http://accumulo.apache.org/">Accumulo Website</a>
+ * @see <a href="http://accumulo.apache.org/api">Accumulo Public API</a>
  * @see <a href="http://semver.org/spec/v2.0.0">Semver 2.0</a>
  * @since 2.0.0
  */

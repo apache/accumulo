@@ -30,7 +30,7 @@ news and general information.
 * Follow [these instructions][install] to install and run Accumulo
 * Read the [Accumulo documentation][docs]
 * Run the [Accumulo examples][examples] to learn how to write Accumulo clients
-* View the [Javadocs][javadocs] to learn the Accumulo API
+* View the [Javadocs][javadocs] to learn the [Accumulo API][api]
 
 More resources can be found on the [project website][accumulo].
 
@@ -43,10 +43,6 @@ waiting for the tests to run.
     mvn package
 
 This command produces `assemble/target/accumulo-<version>-bin.tar.gz`
-
-## Accumulo API
-
-The javadoc in [Accumulo.java] defines Accumulo's public API.
 
 ## Export Control
 
@@ -76,7 +72,7 @@ the bouncycastle library for some crypographic technology as well. See
 [the BouncyCastle FAQ][bouncy-faq] for
 more details on bouncycastle's cryptography features.
 
-[Accumulo.java]: core/src/main/java/org/apache/accumulo/core/client/Accumulo.java
+[api]: https://accumulo.apache.org/api
 [accumulo]: https://accumulo.apache.org
 [logo]: contrib/accumulo-logo.png
 [install]: INSTALL.md
