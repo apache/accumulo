@@ -860,7 +860,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    * execute along with some methods to help tab completion, and return the command name, help, and
    * usage.
    */
-  public static abstract class Command {
+  public abstract static class Command {
     // Helper methods for completion
     public enum CompletionSet {
       TABLENAMES, USERNAMES, COMMANDS, NAMESPACES

@@ -42,7 +42,7 @@ import org.junit.experimental.categories.Category;
 public class RollWALPerformanceIT extends ConfigurableMacBase {
 
   @BeforeClass
-  static public void checkMR() {
+  public static void checkMR() {
     assumeFalse(IntegrationTestMapReduce.isMapReduce());
   }
 

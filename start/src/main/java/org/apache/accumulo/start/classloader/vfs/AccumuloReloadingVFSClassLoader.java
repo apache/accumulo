@@ -195,7 +195,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     this(uris, vfs, parent, DEFAULT_TIMEOUT, preDelegate);
   }
 
-  synchronized public FileObject[] getFiles() {
+  public synchronized FileObject[] getFiles() {
     return Arrays.copyOf(this.files, this.files.length);
   }
 

@@ -41,7 +41,7 @@ import org.junit.Test;
 
 public class LogFileTest {
 
-  static private void readWrite(LogEvents event, long seq, int tid, String filename,
+  private static void readWrite(LogEvents event, long seq, int tid, String filename,
       KeyExtent tablet, Mutation[] mutations, LogFileKey keyResult, LogFileValue valueResult)
       throws IOException {
     LogFileKey key = new LogFileKey();

@@ -101,7 +101,7 @@ class LoadFiles extends MasterRepo {
     }
   }
 
-  private static abstract class Loader {
+  private abstract static class Loader {
     protected Path bulkDir;
     protected Master master;
     protected long tid;

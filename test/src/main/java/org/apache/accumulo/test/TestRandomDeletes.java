@@ -43,7 +43,7 @@ public class TestRandomDeletes {
   private static final Logger log = LoggerFactory.getLogger(TestRandomDeletes.class);
   private static Authorizations auths = new Authorizations("L1", "L2", "G1", "GROUP2");
 
-  static private class RowColumn implements Comparable<RowColumn> {
+  private static class RowColumn implements Comparable<RowColumn> {
     Text row;
     Column column;
     long timestamp;
@@ -126,7 +126,7 @@ public class TestRandomDeletes {
     return result;
   }
 
-  static public void main(String[] args) {
+  public static void main(String[] args) {
 
     ClientOnDefaultTable opts = new ClientOnDefaultTable("test_ingest");
     ScannerOpts scanOpts = new ScannerOpts();

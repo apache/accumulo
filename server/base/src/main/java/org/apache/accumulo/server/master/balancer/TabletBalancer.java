@@ -95,7 +95,7 @@ public abstract class TabletBalancer {
    * @param assignments
    *          A map from tablet to assigned server. Write-only.
    */
-  abstract public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
+  public abstract void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments);
 
   /**
@@ -136,7 +136,7 @@ public abstract class TabletBalancer {
    * Be sure to pass in a properly scoped Logger instance so that messages indicate what part of the
    * system is having trouble.
    */
-  protected static abstract class BalancerProblem implements Runnable {
+  protected abstract static class BalancerProblem implements Runnable {
     protected final Logger balancerLog;
 
     public BalancerProblem(Logger logger) {

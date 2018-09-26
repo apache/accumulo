@@ -68,7 +68,7 @@ import org.slf4j.LoggerFactory;
 public class WalStateManager {
 
   public class WalMarkerException extends Exception {
-    static private final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
     public WalMarkerException(Exception ex) {
       super(ex);
@@ -77,7 +77,7 @@ public class WalStateManager {
 
   private static final Logger log = LoggerFactory.getLogger(WalStateManager.class);
 
-  public final static String ZWALS = "/wals";
+  public static final String ZWALS = "/wals";
 
   public static enum WalState {
     /* log is open, and may be written to */

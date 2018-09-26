@@ -36,7 +36,7 @@ import org.apache.accumulo.core.iterators.ValueFormatException;
  * BigDecimal String input/output functions.
  */
 public abstract class BigDecimalCombiner extends TypedValueCombiner<BigDecimal> {
-  private final static BigDecimalEncoder BDE = new BigDecimalEncoder();
+  private static final BigDecimalEncoder BDE = new BigDecimalEncoder();
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,

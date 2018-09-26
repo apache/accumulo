@@ -173,7 +173,7 @@ public class IndexedDocIteratorTest {
     return trf.reader;
   }
 
-  private synchronized static void cleanup() throws IOException {
+  private static synchronized void cleanup() throws IOException {
     trf.closeReader();
     docid = 0;
   }

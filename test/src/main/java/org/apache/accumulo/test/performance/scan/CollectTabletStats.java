@@ -251,7 +251,7 @@ public class CollectTabletStats {
     threadPool.shutdown();
   }
 
-  private static abstract class Test implements Runnable {
+  private abstract static class Test implements Runnable {
 
     private int count;
     private long t1;

@@ -35,7 +35,7 @@ import org.apache.accumulo.core.spi.cache.CacheEntry.Weighable;
  */
 public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
 
-  public final static long PER_BLOCK_OVERHEAD = ClassSize
+  public static final long PER_BLOCK_OVERHEAD = ClassSize
       .align(ClassSize.OBJECT + (3 * ClassSize.REFERENCE) + (2 * SizeConstants.SIZEOF_LONG)
           + ClassSize.STRING + ClassSize.BYTE_BUFFER + ClassSize.REFERENCE);
 

@@ -73,7 +73,7 @@ public class LocalityGroupUtil {
   }
 
   @SuppressWarnings("serial")
-  static public class LocalityGroupConfigurationError extends AccumuloException {
+  public static class LocalityGroupConfigurationError extends AccumuloException {
     LocalityGroupConfigurationError(String why) {
       super(why);
     }
@@ -352,7 +352,7 @@ public class LocalityGroupUtil {
     reader.seek(range, families, inclusive);
   }
 
-  static public void ensureNonOverlappingGroups(Map<String,Set<Text>> groups) {
+  public static void ensureNonOverlappingGroups(Map<String,Set<Text>> groups) {
     HashSet<Text> all = new HashSet<>();
     for (Entry<String,Set<Text>> entry : groups.entrySet()) {
       if (!Collections.disjoint(all, entry.getValue())) {

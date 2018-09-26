@@ -60,7 +60,7 @@ public class ZooLock implements Watcher {
   }
 
   private boolean lockWasAcquired;
-  final private String path;
+  private final String path;
   protected final IZooReaderWriter zooKeeper;
   private String lock;
   private LockWatcher lockWatcher;

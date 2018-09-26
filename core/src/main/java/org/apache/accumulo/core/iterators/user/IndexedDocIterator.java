@@ -133,7 +133,7 @@ public class IndexedDocIterator extends IntersectingIterator {
   }
 
   @Override
-  synchronized public void init(SortedKeyValueIterator<Key,Value> source,
+  public synchronized void init(SortedKeyValueIterator<Key,Value> source,
       Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     if (options.containsKey(indexFamilyOptionName))

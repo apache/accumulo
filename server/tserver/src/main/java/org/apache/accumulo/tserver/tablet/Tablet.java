@@ -165,7 +165,7 @@ import com.google.common.collect.ImmutableSet.Builder;
  *
  */
 public class Tablet implements TabletCommitter {
-  static private final Logger log = LoggerFactory.getLogger(Tablet.class);
+  private static final Logger log = LoggerFactory.getLogger(Tablet.class);
 
   private final TabletServer tabletServer;
   private final ServerContext context;
@@ -2638,7 +2638,7 @@ public class Tablet implements TabletCommitter {
     logLock.unlock();
   }
 
-  synchronized public void chopFiles() {
+  public synchronized void chopFiles() {
     initiateMajorCompaction(MajorCompactionReason.CHOP);
   }
 
@@ -2737,7 +2737,7 @@ public class Tablet implements TabletCommitter {
     return dataSourceDeletions.incrementAndGet();
   }
 
-  synchronized public void updateQueryStats(int size, long numBytes) {
+  public synchronized void updateQueryStats(int size, long numBytes) {
     queryCount += size;
     queryBytes += numBytes;
   }
@@ -2802,7 +2802,7 @@ public class Tablet implements TabletCommitter {
     return result;
   }
 
-  synchronized public void addActiveScans(ScanDataSource scanDataSource) {
+  public synchronized void addActiveScans(ScanDataSource scanDataSource) {
     activeScans.add(scanDataSource);
   }
 
@@ -2811,7 +2811,7 @@ public class Tablet implements TabletCommitter {
     return activeScans.size();
   }
 
-  synchronized public void setLastCompactionID(Long compactionId) {
+  public synchronized void setLastCompactionID(Long compactionId) {
     if (compactionId != null)
       this.lastCompactID = compactionId;
   }

@@ -113,7 +113,7 @@ public class FunctionalTestUtils {
     }
   }
 
-  static public void checkSplits(AccumuloClient c, String table, int min, int max)
+  public static void checkSplits(AccumuloClient c, String table, int min, int max)
       throws Exception {
     Collection<Text> splits = c.tableOperations().listSplits(table);
     if (splits.size() < min || splits.size() > max) {
@@ -122,7 +122,7 @@ public class FunctionalTestUtils {
     }
   }
 
-  static public void createRFiles(final AccumuloClient c, final FileSystem fs, String path,
+  public static void createRFiles(final AccumuloClient c, final FileSystem fs, String path,
       int rows, int splits, int threads) throws Exception {
     fs.delete(new Path(path), true);
     ExecutorService threadPool = Executors.newFixedThreadPool(threads);
@@ -152,7 +152,7 @@ public class FunctionalTestUtils {
     assertFalse(fail.get());
   }
 
-  static public String readAll(InputStream is) throws IOException {
+  public static String readAll(InputStream is) throws IOException {
     byte[] buffer = new byte[4096];
     StringBuilder result = new StringBuilder();
     while (true) {

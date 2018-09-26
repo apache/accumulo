@@ -154,7 +154,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  private static abstract class ErrorMessageCallback {
+  private abstract static class ErrorMessageCallback {
     public abstract String getErrorMessage();
   }
 
@@ -1266,8 +1266,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     private Iterator<Entry<Key,Value>> iter = null;
     private FormatterConfig config;
 
-    private final static String tab = "\t";
-    private final static String newline = "\n";
+    private static final String tab = "\t";
+    private static final String newline = "\n";
 
     @Override
     public boolean hasNext() {

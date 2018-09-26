@@ -18,7 +18,7 @@ package org.apache.accumulo.tserver.tablet;
 
 import java.util.List;
 
-final public class ScanBatch {
+public final class ScanBatch {
   private final boolean more;
   private final List<KVEntry> results;
 

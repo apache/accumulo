@@ -105,7 +105,7 @@ public class AccumuloVFSClassLoader {
     Runtime.getRuntime().addShutdownHook(new Thread(new AccumuloVFSClassLoaderShutdownThread()));
   }
 
-  public synchronized static <U> Class<? extends U> loadClass(String classname, Class<U> extension)
+  public static synchronized <U> Class<? extends U> loadClass(String classname, Class<U> extension)
       throws ClassNotFoundException {
     try {
       return getClassLoader().loadClass(classname).asSubclass(extension);

@@ -660,7 +660,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     }
   }
 
-  public final static long CACHE_FIXED_OVERHEAD = ClassSize
+  public static final long CACHE_FIXED_OVERHEAD = ClassSize
       .align((3 * SizeConstants.SIZEOF_LONG) + (8 * ClassSize.REFERENCE)
           + (5 * SizeConstants.SIZEOF_FLOAT) + SizeConstants.SIZEOF_BOOLEAN + ClassSize.OBJECT);
 

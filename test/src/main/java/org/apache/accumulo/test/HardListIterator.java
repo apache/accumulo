@@ -40,7 +40,7 @@ import org.apache.log4j.Logger;
  */
 public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
   private static final Logger log = Logger.getLogger(HardListIterator.class);
-  public final static SortedMap<Key,Value> allEntriesToInject;
+  public static final SortedMap<Key,Value> allEntriesToInject;
   static {
     SortedMap<Key,Value> t = new TreeMap<>();
     t.put(new Key(new Text("a1"), new Text("colF3"), new Text("colQ3"), System.currentTimeMillis()),

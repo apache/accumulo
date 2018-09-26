@@ -49,7 +49,7 @@ public class ManySplitIT extends ConfigurableMacBase {
   final int SPLITS = 10_000;
 
   @BeforeClass
-  static public void checkMR() {
+  public static void checkMR() {
     assumeFalse(IntegrationTestMapReduce.isMapReduce());
   }
 

@@ -67,7 +67,7 @@ public class LogEntry {
     return Arrays.copyOf(out.getData(), out.getLength());
   }
 
-  static public LogEntry fromBytes(byte bytes[]) throws IOException {
+  public static LogEntry fromBytes(byte bytes[]) throws IOException {
     DataInputBuffer inp = new DataInputBuffer();
     inp.reset(bytes, bytes.length);
     KeyExtent extent = new KeyExtent();
@@ -78,7 +78,7 @@ public class LogEntry {
     return new LogEntry(extent, timestamp, server, filename);
   }
 
-  static private final Text EMPTY_TEXT = new Text();
+  private static final Text EMPTY_TEXT = new Text();
 
   public static LogEntry fromKeyValue(Key key, Value value) {
     String qualifier = key.getColumnQualifier().toString();

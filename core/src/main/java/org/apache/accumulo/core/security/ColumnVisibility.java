@@ -105,7 +105,7 @@ public class ColumnVisibility {
     /**
      * An empty list of nodes.
      */
-    public final static List<Node> EMPTY = Collections.emptyList();
+    public static final List<Node> EMPTY = Collections.emptyList();
     NodeType type;
     int start;
     int end;

@@ -131,7 +131,7 @@ public class MultiLevelIndex {
     }
   }
 
-  private static abstract class SerializedIndexBase<T> extends AbstractList<T>
+  private abstract static class SerializedIndexBase<T> extends AbstractList<T>
       implements RandomAccess {
     protected int[] offsets;
     protected byte[] data;
@@ -682,7 +682,7 @@ public class MultiLevelIndex {
       }
     }
 
-    static public class IndexIterator implements ListIterator<IndexEntry> {
+    public static class IndexIterator implements ListIterator<IndexEntry> {
 
       private Node node;
       private ListIterator<IndexEntry> liter;

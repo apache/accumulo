@@ -673,7 +673,7 @@ public class BulkImporter {
     return start;
   }
 
-  final static byte[] byte0 = {0};
+  static final byte[] byte0 = {0};
 
   public static List<TabletLocation> findOverlappingTablets(ClientContext context, VolumeManager vm,
       TabletLocator locator, Path file, Text startRow, Text endRow) throws Exception {

@@ -142,7 +142,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     client.tableOperations().flush(tablename, null, null, true);
   }
 
-  final static Random r = new SecureRandom();
+  static final Random r = new SecureRandom();
 
   private void makeFile(AccumuloClient client, String tablename) throws Exception {
     BatchWriter bw = client.createBatchWriter(tablename, new BatchWriterConfig());

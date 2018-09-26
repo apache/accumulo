@@ -49,7 +49,7 @@ public class TraceFormatter implements Formatter {
     return formatter.get().format(date);
   }
 
-  private final static Text SPAN_CF = new Text("span");
+  private static final Text SPAN_CF = new Text("span");
 
   private Iterator<Entry<Key,Value>> scanner;
   private FormatterConfig config;

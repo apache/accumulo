@@ -74,7 +74,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     }
   }
 
-  static public void configureScanner(ScannerBase scanner, CurrentState state) {
+  public static void configureScanner(ScannerBase scanner, CurrentState state) {
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(TabletsSection.FutureLocationColumnFamily.NAME);

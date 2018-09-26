@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
 
 class CleanUp extends MasterRepo {
 
-  final private static Logger log = LoggerFactory.getLogger(CleanUp.class);
+  private static final Logger log = LoggerFactory.getLogger(CleanUp.class);
 
   private static final long serialVersionUID = 1L;
 

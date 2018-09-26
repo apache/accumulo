@@ -111,7 +111,7 @@ public class MetadataTableUtil {
 
   private MetadataTableUtil() {}
 
-  public synchronized static Writer getMetadataTable(ServerContext context) {
+  public static synchronized Writer getMetadataTable(ServerContext context) {
     Credentials credentials = context.getCredentials();
     Writer metadataTable = metadata_tables.get(credentials);
     if (metadataTable == null) {
@@ -121,7 +121,7 @@ public class MetadataTableUtil {
     return metadataTable;
   }
 
-  public synchronized static Writer getRootTable(ServerContext context) {
+  public static synchronized Writer getRootTable(ServerContext context) {
     Credentials credentials = context.getCredentials();
     Writer rootTable = root_tables.get(credentials);
     if (rootTable == null) {

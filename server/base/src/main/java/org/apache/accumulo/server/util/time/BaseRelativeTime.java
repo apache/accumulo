@@ -38,7 +38,7 @@ public class BaseRelativeTime implements ProvidesTime {
   }
 
   @Override
-  synchronized public long currentTime() {
+  public synchronized long currentTime() {
     long localNow = local.currentTime();
     long result = localNow + diff;
     if (result < lastReportedTime)
@@ -47,7 +47,7 @@ public class BaseRelativeTime implements ProvidesTime {
     return result;
   }
 
-  synchronized public void updateTime(long advice) {
+  public synchronized void updateTime(long advice) {
     long localNow = local.currentTime();
     long diff = advice - localNow;
     // smooth in 20% of the change, not the whole thing.

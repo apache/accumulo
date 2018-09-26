@@ -104,7 +104,7 @@ public final class BCFile {
   /**
    * BCFile writer, the entry point for creating a new BCFile.
    */
-  static public class Writer implements Closeable {
+  public static class Writer implements Closeable {
     private final RateLimitedOutputStream out;
     private final Configuration conf;
     private FileEncrypter encrypter;
@@ -457,7 +457,7 @@ public final class BCFile {
   /**
    * BCFile Reader, interface to read the file's data and meta blocks.
    */
-  static public class Reader implements Closeable {
+  public static class Reader implements Closeable {
     private final SeekableDataInputStream in;
     private final Configuration conf;
     final DataIndex dataIndex;
@@ -470,7 +470,7 @@ public final class BCFile {
     /**
      * Intermediate class that maintain the state of a Readable Compression Block.
      */
-    static private final class RBlockState {
+    private static final class RBlockState {
       private final Algorithm compressAlgo;
       private Decompressor decompressor;
       private final BlockRegion region;
@@ -816,7 +816,7 @@ public final class BCFile {
   static final class MetaIndexEntry {
     private final String metaName;
     private final Algorithm compressionAlgorithm;
-    private final static String defaultPrefix = "data:";
+    private static final String defaultPrefix = "data:";
 
     private final BlockRegion region;
 
@@ -862,7 +862,7 @@ public final class BCFile {
    * Index of all compressed data blocks.
    */
   static class DataIndex {
-    final static String BLOCK_NAME = "BCFile.index";
+    static final String BLOCK_NAME = "BCFile.index";
 
     private final Algorithm defaultCompressionAlgorithm;
 
@@ -913,7 +913,7 @@ public final class BCFile {
    * Magic number uniquely identifying a BCFile in the header/footer.
    */
   static final class Magic {
-    private final static byte[] AB_MAGIC_BCFILE = {
+    private static final byte[] AB_MAGIC_BCFILE = {
         // ... total of 16 bytes
         (byte) 0xd1, (byte) 0x11, (byte) 0xd3, (byte) 0x68, (byte) 0x91, (byte) 0xb5, (byte) 0xd7,
         (byte) 0xb6, (byte) 0x39, (byte) 0xdf, (byte) 0x41, (byte) 0x40, (byte) 0x92, (byte) 0xba,

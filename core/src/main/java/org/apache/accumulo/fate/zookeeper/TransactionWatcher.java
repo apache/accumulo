@@ -33,8 +33,8 @@ public class TransactionWatcher {
   }
 
   private static final Logger log = LoggerFactory.getLogger(TransactionWatcher.class);
-  final private Map<Long,AtomicInteger> counts = new HashMap<>();
-  final private Arbitrator arbitrator;
+  private final Map<Long,AtomicInteger> counts = new HashMap<>();
+  private final Arbitrator arbitrator;
 
   public TransactionWatcher(Arbitrator arbitrator) {
     this.arbitrator = arbitrator;

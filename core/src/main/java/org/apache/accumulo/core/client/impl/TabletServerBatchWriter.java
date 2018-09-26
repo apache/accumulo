@@ -806,7 +806,7 @@ public class TabletServerBatchWriter {
 
     class SendTask implements Runnable {
 
-      final private String location;
+      private final String location;
 
       SendTask(String server) {
         this.location = server;

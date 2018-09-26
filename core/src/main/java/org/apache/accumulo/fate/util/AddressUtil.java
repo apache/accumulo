@@ -39,7 +39,7 @@ public class AddressUtil {
    * @throws IllegalArgumentException
    *           if dns failures are cached forever
    */
-  static public int getAddressCacheNegativeTtl(UnknownHostException originalException) {
+  public static int getAddressCacheNegativeTtl(UnknownHostException originalException) {
     int negativeTtl = 10;
     try {
       negativeTtl = Integer.parseInt(Security.getProperty("networkaddress.cache.negative.ttl"));

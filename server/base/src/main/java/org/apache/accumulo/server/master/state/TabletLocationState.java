@@ -32,7 +32,7 @@ import org.apache.hadoop.io.Text;
  */
 public class TabletLocationState {
 
-  static public class BadLocationStateException extends Exception {
+  public static class BadLocationStateException extends Exception {
     private static final long serialVersionUID = 1L;
     private Text metadataTableEntry;
 
@@ -65,13 +65,13 @@ public class TabletLocationState {
     }
   }
 
-  final public KeyExtent extent;
-  final public TServerInstance future;
-  final public TServerInstance current;
-  final public TServerInstance last;
-  final public SuspendingTServer suspend;
-  final public Collection<Collection<String>> walogs;
-  final public boolean chopped;
+  public final KeyExtent extent;
+  public final TServerInstance future;
+  public final TServerInstance current;
+  public final TServerInstance last;
+  public final SuspendingTServer suspend;
+  public final Collection<Collection<String>> walogs;
+  public final boolean chopped;
 
   public TServerInstance futureOrCurrent() {
     if (current != null) {

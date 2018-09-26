@@ -76,7 +76,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
   }
 
   @Override
-  synchronized protected String getSpanKey(Map<String,String> data) {
+  protected synchronized String getSpanKey(Map<String,String> data) {
     if (hosts.size() > 0) {
       return hosts.get(random.nextInt(hosts.size()));
     }
@@ -143,7 +143,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
     }
   }
 
-  synchronized private void updateHosts(String path, List<String> children) {
+  private synchronized void updateHosts(String path, List<String> children) {
     log.debug("Scanning trace hosts in zookeeper: {}", path);
     try {
       List<String> hosts = new ArrayList<>();

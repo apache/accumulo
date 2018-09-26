@@ -46,9 +46,9 @@ import com.google.common.collect.Iterators;
 
 public class VerifySerialRecoveryIT extends ConfigurableMacBase {
 
-  private final static byte[] HEXCHARS = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
+  private static final byte[] HEXCHARS = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
       0x39, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66};
-  private final static Random random = new SecureRandom();
+  private static final Random random = new SecureRandom();
 
   public static byte[] randomHex(int n) {
     byte[] binary = new byte[n];

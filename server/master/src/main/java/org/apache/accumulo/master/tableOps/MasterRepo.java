@@ -42,6 +42,6 @@ public abstract class MasterRepo implements Repo<Master> {
   }
 
   @Override
-  abstract public Repo<Master> call(long tid, Master environment) throws Exception;
+  public abstract Repo<Master> call(long tid, Master environment) throws Exception;
 
 }

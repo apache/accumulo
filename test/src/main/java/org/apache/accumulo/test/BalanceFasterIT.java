@@ -57,7 +57,7 @@ public class BalanceFasterIT extends ConfigurableMacBase {
   }
 
   @BeforeClass
-  static public void checkMR() {
+  public static void checkMR() {
     assumeFalse(IntegrationTestMapReduce.isMapReduce());
   }
 

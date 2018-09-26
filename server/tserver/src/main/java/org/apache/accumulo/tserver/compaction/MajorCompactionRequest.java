@@ -57,14 +57,14 @@ import com.google.common.base.Preconditions;
  * Information that can be used to determine how a tablet is to be major compacted, if needed.
  */
 public class MajorCompactionRequest implements Cloneable {
-  final private KeyExtent extent;
-  final private MajorCompactionReason reason;
-  final private VolumeManager volumeManager;
-  final private AccumuloConfiguration tableConfig;
-  final private BlockCache indexCache;
-  final private BlockCache summaryCache;
+  private final KeyExtent extent;
+  private final MajorCompactionReason reason;
+  private final VolumeManager volumeManager;
+  private final AccumuloConfiguration tableConfig;
+  private final BlockCache indexCache;
+  private final BlockCache summaryCache;
   private Map<FileRef,DataFileValue> files;
-  final private ServerContext context;
+  private final ServerContext context;
 
   public MajorCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
       VolumeManager manager, AccumuloConfiguration tabletConfig, BlockCache summaryCache,
