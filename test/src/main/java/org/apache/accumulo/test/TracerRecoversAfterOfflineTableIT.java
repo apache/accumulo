@@ -55,27 +55,27 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     Process tracer = null;
-    AccumuloClient conn = getClient();
-    if (!conn.tableOperations().exists("trace")) {
+    AccumuloClient client = getClient();
+    if (!client.tableOperations().exists("trace")) {
       MiniAccumuloClusterImpl mac = cluster;
       tracer = mac.exec(TraceServer.class);
-      while (!conn.tableOperations().exists("trace")) {
+      while (!client.tableOperations().exists("trace")) {
         sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
       sleepUninterruptibly(5, TimeUnit.SECONDS);
     }
 
     log.info("Taking table offline");
-    conn.tableOperations().offline("trace", true);
+    client.tableOperations().offline("trace", true);
 
     String tableName = getUniqueNames(1)[0];
-    conn.tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
 
     log.info("Start a distributed trace span");
 
     DistributedTrace.enable("localhost", "testTrace", getClientInfo().getProperties());
     Span root = Trace.on("traceTest");
-    BatchWriter bw = conn.createBatchWriter(tableName, null);
+    BatchWriter bw = client.createBatchWriter(tableName, null);
     Mutation m = new Mutation("m");
     m.put("a", "b", "c");
     bw.addMutation(m);
@@ -83,11 +83,11 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
     root.stop();
 
     log.info("Bringing trace table back online");
-    conn.tableOperations().online("trace", true);
+    client.tableOperations().online("trace", true);
 
     log.info("Trace table is online, should be able to find trace");
 
-    try (Scanner scanner = conn.createScanner("trace", Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner("trace", Authorizations.EMPTY)) {
       scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
       while (true) {
         final StringBuilder finalBuffer = new StringBuilder();

@@ -181,9 +181,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        AccumuloClient conn = Accumulo.newClient().usingClientInfo(getClientInfo(job))
+        AccumuloClient client = Accumulo.newClient().usingClientInfo(getClientInfo(job))
             .usingToken(principal, token).build();
-        token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+        token = client.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, Mappers/Reducers will likely"
             + " fail to communicate with Accumulo", e);
@@ -381,8 +381,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @since 1.5.0
    */
   protected static void validateOptions(JobConf job) throws IOException {
-    AccumuloClient conn = InputConfigurator.getClient(CLASS, job);
-    InputConfigurator.validatePermissions(CLASS, job, conn);
+    AccumuloClient client = InputConfigurator.getClient(CLASS, job);
+    InputConfigurator.validatePermissions(CLASS, job, client);
   }
 
   /**
@@ -482,9 +482,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       log.debug("Initializing input split: " + baseSplit);
 
       ClientContext context = new ClientContext(getClientInfo(job));
-      AccumuloClient conn;
+      AccumuloClient client;
       try {
-        conn = context.getClient();
+        client = context.getClient();
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new IllegalStateException(e);
       }
@@ -496,7 +496,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       // configuration, but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(job, baseSplit.getTableName());
 
-      log.debug("Created connector with user: " + conn.whoami());
+      log.debug("Created client with user: " + client.whoami());
       log.debug("Creating scanner for table: " + table);
       log.debug("Authorizations are: " + authorizations);
 
@@ -508,7 +508,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit
           // will not span tablets
           int scanThreads = 1;
-          scanner = conn.createBatchScanner(baseSplit.getTableName(), authorizations, scanThreads);
+          scanner = client.createBatchScanner(baseSplit.getTableName(), authorizations,
+              scanThreads);
           setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
           if (null != classLoaderContext) {
             scanner.setClassLoaderContext(classLoaderContext);

@@ -85,15 +85,15 @@ class CompactionDriver extends MasterRepo {
     }
 
     MapCounter<TServerInstance> serversToFlush = new MapCounter<>();
-    AccumuloClient conn = master.getClient();
+    AccumuloClient client = master.getClient();
 
     Scanner scanner;
 
     if (tableId.equals(MetadataTable.ID)) {
-      scanner = new IsolatedScanner(conn.createScanner(RootTable.NAME, Authorizations.EMPTY));
+      scanner = new IsolatedScanner(client.createScanner(RootTable.NAME, Authorizations.EMPTY));
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
     } else {
-      scanner = new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+      scanner = new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
       Range range = new KeyExtent(tableId, null, startRow == null ? null : new Text(startRow))
           .toMetadataRange();
       scanner.setRange(range);

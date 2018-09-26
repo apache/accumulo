@@ -45,13 +45,13 @@ import com.google.common.collect.Iterables;
 
 public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
-  private AccumuloClient conn;
+  private AccumuloClient client;
   private FinishedWorkUpdater updater;
 
   @Before
   public void configureUpdater() throws Exception {
-    conn = getClient();
-    updater = new FinishedWorkUpdater(conn);
+    client = getClient();
+    updater = new FinishedWorkUpdater(client);
   }
 
   @Test
@@ -61,11 +61,11 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   @Test
   public void recordsWithProgressUpdateBothTables() throws Exception {
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
-    ReplicationTable.setOnline(conn);
+    ReplicationTable.setOnline(client);
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(100).setEnd(200).setClosed(true)
@@ -73,7 +73,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     ReplicationTarget target = new ReplicationTarget("peer", "table1", Table.ID.of("1"));
 
     // Create a single work record for a file to some peer
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     Mutation m = new Mutation(file);
     WorkSection.add(m, target.toText(), ProtobufUtil.toValue(stat));
     bw.addMutation(m);
@@ -81,7 +81,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
     updater.run();
 
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       s.setRange(Range.exact(file));
       StatusSection.limit(s);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
@@ -98,11 +98,11 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   @Test
   public void chooseMinimumBeginOffset() throws Exception {
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
-    ReplicationTable.setOnline(conn);
+    ReplicationTable.setOnline(client);
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat1 = Status.newBuilder().setBegin(100).setEnd(1000).setClosed(true)
@@ -116,7 +116,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     ReplicationTarget target3 = new ReplicationTarget("peer3", "table3", Table.ID.of("1"));
 
     // Create a single work record for a file to some peer
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     Mutation m = new Mutation(file);
     WorkSection.add(m, target1.toText(), ProtobufUtil.toValue(stat1));
     WorkSection.add(m, target2.toText(), ProtobufUtil.toValue(stat2));
@@ -126,7 +126,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
     updater.run();
 
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       s.setRange(Range.exact(file));
       StatusSection.limit(s);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
@@ -143,11 +143,11 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   @Test
   public void chooseMinimumBeginOffsetInfiniteEnd() throws Exception {
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
-    ReplicationTable.setOnline(conn);
+    ReplicationTable.setOnline(client);
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat1 = Status.newBuilder().setBegin(100).setEnd(1000).setClosed(true)
@@ -161,7 +161,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     ReplicationTarget target3 = new ReplicationTarget("peer3", "table3", Table.ID.of("1"));
 
     // Create a single work record for a file to some peer
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     Mutation m = new Mutation(file);
     WorkSection.add(m, target1.toText(), ProtobufUtil.toValue(stat1));
     WorkSection.add(m, target2.toText(), ProtobufUtil.toValue(stat2));
@@ -171,7 +171,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
     updater.run();
 
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       s.setRange(Range.exact(file));
       StatusSection.limit(s);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);

@@ -82,8 +82,8 @@ public class TraceDump {
     PrintStream out = System.out;
     long endTime = System.currentTimeMillis();
     long startTime = endTime - opts.length;
-    AccumuloClient conn = opts.getClient();
-    Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
+    AccumuloClient client = opts.getClient();
+    Scanner scanner = client.createScanner(opts.getTableName(), opts.auths);
     scanner.setBatchSize(scanOpts.scanBatchSize);
     Range range = new Range(new Text("start:" + Long.toHexString(startTime)),
         new Text("start:" + Long.toHexString(endTime)));
@@ -104,11 +104,11 @@ public class TraceDump {
 
   private static int dumpTrace(Opts opts, ScannerOpts scanOpts) throws Exception {
     final PrintStream out = System.out;
-    AccumuloClient conn = opts.getClient();
+    AccumuloClient client = opts.getClient();
 
     int count = 0;
     for (String traceId : opts.traceIds) {
-      Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
+      Scanner scanner = client.createScanner(opts.getTableName(), opts.auths);
       scanner.setBatchSize(scanOpts.scanBatchSize);
       Range range = new Range(new Text(traceId.toString()));
       scanner.setRange(range);

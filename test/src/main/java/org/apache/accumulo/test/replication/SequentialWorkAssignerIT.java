@@ -48,18 +48,18 @@ import org.junit.Test;
 
 public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
-  private AccumuloClient conn;
+  private AccumuloClient client;
   private MockSequentialWorkAssigner assigner;
 
   private static class MockSequentialWorkAssigner extends SequentialWorkAssigner {
 
-    public MockSequentialWorkAssigner(AccumuloClient conn) {
-      super(null, conn);
+    public MockSequentialWorkAssigner(AccumuloClient client) {
+      super(null, client);
     }
 
     @Override
-    public void setConnector(AccumuloClient conn) {
-      super.setConnector(conn);
+    public void setClient(AccumuloClient client) {
+      super.setClient(client);
     }
 
     @Override
@@ -96,14 +96,14 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   @Before
   public void init() throws Exception {
-    conn = getClient();
-    assigner = new MockSequentialWorkAssigner(conn);
+    client = getClient();
+    assigner = new MockSequentialWorkAssigner(client);
     // grant ourselves write to the replication table
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
-    ReplicationTable.setOnline(conn);
+    ReplicationTable.setOnline(client);
   }
 
   @Test
@@ -112,7 +112,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     Text serializedTarget = target.toText();
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
     String file1 = "/accumulo/wal/tserver+port/" + filename1,
@@ -178,7 +178,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     Text serializedTarget2 = target2.toText();
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
     String file1 = "/accumulo/wal/tserver+port/" + filename1,
@@ -254,7 +254,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     Text serializedTarget2 = target2.toText();
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
     String file1 = "/accumulo/wal/tserver+port/" + filename1,
@@ -329,7 +329,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     Text serializedTarget = target.toText();
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
     String file1 = "/accumulo/wal/tserver+port/" + filename1,

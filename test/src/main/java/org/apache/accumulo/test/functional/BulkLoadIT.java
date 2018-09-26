@@ -41,7 +41,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -280,7 +279,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Test
   public void testBadLoadPlans() throws Exception {
-    Connector c = getConnector();
+    AccumuloClient c = getAccumuloClient();
     addSplits(tableName, "0333 0666 0999 1333 1666");
 
     String dir = getDir("/testBulkFile-");

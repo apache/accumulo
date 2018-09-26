@@ -29,7 +29,6 @@ import org.apache.accumulo.cluster.ClusterUsers;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.impl.ClientContext;
@@ -180,29 +179,29 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
               systemUser.getKeytab().getAbsolutePath());
 
-          // Open a connector as the system user (ensures the user will exist for us to assign
+          // Create client as the system user (ensures the user will exist for us to assign
           // permissions to)
           UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
               systemUser.getKeytab().getAbsolutePath());
-          AccumuloClient conn = cluster.getAccumuloClient(systemUser.getPrincipal(),
+          AccumuloClient client = cluster.getAccumuloClient(systemUser.getPrincipal(),
               new KerberosToken());
 
           // Then, log back in as the "root" user and do the grant
           UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
               rootUser.getKeytab().getAbsolutePath());
-          conn = getAccumuloClient();
+          client = getAccumuloClient();
 
           // Create the trace table
-          conn.tableOperations().create(traceTable);
+          client.tableOperations().create(traceTable);
 
           // Trace user (which is the same kerberos principal as the system user, but using a normal
           // KerberosToken) needs
           // to have the ability to read, write and alter the trace table
-          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+          client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
               TablePermission.READ);
-          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+          client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
               TablePermission.WRITE);
-          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+          client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
               TablePermission.ALTER_TABLE);
         }
         break;
@@ -347,23 +346,8 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     try {
       String princ = getAdminPrincipal();
       AuthenticationToken token = getAdminToken();
-      log.debug("Creating client connection as {} with {}", princ, token);
+      log.debug("Creating client as {} with {}", princ, token);
       return cluster.getAccumuloClient(princ, token);
-    } catch (Exception e) {
-      log.error("Could not connect to Accumulo", e);
-      fail("Could not connect to Accumulo: " + e.getMessage());
-
-      throw new RuntimeException("Could not connect to Accumulo", e);
-    }
-  }
-
-  public Connector getConnector() {
-    try {
-      log.warn("No longer used since version 2.0, please call getAccumuloClient() instead.");
-      String princ = getAdminPrincipal();
-      AuthenticationToken token = getAdminToken();
-      log.debug("Creating connector as {} with {}", princ, token);
-      return cluster.getConnector(princ, token);
     } catch (Exception e) {
       log.error("Could not connect to Accumulo", e);
       fail("Could not connect to Accumulo: " + e.getMessage());

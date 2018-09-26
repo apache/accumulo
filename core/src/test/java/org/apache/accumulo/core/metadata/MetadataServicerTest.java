@@ -51,12 +51,12 @@ public class MetadataServicerTest {
     tableNameToIdMap.put(userTableName, userTableId.canonicalID());
 
     context = EasyMock.createMock(ClientContext.class);
-    AccumuloClient conn = EasyMock.createMock(AccumuloClient.class);
+    AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     TableOperations tableOps = EasyMock.createMock(TableOperations.class);
     EasyMock.expect(tableOps.tableIdMap()).andReturn(tableNameToIdMap).anyTimes();
-    EasyMock.expect(conn.tableOperations()).andReturn(tableOps).anyTimes();
-    EasyMock.expect(context.getClient()).andReturn(conn).anyTimes();
-    EasyMock.replay(context, conn, tableOps);
+    EasyMock.expect(client.tableOperations()).andReturn(tableOps).anyTimes();
+    EasyMock.expect(context.getClient()).andReturn(client).anyTimes();
+    EasyMock.replay(context, client, tableOps);
   }
 
   @Test

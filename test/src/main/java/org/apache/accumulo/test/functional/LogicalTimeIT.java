@@ -87,17 +87,18 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
 
   }
 
-  private void runMergeTest(AccumuloClient conn, String table, String[] splits, String[] inserts,
+  private void runMergeTest(AccumuloClient client, String table, String[] splits, String[] inserts,
       String start, String end, String last, long expected) throws Exception {
     log.info("table {}", table);
-    conn.tableOperations().create(table, new NewTableConfiguration().setTimeType(TimeType.LOGICAL));
+    client.tableOperations().create(table,
+        new NewTableConfiguration().setTimeType(TimeType.LOGICAL));
     TreeSet<Text> splitSet = new TreeSet<>();
     for (String split : splits) {
       splitSet.add(new Text(split));
     }
-    conn.tableOperations().addSplits(table, splitSet);
+    client.tableOperations().addSplits(table, splitSet);
 
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
     for (String row : inserts) {
       Mutation m = new Mutation(row);
       m.put("cf", "cq", "v");
@@ -106,7 +107,7 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
 
     bw.flush();
 
-    conn.tableOperations().merge(table, start == null ? null : new Text(start),
+    client.tableOperations().merge(table, start == null ? null : new Text(start),
         end == null ? null : new Text(end));
 
     Mutation m = new Mutation(last);
@@ -114,7 +115,7 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.flush();
 
-    try (Scanner scanner = conn.createScanner(table, Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
       scanner.setRange(new Range(last));
 
       bw.close();

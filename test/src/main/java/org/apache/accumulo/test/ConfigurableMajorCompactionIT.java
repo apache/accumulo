@@ -81,41 +81,41 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient conn = getClient();
+    AccumuloClient client = getClient();
     String tableName = getUniqueNames(1)[0];
-    conn.tableOperations().create(tableName);
-    conn.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
+    client.tableOperations().create(tableName);
+    client.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
         TestCompactionStrategy.class.getName());
-    writeFile(conn, tableName);
-    writeFile(conn, tableName);
-    writeFile(conn, tableName);
-    writeFile(conn, tableName);
+    writeFile(client, tableName);
+    writeFile(client, tableName);
+    writeFile(client, tableName);
+    writeFile(client, tableName);
     UtilWaitThread.sleep(2 * 1000);
-    assertEquals(4, countFiles(conn));
-    writeFile(conn, tableName);
-    int count = countFiles(conn);
+    assertEquals(4, countFiles(client));
+    writeFile(client, tableName);
+    int count = countFiles(client);
     assertTrue(count == 1 || count == 5);
     while (count != 1) {
       UtilWaitThread.sleep(250);
-      count = countFiles(conn);
+      count = countFiles(client);
     }
   }
 
-  private int countFiles(AccumuloClient conn) throws Exception {
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+  private int countFiles(AccumuloClient client) throws Exception {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.TabletsSection.getRange());
       s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       return Iterators.size(s.iterator());
     }
   }
 
-  private void writeFile(AccumuloClient conn, String tableName) throws Exception {
-    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+  private void writeFile(AccumuloClient client, String tableName) throws Exception {
+    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("row");
     m.put("cf", "cq", "value");
     bw.addMutation(m);
     bw.close();
-    conn.tableOperations().flush(tableName, null, null, true);
+    client.tableOperations().flush(tableName, null, null, true);
   }
 
 }

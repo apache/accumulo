@@ -135,12 +135,12 @@ public class CloneTestIT extends AccumuloClusterHarness {
     }
   }
 
-  private void checkMetadata(String table, AccumuloClient conn) throws Exception {
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+  private void checkMetadata(String table, AccumuloClient client) throws Exception {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
 
       s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
-      String tableId = conn.tableOperations().tableIdMap().get(table);
+      String tableId = client.tableOperations().tableIdMap().get(table);
 
       assertNotNull("Could not get table id for " + table, tableId);
 
@@ -266,7 +266,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
   @Test
   public void testCloneWithSplits() throws Exception {
-    AccumuloClient conn = getAccumuloClient();
+    AccumuloClient client = getAccumuloClient();
 
     List<Mutation> mutations = new ArrayList<>();
     TreeSet<Text> splits = new TreeSet<>();
@@ -279,21 +279,21 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
     String[] tables = getUniqueNames(2);
 
-    conn.tableOperations().create(tables[0]);
+    client.tableOperations().create(tables[0]);
 
-    conn.tableOperations().addSplits(tables[0], splits);
+    client.tableOperations().addSplits(tables[0], splits);
 
-    BatchWriter bw = conn.createBatchWriter(tables[0], new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(tables[0], new BatchWriterConfig());
     bw.addMutations(mutations);
     bw.close();
 
-    conn.tableOperations().clone(tables[0], tables[1], true, null, null);
+    client.tableOperations().clone(tables[0], tables[1], true, null, null);
 
-    conn.tableOperations().deleteRows(tables[1], new Text("4"), new Text("8"));
+    client.tableOperations().deleteRows(tables[1], new Text("4"), new Text("8"));
 
     List<String> rows = Arrays.asList("0", "1", "2", "3", "4", "9");
     List<String> actualRows = new ArrayList<>();
-    for (Entry<Key,Value> entry : conn.createScanner(tables[1], Authorizations.EMPTY)) {
+    for (Entry<Key,Value> entry : client.createScanner(tables[1], Authorizations.EMPTY)) {
       actualRows.add(entry.getKey().getRow().toString());
     }
 

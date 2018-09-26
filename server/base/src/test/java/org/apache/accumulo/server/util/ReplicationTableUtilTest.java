@@ -134,7 +134,7 @@ public class ReplicationTableUtilTest {
 
   @Test
   public void setsCombinerOnMetadataCorrectly() throws Exception {
-    AccumuloClient conn = createMock(AccumuloClient.class);
+    AccumuloClient client = createMock(AccumuloClient.class);
     TableOperations tops = createMock(TableOperations.class);
 
     String myMetadataTable = "mymetadata";
@@ -143,7 +143,7 @@ public class ReplicationTableUtilTest {
     IteratorSetting combiner = new IteratorSetting(9, "replcombiner", StatusCombiner.class);
     Combiner.setColumns(combiner, Collections.singletonList(new Column(ReplicationSection.COLF)));
 
-    expect(conn.tableOperations()).andReturn(tops);
+    expect(client.tableOperations()).andReturn(tops);
     expect(tops.listIterators(myMetadataTable)).andReturn(iterators);
     tops.attachIterator(myMetadataTable, combiner);
     expectLastCall().once();
@@ -153,10 +153,10 @@ public class ReplicationTableUtilTest {
         ReplicationTableUtil.STATUS_FORMATTER_CLASS_NAME);
     expectLastCall().once();
 
-    replay(conn, tops);
+    replay(client, tops);
 
-    ReplicationTableUtil.configureMetadataTable(conn, myMetadataTable);
+    ReplicationTableUtil.configureMetadataTable(client, myMetadataTable);
 
-    verify(conn, tops);
+    verify(client, tops);
   }
 }

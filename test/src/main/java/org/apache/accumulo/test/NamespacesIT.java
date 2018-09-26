@@ -104,7 +104,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
   public void setupConnectorAndNamespace() throws Exception {
     Assume.assumeTrue(ClusterType.MINI == getClusterType());
 
-    // prepare a unique namespace and get a new root connector for each test
+    // prepare a unique namespace and get a new root client for each test
     c = getAccumuloClient();
     namespace = "ns_" + getUniqueNames(1)[0];
   }

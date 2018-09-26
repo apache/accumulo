@@ -71,19 +71,19 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     assertEquals(i, results.size());
   }
 
-  private AccumuloClient conn;
+  private AccumuloClient client;
   private String tableName;
 
   @Before
   public void setupInstance() throws Exception {
-    conn = getAccumuloClient();
+    client = getAccumuloClient();
     tableName = getUniqueNames(1)[0];
   }
 
   @Test
   public void testIntersect() throws Exception {
-    conn.tableOperations().create(tableName);
-    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+    client.tableOperations().create(tableName);
+    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("part1");
     m.put("bar", "doc1", "value");
     m.put("bar", "doc2", "value");
@@ -102,7 +102,7 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
 
     final IteratorSetting si = new IteratorSetting(10, tableName, IntersectingIterator.class);
     try (ClientSideIteratorScanner csis = new ClientSideIteratorScanner(
-        conn.createScanner(tableName, new Authorizations()))) {
+        client.createScanner(tableName, new Authorizations()))) {
       IntersectingIterator.setColumnFamilies(si, new Text[] {new Text("bar"), new Text("foo")});
       csis.addScanIterator(si);
       checkResults(csis, resultSet3, PartialKey.ROW_COLFAM_COLQUAL);
@@ -111,11 +111,11 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testVersioning() throws Exception {
-    conn.tableOperations().create(tableName);
-    conn.tableOperations().removeProperty(tableName, "table.iterator.scan.vers");
-    conn.tableOperations().removeProperty(tableName, "table.iterator.majc.vers");
-    conn.tableOperations().removeProperty(tableName, "table.iterator.minc.vers");
-    final BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+    client.tableOperations().create(tableName);
+    client.tableOperations().removeProperty(tableName, "table.iterator.scan.vers");
+    client.tableOperations().removeProperty(tableName, "table.iterator.majc.vers");
+    client.tableOperations().removeProperty(tableName, "table.iterator.minc.vers");
+    final BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("row1");
     m.put("colf", "colq", 1L, "value");
     m.put("colf", "colq", 2L, "value");
@@ -127,7 +127,7 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.flush();
 
-    try (Scanner scanner = conn.createScanner(tableName, new Authorizations());
+    try (Scanner scanner = client.createScanner(tableName, new Authorizations());
         ClientSideIteratorScanner csis = new ClientSideIteratorScanner(scanner)) {
 
       final IteratorSetting si = new IteratorSetting(10, "localvers", VersioningIterator.class);

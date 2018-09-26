@@ -540,21 +540,21 @@ public class KerberosProxyIT extends AccumuloITBase {
 
     // Create a table and user, grant permission to our user to read that table.
     rootUgi.doAs((PrivilegedExceptionAction<Void>) () -> {
-      AccumuloClient conn = mac.getAccumuloClient(rootUgi.getUserName(), new KerberosToken());
-      conn.tableOperations().create(tableName);
-      conn.securityOperations().createLocalUser(userWithoutCredentials1,
+      AccumuloClient client = mac.getAccumuloClient(rootUgi.getUserName(), new KerberosToken());
+      client.tableOperations().create(tableName);
+      client.securityOperations().createLocalUser(userWithoutCredentials1,
           new PasswordToken("ignored"));
-      conn.securityOperations().grantTablePermission(userWithoutCredentials1, tableName,
+      client.securityOperations().grantTablePermission(userWithoutCredentials1, tableName,
           TablePermission.READ);
-      conn.securityOperations().createLocalUser(userWithoutCredentials3,
+      client.securityOperations().createLocalUser(userWithoutCredentials3,
           new PasswordToken("ignored"));
-      conn.securityOperations().grantTablePermission(userWithoutCredentials3, tableName,
+      client.securityOperations().grantTablePermission(userWithoutCredentials3, tableName,
           TablePermission.READ);
       return null;
     });
     realUgi.doAs((PrivilegedExceptionAction<Void>) () -> {
-      AccumuloClient conn = mac.getAccumuloClient(proxyPrincipal, new KerberosToken());
-      try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      AccumuloClient client = mac.getAccumuloClient(proxyPrincipal, new KerberosToken());
+      try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
         s.iterator().hasNext();
         fail("Expected to see an exception");
       } catch (RuntimeException e) {
@@ -568,17 +568,17 @@ public class KerberosProxyIT extends AccumuloITBase {
     });
     // Allowed to be proxied and has read permission
     proxyUser1.doAs((PrivilegedExceptionAction<Void>) () -> {
-      AccumuloClient conn = mac.getAccumuloClient(userWithoutCredentials1,
+      AccumuloClient client = mac.getAccumuloClient(userWithoutCredentials1,
           new KerberosToken(userWithoutCredentials1));
-      Scanner s = conn.createScanner(tableName, Authorizations.EMPTY);
+      Scanner s = client.createScanner(tableName, Authorizations.EMPTY);
       assertFalse(s.iterator().hasNext());
       return null;
     });
     // Allowed to be proxied but does not have read permission
     proxyUser2.doAs((PrivilegedExceptionAction<Void>) () -> {
-      AccumuloClient conn = mac.getAccumuloClient(userWithoutCredentials2,
+      AccumuloClient client = mac.getAccumuloClient(userWithoutCredentials2,
           new KerberosToken(userWithoutCredentials3));
-      try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
+      try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
         s.iterator().hasNext();
         fail("Expected to see an exception");
       } catch (RuntimeException e) {

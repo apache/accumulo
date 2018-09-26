@@ -750,7 +750,7 @@ public class MetadataTableUtil {
   }
 
   private static Iterable<TabletMetadata> createCloneScanner(String testTableName, Table.ID tableId,
-      AccumuloClient conn) throws TableNotFoundException {
+      AccumuloClient client) throws TableNotFoundException {
 
     String tableName;
     Range range;
@@ -767,7 +767,7 @@ public class MetadataTableUtil {
     }
 
     try {
-      return MetadataScanner.builder().from(conn).scanTable(tableName).overRange(range)
+      return MetadataScanner.builder().from(client).scanTable(tableName).overRange(range)
           .checkConsistency().saveKeyValues().fetchFiles().fetchLocation().fetchLast().fetchCloned()
           .fetchPrev().fetchTime().build();
     } catch (AccumuloException | AccumuloSecurityException e) {
@@ -777,10 +777,10 @@ public class MetadataTableUtil {
 
   @VisibleForTesting
   public static void initializeClone(String testTableName, Table.ID srcTableId, Table.ID tableId,
-      AccumuloClient conn, BatchWriter bw)
+      AccumuloClient client, BatchWriter bw)
       throws TableNotFoundException, MutationsRejectedException {
 
-    Iterator<TabletMetadata> ti = createCloneScanner(testTableName, srcTableId, conn).iterator();
+    Iterator<TabletMetadata> ti = createCloneScanner(testTableName, srcTableId, client).iterator();
 
     if (!ti.hasNext())
       throw new RuntimeException(" table deleted during clone?  srcTableId = " + srcTableId);
@@ -798,12 +798,12 @@ public class MetadataTableUtil {
 
   @VisibleForTesting
   public static int checkClone(String testTableName, Table.ID srcTableId, Table.ID tableId,
-      AccumuloClient conn, BatchWriter bw)
+      AccumuloClient client, BatchWriter bw)
       throws TableNotFoundException, MutationsRejectedException {
 
-    Iterator<TabletMetadata> srcIter = createCloneScanner(testTableName, srcTableId, conn)
+    Iterator<TabletMetadata> srcIter = createCloneScanner(testTableName, srcTableId, client)
         .iterator();
-    Iterator<TabletMetadata> cloneIter = createCloneScanner(testTableName, tableId, conn)
+    Iterator<TabletMetadata> cloneIter = createCloneScanner(testTableName, tableId, client)
         .iterator();
 
     if (!cloneIter.hasNext() || !srcIter.hasNext())
@@ -882,19 +882,19 @@ public class MetadataTableUtil {
   public static void cloneTable(ServerContext context, Table.ID srcTableId, Table.ID tableId,
       VolumeManager volumeManager) throws Exception {
 
-    AccumuloClient conn = context.getClient();
-    try (BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
+    AccumuloClient client = context.getClient();
+    try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
 
       while (true) {
 
         try {
-          initializeClone(null, srcTableId, tableId, conn, bw);
+          initializeClone(null, srcTableId, tableId, client, bw);
 
           // the following loop looks changes in the file that occurred during the copy.. if files
           // were dereferenced then they could have been GCed
 
           while (true) {
-            int rewrites = checkClone(null, srcTableId, tableId, conn, bw);
+            int rewrites = checkClone(null, srcTableId, tableId, client, bw);
 
             if (rewrites == 0)
               break;
@@ -918,7 +918,7 @@ public class MetadataTableUtil {
       }
 
       // delete the clone markers and create directory entries
-      Scanner mscanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      Scanner mscanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
       mscanner.fetchColumnFamily(ClonedColumnFamily.NAME);
 
@@ -946,12 +946,12 @@ public class MetadataTableUtil {
     update(context, zooLock, m, extent);
   }
 
-  public static void removeBulkLoadEntries(AccumuloClient conn, Table.ID tableId, long tid)
+  public static void removeBulkLoadEntries(AccumuloClient client, Table.ID tableId, long tid)
       throws Exception {
     try (
         Scanner mscanner = new IsolatedScanner(
-            conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-        BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
+            client.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+        BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
       mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
       byte[] tidAsBytes = Long.toString(tid).getBytes(UTF_8);
@@ -968,10 +968,10 @@ public class MetadataTableUtil {
     }
   }
 
-  public static List<FileRef> getBulkFilesLoaded(ServerContext context, AccumuloClient conn,
+  public static List<FileRef> getBulkFilesLoaded(ServerContext context, AccumuloClient client,
       KeyExtent extent, long tid) throws IOException {
     List<FileRef> result = new ArrayList<>();
-    try (Scanner mscanner = new IsolatedScanner(conn.createScanner(
+    try (Scanner mscanner = new IsolatedScanner(client.createScanner(
         extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY))) {
       VolumeManager fs = context.getVolumeManager();
       mscanner.setRange(extent.toMetadataRange());

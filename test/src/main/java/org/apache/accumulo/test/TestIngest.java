@@ -113,16 +113,16 @@ public class TestIngest {
     }
   }
 
-  public static void createTable(AccumuloClient conn, Opts args)
+  public static void createTable(AccumuloClient client, Opts args)
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     if (args.createTable) {
       TreeSet<Text> splits = getSplitPoints(args.startRow, args.startRow + args.rows,
           args.numsplits);
 
-      if (!conn.tableOperations().exists(args.getTableName()))
-        conn.tableOperations().create(args.getTableName());
+      if (!client.tableOperations().exists(args.getTableName()))
+        client.tableOperations().create(args.getTableName());
       try {
-        conn.tableOperations().addSplits(args.getTableName(), splits);
+        client.tableOperations().addSplits(args.getTableName(), splits);
       } catch (TableNotFoundException ex) {
         // unlikely
         throw new RuntimeException(ex);

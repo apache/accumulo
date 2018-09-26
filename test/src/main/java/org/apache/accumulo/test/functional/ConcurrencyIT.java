@@ -53,9 +53,9 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
     int count = 0;
     Scanner scanner = null;
 
-    ScanTask(AccumuloClient conn, String tableName, long time) throws Exception {
+    ScanTask(AccumuloClient client, String tableName, long time) throws Exception {
       try {
-        scanner = conn.createScanner(tableName, Authorizations.EMPTY);
+        scanner = client.createScanner(tableName, Authorizations.EMPTY);
         IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
         SlowIterator.setSleepTime(slow, time);
         scanner.addScanIterator(slow);

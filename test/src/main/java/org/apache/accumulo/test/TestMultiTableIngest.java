@@ -52,14 +52,14 @@ public class TestMultiTableIngest {
     String prefix = "test_";
   }
 
-  private static void readBack(Opts opts, ScannerOpts scanOpts, AccumuloClient conn,
+  private static void readBack(Opts opts, ScannerOpts scanOpts, AccumuloClient client,
       List<String> tableNames) throws Exception {
     int i = 0;
     for (String table : tableNames) {
       // wait for table to exist
-      while (!conn.tableOperations().exists(table))
+      while (!client.tableOperations().exists(table))
         UtilWaitThread.sleep(100);
-      try (Scanner scanner = conn.createScanner(table, opts.auths)) {
+      try (Scanner scanner = client.createScanner(table, opts.auths)) {
         scanner.setBatchSize(scanOpts.scanBatchSize);
         int count = i;
         for (Entry<Key,Value> elt : scanner) {

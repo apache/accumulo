@@ -55,17 +55,17 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class FinishedWorkUpdater implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(FinishedWorkUpdater.class);
 
-  private final AccumuloClient conn;
+  private final AccumuloClient client;
 
-  public FinishedWorkUpdater(AccumuloClient conn) {
-    this.conn = conn;
+  public FinishedWorkUpdater(AccumuloClient client) {
+    this.client = client;
   }
 
   @Override
   public void run() {
     log.debug("Looking for finished replication work");
 
-    if (!ReplicationTable.isOnline(conn)) {
+    if (!ReplicationTable.isOnline(client)) {
       log.debug("Replication table is not yet online, will retry");
       return;
     }
@@ -73,8 +73,8 @@ public class FinishedWorkUpdater implements Runnable {
     BatchScanner bs;
     BatchWriter replBw;
     try {
-      bs = ReplicationTable.getBatchScanner(conn, 4);
-      replBw = ReplicationTable.getBatchWriter(conn);
+      bs = ReplicationTable.getBatchScanner(client, 4);
+      replBw = ReplicationTable.getBatchWriter(client);
     } catch (ReplicationTableOfflineException e) {
       log.debug("Table is no longer online, will retry");
       return;

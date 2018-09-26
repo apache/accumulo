@@ -73,12 +73,12 @@ public class MiniAccumuloClusterImplTest {
     accumulo = new MiniAccumuloClusterImpl(config);
     accumulo.start();
     // create a table to ensure there are some entries in the !0 table
-    AccumuloClient conn = accumulo.getAccumuloClient("root", new PasswordToken("superSecret"));
-    TableOperations tableops = conn.tableOperations();
+    AccumuloClient client = accumulo.getAccumuloClient("root", new PasswordToken("superSecret"));
+    TableOperations tableops = client.tableOperations();
     tableops.create(TEST_TABLE);
     testTableID = tableops.tableIdMap().get(TEST_TABLE);
 
-    Scanner s = conn.createScanner(TEST_TABLE, Authorizations.EMPTY);
+    Scanner s = client.createScanner(TEST_TABLE, Authorizations.EMPTY);
     Iterators.size(s.iterator());
   }
 

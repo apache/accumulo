@@ -27,8 +27,8 @@ public class ReplicationTablesPrinterThread extends Daemon {
   private PrintStream out;
   private PrintReplicationRecords printer;
 
-  public ReplicationTablesPrinterThread(AccumuloClient conn, PrintStream out) {
-    printer = new PrintReplicationRecords(conn, out);
+  public ReplicationTablesPrinterThread(AccumuloClient client, PrintStream out) {
+    printer = new PrintReplicationRecords(client, out);
     this.out = out;
   }
 

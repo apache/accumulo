@@ -133,19 +133,19 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     return destName;
   }
 
-  private void writeFlush(AccumuloClient conn, String tablename, String row) throws Exception {
-    BatchWriter bw = conn.createBatchWriter(tablename, new BatchWriterConfig());
+  private void writeFlush(AccumuloClient client, String tablename, String row) throws Exception {
+    BatchWriter bw = client.createBatchWriter(tablename, new BatchWriterConfig());
     Mutation m = new Mutation(row);
     m.put("", "", "");
     bw.addMutation(m);
     bw.close();
-    conn.tableOperations().flush(tablename, null, null, true);
+    client.tableOperations().flush(tablename, null, null, true);
   }
 
   final static Random r = new SecureRandom();
 
-  private void makeFile(AccumuloClient conn, String tablename) throws Exception {
-    BatchWriter bw = conn.createBatchWriter(tablename, new BatchWriterConfig());
+  private void makeFile(AccumuloClient client, String tablename) throws Exception {
+    BatchWriter bw = client.createBatchWriter(tablename, new BatchWriterConfig());
     byte[] empty = {};
     byte[] row = new byte[10];
     r.nextBytes(row);
@@ -154,7 +154,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     bw.addMutation(m);
     bw.flush();
     bw.close();
-    conn.tableOperations().flush(tablename, null, null, true);
+    client.tableOperations().flush(tablename, null, null, true);
   }
 
   private void runTest(final AccumuloClient c, final String tableName, final int n)

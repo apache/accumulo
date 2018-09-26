@@ -55,31 +55,31 @@ import com.google.common.collect.Iterables;
 public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
   private MockRemoveCompleteReplicationRecords rcrr;
-  private AccumuloClient conn;
+  private AccumuloClient client;
 
   private static class MockRemoveCompleteReplicationRecords
       extends RemoveCompleteReplicationRecords {
 
-    public MockRemoveCompleteReplicationRecords(AccumuloClient conn) {
-      super(conn);
+    public MockRemoveCompleteReplicationRecords(AccumuloClient client) {
+      super(client);
     }
 
     @Override
-    public long removeCompleteRecords(AccumuloClient conn, BatchScanner bs, BatchWriter bw) {
-      return super.removeCompleteRecords(conn, bs, bw);
+    public long removeCompleteRecords(AccumuloClient client, BatchScanner bs, BatchWriter bw) {
+      return super.removeCompleteRecords(client, bs, bw);
     }
 
   }
 
   @Before
   public void initialize() throws Exception {
-    conn = getClient();
-    rcrr = new MockRemoveCompleteReplicationRecords(conn);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client = getClient();
+    rcrr = new MockRemoveCompleteReplicationRecords(client);
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
-    ReplicationTable.setOnline(conn);
+    ReplicationTable.setOnline(client);
   }
 
   private Table.ID createTableId(int i) {
@@ -88,7 +88,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
   @Test
   public void notYetReplicationRecordsIgnored() throws Exception {
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     int numRecords = 3;
     for (int i = 0; i < numRecords; i++) {
       String file = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
@@ -99,9 +99,9 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
     bw.close();
 
-    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(client)));
 
-    try (BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1)) {
+    try (BatchScanner bs = ReplicationTable.getBatchScanner(client, 1)) {
       bs.setRanges(Collections.singleton(new Range()));
       IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
       bs.addScanIterator(cfg);
@@ -109,14 +109,14 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
       EasyMock.replay(bw);
 
-      rcrr.removeCompleteRecords(conn, bs, bw);
-      assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+      rcrr.removeCompleteRecords(client, bs, bw);
+      assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(client)));
     }
   }
 
   @Test
   public void partiallyReplicatedRecordsIgnored() throws Exception {
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     int numRecords = 3;
     Status.Builder builder = Status.newBuilder();
     builder.setClosed(false);
@@ -132,9 +132,9 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
     bw.close();
 
-    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(client)));
 
-    try (BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1)) {
+    try (BatchScanner bs = ReplicationTable.getBatchScanner(client, 1)) {
       bs.setRanges(Collections.singleton(new Range()));
       IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
       bs.addScanIterator(cfg);
@@ -143,15 +143,15 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
       EasyMock.replay(bw);
 
       // We don't remove any records, so we can just pass in a fake BW for both
-      rcrr.removeCompleteRecords(conn, bs, bw);
-      assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+      rcrr.removeCompleteRecords(client, bs, bw);
+      assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(client)));
     }
   }
 
   @Test
   public void replicatedClosedWorkRecordsAreNotRemovedWithoutClosedStatusRecords()
       throws Exception {
-    BatchWriter replBw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter replBw = ReplicationTable.getBatchWriter(client);
     int numRecords = 3;
 
     Status.Builder builder = Status.newBuilder();
@@ -189,16 +189,16 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     replBw.flush();
 
     // Make sure that we have the expected number of records in both tables
-    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(client)));
 
     // We should not remove any records because they're missing closed status
-    try (BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1)) {
+    try (BatchScanner bs = ReplicationTable.getBatchScanner(client, 1)) {
       bs.setRanges(Collections.singleton(new Range()));
       IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
       bs.addScanIterator(cfg);
 
       try {
-        assertEquals(0L, rcrr.removeCompleteRecords(conn, bs, replBw));
+        assertEquals(0L, rcrr.removeCompleteRecords(client, bs, replBw));
       } finally {
         replBw.close();
       }
@@ -207,7 +207,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
   @Test
   public void replicatedClosedRowsAreRemoved() throws Exception {
-    BatchWriter replBw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter replBw = ReplicationTable.getBatchWriter(client);
     int numRecords = 3;
 
     Status.Builder builder = Status.newBuilder();
@@ -273,10 +273,10 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     replBw.flush();
 
     // Make sure that we have the expected number of records in both tables
-    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(client)));
 
     // We should remove the two fully completed records we inserted
-    try (BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1)) {
+    try (BatchScanner bs = ReplicationTable.getBatchScanner(client, 1)) {
       bs.setRanges(Collections.singleton(new Range()));
       StatusSection.limit(bs);
       WorkSection.limit(bs);
@@ -284,13 +284,13 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
       bs.addScanIterator(cfg);
 
       try {
-        assertEquals(4L, rcrr.removeCompleteRecords(conn, bs, replBw));
+        assertEquals(4L, rcrr.removeCompleteRecords(client, bs, replBw));
       } finally {
         replBw.close();
       }
 
       int actualRecords = 0;
-      for (Entry<Key,Value> entry : ReplicationTable.getScanner(conn)) {
+      for (Entry<Key,Value> entry : ReplicationTable.getScanner(client)) {
         assertFalse(filesToRemove.contains(entry.getKey().getRow().toString()));
         actualRecords++;
       }
@@ -301,7 +301,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
   @Test
   public void partiallyReplicatedEntriesPrecludeRowDeletion() throws Exception {
-    BatchWriter replBw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter replBw = ReplicationTable.getBatchWriter(client);
     int numRecords = 3;
 
     Status.Builder builder = Status.newBuilder();
@@ -338,16 +338,16 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     replBw.flush();
 
     // Make sure that we have the expected number of records in both tables
-    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(conn)));
+    assertEquals(numRecords, Iterables.size(ReplicationTable.getScanner(client)));
 
     // We should remove the two fully completed records we inserted
-    try (BatchScanner bs = ReplicationTable.getBatchScanner(conn, 1)) {
+    try (BatchScanner bs = ReplicationTable.getBatchScanner(client, 1)) {
       bs.setRanges(Collections.singleton(new Range()));
       IteratorSetting cfg = new IteratorSetting(50, WholeRowIterator.class);
       bs.addScanIterator(cfg);
 
       try {
-        assertEquals(0L, rcrr.removeCompleteRecords(conn, bs, replBw));
+        assertEquals(0L, rcrr.removeCompleteRecords(client, bs, replBw));
       } finally {
         replBw.close();
       }

@@ -47,20 +47,20 @@ public class TimeoutIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    AccumuloClient conn = getAccumuloClient();
+    AccumuloClient client = getAccumuloClient();
     String[] tableNames = getUniqueNames(2);
-    testBatchWriterTimeout(conn, tableNames[0]);
-    testBatchScannerTimeout(conn, tableNames[1]);
+    testBatchWriterTimeout(client, tableNames[0]);
+    testBatchScannerTimeout(client, tableNames[1]);
   }
 
-  public void testBatchWriterTimeout(AccumuloClient conn, String tableName) throws Exception {
-    conn.tableOperations().create(tableName);
-    conn.tableOperations().addConstraint(tableName, SlowConstraint.class.getName());
+  public void testBatchWriterTimeout(AccumuloClient client, String tableName) throws Exception {
+    client.tableOperations().create(tableName);
+    client.tableOperations().addConstraint(tableName, SlowConstraint.class.getName());
 
     // give constraint time to propagate through zookeeper
     sleepUninterruptibly(1, TimeUnit.SECONDS);
 
-    BatchWriter bw = conn.createBatchWriter(tableName,
+    BatchWriter bw = client.createBatchWriter(tableName,
         new BatchWriterConfig().setTimeout(3, TimeUnit.SECONDS));
 
     Mutation mut = new Mutation("r1");
@@ -77,7 +77,7 @@ public class TimeoutIT extends AccumuloClusterHarness {
     }
   }
 
-  public void testBatchScannerTimeout(AccumuloClient conn, String tableName) throws Exception {
+  public void testBatchScannerTimeout(AccumuloClient client, String tableName) throws Exception {
     getAccumuloClient().tableOperations().create(tableName);
 
     BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());

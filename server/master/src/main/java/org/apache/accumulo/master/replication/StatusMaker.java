@@ -58,14 +58,14 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class StatusMaker {
   private static final Logger log = LoggerFactory.getLogger(StatusMaker.class);
 
-  private final AccumuloClient conn;
+  private final AccumuloClient client;
   private final VolumeManager fs;
 
   private BatchWriter replicationWriter, metadataWriter;
   private String sourceTableName = MetadataTable.NAME;
 
-  public StatusMaker(AccumuloClient conn, VolumeManager fs) {
-    this.conn = conn;
+  public StatusMaker(AccumuloClient client, VolumeManager fs) {
+    this.client = client;
     this.fs = fs;
   }
 
@@ -87,7 +87,7 @@ public class StatusMaker {
       // Read from a source table (typically accumulo.metadata)
       final Scanner s;
       try {
-        s = conn.createScanner(sourceTableName, Authorizations.EMPTY);
+        s = client.createScanner(sourceTableName, Authorizations.EMPTY);
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       }
@@ -102,8 +102,8 @@ public class StatusMaker {
         if (null == replicationWriter) {
           // Ensures table is online
           try {
-            ReplicationTable.setOnline(conn);
-            replicationWriter = ReplicationTable.getBatchWriter(conn);
+            ReplicationTable.setOnline(client);
+            replicationWriter = ReplicationTable.getBatchWriter(client);
           } catch (ReplicationTableOfflineException | AccumuloSecurityException
               | AccumuloException e) {
             log.warn("Replication table did not come online");
@@ -263,7 +263,7 @@ public class StatusMaker {
     log.debug("Deleting {} from metadata table as it's no longer needed", k.toStringNoTruncate());
     if (null == metadataWriter) {
       try {
-        metadataWriter = conn.createBatchWriter(sourceTableName, new BatchWriterConfig());
+        metadataWriter = client.createBatchWriter(sourceTableName, new BatchWriterConfig());
       } catch (TableNotFoundException e) {
         throw new RuntimeException("Metadata table doesn't exist");
       }

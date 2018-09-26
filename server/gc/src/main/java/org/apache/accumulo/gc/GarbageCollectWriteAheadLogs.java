@@ -350,11 +350,11 @@ public class GarbageCollectWriteAheadLogs {
 
   protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates)
       throws IOException, KeeperException, InterruptedException {
-    AccumuloClient conn;
+    AccumuloClient client;
     try {
-      conn = context.getClient();
+      client = context.getClient();
       try {
-        final Scanner s = ReplicationTable.getScanner(conn);
+        final Scanner s = ReplicationTable.getScanner(client);
         StatusSection.limit(s);
         for (Entry<Key,Value> entry : s) {
           UUID id = path2uuid(new Path(entry.getKey().getRow().toString()));
@@ -365,7 +365,7 @@ public class GarbageCollectWriteAheadLogs {
         return candidates.size();
       }
 
-      final Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      final Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       scanner.fetchColumnFamily(MetadataSchema.ReplicationSection.COLF);
       scanner.setRange(MetadataSchema.ReplicationSection.getRange());
       for (Entry<Key,Value> entry : scanner) {

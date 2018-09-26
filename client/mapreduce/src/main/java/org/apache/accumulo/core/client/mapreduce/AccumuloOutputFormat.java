@@ -411,7 +411,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     private long mutCount = 0;
     private long valCount = 0;
 
-    private AccumuloClient conn;
+    private AccumuloClient client;
 
     protected AccumuloRecordWriter(TaskAttemptContext context)
         throws AccumuloException, AccumuloSecurityException, IOException {
@@ -430,8 +430,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
 
       if (!simulate) {
-        this.conn = Accumulo.newClient().usingClientInfo(getClientInfo(context)).build();
-        mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(context));
+        this.client = Accumulo.newClient().usingClientInfo(getClientInfo(context)).build();
+        mtbw = client.createMultiTableBatchWriter(getBatchWriterOptions(context));
       }
     }
 
@@ -480,9 +480,9 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       BatchWriter bw = null;
       String table = tableName.toString();
 
-      if (createTables && !conn.tableOperations().exists(table)) {
+      if (createTables && !client.tableOperations().exists(table)) {
         try {
-          conn.tableOperations().create(table);
+          client.tableOperations().create(table);
         } catch (AccumuloSecurityException e) {
           log.error("Accumulo security violation creating " + table, e);
           throw e;

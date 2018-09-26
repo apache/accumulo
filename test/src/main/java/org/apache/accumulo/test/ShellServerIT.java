@@ -303,8 +303,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     traceProcess = getCluster().exec(TraceServer.class);
 
-    AccumuloClient conn = getCluster().getAccumuloClient(getPrincipal(), getToken());
-    TableOperations tops = conn.tableOperations();
+    AccumuloClient client = getCluster().getAccumuloClient(getPrincipal(), getToken());
+    TableOperations tops = client.tableOperations();
 
     // give the tracer some time to start
     while (!tops.exists("trace")) {
@@ -607,7 +607,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void setIterOptionPrompt() throws Exception {
-    AccumuloClient conn = getClient();
+    AccumuloClient client = getClient();
     String tableName = name.getMethodName();
 
     ts.exec("createtable " + tableName);
@@ -621,7 +621,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     String expectedKey = "table.iterator.scan.cfcounter";
     String expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
-    TableOperations tops = conn.tableOperations();
+    TableOperations tops = client.tableOperations();
     checkTableForProperty(tops, tableName, expectedKey, expectedValue);
 
     ts.exec("deletetable " + tableName, true);
@@ -2001,10 +2001,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   private String getTableId(String tableName) throws Exception {
-    AccumuloClient conn = getClient();
+    AccumuloClient client = getClient();
 
     for (int i = 0; i < 5; i++) {
-      Map<String,String> nameToId = conn.tableOperations().tableIdMap();
+      Map<String,String> nameToId = client.tableOperations().tableIdMap();
       if (nameToId.containsKey(tableName)) {
         return nameToId.get(tableName);
       } else {

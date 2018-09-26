@@ -162,18 +162,18 @@ public class KerberosIT extends AccumuloITBase {
     UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(
         rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
     ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
-      final AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(),
+      final AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(),
           new KerberosToken());
 
       // The "root" user should have all system permissions
       for (SystemPermission perm : SystemPermission.values()) {
         assertTrue("Expected user to have permission: " + perm,
-            conn.securityOperations().hasSystemPermission(conn.whoami(), perm));
+            client.securityOperations().hasSystemPermission(client.whoami(), perm));
       }
 
       // and the ability to modify the root and metadata tables
       for (String table : Arrays.asList(RootTable.NAME, MetadataTable.NAME)) {
-        assertTrue(conn.securityOperations().hasTablePermission(conn.whoami(), table,
+        assertTrue(client.securityOperations().hasTablePermission(client.whoami(), table,
             TablePermission.ALTER_TABLE));
       }
       return null;
@@ -200,14 +200,14 @@ public class KerberosIT extends AccumuloITBase {
     log.info("Logged in as {}", rootUser.getPrincipal());
 
     ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
-      AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
-      log.info("Created connector as {}", rootUser.getPrincipal());
-      assertEquals(rootUser.getPrincipal(), conn.whoami());
+      AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
+      log.info("Created client as {}", rootUser.getPrincipal());
+      assertEquals(rootUser.getPrincipal(), client.whoami());
 
       // Make sure the system user doesn't exist -- this will force some RPC to happen server-side
-      createTableWithDataAndCompact(conn);
+      createTableWithDataAndCompact(client);
 
-      assertEquals(users, conn.securityOperations().listLocalUsers());
+      assertEquals(users, client.securityOperations().listLocalUsers());
 
       return null;
     });
@@ -216,19 +216,19 @@ public class KerberosIT extends AccumuloITBase {
         newUserKeytab.getAbsolutePath());
     log.info("Logged in as {}", newQualifiedUser);
     ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
-      AccumuloClient conn = mac.getAccumuloClient(newQualifiedUser, new KerberosToken());
-      log.info("Created connector as {}", newQualifiedUser);
-      assertEquals(newQualifiedUser, conn.whoami());
+      AccumuloClient client = mac.getAccumuloClient(newQualifiedUser, new KerberosToken());
+      log.info("Created client as {}", newQualifiedUser);
+      assertEquals(newQualifiedUser, client.whoami());
 
       // The new user should have no system permissions
       for (SystemPermission perm : SystemPermission.values()) {
-        assertFalse(conn.securityOperations().hasSystemPermission(newQualifiedUser, perm));
+        assertFalse(client.securityOperations().hasSystemPermission(newQualifiedUser, perm));
       }
 
       users.add(newQualifiedUser);
 
       // Same users as before, plus the new user we just created
-      assertEquals(users, conn.securityOperations().listLocalUsers());
+      assertEquals(users, client.securityOperations().listLocalUsers());
       return null;
     });
   }
@@ -252,12 +252,12 @@ public class KerberosIT extends AccumuloITBase {
     log.info("Logged in as {}", user1);
     ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
       // Indirectly creates this user when we use it
-      AccumuloClient conn = mac.getAccumuloClient(qualifiedUser1, new KerberosToken());
-      log.info("Created connector as {}", qualifiedUser1);
+      AccumuloClient client = mac.getAccumuloClient(qualifiedUser1, new KerberosToken());
+      log.info("Created client as {}", qualifiedUser1);
 
       // The new user should have no system permissions
       for (SystemPermission perm : SystemPermission.values()) {
-        assertFalse(conn.securityOperations().hasSystemPermission(qualifiedUser1, perm));
+        assertFalse(client.securityOperations().hasSystemPermission(qualifiedUser1, perm));
       }
 
       return null;
@@ -266,8 +266,8 @@ public class KerberosIT extends AccumuloITBase {
     ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(rootUser.getPrincipal(),
         rootUser.getKeytab().getAbsolutePath());
     ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
-      AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
-      conn.securityOperations().grantSystemPermission(qualifiedUser1,
+      AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
+      client.securityOperations().grantSystemPermission(qualifiedUser1,
           SystemPermission.CREATE_TABLE);
       return null;
     });
@@ -276,20 +276,20 @@ public class KerberosIT extends AccumuloITBase {
     ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user1,
         user1Keytab.getAbsolutePath());
     ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
-      AccumuloClient conn = mac.getAccumuloClient(qualifiedUser1, new KerberosToken());
+      AccumuloClient client = mac.getAccumuloClient(qualifiedUser1, new KerberosToken());
 
       // Shouldn't throw an exception since we granted the create table permission
       final String table = testName.getMethodName() + "_user_table";
-      conn.tableOperations().create(table);
+      client.tableOperations().create(table);
 
       // Make sure we can actually use the table we made
-      BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+      BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
       Mutation m = new Mutation("a");
       m.put("b", "c", "d");
       bw.addMutation(m);
       bw.close();
 
-      conn.tableOperations().compact(table, new CompactionConfig().setWait(true).setFlush(true));
+      client.tableOperations().compact(table, new CompactionConfig().setWait(true).setFlush(true));
       return null;
     });
   }
@@ -313,12 +313,12 @@ public class KerberosIT extends AccumuloITBase {
     log.info("Logged in as {}", user1);
     ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
       // Indirectly creates this user when we use it
-      AccumuloClient conn = mac.getAccumuloClient(qualifiedUser1, new KerberosToken());
-      log.info("Created connector as {}", qualifiedUser1);
+      AccumuloClient client = mac.getAccumuloClient(qualifiedUser1, new KerberosToken());
+      log.info("Created client as {}", qualifiedUser1);
 
       // The new user should have no system permissions
       for (SystemPermission perm : SystemPermission.values()) {
-        assertFalse(conn.securityOperations().hasSystemPermission(qualifiedUser1, perm));
+        assertFalse(client.securityOperations().hasSystemPermission(qualifiedUser1, perm));
       }
       return null;
     });
@@ -330,16 +330,17 @@ public class KerberosIT extends AccumuloITBase {
         rootUser.getKeytab().getAbsolutePath());
 
     ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
-      AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
-      conn.tableOperations().create(table);
+      AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
+      client.tableOperations().create(table);
       // Give our unprivileged user permission on the table we made for them
-      conn.securityOperations().grantTablePermission(qualifiedUser1, table, TablePermission.READ);
-      conn.securityOperations().grantTablePermission(qualifiedUser1, table, TablePermission.WRITE);
-      conn.securityOperations().grantTablePermission(qualifiedUser1, table,
+      client.securityOperations().grantTablePermission(qualifiedUser1, table, TablePermission.READ);
+      client.securityOperations().grantTablePermission(qualifiedUser1, table,
+          TablePermission.WRITE);
+      client.securityOperations().grantTablePermission(qualifiedUser1, table,
           TablePermission.ALTER_TABLE);
-      conn.securityOperations().grantTablePermission(qualifiedUser1, table,
+      client.securityOperations().grantTablePermission(qualifiedUser1, table,
           TablePermission.DROP_TABLE);
-      conn.securityOperations().changeUserAuthorizations(qualifiedUser1, new Authorizations(viz));
+      client.securityOperations().changeUserAuthorizations(qualifiedUser1, new Authorizations(viz));
       return null;
     });
 
@@ -347,26 +348,26 @@ public class KerberosIT extends AccumuloITBase {
     ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(qualifiedUser1,
         user1Keytab.getAbsolutePath());
     ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
-      AccumuloClient conn = mac.getAccumuloClient(qualifiedUser1, new KerberosToken());
+      AccumuloClient client = mac.getAccumuloClient(qualifiedUser1, new KerberosToken());
 
       // Make sure we can actually use the table we made
 
       // Write data
       final long ts = 1000L;
-      BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+      BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
       Mutation m = new Mutation("a");
       m.put("b", "c", new ColumnVisibility(viz.getBytes()), ts, "d");
       bw.addMutation(m);
       bw.close();
 
       // Compact
-      conn.tableOperations().compact(table, new CompactionConfig().setWait(true).setFlush(true));
+      client.tableOperations().compact(table, new CompactionConfig().setWait(true).setFlush(true));
 
       // Alter
-      conn.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+      client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
 
       // Read (and proper authorizations)
-      try (Scanner s = conn.createScanner(table, new Authorizations(viz))) {
+      try (Scanner s = client.createScanner(table, new Authorizations(viz))) {
         Iterator<Entry<Key,Value>> iter = s.iterator();
         assertTrue("No results from iterator", iter.hasNext());
         Entry<Key,Value> entry = iter.next();
@@ -392,12 +393,13 @@ public class KerberosIT extends AccumuloITBase {
     // As the "root" user, open up the connection and get a delegation token
     final AuthenticationToken delegationToken = root
         .doAs((PrivilegedExceptionAction<AuthenticationToken>) () -> {
-          AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
-          log.info("Created connector as {}", rootUser.getPrincipal());
-          assertEquals(rootUser.getPrincipal(), conn.whoami());
+          AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(),
+              new KerberosToken());
+          log.info("Created client as {}", rootUser.getPrincipal());
+          assertEquals(rootUser.getPrincipal(), client.whoami());
 
-          conn.tableOperations().create(tableName);
-          BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+          client.tableOperations().create(tableName);
+          BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
           for (int r = 0; r < numRows; r++) {
             Mutation m = new Mutation(Integer.toString(r));
             for (int c = 0; c < numColumns; c++) {
@@ -408,7 +410,7 @@ public class KerberosIT extends AccumuloITBase {
           }
           bw.close();
 
-          return conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+          return client.securityOperations().getDelegationToken(new DelegationTokenConfig());
         });
 
     // The above login with keytab doesn't have a way to logout, so make a fake user that won't have
@@ -416,9 +418,9 @@ public class KerberosIT extends AccumuloITBase {
     UserGroupInformation userWithoutPrivs = UserGroupInformation.createUserForTesting("fake_user",
         new String[0]);
     int recordsSeen = userWithoutPrivs.doAs((PrivilegedExceptionAction<Integer>) () -> {
-      AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), delegationToken);
+      AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(), delegationToken);
 
-      try (BatchScanner bs = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
+      try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
         bs.setRanges(Collections.singleton(new Range()));
         return Iterables.size(bs);
       }
@@ -438,10 +440,10 @@ public class KerberosIT extends AccumuloITBase {
     try {
       delegationToken = ugi.doAs((PrivilegedExceptionAction<AuthenticationToken>) () -> {
         // As the "root" user, open up the connection and get a delegation token
-        AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
-        log.info("Created connector as {}", rootUser.getPrincipal());
-        assertEquals(rootUser.getPrincipal(), conn.whoami());
-        return conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+        AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
+        log.info("Created client as {}", rootUser.getPrincipal());
+        assertEquals(rootUser.getPrincipal(), client.whoami());
+        return client.securityOperations().getDelegationToken(new DelegationTokenConfig());
       });
     } catch (UndeclaredThrowableException ex) {
       throw ex;
@@ -486,11 +488,11 @@ public class KerberosIT extends AccumuloITBase {
     try {
       ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
         // As the "root" user, open up the connection and get a delegation token
-        AccumuloClient conn = mac.getAccumuloClient(qualifiedNewUser, new KerberosToken());
-        log.info("Created connector as {}", qualifiedNewUser);
-        assertEquals(qualifiedNewUser, conn.whoami());
+        AccumuloClient client = mac.getAccumuloClient(qualifiedNewUser, new KerberosToken());
+        log.info("Created client as {}", qualifiedNewUser);
+        assertEquals(qualifiedNewUser, client.whoami());
 
-        conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+        client.securityOperations().getDelegationToken(new DelegationTokenConfig());
         return null;
       });
     } catch (UndeclaredThrowableException ex) {
@@ -508,11 +510,12 @@ public class KerberosIT extends AccumuloITBase {
     // As the "root" user, open up the connection and get a delegation token
     final AuthenticationToken delegationToken1 = root
         .doAs((PrivilegedExceptionAction<AuthenticationToken>) () -> {
-          AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
-          log.info("Created connector as {}", rootUser.getPrincipal());
-          assertEquals(rootUser.getPrincipal(), conn.whoami());
+          AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(),
+              new KerberosToken());
+          log.info("Created client as {}", rootUser.getPrincipal());
+          assertEquals(rootUser.getPrincipal(), client.whoami());
 
-          AuthenticationToken token = conn.securityOperations()
+          AuthenticationToken token = client.securityOperations()
               .getDelegationToken(new DelegationTokenConfig());
 
           assertTrue("Could not get tables with delegation token",
@@ -530,10 +533,10 @@ public class KerberosIT extends AccumuloITBase {
 
     // Make sure our original token is still good
     root.doAs((PrivilegedExceptionAction<Void>) () -> {
-      AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), delegationToken1);
+      AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(), delegationToken1);
 
       assertTrue("Could not get tables with delegation token",
-          conn.tableOperations().list().size() > 0);
+          client.tableOperations().list().size() > 0);
 
       return null;
     });
@@ -541,11 +544,12 @@ public class KerberosIT extends AccumuloITBase {
     // Get a new token, so we can compare the keyId on the second to the first
     final AuthenticationToken delegationToken2 = root
         .doAs((PrivilegedExceptionAction<AuthenticationToken>) () -> {
-          AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
-          log.info("Created connector as {}", rootUser.getPrincipal());
-          assertEquals(rootUser.getPrincipal(), conn.whoami());
+          AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(),
+              new KerberosToken());
+          log.info("Created client as {}", rootUser.getPrincipal());
+          assertEquals(rootUser.getPrincipal(), client.whoami());
 
-          AuthenticationToken token = conn.securityOperations()
+          AuthenticationToken token = client.securityOperations()
               .getDelegationToken(new DelegationTokenConfig());
 
           assertTrue("Could not get tables with delegation token",
@@ -572,12 +576,12 @@ public class KerberosIT extends AccumuloITBase {
     // As the "root" user, open up the connection and get a delegation token
     try {
       root.doAs((PrivilegedExceptionAction<AuthenticationToken>) () -> {
-        AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
-        log.info("Created connector as {}", rootUser.getPrincipal());
-        assertEquals(rootUser.getPrincipal(), conn.whoami());
+        AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
+        log.info("Created client as {}", rootUser.getPrincipal());
+        assertEquals(rootUser.getPrincipal(), client.whoami());
 
         // Should fail
-        return conn.securityOperations().getDelegationToken(
+        return client.securityOperations().getDelegationToken(
             new DelegationTokenConfig().setTokenLifetime(Long.MAX_VALUE, TimeUnit.MILLISECONDS));
       });
     } catch (UndeclaredThrowableException e) {
@@ -600,11 +604,12 @@ public class KerberosIT extends AccumuloITBase {
     // As the "root" user, open up the connection and get a delegation token
     final AuthenticationToken dt = root
         .doAs((PrivilegedExceptionAction<AuthenticationToken>) () -> {
-          AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
-          log.info("Created connector as {}", rootUser.getPrincipal());
-          assertEquals(rootUser.getPrincipal(), conn.whoami());
+          AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(),
+              new KerberosToken());
+          log.info("Created client as {}", rootUser.getPrincipal());
+          assertEquals(rootUser.getPrincipal(), client.whoami());
 
-          return conn.securityOperations().getDelegationToken(
+          return client.securityOperations().getDelegationToken(
               new DelegationTokenConfig().setTokenLifetime(5, TimeUnit.MINUTES));
         });
 
@@ -619,12 +624,13 @@ public class KerberosIT extends AccumuloITBase {
     UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
         rootUser.getKeytab().getAbsolutePath());
 
-    final AccumuloClient conn = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
+    final AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(),
+        new KerberosToken());
 
     // The server-side implementation should prevent the revocation of the 'root' user's systems
     // permissions
     // because once they're gone, it's possible that they could never be restored.
-    conn.securityOperations().revokeSystemPermission(rootUser.getPrincipal(),
+    client.securityOperations().revokeSystemPermission(rootUser.getPrincipal(),
         SystemPermission.GRANT);
   }
 
@@ -633,15 +639,15 @@ public class KerberosIT extends AccumuloITBase {
    * that the system user exists (since the master does an RPC to the tserver which will create the
    * system user if it doesn't already exist).
    */
-  private void createTableWithDataAndCompact(AccumuloClient conn) throws TableNotFoundException,
+  private void createTableWithDataAndCompact(AccumuloClient client) throws TableNotFoundException,
       AccumuloSecurityException, AccumuloException, TableExistsException {
     final String table = testName.getMethodName() + "_table";
-    conn.tableOperations().create(table);
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+    client.tableOperations().create(table);
+    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
     Mutation m = new Mutation("a");
     m.put("b", "c", "d");
     bw.addMutation(m);
     bw.close();
-    conn.tableOperations().compact(table, new CompactionConfig().setFlush(true).setWait(true));
+    client.tableOperations().compact(table, new CompactionConfig().setFlush(true).setWait(true));
   }
 }

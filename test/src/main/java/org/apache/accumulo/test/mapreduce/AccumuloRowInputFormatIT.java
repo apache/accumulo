@@ -180,12 +180,12 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    final AccumuloClient conn = getAccumuloClient();
+    final AccumuloClient client = getAccumuloClient();
     String tableName = getUniqueNames(1)[0];
-    conn.tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
     BatchWriter writer = null;
     try {
-      writer = conn.createBatchWriter(tableName, new BatchWriterConfig());
+      writer = client.createBatchWriter(tableName, new BatchWriterConfig());
       insertList(writer, row1);
       insertList(writer, row2);
       insertList(writer, row3);

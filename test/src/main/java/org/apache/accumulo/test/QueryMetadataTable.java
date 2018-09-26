@@ -52,11 +52,11 @@ public class QueryMetadataTable {
 
   static class MDTQuery implements Runnable {
 
-    private AccumuloClient conn;
+    private AccumuloClient client;
     private Text row;
 
-    MDTQuery(AccumuloClient conn, Text row) {
-      this.conn = conn;
+    MDTQuery(AccumuloClient client, Text row) {
+      this.client = client;
       this.row = row;
     }
 
@@ -66,7 +66,7 @@ public class QueryMetadataTable {
       try {
         KeyExtent extent = new KeyExtent(row, (Text) null);
 
-        mdScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+        mdScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         Text row = extent.getMetadataEntry();
 
         mdScanner.setRange(new Range(row));

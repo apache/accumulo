@@ -74,11 +74,11 @@ public class ReplicationResource {
   @GET
   public List<ReplicationInformation> getReplicationInformation()
       throws AccumuloException, AccumuloSecurityException {
-    final AccumuloClient conn = Monitor.getContext().getClient();
+    final AccumuloClient client = Monitor.getContext().getClient();
 
-    final TableOperations tops = conn.tableOperations();
+    final TableOperations tops = client.tableOperations();
 
-    final Map<String,String> properties = conn.instanceOperations().getSystemConfiguration();
+    final Map<String,String> properties = client.instanceOperations().getSystemConfiguration();
     final Map<String,String> peers = new HashMap<>();
     final String definedPeersPrefix = Property.REPLICATION_PEERS.getKey();
     final ReplicaSystemFactory replicaSystemFactory = new ReplicaSystemFactory();
@@ -147,7 +147,7 @@ public class ReplicationResource {
     // Read over the queued work
     BatchScanner bs;
     try {
-      bs = conn.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
+      bs = client.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
     } catch (TableOfflineException | TableNotFoundException e) {
       log.error("Could not read replication table", e);
       return Collections.emptyList();

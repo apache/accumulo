@@ -55,11 +55,11 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    AccumuloClient conn = getAccumuloClient();
-    majcDelay = conn.instanceOperations().getSystemConfiguration()
+    AccumuloClient client = getAccumuloClient();
+    majcDelay = client.instanceOperations().getSystemConfiguration()
         .get(Property.TSERV_MAJC_DELAY.getKey());
     if (!"1s".equals(majcDelay)) {
-      conn.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
+      client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);
     }
@@ -68,8 +68,8 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
   @After
   public void resetConfig() throws Exception {
     if (null != majcDelay) {
-      AccumuloClient conn = getAccumuloClient();
-      conn.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
+      AccumuloClient client = getAccumuloClient();
+      client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);
     }

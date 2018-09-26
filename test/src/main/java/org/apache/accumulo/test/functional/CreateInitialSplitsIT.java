@@ -27,9 +27,9 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -46,7 +46,7 @@ import org.junit.Test;
 
 public class CreateInitialSplitsIT extends AccumuloClusterHarness {
 
-  private Connector connector;
+  private AccumuloClient client;
   private String tableName;
 
   @Override
@@ -64,7 +64,7 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
 
   @Before
   public void setupInitialSplits() {
-    connector = getConnector();
+    client = getAccumuloClient();
   }
 
   /**
@@ -74,8 +74,8 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
   public void testCreateTableWithNoSplits()
       throws TableExistsException, AccumuloSecurityException, AccumuloException {
     tableName = getUniqueNames(1)[0];
-    connector.tableOperations().create(tableName);
-    assertTrue(connector.tableOperations().exists(tableName));
+    client.tableOperations().create(tableName);
+    assertTrue(client.tableOperations().exists(tableName));
   }
 
   /**
@@ -87,10 +87,10 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     tableName = getUniqueNames(1)[0];
     SortedSet<Text> expectedSplits = generateNonBinarySplits(3000, 32);
     NewTableConfiguration ntc = new NewTableConfiguration().withSplits(expectedSplits);
-    assertFalse(connector.tableOperations().exists(tableName));
-    connector.tableOperations().create(tableName, ntc);
-    assertTrue(connector.tableOperations().exists(tableName));
-    Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
+    assertFalse(client.tableOperations().exists(tableName));
+    client.tableOperations().create(tableName, ntc);
+    assertTrue(client.tableOperations().exists(tableName));
+    Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
     assertEquals(expectedSplits, new TreeSet<>(createdSplits));
   }
 
@@ -100,10 +100,10 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     tableName = getUniqueNames(1)[0];
     SortedSet<Text> expectedSplits = generateNonBinarySplits(3000, 32, true);
     NewTableConfiguration ntc = new NewTableConfiguration().withSplits(expectedSplits);
-    assertFalse(connector.tableOperations().exists(tableName));
-    connector.tableOperations().create(tableName, ntc);
-    assertTrue(connector.tableOperations().exists(tableName));
-    Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
+    assertFalse(client.tableOperations().exists(tableName));
+    client.tableOperations().create(tableName, ntc);
+    assertTrue(client.tableOperations().exists(tableName));
+    Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
     assertEquals(expectedSplits, new TreeSet<>(createdSplits));
   }
 
@@ -116,10 +116,10 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     tableName = getUniqueNames(1)[0];
     SortedSet<Text> expectedSplits = generateBinarySplits(1000, 16);
     NewTableConfiguration ntc = new NewTableConfiguration().withSplits(expectedSplits);
-    assertFalse(connector.tableOperations().exists(tableName));
-    connector.tableOperations().create(tableName, ntc);
-    assertTrue(connector.tableOperations().exists(tableName));
-    Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
+    assertFalse(client.tableOperations().exists(tableName));
+    client.tableOperations().create(tableName, ntc);
+    assertTrue(client.tableOperations().exists(tableName));
+    Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
     assertEquals(expectedSplits, new TreeSet<>(createdSplits));
   }
 
@@ -129,10 +129,10 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     tableName = getUniqueNames(1)[0];
     SortedSet<Text> expectedSplits = generateBinarySplits(1000, 16, true);
     NewTableConfiguration ntc = new NewTableConfiguration().withSplits(expectedSplits);
-    assertFalse(connector.tableOperations().exists(tableName));
-    connector.tableOperations().create(tableName, ntc);
-    assertTrue(connector.tableOperations().exists(tableName));
-    Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
+    assertFalse(client.tableOperations().exists(tableName));
+    client.tableOperations().create(tableName, ntc);
+    assertTrue(client.tableOperations().exists(tableName));
+    Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
     assertEquals(expectedSplits, new TreeSet<>(createdSplits));
   }
 
@@ -146,23 +146,23 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     // older method was not affected.
     tableName = getUniqueNames(1)[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
-    connector.tableOperations().create(tableName, ntc);
-    assertTrue(connector.tableOperations().exists(tableName));
+    client.tableOperations().create(tableName, ntc);
+    assertTrue(client.tableOperations().exists(tableName));
     SortedSet<Text> splits = new TreeSet<>();
     splits.add(new Text("ccccc"));
     splits.add(new Text("mmmmm"));
     splits.add(new Text("ttttt"));
-    connector.tableOperations().addSplits(tableName, splits);
+    client.tableOperations().addSplits(tableName, splits);
     // now create another table using the splits from this table
-    Collection<Text> otherSplits = connector.tableOperations().listSplits(tableName);
+    Collection<Text> otherSplits = client.tableOperations().listSplits(tableName);
     assertEquals(splits, new TreeSet<>(otherSplits));
     String tableName2 = getUniqueNames(2)[1];
     NewTableConfiguration ntc2 = new NewTableConfiguration();
     ntc2.withSplits(new TreeSet<>(otherSplits));
-    assertFalse(connector.tableOperations().exists(tableName2));
-    connector.tableOperations().create(tableName2, ntc);
-    assertTrue(connector.tableOperations().exists(tableName2));
-    Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
+    assertFalse(client.tableOperations().exists(tableName2));
+    client.tableOperations().create(tableName2, ntc);
+    assertTrue(client.tableOperations().exists(tableName2));
+    Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
     assertEquals(splits, new TreeSet<>(createdSplits));
   }
 
@@ -177,21 +177,21 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     tableName = getUniqueNames(1)[0];
     SortedSet<Text> expectedSplits = generateNonBinarySplits(1000, 32);
     NewTableConfiguration ntc = new NewTableConfiguration().withSplits(expectedSplits);
-    assertFalse(connector.tableOperations().exists(tableName));
-    connector.tableOperations().create(tableName, ntc);
-    assertTrue(connector.tableOperations().exists(tableName));
+    assertFalse(client.tableOperations().exists(tableName));
+    client.tableOperations().create(tableName, ntc);
+    assertTrue(client.tableOperations().exists(tableName));
     // verify data
-    Collection<Text> createdSplits = connector.tableOperations().listSplits(tableName);
+    Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
     assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-    connector.tableOperations().flush(tableName);
+    client.tableOperations().flush(tableName);
     // compact data
-    connector.tableOperations().compact(tableName, null, null, true, true);
+    client.tableOperations().compact(tableName, null, null, true, true);
     // verify data
-    createdSplits = connector.tableOperations().listSplits(tableName);
+    createdSplits = client.tableOperations().listSplits(tableName);
     assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     // delete table
-    connector.tableOperations().delete(tableName);
-    assertFalse(connector.tableOperations().exists(tableName));
+    client.tableOperations().delete(tableName);
+    assertFalse(client.tableOperations().exists(tableName));
   }
 
   // @Test

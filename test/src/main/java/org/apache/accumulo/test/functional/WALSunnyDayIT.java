@@ -166,10 +166,10 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     }
   }
 
-  private void writeSomeData(AccumuloClient conn, String tableName, int row, int col)
+  private void writeSomeData(AccumuloClient client, String tableName, int row, int col)
       throws Exception {
     Random rand = new SecureRandom();
-    BatchWriter bw = conn.createBatchWriter(tableName, null);
+    BatchWriter bw = client.createBatchWriter(tableName, null);
     byte[] rowData = new byte[10];
     byte[] cq = new byte[10];
     byte[] value = new byte[10];

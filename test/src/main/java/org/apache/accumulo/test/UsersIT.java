@@ -35,8 +35,8 @@ public class UsersIT extends AccumuloClusterHarness {
   @Test
   public void testCreateExistingUser() throws Exception {
     ClusterUser user0 = getUser(0);
-    AccumuloClient conn = getAccumuloClient();
-    Set<String> currentUsers = conn.securityOperations().listLocalUsers();
+    AccumuloClient client = getAccumuloClient();
+    Set<String> currentUsers = client.securityOperations().listLocalUsers();
 
     // Ensure that the user exists
     if (!currentUsers.contains(user0.getPrincipal())) {
@@ -44,11 +44,11 @@ public class UsersIT extends AccumuloClusterHarness {
       if (!saslEnabled()) {
         token = new PasswordToken(user0.getPassword());
       }
-      conn.securityOperations().createLocalUser(user0.getPrincipal(), token);
+      client.securityOperations().createLocalUser(user0.getPrincipal(), token);
     }
 
     try {
-      conn.securityOperations().createLocalUser(user0.getPrincipal(),
+      client.securityOperations().createLocalUser(user0.getPrincipal(),
           new PasswordToken("better_fail"));
       fail("Creating a user that already exists should throw an exception");
     } catch (AccumuloSecurityException e) {

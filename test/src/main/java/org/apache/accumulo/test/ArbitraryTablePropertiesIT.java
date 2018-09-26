@@ -61,8 +61,8 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
 
     // make a table
     final String tableName = getUniqueNames(1)[0];
-    final AccumuloClient conn = getClient();
-    conn.tableOperations().create(tableName);
+    final AccumuloClient client = getClient();
+    client.tableOperations().create(tableName);
 
     // Set variables for the property name to use and the initial value
     String propertyName = "table.custom.description";
@@ -71,11 +71,11 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     // Make sure the property name is valid
     assertTrue(Property.isValidPropertyKey(propertyName));
     // Set the property to the desired value
-    conn.tableOperations().setProperty(tableName, propertyName, description1);
+    client.tableOperations().setProperty(tableName, propertyName, description1);
 
     // Loop through properties to make sure the new property is added to the list
     int count = 0;
-    for (Entry<String,String> property : conn.tableOperations().getProperties(tableName)) {
+    for (Entry<String,String> property : client.tableOperations().getProperties(tableName)) {
       if (property.getKey().equals(propertyName) && property.getValue().equals(description1))
         count++;
     }
@@ -83,22 +83,22 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
 
     // Set the property as something different
     String description2 = "set second";
-    conn.tableOperations().setProperty(tableName, propertyName, description2);
+    client.tableOperations().setProperty(tableName, propertyName, description2);
 
     // / Loop through properties to make sure the new property is added to the list
     count = 0;
-    for (Entry<String,String> property : conn.tableOperations().getProperties(tableName)) {
+    for (Entry<String,String> property : client.tableOperations().getProperties(tableName)) {
       if (property.getKey().equals(propertyName) && property.getValue().equals(description2))
         count++;
     }
     assertEquals(count, 1);
 
     // Remove the property and make sure there is no longer a value associated with it
-    conn.tableOperations().removeProperty(tableName, propertyName);
+    client.tableOperations().removeProperty(tableName, propertyName);
 
     // / Loop through properties to make sure the new property is added to the list
     count = 0;
-    for (Entry<String,String> property : conn.tableOperations().getProperties(tableName)) {
+    for (Entry<String,String> property : client.tableOperations().getProperties(tableName)) {
       if (property.getKey().equals(propertyName))
         count++;
     }
@@ -133,13 +133,13 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     assertTrue(Property.isValidPropertyKey(propertyName));
 
     // Getting a fresh token will ensure we're logged in as this user (if necessary)
-    AccumuloClient testConn = c.changeUser(testUser, user.getToken());
+    AccumuloClient testclient = c.changeUser(testUser, user.getToken());
     // Set the property to the desired value
-    testConn.tableOperations().setProperty(tableName, propertyName, description1);
+    testclient.tableOperations().setProperty(tableName, propertyName, description1);
 
     // Loop through properties to make sure the new property is added to the list
     int count = 0;
-    for (Entry<String,String> property : testConn.tableOperations().getProperties(tableName)) {
+    for (Entry<String,String> property : testclient.tableOperations().getProperties(tableName)) {
       if (property.getKey().equals(propertyName) && property.getValue().equals(description1))
         count++;
     }
@@ -147,22 +147,22 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
 
     // Set the property as something different
     String description2 = "set second";
-    testConn.tableOperations().setProperty(tableName, propertyName, description2);
+    testclient.tableOperations().setProperty(tableName, propertyName, description2);
 
     // / Loop through properties to make sure the new property is added to the list
     count = 0;
-    for (Entry<String,String> property : testConn.tableOperations().getProperties(tableName)) {
+    for (Entry<String,String> property : testclient.tableOperations().getProperties(tableName)) {
       if (property.getKey().equals(propertyName) && property.getValue().equals(description2))
         count++;
     }
     assertEquals(count, 1);
 
     // Remove the property and make sure there is no longer a value associated with it
-    testConn.tableOperations().removeProperty(tableName, propertyName);
+    testclient.tableOperations().removeProperty(tableName, propertyName);
 
     // / Loop through properties to make sure the new property is added to the list
     count = 0;
-    for (Entry<String,String> property : testConn.tableOperations().getProperties(tableName)) {
+    for (Entry<String,String> property : testclient.tableOperations().getProperties(tableName)) {
       if (property.getKey().equals(propertyName))
         count++;
     }
@@ -197,18 +197,18 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     assertTrue(Property.isValidPropertyKey(propertyName));
 
     // Getting a fresh token will ensure we're logged in as this user (if necessary)
-    AccumuloClient testConn = c.changeUser(testUser, user.getToken());
+    AccumuloClient testclient = c.changeUser(testUser, user.getToken());
 
     // Try to set the property to the desired value.
     // If able to set it, the test fails, since permission was never granted
     try {
-      testConn.tableOperations().setProperty(tableName, propertyName, description1);
+      testclient.tableOperations().setProperty(tableName, propertyName, description1);
       fail("Was able to set property without permissions");
     } catch (AccumuloSecurityException e) {}
 
     // Loop through properties to make sure the new property is not added to the list
     int count = 0;
-    for (Entry<String,String> property : testConn.tableOperations().getProperties(tableName)) {
+    for (Entry<String,String> property : testclient.tableOperations().getProperties(tableName)) {
       if (property.getKey().equals(propertyName))
         count++;
     }

@@ -88,20 +88,20 @@ public class Merge {
     opts.parseArgs(Merge.class.getName(), args);
 
     try {
-      AccumuloClient conn = opts.getClient();
+      AccumuloClient client = opts.getClient();
 
-      if (!conn.tableOperations().exists(opts.getTableName())) {
+      if (!client.tableOperations().exists(opts.getTableName())) {
         System.err.println("table " + opts.getTableName() + " does not exist");
         return;
       }
       if (opts.goalSize == null || opts.goalSize < 1) {
         AccumuloConfiguration tableConfig = new ConfigurationCopy(
-            conn.tableOperations().getProperties(opts.getTableName()));
+            client.tableOperations().getProperties(opts.getTableName()));
         opts.goalSize = tableConfig.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
       }
 
       message("Merging tablets in table %s to %d bytes", opts.getTableName(), opts.goalSize);
-      mergomatic(conn, opts.getTableName(), opts.begin, opts.end, opts.goalSize, opts.force);
+      mergomatic(client, opts.getTableName(), opts.begin, opts.end, opts.goalSize, opts.force);
     } catch (Exception ex) {
       throw new MergeException(ex);
     }
@@ -122,7 +122,7 @@ public class Merge {
     long size;
   }
 
-  public void mergomatic(AccumuloClient conn, String table, Text start, Text end, long goalSize,
+  public void mergomatic(AccumuloClient client, String table, Text start, Text end, long goalSize,
       boolean force) throws MergeException {
     try {
       if (table.equals(MetadataTable.NAME)) {
@@ -131,23 +131,23 @@ public class Merge {
       List<Size> sizes = new ArrayList<>();
       long totalSize = 0;
       // Merge any until you get larger than the goal size, and then merge one less tablet
-      Iterator<Size> sizeIterator = getSizeIterator(conn, table, start, end);
+      Iterator<Size> sizeIterator = getSizeIterator(client, table, start, end);
       while (sizeIterator.hasNext()) {
         Size next = sizeIterator.next();
         totalSize += next.size;
         sizes.add(next);
         if (totalSize > goalSize) {
-          totalSize = mergeMany(conn, table, sizes, goalSize, force, false);
+          totalSize = mergeMany(client, table, sizes, goalSize, force, false);
         }
       }
       if (sizes.size() > 1)
-        mergeMany(conn, table, sizes, goalSize, force, true);
+        mergeMany(client, table, sizes, goalSize, force, true);
     } catch (Exception ex) {
       throw new MergeException(ex);
     }
   }
 
-  protected long mergeMany(AccumuloClient conn, String table, List<Size> sizes, long goalSize,
+  protected long mergeMany(AccumuloClient client, String table, List<Size> sizes, long goalSize,
       boolean force, boolean last) throws MergeException {
     // skip the big tablets, which will be the typical case
     while (!sizes.isEmpty()) {
@@ -171,13 +171,13 @@ public class Merge {
     }
 
     if (numToMerge > 1) {
-      mergeSome(conn, table, sizes, numToMerge);
+      mergeSome(client, table, sizes, numToMerge);
     } else {
       if (numToMerge == 1 && sizes.size() > 1) {
         // here we have the case of a merge candidate that is surrounded by candidates that would
         // split
         if (force) {
-          mergeSome(conn, table, sizes, 2);
+          mergeSome(client, table, sizes, 2);
         } else {
           sizes.remove(0);
         }
@@ -185,7 +185,7 @@ public class Merge {
     }
     if (numToMerge == 0 && sizes.size() > 1 && last) {
       // That's the last tablet, and we have a bunch to merge
-      mergeSome(conn, table, sizes, sizes.size());
+      mergeSome(client, table, sizes, sizes.size());
     }
     long result = 0;
     for (Size s : sizes) {
@@ -194,36 +194,36 @@ public class Merge {
     return result;
   }
 
-  protected void mergeSome(AccumuloClient conn, String table, List<Size> sizes, int numToMerge)
+  protected void mergeSome(AccumuloClient client, String table, List<Size> sizes, int numToMerge)
       throws MergeException {
-    merge(conn, table, sizes, numToMerge);
+    merge(client, table, sizes, numToMerge);
     for (int i = 0; i < numToMerge; i++) {
       sizes.remove(0);
     }
   }
 
-  protected void merge(AccumuloClient conn, String table, List<Size> sizes, int numToMerge)
+  protected void merge(AccumuloClient client, String table, List<Size> sizes, int numToMerge)
       throws MergeException {
     try {
       Text start = sizes.get(0).extent.getPrevEndRow();
       Text end = sizes.get(numToMerge - 1).extent.getEndRow();
       message("Merging %d tablets from (%s to %s]", numToMerge, start == null ? "-inf" : start,
           end == null ? "+inf" : end);
-      conn.tableOperations().merge(table, start, end);
+      client.tableOperations().merge(table, start, end);
     } catch (Exception ex) {
       throw new MergeException(ex);
     }
   }
 
-  protected Iterator<Size> getSizeIterator(AccumuloClient conn, String tablename, Text start,
+  protected Iterator<Size> getSizeIterator(AccumuloClient client, String tablename, Text start,
       Text end) throws MergeException {
     // open up metadata, walk through the tablets.
     Table.ID tableId;
     Scanner scanner;
     try {
-      ClientContext context = new ClientContext(conn.info());
+      ClientContext context = new ClientContext(client.info());
       tableId = Tables.getTableId(context, tablename);
-      scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     } catch (Exception e) {
       throw new MergeException(e);
     }

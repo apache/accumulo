@@ -46,11 +46,11 @@ public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
     // test bug fox for ACCUMULO-3977
 
     String table = super.getUniqueNames(1)[0];
-    AccumuloClient conn = getAccumuloClient();
+    AccumuloClient client = getAccumuloClient();
 
-    conn.tableOperations().create(table);
+    client.tableOperations().create(table);
 
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
 
     addDocument(bw, "000A", "dog", "cat", "hamster", "iguana", "the");
     addDocument(bw, "000B", "java", "perl", "C++", "pascal", "the");
@@ -60,14 +60,14 @@ public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
     bw.close();
 
     // its a bug when using rfiles, so flush
-    conn.tableOperations().flush(table, null, null, true);
+    client.tableOperations().flush(table, null, null, true);
 
     IteratorSetting iterCfg = new IteratorSetting(30, "ayeaye",
         IntersectingIterator.class.getName());
     IntersectingIterator.setColumnFamilies(iterCfg,
         new Text[] {new Text("the"), new Text("hamster")});
 
-    try (Scanner scanner = conn.createScanner(table, Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
       scanner.enableIsolation();
       scanner.addScanIterator(iterCfg);
 

@@ -156,19 +156,20 @@ public class MergeIT extends AccumuloClusterHarness {
     }
   }
 
-  private void runMergeTest(AccumuloClient conn, String table, String[] splits,
+  private void runMergeTest(AccumuloClient client, String table, String[] splits,
       String[] expectedSplits, String[] inserts, String start, String end) throws Exception {
     System.out.println(
         "Running merge test " + table + " " + Arrays.asList(splits) + " " + start + " " + end);
 
-    conn.tableOperations().create(table, new NewTableConfiguration().setTimeType(TimeType.LOGICAL));
+    client.tableOperations().create(table,
+        new NewTableConfiguration().setTimeType(TimeType.LOGICAL));
     TreeSet<Text> splitSet = new TreeSet<>();
     for (String split : splits) {
       splitSet.add(new Text(split));
     }
-    conn.tableOperations().addSplits(table, splitSet);
+    client.tableOperations().addSplits(table, splitSet);
 
-    BatchWriter bw = conn.createBatchWriter(table, null);
+    BatchWriter bw = client.createBatchWriter(table, null);
     HashSet<String> expected = new HashSet<>();
     for (String row : inserts) {
       Mutation m = new Mutation(row);
@@ -179,10 +180,10 @@ public class MergeIT extends AccumuloClusterHarness {
 
     bw.close();
 
-    conn.tableOperations().merge(table, start == null ? null : new Text(start),
+    client.tableOperations().merge(table, start == null ? null : new Text(start),
         end == null ? null : new Text(end));
 
-    try (Scanner scanner = conn.createScanner(table, Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
 
       HashSet<String> observed = new HashSet<>();
       for (Entry<Key,Value> entry : scanner) {
@@ -196,7 +197,7 @@ public class MergeIT extends AccumuloClusterHarness {
         throw new Exception("data inconsistency " + table + " " + observed + " != " + expected);
       }
 
-      HashSet<Text> currentSplits = new HashSet<>(conn.tableOperations().listSplits(table));
+      HashSet<Text> currentSplits = new HashSet<>(client.tableOperations().listSplits(table));
       HashSet<Text> ess = new HashSet<>();
       for (String es : expectedSplits) {
         ess.add(new Text(es));

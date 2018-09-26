@@ -65,17 +65,17 @@ import org.slf4j.LoggerFactory;
 public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplIT.class);
 
-  private AccumuloClient conn;
+  private AccumuloClient client;
 
   @Before
   public void configureInstance() throws Exception {
-    conn = getClient();
-    ReplicationTable.setOnline(conn);
-    conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME,
+    client = getClient();
+    ReplicationTable.setOnline(client);
+    client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
   }
 
@@ -85,7 +85,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private ReplicationOperationsImpl getReplicationOperations() throws Exception {
     Master master = EasyMock.createMock(Master.class);
     ServerContext serverContext = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(master.getClient()).andReturn(conn).anyTimes();
+    EasyMock.expect(master.getClient()).andReturn(client).anyTimes();
     EasyMock.expect(master.getContext()).andReturn(serverContext).anyTimes();
     EasyMock.replay(master);
 
@@ -94,7 +94,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
       protected Table.ID getTableId(ClientContext context, String tableName)
           throws ThriftTableOperationException {
         try {
-          return Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
+          return Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
@@ -118,15 +118,15 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
   @Test
   public void waitsUntilEntriesAreReplicated() throws Exception {
-    conn.tableOperations().create("foo");
-    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get("foo"));
+    client.tableOperations().create("foo");
+    Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get("foo"));
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID(),
         file2 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false)
         .setClosed(false).build();
 
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
 
     Mutation m = new Mutation(file1);
     StatusSection.add(m, tableId, ProtobufUtil.toValue(stat));
@@ -138,7 +138,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     bw.close();
 
-    bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.put(ReplicationSection.COLF, new Text(tableId.getUtf8()), ProtobufUtil.toValue(stat));
 
@@ -170,7 +170,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     // With the records, we shouldn't be drained
     assertFalse(done.get());
 
-    bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.putDelete(ReplicationSection.COLF, new Text(tableId.getUtf8()));
     bw.addMutation(m);
@@ -188,7 +188,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     assertFalse(done.get());
 
     // Remove the replication entries too
-    bw = ReplicationTable.getBatchWriter(conn);
+    bw = ReplicationTable.getBatchWriter(client);
     m = new Mutation(file1);
     m.putDelete(StatusSection.NAME, new Text(tableId.getUtf8()));
     bw.addMutation(m);
@@ -214,18 +214,18 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
   @Test
   public void unrelatedReplicationRecordsDontBlockDrain() throws Exception {
-    conn.tableOperations().create("foo");
-    conn.tableOperations().create("bar");
+    client.tableOperations().create("foo");
+    client.tableOperations().create("bar");
 
-    Table.ID tableId1 = Table.ID.of(conn.tableOperations().tableIdMap().get("foo"));
-    Table.ID tableId2 = Table.ID.of(conn.tableOperations().tableIdMap().get("bar"));
+    Table.ID tableId1 = Table.ID.of(client.tableOperations().tableIdMap().get("foo"));
+    Table.ID tableId2 = Table.ID.of(client.tableOperations().tableIdMap().get("bar"));
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID(),
         file2 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false)
         .setClosed(false).build();
 
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
 
     Mutation m = new Mutation(file1);
     StatusSection.add(m, tableId1, ProtobufUtil.toValue(stat));
@@ -237,7 +237,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     bw.close();
 
-    bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.put(ReplicationSection.COLF, new Text(tableId1.getUtf8()), ProtobufUtil.toValue(stat));
 
@@ -271,7 +271,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     // With the records, we shouldn't be drained
     assertFalse(done.get());
 
-    bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.putDelete(ReplicationSection.COLF, new Text(tableId1.getUtf8()));
     bw.addMutation(m);
@@ -281,7 +281,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     assertFalse(done.get());
 
     // Remove the replication entries too
-    bw = ReplicationTable.getBatchWriter(conn);
+    bw = ReplicationTable.getBatchWriter(client);
     m = new Mutation(file1);
     m.putDelete(StatusSection.NAME, new Text(tableId1.getUtf8()));
     bw.addMutation(m);
@@ -300,15 +300,15 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
   @Test
   public void inprogressReplicationRecordsBlockExecution() throws Exception {
-    conn.tableOperations().create("foo");
+    client.tableOperations().create("foo");
 
-    Table.ID tableId1 = Table.ID.of(conn.tableOperations().tableIdMap().get("foo"));
+    Table.ID tableId1 = Table.ID.of(client.tableOperations().tableIdMap().get("foo"));
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false)
         .setClosed(false).build();
 
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
 
     Mutation m = new Mutation(file1);
     StatusSection.add(m, tableId1, ProtobufUtil.toValue(stat));
@@ -318,7 +318,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     LogEntry logEntry = new LogEntry(new KeyExtent(tableId1, null, null),
         System.currentTimeMillis(), "tserver", file1);
 
-    bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.put(ReplicationSection.COLF, new Text(tableId1.getUtf8()), ProtobufUtil.toValue(stat));
     bw.addMutation(m);
@@ -352,7 +352,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     Status newStatus = Status.newBuilder().setBegin(1000).setEnd(2000).setInfiniteEnd(false)
         .setClosed(true).build();
-    bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.put(ReplicationSection.COLF, new Text(tableId1.getUtf8()), ProtobufUtil.toValue(newStatus));
     bw.addMutation(m);
@@ -362,7 +362,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     assertFalse(done.get());
 
     // Remove the replication entries too
-    bw = ReplicationTable.getBatchWriter(conn);
+    bw = ReplicationTable.getBatchWriter(client);
     m = new Mutation(file1);
     m.put(StatusSection.NAME, new Text(tableId1.getUtf8()), ProtobufUtil.toValue(newStatus));
     bw.addMutation(m);
@@ -381,21 +381,21 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
   @Test
   public void laterCreatedLogsDontBlockExecution() throws Exception {
-    conn.tableOperations().create("foo");
+    client.tableOperations().create("foo");
 
-    Table.ID tableId1 = Table.ID.of(conn.tableOperations().tableIdMap().get("foo"));
+    Table.ID tableId1 = Table.ID.of(client.tableOperations().tableIdMap().get("foo"));
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false)
         .setClosed(false).build();
 
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     Mutation m = new Mutation(file1);
     StatusSection.add(m, tableId1, ProtobufUtil.toValue(stat));
     bw.addMutation(m);
     bw.close();
 
-    bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.put(ReplicationSection.COLF, new Text(tableId1.getUtf8()), ProtobufUtil.toValue(stat));
     bw.addMutation(m);
@@ -403,7 +403,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.close();
 
     log.info("Reading metadata first time");
-    for (Entry<Key,Value> e : conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    for (Entry<Key,Value> e : client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       log.info("{}", e.getKey());
     }
 
@@ -429,7 +429,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     Thread.sleep(2000);
 
     // Write another file, but also delete the old files
-    bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(
         ReplicationSection.getRowPrefix() + "/accumulo/wals/tserver+port/" + UUID.randomUUID());
     m.put(ReplicationSection.COLF, new Text(tableId1.getUtf8()), ProtobufUtil.toValue(stat));
@@ -440,11 +440,11 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.close();
 
     log.info("Reading metadata second time");
-    for (Entry<Key,Value> e : conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    for (Entry<Key,Value> e : client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       log.info("{}", e.getKey());
     }
 
-    bw = ReplicationTable.getBatchWriter(conn);
+    bw = ReplicationTable.getBatchWriter(client);
     m = new Mutation(file1);
     m.putDelete(StatusSection.NAME, new Text(tableId1.getUtf8()));
     bw.addMutation(m);

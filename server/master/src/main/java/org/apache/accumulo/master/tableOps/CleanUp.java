@@ -121,8 +121,9 @@ class CleanUp extends MasterRepo {
 
     try {
       // look for other tables that references this table's files
-      AccumuloClient conn = master.getClient();
-      try (BatchScanner bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
+      AccumuloClient client = master.getClient();
+      try (BatchScanner bs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY,
+          8)) {
         Range allTables = MetadataSchema.TabletsSection.getRange();
         Range tableRange = MetadataSchema.TabletsSection.getRange(tableId);
         Range beforeTable = new Range(allTables.getStartKey(), true, tableRange.getStartKey(),

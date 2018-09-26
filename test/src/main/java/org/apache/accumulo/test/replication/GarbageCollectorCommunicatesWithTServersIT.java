@@ -106,8 +106,8 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    */
   private Set<String> getWalsForTable(String tableName) throws Exception {
     final ServerContext context = getServerContext();
-    final AccumuloClient conn = context.getClient();
-    final String tableId = conn.tableOperations().tableIdMap().get(tableName);
+    final AccumuloClient client = context.getClient();
+    final String tableId = client.tableOperations().tableIdMap().get(tableName);
 
     assertNotNull("Could not determine table ID for " + tableName, tableId);
 
@@ -125,13 +125,13 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    * Fetch all of the rfiles referenced by tablets in the metadata table for this table
    */
   private Set<String> getFilesForTable(String tableName) throws Exception {
-    final AccumuloClient conn = getClient();
-    final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
+    final AccumuloClient client = getClient();
+    final Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
 
     assertNotNull("Could not determine table ID for " + tableName, tableId);
 
     Set<String> rfiles = new HashSet<>();
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       Range r = MetadataSchema.TabletsSection.getRange(tableId);
       s.setRange(r);
       s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
@@ -153,13 +153,13 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    * entries)
    */
   private Map<String,Status> getMetadataStatusForTable(String tableName) throws Exception {
-    final AccumuloClient conn = getClient();
-    final String tableId = conn.tableOperations().tableIdMap().get(tableName);
+    final AccumuloClient client = getClient();
+    final String tableId = client.tableOperations().tableIdMap().get(tableName);
 
     assertNotNull("Could not determine table ID for " + tableName, tableId);
 
     Map<String,Status> fileToStatus = new HashMap<>();
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       Range r = MetadataSchema.ReplicationSection.getRange();
       s.setRange(r);
       s.fetchColumn(MetadataSchema.ReplicationSection.COLF, new Text(tableId));
@@ -178,19 +178,19 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
   @Test
   public void testActiveWalPrecludesClosing() throws Exception {
     final String table = getUniqueNames(1)[0];
-    final AccumuloClient conn = getClient();
+    final AccumuloClient client = getClient();
 
     // Bring the replication table online first and foremost
-    ReplicationTable.setOnline(conn);
+    ReplicationTable.setOnline(client);
 
     log.info("Creating {}", table);
-    conn.tableOperations().create(table);
+    client.tableOperations().create(table);
 
-    conn.tableOperations().setProperty(table, Property.TABLE_REPLICATION.getKey(), "true");
+    client.tableOperations().setProperty(table, Property.TABLE_REPLICATION.getKey(), "true");
 
     log.info("Writing a few mutations to the table");
 
-    BatchWriter bw = conn.createBatchWriter(table, null);
+    BatchWriter bw = client.createBatchWriter(table, null);
 
     byte[] empty = new byte[0];
     for (int i = 0; i < 5; i++) {
@@ -209,9 +209,9 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     assertEquals("Expected to only find two WALs for the table", 2, wals.size());
 
     // Flush our test table to remove the WAL references in it
-    conn.tableOperations().flush(table, null, null, true);
+    client.tableOperations().flush(table, null, null, true);
     // Flush the metadata table too because it will have a reference to the WAL
-    conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
+    client.tableOperations().flush(MetadataTable.NAME, null, null, true);
 
     log.info("Waiting for replication table to come online");
 
@@ -234,7 +234,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     log.info("Files for table before MajC: {}", filesForTable);
 
     // Issue a MajC to roll a new file in HDFS
-    conn.tableOperations().compact(table, null, null, false, true);
+    client.tableOperations().compact(table, null, null, false, true);
 
     Set<String> filesForTableAfterCompaction = getFilesForTable(table);
 
@@ -270,19 +270,19 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     final String[] names = getUniqueNames(2);
     // `table` will be replicated, `otherTable` is only used to roll the WAL on the tserver
     final String table = names[0], otherTable = names[1];
-    final AccumuloClient conn = getClient();
+    final AccumuloClient client = getClient();
 
     // Bring the replication table online first and foremost
-    ReplicationTable.setOnline(conn);
+    ReplicationTable.setOnline(client);
 
     log.info("Creating {}", table);
-    conn.tableOperations().create(table);
+    client.tableOperations().create(table);
 
-    conn.tableOperations().setProperty(table, Property.TABLE_REPLICATION.getKey(), "true");
+    client.tableOperations().setProperty(table, Property.TABLE_REPLICATION.getKey(), "true");
 
     log.info("Writing a few mutations to the table");
 
-    BatchWriter bw = conn.createBatchWriter(table, null);
+    BatchWriter bw = client.createBatchWriter(table, null);
 
     byte[] empty = new byte[0];
     for (int i = 0; i < 5; i++) {
@@ -302,9 +302,9 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     log.info("Compacting the table which will remove all WALs from the tablets");
 
     // Flush our test table to remove the WAL references in it
-    conn.tableOperations().flush(table, null, null, true);
+    client.tableOperations().flush(table, null, null, true);
     // Flush the metadata table too because it will have a reference to the WAL
-    conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
+    client.tableOperations().flush(MetadataTable.NAME, null, null, true);
 
     log.info("Fetching replication statuses from metadata table");
 
@@ -325,7 +325,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     log.info("Files for table before MajC: {}", filesForTable);
 
     // Issue a MajC to roll a new file in HDFS
-    conn.tableOperations().compact(table, null, null, false, true);
+    client.tableOperations().compact(table, null, null, false, true);
 
     Set<String> filesForTableAfterCompaction = getFilesForTable(table);
 
@@ -362,8 +362,8 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
      * data that will exceed the 1.33% full threshold that the logger keeps track of
      */
 
-    conn.tableOperations().create(otherTable);
-    bw = conn.createBatchWriter(otherTable, null);
+    client.tableOperations().create(otherTable);
+    bw = client.createBatchWriter(otherTable, null);
     // 500k
     byte[] bigValue = new byte[1024 * 500];
     Arrays.fill(bigValue, (byte) 1);
@@ -379,12 +379,12 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     bw.close();
 
-    conn.tableOperations().flush(otherTable, null, null, true);
+    client.tableOperations().flush(otherTable, null, null, true);
 
     // Get the tservers which the master deems as active
     final ClientContext context = getClientContext();
     List<String> tservers = MasterClient.execute(context,
-        client -> client.getActiveTservers(Tracer.traceInfo(), context.rpcCreds()));
+        cli -> cli.getActiveTservers(Tracer.traceInfo(), context.rpcCreds()));
 
     assertEquals("Expected only one active tservers", 1, tservers.size());
 
@@ -393,9 +393,8 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     // Get the active WALs from that server
     log.info("Fetching active WALs from {}", tserver);
 
-    Client client = ThriftUtil.getTServerClient(tserver, context);
-    List<String> activeWalsForTserver = client.getActiveLogs(Tracer.traceInfo(),
-        context.rpcCreds());
+    Client cli = ThriftUtil.getTServerClient(tserver, context);
+    List<String> activeWalsForTserver = cli.getActiveLogs(Tracer.traceInfo(), context.rpcCreds());
 
     log.info("Active wals: {}", activeWalsForTserver);
 

@@ -74,15 +74,15 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
     } else {
       throw new RuntimeException("Incorrect usage; expected to be run by test only");
     }
-    AccumuloClient conn;
+    AccumuloClient client;
     try {
-      conn = context.getClient(creds.getPrincipal(), creds.getToken());
+      client = context.getClient(creds.getPrincipal(), creds.getToken());
     } catch (AccumuloSecurityException e) {
       e.printStackTrace(System.err);
       System.exit(BAD_PASSWD_FAIL_CODE);
       return;
     }
-    try (Scanner scan = conn.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner scan = client.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
       for (Entry<Key,Value> e : scan) {
         e.hashCode();
       }

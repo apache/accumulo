@@ -52,24 +52,24 @@ import com.google.common.collect.Lists;
 public class BatchWriterReplicationReplayerTest {
 
   private ClientContext context;
-  private AccumuloClient conn;
+  private AccumuloClient client;
   private AccumuloConfiguration conf;
   private BatchWriter bw;
 
   @Before
   public void setUpContext() throws AccumuloException, AccumuloSecurityException {
-    conn = createMock(AccumuloClient.class);
+    client = createMock(AccumuloClient.class);
     conf = createMock(AccumuloConfiguration.class);
     bw = createMock(BatchWriter.class);
     context = createMock(ClientContext.class);
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
-    expect(context.getClient()).andReturn(conn).anyTimes();
+    expect(context.getClient()).andReturn(client).anyTimes();
     replay(context);
   }
 
   @After
   public void verifyMock() {
-    verify(context, conn, conf, bw);
+    verify(context, client, conf, bw);
   }
 
   @Test
@@ -124,7 +124,7 @@ public class BatchWriterReplicationReplayerTest {
 
     expect(conf.getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY))
         .andReturn(bwCfg.getMaxMemory());
-    expect(conn.createBatchWriter(tableName, bwCfg)).andReturn(bw);
+    expect(client.createBatchWriter(tableName, bwCfg)).andReturn(bw);
 
     bw.addMutations(Lists.newArrayList(expectedMutation));
     expectLastCall().once();
@@ -132,7 +132,7 @@ public class BatchWriterReplicationReplayerTest {
     bw.close();
     expectLastCall().once();
 
-    replay(conn, conf, bw);
+    replay(client, conf, bw);
 
     replayer.replicateLog(context, tableName, edits);
   }
@@ -196,7 +196,7 @@ public class BatchWriterReplicationReplayerTest {
 
     expect(conf.getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY))
         .andReturn(bwCfg.getMaxMemory());
-    expect(conn.createBatchWriter(tableName, bwCfg)).andReturn(bw);
+    expect(client.createBatchWriter(tableName, bwCfg)).andReturn(bw);
 
     bw.addMutations(Lists.newArrayList(expectedMutation));
     expectLastCall().once();
@@ -204,7 +204,7 @@ public class BatchWriterReplicationReplayerTest {
     bw.close();
     expectLastCall().once();
 
-    replay(conn, conf, bw);
+    replay(client, conf, bw);
 
     replayer.replicateLog(context, tableName, edits);
   }

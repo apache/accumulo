@@ -151,7 +151,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private SortedKeyValueIterator<Key,Value> iter;
   private Range range;
   private KeyExtent currentExtent;
-  private AccumuloClient conn;
+  private AccumuloClient client;
   private Table.ID tableId;
   private Authorizations authorizations;
   private ClientContext context;
@@ -175,8 +175,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.readers = new ArrayList<>();
 
     try {
-      conn = context.getClient();
-      config = new ConfigurationCopy(conn.instanceOperations().getSiteConfiguration());
+      client = context.getClient();
+      config = new ConfigurationCopy(client.instanceOperations().getSiteConfiguration());
       nextTablet();
 
       while (iter != null && !iter.hasTop())
@@ -297,7 +297,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   private Pair<KeyExtent,String> getTabletFiles(Range nextRange, List<String> relFiles)
       throws TableNotFoundException {
-    Scanner scanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.setBatchSize(100);
     scanner.setRange(nextRange);
 
@@ -336,7 +336,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     // possible race condition here, if table is renamed
     String tableName = Tables.getTableName(context, tableId);
     AccumuloConfiguration acuTableConf = new ConfigurationCopy(
-        conn.tableOperations().getProperties(tableName));
+        client.tableOperations().getProperties(tableName));
 
     Configuration conf = CachedConfiguration.getInstance();
 

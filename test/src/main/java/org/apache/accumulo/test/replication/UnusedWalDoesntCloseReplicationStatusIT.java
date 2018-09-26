@@ -74,24 +74,24 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
   @Test
   public void test() throws Exception {
     File accumuloDir = this.getCluster().getConfig().getAccumuloDir();
-    final AccumuloClient conn = getClient();
+    final AccumuloClient client = getClient();
     final String tableName = getUniqueNames(1)[0];
 
-    conn.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+    client.securityOperations().grantTablePermission("root", MetadataTable.NAME,
         TablePermission.WRITE);
-    conn.tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
 
-    final Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
+    final Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
     final int numericTableId = Integer.parseInt(tableId.canonicalID());
     final int fakeTableId = numericTableId + 1;
 
     assertNotNull("Did not find table ID", tableId);
 
-    conn.tableOperations().setProperty(tableName, Property.TABLE_REPLICATION.getKey(), "true");
-    conn.tableOperations().setProperty(tableName,
+    client.tableOperations().setProperty(tableName, Property.TABLE_REPLICATION.getKey(), "true");
+    client.tableOperations().setProperty(tableName,
         Property.TABLE_REPLICATION_TARGET.getKey() + "cluster1", "1");
     // just sleep
-    conn.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
+    client.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + "cluster1",
         ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "50000"));
 
     FileSystem fs = FileSystem.getLocal(new Configuration());
@@ -150,7 +150,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
 
     dos.close();
 
-    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
     Mutation m = new Mutation("m");
     m.put("m", "m", "M");
     bw.addMutation(m);
@@ -158,7 +158,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
 
     log.info("State of metadata table after inserting a record");
 
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
 
       s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
       for (Entry<Key,Value> entry : s) {
@@ -166,7 +166,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       }
     }
 
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
         System.out.println(entry.getKey().toStringNoTruncate() + " "
@@ -175,12 +175,12 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
 
       log.info("Offline'ing table");
 
-      conn.tableOperations().offline(tableName, true);
+      client.tableOperations().offline(tableName, true);
 
       // Add our fake WAL to the log column for this table
       String walUri = tserverWal.toURI().toString();
       KeyExtent extent = new KeyExtent(tableId, null, null);
-      bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
       m = new Mutation(extent.getMetadataEntry());
       m.put(MetadataSchema.TabletsSection.LogColumnFamily.NAME,
           new Text("localhost:12345/" + walUri), new Value((walUri + "|1").getBytes(UTF_8)));
@@ -196,14 +196,14 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       log.info("State of metadata after injecting WAL manually");
     }
 
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
       for (Entry<Key,Value> entry : s) {
         log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
       }
     }
 
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
         log.info("{} {}", entry.getKey().toStringNoTruncate(),
@@ -211,21 +211,21 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       }
 
       log.info("Bringing table online");
-      conn.tableOperations().online(tableName, true);
+      client.tableOperations().online(tableName, true);
 
-      assertEquals(1, Iterables.size(conn.createScanner(tableName, Authorizations.EMPTY)));
+      assertEquals(1, Iterables.size(client.createScanner(tableName, Authorizations.EMPTY)));
 
       log.info("Table has performed recovery, state of metadata:");
     }
 
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
       for (Entry<Key,Value> entry : s) {
         log.info("{} {}", entry.getKey().toStringNoTruncate(), entry.getValue());
       }
     }
 
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.ReplicationSection.getRange());
       for (Entry<Key,Value> entry : s) {
         Status status = Status.parseFrom(entry.getValue().get());

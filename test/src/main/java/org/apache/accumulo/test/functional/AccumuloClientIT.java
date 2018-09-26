@@ -32,7 +32,7 @@ import org.junit.Test;
 public class AccumuloClientIT extends AccumuloClusterHarness {
 
   @Test
-  public void testConnectorBuilder() throws Exception {
+  public void testclientectorBuilder() throws Exception {
     AccumuloClient c = getAccumuloClient();
     String instanceName = c.info().getInstanceName();
     String zookeepers = c.info().getZooKeepers();
@@ -40,13 +40,13 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     final String password = "testpassword";
     c.securityOperations().createLocalUser(user, new PasswordToken(password));
 
-    AccumuloClient conn = Accumulo.newClient().forInstance(instanceName, zookeepers)
+    AccumuloClient client = Accumulo.newClient().forInstance(instanceName, zookeepers)
         .usingPassword(user, password).withZkTimeout(1234).build();
 
-    assertEquals(instanceName, conn.info().getInstanceName());
-    assertEquals(zookeepers, conn.info().getZooKeepers());
-    assertEquals(user, conn.whoami());
-    assertEquals(1234, conn.info().getZooKeepersSessionTimeOut());
+    assertEquals(instanceName, client.info().getInstanceName());
+    assertEquals(zookeepers, client.info().getZooKeepers());
+    assertEquals(user, client.whoami());
+    assertEquals(1234, client.info().getZooKeepersSessionTimeOut());
 
     ClientInfo info = Accumulo.newClient().forInstance(instanceName, zookeepers)
         .usingPassword(user, password).info();
@@ -61,23 +61,23 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     props.put(ClientProperty.AUTH_PRINCIPAL.getKey(), user);
     props.put(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(), "22s");
     ClientProperty.setPassword(props, password);
-    conn = Accumulo.newClient().usingProperties(props).build();
+    client = Accumulo.newClient().usingProperties(props).build();
 
-    assertEquals(instanceName, conn.info().getInstanceName());
-    assertEquals(zookeepers, conn.info().getZooKeepers());
-    assertEquals(user, conn.whoami());
-    assertEquals(22000, conn.info().getZooKeepersSessionTimeOut());
+    assertEquals(instanceName, client.info().getInstanceName());
+    assertEquals(zookeepers, client.info().getZooKeepers());
+    assertEquals(user, client.whoami());
+    assertEquals(22000, client.info().getZooKeepersSessionTimeOut());
 
     final String user2 = "testuser2";
     final String password2 = "testpassword2";
     c.securityOperations().createLocalUser(user2, new PasswordToken(password2));
 
-    AccumuloClient conn2 = Accumulo.newClient().usingClientInfo(conn.info())
+    AccumuloClient client2 = Accumulo.newClient().usingClientInfo(client.info())
         .usingToken(user2, new PasswordToken(password2)).build();
-    assertEquals(instanceName, conn2.info().getInstanceName());
-    assertEquals(zookeepers, conn2.info().getZooKeepers());
-    assertEquals(user2, conn2.whoami());
-    info = conn2.info();
+    assertEquals(instanceName, client2.info().getInstanceName());
+    assertEquals(zookeepers, client2.info().getZooKeepers());
+    assertEquals(user2, client2.whoami());
+    info = client2.info();
     assertEquals(instanceName, info.getInstanceName());
     assertEquals(zookeepers, info.getZooKeepers());
     assertEquals(user2, info.getPrincipal());
@@ -86,11 +86,11 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     final String password3 = "testpassword3";
     c.securityOperations().createLocalUser(user3, new PasswordToken(password3));
 
-    AccumuloClient conn3 = conn.changeUser(user3, new PasswordToken(password3));
-    assertEquals(instanceName, conn3.info().getInstanceName());
-    assertEquals(zookeepers, conn3.info().getZooKeepers());
-    assertEquals(user3, conn3.whoami());
-    info = conn3.info();
+    AccumuloClient client3 = client.changeUser(user3, new PasswordToken(password3));
+    assertEquals(instanceName, client3.info().getInstanceName());
+    assertEquals(zookeepers, client3.info().getZooKeepers());
+    assertEquals(user3, client3.whoami());
+    info = client3.info();
     assertEquals(instanceName, info.getInstanceName());
     assertEquals(zookeepers, info.getZooKeepers());
     assertEquals(user3, info.getPrincipal());

@@ -64,7 +64,7 @@ import com.google.common.collect.Iterables;
 public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
   private WrappedCloseWriteAheadLogReferences refs;
-  private AccumuloClient conn;
+  private AccumuloClient client;
 
   private static class WrappedCloseWriteAheadLogReferences extends CloseWriteAheadLogReferences {
     public WrappedCloseWriteAheadLogReferences(ServerContext context) {
@@ -72,19 +72,19 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     }
 
     @Override
-    protected long updateReplicationEntries(AccumuloClient conn, Set<String> closedWals) {
-      return super.updateReplicationEntries(conn, closedWals);
+    protected long updateReplicationEntries(AccumuloClient client, Set<String> closedWals) {
+      return super.updateReplicationEntries(client, closedWals);
     }
   }
 
   @Before
   public void setupInstance() throws Exception {
-    conn = getClient();
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client = getClient();
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission(conn.whoami(), MetadataTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
-    ReplicationTable.setOnline(conn);
+    ReplicationTable.setOnline(client);
   }
 
   @Before
@@ -124,7 +124,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   @Test
   public void unclosedWalsLeaveStatusOpen() throws Exception {
     Set<String> wals = Collections.emptySet();
-    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     Mutation m = new Mutation(
         ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
     m.put(ReplicationSection.COLF, new Text("1"),
@@ -132,9 +132,9 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     bw.addMutation(m);
     bw.close();
 
-    refs.updateReplicationEntries(conn, wals);
+    refs.updateReplicationEntries(client, wals);
 
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.fetchColumnFamily(ReplicationSection.COLF);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
       Status status = Status.parseFrom(entry.getValue().get());
@@ -146,16 +146,16 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   public void closedWalsUpdateStatus() throws Exception {
     String file = "file:/accumulo/wal/tserver+port/12345";
     Set<String> wals = Collections.singleton(file);
-    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
     m.put(ReplicationSection.COLF, new Text("1"),
         StatusUtil.fileCreatedValue(System.currentTimeMillis()));
     bw.addMutation(m);
     bw.close();
 
-    refs.updateReplicationEntries(conn, wals);
+    refs.updateReplicationEntries(client, wals);
 
-    try (Scanner s = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       s.fetchColumnFamily(ReplicationSection.COLF);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
       Status status = Status.parseFrom(entry.getValue().get());
@@ -167,15 +167,15 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   public void partiallyReplicatedReferencedWalsAreNotClosed() throws Exception {
     String file = "file:/accumulo/wal/tserver+port/12345";
     Set<String> wals = Collections.singleton(file);
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     Mutation m = new Mutation(file);
     StatusSection.add(m, Table.ID.of("1"), ProtobufUtil.toValue(StatusUtil.ingestedUntil(1000)));
     bw.addMutation(m);
     bw.close();
 
-    refs.updateReplicationEntries(conn, wals);
+    refs.updateReplicationEntries(client, wals);
 
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
       Status status = Status.parseFrom(entry.getValue().get());
       assertFalse(status.getClosed());

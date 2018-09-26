@@ -78,11 +78,11 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Before
   public void setupMetadataPermission() throws Exception {
-    AccumuloClient conn = getClient();
-    rootHasWritePermission = conn.securityOperations().hasTablePermission("root",
+    AccumuloClient client = getClient();
+    rootHasWritePermission = client.securityOperations().hasTablePermission("root",
         MetadataTable.NAME, TablePermission.WRITE);
     if (!rootHasWritePermission) {
-      conn.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+      client.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
       // Make sure it propagates through ZK
       Thread.sleep(5000);
@@ -91,17 +91,17 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @After
   public void resetMetadataPermission() throws Exception {
-    AccumuloClient conn = getClient();
+    AccumuloClient client = getClient();
     // Final state doesn't match the original
-    if (rootHasWritePermission != conn.securityOperations().hasTablePermission("root",
+    if (rootHasWritePermission != client.securityOperations().hasTablePermission("root",
         MetadataTable.NAME, TablePermission.WRITE)) {
       if (rootHasWritePermission) {
         // root had write permission when starting, ensure root still does
-        conn.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+        client.securityOperations().grantTablePermission("root", MetadataTable.NAME,
             TablePermission.WRITE);
       } else {
         // root did not have write permission when starting, ensure that it does not
-        conn.securityOperations().revokeTablePermission("root", MetadataTable.NAME,
+        client.securityOperations().revokeTablePermission("root", MetadataTable.NAME,
             TablePermission.WRITE);
       }
     }
@@ -109,7 +109,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Test
   public void testEmptyWalRecoveryCompletes() throws Exception {
-    AccumuloClient conn = getClient();
+    AccumuloClient client = getClient();
     MiniAccumuloClusterImpl cluster = getCluster();
     FileSystem fs = cluster.getFileSystem();
 
@@ -125,20 +125,20 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     fs.create(new Path(emptyWalog.toURI())).close();
 
     assertTrue("root user did not have write permission to metadata table",
-        conn.securityOperations().hasTablePermission("root", MetadataTable.NAME,
+        client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
             TablePermission.WRITE));
 
     String tableName = getUniqueNames(1)[0];
-    conn.tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
 
-    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
+    Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
     assertNotNull("Table ID was null", tableId);
 
     LogEntry logEntry = new LogEntry(new KeyExtent(tableId, null, null), 0, "127.0.0.1:12345",
         emptyWalog.toURI().toString());
 
     log.info("Taking {} offline", tableName);
-    conn.tableOperations().offline(tableName, true);
+    client.tableOperations().offline(tableName, true);
 
     log.info("{} is offline", tableName);
 
@@ -146,25 +146,25 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     Mutation m = new Mutation(row);
     m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 
-    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     bw.addMutation(m);
     bw.close();
 
     log.info("Bringing {} online", tableName);
-    conn.tableOperations().online(tableName, true);
+    client.tableOperations().online(tableName, true);
 
     log.info("{} is online", tableName);
 
     // Reading the table implies that recovery completed successfully (the empty file was ignored)
     // otherwise the tablet will never come online and we won't be able to read it.
-    try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
       assertEquals(0, Iterables.size(s));
     }
   }
 
   @Test
   public void testPartialHeaderWalRecoveryCompletes() throws Exception {
-    AccumuloClient conn = getClient();
+    AccumuloClient client = getClient();
     MiniAccumuloClusterImpl cluster = getCluster();
     FileSystem fs = getCluster().getFileSystem();
 
@@ -184,20 +184,20 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     wal.close();
 
     assertTrue("root user did not have write permission to metadata table",
-        conn.securityOperations().hasTablePermission("root", MetadataTable.NAME,
+        client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
             TablePermission.WRITE));
 
     String tableName = getUniqueNames(1)[0];
-    conn.tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
 
-    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(tableName));
+    Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
     assertNotNull("Table ID was null", tableId);
 
     LogEntry logEntry = new LogEntry(null, 0, "127.0.0.1:12345",
         partialHeaderWalog.toURI().toString());
 
     log.info("Taking {} offline", tableName);
-    conn.tableOperations().offline(tableName, true);
+    client.tableOperations().offline(tableName, true);
 
     log.info("{} is offline", tableName);
 
@@ -205,18 +205,18 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     Mutation m = new Mutation(row);
     m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 
-    BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     bw.addMutation(m);
     bw.close();
 
     log.info("Bringing {} online", tableName);
-    conn.tableOperations().online(tableName, true);
+    client.tableOperations().online(tableName, true);
 
     log.info("{} is online", tableName);
 
     // Reading the table implies that recovery completed successfully (the empty file was ignored)
     // otherwise the tablet will never come online and we won't be able to read it.
-    try (Scanner s = conn.createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
       assertEquals(0, Iterables.size(s));
     }
   }

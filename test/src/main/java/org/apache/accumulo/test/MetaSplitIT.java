@@ -52,15 +52,15 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   @Before
   public void saveMetadataSplits() throws Exception {
     if (ClusterType.STANDALONE == getClusterType()) {
-      AccumuloClient conn = getAccumuloClient();
-      Collection<Text> splits = conn.tableOperations().listSplits(MetadataTable.NAME);
+      AccumuloClient client = getAccumuloClient();
+      Collection<Text> splits = client.tableOperations().listSplits(MetadataTable.NAME);
       // We expect a single split
       if (!splits.equals(Arrays.asList(new Text("~")))) {
         log.info("Existing splits on metadata table. Saving them, and applying"
             + " single original split of '~'");
         metadataSplits = splits;
-        conn.tableOperations().merge(MetadataTable.NAME, null, null);
-        conn.tableOperations().addSplits(MetadataTable.NAME,
+        client.tableOperations().merge(MetadataTable.NAME, null, null);
+        client.tableOperations().addSplits(MetadataTable.NAME,
             new TreeSet<>(Collections.singleton(new Text("~"))));
       }
     }
@@ -70,9 +70,9 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   public void restoreMetadataSplits() throws Exception {
     if (null != metadataSplits) {
       log.info("Restoring split on metadata table");
-      AccumuloClient conn = getAccumuloClient();
-      conn.tableOperations().merge(MetadataTable.NAME, null, null);
-      conn.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(metadataSplits));
+      AccumuloClient client = getAccumuloClient();
+      client.tableOperations().merge(MetadataTable.NAME, null, null);
+      client.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(metadataSplits));
     }
   }
 

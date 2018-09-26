@@ -309,13 +309,13 @@ public class Admin implements KeywordExecutable {
       @Override
       public void run() {
         try {
-          AccumuloClient conn = context.getClient();
-          Set<String> tables = conn.tableOperations().tableIdMap().keySet();
+          AccumuloClient client = context.getClient();
+          Set<String> tables = client.tableOperations().tableIdMap().keySet();
           for (String table : tables) {
             if (table.equals(MetadataTable.NAME))
               continue;
             try {
-              conn.tableOperations().flush(table, null, null, false);
+              client.tableOperations().flush(table, null, null, false);
               flushesStarted.incrementAndGet();
             } catch (TableNotFoundException e) {
               // ignore

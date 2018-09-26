@@ -42,7 +42,7 @@ public class ReplicationDriver extends Daemon {
   private StatusMaker statusMaker;
   private FinishedWorkUpdater finishedWorkUpdater;
   private RemoveCompleteReplicationRecords rcrr;
-  private AccumuloClient conn;
+  private AccumuloClient client;
 
   public ReplicationDriver(Master master) {
     super("Replication Driver");
@@ -65,18 +65,18 @@ public class ReplicationDriver extends Daemon {
     while (master.stillMaster()) {
       if (null == workMaker) {
         try {
-          conn = master.getClient();
+          client = master.getClient();
         } catch (AccumuloException | AccumuloSecurityException e) {
-          // couldn't get a connector, try again in a "short" amount of time
-          log.warn("Error trying to get connector to process replication records", e);
+          // couldn't get a client, try again in a "short" amount of time
+          log.warn("Error trying to get client to process replication records", e);
           UtilWaitThread.sleep(2000);
           continue;
         }
 
-        statusMaker = new StatusMaker(conn, master.getFileSystem());
-        workMaker = new WorkMaker(master.getContext(), conn);
-        finishedWorkUpdater = new FinishedWorkUpdater(conn);
-        rcrr = new RemoveCompleteReplicationRecords(conn);
+        statusMaker = new StatusMaker(client, master.getFileSystem());
+        workMaker = new WorkMaker(master.getContext(), client);
+        finishedWorkUpdater = new FinishedWorkUpdater(client);
+        rcrr = new RemoveCompleteReplicationRecords(client);
       }
 
       Trace.on("masterReplicationDriver", sampler);

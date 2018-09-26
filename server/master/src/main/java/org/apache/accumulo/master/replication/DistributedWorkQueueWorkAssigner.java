@@ -61,7 +61,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
     return StatusUtil.isWorkRequired(status);
   }
 
-  protected AccumuloClient conn;
+  protected AccumuloClient client;
   protected AccumuloConfiguration conf;
   protected DistributedWorkQueue workQueue;
   protected int maxQueueSize;
@@ -71,11 +71,11 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
    * Getters/setters for testing purposes
    */
   protected AccumuloClient getClient() {
-    return conn;
+    return client;
   }
 
-  protected void setConnector(AccumuloClient conn) {
-    this.conn = conn;
+  protected void setClient(AccumuloClient client) {
+    this.client = client;
   }
 
   protected AccumuloConfiguration getConf() {
@@ -115,13 +115,13 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
    */
   protected void initializeWorkQueue(AccumuloConfiguration conf) {
     workQueue = new DistributedWorkQueue(
-        ZooUtil.getRoot(conn.getInstanceID()) + ReplicationConstants.ZOO_WORK_QUEUE, conf);
+        ZooUtil.getRoot(client.getInstanceID()) + ReplicationConstants.ZOO_WORK_QUEUE, conf);
   }
 
   @Override
-  public void configure(AccumuloConfiguration conf, AccumuloClient conn) {
+  public void configure(AccumuloConfiguration conf, AccumuloClient client) {
     this.conf = conf;
-    this.conn = conn;
+    this.client = client;
   }
 
   @Override
@@ -154,7 +154,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
     // Create a scanner over the replication table's order entries
     Scanner s;
     try {
-      s = ReplicationTable.getScanner(conn);
+      s = ReplicationTable.getScanner(client);
     } catch (ReplicationTableOfflineException e) {
       // no work to do; replication is off
       return;
@@ -181,7 +181,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
 
       Scanner workScanner;
       try {
-        workScanner = ReplicationTable.getScanner(conn);
+        workScanner = ReplicationTable.getScanner(client);
       } catch (ReplicationTableOfflineException e) {
         log.warn("Replication table is offline. Will retry...");
         sleepUninterruptibly(5, TimeUnit.SECONDS);

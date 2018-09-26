@@ -182,14 +182,14 @@ public class MasterClientServiceHandler extends FateServiceHandler
       serversToFlush.clear();
 
       try {
-        AccumuloClient conn = master.getClient();
+        AccumuloClient client = master.getClient();
         Scanner scanner;
         if (tableId.equals(MetadataTable.ID)) {
-          scanner = new IsolatedScanner(conn.createScanner(RootTable.NAME, Authorizations.EMPTY));
+          scanner = new IsolatedScanner(client.createScanner(RootTable.NAME, Authorizations.EMPTY));
           scanner.setRange(MetadataSchema.TabletsSection.getRange());
         } else {
           scanner = new IsolatedScanner(
-              conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+              client.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
           Range range = new KeyExtent(tableId, null, ByteBufferUtil.toText(startRow))
               .toMetadataRange();
           scanner.setRange(range.clip(MetadataSchema.TabletsSection.getRange()));
@@ -552,11 +552,11 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public boolean drainReplicationTable(TInfo tfino, TCredentials credentials, String tableName,
       Set<String> logsToWatch) throws TException {
-    AccumuloClient conn;
+    AccumuloClient client;
     try {
-      conn = master.getClient();
+      client = master.getClient();
     } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new RuntimeException("Failed to obtain connector", e);
+      throw new RuntimeException("Failed to obtain client", e);
     }
 
     final Text tableId = new Text(getTableId(master.getContext(), tableName).getUtf8());
@@ -567,7 +567,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     final Set<Range> range = Collections.singleton(new Range(ReplicationSection.getRange()));
     BatchScanner bs;
     try {
-      bs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
+      bs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
     } catch (TableNotFoundException e) {
       throw new RuntimeException("Could not read metadata table", e);
     }
@@ -584,7 +584,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
     drainLog.trace("reading from replication table");
     try {
-      bs = conn.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
+      bs = client.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
     } catch (TableNotFoundException e) {
       throw new RuntimeException("Replication table was not found", e);
     }

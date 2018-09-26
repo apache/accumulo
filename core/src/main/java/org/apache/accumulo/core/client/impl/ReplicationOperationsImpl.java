@@ -120,11 +120,11 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
         client -> client.drainReplicationTable(tinfo, rpcCreds, tableName, wals));
   }
 
-  protected Table.ID getTableId(AccumuloClient conn, String tableName)
+  protected Table.ID getTableId(AccumuloClient client, String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    TableOperations tops = conn.tableOperations();
+    TableOperations tops = client.tableOperations();
 
-    if (!conn.tableOperations().exists(tableName)) {
+    if (!client.tableOperations().exists(tableName)) {
       throw new TableNotFoundException(null, tableName, null);
     }
 
@@ -146,13 +146,13 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
 
     log.debug("Collecting referenced files for replication of table {}", tableName);
 
-    AccumuloClient conn = context.getClient();
-    Table.ID tableId = getTableId(conn, tableName);
+    AccumuloClient client = context.getClient();
+    Table.ID tableId = getTableId(client, tableName);
 
     log.debug("Found id of {} for name {}", tableId, tableName);
 
     // Get the WALs currently referenced by the table
-    BatchScanner metaBs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
+    BatchScanner metaBs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
     metaBs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange(tableId)));
     metaBs.fetchColumnFamily(LogColumnFamily.NAME);
     Set<String> wals = new HashSet<>();
@@ -166,7 +166,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     }
 
     // And the WALs that need to be replicated for this table
-    metaBs = conn.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
+    metaBs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
     metaBs.setRanges(Collections.singleton(ReplicationSection.getRange()));
     metaBs.fetchColumnFamily(ReplicationSection.COLF);
     try {

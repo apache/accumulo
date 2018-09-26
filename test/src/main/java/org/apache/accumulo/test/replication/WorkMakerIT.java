@@ -51,12 +51,12 @@ import com.google.common.collect.Iterables;
 
 public class WorkMakerIT extends ConfigurableMacBase {
 
-  private AccumuloClient conn;
+  private AccumuloClient client;
 
   private static class MockWorkMaker extends WorkMaker {
 
-    public MockWorkMaker(AccumuloClient conn) {
-      super(null, conn);
+    public MockWorkMaker(AccumuloClient client) {
+      super(null, client);
     }
 
     @Override
@@ -79,19 +79,19 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
   @Before
   public void setupInstance() throws Exception {
-    conn = getClient();
-    ReplicationTable.setOnline(conn);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client = getClient();
+    ReplicationTable.setOnline(client);
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.READ);
   }
 
   @Test
   public void singleUnitSingleTarget() throws Exception {
     String table = testName.getMethodName();
-    conn.tableOperations().create(table);
-    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(table));
+    client.tableOperations().create(table);
+    Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(table));
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     // Create a status record for a file
@@ -99,17 +99,17 @@ public class WorkMakerIT extends ConfigurableMacBase {
     Mutation m = new Mutation(new Path(file).toString());
     m.put(StatusSection.NAME, new Text(tableId.getUtf8()),
         StatusUtil.fileCreatedValue(timeCreated));
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     bw.addMutation(m);
     bw.flush();
 
     // Assert that we have one record in the status section
     ReplicationTarget expected;
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       StatusSection.limit(s);
       assertEquals(1, Iterables.size(s));
 
-      MockWorkMaker workMaker = new MockWorkMaker(conn);
+      MockWorkMaker workMaker = new MockWorkMaker(client);
 
       // Invoke the addWorkRecord method to create a Work record from the Status record earlier
       expected = new ReplicationTarget("remote_cluster_1", "4", tableId);
@@ -119,7 +119,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
     }
 
     // Scan over just the WorkSection
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       WorkSection.limit(s);
 
       Entry<Key,Value> workEntry = Iterables.getOnlyElement(s);
@@ -136,26 +136,26 @@ public class WorkMakerIT extends ConfigurableMacBase {
   @Test
   public void singleUnitMultipleTargets() throws Exception {
     String table = testName.getMethodName();
-    conn.tableOperations().create(table);
+    client.tableOperations().create(table);
 
-    Table.ID tableId = Table.ID.of(conn.tableOperations().tableIdMap().get(table));
+    Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(table));
 
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     Mutation m = new Mutation(new Path(file).toString());
     m.put(StatusSection.NAME, new Text(tableId.getUtf8()),
         StatusUtil.fileCreatedValue(System.currentTimeMillis()));
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     bw.addMutation(m);
     bw.flush();
 
     // Assert that we have one record in the status section
     Set<ReplicationTarget> expectedTargets = new HashSet<>();
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       StatusSection.limit(s);
       assertEquals(1, Iterables.size(s));
 
-      MockWorkMaker workMaker = new MockWorkMaker(conn);
+      MockWorkMaker workMaker = new MockWorkMaker(client);
 
       Map<String,String> targetClusters = ImmutableMap.of("remote_cluster_1", "4",
           "remote_cluster_2", "6", "remote_cluster_3", "8");
@@ -168,7 +168,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
           StatusUtil.fileCreatedValue(System.currentTimeMillis()), targetClusters, tableId);
     }
 
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       WorkSection.limit(s);
 
       Set<ReplicationTarget> actualTargets = new HashSet<>();
@@ -192,25 +192,25 @@ public class WorkMakerIT extends ConfigurableMacBase {
   @Test
   public void dontCreateWorkForEntriesWithNothingToReplicate() throws Exception {
     String table = testName.getMethodName();
-    conn.tableOperations().create(table);
-    String tableId = conn.tableOperations().tableIdMap().get(table);
+    client.tableOperations().create(table);
+    String tableId = client.tableOperations().tableIdMap().get(table);
     String file = "hdfs://localhost:8020/accumulo/wal/123456-1234-1234-12345678";
 
     Mutation m = new Mutation(new Path(file).toString());
     m.put(StatusSection.NAME, new Text(tableId),
         StatusUtil.fileCreatedValue(System.currentTimeMillis()));
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     bw.addMutation(m);
     bw.flush();
 
     // Assert that we have one record in the status section
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       StatusSection.limit(s);
       assertEquals(1, Iterables.size(s));
 
-      MockWorkMaker workMaker = new MockWorkMaker(conn);
+      MockWorkMaker workMaker = new MockWorkMaker(client);
 
-      conn.tableOperations().setProperty(ReplicationTable.NAME,
+      client.tableOperations().setProperty(ReplicationTable.NAME,
           Property.TABLE_REPLICATION_TARGET.getKey() + "remote_cluster_1", "4");
 
       workMaker.setBatchWriter(bw);
@@ -221,7 +221,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
       workMaker.run();
     }
 
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       WorkSection.limit(s);
 
       assertEquals(0, Iterables.size(s));

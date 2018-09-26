@@ -64,16 +64,16 @@ import com.google.common.collect.Sets;
 
 public class StatusMakerIT extends ConfigurableMacBase {
 
-  private AccumuloClient conn;
+  private AccumuloClient client;
   private VolumeManager fs;
 
   @Before
   public void setupInstance() throws Exception {
-    conn = getClient();
-    ReplicationTable.setOnline(conn);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client = getClient();
+    ReplicationTable.setOnline(client);
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.READ);
     fs = EasyMock.mock(VolumeManager.class);
   }
@@ -81,10 +81,10 @@ public class StatusMakerIT extends ConfigurableMacBase {
   @Test
   public void statusRecordsCreated() throws Exception {
     String sourceTable = testName.getMethodName();
-    conn.tableOperations().create(sourceTable);
-    ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
+    client.tableOperations().create(sourceTable);
+    ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
-    BatchWriter bw = conn.createBatchWriter(sourceTable, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
     Set<String> files = Sets.newHashSet(walPrefix + UUID.randomUUID(),
         walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
@@ -107,12 +107,12 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     bw.close();
 
-    StatusMaker statusMaker = new StatusMaker(conn, fs);
+    StatusMaker statusMaker = new StatusMaker(client, fs);
     statusMaker.setSourceTableName(sourceTable);
 
     statusMaker.run();
 
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       StatusSection.limit(s);
       Text file = new Text();
       for (Entry<Key,Value> entry : s) {
@@ -131,10 +131,10 @@ public class StatusMakerIT extends ConfigurableMacBase {
   @Test
   public void openMessagesAreNotDeleted() throws Exception {
     String sourceTable = testName.getMethodName();
-    conn.tableOperations().create(sourceTable);
-    ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
+    client.tableOperations().create(sourceTable);
+    ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
-    BatchWriter bw = conn.createBatchWriter(sourceTable, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
     Set<String> files = Sets.newHashSet(walPrefix + UUID.randomUUID(),
         walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
@@ -155,12 +155,12 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     bw.close();
 
-    StatusMaker statusMaker = new StatusMaker(conn, fs);
+    StatusMaker statusMaker = new StatusMaker(client, fs);
     statusMaker.setSourceTableName(sourceTable);
 
     statusMaker.run();
 
-    try (Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(sourceTable, Authorizations.EMPTY)) {
       s.setRange(ReplicationSection.getRange());
       s.fetchColumnFamily(ReplicationSection.COLF);
       assertEquals(files.size(), Iterables.size(s));
@@ -170,10 +170,10 @@ public class StatusMakerIT extends ConfigurableMacBase {
   @Test
   public void closedMessagesAreDeleted() throws Exception {
     String sourceTable = testName.getMethodName();
-    conn.tableOperations().create(sourceTable);
-    ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
+    client.tableOperations().create(sourceTable);
+    ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
-    BatchWriter bw = conn.createBatchWriter(sourceTable, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
     Set<String> files = Sets.newHashSet(walPrefix + UUID.randomUUID(),
         walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
@@ -194,12 +194,12 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     bw.close();
 
-    StatusMaker statusMaker = new StatusMaker(conn, fs);
+    StatusMaker statusMaker = new StatusMaker(client, fs);
     statusMaker.setSourceTableName(sourceTable);
 
     statusMaker.run();
 
-    try (Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(sourceTable, Authorizations.EMPTY)) {
       s.setRange(ReplicationSection.getRange());
       s.fetchColumnFamily(ReplicationSection.COLF);
       for (Entry<Key,Value> e : s) {
@@ -207,7 +207,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
       }
     }
 
-    try (Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(sourceTable, Authorizations.EMPTY)) {
       s.setRange(ReplicationSection.getRange());
       s.fetchColumnFamily(ReplicationSection.COLF);
       assertEquals(0, Iterables.size(s));
@@ -217,10 +217,10 @@ public class StatusMakerIT extends ConfigurableMacBase {
   @Test
   public void closedMessagesCreateOrderRecords() throws Exception {
     String sourceTable = testName.getMethodName();
-    conn.tableOperations().create(sourceTable);
-    ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
+    client.tableOperations().create(sourceTable);
+    ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
-    BatchWriter bw = conn.createBatchWriter(sourceTable, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
     List<String> files = Arrays.asList(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
         walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID());
@@ -243,20 +243,20 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     bw.close();
 
-    StatusMaker statusMaker = new StatusMaker(conn, fs);
+    StatusMaker statusMaker = new StatusMaker(client, fs);
     statusMaker.setSourceTableName(sourceTable);
 
     statusMaker.run();
 
     Iterator<Entry<Key,Value>> iter;
     Iterator<String> expectedFiles;
-    try (Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(sourceTable, Authorizations.EMPTY)) {
       s.setRange(ReplicationSection.getRange());
       s.fetchColumnFamily(ReplicationSection.COLF);
       assertEquals(0, Iterables.size(s));
     }
 
-    try (Scanner s = ReplicationTable.getScanner(conn)) {
+    try (Scanner s = ReplicationTable.getScanner(client)) {
       OrderSection.limit(s);
       iter = s.iterator();
       assertTrue("Found no order records in replication table", iter.hasNext());
@@ -279,10 +279,10 @@ public class StatusMakerIT extends ConfigurableMacBase {
   @Test
   public void orderRecordsCreatedWithNoCreatedTime() throws Exception {
     String sourceTable = testName.getMethodName();
-    conn.tableOperations().create(sourceTable);
-    ReplicationTableUtil.configureMetadataTable(conn, sourceTable);
+    client.tableOperations().create(sourceTable);
+    ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
-    BatchWriter bw = conn.createBatchWriter(sourceTable, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
     List<String> files = Arrays.asList(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
         walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID());
@@ -315,17 +315,17 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     bw.close();
 
-    StatusMaker statusMaker = new StatusMaker(conn, fs);
+    StatusMaker statusMaker = new StatusMaker(client, fs);
     statusMaker.setSourceTableName(sourceTable);
 
     statusMaker.run();
 
-    Scanner s = conn.createScanner(sourceTable, Authorizations.EMPTY);
+    Scanner s = client.createScanner(sourceTable, Authorizations.EMPTY);
     s.setRange(ReplicationSection.getRange());
     s.fetchColumnFamily(ReplicationSection.COLF);
     assertEquals(0, Iterables.size(s));
 
-    s = ReplicationTable.getScanner(conn);
+    s = ReplicationTable.getScanner(client);
     OrderSection.limit(s);
     Iterator<Entry<Key,Value>> iter = s.iterator();
     assertTrue("Found no order records in replication table", iter.hasNext());
@@ -347,12 +347,12 @@ public class StatusMakerIT extends ConfigurableMacBase {
     assertFalse("Found more files unexpectedly", expectedFiles.hasNext());
     assertFalse("Found more entries in replication table unexpectedly", iter.hasNext());
 
-    s = conn.createScanner(sourceTable, Authorizations.EMPTY);
+    s = client.createScanner(sourceTable, Authorizations.EMPTY);
     s.setRange(ReplicationSection.getRange());
     s.fetchColumnFamily(ReplicationSection.COLF);
     assertEquals(0, Iterables.size(s));
 
-    s = ReplicationTable.getScanner(conn);
+    s = ReplicationTable.getScanner(client);
     s.setRange(ReplicationSection.getRange());
     iter = s.iterator();
     assertTrue("Found no stat records in replication table", iter.hasNext());

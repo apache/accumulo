@@ -29,7 +29,7 @@ import org.apache.hadoop.io.Text;
  * Group Key/Value pairs into Iterators over rows. Suggested usage:
  *
  * <pre>
- * RowIterator rowIterator = new RowIterator(connector.createScanner(tableName, authorizations));
+ * RowIterator rowIterator = new RowIterator(client.createScanner(tableName, authorizations));
  * </pre>
  */
 public class RowIterator implements Iterator<Iterator<Entry<Key,Value>>> {

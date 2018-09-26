@@ -94,9 +94,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
    */
   @Test
   public void testGetSplits() throws Exception {
-    AccumuloClient conn = getAccumuloClient();
+    AccumuloClient client = getAccumuloClient();
     String table = getUniqueNames(1)[0];
-    conn.tableOperations().create(table);
+    client.tableOperations().create(table);
     insertData(table, currentTimeMillis());
 
     Job job = Job.getInstance();
@@ -107,11 +107,11 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     TreeSet<Text> splitsToAdd = new TreeSet<>();
     for (int i = 0; i < 10000; i += 1000)
       splitsToAdd.add(new Text(String.format("%09d", i)));
-    conn.tableOperations().addSplits(table, splitsToAdd);
+    client.tableOperations().addSplits(table, splitsToAdd);
     sleepUninterruptibly(500, TimeUnit.MILLISECONDS); // wait for splits to be propagated
 
     // get splits without setting any range
-    Collection<Text> actualSplits = conn.tableOperations().listSplits(table);
+    Collection<Text> actualSplits = client.tableOperations().listSplits(table);
     List<InputSplit> splits = inputFormat.getSplits(job);
     assertEquals(actualSplits.size() + 1, splits.size()); // No ranges set on the job so it'll start
                                                           // with -inf
@@ -131,7 +131,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       fail("An exception should have been thrown");
     } catch (IOException e) {}
 
-    conn.tableOperations().offline(table, true);
+    client.tableOperations().offline(table, true);
     splits = inputFormat.getSplits(job);
     assertEquals(actualSplits.size(), splits.size());
 
@@ -159,7 +159,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       fail("An exception should have been thrown");
     } catch (IllegalArgumentException e) {}
 
-    conn.tableOperations().online(table, true);
+    client.tableOperations().online(table, true);
     AccumuloInputFormat.setOfflineTableScan(job, false);
 
     // test for resumption of success
@@ -187,7 +187,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     AccumuloInputFormat.setLocalIterators(job, false);
 
     // Check we are getting back correct type pf split
-    conn.tableOperations().online(table);
+    client.tableOperations().online(table);
     splits = inputFormat.getSplits(job);
     for (InputSplit split : splits)
       assert (split instanceof BatchInputSplit);

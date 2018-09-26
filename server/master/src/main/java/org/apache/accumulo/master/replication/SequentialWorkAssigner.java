@@ -60,8 +60,8 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   public SequentialWorkAssigner() {}
 
-  public SequentialWorkAssigner(AccumuloConfiguration conf, AccumuloClient conn) {
-    configure(conf, conn);
+  public SequentialWorkAssigner(AccumuloConfiguration conf, AccumuloClient client) {
+    configure(conf, client);
   }
 
   @Override
@@ -123,7 +123,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
   protected void cleanupFinishedWork() {
     final Iterator<Entry<String,Map<Table.ID,String>>> queuedWork = queuedWorkByPeerName.entrySet()
         .iterator();
-    final String instanceId = conn.getInstanceID();
+    final String instanceId = client.getInstanceID();
 
     int elementsRemoved = 0;
     // Check the status of all the work we've queued up

@@ -57,17 +57,17 @@ public class WorkMaker {
   private static final Logger log = LoggerFactory.getLogger(WorkMaker.class);
 
   private final ServerContext context;
-  private AccumuloClient conn;
+  private AccumuloClient client;
 
   private BatchWriter writer;
 
-  public WorkMaker(ServerContext context, AccumuloClient conn) {
+  public WorkMaker(ServerContext context, AccumuloClient client) {
     this.context = context;
-    this.conn = conn;
+    this.client = client;
   }
 
   public void run() {
-    if (!ReplicationTable.isOnline(conn)) {
+    if (!ReplicationTable.isOnline(client)) {
       log.debug("Replication table is not yet online");
       return;
     }
@@ -76,9 +76,9 @@ public class WorkMaker {
     try {
       final Scanner s;
       try {
-        s = ReplicationTable.getScanner(conn);
+        s = ReplicationTable.getScanner(client);
         if (null == writer) {
-          setBatchWriter(ReplicationTable.getBatchWriter(conn));
+          setBatchWriter(ReplicationTable.getBatchWriter(client));
         }
       } catch (ReplicationTableOfflineException e) {
         log.warn("Replication table was online, but not anymore");

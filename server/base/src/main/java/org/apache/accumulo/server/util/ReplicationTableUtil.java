@@ -84,14 +84,14 @@ public class ReplicationTableUtil {
   synchronized static Writer getWriter(ClientContext context) {
     Writer replicationTable = writers.get(context.getCredentials());
     if (replicationTable == null) {
-      AccumuloClient conn;
+      AccumuloClient client;
       try {
-        conn = context.getClient();
+        client = context.getClient();
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new RuntimeException(e);
       }
 
-      configureMetadataTable(conn, MetadataTable.NAME);
+      configureMetadataTable(client, MetadataTable.NAME);
 
       replicationTable = new Writer(context, MetadataTable.ID);
       writers.put(context.getCredentials(), replicationTable);
@@ -99,8 +99,8 @@ public class ReplicationTableUtil {
     return replicationTable;
   }
 
-  public synchronized static void configureMetadataTable(AccumuloClient conn, String tableName) {
-    TableOperations tops = conn.tableOperations();
+  public synchronized static void configureMetadataTable(AccumuloClient client, String tableName) {
+    TableOperations tops = client.tableOperations();
     Map<String,EnumSet<IteratorScope>> iterators = null;
     try {
       iterators = tops.listIterators(tableName);

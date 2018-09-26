@@ -49,12 +49,12 @@ import org.junit.Test;
 
 public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
-  private AccumuloClient conn;
+  private AccumuloClient client;
   private MockUnorderedWorkAssigner assigner;
 
   private static class MockUnorderedWorkAssigner extends UnorderedWorkAssigner {
-    public MockUnorderedWorkAssigner(AccumuloClient conn) {
-      super(null, conn);
+    public MockUnorderedWorkAssigner(AccumuloClient client) {
+      super(null, client);
     }
 
     @Override
@@ -83,8 +83,8 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
     }
 
     @Override
-    protected void setConnector(AccumuloClient conn) {
-      super.setConnector(conn);
+    protected void setClient(AccumuloClient client) {
+      super.setClient(client);
     }
 
     @Override
@@ -110,12 +110,12 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
   @Before
   public void init() throws Exception {
-    conn = getClient();
-    assigner = new MockUnorderedWorkAssigner(conn);
-    ReplicationTable.setOnline(conn);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client = getClient();
+    assigner = new MockUnorderedWorkAssigner(client);
+    ReplicationTable.setOnline(client);
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.READ);
   }
 
@@ -138,7 +138,7 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
     Status status2 = builder.build();
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     String filename1 = UUID.randomUUID().toString(), filename2 = UUID.randomUUID().toString();
     String file1 = "/accumulo/wal/tserver+port/" + filename1,
         file2 = "/accumulo/wal/tserver+port/" + filename2;
@@ -187,7 +187,7 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     String filename1 = UUID.randomUUID().toString(), filename2 = UUID.randomUUID().toString();
     String file1 = "/accumulo/wal/tserver+port/" + filename1,
         file2 = "/accumulo/wal/tserver+port/" + filename2;
@@ -228,7 +228,7 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
     queuedWork.add("wal1|" + serializedTarget);
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     String file1 = "/accumulo/wal/tserver+port/wal1";
     Mutation m = new Mutation(file1);
     WorkSection.add(m, target.toText(), StatusUtil.openWithUnknownLengthValue());

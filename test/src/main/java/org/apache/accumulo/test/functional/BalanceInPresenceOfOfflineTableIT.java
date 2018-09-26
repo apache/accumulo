@@ -89,10 +89,10 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
   @Before
   public void setupTables() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
-    AccumuloClient conn = getAccumuloClient();
+    AccumuloClient client = getAccumuloClient();
     // Need at least two tservers
     Assume.assumeTrue("Not enough tservers to run test",
-        conn.instanceOperations().getTabletServers().size() >= 2);
+        client.instanceOperations().getTabletServers().size() >= 2);
 
     // set up splits
     final SortedSet<Text> splits = new TreeSet<>();

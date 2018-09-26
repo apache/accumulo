@@ -177,7 +177,7 @@ public interface TableOperations {
    * the given byte sequences are not valid UTF-8.
    *
    * <pre>
-   * TableOperations tableOps = connector.tableOperations();
+   * TableOperations tableOps = client.tableOperations();
    * TreeSet&lt;Text&gt; splits = new TreeSet&lt;Text&gt;();
    * for (int i = 0; i &lt; 256; i++) {
    *   byte[] bytes = {(byte) i};
