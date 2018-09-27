@@ -23,7 +23,7 @@
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <useProjectArtifact>false</useProjectArtifact>
-      <outputFileNameMapping>${artifact.artifactId}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
+      <outputFileNameMapping>${artifact.artifactId}-${artifact.version}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
       <useTransitiveDependencies>false</useTransitiveDependencies>
       <includes>
         <!-- if you update this list, you should also update the assembly
@@ -170,14 +170,6 @@
         <include>README.md</include>
         <include>INSTALL.md</include>
         <include>BUILD.md</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>target</directory>
-      <outputDirectory>lib</outputDirectory>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>VERSIONS</include>
       </includes>
     </fileSet>
     <fileSet>
