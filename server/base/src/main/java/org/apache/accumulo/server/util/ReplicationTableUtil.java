@@ -101,7 +101,7 @@ public class ReplicationTableUtil {
 
   public synchronized static void configureMetadataTable(AccumuloClient client, String tableName) {
     TableOperations tops = client.tableOperations();
-    Map<String,EnumSet<IteratorScope>> iterators = null
+    Map<String,EnumSet<IteratorScope>> iterators = null;
     try {
       iterators = tops.listIterators(tableName);
     } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
