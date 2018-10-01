@@ -27,6 +27,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.data.impl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -274,7 +275,8 @@ public class VolumeUtil {
     }
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
-        context);
+        new TabletIdImpl(extent), context);
+
     Path newDir = new Path(
         vm.choose(chooserEnv, ServerConstants.getBaseUris(context.getConfiguration()))
             + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR

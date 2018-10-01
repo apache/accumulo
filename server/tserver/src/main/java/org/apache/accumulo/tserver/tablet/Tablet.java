@@ -66,6 +66,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.data.impl.TabletIdImpl;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.data.thrift.MapFileInfo;
 import org.apache.accumulo.core.file.FileOperations;
@@ -2298,7 +2299,7 @@ public class Tablet implements TabletCommitter {
       KeyExtent high = new KeyExtent(extent.getTableId(), extent.getEndRow(), midRow);
 
       String lowDirectory = createTabletDirectory(context, getTabletServer().getFileSystem(),
-          extent.getTableId(), midRow);
+          extent.getTableId(), low);
 
       // write new tablet information to MetadataTable
       SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
@@ -2842,17 +2843,19 @@ public class Tablet implements TabletCommitter {
   }
 
   private static String createTabletDirectory(ServerContext context, VolumeManager fs,
-      Table.ID tableId, Text endRow) {
+      Table.ID tableId, KeyExtent extent) {
     String lowDirectory;
 
     UniqueNameAllocator namer = context.getUniqueNameAllocator();
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId, context);
+
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId,
+        new TabletIdImpl(extent), context);
     String volume = fs.choose(chooserEnv, ServerConstants.getBaseUris(context.getConfiguration()))
         + Constants.HDFS_TABLES_DIR + Path.SEPARATOR;
 
     while (true) {
       try {
-        if (endRow == null) {
+        if (extent.getEndRow() == null) {
           lowDirectory = Constants.DEFAULT_TABLET_LOCATION;
           Path lowDirectoryPath = new Path(volume + "/" + tableId + "/" + lowDirectory);
           if (fs.exists(lowDirectoryPath) || fs.mkdirs(lowDirectoryPath)) {

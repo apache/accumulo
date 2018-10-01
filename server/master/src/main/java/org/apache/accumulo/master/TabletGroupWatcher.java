@@ -52,6 +52,7 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.data.impl.TabletIdImpl;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -669,7 +670,8 @@ abstract class TabletGroupWatcher extends Daemon {
         // Recreate the default tablet to hold the end of the table
         Master.log.debug("Recreating the last tablet to point to {}", extent.getPrevEndRow());
         VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
-            master.getContext());
+            new TabletIdImpl(extent), master.getContext());
+
         String tdir = master.getFileSystem().choose(chooserEnv,
             ServerConstants.getBaseUris(master.getConfiguration())) + Constants.HDFS_TABLES_DIR
             + Path.SEPARATOR + extent.getTableId() + Constants.DEFAULT_TABLET_LOCATION;
