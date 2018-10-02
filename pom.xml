@@ -124,7 +124,7 @@
     <failsafe.groups />
     <!-- surefire/failsafe plugin option -->
     <forkCount>1</forkCount>
-    <hadoop.version>3.0.2</hadoop.version>
+    <hadoop.version>3.1.1</hadoop.version>
     <hk2.version>2.5.0-b62</hk2.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.1.0-incubating</htrace.version>
@@ -135,7 +135,7 @@
     <jetty.version>9.4.11.v20180605</jetty.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <maven.plugin-version>3.2.5</maven.plugin-version>
+    <maven.plugin-version>3.5.4</maven.plugin-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>1.7.4</powermock.version>
