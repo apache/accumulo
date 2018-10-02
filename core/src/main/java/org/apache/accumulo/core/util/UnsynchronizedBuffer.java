@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.io.DataOutput;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import org.apache.hadoop.io.WritableUtils;
@@ -136,32 +138,7 @@ public class UnsynchronizedBuffer {
      */
     public void writeVLong(long i) {
       reserve(9);
-      if (i >= -112 && i <= 127) {
-        data[offset++] = (byte) i;
-        return;
-      }
-
-      int len = -112;
-      if (i < 0) {
-        i ^= -1L; // take one's complement'
-        len = -120;
-      }
-
-      long tmp = i;
-      while (tmp != 0) {
-        tmp = tmp >> 8;
-        len--;
-      }
-
-      data[offset++] = (byte) len;
-
-      len = (len < -120) ? -(len + 120) : -(len + 112);
-
-      for (int idx = len; idx != 0; idx--) {
-        int shiftbits = (idx - 1) * 8;
-        long mask = 0xFFL << shiftbits;
-        data[offset++] = (byte) ((i & mask) >> shiftbits);
-      }
+      offset = UnsynchronizedBuffer.writeVLong(data, offset, i);
     }
   }
 
@@ -303,5 +280,77 @@ public class UnsynchronizedBuffer {
     ret++;
 
     return ret;
+  }
+
+  /**
+   * Use the provided byte[] to buffer only the bytes used to write out the integer i to the
+   * DataOutput out. This will only ever make one write call to the DataOutput. Use this instead of
+   * {@link WritableUtils#writeVInt(DataOutput, int)} which could make up to 4 separate writes to
+   * the underlying OutputStream. Is compatible with WritableUtils as it will write the same data.
+   */
+  public static void writeVInt(DataOutput out, byte[] workBuffer, int i) throws IOException {
+    int size = UnsynchronizedBuffer.writeVInt(workBuffer, 0, i);
+    out.write(workBuffer, 0, size);
+  }
+
+  /**
+   * Use the provided byte[] to buffer only the bytes used to write out the long i to the DataOutput
+   * out. This will only ever make one write call to the DataOutput. Use this instead of
+   * {@link WritableUtils#writeVLong(DataOutput, long)} which could make up to 8 separate writes to
+   * the underlying OutputStream. Is compatible with WritableUtils as it will write the same data.
+   */
+  public static void writeVLong(DataOutput out, byte[] workBuffer, long i) throws IOException {
+    int size = UnsynchronizedBuffer.writeVLong(workBuffer, 0, i);
+    out.write(workBuffer, 0, size);
+  }
+
+  /**
+   * Writes a variable int directly to a byte array. Is compatible with {@link WritableUtils} as it
+   * will write the same data.
+   */
+  public static int writeVInt(byte[] dest, int offset, int i) {
+    return writeVLong(dest, offset, i);
+  }
+
+  /**
+   * Writes a variable long directly to a byte array. Is compatible with {@link WritableUtils} as it
+   * will write the same data.
+   *
+   * @param dest
+   *          The destination array for the long to be written to
+   * @param offset
+   *          The location where to write the long to
+   * @param value
+   *          The long value being written into byte array
+   * @return Returns the new offset location
+   */
+  public static int writeVLong(byte[] dest, int offset, long value) {
+    if (value >= -112 && value <= 127) {
+      dest[offset++] = (byte) value;
+      return offset;
+    }
+
+    int len = -112;
+    if (value < 0) {
+      value ^= -1L; // take one's complement'
+      len = -120;
+    }
+
+    long tmp = value;
+    while (tmp != 0) {
+      tmp = tmp >> 8;
+      len--;
+    }
+
+    dest[offset++] = (byte) len;
+
+    len = (len < -120) ? -(len + 120) : -(len + 112);
+
+    for (int idx = len; idx != 0; idx--) {
+      int shiftbits = (idx - 1) * 8;
+      long mask = 0xFFL << shiftbits;
+      dest[offset++] = (byte) ((value & mask) >> shiftbits);
+    }
+    return offset;
   }
 }
