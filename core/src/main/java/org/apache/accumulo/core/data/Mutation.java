@@ -1605,6 +1605,7 @@ public class Mutation implements Writable {
 
   @Override
   public void write(DataOutput out) throws IOException {
+    final byte[] integerBuffer = new byte[5];
     serialize();
     byte hasValues = (values == null) ? 0 : (byte) 1;
     if (!replicationSources.isEmpty()) {
@@ -1613,22 +1614,22 @@ public class Mutation implements Writable {
     }
     out.write((byte) (0x80 | hasValues));
 
-    WritableUtils.writeVInt(out, row.length);
+    UnsynchronizedBuffer.writeVInt(out, integerBuffer, row.length);
     out.write(row);
 
-    WritableUtils.writeVInt(out, data.length);
+    UnsynchronizedBuffer.writeVInt(out, integerBuffer, data.length);
     out.write(data);
-    WritableUtils.writeVInt(out, entries);
+    UnsynchronizedBuffer.writeVInt(out, integerBuffer, entries);
 
     if (0x01 == (0x01 & hasValues)) {
-      WritableUtils.writeVInt(out, values.size());
+      UnsynchronizedBuffer.writeVInt(out, integerBuffer, values.size());
       for (byte[] val : values) {
-        WritableUtils.writeVInt(out, val.length);
+        UnsynchronizedBuffer.writeVInt(out, integerBuffer, val.length);
         out.write(val);
       }
     }
     if (0x02 == (0x02 & hasValues)) {
-      WritableUtils.writeVInt(out, replicationSources.size());
+      UnsynchronizedBuffer.writeVInt(out, integerBuffer, replicationSources.size());
       for (String source : replicationSources) {
         WritableUtils.writeString(out, source);
       }
