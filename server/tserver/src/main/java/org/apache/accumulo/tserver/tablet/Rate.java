@@ -34,7 +34,7 @@ public class Rate {
     this.ratio = ratio;
   }
 
-  synchronized public double update(long when, long counter) {
+  public synchronized double update(long when, long counter) {
     if (lastCounter < 0) {
       lastTime = when;
       lastCounter = counter;
@@ -50,7 +50,7 @@ public class Rate {
     return current;
   }
 
-  synchronized public double rate() {
+  public synchronized double rate() {
     return this.current;
   }
 }

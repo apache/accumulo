@@ -34,8 +34,8 @@ import org.apache.accumulo.core.iterators.WrappingIterator;
 
 public class SlowIterator extends WrappingIterator {
 
-  static private final String SLEEP_TIME = "sleepTime";
-  static private final String SEEK_SLEEP_TIME = "seekSleepTime";
+  private static final String SLEEP_TIME = "sleepTime";
+  private static final String SEEK_SLEEP_TIME = "seekSleepTime";
 
   private long sleepTime = 0;
   private long seekSleepTime = 0;

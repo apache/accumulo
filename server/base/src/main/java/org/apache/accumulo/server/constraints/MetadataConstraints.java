@@ -90,14 +90,14 @@ public class MetadataConstraints implements Constraint {
     return validColumnQuals.contains(new ColumnFQ(cu));
   }
 
-  static private ArrayList<Short> addViolation(ArrayList<Short> lst, int violation) {
+  private static ArrayList<Short> addViolation(ArrayList<Short> lst, int violation) {
     if (lst == null)
       lst = new ArrayList<>();
     lst.add((short) violation);
     return lst;
   }
 
-  static private ArrayList<Short> addIfNotPresent(ArrayList<Short> lst, int intViolation) {
+  private static ArrayList<Short> addIfNotPresent(ArrayList<Short> lst, int intViolation) {
     if (lst == null)
       return addViolation(null, intViolation);
     short violation = (short) intViolation;

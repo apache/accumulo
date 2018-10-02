@@ -121,7 +121,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
     return splits;
   }
 
-  private static abstract class DelayedTableOp implements Runnable {
+  private abstract static class DelayedTableOp implements Runnable {
     private CountDownLatch cdl;
 
     DelayedTableOp(CountDownLatch cdl) {

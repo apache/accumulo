@@ -2682,7 +2682,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     return toRet;
   }
 
-  static private ByteBuffer t2bb(Text t) {
+  private static ByteBuffer t2bb(Text t) {
     return ByteBuffer.wrap(t.getBytes());
   }
 

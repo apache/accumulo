@@ -36,24 +36,24 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
   /**
    * Identifying name for this tablet state store.
    */
-  abstract public String name();
+  public abstract String name();
 
   /**
    * Scan the information about the tablets covered by this store
    */
   @Override
-  abstract public ClosableIterator<TabletLocationState> iterator();
+  public abstract ClosableIterator<TabletLocationState> iterator();
 
   /**
    * Store the assigned locations in the data store.
    */
-  abstract public void setFutureLocations(Collection<Assignment> assignments)
+  public abstract void setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException;
 
   /**
    * Tablet servers will update the data store with the location when they bring the tablet online
    */
-  abstract public void setLocations(Collection<Assignment> assignments)
+  public abstract void setLocations(Collection<Assignment> assignments)
       throws DistributedStoreException;
 
   /**
@@ -64,21 +64,21 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
    * @param logsForDeadServers
    *          a cache of logs in use by servers when they died
    */
-  abstract public void unassign(Collection<TabletLocationState> tablets,
+  public abstract void unassign(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException;
 
   /**
    * Mark tablets as having no known or future location, but desiring to be returned to their
    * previous tserver.
    */
-  abstract public void suspend(Collection<TabletLocationState> tablets,
+  public abstract void suspend(Collection<TabletLocationState> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException;
 
   /**
    * Remove a suspension marker for a collection of tablets, moving them to being simply unassigned.
    */
-  abstract public void unsuspend(Collection<TabletLocationState> tablets)
+  public abstract void unsuspend(Collection<TabletLocationState> tablets)
       throws DistributedStoreException;
 
   public static void unassign(ServerContext context, TabletLocationState tls,

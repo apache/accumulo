@@ -35,9 +35,9 @@ public enum NamespacePermission {
   BULK_IMPORT((byte) 7),
   DROP_NAMESPACE((byte) 8);
 
-  final private byte permID;
+  private final byte permID;
 
-  final private static NamespacePermission mapping[] = new NamespacePermission[9];
+  private static final NamespacePermission mapping[] = new NamespacePermission[9];
   static {
     for (NamespacePermission perm : NamespacePermission.values())
       mapping[perm.permID] = perm;

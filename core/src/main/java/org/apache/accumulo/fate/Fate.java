@@ -37,7 +37,7 @@ public class Fate<T> {
   private static final String EXCEPTION_PROP = "exception";
   private static final String RETURN_PROP = "return";
 
-  final private static Logger log = LoggerFactory.getLogger(Fate.class);
+  private static final Logger log = LoggerFactory.getLogger(Fate.class);
   private final Logger runnerLog = LoggerFactory.getLogger(TransactionRunner.class);
 
   private TStore<T> store;

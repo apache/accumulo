@@ -49,22 +49,22 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
   }
 
   @Override
-  final public Key getTopKey() {
+  public final Key getTopKey() {
     return topIdx.getTopKey();
   }
 
   @Override
-  final public Value getTopValue() {
+  public final Value getTopValue() {
     return topIdx.getTopValue();
   }
 
   @Override
-  final public boolean hasTop() {
+  public final boolean hasTop() {
     return topIdx != null;
   }
 
   @Override
-  final public void next() throws IOException {
+  public final void next() throws IOException {
     if (topIdx == null) {
       throw new IllegalStateException("Called next() when there is no top");
     }
@@ -106,13 +106,13 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
     }
   }
 
-  final protected void clear() {
+  protected final void clear() {
     heap.clear();
     topIdx = null;
     nextKey = null;
   }
 
-  final protected void addSource(SortedKeyValueIterator<Key,Value> source) {
+  protected final void addSource(SortedKeyValueIterator<Key,Value> source) {
     if (source.hasTop()) {
       heap.add(source);
       if (topIdx != null) {

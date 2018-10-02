@@ -103,7 +103,7 @@ public class ContextManager {
     ContextConfig getContextConfig(String context);
   }
 
-  public static abstract class DefaultContextsConfig implements ContextsConfig {
+  public abstract static class DefaultContextsConfig implements ContextsConfig {
 
     public abstract Map<String,String> getVfsContextClasspathProperties();
 

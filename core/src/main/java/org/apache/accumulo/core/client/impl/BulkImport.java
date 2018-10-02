@@ -195,7 +195,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     return this;
   }
 
-  private final static byte[] byte0 = {0};
+  private static final byte[] byte0 = {0};
 
   private static class MLong {
     public MLong(long i) {

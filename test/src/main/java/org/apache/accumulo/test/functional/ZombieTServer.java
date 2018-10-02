@@ -68,7 +68,7 @@ public class ZombieTServer {
     }
 
     @Override
-    synchronized public void fastHalt(TInfo tinfo, TCredentials credentials, String lock) {
+    public synchronized void fastHalt(TInfo tinfo, TCredentials credentials, String lock) {
       halted = true;
       notifyAll();
     }
@@ -88,7 +88,7 @@ public class ZombieTServer {
     }
 
     @Override
-    synchronized public void halt(TInfo tinfo, TCredentials credentials, String lock)
+    public synchronized void halt(TInfo tinfo, TCredentials credentials, String lock)
         throws ThriftSecurityException, TException {
       halted = true;
       notifyAll();

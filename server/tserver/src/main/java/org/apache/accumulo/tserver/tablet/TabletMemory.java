@@ -31,7 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class TabletMemory implements Closeable {
-  static private final Logger log = LoggerFactory.getLogger(TabletMemory.class);
+  private static final Logger log = LoggerFactory.getLogger(TabletMemory.class);
 
   private final TabletCommitter tablet;
   private InMemoryMap memTable;

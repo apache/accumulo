@@ -37,14 +37,14 @@ public class DistributedReadWriteLockTest {
     final SortedMap<Long,byte[]> locks = new TreeMap<>();
 
     @Override
-    synchronized public SortedMap<Long,byte[]> getEarlierEntries(long entry) {
+    public synchronized SortedMap<Long,byte[]> getEarlierEntries(long entry) {
       SortedMap<Long,byte[]> result = new TreeMap<>();
       result.putAll(locks.headMap(entry + 1));
       return result;
     }
 
     @Override
-    synchronized public void removeEntry(long entry) {
+    public synchronized void removeEntry(long entry) {
       synchronized (locks) {
         locks.remove(entry);
         locks.notifyAll();
@@ -52,7 +52,7 @@ public class DistributedReadWriteLockTest {
     }
 
     @Override
-    synchronized public long addEntry(byte[] data) {
+    public synchronized long addEntry(byte[] data) {
       long result;
       synchronized (locks) {
         locks.put(result = next++, data);

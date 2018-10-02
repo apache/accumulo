@@ -232,7 +232,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     this.data = Arrays.copyOf(data, data.length);
   }
 
-  static public Lock recoverLock(QueueLock qlock, byte[] data) {
+  public static Lock recoverLock(QueueLock qlock, byte[] data) {
     SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(Long.MAX_VALUE);
     for (Entry<Long,byte[]> entry : entries.entrySet()) {
       ParsedLock parsed = new ParsedLock(entry.getValue());

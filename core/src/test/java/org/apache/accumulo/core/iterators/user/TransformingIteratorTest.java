@@ -581,7 +581,7 @@ public class TransformingIteratorTest {
 
   }
 
-  public static abstract class ReversingKeyTransformingIterator extends TransformingIterator {
+  public abstract static class ReversingKeyTransformingIterator extends TransformingIterator {
 
     @Override
     protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output)

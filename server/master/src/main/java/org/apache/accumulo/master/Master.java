@@ -176,23 +176,23 @@ import com.google.common.collect.Iterables;
 public class Master
     implements LiveTServerSet.Listener, TableObserver, CurrentState, HighlyAvailableService {
 
-  final static Logger log = LoggerFactory.getLogger(Master.class);
+  static final Logger log = LoggerFactory.getLogger(Master.class);
 
-  final static int ONE_SECOND = 1000;
-  final static long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
-  final private static long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
-  final static long WAIT_BETWEEN_ERRORS = ONE_SECOND;
-  final private static long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
-  final private static int MAX_CLEANUP_WAIT_TIME = ONE_SECOND;
-  final private static int TIME_TO_WAIT_BETWEEN_LOCK_CHECKS = ONE_SECOND;
-  final static int MAX_TSERVER_WORK_CHUNK = 5000;
-  final private static int MAX_BAD_STATUS_COUNT = 3;
+  static final int ONE_SECOND = 1000;
+  static final long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
+  private static final long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
+  static final long WAIT_BETWEEN_ERRORS = ONE_SECOND;
+  private static final long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
+  private static final int MAX_CLEANUP_WAIT_TIME = ONE_SECOND;
+  private static final int TIME_TO_WAIT_BETWEEN_LOCK_CHECKS = ONE_SECOND;
+  static final int MAX_TSERVER_WORK_CHUNK = 5000;
+  private static final int MAX_BAD_STATUS_COUNT = 3;
 
   final VolumeManager fs;
-  final private String hostname;
-  final private Object balancedNotifier = new Object();
+  private final String hostname;
+  private final Object balancedNotifier = new Object();
   final LiveTServerSet tserverSet;
-  final private List<TabletGroupWatcher> watchers = new ArrayList<>();
+  private final List<TabletGroupWatcher> watchers = new ArrayList<>();
   final SecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers = Collections
       .synchronizedMap(new DefaultMap<>(new AtomicInteger()));
@@ -200,7 +200,7 @@ public class Master
   final SortedMap<KeyExtent,TServerInstance> migrations = Collections
       .synchronizedSortedMap(new TreeMap<>());
   final EventCoordinator nextEvent = new EventCoordinator();
-  final private Object mergeLock = new Object();
+  private final Object mergeLock = new Object();
   private ReplicationDriver replicationWorkDriver;
   private WorkDriver replicationWorkAssigner;
   RecoveryManager recoveryManager = null;

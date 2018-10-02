@@ -50,7 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MergeStats {
-  final static private Logger log = LoggerFactory.getLogger(MergeStats.class);
+  private static final Logger log = LoggerFactory.getLogger(MergeStats.class);
   MergeInfo info;
   int hosted = 0;
   int unassigned = 0;

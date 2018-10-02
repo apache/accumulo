@@ -82,16 +82,16 @@ import org.slf4j.LoggerFactory;
 
 public class TraceServer implements Watcher {
 
-  final private static Logger log = LoggerFactory.getLogger(TraceServer.class);
-  final private ServerConfigurationFactory serverConfiguration;
-  final private ServerContext context;
-  final private TServer server;
-  final private AtomicReference<BatchWriter> writer;
-  final private AccumuloClient accumuloClient;
+  private static final Logger log = LoggerFactory.getLogger(TraceServer.class);
+  private final ServerConfigurationFactory serverConfiguration;
+  private final ServerContext context;
+  private final TServer server;
+  private final AtomicReference<BatchWriter> writer;
+  private final AccumuloClient accumuloClient;
   final String tableName;
-  final private static int BATCH_WRITER_MAX_LATENCY = 5;
-  final private static long SCHEDULE_PERIOD = 1000;
-  final private static long SCHEDULE_DELAY = 1000;
+  private static final int BATCH_WRITER_MAX_LATENCY = 5;
+  private static final long SCHEDULE_PERIOD = 1000;
+  private static final long SCHEDULE_DELAY = 1000;
 
   private static void put(Mutation m, String cf, String cq, byte[] bytes, int len) {
     m.put(new Text(cf), new Text(cq), new Value(bytes, 0, len));

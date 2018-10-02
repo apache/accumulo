@@ -333,7 +333,7 @@ public class VolumeManagerImpl implements VolumeManager {
     return v.getFileSystem().getDefaultReplication(path);
   }
 
-  static private final String DEFAULT = "";
+  private static final String DEFAULT = "";
 
   public static VolumeManager get(AccumuloConfiguration conf) throws IOException {
     return get(conf, CachedConfiguration.getInstance());

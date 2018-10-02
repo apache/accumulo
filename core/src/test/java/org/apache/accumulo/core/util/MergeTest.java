@@ -108,7 +108,7 @@ public class MergeTest {
     }
   }
 
-  static private int[] sizes(List<Size> sizes) {
+  private static int[] sizes(List<Size> sizes) {
     int result[] = new int[sizes.size()];
     int i = 0;
     for (Size s : sizes) {

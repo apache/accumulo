@@ -52,7 +52,7 @@ public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
       REPLICATION_QUEUE_TIME_QUANTILES = "replicationQueue10m",
       REPLICATION_QUEUE_TIME = "replicationQueue";
 
-  private final static Logger log = LoggerFactory.getLogger(Metrics2ReplicationMetrics.class);
+  private static final Logger log = LoggerFactory.getLogger(Metrics2ReplicationMetrics.class);
 
   private final Master master;
   private final MetricsSystem system;

@@ -432,7 +432,7 @@ public class KeyBuilder {
     }
 
     @Override
-    final public Build timestamp(long timestamp) {
+    public final Build timestamp(long timestamp) {
       this.timestamp = timestamp;
       return this;
     }

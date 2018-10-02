@@ -18,7 +18,7 @@ package org.apache.accumulo.core.util;
 
 public class AddressUtil extends org.apache.accumulo.fate.util.AddressUtil {
 
-  static public HostAndPort parseAddress(String address, boolean ignoreMissingPort)
+  public static HostAndPort parseAddress(String address, boolean ignoreMissingPort)
       throws NumberFormatException {
     address = address.replace('+', ':');
     HostAndPort hap = HostAndPort.fromString(address);

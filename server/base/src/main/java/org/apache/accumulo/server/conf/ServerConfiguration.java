@@ -22,10 +22,10 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 
 public abstract class ServerConfiguration {
 
-  abstract public TableConfiguration getTableConfiguration(Table.ID tableId);
+  public abstract TableConfiguration getTableConfiguration(Table.ID tableId);
 
-  abstract public NamespaceConfiguration getNamespaceConfiguration(Namespace.ID namespaceId);
+  public abstract NamespaceConfiguration getNamespaceConfiguration(Namespace.ID namespaceId);
 
-  abstract public AccumuloConfiguration getSystemConfiguration();
+  public abstract AccumuloConfiguration getSystemConfiguration();
 
 }

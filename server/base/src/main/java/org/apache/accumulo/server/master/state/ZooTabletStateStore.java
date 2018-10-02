@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 public class ZooTabletStateStore extends TabletStateStore {
 
   private static final Logger log = LoggerFactory.getLogger(ZooTabletStateStore.class);
-  final private DistributedStore store;
+  private final DistributedStore store;
 
   public ZooTabletStateStore(DistributedStore store) {
     this.store = store;

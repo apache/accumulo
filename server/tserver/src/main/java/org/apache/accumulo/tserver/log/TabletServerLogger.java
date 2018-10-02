@@ -106,7 +106,7 @@ public class TabletServerLogger {
 
   private final RetryFactory writeRetryFactory;
 
-  static private abstract class TestCallWithWriteLock {
+  private abstract static class TestCallWithWriteLock {
     abstract boolean test();
 
     abstract void withWriteLock() throws IOException;
@@ -208,7 +208,7 @@ public class TabletServerLogger {
     }
   }
 
-  synchronized private void createLogger() throws IOException {
+  private synchronized void createLogger() throws IOException {
     if (!logIdLock.isWriteLockedByCurrentThread()) {
       throw new IllegalStateException("createLoggers should be called with write lock held!");
     }
@@ -329,7 +329,7 @@ public class TabletServerLogger {
     }
   }
 
-  synchronized private void close() throws IOException {
+  private synchronized void close() throws IOException {
     if (!logIdLock.isWriteLockedByCurrentThread()) {
       throw new IllegalStateException("close should be called with write lock held!");
     }

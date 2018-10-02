@@ -77,11 +77,11 @@ public class ReplicationTableUtil {
    * @param writer
    *          A Writer to use for the given credentials
    */
-  synchronized static void addWriter(Credentials creds, Writer writer) {
+  static synchronized void addWriter(Credentials creds, Writer writer) {
     writers.put(creds, writer);
   }
 
-  synchronized static Writer getWriter(ClientContext context) {
+  static synchronized Writer getWriter(ClientContext context) {
     Writer replicationTable = writers.get(context.getCredentials());
     if (replicationTable == null) {
       AccumuloClient client;

@@ -41,7 +41,7 @@ public class DefaultKeySizeConstraint implements Constraint {
     return null;
   }
 
-  final static List<Short> NO_VIOLATIONS = new ArrayList<>();
+  static final List<Short> NO_VIOLATIONS = new ArrayList<>();
 
   @Override
   public List<Short> check(Environment env, Mutation mutation) {

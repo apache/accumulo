@@ -46,7 +46,7 @@ import org.apache.hadoop.fs.Path;
 
 public class ConfigurableCompactionStrategy extends CompactionStrategy {
 
-  private static abstract class Test {
+  private abstract static class Test {
     // Do any work that blocks in this method. This method is not always called before
     // shouldCompact(). See CompactionStrategy javadocs.
     void gatherInformation(MajorCompactionRequest request) {}
@@ -187,7 +187,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     }
   }
 
-  private static abstract class FileSizeTest extends Test {
+  private abstract static class FileSizeTest extends Test {
     private final long esize;
 
     private FileSizeTest(String s) {
@@ -203,7 +203,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     public abstract boolean shouldCompact(long fsize, long esize);
   }
 
-  private static abstract class PatternPathTest extends Test {
+  private abstract static class PatternPathTest extends Test {
     private Pattern pattern;
 
     private PatternPathTest(String p) {

@@ -135,12 +135,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
   protected Class<? extends AuthenticationToken> tokenClass;
 
-  static protected class ScannerPlusIterator {
+  protected static class ScannerPlusIterator {
     public ScannerBase scanner;
     public Iterator<Map.Entry<Key,Value>> iterator;
   }
 
-  static protected class BatchWriterPlusProblem {
+  protected static class BatchWriterPlusProblem {
     public BatchWriter writer;
     public MutationsRejectedException exception = null;
   }

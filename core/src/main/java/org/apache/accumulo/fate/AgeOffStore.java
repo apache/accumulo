@@ -39,7 +39,7 @@ public class AgeOffStore<T> implements TStore<T> {
     long currentTimeMillis();
   }
 
-  final private static Logger log = LoggerFactory.getLogger(AgeOffStore.class);
+  private static final Logger log = LoggerFactory.getLogger(AgeOffStore.class);
 
   private TStore<T> store;
   private Map<Long,Long> candidates;

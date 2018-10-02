@@ -119,9 +119,9 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
     }
   }
 
-  static private LogService instance = null;
+  private static LogService instance = null;
 
-  synchronized public static LogService getInstance() {
+  public static synchronized LogService getInstance() {
     if (instance == null)
       return new LogService();
     return instance;
@@ -148,7 +148,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
   }
 
   @Override
-  synchronized protected void append(LoggingEvent ev) {
+  protected synchronized void append(LoggingEvent ev) {
     Object application = ev.getMDC("application");
     if (application == null || application.toString().isEmpty())
       return;
@@ -178,11 +178,11 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
     return false;
   }
 
-  synchronized public List<DedupedLogEvent> getEvents() {
+  public synchronized List<DedupedLogEvent> getEvents() {
     return new ArrayList<>(events.values());
   }
 
-  synchronized public void clear() {
+  public synchronized void clear() {
     events.clear();
   }
 }

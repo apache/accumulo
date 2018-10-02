@@ -59,11 +59,11 @@ public class TableLoadBalancerTest {
   private static Map<String,String> TABLE_ID_MAP = ImmutableMap.of("t1", "a1", "t2", "b12", "t3",
       "c4");
 
-  static private TServerInstance mkts(String address, String session) throws Exception {
+  private static TServerInstance mkts(String address, String session) throws Exception {
     return new TServerInstance(HostAndPort.fromParts(address, 1234), session);
   }
 
-  static private TabletServerStatus status(Object... config) {
+  private static TabletServerStatus status(Object... config) {
     TabletServerStatus result = new TabletServerStatus();
     result.tableMap = new HashMap<>();
     String tablename = null;

@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Halt {
-  static private final Logger log = LoggerFactory.getLogger(Halt.class);
+  private static final Logger log = LoggerFactory.getLogger(Halt.class);
 
   public static void halt(final String msg) {
     // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility

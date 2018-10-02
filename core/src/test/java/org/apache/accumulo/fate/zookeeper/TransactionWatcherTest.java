@@ -70,7 +70,7 @@ public class TransactionWatcherTest {
     }
 
     @Override
-    synchronized public boolean transactionAlive(String txType, long tid) throws Exception {
+    public synchronized boolean transactionAlive(String txType, long tid) throws Exception {
       List<Long> txids = started.get(txType);
       if (txids == null)
         return false;

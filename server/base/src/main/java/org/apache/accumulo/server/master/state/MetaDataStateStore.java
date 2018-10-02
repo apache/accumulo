@@ -38,9 +38,9 @@ public class MetaDataStateStore extends TabletStateStore {
   private static final int LATENCY = 1000;
   private static final int MAX_MEMORY = 200 * 1024 * 1024;
 
-  final protected ClientContext context;
-  final protected CurrentState state;
-  final private String targetTableName;
+  protected final ClientContext context;
+  protected final CurrentState state;
+  private final String targetTableName;
 
   protected MetaDataStateStore(ClientContext context, CurrentState state, String targetTableName) {
     this.context = context;

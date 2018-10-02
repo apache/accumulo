@@ -90,7 +90,7 @@ import org.slf4j.LoggerFactory;
  * iterator implements the security filtering rather than relying on a follow-on iterator to do it
  * so that we ensure the test is performed.
  */
-abstract public class TransformingIterator extends WrappingIterator implements OptionDescriber {
+public abstract class TransformingIterator extends WrappingIterator implements OptionDescriber {
   public static final String AUTH_OPT = "authorizations";
   public static final String MAX_BUFFER_SIZE_OPT = "maxBufferSize";
   private static final long DEFAULT_MAX_BUFFER_SIZE = 10000000;
@@ -675,7 +675,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
    *
    * @return the part of the key this iterator is not transforming
    */
-  abstract protected PartialKey getKeyPrefix();
+  protected abstract PartialKey getKeyPrefix();
 
   public interface KVBuffer {
     void append(Key key, Value val);
@@ -701,7 +701,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
    * @see #replaceKeyParts(Key, Text, Text)
    * @see #replaceKeyParts(Key, Text, Text, Text)
    */
-  abstract protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output)
+  protected abstract void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output)
       throws IOException;
 
   /**

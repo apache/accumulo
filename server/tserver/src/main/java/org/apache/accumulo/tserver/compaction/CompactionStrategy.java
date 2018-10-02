@@ -81,7 +81,7 @@ public abstract class CompactionStrategy {
    *          basic details about the tablet
    * @return the plan for a major compaction, or null to cancel the compaction.
    */
-  abstract public CompactionPlan getCompactionPlan(MajorCompactionRequest request)
+  public abstract CompactionPlan getCompactionPlan(MajorCompactionRequest request)
       throws IOException;
 
 }

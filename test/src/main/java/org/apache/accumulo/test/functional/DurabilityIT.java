@@ -60,7 +60,7 @@ public class DurabilityIT extends ConfigurableMacBase {
   }
 
   @BeforeClass
-  static public void checkMR() {
+  public static void checkMR() {
     assumeFalse(IntegrationTestMapReduce.isMapReduce());
   }
 

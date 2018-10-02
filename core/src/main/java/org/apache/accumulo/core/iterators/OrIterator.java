@@ -197,7 +197,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
   }
 
   @Override
-  final public void next() throws IOException {
+  public final void next() throws IOException {
     LOG.trace("next()");
     if (currentTerm == null)
       return;
@@ -277,21 +277,21 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
   }
 
   @Override
-  final public Key getTopKey() {
+  public final Key getTopKey() {
     final Key k = currentTerm.iter.getTopKey();
     LOG.trace("getTopKey() = {}", k);
     return k;
   }
 
   @Override
-  final public Value getTopValue() {
+  public final Value getTopValue() {
     final Value v = currentTerm.iter.getTopValue();
     LOG.trace("getTopValue() = {}", v);
     return v;
   }
 
   @Override
-  final public boolean hasTop() {
+  public final boolean hasTop() {
     LOG.trace("hasTop()");
     return currentTerm != null;
   }
