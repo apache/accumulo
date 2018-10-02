@@ -38,6 +38,7 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.script.SimpleScriptContext;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -87,7 +88,8 @@ public class ScriptCommand extends Command {
       // are available to the scripts
       // TODO: What else should go in here?
       Bindings b = engine.getBindings(ScriptContext.ENGINE_SCOPE);
-      b.put("connection", shellState.getAccumuloClient());
+      putConnector(b, shellState.getAccumuloClient());
+      b.put("client", shellState.getAccumuloClient());
 
       List<Object> argValues = new ArrayList<>();
       if (cl.hasOption(args.getOpt())) {
@@ -172,6 +174,11 @@ public class ScriptCommand extends Command {
       printHelp(shellState);
     }
     return 0;
+  }
+
+  @SuppressWarnings("deprecation")
+  private void putConnector(Bindings b, AccumuloClient client) {
+    b.put("connection", org.apache.accumulo.core.client.Connector.from(client));
   }
 
   @Override
