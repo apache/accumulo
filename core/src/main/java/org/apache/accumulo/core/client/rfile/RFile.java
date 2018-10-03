@@ -171,7 +171,8 @@ public class RFile {
 
     /**
      * Construct the {@link Scanner} with iterators specified in a tables properties. Properties for
-     * a table can be obtained by calling {@link TableOperations#getProperties(String)}
+     * a table can be obtained by calling {@link TableOperations#getProperties(String)}. Other
+     * properties are allowed as well in the props parameter.
      *
      * @param props
      *          iterable over Accumulo table key value properties.
@@ -180,7 +181,7 @@ public class RFile {
     ScannerOptions withTableProperties(Iterable<Entry<String,String>> props);
 
     /**
-     * @see #withTableProperties(Iterable)
+     * @see #withTableProperties(Iterable) Other properties are allowed as well in the props param.
      * @param props
      *          a map instead of an Iterable
      * @return this
