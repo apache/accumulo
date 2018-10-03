@@ -13,15 +13,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 language: java
-notifications:
-  irc:
-    channels:
-      - "chat.freenode.net#accumulo"
-    use_notice: true
-    on_success: change
-    on_failure: always
-    template:
-      - "%{result} %{repository_slug} %{branch} (%{build_url}): %{message}"
 # speed up builds; don't use with default install step
 cache:
   directories:
@@ -29,8 +20,10 @@ cache:
 install: echo NOOP Skipping pre-fetch of Maven dependencies
 jdk:
   - oraclejdk8
+before_script:
+  - unset _JAVA_OPTIONS
 env:
-  - BUILD_ARGS="clean verify javadoc:jar -DskipITs -DforkCount=1C"  # main build of unit tests and javadoc
+  - BUILD_ARGS="clean verify javadoc:jar -DskipITs"  # main build of unit tests and javadoc
   - BUILD_ARGS="clean compile -Dhadoop.version=3.0.3 -Dzookeeper.version=3.4.12"  # quick compile to verify older API
 script:
   - mvn $BUILD_ARGS
