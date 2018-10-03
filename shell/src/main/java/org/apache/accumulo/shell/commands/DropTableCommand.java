@@ -16,4 +16,10 @@
  */
 package org.apache.accumulo.shell.commands;
 
-public class DropTableCommand extends DeleteTableCommand {}
+public class DropTableCommand extends DeleteTableCommand {
+
+  @Override
+  public String description (){
+    return "deletes a table (Same as deletetable)";
+  }
+}

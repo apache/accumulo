@@ -47,7 +47,7 @@ public class DeleteTableCommand extends TableOperation {
 
   @Override
   public String description() {
-    return "deletes a table";
+    return "deletes a table (Same as droptable)";
   }
 
   @Override
