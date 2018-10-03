@@ -19,7 +19,7 @@ cache:
     - $HOME/.m2
 install: echo NOOP Skipping pre-fetch of Maven dependencies
 jdk:
-  - oraclejdk8
+  - openjdk8
 before_script:
   - unset _JAVA_OPTIONS
 env:
