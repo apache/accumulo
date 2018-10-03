@@ -55,8 +55,8 @@ public class Utils {
   private static final byte[] ZERO_BYTE = {'0'};
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
-  static void checkTableDoesNotExist(ServerContext context, String tableName, Table.ID tableId,
-      TableOperation operation) throws AcceptableThriftTableOperationException {
+  public static void checkTableDoesNotExist(ServerContext context, String tableName,
+      Table.ID tableId, TableOperation operation) throws AcceptableThriftTableOperationException {
 
     Table.ID id = Tables.getNameToIdMap(context).get(tableName);
 
@@ -65,7 +65,7 @@ public class Utils {
           TableOperationExceptionType.EXISTS, null);
   }
 
-  static <T extends AbstractId> T getNextId(String name, ServerContext context,
+  public static <T extends AbstractId> T getNextId(String name, ServerContext context,
       Function<String,T> newIdFunction) throws AcceptableThriftTableOperationException {
     try {
       IZooReaderWriter zoo = context.getZooReaderWriter();
@@ -170,11 +170,19 @@ public class Utils {
     return lock;
   }
 
+  public static Lock getIdLock() {
+    return idLock;
+  }
+
+  public static Lock getTableNameLock() {
+    return tableNameLock;
+  }
+
   public static Lock getReadLock(Master env, AbstractId tableId, long tid) throws Exception {
     return Utils.getLock(env.getContext(), tableId, tid, false);
   }
 
-  static void checkNamespaceDoesNotExist(ServerContext context, String namespace,
+  public static void checkNamespaceDoesNotExist(ServerContext context, String namespace,
       Namespace.ID namespaceId, TableOperation operation)
       throws AcceptableThriftTableOperationException {
 
@@ -190,7 +198,7 @@ public class Utils {
    * the data from a file on the file system. It is assumed that the file is textual and not binary
    * data.
    */
-  static SortedSet<Text> getSortedSetFromFile(FSDataInputStream inputStream, boolean encoded)
+  public static SortedSet<Text> getSortedSetFromFile(FSDataInputStream inputStream, boolean encoded)
       throws IOException {
     SortedSet<Text> data = new TreeSet<>();
     try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {

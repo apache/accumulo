@@ -22,13 +22,13 @@
   </Match>
   <Match>
     <!-- shouldn't close the given I/O streams, because they are just wrapped -->
-    <Class name="org.apache.accumulo.master.tableOps.ImportTable" />
+    <Class name="org.apache.accumulo.master.tableOps.tableImport.ImportTable" />
     <Method name="checkVersions" params="org.apache.accumulo.master.Master" returns="void" />
     <Bug code="OS" pattern="OS_OPEN_STREAM" />
   </Match>
   <Match>
     <!-- shouldn't close the given I/O streams, because they are just wrapped -->
-    <Class name="org.apache.accumulo.master.tableOps.WriteExportFiles" />
+    <Class name="org.apache.accumulo.master.tableOps.tableExport.WriteExportFiles" />
     <Method name="exportTable" params="org.apache.accumulo.server.fs.VolumeManager,org.apache.accumulo.server.ServerContext,java.lang.String,java.lang.String,java.lang.String" returns="void" />
     <Bug code="OS" pattern="OS_OPEN_STREAM" />
   </Match>
