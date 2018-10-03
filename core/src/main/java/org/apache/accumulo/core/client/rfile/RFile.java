@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.client.summary.Summary.FileStatistics;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
@@ -171,7 +172,10 @@ public class RFile {
 
     /**
      * Construct the {@link Scanner} with iterators specified in a tables properties. Properties for
-     * a table can be obtained by calling {@link TableOperations#getProperties(String)}
+     * a table can be obtained by calling {@link TableOperations#getProperties(String)}. Any
+     * property that impacts file behavior regardless of whether it has the
+     * {@link Property#TABLE_PREFIX} may be accepted and used. For example, cache and crypto
+     * properties could be passed here.
      *
      * @param props
      *          iterable over Accumulo table key value properties.
@@ -180,7 +184,9 @@ public class RFile {
     ScannerOptions withTableProperties(Iterable<Entry<String,String>> props);
 
     /**
-     * @see #withTableProperties(Iterable)
+     * @see #withTableProperties(Iterable) Any property that impacts file behavior regardless of
+     *      whether it has the {@link Property#TABLE_PREFIX} may be accepted and used. For example,
+     *      cache and crypto properties could be passed here.
      * @param props
      *          a map instead of an Iterable
      * @return this
