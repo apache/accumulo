@@ -12,8 +12,11 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
+# requiring sudo forces Travis to build in an environment with more RAM
+sudo: required
 language: java
-# speed up builds; don't use with default install step
+# speed up builds; don't use cache with default install step
 cache:
   directories:
     - $HOME/.m2
