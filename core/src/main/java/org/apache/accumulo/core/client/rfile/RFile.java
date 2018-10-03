@@ -402,7 +402,9 @@ public class RFile {
 
     /**
      * Create an RFile using the same configuration as an Accumulo table. Properties for a table can
-     * be obtained by calling {@link TableOperations#getProperties(String)}
+     * be obtained by calling {@link TableOperations#getProperties(String)}. Any property that
+     * impacts file behavior regardless of whether it has the {@link Property#TABLE_PREFIX} may be
+     * accepted and used. For example, cache and crypto properties could be passed here.
      *
      * @param props
      *          iterable over Accumulo table key value properties.
