@@ -18,9 +18,14 @@ package org.apache.accumulo.core.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
+import org.apache.hadoop.io.WritableUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -52,5 +57,72 @@ public class UnsynchronizedBufferTest {
     // the byte buffer has the extra byte, but should not be able to read it...
     thrown.expect(ArrayIndexOutOfBoundsException.class);
     ub.readBytes(buf);
+  }
+
+  @Test
+  public void testWriteVMethods() throws Exception {
+    // writeV methods use an extra byte for length, unless value is only one byte
+    // Integer.MAX_VALUE = 0x7fffffff
+    testInteger(0x7fffffff, 4 + 1);
+    testInteger(0x7fffff, 3 + 1);
+    testInteger(0x7fff, 2 + 1);
+    testInteger(0x7f, 1);
+
+    // Long.MAX_VALUE = 0x7fffffffffffffffL
+    testLong(0x7fffffffffffffffL, 8 + 1);
+    testLong(0x7fffffffffffffL, 7 + 1);
+    testLong(0x7fffffffffffL, 6 + 1);
+    testLong(0x7fffffffffL, 5 + 1);
+    testLong(0x7fffffffL, 4 + 1);
+    testLong(0x7fffffL, 3 + 1);
+    testLong(0x7fffL, 2 + 1);
+    testLong(0x7fL, 1);
+  }
+
+  private void testInteger(int value, int length) throws Exception {
+    byte[] integerBuffer = new byte[5];
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
+      UnsynchronizedBuffer.writeVInt(dos, integerBuffer, value);
+      dos.flush();
+      assertEquals(length, baos.toByteArray().length);
+    }
+  }
+
+  private void testLong(long value, int length) throws Exception {
+    byte[] longBuffer = new byte[9];
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
+      UnsynchronizedBuffer.writeVLong(dos, longBuffer, value);
+      dos.flush();
+      assertEquals(length, baos.toByteArray().length);
+    }
+  }
+
+  @Test
+  public void compareWithWritableUtils() throws Exception {
+    byte[] hadoopBytes;
+    byte[] accumuloBytes;
+    int oneByteInt = 0x7f;
+    int threeByteInt = 0x7fff;
+    long sixByteLong = 0x7fffffffffL;
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
+      WritableUtils.writeVInt(dos, oneByteInt);
+      WritableUtils.writeVInt(dos, threeByteInt);
+      WritableUtils.writeVLong(dos, sixByteLong);
+      dos.flush();
+      hadoopBytes = baos.toByteArray();
+    }
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
+      UnsynchronizedBuffer.writeVInt(dos, new byte[5], oneByteInt);
+      UnsynchronizedBuffer.writeVInt(dos, new byte[5], threeByteInt);
+      UnsynchronizedBuffer.writeVLong(dos, new byte[9], sixByteLong);
+      dos.flush();
+      accumuloBytes = baos.toByteArray();
+    }
+    assertTrue("The byte array written to by UnsynchronizedBuffer is not equal to WritableUtils",
+        Arrays.equals(hadoopBytes, accumuloBytes));
   }
 }
