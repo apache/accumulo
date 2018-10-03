@@ -36,9 +36,14 @@ function build_native() {
     exit 0
   fi
 
-  native_tarball="$basedir/lib/accumulo-native.tar.gz"
-  if [[ ! -f $native_tarball ]]; then
-    echo "Could not find native code artifact: ${native_tarball}" 1>&2
+  native_tarballs=("$basedir/lib/accumulo-native-$accumulo_version"*.tar.gz)
+  if (( ${#logfiles[@]} > 1 )); then
+    echo "Found multiple native tar.gz files ${native_tarballs[*]}"
+    exit 1
+  fi
+
+  if [[ ! -f ${native_tarballs[0]} ]]; then
+    echo "Could not find native code artifact: ${native_tarballs[0]}" 1>&2
     exit 1
   fi
 
@@ -49,7 +54,7 @@ function build_native() {
   TMP_DIR=$(mktemp -d /tmp/accumulo-native.XXXX) || exit 1
 
   # Unpack the tarball to our temp directory
-  if ! tar xf "${native_tarball}" -C "${TMP_DIR}"
+  if ! tar xf "${native_tarballs[0]}" -C "${TMP_DIR}"
   then
       echo "Failed to unpack native tarball to ${TMP_DIR}"
       exit 1
