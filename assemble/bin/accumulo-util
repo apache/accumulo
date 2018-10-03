@@ -36,7 +36,7 @@ function build_native() {
     exit 0
   fi
 
-  native_tarballs=("$basedir/lib/accumulo-native-$accumulo_version"*.tar.gz)
+  native_tarballs=("$basedir"/lib/accumulo-native-*.tar.gz)
   if (( ${#logfiles[@]} > 1 )); then
     echo "Found multiple native tar.gz files ${native_tarballs[*]}"
     exit 1
