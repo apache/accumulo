@@ -56,27 +56,6 @@ public abstract class Connector {
       int numQueryThreads) throws TableNotFoundException;
 
   /**
-   * Factory method to create a BatchScanner connected to Accumulo. This method uses the number of
-   * query threads configured when Connector was created. If none were configured, defaults will be
-   * used.
-   *
-   * @param tableName
-   *          the name of the table to query
-   * @param authorizations
-   *          A set of authorization labels that will be checked against the column visibility of
-   *          each key in order to filter data. The authorizations passed in must be a subset of the
-   *          accumulo user's set of authorizations. If the accumulo user has authorizations (A1,
-   *          A2) and authorizations (A2, A3) are passed, then an exception will be thrown.
-   *
-   * @return BatchScanner object for configuring and querying
-   * @throws TableNotFoundException
-   *           when the specified table doesn't exist
-   * @since 2.0.0
-   */
-  public abstract BatchScanner createBatchScanner(String tableName, Authorizations authorizations)
-      throws TableNotFoundException;
-
-  /**
    * Factory method to create a BatchDeleter connected to Accumulo.
    *
    * @param tableName
@@ -132,26 +111,6 @@ public abstract class Connector {
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException;
 
   /**
-   * Factory method to create BatchDeleter. This method uses BatchWriterConfig set when Connector
-   * was created. If none was set, BatchWriterConfig defaults will be used.
-   *
-   * @param tableName
-   *          the name of the table to query and delete from
-   * @param authorizations
-   *          A set of authorization labels that will be checked against the column visibility of
-   *          each key in order to filter data. The authorizations passed in must be a subset of the
-   *          accumulo user's set of authorizations. If the accumulo user has authorizations (A1,
-   *          A2) and authorizations (A2, A3) are passed, then an exception will be thrown.
-   * @param numQueryThreads
-   *          the number of concurrent threads to spawn for querying
-   * @return BatchDeleter object
-   * @throws TableNotFoundException
-   *           if table not found
-   */
-  public abstract BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
-      int numQueryThreads) throws TableNotFoundException;
-
-  /**
    * Factory method to create a BatchWriter connected to Accumulo.
    *
    * @param tableName
@@ -189,19 +148,6 @@ public abstract class Connector {
       throws TableNotFoundException;
 
   /**
-   * Factory method to create a BatchWriter. This method uses BatchWriterConfig set when Connector
-   * was created. If none was set, BatchWriterConfig defaults will be used.
-   *
-   * @param tableName
-   *          the name of the table to insert data into
-   * @return BatchWriter object
-   * @throws TableNotFoundException
-   *           if table not found
-   * @since 2.0.0
-   */
-  public abstract BatchWriter createBatchWriter(String tableName) throws TableNotFoundException;
-
-  /**
    * Factory method to create a Multi-Table BatchWriter connected to Accumulo. Multi-table batch
    * writers can queue data for multiple tables, which is good for ingesting data into multiple
    * tables from the same source
@@ -236,15 +182,6 @@ public abstract class Connector {
    * @since 1.5.0
    */
   public abstract MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config);
-
-  /**
-   * Factory method to create a Multi-Table BatchWriter. This method uses BatchWriterConfig set when
-   * Connector was created. If none was set, BatchWriterConfig defaults will be used.
-   *
-   * @return MultiTableBatchWriter object
-   * @since 2.0.0
-   */
-  public abstract MultiTableBatchWriter createMultiTableBatchWriter();
 
   /**
    * Factory method to create a Scanner connected to Accumulo.
@@ -295,13 +232,6 @@ public abstract class Connector {
    * @return the user name
    */
   public abstract String whoami();
-
-  /**
-   * Returns a unique string that identifies this instance of accumulo.
-   *
-   * @return a UUID
-   */
-  public abstract String getInstanceID();
 
   /**
    * Retrieves a TableOperations object to perform table functions, such as create and delete.
