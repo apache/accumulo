@@ -31,14 +31,19 @@ EOF
 
 function build_native() {
   final_native_target="$basedir/lib/native"
-  if [ -f "$final_native_target/libaccumulo.so" -o -f "$final_native_target/libaccumulo.dylib" ]; then
+  if [[ -f "$final_native_target/libaccumulo.so" ]] || [[ -f "$final_native_target/libaccumulo.dylib" ]]; then
     echo "Accumulo native library already exists in $final_native_target"
     exit 0
   fi
 
-  native_tarball="$basedir/lib/accumulo-native.tar.gz"
-  if [[ ! -f $native_tarball ]]; then
-    echo "Could not find native code artifact: ${native_tarball}" 1>&2
+  native_tarballs=("$basedir"/lib/accumulo-native-*.tar.gz)
+  if (( ${#native_tarballs[@]} > 1 )); then
+    echo "Found multiple native tar.gz files: ${native_tarballs[*]}"
+    exit 1
+  fi
+
+  if [[ ! -f ${native_tarballs[0]} ]]; then
+    echo "Could not find native code artifact: ${native_tarballs[0]}" 1>&2
     exit 1
   fi
 
@@ -49,7 +54,7 @@ function build_native() {
   TMP_DIR=$(mktemp -d /tmp/accumulo-native.XXXX) || exit 1
 
   # Unpack the tarball to our temp directory
-  if ! tar xf "${native_tarball}" -C "${TMP_DIR}"
+  if ! tar xf "${native_tarballs[0]}" -C "${TMP_DIR}"
   then
       echo "Failed to unpack native tarball to ${TMP_DIR}"
       exit 1
@@ -149,10 +154,8 @@ function load_jars_hdfs() {
   fi
 
   # Create the system context directy in HDFS if it does not exist
-  "$HADOOP" fs -ls "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
-  if [[ $? != 0 ]]; then
-    "$HADOOP" fs -mkdir "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
-    if [[ $? != 0 ]]; then
+  if ! "$HADOOP" fs -ls "$SYSTEM_CONTEXT_HDFS_DIR" > /dev/null; then
+    if ! "$HADOOP" fs -mkdir "$SYSTEM_CONTEXT_HDFS_DIR" > /dev/null; then
       echo "Unable to create classpath directory at $SYSTEM_CONTEXT_HDFS_DIR"
       exit 1
     fi
@@ -160,7 +163,7 @@ function load_jars_hdfs() {
 
   # Replicate to all tservers to avoid network contention on startup
   TSERVERS=${conf}/tservers
-  NUM_TSERVERS=$(egrep -v '(^#|^\s*$)' "$TSERVERS" | wc -l)
+  NUM_TSERVERS=$(grep -E -c -v '(^#|^\s*$)' "$TSERVERS")
 
   #let each datanode service around 50 clients
   REP=$(( NUM_TSERVERS / 50 ))
@@ -210,16 +213,16 @@ function hadoop_jar() {
 
   USERJARS=" "
   for arg in "$@"; do
-      if [ "$arg" != "-libjars" -a -z "$TOOLJAR" ]; then
+      if [[ "$arg" != "-libjars" ]] && [[ -z "$TOOLJAR" ]]; then
         TOOLJAR="$arg"
         shift
-     elif [ "$arg" != "-libjars" -a -z "$CLASSNAME" ]; then
+     elif [[ "$arg" != "-libjars" ]] && [[ -z "$CLASSNAME" ]]; then
         CLASSNAME="$arg"
         shift
-     elif [ -z "$USERJARS" ]; then
+     elif [[ -z "$USERJARS" ]]; then
         USERJARS=$(echo "$arg" | tr "," " ")
         shift
-     elif [ "$arg" = "-libjars" ]; then
+     elif [[ "$arg" = "-libjars" ]]; then
         USERJARS=""
         shift
      else
@@ -270,7 +273,7 @@ function main() {
       load_jars_hdfs
       ;;
     *)
-      echo -e "'$1' is an invalid <command>\n"
+      echo -e "'$1' is an invalid <command>\\n"
       print_usage 1>&2
       exit 1
       ;;
