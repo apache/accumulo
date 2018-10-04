@@ -20,6 +20,8 @@ package org.apache.accumulo.core.client.rfile;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -29,7 +31,7 @@ import org.apache.accumulo.core.client.rfile.RFile.SummaryOptions;
 import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.InputArgs;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.summary.Gatherer;
@@ -46,6 +48,7 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
   private Text startRow;
   private InputArgs in;
   private Text endRow;
+  private Map<String,String> config = Collections.emptyMap();
 
   @Override
   public SummaryOptions selectSummaries(Predicate<SummarizerConfiguration> summarySelector) {
@@ -81,8 +84,9 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
   @Override
   public Collection<Summary> read() throws IOException {
     SummarizerFactory factory = new SummarizerFactory();
-    AccumuloConfiguration acuconf = DefaultConfiguration.getInstance();
+    ConfigurationCopy acuconf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     Configuration conf = in.getFileSystem().getConf();
+    config.forEach((k, v) -> acuconf.set(k, v));
 
     RFileSource[] sources = in.getSources();
     try {
@@ -121,6 +125,24 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
   public SummaryFSOptions from(String... files) {
     Objects.requireNonNull(files);
     in = new InputArgs(files);
+    return this;
+  }
+
+  @Override
+  public SummaryOptions withTableProperties(Iterable<Map.Entry<String,String>> props) {
+    Objects.requireNonNull(props);
+    HashMap<String,String> cfg = new HashMap<>();
+    for (Map.Entry<String,String> entry : props) {
+      cfg.put(entry.getKey(), entry.getValue());
+    }
+    this.config = cfg;
+    return this;
+  }
+
+  @Override
+  public SummaryOptions withTableProperties(Map<String,String> props) {
+    Objects.requireNonNull(props);
+    withTableProperties(props.entrySet());
     return this;
   }
 }

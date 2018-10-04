@@ -259,6 +259,28 @@ public class RFile {
    */
   public interface SummaryOptions {
     /**
+     * Retrieve summaries with provided tables properties. Properties for a table can be obtained by
+     * calling {@link TableOperations#getProperties(String)}. Any property that impacts file
+     * behavior regardless of whether it has the {@link Property#TABLE_PREFIX} may be accepted and
+     * used. For example, cache and crypto properties could be passed here.
+     *
+     * @param props
+     *          iterable over Accumulo table key value properties.
+     * @return this
+     */
+    SummaryOptions withTableProperties(Iterable<Entry<String,String>> props);
+
+    /**
+     * @see #withTableProperties(Iterable) Any property that impacts file behavior regardless of
+     *      whether it has the {@link Property#TABLE_PREFIX} may be accepted and used. For example,
+     *      cache and crypto properties could be passed here.
+     * @param props
+     *          a map instead of an Iterable
+     * @return this
+     */
+    SummaryOptions withTableProperties(Map<String,String> props);
+
+    /**
      * This method allows retrieving a subset of summary data from a file. If a file has lots of
      * separate summaries, reading a subset may be faster.
      *

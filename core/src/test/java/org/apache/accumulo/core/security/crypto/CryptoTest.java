@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -44,6 +45,9 @@ import javax.crypto.spec.SecretKeySpec;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
+import org.apache.accumulo.core.client.summary.Summarizer;
+import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -192,11 +196,13 @@ public class CryptoTest {
     AccumuloConfiguration cryptoOnConf = getAccumuloConfig(CRYPTO_ON_CONF);
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
     ArrayList<Key> keys = testData();
+    SummarizerConfiguration sumConf = SummarizerConfiguration.builder(KeyCounter.class.getName())
+        .build();
 
     String file = "target/testFile1.rf";
     fs.delete(new Path(file), true);
     try (RFileWriter writer = RFile.newWriter().to(file).withFileSystem(fs)
-        .withTableProperties(cryptoOnConf).build()) {
+        .withTableProperties(cryptoOnConf).withSummarizers(sumConf).build()) {
       Value empty = new Value(new byte[] {});
       writer.startDefaultLocalityGroup();
       for (Key key : keys) {
@@ -209,6 +215,12 @@ public class CryptoTest {
     ArrayList<Key> keysRead = new ArrayList<>();
     iter.forEach(e -> keysRead.add(e.getKey()));
     assertEquals(keys, keysRead);
+
+    for (Summary summary : RFile.summaries().from(file).withFileSystem(fs)
+        .withTableProperties(cryptoOnConf).read()) {
+      long total = summary.getFileStatistics().getTotal();
+      assertTrue(total > 0);
+    }
   }
 
   @Test
@@ -363,6 +375,33 @@ public class CryptoTest {
     dataOut.close();
     byte[] stringMarkerBytes = out.toByteArray();
     return Arrays.toString(stringMarkerBytes);
+  }
+
+  // simple counter to just make sure crypto works with summaries
+  public static class KeyCounter implements Summarizer {
+    @Override
+    public Collector collector(SummarizerConfiguration sc) {
+      return new Collector() {
+
+        long keys = 0;
+
+        @Override
+        public void accept(Key k, Value v) {
+          if (!k.isDeleted())
+            keys++;
+        }
+
+        @Override
+        public void summarize(StatisticConsumer sc) {
+          sc.accept("keys", keys);
+        }
+      };
+    }
+
+    @Override
+    public Combiner combiner(SummarizerConfiguration sc) {
+      return (m1, m2) -> m2.forEach((k, v) -> m1.merge(k, v, Long::sum));
+    }
   }
 
 }
