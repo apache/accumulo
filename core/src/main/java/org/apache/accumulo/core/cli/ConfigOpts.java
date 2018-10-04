@@ -39,7 +39,10 @@ public class ConfigOpts extends Help {
       + "The classpath will be searched if this property is not set")
   private String propsPath;
 
-  public String getPropertiesPath() {
+  public synchronized String getPropertiesPath() {
+    if (propsPath == null) {
+      propsPath = SiteConfiguration.getAccumuloPropsLocation().getFile();
+    }
     return propsPath;
   }
 
@@ -59,12 +62,7 @@ public class ConfigOpts extends Help {
 
   public synchronized SiteConfiguration getSiteConfiguration() {
     if (siteConfig == null) {
-      if (propsPath != null) {
-        siteConfig = new SiteConfiguration(new File(propsPath), getOverrides());
-      } else {
-        siteConfig = new SiteConfiguration(SiteConfiguration.getAccumuloPropsLocation(),
-            getOverrides());
-      }
+      siteConfig = new SiteConfiguration(new File(getPropertiesPath()), getOverrides());
     }
     return siteConfig;
   }
