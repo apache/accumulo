@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.cli;
 
 import java.io.File;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,8 +41,7 @@ public class ConfigOpts extends Help {
 
   public synchronized String getPropertiesPath() {
     if (propsPath == null) {
-      URL propLocation = SiteConfiguration.getAccumuloPropsLocation();
-      propsPath = propLocation.getFile();
+      propsPath = SiteConfiguration.getAccumuloPropsLocation().getFile();
     }
     return propsPath;
   }
