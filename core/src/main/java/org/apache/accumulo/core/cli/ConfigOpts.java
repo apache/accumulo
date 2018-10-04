@@ -40,7 +40,7 @@ public class ConfigOpts extends Help {
       + "The classpath will be searched if this property is not set")
   private String propsPath;
 
-  public String getPropertiesPath() {
+  public synchronized String getPropertiesPath() {
     if (propsPath == null) {
       URL propLocation = SiteConfiguration.getAccumuloPropsLocation();
       propsPath = propLocation.getFile();
