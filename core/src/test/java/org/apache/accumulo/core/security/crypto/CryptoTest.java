@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,6 +35,7 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 
 import javax.crypto.Cipher;
@@ -74,6 +74,8 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import com.google.common.collect.Iterables;
 
 public class CryptoTest {
 
@@ -216,11 +218,14 @@ public class CryptoTest {
     iter.forEach(e -> keysRead.add(e.getKey()));
     assertEquals(keys, keysRead);
 
-    for (Summary summary : RFile.summaries().from(file).withFileSystem(fs)
-        .withTableProperties(cryptoOnConf).read()) {
-      long total = summary.getFileStatistics().getTotal();
-      assertTrue(total > 0);
-    }
+    Collection<Summary> summaries = RFile.summaries().from(file).withFileSystem(fs)
+        .withTableProperties(cryptoOnConf).read();
+    Summary summary = Iterables.getOnlyElement(summaries);
+    assertEquals(keys.size(), (long) summary.getStatistics().get("keys"));
+    assertEquals(1, summary.getStatistics().size());
+    assertEquals(0, summary.getFileStatistics().getInaccurate());
+    assertEquals(1, summary.getFileStatistics().getTotal());
+
   }
 
   @Test

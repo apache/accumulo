@@ -38,7 +38,6 @@ import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
@@ -85,15 +84,14 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
   public Collection<Summary> read() throws IOException {
     SummarizerFactory factory = new SummarizerFactory();
     ConfigurationCopy acuconf = new ConfigurationCopy(DefaultConfiguration.getInstance());
-    Configuration conf = in.getFileSystem().getConf();
     config.forEach((k, v) -> acuconf.set(k, v));
 
     RFileSource[] sources = in.getSources();
     try {
       SummaryCollection all = new SummaryCollection();
       for (RFileSource source : sources) {
-        SummaryReader fileSummary = SummaryReader.load(conf, acuconf, source.getInputStream(),
-            source.getLength(), summarySelector, factory,
+        SummaryReader fileSummary = SummaryReader.load(in.getFileSystem().getConf(), acuconf,
+            source.getInputStream(), source.getLength(), summarySelector, factory,
             CryptoServiceFactory.newInstance(acuconf));
         SummaryCollection sc = fileSummary
             .getSummaries(Collections.singletonList(new Gatherer.RowRange(startRow, endRow)));
