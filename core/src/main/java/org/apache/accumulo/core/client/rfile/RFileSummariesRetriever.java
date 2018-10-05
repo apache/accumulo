@@ -20,6 +20,8 @@ package org.apache.accumulo.core.client.rfile;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -29,14 +31,13 @@ import org.apache.accumulo.core.client.rfile.RFile.SummaryOptions;
 import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.InputArgs;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
@@ -46,6 +47,7 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
   private Text startRow;
   private InputArgs in;
   private Text endRow;
+  private Map<String,String> config = Collections.emptyMap();
 
   @Override
   public SummaryOptions selectSummaries(Predicate<SummarizerConfiguration> summarySelector) {
@@ -81,15 +83,15 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
   @Override
   public Collection<Summary> read() throws IOException {
     SummarizerFactory factory = new SummarizerFactory();
-    AccumuloConfiguration acuconf = DefaultConfiguration.getInstance();
-    Configuration conf = in.getFileSystem().getConf();
+    ConfigurationCopy acuconf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    config.forEach((k, v) -> acuconf.set(k, v));
 
     RFileSource[] sources = in.getSources();
     try {
       SummaryCollection all = new SummaryCollection();
       for (RFileSource source : sources) {
-        SummaryReader fileSummary = SummaryReader.load(conf, acuconf, source.getInputStream(),
-            source.getLength(), summarySelector, factory,
+        SummaryReader fileSummary = SummaryReader.load(in.getFileSystem().getConf(), acuconf,
+            source.getInputStream(), source.getLength(), summarySelector, factory,
             CryptoServiceFactory.newInstance(acuconf));
         SummaryCollection sc = fileSummary
             .getSummaries(Collections.singletonList(new Gatherer.RowRange(startRow, endRow)));
@@ -121,6 +123,24 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
   public SummaryFSOptions from(String... files) {
     Objects.requireNonNull(files);
     in = new InputArgs(files);
+    return this;
+  }
+
+  @Override
+  public SummaryOptions withTableProperties(Iterable<Map.Entry<String,String>> props) {
+    Objects.requireNonNull(props);
+    HashMap<String,String> cfg = new HashMap<>();
+    for (Map.Entry<String,String> entry : props) {
+      cfg.put(entry.getKey(), entry.getValue());
+    }
+    this.config = cfg;
+    return this;
+  }
+
+  @Override
+  public SummaryOptions withTableProperties(Map<String,String> props) {
+    Objects.requireNonNull(props);
+    withTableProperties(props.entrySet());
     return this;
   }
 }
