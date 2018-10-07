@@ -21,7 +21,7 @@ limitations under the License.
 
 ## Development
 
-- See the [Developer's Guide](https://accumulo.apache.org/contributor/source) for information regarding common build commands, IDE setup and more.
+- See the [Developer's Guide](https://accumulo.apache.org/how-to-contribute/) for information regarding common build commands, IDE setup and more.
 - Ensure that your work targets the correct branch
 - Add / update unit and integration tests
 
