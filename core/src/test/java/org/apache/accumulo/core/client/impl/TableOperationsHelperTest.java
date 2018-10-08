@@ -89,6 +89,16 @@ public class TableOperationsHelperTest {
         throws AccumuloException, AccumuloSecurityException, TableExistsException {}
 
     @Override
+    public boolean createIfNotExists(String tableName) {
+      return true;
+    }
+
+    @Override
+    public boolean createIfNotExists(String tableName, NewTableConfiguration ntc) {
+      return true;
+    }
+
+    @Override
     public void addSplits(String tableName, SortedSet<Text> partitionKeys)
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException {}
 

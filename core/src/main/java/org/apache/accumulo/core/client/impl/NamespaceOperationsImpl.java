@@ -126,6 +126,17 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   }
 
   @Override
+  public boolean createIfNotExists(String namespace)
+      throws AccumuloException, AccumuloSecurityException {
+    try {
+      create(namespace);
+      return true;
+    } catch (NamespaceExistsException e) {
+      return false;
+    }
+  }
+
+  @Override
   public void delete(String namespace) throws AccumuloException, AccumuloSecurityException,
       NamespaceNotFoundException, NamespaceNotEmptyException {
     checkArgument(namespace != null, "namespace is null");

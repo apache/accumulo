@@ -221,6 +221,39 @@ public class NamespacesIT extends AccumuloClusterHarness {
     assertFalse(c.tableOperations().exists(t2));
   }
 
+  @Test
+  public void createNamespaceAndTableIfNotExists() throws Exception {
+    String t = namespace + ".1";
+    assertFalse(c.namespaceOperations().exists(namespace));
+    assertFalse(c.tableOperations().exists(t));
+    try {
+      c.namespaceOperations().delete(namespace);
+    } catch (NamespaceNotFoundException e) {}
+    try {
+      c.tableOperations().delete(t);
+    } catch (TableNotFoundException e) {
+      assertEquals(NamespaceNotFoundException.class.getName(), e.getCause().getClass().getName());
+    }
+
+    boolean namespaceCreated = c.namespaceOperations().createIfNotExists(namespace);
+    assertTrue(namespaceCreated);
+    assertTrue(c.namespaceOperations().exists(namespace));
+
+    namespaceCreated = c.namespaceOperations().createIfNotExists(namespace);
+    assertFalse(namespaceCreated);
+    assertTrue(c.namespaceOperations().exists(namespace));
+
+    boolean tableCreated = c.tableOperations().createIfNotExists(t);
+    assertTrue(tableCreated);
+    assertTrue(c.namespaceOperations().exists(namespace));
+    assertTrue(c.tableOperations().exists(t));
+
+    tableCreated = c.tableOperations().createIfNotExists(t);
+    assertFalse(tableCreated);
+    assertTrue(c.namespaceOperations().exists(namespace));
+    assertTrue(c.tableOperations().exists(t));
+  }
+
   @Test(expected = NamespaceNotEmptyException.class)
   public void deleteNonEmptyNamespace() throws Exception {
     String tableName1 = namespace + ".1";

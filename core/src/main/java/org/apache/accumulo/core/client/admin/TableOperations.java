@@ -138,6 +138,38 @@ public interface TableOperations {
       throws AccumuloSecurityException, AccumuloException, TableExistsException;
 
   /**
+   * Create a table with no special configuration if no table with the given table name exists
+   *
+   * @param tableName
+   *          the name of the table
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @return true if a new namespace was created, false otherwise
+   * @since 2.0.0
+   */
+  boolean createIfNotExists(String tableName) throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * @param tableName
+   *          the name of the table
+   * @param ntc
+   *          specifies the new table's configuration variable, which are: 1. enable/disable the
+   *          versioning iterator, which will limit the number of Key versions kept; 2. specifies
+   *          logical or real-time based time recording for entries in the table; 3. user defined
+   *          properties to be merged into the initial properties of the table
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @return true if a new namespace was created, false otherwise
+   * @since 2.0.0
+   */
+  boolean createIfNotExists(String tableName, NewTableConfiguration ntc)
+      throws AccumuloSecurityException, AccumuloException;
+
+  /**
    * Imports a table exported via exportTable and copied via hadoop distcp.
    *
    * @param tableName

@@ -100,6 +100,22 @@ public interface NamespaceOperations {
       throws AccumuloException, AccumuloSecurityException, NamespaceExistsException;
 
   /**
+   * Create an empty namespace with no initial configuration, if namespace with given name doesn't
+   * exists. Valid names for a namespace contain letters, numbers, and the underscore character.
+   *
+   * @param namespace
+   *          the name of the namespace
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @return true if a new namespace was created, false otherwise
+   * @since 2.0.0
+   */
+  boolean createIfNotExists(String namespace)
+      throws AccumuloException, AccumuloSecurityException, NamespaceExistsException;
+
+  /**
    * Delete an empty namespace
    *
    * @param namespace

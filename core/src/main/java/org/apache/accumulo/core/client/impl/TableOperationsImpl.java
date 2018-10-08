@@ -262,6 +262,23 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
+  @Override
+  public boolean createIfNotExists(String tableName)
+      throws AccumuloException, AccumuloSecurityException {
+    return createIfNotExists(tableName, new NewTableConfiguration());
+  }
+
+  @Override
+  public boolean createIfNotExists(String tableName, NewTableConfiguration ntc)
+      throws AccumuloException, AccumuloSecurityException {
+    try {
+      create(tableName, ntc);
+      return true;
+    } catch (TableExistsException e) {
+      return false;
+    }
+  }
+
   private long beginFateOperation() throws ThriftSecurityException, TException {
     while (true) {
       MasterClientService.Iface client = null;
