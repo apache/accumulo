@@ -61,7 +61,7 @@
             </li>
             <li class="dropdown">
               <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
-                Rest <span class="caret"></span>
+                REST <span class="caret"></span>
               </a>
               <ul class="dropdown-menu">
                 <li><a href="/rest/xml">XML</a></li>
