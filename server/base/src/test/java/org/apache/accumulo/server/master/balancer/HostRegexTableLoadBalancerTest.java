@@ -443,15 +443,95 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     for (TServerInstance r : removals) {
       current.remove(r);
     }
-    this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers),
+    this.getAssignments(Collections.unmodifiableSortedMap(current),
         Collections.unmodifiableMap(unassigned), assignments);
     assertEquals(unassigned.size(), assignments.size());
     // Ensure assignments are correct
+    // Ensure tablets are assigned in default pool
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
-      if (!tabletInBounds(e.getKey(), e.getValue())) {
-        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
+      if (tabletInBounds(e.getKey(), e.getValue())) {
+        fail("tablet unexpectedly in bounds: " + e.getKey() + " -> " + e.getValue().host());
       }
     }
+  }
+
+  @Test
+  public void testUnassignedWithNoDefaultPool() {
+    init();
+    Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
+    Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
+    for (KeyExtent ke : tableExtents.get(BAR.getTableName())) {
+      unassigned.put(ke, null);
+    }
+
+    SortedMap<TServerInstance,TabletServerStatus> current = createCurrent(15);
+    // Remove the BAR tablet servers and default pool from current
+    List<TServerInstance> removals = new ArrayList<>();
+    for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
+      if (e.getKey().host().equals("192.168.0.6") || e.getKey().host().equals("192.168.0.7")
+          || e.getKey().host().equals("192.168.0.8") || e.getKey().host().equals("192.168.0.9")
+          || e.getKey().host().equals("192.168.0.10") || e.getKey().host().equals("192.168.0.11")
+          || e.getKey().host().equals("192.168.0.12") || e.getKey().host().equals("192.168.0.13")
+          || e.getKey().host().equals("192.168.0.14") || e.getKey().host().equals("192.168.0.15")) {
+        removals.add(e.getKey());
+      }
+    }
+
+    for (TServerInstance r : removals) {
+      current.remove(r);
+    }
+
+    this.getAssignments(Collections.unmodifiableSortedMap(current),
+        Collections.unmodifiableMap(unassigned), assignments);
+    assertEquals(unassigned.size(), assignments.size());
+
+    // Ensure tablets are assigned in default pool
+    for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
+      if (tabletInBounds(e.getKey(), e.getValue())) {
+        fail("tablet unexpectedly in bounds: " + e.getKey() + " -> " + e.getValue().host());
+      }
+    }
+  }
+
+  @Test
+  public void testUnassignedWithNoDefaultPoolNoRandomAssign() {
+    init();
+    Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
+    Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
+    for (KeyExtent ke : tableExtents.get(BAR.getTableName())) {
+      unassigned.put(ke, null);
+    }
+
+    SortedMap<TServerInstance,TabletServerStatus> current = createCurrent(15);
+    // Remove the BAR tablet servers and default pool from current
+    List<TServerInstance> removals = new ArrayList<>();
+    for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
+      if (e.getKey().host().equals("192.168.0.6") || e.getKey().host().equals("192.168.0.7")
+          || e.getKey().host().equals("192.168.0.8") || e.getKey().host().equals("192.168.0.9")
+          || e.getKey().host().equals("192.168.0.10") || e.getKey().host().equals("192.168.0.11")
+          || e.getKey().host().equals("192.168.0.12") || e.getKey().host().equals("192.168.0.13")
+          || e.getKey().host().equals("192.168.0.14") || e.getKey().host().equals("192.168.0.15")) {
+        removals.add(e.getKey());
+      }
+    }
+
+    for (TServerInstance r : removals) {
+      current.remove(r);
+    }
+
+    // Change property to not assign if the default pool is empty
+    DEFAULT_TABLE_PROPERTIES
+        .put(HostRegexTableLoadBalancer.HOST_BALANCER_RANDOM_ASSIGN_ON_EMPTY_DEFAULT_POOL, "false");
+    this.propertiesChanged();
+
+    // Run the assignments and set the default property back
+    this.getAssignments(Collections.unmodifiableSortedMap(current),
+        Collections.unmodifiableMap(unassigned), assignments);
+    DEFAULT_TABLE_PROPERTIES
+        .put(HostRegexTableLoadBalancer.HOST_BALANCER_RANDOM_ASSIGN_ON_EMPTY_DEFAULT_POOL, "true");
+
+    // Assert that nothing was assigned
+    assertEquals(0, assignments.size());
   }
 
   @Test

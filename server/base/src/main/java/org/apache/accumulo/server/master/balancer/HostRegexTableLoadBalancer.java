@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -78,8 +79,12 @@ import com.google.common.collect.Multimap;
  * <b>table.custom.balancer.host.regex.concurrent.migrations</b> This balancer can continue
  * balancing even if there are outstanding migrations. To limit the number of outstanding migrations
  * in which this balancer will continue balancing, set the following property (default 0):<br>
- * <b>table.custom.balancer.host.regex.max.outstanding.migrations</b>
- *
+ * <b>table.custom.balancer.host.regex.max.outstanding.migrations</b><br>
+ * <b>balancer.host.regex.random.assign.on.empty.default.pool=true</b><br>
+ * If no pool is available for a given table, the balancer attempts to assign it to the default pool
+ * (this includes if a table already resides in the default pool). If the default pool is empty, it
+ * attempts to assign the table to a random pool instead of abandoning the table. Set this property
+ * to false to disable this behavior.
  */
 public class HostRegexTableLoadBalancer extends TableLoadBalancer implements ConfigurationObserver {
 
@@ -99,6 +104,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   private static final int DEFAULT_OUTSTANDING_MIGRATIONS = 0;
   public static final String HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY = PROP_PREFIX
       + "balancer.host.regex.max.outstanding.migrations";
+  public static final String HOST_BALANCER_RANDOM_ASSIGN_ON_EMPTY_DEFAULT_POOL = PROP_PREFIX
+      + "balancer.host.regex.random.assign.on.empty.default.pool";
 
   protected long oobCheckMillis = ConfigurationTypeHelper
       .getTimeInMillis(HOST_BALANCER_OOB_DEFAULT);
@@ -110,7 +117,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   private Map<String,Pattern> poolNameToRegexPattern = null;
   private volatile long lastOOBCheck = System.currentTimeMillis();
   private volatile boolean isIpBasedRegex = false;
+  private volatile boolean randomAssignOnEmptyDefaultPool = true;
   private Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = new HashMap<>();
+  private final Random random = new Random();
   private volatile int maxTServerMigrations = HOST_BALANCER_REGEX_MAX_MIGRATIONS_DEFAULT;
   private volatile int maxOutstandingMigrations = DEFAULT_OUTSTANDING_MIGRATIONS;
   private final Map<KeyExtent,TabletMigration> migrationsFromLastPass = new HashMap<>();
@@ -253,6 +262,11 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     if (null != outstanding) {
       this.maxOutstandingMigrations = Integer.parseInt(outstanding);
     }
+    String randomAssign = conf.getSystemConfiguration()
+        .get(HOST_BALANCER_RANDOM_ASSIGN_ON_EMPTY_DEFAULT_POOL);
+    if (null != randomAssign) {
+      this.randomAssignOnEmptyDefaultPool = Boolean.parseBoolean(randomAssign);
+    }
     LOG.info("{}", this);
   }
 
@@ -263,6 +277,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     buf.append("\nMax Tablet Server Migrations", this.maxTServerMigrations);
     buf.append("\nRegular Expressions use IPs", this.isIpBasedRegex);
     buf.append("\nPools", this.poolNameToRegexPattern);
+    buf.append("\nRandom Assign on Empty Default Pool", this.randomAssignOnEmptyDefaultPool);
     return buf.toString();
   }
 
@@ -322,14 +337,52 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       String tableName = tableIdToTableName.get(e.getKey());
       String poolName = getPoolNameForTable(tableName);
       SortedMap<TServerInstance,TabletServerStatus> currentView = pools.get(poolName);
-      if (null == currentView || currentView.size() == 0) {
+      if (null == currentView || currentView.isEmpty()) {
         LOG.warn("No tablet servers online for table {}, assigning within default pool", tableName);
         currentView = pools.get(DEFAULT_POOL);
         if (null == currentView) {
-          LOG.error(
-              "No tablet servers exist in the default pool, unable to assign tablets for table {}",
-              tableName);
-          continue;
+          if (randomAssignOnEmptyDefaultPool) {
+            LOG.warn(
+                "No tablet servers exist in the default pool; getting a random pool for assignment");
+
+            // Create a list of blacklisted pools so we don't pick one that is empty
+            Set<String> blacklistedPools = new HashSet<>();
+            blacklistedPools.add(DEFAULT_POOL);
+
+            // Continue to try and get a pool with tablet servers in it
+            while (currentView == null || currentView.isEmpty()) {
+              List<String> listOfPools = new ArrayList<>(pools.keySet());
+              listOfPools.removeAll(blacklistedPools);
+              if (listOfPools.isEmpty()) {
+                // No more pools left to check; break out of the while loop to skip this table
+                break;
+              }
+
+              String randomPool = listOfPools.get(random.nextInt(listOfPools.size()));
+              currentView = pools.get(randomPool);
+
+              if (currentView == null || currentView.isEmpty()) {
+                LOG.warn("Pool {} is empty; getting another random pool", randomPool);
+                blacklistedPools.add(randomPool);
+              } else {
+                LOG.warn(
+                    "No tablet servers exist in the default pool; assigning tablets for table {} to {}",
+                    tableName, randomPool);
+              }
+            }
+
+            if (currentView == null || currentView.isEmpty()) {
+              // If we made it here, all pools are empty; skip this table
+              LOG.error("All available pools are empty; unable to assign tablets for table {}",
+                  tableName);
+              continue;
+            }
+          } else {
+            LOG.error(
+                "No tablet servers exist in the default pool and {} is false, unable to assign tablets for table {}",
+                HOST_BALANCER_RANDOM_ASSIGN_ON_EMPTY_DEFAULT_POOL, tableName);
+            continue;
+          }
         }
       }
       LOG.debug("Sending {} tablets to balancer for table {} for assignment within tservers {}",
