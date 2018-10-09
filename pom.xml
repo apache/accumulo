@@ -81,7 +81,6 @@
     <module>client/mapreduce</module>
     <module>core</module>
     <module>iterator-test-harness</module>
-    <module>maven-plugin</module>
     <module>minicluster</module>
     <module>proxy</module>
     <module>server/base</module>
@@ -135,7 +134,6 @@
     <jetty.version>9.4.11.v20180605</jetty.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <maven.plugin-version>3.2.5</maven.plugin-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <powermock.version>1.7.4</powermock.version>
@@ -332,11 +330,6 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-maven-plugin</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-minicluster</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -488,31 +481,6 @@
         <groupId>org.apache.htrace</groupId>
         <artifactId>htrace-core4</artifactId>
         <version>${htrace.hadoop.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.maven</groupId>
-        <artifactId>maven-artifact</artifactId>
-        <version>${maven.plugin-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.maven</groupId>
-        <artifactId>maven-core</artifactId>
-        <version>${maven.plugin-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.maven</groupId>
-        <artifactId>maven-model</artifactId>
-        <version>${maven.plugin-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.maven</groupId>
-        <artifactId>maven-plugin-api</artifactId>
-        <version>${maven.plugin-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.maven.plugin-tools</groupId>
-        <artifactId>maven-plugin-annotations</artifactId>
-        <version>3.5.2</version>
       </dependency>
       <dependency>
         <groupId>org.apache.thrift</groupId>
@@ -882,7 +850,7 @@
             <goals>clean deploy</goals>
             <preparationGoals>clean verify</preparationGoals>
             <tagNameFormat>rel/@{project.version}</tagNameFormat>
-            <releaseProfiles>apache-release,accumulo-release,skip-plugin-its-with-skipTests</releaseProfiles>
+            <releaseProfiles>apache-release,accumulo-release</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
             <localCheckout>true</localCheckout>
