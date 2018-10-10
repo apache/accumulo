@@ -68,6 +68,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @Category(MiniClusterOnlyTests.class)
 public class CyclicReplicationIT {
   private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);
@@ -87,6 +89,7 @@ public class CyclicReplicationIT {
   @Rule
   public TestName testName = new TestName();
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());

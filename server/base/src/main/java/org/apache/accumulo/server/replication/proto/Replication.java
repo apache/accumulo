@@ -139,7 +139,7 @@ package org.apache.accumulo.server.replication.proto;
       return defaultInstance;
     }
 
-    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    private final transient com.google.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
         getUnknownFields() {
@@ -217,7 +217,7 @@ package org.apache.accumulo.server.replication.proto;
               org.apache.accumulo.server.replication.proto.Replication.Status.class, org.apache.accumulo.server.replication.proto.Replication.Status.Builder.class);
     }
 
-    public static com.google.protobuf.Parser<Status> PARSER =
+    public static final com.google.protobuf.Parser<Status> PARSER =
         new com.google.protobuf.AbstractParser<Status>() {
       public Status parsePartialFrom(
           com.google.protobuf.CodedInputStream input,

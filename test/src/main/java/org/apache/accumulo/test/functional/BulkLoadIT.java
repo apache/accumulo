@@ -70,6 +70,8 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Tests new bulk import technique. If the old technique ever gets removed this will replace
  * {@link BulkFileIT}
@@ -376,6 +378,8 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     }
   }
 
+  @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "WEAK_MESSAGE_DIGEST_SHA1"},
+      justification = "path provided by test; sha-1 is okay for test")
   private String hash(String filename) {
     try {
       byte data[] = Files.readAllBytes(Paths.get(filename.replaceFirst("^file:", "")));

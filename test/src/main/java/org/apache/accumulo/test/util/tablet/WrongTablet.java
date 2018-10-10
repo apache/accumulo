@@ -25,14 +25,14 @@ import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
 
 public class WrongTablet {
 
-  static class Opts extends ClientOpts {
+  static class Opts extends ServerUtilOpts {
     @Parameter(names = "--location", required = true)
     String location;
   }

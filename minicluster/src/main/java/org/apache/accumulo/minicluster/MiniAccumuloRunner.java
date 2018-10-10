@@ -37,6 +37,8 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A runner for starting up a {@link MiniAccumuloCluster} from the command line using an optional
  * configuration properties file. An example property file looks like the following:
@@ -109,6 +111,8 @@ public class MiniAccumuloRunner {
   }
 
   public static class PropertiesConverter implements IStringConverter<Properties> {
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+        justification = "code runs in same security context as user who provided input file name")
     @Override
     public Properties convert(String fileName) {
       Properties prop = new Properties();
@@ -146,6 +150,9 @@ public class MiniAccumuloRunner {
    * @param args
    *          An optional -p argument can be specified with the path to a valid properties file.
    */
+  @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "UNENCRYPTED_SERVER_SOCKET"},
+      justification = "code runs in same security context as user who provided input file name; "
+          + "socket need not be encrypted, since this class is provided for testing only")
   public static void main(String[] args) throws IOException, InterruptedException {
     Opts opts = new Opts();
     opts.parseArgs(MiniAccumuloRunner.class.getName(), args);

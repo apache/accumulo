@@ -23,7 +23,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
 import org.apache.accumulo.core.replication.ReplicationConstants;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.junit.Test;
 
 public class ZooKeeperInitializationTest {

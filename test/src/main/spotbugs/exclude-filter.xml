@@ -15,45 +15,12 @@
   limitations under the License.
 -->
 <FindBugsFilter>
-  <Match>
-    <!-- ignore security bugs in tests -->
-    <Bug category="SECURITY" />
-  </Match>
+  <!--
+    DO NOT exclude anything other than generated files here. Other files
+    can be excluded inline by adding the @SuppressFBWarnings annotation.
+  -->
   <Match>
     <!-- ignore thrift-generated files -->
-    <Or>
-      <Package name="org.apache.accumulo.test.rpc.thrift" />
-    </Or>
-  </Match>
-  <Match>
-    <!-- ignore intentional infinite loop in test main methods -->
-    <Or>
-      <Class name="org.apache.accumulo.test.stress.random.Write" />
-    </Or>
-    <Method name="main" params="java.lang.String[]" returns="void" />
-    <Bug code="IL" pattern="IL_INFINITE_LOOP" />
-  </Match>
-  <Match>
-    <!-- locking is confusing, but probably correct -->
-    <Class name="org.apache.accumulo.harness.TestingKdc" />
-    <Method name="start" params="" returns="void" />
-    <Bug code="SWL" pattern="SWL_SLEEP_WITH_LOCK_HELD" />
-  </Match>
-  <Match>
-    <!-- test classes can call System.exit -->
-    <Or>
-      <Package name="org.apache.accumulo.test.functional" />
-      <Package name="org.apache.accumulo.test.scalability" />
-      <Package name="org.apache.accumulo.test.performance" />
-    </Or>
-    <Bug code="DM" pattern="DM_EXIT" />
-  </Match>
-  <Match>
-    <!-- test classes can force garbage collection -->
-    <Or>
-      <Class name="org.apache.accumulo.test.performance.scan.CollectTabletStats" />
-      <Class name="org.apache.accumulo.test.util.memory.MemoryUsageCheck" />
-    </Or>
-    <Bug code="DM" pattern="DM_GC" />
+    <Package name="org.apache.accumulo.test.rpc.thrift" />
   </Match>
 </FindBugsFilter>

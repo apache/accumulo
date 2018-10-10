@@ -87,9 +87,9 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.TraceSamplers;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
@@ -147,6 +147,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.impl.ProbabilitySampler;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
@@ -158,6 +159,8 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  *
@@ -2131,7 +2134,7 @@ public class Tablet implements TabletCommitter {
     try {
       double tracePercent = tabletServer.getConfiguration()
           .getFraction(Property.TSERV_MAJC_TRACE_PERCENT);
-      ProbabilitySampler sampler = new ProbabilitySampler(tracePercent);
+      ProbabilitySampler sampler = TraceSamplers.probabilitySampler(tracePercent);
       span = Trace.on("majorCompaction", sampler);
 
       majCStats = _majorCompact(reason);
@@ -2552,6 +2555,8 @@ public class Tablet implements TabletCommitter {
 
   // don't release the lock if this method returns true for success; instead, the caller should
   // clean up by calling finishUpdatingLogsUsed()
+  @SuppressFBWarnings(value = "UL_UNRELEASED_LOCK",
+      justification = "lock is released by caller calling finishedUpdatingLogsUsed method")
   @Override
   public boolean beginUpdatingLogsUsed(InMemoryMap memTable, DfsLogger more, boolean mincFinish) {
 

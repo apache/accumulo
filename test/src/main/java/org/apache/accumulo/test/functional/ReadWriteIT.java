@@ -83,10 +83,10 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.MonitorUtil;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -104,6 +104,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Category({StandaloneCapableClusterTests.class, SunnyDayTests.class})
 public class ReadWriteIT extends AccumuloClusterHarness {
@@ -129,6 +131,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         .usingToken(getAdminPrincipal(), getAdminToken()).build();
   }
 
+  @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "URLCONNECTION_SSRF_FD"},
+      justification = "path provided by test; url provided by test")
   @Test
   public void sunnyDay() throws Exception {
     // Start accumulo, create a table, insert some data, verify we can read it out.
@@ -161,7 +165,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
               "Setting scheme to HTTPS since monitor ssl keystore configuration was observed in {}",
               accumuloProps);
           scheme = "https://";
-          SSLContext ctx = SSLContext.getInstance("SSL");
+          SSLContext ctx = SSLContext.getInstance("TLSv1.2");
           TrustManager[] tm = {new TestTrustManager()};
           ctx.init(new KeyManager[0], tm, new SecureRandom());
           SSLContext.setDefault(ctx);
@@ -520,6 +524,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     return groups;
   }
 
+  @SuppressFBWarnings(value = "WEAK_TRUST_MANAGER",
+      justification = "trust manager is okay for testing")
   private static class TestTrustManager implements X509TrustManager {
     @Override
     public void checkClientTrusted(X509Certificate[] arg0, String arg1)
@@ -535,6 +541,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     }
   }
 
+  @SuppressFBWarnings(value = "WEAK_HOSTNAME_VERIFIER", justification = "okay for test")
   private static class TestHostnameVerifier implements HostnameVerifier {
     @Override
     public boolean verify(String hostname, SSLSession session) {

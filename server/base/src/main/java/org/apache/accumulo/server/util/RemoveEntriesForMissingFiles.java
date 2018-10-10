@@ -45,7 +45,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.Path;
@@ -57,7 +57,7 @@ import com.beust.jcommander.Parameter;
  */
 public class RemoveEntriesForMissingFiles {
 
-  static class Opts extends ClientOpts {
+  static class Opts extends ServerUtilOpts {
     @Parameter(names = "--fix")
     boolean fix = false;
   }

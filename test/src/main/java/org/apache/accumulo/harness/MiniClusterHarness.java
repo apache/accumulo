@@ -47,6 +47,8 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Harness that sets up a MiniAccumuloCluster in a manner expected for Accumulo integration tests.
  */
@@ -195,6 +197,7 @@ public class MiniClusterHarness {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
   protected void configureForSsl(MiniAccumuloConfigImpl cfg, File folder) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     if (TRUE.equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {

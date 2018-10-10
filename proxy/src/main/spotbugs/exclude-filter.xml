@@ -15,18 +15,12 @@
   limitations under the License.
 -->
 <FindBugsFilter>
+  <!--
+    DO NOT exclude anything other than generated files here. Other files
+    can be excluded inline by adding the @SuppressFBWarnings annotation.
+  -->
   <Match>
     <!-- ignore thrift-generated classes -->
     <Package name="org.apache.accumulo.proxy.thrift" />
-  </Match>
-  <Match>
-    <!-- admin classes can call System.exit -->
-    <Class name="org.apache.accumulo.proxy.Proxy" />
-    <Bug code="DM" pattern="DM_EXIT" />
-  </Match>
-  <Match>
-    <!-- Calling new File on input can be dangerous, but OK here -->
-    <Class name="org.apache.accumulo.proxy.Proxy$PropertiesConverter"/>
-    <Bug code="PATH" pattern="PATH_TRAVERSAL_IN"/>
   </Match>
 </FindBugsFilter>

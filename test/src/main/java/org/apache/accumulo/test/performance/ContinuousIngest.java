@@ -38,8 +38,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.trace.CountSampler;
 import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.TraceSamplers;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -98,7 +98,7 @@ public class ContinuousIngest {
 
     BatchWriter bw = client.createBatchWriter(clientOpts.getTableName(),
         bwOpts.getBatchWriterConfig());
-    bw = Trace.wrapAll(bw, new CountSampler(1024));
+    bw = Trace.wrapAll(bw, TraceSamplers.countSampler(1024));
 
     Random r = new SecureRandom();
 

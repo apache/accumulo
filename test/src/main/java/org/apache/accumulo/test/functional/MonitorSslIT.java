@@ -43,13 +43,15 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Check SSL for the Monitor
  */
 public class MonitorSslIT extends ConfigurableMacBase {
   @BeforeClass
   public static void initHttps() throws NoSuchAlgorithmException, KeyManagementException {
-    SSLContext ctx = SSLContext.getInstance("SSL");
+    SSLContext ctx = SSLContext.getInstance("TLSv1.2");
     TrustManager[] tm = {new TestTrustManager()};
     ctx.init(new KeyManager[0], tm, new SecureRandom());
     SSLContext.setDefault(ctx);
@@ -57,6 +59,8 @@ public class MonitorSslIT extends ConfigurableMacBase {
     HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
   }
 
+  @SuppressFBWarnings(value = "WEAK_TRUST_MANAGER",
+      justification = "trust manager is okay for testing")
   private static class TestTrustManager implements X509TrustManager {
     @Override
     public void checkClientTrusted(X509Certificate[] arg0, String arg1)
@@ -72,6 +76,7 @@ public class MonitorSslIT extends ConfigurableMacBase {
     }
   }
 
+  @SuppressFBWarnings(value = "WEAK_HOSTNAME_VERIFIER", justification = "okay for test")
   private static class TestHostnameVerifier implements HostnameVerifier {
     @Override
     public boolean verify(String hostname, SSLSession session) {
@@ -115,6 +120,7 @@ public class MonitorSslIT extends ConfigurableMacBase {
     cfg.setSiteConfig(siteConfig);
   }
 
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "url provided by test")
   @Test
   public void test() throws Exception {
     log.debug("Starting Monitor");

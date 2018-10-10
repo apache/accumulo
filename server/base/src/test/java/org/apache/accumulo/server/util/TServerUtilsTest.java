@@ -52,6 +52,8 @@ import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class TServerUtilsTest {
 
   protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
@@ -189,6 +191,7 @@ public class TServerUtilsTest {
     }
   }
 
+  @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "socket for testing")
   @Test(expected = UnknownHostException.class)
   public void testStartServerUsedPort() throws Exception {
     int port = getFreePort(1024);
@@ -202,6 +205,7 @@ public class TServerUtilsTest {
     }
   }
 
+  @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "socket for testing")
   @Test
   public void testStartServerUsedPortWithSearch() throws Exception {
     TServer server = null;
@@ -247,6 +251,7 @@ public class TServerUtilsTest {
     }
   }
 
+  @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "socket for testing")
   @Test
   public void testStartServerPortRangeFirstPortUsed() throws Exception {
     TServer server = null;
@@ -282,6 +287,7 @@ public class TServerUtilsTest {
     return new int[] {low, high};
   }
 
+  @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "socket for testing")
   private int getFreePort(int startingAddress) throws UnknownHostException {
     final InetAddress addr = InetAddress.getByName("localhost");
     for (int i = startingAddress; i < 65535; i++) {

@@ -28,6 +28,8 @@ import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Methods, setup and/or infrastructure which are common to any Accumulo integration test.
  */
@@ -55,11 +57,13 @@ public class AccumuloITBase {
    *          exist
    * @return the new directory (is not created)
    */
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static File getSslDir(File baseDir) {
     assertTrue(baseDir.exists() && baseDir.isDirectory());
     return new File(baseDir.getParentFile(), baseDir.getName() + "-ssl");
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());

@@ -21,11 +21,12 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.TraceSamplers;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.master.Master;
+import org.apache.htrace.impl.ProbabilitySampler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,8 +54,8 @@ public class ReplicationDriver extends Daemon {
 
   @Override
   public void run() {
-    ProbabilitySampler sampler = new ProbabilitySampler(
-        conf.getFraction(Property.REPLICATION_TRACE_PERCENT));
+    ProbabilitySampler sampler = TraceSamplers
+        .probabilitySampler(conf.getFraction(Property.REPLICATION_TRACE_PERCENT));
 
     long millisToWait = conf.getTimeInMillis(Property.REPLICATION_DRIVER_DELAY);
     log.debug("Waiting {}ms before starting main replication loop", millisToWait);

@@ -60,6 +60,8 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ProxyDurabilityIT extends ConfigurableMacBase {
 
   @Override
@@ -79,6 +81,7 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
     return ByteBuffer.wrap(value.getBytes());
   }
 
+  @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "test password is okay")
   @Test
   public void testDurability() throws Exception {
     AccumuloClient c = getClient();

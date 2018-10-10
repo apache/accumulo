@@ -77,6 +77,8 @@ import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Iterables;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CryptoTest {
 
   public static final int MARKER_INT = 0xCADEFEDD;
@@ -274,6 +276,7 @@ public class CryptoTest {
     assertEquals(AESCryptoService.class, cs.getClass());
   }
 
+  @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is being tested")
   @Test
   public void testKeyManagerGeneratesKey() throws NoSuchAlgorithmException, NoSuchProviderException,
       NoSuchPaddingException, InvalidKeyException {
@@ -347,24 +350,23 @@ public class CryptoTest {
   }
 
   private void decrypt(byte[] resultingBytes, Scope scope, String configFile) throws Exception {
-    ByteArrayInputStream in = new ByteArrayInputStream(resultingBytes);
-    DataInputStream dataIn = new DataInputStream(in);
-    byte[] params = CryptoUtils.readParams(dataIn);
+    try (DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(resultingBytes))) {
+      byte[] params = CryptoUtils.readParams(dataIn);
 
-    AccumuloConfiguration conf = getAccumuloConfig(configFile);
-    CryptoService cryptoService = CryptoServiceFactory.newInstance(conf);
-    CryptoEnvironment env = new CryptoEnvironmentImpl(scope, params);
+      AccumuloConfiguration conf = getAccumuloConfig(configFile);
+      CryptoService cryptoService = CryptoServiceFactory.newInstance(conf);
+      CryptoEnvironment env = new CryptoEnvironmentImpl(scope, params);
 
-    FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
+      FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
 
-    DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(dataIn));
-    String markerString = decrypted.readUTF();
-    int markerInt = decrypted.readInt();
+      try (DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(dataIn))) {
+        String markerString = decrypted.readUTF();
+        int markerInt = decrypted.readInt();
 
-    assertEquals(MARKER_STRING, markerString);
-    assertEquals(MARKER_INT, markerInt);
-    in.close();
-    dataIn.close();
+        assertEquals(MARKER_STRING, markerString);
+        assertEquals(MARKER_INT, markerInt);
+      }
+    }
   }
 
   private String getStringifiedBytes(byte[] params, String s, int i) throws IOException {

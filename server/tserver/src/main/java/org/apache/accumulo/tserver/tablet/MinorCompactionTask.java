@@ -19,12 +19,13 @@ package org.apache.accumulo.tserver.tablet;
 import java.io.IOException;
 
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.TraceSamplers;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
+import org.apache.htrace.impl.ProbabilitySampler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +57,7 @@ class MinorCompactionTask implements Runnable {
   @Override
   public void run() {
     tablet.minorCompactionStarted();
-    ProbabilitySampler sampler = new ProbabilitySampler(tracePercent);
+    ProbabilitySampler sampler = TraceSamplers.probabilitySampler(tracePercent);
     Span minorCompaction = Trace.on("minorCompaction", sampler);
     try {
       FileRef newMapfileLocation = tablet.getNextMapFilename(mergeFile == null ? "F" : "M");

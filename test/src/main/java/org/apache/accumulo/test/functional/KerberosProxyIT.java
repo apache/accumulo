@@ -88,6 +88,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Tests impersonation of clients over Kerberos+SASL. "Proxy" may be referring to the Accumulo Proxy
  * service or it may be referring to the notion of a username overriding the real username of the
@@ -421,6 +423,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     ugiTransport.close();
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testDisallowedClientForImpersonation() throws Exception {
     String user = testName.getMethodName();
@@ -472,6 +475,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testMismatchPrincipals() throws Exception {
     ClusterUser rootUser = kdc.getRootUser();

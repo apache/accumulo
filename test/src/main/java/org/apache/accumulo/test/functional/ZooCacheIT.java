@@ -28,6 +28,8 @@ import org.apache.commons.io.FileUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ZooCacheIT extends ConfigurableMacBase {
 
   @Override
@@ -38,6 +40,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
   private static String pathName = "/zcTest-42";
   private static File testDir;
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @BeforeClass
   public static void createTestDirectory() {
     testDir = new File(createTestDir(ZooCacheIT.class.getName()), pathName);

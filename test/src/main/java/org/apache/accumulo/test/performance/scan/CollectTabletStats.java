@@ -66,7 +66,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ClientOnRequiredTable;
+import org.apache.accumulo.server.cli.ServerUtilOnRequiredTable;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
@@ -82,10 +82,12 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CollectTabletStats {
   private static final Logger log = LoggerFactory.getLogger(CollectTabletStats.class);
 
-  static class CollectOptions extends ClientOnRequiredTable {
+  static class CollectOptions extends ServerUtilOnRequiredTable {
     @Parameter(names = "--iterations", description = "number of iterations")
     int iterations = 3;
     @Parameter(names = "--numThreads", description = "number of threads")
@@ -313,6 +315,7 @@ public class CollectTabletStats {
 
   }
 
+  @SuppressFBWarnings(value = "DM_GC", justification = "gc is okay for test")
   private static void runTest(String desc, List<Test> tests, int numThreads,
       ExecutorService threadPool) throws Exception {
 

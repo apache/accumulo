@@ -32,6 +32,8 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class AccumuloClassLoader {
 
   public static final String GENERAL_CLASSPATHS = "general.classpaths";
@@ -116,6 +118,8 @@ public class AccumuloClassLoader {
   /**
    * Populate the list of URLs with the items in the classpath string
    */
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "class path configuration is controlled by admin, not unchecked user input")
   private static void addUrl(String classpath, ArrayList<URL> urls) throws MalformedURLException {
     classpath = classpath.trim();
     if (classpath.length() == 0)

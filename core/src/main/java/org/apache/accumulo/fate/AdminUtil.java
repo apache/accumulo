@@ -37,6 +37,8 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A utility to administer FATE operations
  */
@@ -400,6 +402,9 @@ public class AdminUtil<T> {
     }
   }
 
+  @SuppressFBWarnings(value = "DM_EXIT",
+      justification = "TODO - should probably avoid System.exit here; "
+          + "this code is used by the fate admin shell command")
   public boolean checkGlobalLock(IZooReaderWriter zk, String path) {
     try {
       if (ZooLock.getLockData(zk.getZooKeeper(), path) != null) {

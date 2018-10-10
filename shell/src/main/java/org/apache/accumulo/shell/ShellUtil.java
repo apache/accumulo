@@ -34,6 +34,8 @@ import org.apache.hadoop.io.Text;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ShellUtil {
 
   /**
@@ -49,6 +51,8 @@ public class ShellUtil {
    * @throws FileNotFoundException
    *           if the given file doesn't exist
    */
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "app is run in same security context as user providing the filename")
   public static List<Text> scanFile(String filename, boolean decode) throws FileNotFoundException {
     String line;
     List<Text> result = new ArrayList<>();

@@ -70,8 +70,11 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class RFileTest {
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path is set by test, not user")
   private String createTmpTestFile() throws IOException {
     File dir = new File(System.getProperty("user.dir") + "/target/rfile-test");
     assertTrue(dir.mkdirs() || dir.isDirectory());

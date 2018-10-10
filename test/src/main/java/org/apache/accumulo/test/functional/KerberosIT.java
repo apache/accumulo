@@ -85,6 +85,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * MAC test which uses {@link MiniKdc} to simulate ta secure environment. Can be used as a sanity
  * check for Kerberos/SASL testing.
@@ -180,6 +182,7 @@ public class KerberosIT extends AccumuloITBase {
     });
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testNewUser() throws Exception {
     String newUser = testName.getMethodName();
@@ -233,6 +236,7 @@ public class KerberosIT extends AccumuloITBase {
     });
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testUserPrivilegesThroughGrant() throws Exception {
     String user1 = testName.getMethodName();
@@ -294,6 +298,7 @@ public class KerberosIT extends AccumuloITBase {
     });
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testUserPrivilegesForTable() throws Exception {
     String user1 = testName.getMethodName();
@@ -469,6 +474,7 @@ public class KerberosIT extends AccumuloITBase {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testGetDelegationTokenDenied() throws Exception {
     String newUser = testName.getMethodName();

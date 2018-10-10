@@ -44,6 +44,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Use the {@link RemoteShell} to control a standalone (possibly distributed) Accumulo instance
  */
@@ -65,6 +67,8 @@ public class StandaloneClusterControl implements ClusterControl {
 
   protected String accumuloServicePath, accumuloPath, accumuloUtilPath;
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input file name")
   public StandaloneClusterControl(String accumuloHome, String clientAccumuloConfDir,
       String serverAccumuloConfDir, String clientCmdPrefix, String serverCmdPrefix) {
     this.options = new RemoteShellOptions();
@@ -364,6 +368,8 @@ public class StandaloneClusterControl implements ClusterControl {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input file name")
   protected File getClientConfDir() {
     File confDir = new File(clientAccumuloConfDir);
     if (!confDir.exists() || !confDir.isDirectory()) {
@@ -373,6 +379,8 @@ public class StandaloneClusterControl implements ClusterControl {
     return confDir;
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input file name")
   protected File getServerConfDir() {
     File confDir = new File(serverAccumuloConfDir);
     if (!confDir.exists() || !confDir.isDirectory()) {

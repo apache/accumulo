@@ -31,6 +31,8 @@ import org.apache.hadoop.minikdc.MiniKdc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Creates a {@link MiniKdc} for tests to use to exercise secure Accumulo
  */
@@ -107,6 +109,8 @@ public class TestingKdc {
   /**
    * Starts the KDC and creates the principals and their keytabs
    */
+  @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "SWL_SLEEP_WITH_LOCK_HELD"},
+      justification = "path provided by test; sleep is okay for a brief pause")
   public synchronized void start() throws Exception {
     checkArgument(!started, "KDC was already started");
     kdc.start();

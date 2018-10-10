@@ -40,6 +40,8 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class VerifyIngest {
 
   private static final Logger log = LoggerFactory.getLogger(VerifyIngest.class);
@@ -77,6 +79,8 @@ public class VerifyIngest {
     }
   }
 
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "predictable random is okay for testing")
   public static void verifyIngest(AccumuloClient accumuloClient, Opts opts, ScannerOpts scanOpts)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     byte[][] bytevals = TestIngest.generateValues(opts.dataSize);

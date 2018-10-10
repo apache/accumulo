@@ -63,6 +63,8 @@ import org.apache.zookeeper.KeeperException;
 
 import com.google.common.collect.Iterators;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class FunctionalTestUtils {
 
   public static int countRFiles(AccumuloClient c, String tableName) throws Exception {
@@ -164,6 +166,7 @@ public class FunctionalTestUtils {
     return result.toString();
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static String readAll(MiniAccumuloClusterImpl c, Class<?> klass, Process p)
       throws Exception {
     for (LogWriter writer : c.getLogWriters())

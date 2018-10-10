@@ -32,6 +32,8 @@ import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A base class that can be used to create Samplers based on hashing. This class offers consistent
  * options for configuring the hash function. The subclass decides which parts of the key to hash.
@@ -68,7 +70,8 @@ public abstract class AbstractHashSampler implements Sampler {
   /**
    * Subclasses with options should override this method and call {@code super.init(config)}.
    */
-
+  @SuppressFBWarnings(value = "UNSAFE_HASH_EQUALS",
+      justification = "these hashes don't protect any secrets, just used for binning")
   @Override
   public void init(SamplerConfiguration config) {
     String hasherOpt = config.getOptions().get("hasher");

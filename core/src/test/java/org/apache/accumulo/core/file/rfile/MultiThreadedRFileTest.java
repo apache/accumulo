@@ -65,6 +65,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class MultiThreadedRFileTest {
 
   private static final Logger LOG = Logger.getLogger(MultiThreadedRFileTest.class);
@@ -210,6 +212,8 @@ public class MultiThreadedRFileTest {
 
   public AccumuloConfiguration conf = null;
 
+  @SuppressFBWarnings(value = "INFORMATION_EXPOSURE_THROUGH_AN_ERROR_MESSAGE",
+      justification = "information put into error message is safe and used for testing")
   @Test
   public void testMultipleReaders() throws IOException {
     final List<Throwable> threadExceptions = Collections

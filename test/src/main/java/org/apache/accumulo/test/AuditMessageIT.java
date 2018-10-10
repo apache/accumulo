@@ -57,6 +57,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Tests that Accumulo is outputting audit messages as expected. Since this is using
  * MiniAccumuloCluster, it could take a while if we test everything in isolation. We test blocks of
@@ -282,6 +284,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
         findAuditMessage(auditMessages, "action: dropUser; targetUser: " + AUDIT_USER_2));
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
   @Test
   public void testImportExportOperationsAudits()
       throws AccumuloSecurityException, AccumuloException, TableExistsException,

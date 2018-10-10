@@ -113,6 +113,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jline.console.ConsoleReader;
 
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
@@ -351,6 +352,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     return 60;
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void exporttableImporttable() throws Exception {
     final String table = name.getMethodName(), table2 = table + "2";
@@ -445,6 +447,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void execfile() throws Exception {
     // execfile
@@ -1378,6 +1381,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("history", true, "history", true);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void importDirectory() throws Exception {
     final String table = name.getMethodName();
@@ -1616,6 +1620,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("deletetable -f " + table, true);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testPertableClasspath() throws Exception {
     final String table = name.getMethodName();
@@ -2738,6 +2743,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     return splits;
   }
 
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "predictable random is okay for testing")
   private Collection<Text> generateBinarySplits(final int numItems, final int len) {
     Set<Text> splits = new HashSet<>();
     Random rand = new Random();

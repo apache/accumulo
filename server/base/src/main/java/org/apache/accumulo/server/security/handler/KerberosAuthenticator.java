@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
@@ -39,7 +40,6 @@ import org.apache.accumulo.server.rpc.UGIAssumingProcessor;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.accumulo.server.security.UserImpersonation;
 import org.apache.accumulo.server.security.UserImpersonation.UsersWithHosts;
-import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +63,7 @@ public class KerberosAuthenticator implements Authenticator {
   @Override
   public void initialize(ServerContext context, boolean initialize) {
     this.context = context;
-    zooCache = new ZooCache(context);
+    zooCache = new ZooCache(context.getZooReaderWriter(), null);
     impersonation = new UserImpersonation(context.getConfiguration());
     zkAuthenticator.initialize(context, initialize);
     zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";

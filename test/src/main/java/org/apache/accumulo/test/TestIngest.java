@@ -57,6 +57,8 @@ import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class TestIngest {
   public static final Authorizations AUTHS = new Authorizations("L1", "L2", "G1", "GROUP2");
 
@@ -206,6 +208,8 @@ public class TestIngest {
     }
   }
 
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "predictable random is okay for testing")
   public static void ingest(AccumuloClient accumuloClient, FileSystem fs, Opts opts,
       BatchWriterOpts bwOpts) throws IOException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException, MutationsRejectedException, TableExistsException {

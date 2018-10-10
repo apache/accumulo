@@ -41,6 +41,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class TestUpgradePathForWALogs {
 
   private static final String WALOG_FROM_15 = "/walog-from-15.walog";
@@ -74,6 +76,7 @@ public class TestUpgradePathForWALogs {
     fs.create(SortedLogState.getFinishedMarkerPath(manyMapsPath)).close();
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test code")
   @Test
   public void testUpgradeOf15WALog() throws IOException {
     InputStream walogStream = null;
@@ -108,6 +111,7 @@ public class TestUpgradePathForWALogs {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test code")
   @Test
   public void testBasic16WALogRead() throws IOException {
     String walogToTest = WALOG_FROM_16;

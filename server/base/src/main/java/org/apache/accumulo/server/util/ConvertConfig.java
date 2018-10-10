@@ -33,6 +33,8 @@ import org.apache.hadoop.conf.Configuration;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @AutoService(KeywordExecutable.class)
 public class ConvertConfig implements KeywordExecutable {
 
@@ -70,6 +72,8 @@ public class ConvertConfig implements KeywordExecutable {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input")
   @Override
   public void execute(String[] args) throws Exception {
     Opts opts = new Opts();

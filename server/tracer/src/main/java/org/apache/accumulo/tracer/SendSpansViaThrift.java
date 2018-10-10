@@ -29,6 +29,8 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Send Span data to a destination using thrift.
  */
@@ -46,6 +48,8 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
     super(conf);
   }
 
+  @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET",
+      justification = "insecure, known risk; this is user-configurable to avoid insecure transfer")
   @Override
   protected Client createDestination(String destination) throws Exception {
     if (destination == null)

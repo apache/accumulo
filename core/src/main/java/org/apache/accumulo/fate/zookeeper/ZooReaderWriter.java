@@ -16,9 +16,13 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -34,6 +38,8 @@ import org.slf4j.LoggerFactory;
 
 public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   private static final Logger log = LoggerFactory.getLogger(ZooReaderWriter.class);
+  private static final String SCHEME = "digest";
+  private static final String USER = "accumulo";
 
   private static ZooReaderWriter instance = null;
   private final String scheme;
@@ -43,6 +49,16 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   @Override
   public ZooKeeper getZooKeeper() {
     return getSession(keepers, timeout, scheme, auth);
+  }
+
+  public ZooReaderWriter(AccumuloConfiguration conf) {
+    this(conf.get(Property.INSTANCE_ZK_HOST),
+        (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
+        conf.get(Property.INSTANCE_SECRET));
+  }
+
+  public ZooReaderWriter(String string, int timeInMillis, String secret) {
+    this(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(UTF_8));
   }
 
   public ZooReaderWriter(String string, int timeInMillis, String scheme, byte[] auth) {

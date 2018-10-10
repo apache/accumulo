@@ -32,6 +32,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ClientContextTest {
 
   private static boolean isCredentialProviderAvailable = false;
@@ -41,6 +43,8 @@ public class ClientContextTest {
   // 'general.rpc.timeout'=>'timeout'}
   private static File keystore;
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "provided keystoreUrl path isn't user provided")
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     try {

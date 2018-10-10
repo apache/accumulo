@@ -35,9 +35,9 @@ import java.util.List;
 import javax.crypto.KeyGenerator;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException.AuthFailedException;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;

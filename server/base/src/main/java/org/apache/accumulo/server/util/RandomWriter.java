@@ -21,11 +21,11 @@ import java.util.Iterator;
 import java.util.Random;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.server.cli.ClientOnDefaultTable;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,6 +94,7 @@ public class RandomWriter {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts(table_name);
+    opts.setPrincipal("root");
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(RandomWriter.class.getName(), args, bwOpts);
 

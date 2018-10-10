@@ -39,6 +39,8 @@ import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class MiniAccumuloClusterExistingZooKeepersTest {
   private static final File BASE_DIR = new File(System.getProperty("user.dir")
       + "/target/mini-tests/" + MiniAccumuloClusterExistingZooKeepersTest.class.getName());
@@ -53,6 +55,7 @@ public class MiniAccumuloClusterExistingZooKeepersTest {
   @Rule
   public TestName testName = new TestName();
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "intput determined by test")
   @Before
   public void setupTestCluster() throws Exception {
     assertTrue(BASE_DIR.mkdirs() || BASE_DIR.isDirectory());

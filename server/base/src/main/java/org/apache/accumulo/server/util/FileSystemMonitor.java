@@ -37,6 +37,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class FileSystemMonitor {
   private static final String PROC_MOUNTS = "/proc/mounts";
   private static final Logger log = LoggerFactory.getLogger(FileSystemMonitor.class);
@@ -68,6 +70,8 @@ public class FileSystemMonitor {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "procFile path not from user input")
   static List<Mount> parse(String procFile) throws IOException {
 
     FileReader fr = new FileReader(procFile);

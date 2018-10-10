@@ -29,8 +29,8 @@ import javax.xml.parsers.SAXParserFactory;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -39,6 +39,8 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.beust.jcommander.Parameter;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class RestoreZookeeper {
 
@@ -110,6 +112,8 @@ public class RestoreZookeeper {
     String file;
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input")
   public static void main(String[] args) throws Exception {
     Logger.getRootLogger().setLevel(Level.WARN);
     Opts opts = new Opts();

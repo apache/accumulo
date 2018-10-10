@@ -27,6 +27,7 @@ before_script:
   - unset _JAVA_OPTIONS
 env:
   - BUILD_ARGS="clean verify javadoc:jar -DskipITs"  # main build of unit tests and javadoc
+  - BUILD_ARGS="clean verify -DskipQA -Dspotbugs.skip=false -Psec-bugs"  # check for spotbugs+security
   - BUILD_ARGS="clean compile -Dhadoop.version=3.0.3 -Dzookeeper.version=3.4.12"  # quick compile to verify older API
 script:
   - mvn $BUILD_ARGS

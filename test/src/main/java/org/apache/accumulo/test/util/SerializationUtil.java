@@ -33,6 +33,8 @@ import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Partially based from {@link org.apache.commons.lang3.SerializationUtils}.
  *
@@ -208,6 +210,7 @@ public class SerializationUtil {
    * @throws IllegalArgumentException
    *           if {@code inputStream} is {@code null}
    */
+  @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION", justification = "okay for test")
   public static Object deserialize(InputStream inputStream) {
     Objects.requireNonNull(inputStream);
     ObjectInputStream in = null;

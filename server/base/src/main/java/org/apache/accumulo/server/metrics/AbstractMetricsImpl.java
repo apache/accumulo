@@ -36,6 +36,8 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.commons.lang.time.DateUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public abstract class AbstractMetricsImpl implements Metrics {
 
   public static class Metric {
@@ -164,6 +166,7 @@ public abstract class AbstractMetricsImpl implements Metrics {
     return registry.get(name).getMax();
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by admin")
   private void setupLogging() throws IOException {
     if (null == config.getMetricsConfiguration())
       return;
@@ -185,6 +188,7 @@ public abstract class AbstractMetricsImpl implements Metrics {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by admin")
   private void startNewLog() throws IOException {
     if (null != logWriter) {
       logWriter.flush();

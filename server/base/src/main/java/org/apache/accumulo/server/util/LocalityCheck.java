@@ -31,7 +31,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -41,7 +41,7 @@ import org.apache.hadoop.fs.Path;
 public class LocalityCheck {
 
   public int run(String[] args) throws Exception {
-    ClientOpts opts = new ClientOpts();
+    ServerUtilOpts opts = new ServerUtilOpts();
     opts.parseArgs(LocalityCheck.class.getName(), args);
 
     VolumeManager fs = opts.getServerContext().getVolumeManager();

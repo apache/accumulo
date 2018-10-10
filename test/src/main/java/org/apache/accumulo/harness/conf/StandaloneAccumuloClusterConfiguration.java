@@ -38,6 +38,8 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Extract connection information to a standalone Accumulo instance from Java properties
  */
@@ -93,6 +95,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
   private List<ClusterUser> clusterUsers;
   private File clientPropsFile;
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public StandaloneAccumuloClusterConfiguration(File clientPropsFile) {
     ClusterType type = getClusterType();
     if (ClusterType.STANDALONE != type) {
@@ -155,6 +158,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
     return password;
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public File getAdminKeytab() {
     String keytabPath = conf.get(ACCUMULO_STANDALONE_ADMIN_KEYTAB_KEY);
     if (keytabPath == null || keytabPath.isEmpty()) {

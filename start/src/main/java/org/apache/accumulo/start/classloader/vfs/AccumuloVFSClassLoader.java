@@ -45,6 +45,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class builds a hierarchy of Classloaders in the form of:
  *
@@ -289,6 +291,8 @@ public class AccumuloVFSClassLoader {
     return vfs;
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "tmpdir is controlled by admin, not unchecked user input")
   private static File computeTopCacheDir() {
     String cacheDirPath = AccumuloClassLoader.getAccumuloProperty(VFS_CACHE_DIR,
         System.getProperty("java.io.tmpdir"));

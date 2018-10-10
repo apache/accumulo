@@ -40,6 +40,8 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ImportTable extends MasterRepo {
   private static final Logger log = LoggerFactory.getLogger(ImportTable.class);
 
@@ -81,6 +83,8 @@ public class ImportTable extends MasterRepo {
     }
   }
 
+  @SuppressFBWarnings(value = "OS_OPEN_STREAM",
+      justification = "closing intermediate readers would close the ZipInputStream")
   public void checkVersions(Master env) throws AcceptableThriftTableOperationException {
     Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
     Integer exportVersion = null;

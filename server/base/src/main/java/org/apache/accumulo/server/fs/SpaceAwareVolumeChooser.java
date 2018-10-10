@@ -51,7 +51,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
 
   // Default time to wait in ms. Defaults to 5 min
   private long defaultComputationCacheDuration = 300000;
-  LoadingCache<List<String>,WeightedRandomCollection> choiceCache = null;
+  private LoadingCache<List<String>,WeightedRandomCollection> choiceCache = null;
 
   private static final Logger log = LoggerFactory.getLogger(SpaceAwareVolumeChooser.class);
 
@@ -83,8 +83,9 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
       choiceCache = CacheBuilder.newBuilder()
           .expireAfterWrite(computationCacheDuration, TimeUnit.MILLISECONDS)
           .build(new CacheLoader<List<String>,WeightedRandomCollection>() {
+            @Override
             public WeightedRandomCollection load(List<String> key) {
-              return new WeightedRandomCollection(key, env);
+              return new WeightedRandomCollection(key, env, random);
             }
           });
     }
@@ -92,13 +93,14 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
     return choiceCache;
   }
 
-  public class WeightedRandomCollection {
-    private final NavigableMap<Double,String> map = new TreeMap<Double,String>();
+  private static class WeightedRandomCollection {
+    private final NavigableMap<Double,String> map = new TreeMap<>();
     private final Random random;
     private double total = 0;
 
-    public WeightedRandomCollection(List<String> options, VolumeChooserEnvironment env) {
-      this.random = new Random();
+    public WeightedRandomCollection(List<String> options, VolumeChooserEnvironment env,
+        Random random) {
+      this.random = random;
 
       if (options.size() < 1) {
         throw new IllegalStateException("Options was empty! No valid volumes to choose from.");

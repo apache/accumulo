@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.iterators;
+package org.apache.accumulo.core.trace;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
+import java.util.Collections;
 
-/**
- * This class remains here for backwards compatibility.
- *
- * @deprecated since 1.4, replaced by
- *             {@link org.apache.accumulo.core.iterators.user.VersioningIterator}
- */
-@Deprecated
-public class VersioningIterator extends org.apache.accumulo.core.iterators.user.VersioningIterator {
-  public VersioningIterator() {}
+import org.apache.htrace.HTraceConfiguration;
+import org.apache.htrace.impl.CountSampler;
+import org.apache.htrace.impl.ProbabilitySampler;
 
-  public VersioningIterator(SortedKeyValueIterator<Key,Value> iterator, int maxVersions) {
-    super();
-    this.setSource(iterator);
-    this.maxVersions = maxVersions;
+public class TraceSamplers {
+
+  public static CountSampler countSampler(long frequency) {
+    return new CountSampler(HTraceConfiguration.fromMap(Collections
+        .singletonMap(CountSampler.SAMPLER_FREQUENCY_CONF_KEY, Long.toString(frequency))));
   }
+
+  public static ProbabilitySampler probabilitySampler(double fraction) {
+    return new ProbabilitySampler(HTraceConfiguration.fromMap(Collections
+        .singletonMap(ProbabilitySampler.SAMPLER_FRACTION_CONF_KEY, Double.toString(fraction))));
+  }
+
 }

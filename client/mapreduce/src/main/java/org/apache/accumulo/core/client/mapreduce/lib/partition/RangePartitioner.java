@@ -38,6 +38,8 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Partitioner;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Hadoop partitioner that uses ranges, and optionally sub-bins based on hashing.
  */
@@ -81,6 +83,8 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
 
   private Text cutPointArray[] = null;
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "path provided by distributed cache framework, not user input")
   private synchronized Text[] getCutPoints() throws IOException {
     if (cutPointArray == null) {
       String cutFileName = conf.get(CUTFILE_KEY);

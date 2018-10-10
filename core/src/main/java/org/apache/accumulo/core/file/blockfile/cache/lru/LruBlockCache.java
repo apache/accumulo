@@ -36,6 +36,8 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A block cache implementation that is memory-aware using {@link HeapSize}, memory-bound using an
  * LRU eviction algorithm, and concurrent: backed by a {@link ConcurrentHashMap} and with a
@@ -124,6 +126,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    * @param conf
    *          block cache configuration
    */
+  @SuppressFBWarnings(value = "SC_START_IN_CTOR",
+      justification = "bad practice to start threads in constructor; probably needs rewrite")
   public LruBlockCache(final LruBlockCacheConfiguration conf) {
     super();
     this.conf = conf;
@@ -521,6 +525,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
       return running;
     }
 
+    @SuppressFBWarnings(value = "UW_UNCOND_WAIT", justification = "eviction is resumed by caller")
     @Override
     public void run() {
       while (true) {
@@ -537,6 +542,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
       }
     }
 
+    @SuppressFBWarnings(value = "NN_NAKED_NOTIFY", justification = "eviction is resumed by caller")
     public void evict() {
       synchronized (this) {
         this.notify();

@@ -26,8 +26,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -23,9 +23,9 @@ import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 /**
  * Allocates unique names for an accumulo instance. The names are unique for the lifetime of the

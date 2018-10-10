@@ -63,6 +63,8 @@ import org.apache.hadoop.util.bloom.Key;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Implements a <i>Bloom filter</i>, as defined by Bloom in 1970.
  * <p>
@@ -209,6 +211,9 @@ public class BloomFilter extends Filter {
     out.write(boas.toByteArray());
   }
 
+  @SuppressFBWarnings(value = {"OS_OPEN_STREAM", "OBJECT_DESERIALIZATION"},
+      justification = "Caller is responsible for closing input stream supplied as a parameter; "
+          + "BitSet deserialization is unsafe, but can't update it until RFile version change")
   @Override
   public void readFields(final DataInput in) throws IOException {
 

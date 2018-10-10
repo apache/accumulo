@@ -92,6 +92,8 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * ResourceManager is responsible for managing the resources of all tablets within a tablet server.
  */
@@ -309,6 +311,8 @@ public class TabletServerResourceManager {
     return builder.build();
   }
 
+  @SuppressFBWarnings(value = "DM_GC",
+      justification = "GC is run to get a good estimate of memory availability")
   public TabletServerResourceManager(TabletServer tserver, VolumeManager fs,
       ServerContext context) {
     this.tserver = tserver;

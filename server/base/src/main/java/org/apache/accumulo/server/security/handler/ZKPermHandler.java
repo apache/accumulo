@@ -37,11 +37,11 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.zookeeper.ZooCache;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.slf4j.Logger;
@@ -68,7 +68,7 @@ public class ZKPermHandler implements PermissionHandler {
 
   @Override
   public void initialize(ServerContext context, boolean initialize) {
-    zooCache = new ZooCache(context);
+    zooCache = new ZooCache(context.getZooReaderWriter(), null);
     zoo = context.getZooReaderWriter();
     String instanceId = context.getInstanceID();
     ZKUserPath = ZKSecurityTool.getInstancePath(instanceId) + "/users";

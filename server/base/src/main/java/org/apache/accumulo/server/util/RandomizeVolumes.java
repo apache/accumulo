@@ -40,7 +40,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ClientOnRequiredTable;
+import org.apache.accumulo.server.cli.ServerUtilOnRequiredTable;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
@@ -51,7 +51,7 @@ public class RandomizeVolumes {
   private static final Logger log = LoggerFactory.getLogger(RandomizeVolumes.class);
 
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException {
-    ClientOnRequiredTable opts = new ClientOnRequiredTable();
+    ServerUtilOnRequiredTable opts = new ServerUtilOnRequiredTable();
     opts.parseArgs(RandomizeVolumes.class.getName(), args);
     ServerContext context = opts.getServerContext();
     AccumuloClient c;

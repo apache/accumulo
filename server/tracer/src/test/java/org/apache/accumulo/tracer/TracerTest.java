@@ -52,6 +52,8 @@ import org.apache.thrift.transport.TTransport;
 import org.junit.Before;
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class TracerTest {
   static class SpanStruct {
     public SpanStruct(long traceId, long spanId, long parentId, long start, long stop,
@@ -159,6 +161,8 @@ public class TracerTest {
     }
   }
 
+  @SuppressFBWarnings(value = {"UNENCRYPTED_SOCKET", "UNENCRYPTED_SERVER_SOCKET"},
+      justification = "insecure, known risk, test socket")
   @Test
   public void testThrift() throws Exception {
     TestReceiver tracer = new TestReceiver();

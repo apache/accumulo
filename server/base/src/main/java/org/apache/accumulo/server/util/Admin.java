@@ -55,7 +55,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
@@ -68,11 +68,13 @@ import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.Lists;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @AutoService(KeywordExecutable.class)
 public class Admin implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Admin.class);
 
-  static class AdminOpts extends ClientOpts {
+  static class AdminOpts extends ServerUtilOpts {
     @Parameter(names = {"-f", "--force"},
         description = "force the given server to stop by removing its lock")
     boolean force = false;
@@ -164,6 +166,7 @@ public class Admin implements KeywordExecutable {
     return "Executes administrative commands";
   }
 
+  @SuppressFBWarnings(value = "DM_EXIT", justification = "System.exit okay for CLI tool")
   @Override
   public void execute(final String[] args) {
     boolean everything;
@@ -434,6 +437,8 @@ public class Admin implements KeywordExecutable {
   private Map<String,String> siteConfig, systemConfig;
   private List<String> localUsers;
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input")
   public void printConfig(ClientContext context, DumpConfigCommand opts) throws Exception {
 
     File outputDirectory = null;
@@ -510,6 +515,8 @@ public class Admin implements KeywordExecutable {
     return defaultValue;
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input")
   private void printNameSpaceConfiguration(AccumuloClient accumuloClient, String namespace,
       File outputDirectory)
       throws IOException, AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
@@ -533,6 +540,8 @@ public class Admin implements KeywordExecutable {
     nsWriter.close();
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input")
   private static void printUserConfiguration(AccumuloClient accumuloClient, String user,
       File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
     File userScript = new File(outputDirectory, user + USER_FILE_SUFFIX);
@@ -588,6 +597,8 @@ public class Admin implements KeywordExecutable {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input")
   private void printTableConfiguration(AccumuloClient accumuloClient, String tableName,
       File outputDirectory)
       throws AccumuloException, TableNotFoundException, IOException, AccumuloSecurityException {

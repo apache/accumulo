@@ -31,9 +31,9 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -111,10 +111,12 @@ public class ServerInfo implements ClientInfo {
     return zooKeeperRoot;
   }
 
+  @Override
   public String getZooKeepers() {
     return zooKeepers;
   }
 
+  @Override
   public int getZooKeepersSessionTimeOut() {
     return zooKeepersSessionTimeOut;
   }
@@ -146,6 +148,7 @@ public class ServerInfo implements ClientInfo {
     return properties;
   }
 
+  @Override
   public String getInstanceName() {
     return instanceName;
   }

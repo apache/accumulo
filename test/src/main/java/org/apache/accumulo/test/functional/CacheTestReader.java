@@ -31,7 +31,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CacheTestReader {
+
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static void main(String[] args) throws Exception {
     String rootDir = args[0];
     String reportDir = args[1];
