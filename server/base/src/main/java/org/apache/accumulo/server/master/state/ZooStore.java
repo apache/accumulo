@@ -22,10 +22,10 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +39,7 @@ public class ZooStore implements DistributedStore {
 
   public ZooStore(ServerContext context) throws IOException {
     this.context = context;
-    cache = new ZooCache(context);
+    cache = new ZooCache(context.getZooReaderWriter(), null);
     String zkRoot = context.getZooKeeperRoot();
     if (zkRoot.endsWith("/"))
       zkRoot = zkRoot.substring(0, zkRoot.length() - 1);

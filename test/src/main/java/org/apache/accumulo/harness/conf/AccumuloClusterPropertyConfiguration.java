@@ -31,6 +31,8 @@ import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Base class for extracting configuration values from Java Properties
  */
@@ -46,6 +48,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
   public static final String ACCUMULO_CLUSTER_CLIENT_CONF_KEY = "accumulo.it.cluster.clientconf";
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static AccumuloClusterPropertyConfiguration get() {
     Properties systemProperties = System.getProperties();
 
@@ -126,6 +129,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public Map<String,String> getConfiguration(ClusterType type) {
     requireNonNull(type);
 

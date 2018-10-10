@@ -30,6 +30,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CertUtilsTest {
   private static final String KEYSTORE_TYPE = "JKS";
   private static final String PASSWORD = "CertUtilsTestPassword";
@@ -44,6 +46,7 @@ public class CertUtilsTest {
     return new CertUtils(KEYSTORE_TYPE, RDN_STRING, "RSA", 2048, "sha1WithRSAEncryption");
   }
 
+  @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "test password is okay")
   @Test
   public void createSelfSigned() throws Exception {
     CertUtils certUtils = getUtils();
@@ -82,6 +85,7 @@ public class CertUtilsTest {
     cert.verify(cert.getPublicKey()); // throws exception if it can't be verified
   }
 
+  @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "test password is okay")
   @Test
   public void createSigned() throws Exception {
     CertUtils certUtils = getUtils();
@@ -151,6 +155,7 @@ public class CertUtilsTest {
     signedCert.verify(rootCert.getPublicKey()); // throws exception if it can't be verified
   }
 
+  @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "test password is okay")
   @Test
   public void signingChain() throws Exception {
     // no reason the keypair we generate for the tservers need to be able to sign anything,

@@ -26,6 +26,8 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Property-based configuration of options to control how SSH is performed.
  *
@@ -51,6 +53,8 @@ public class RemoteShellOptions {
 
   protected Properties properties = new Properties();
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input file name")
   public RemoteShellOptions() {
     properties = new Properties();
     Properties systemProperties = System.getProperties();

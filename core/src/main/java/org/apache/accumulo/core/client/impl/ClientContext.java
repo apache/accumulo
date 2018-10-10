@@ -40,9 +40,9 @@ import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

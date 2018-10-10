@@ -33,6 +33,8 @@ import org.apache.commons.vfs2.provider.VfsComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class UniqueFileReplicator implements VfsComponent, FileReplicator {
 
   private static final char[] TMP_RESERVED_CHARS = {'?', '/', '\\', ' ', '&', '"', '\'', '*', '#',
@@ -49,6 +51,8 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
       log.warn("Unexpected error creating directory {}", tempDir);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "input files are specified by admin, not unchecked user input")
   @Override
   public File replicateFile(FileObject srcFile, FileSelector selector) throws FileSystemException {
     String baseName = srcFile.getName().getBaseName();

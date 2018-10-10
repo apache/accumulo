@@ -45,6 +45,8 @@ import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 //TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
 //TODO document zookeeper layout - ACCUMULO-1298
@@ -75,6 +77,9 @@ public class ZooStore<T> implements TStore<T> {
     }
   }
 
+  @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION",
+      justification = "unsafe to store arbitrary serialized objects like this, but needed for now"
+          + " for backwards compatibility")
   private Object deserialize(byte ser[]) {
     try {
       ByteArrayInputStream bais = new ByteArrayInputStream(ser);

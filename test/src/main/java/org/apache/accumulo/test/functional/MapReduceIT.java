@@ -43,6 +43,8 @@ import org.apache.accumulo.test.mapreduce.RowHash;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class MapReduceIT extends ConfigurableMacBase {
 
   @Override
@@ -65,6 +67,7 @@ public class MapReduceIT extends ConfigurableMacBase {
     runTest(getClient(), getCluster());
   }
 
+  @SuppressFBWarnings(value = "WEAK_MESSAGE_DIGEST_MD5", justification = "md5 is okay for testing")
   static void runTest(AccumuloClient c, MiniAccumuloClusterImpl cluster) throws AccumuloException,
       AccumuloSecurityException, TableExistsException, TableNotFoundException,
       MutationsRejectedException, IOException, InterruptedException, NoSuchAlgorithmException {

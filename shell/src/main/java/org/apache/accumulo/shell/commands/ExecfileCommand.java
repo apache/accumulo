@@ -27,6 +27,8 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ExecfileCommand extends Command {
   private Option verboseOption;
 
@@ -35,6 +37,8 @@ public class ExecfileCommand extends Command {
     return "specifies a file containing accumulo commands to execute";
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "app is run in same security context as user providing the filename")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {

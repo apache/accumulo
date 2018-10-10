@@ -38,7 +38,7 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +87,7 @@ public class QueryMetadataTable {
     }
   }
 
-  static class Opts extends ClientOpts {
+  static class Opts extends ServerUtilOpts {
     @Parameter(names = "--numQueries", description = "number of queries to run")
     int numQueries = 1;
     @Parameter(names = "--numThreads", description = "number of threads used to run the queries")

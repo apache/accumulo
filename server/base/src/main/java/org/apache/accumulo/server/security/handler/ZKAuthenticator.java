@@ -30,10 +30,10 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +56,7 @@ public final class ZKAuthenticator implements Authenticator {
   @Override
   public void initialize(ServerContext context, boolean initialize) {
     this.context = context;
-    zooCache = new ZooCache(context);
+    zooCache = new ZooCache(context.getZooReaderWriter(), null);
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
   }
 

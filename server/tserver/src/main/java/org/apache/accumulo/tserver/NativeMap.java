@@ -52,6 +52,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class stores data in a C++ map. Doing this allows us to store more in memory and avoid
  * pauses caused by Java GC.
@@ -116,6 +118,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
    * @param searchPath
    *          a list of files and directories to search
    */
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "search paths provided by admin")
   public static void loadNativeLib(List<File> searchPath) {
     if (!isLoaded()) {
       List<String> names = getValidLibraryNames();

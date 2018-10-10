@@ -55,6 +55,8 @@ import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @AutoService(KeywordExecutable.class)
 public class Proxy implements KeywordExecutable {
 
@@ -77,6 +79,9 @@ public class Proxy implements KeywordExecutable {
   public static final String THRIFT_SERVER_HOSTNAME_DEFAULT = "0.0.0.0";
 
   public static class PropertiesConverter implements IStringConverter<Properties> {
+
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+        justification = "app is run in same security context as user providing the filename")
     @Override
     public Properties convert(String fileName) {
       Properties prop = new Properties();
@@ -119,6 +124,7 @@ public class Proxy implements KeywordExecutable {
     return "Starts Accumulo proxy";
   }
 
+  @SuppressFBWarnings(value = "DM_EXIT", justification = "System.exit() from a main class is okay")
   @Override
   public void execute(final String[] args) throws Exception {
     Opts opts = new Opts();

@@ -46,6 +46,8 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * AccumuloCluster implementation to connect to an existing deployment of Accumulo
  */
@@ -66,6 +68,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   private SiteConfiguration siteConfig;
   private ServerContext context;
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input file name")
   public StandaloneAccumuloCluster(ClientInfo info, Path tmp, List<ClusterUser> users,
       String serverAccumuloConfDir) {
     this.info = info;
@@ -217,6 +221,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     return new ConfigurationCopy(siteConfig);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input file name")
   @Override
   public String getAccumuloPropertiesPath() {
     return new File(serverAccumuloConfDir, "accumulo.properties").toString();

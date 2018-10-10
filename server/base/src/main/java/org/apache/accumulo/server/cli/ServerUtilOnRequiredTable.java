@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.server.cli;
 
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
 
-public class ClientOnDefaultTable extends org.apache.accumulo.core.cli.ClientOnDefaultTable {
+public class ServerUtilOnRequiredTable extends ClientOnRequiredTable {
   {
     setPrincipal("root");
   }
@@ -35,9 +36,5 @@ public class ClientOnDefaultTable extends org.apache.accumulo.core.cli.ClientOnD
       }
     }
     return context;
-  }
-
-  public ClientOnDefaultTable(String table) {
-    super(table);
   }
 }

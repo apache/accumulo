@@ -60,6 +60,8 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @Override
@@ -180,6 +182,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     assertEquals(2, FunctionalTestUtils.countRFiles(c, tableName));
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private static File installJar(File destDir, String jarFile) throws IOException {
     File destName = new File(destDir, new File(jarFile).getName());
     FileUtils.copyInputStreamToFile(ConfigurableCompactionIT.class.getResourceAsStream(jarFile),

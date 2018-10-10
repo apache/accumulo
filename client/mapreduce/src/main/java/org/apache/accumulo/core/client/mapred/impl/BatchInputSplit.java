@@ -23,10 +23,14 @@ import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.mapred.InputSplit;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * The Class BatchInputSplit. Encapsulates Accumulo ranges for use in Map Reduce jobs. Can contain
  * several Ranges per InputSplit.
  */
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
+    justification = "Intended to share code between mapred and mapreduce")
 public class BatchInputSplit extends org.apache.accumulo.core.client.mapreduce.impl.BatchInputSplit
     implements InputSplit {
 

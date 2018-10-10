@@ -46,6 +46,8 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ScriptCommand extends Command {
 
   // Command to allow user to run scripts, see JSR-223
@@ -54,6 +56,8 @@ public class ScriptCommand extends Command {
   protected Option list, engine, script, file, args, out, function, object;
   private static final String DEFAULT_ENGINE = "rhino";
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "app is run in same security context as user providing the filename")
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
 

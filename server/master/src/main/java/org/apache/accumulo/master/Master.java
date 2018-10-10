@@ -81,11 +81,13 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.master.metrics.MasterMetricsFactory;
@@ -144,8 +146,6 @@ import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -167,6 +167,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * The Master is responsible for assigning and balancing tablets to tablet servers.
@@ -320,6 +322,8 @@ public class Master
 
   private boolean haveUpgradedZooKeeper = false;
 
+  @SuppressFBWarnings(value = "DM_EXIT",
+      justification = "TODO probably not the best to call System.exit here")
   private void upgradeZookeeper() {
     // 1.5.1 and 1.6.0 both do some state checking after obtaining the zoolock for the
     // monitor and before starting up. It's not tied to the data version at all (and would
@@ -507,6 +511,8 @@ public class Master
         Runnable upgradeTask = new Runnable() {
           int version = accumuloPersistentVersion;
 
+          @SuppressFBWarnings(value = "DM_EXIT",
+              justification = "TODO probably not the best to call System.exit here")
           @Override
           public void run() {
             try {
@@ -1715,6 +1721,7 @@ public class Master
     }
   }
 
+  @SuppressFBWarnings(value = "UW_UNCOND_WAIT", justification = "TODO needs triage")
   public void waitForBalance(TInfo tinfo) {
     synchronized (balancedNotifier) {
       long eventCounter;

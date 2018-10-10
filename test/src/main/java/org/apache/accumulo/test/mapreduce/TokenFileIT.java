@@ -50,6 +50,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class TokenFileIT extends AccumuloClusterHarness {
   private static AssertionError e1 = null;
 
@@ -121,6 +123,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
       return job.isSuccessful() ? 0 : 1;
     }
 
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
     public static void main(String[] args) throws Exception {
       Configuration conf = CachedConfiguration.getInstance();
       conf.set("hadoop.tmp.dir", new File(args[0]).getParent());

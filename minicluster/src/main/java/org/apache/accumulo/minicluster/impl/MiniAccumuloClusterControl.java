@@ -45,6 +45,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class MiniAccumuloClusterControl implements ClusterControl {
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloClusterControl.class);
 
@@ -80,6 +82,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     return exitCode;
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input file name")
   @Override
   public Entry<Integer,String> execWithStdout(Class<?> clz, String[] args) throws IOException {
     Process p = cluster.exec(clz, args);

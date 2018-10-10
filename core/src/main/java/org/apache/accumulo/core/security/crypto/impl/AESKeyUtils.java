@@ -34,6 +34,8 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class AESKeyUtils {
 
   public static final String URI = "uri";
@@ -46,6 +48,8 @@ public class AESKeyUtils {
     return new SecretKeySpec(bytes, "AES");
   }
 
+  @SuppressFBWarnings(value = "CIPHER_INTEGRITY",
+      justification = "integrity not needed for key wrap")
   public static Key unwrapKey(byte[] fek, Key kek) {
     Key result = null;
     try {
@@ -59,6 +63,8 @@ public class AESKeyUtils {
     return result;
   }
 
+  @SuppressFBWarnings(value = "CIPHER_INTEGRITY",
+      justification = "integrity not needed for key wrap")
   public static byte[] wrapKey(Key fek, Key kek) {
     byte[] result = null;
     try {
@@ -73,6 +79,7 @@ public class AESKeyUtils {
     return result;
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "keyId specified by admin")
   public static SecretKeySpec loadKekFromUri(String keyId) {
     URI uri;
     SecretKeySpec key = null;

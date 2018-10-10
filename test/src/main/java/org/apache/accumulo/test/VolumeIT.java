@@ -61,8 +61,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.init.Initialize;
@@ -80,6 +80,8 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.junit.Test;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class VolumeIT extends ConfigurableMacBase {
 
@@ -518,6 +520,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
   private void testReplaceVolume(boolean cleanShutdown) throws Exception {
     String[] tableNames = getUniqueNames(3);
 

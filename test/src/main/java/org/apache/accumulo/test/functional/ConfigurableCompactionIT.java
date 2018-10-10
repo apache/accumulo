@@ -49,6 +49,8 @@ import org.junit.Test;
 
 import com.google.common.collect.Iterators;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   @Override
@@ -126,6 +128,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private static File installJar(File destDir, String jarFile) throws IOException {
     File destName = new File(destDir, new File(jarFile).getName());
     FileUtils.copyInputStreamToFile(ConfigurableCompactionIT.class.getResourceAsStream(jarFile),

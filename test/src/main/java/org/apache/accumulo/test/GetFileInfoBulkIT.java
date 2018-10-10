@@ -54,6 +54,8 @@ import org.junit.Test;
 
 import com.google.gson.Gson;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 // ACCUMULO-3949, ACCUMULO-3953
 public class GetFileInfoBulkIT extends ConfigurableMacBase {
 
@@ -63,17 +65,18 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
     cfg.useMiniDFS(true);
   }
 
-  @SuppressWarnings("unchecked")
-  long getOpts() throws Exception {
+  @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "URLCONNECTION_SSRF_FD"},
+      justification = "path provided by test; url provided by test")
+  private long getOpts() throws Exception {
     String uri = getCluster().getMiniDfs().getHttpUri(0);
     URL url = new URL(uri + "/jmx");
     log.debug("Fetching web page " + url);
     String jsonString = FunctionalTestUtils.readAll(url.openStream());
     Gson gson = new Gson();
-    Map<Object,Object> jsonObject = (Map<Object,Object>) gson.fromJson(jsonString, Object.class);
-    List<Object> beans = (List<Object>) jsonObject.get("beans");
+    Map<?,?> jsonObject = (Map<?,?>) gson.fromJson(jsonString, Object.class);
+    List<?> beans = (List<?>) jsonObject.get("beans");
     for (Object bean : beans) {
-      Map<Object,Object> map = (Map<Object,Object>) bean;
+      Map<?,?> map = (Map<?,?>) bean;
       if (map.get("name").toString().equals("Hadoop:service=NameNode,name=NameNodeActivity")) {
         return (long) Double.parseDouble(map.get("FileInfoOps").toString());
       }

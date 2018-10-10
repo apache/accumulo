@@ -19,6 +19,7 @@ package org.apache.accumulo.server.monitor;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -30,14 +31,16 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.net.SocketNode;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Hijack log4j and capture log events for display.
@@ -52,11 +55,15 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
   static class SocketServer implements Runnable {
     private ServerSocket server = null;
 
+    @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET",
+        justification = "not obvious what credentials could be used to set up this log receiver"
+            + " socket in order to encrypt it, in case of errors; should probably remove this "
+            + "socket appender in the future and force users to watch their system logs")
     public SocketServer(int port) {
       try {
         server = new ServerSocket(port);
       } catch (IOException io) {
-        throw new RuntimeException(io);
+        throw new UncheckedIOException(io);
       }
     }
 

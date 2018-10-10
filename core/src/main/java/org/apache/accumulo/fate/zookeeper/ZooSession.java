@@ -24,7 +24,7 @@ import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.fate.util.AddressUtil;
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;

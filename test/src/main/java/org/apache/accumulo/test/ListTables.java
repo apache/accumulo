@@ -20,14 +20,14 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 
 /**
  * This little program is used by the functional test to get a list of table ids.
  */
 public class ListTables {
   public static void main(String[] args) throws Exception {
-    ClientOpts opts = new ClientOpts();
+    ServerUtilOpts opts = new ServerUtilOpts();
     opts.parseArgs(ListTables.class.getName(), args);
     for (Entry<String,Table.ID> table : Tables.getNameToIdMap(opts.getClientContext()).entrySet())
       System.out.println(table.getKey() + " => " + table.getValue());

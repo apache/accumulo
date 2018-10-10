@@ -28,6 +28,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 // ACCUMULO-2757 - make sure we don't make too many more watchers
 public class WatchTheWatchCountIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(WatchTheWatchCountIT.class);
@@ -41,6 +43,8 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
     cfg.setNumTservers(3);
   }
 
+  @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET",
+      justification = "unencrypted socket is okay for testing")
   @Test
   public void test() throws Exception {
     AccumuloClient c = getClient();

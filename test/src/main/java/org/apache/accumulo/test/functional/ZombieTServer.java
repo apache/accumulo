@@ -36,19 +36,21 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
-import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Tablet server that creates a lock in zookeeper, responds to one status request, and then hangs on
@@ -118,6 +120,9 @@ public class ZombieTServer {
     ZooLock zlock = new ZooLock(zoo, zPath);
 
     LockWatcher lw = new LockWatcher() {
+
+      @SuppressFBWarnings(value = "DM_EXIT",
+          justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
       @Override
       public void lostLock(final LockLossReason reason) {
         try {
@@ -128,6 +133,8 @@ public class ZombieTServer {
         }
       }
 
+      @SuppressFBWarnings(value = "DM_EXIT",
+          justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
       @Override
       public void unableToMonitorLockNode(Throwable e) {
         try {

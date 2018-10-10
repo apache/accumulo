@@ -39,6 +39,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * An {@link AccumuloConfiguration} which first loads any properties set on the command-line (using
  * the -o option) and then from accumulo.properties. This implementation supports defaulting
@@ -79,6 +81,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
     this(accumuloPropsLocation, Collections.emptyMap());
   }
 
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
+      justification = "location of props is specified by an admin")
   public SiteConfiguration(URL accumuloPropsLocation, Map<String,String> overrides) {
     this.overrides = overrides;
 

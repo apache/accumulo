@@ -19,8 +19,12 @@ package org.apache.accumulo.server.util;
 import java.io.IOException;
 import java.net.ServerSocket;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class PortUtils {
 
+  @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET",
+      justification = "this just reserves a port and doesn't need to be encrypted")
   public static int getRandomFreePort() {
     int count = 0;
 

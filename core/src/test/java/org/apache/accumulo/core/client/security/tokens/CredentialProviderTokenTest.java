@@ -31,6 +31,8 @@ import org.apache.accumulo.core.conf.CredentialProviderFactoryShim;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CredentialProviderTokenTest {
 
   private static boolean isCredentialProviderAvailable = false;
@@ -38,6 +40,8 @@ public class CredentialProviderTokenTest {
   // Keystore contains: {'root.password':'password', 'bob.password':'bob'}
   private static String keystorePath;
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "keystoreUrl location isn't provided by user input")
   @BeforeClass
   public static void setup() {
     try {

@@ -49,6 +49,8 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @AutoService(KeywordExecutable.class)
 public class PrintInfo implements KeywordExecutable {
 
@@ -134,13 +136,15 @@ public class PrintInfo implements KeywordExecutable {
     return "Prints rfile info";
   }
 
+  @SuppressFBWarnings(value = "DM_EXIT",
+      justification = "System.exit is fine here because it's a utility class executed by a main()")
   @Override
   public void execute(final String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs("accumulo rfile-info", args);
     if (opts.files.isEmpty()) {
       System.err.println("No files were given");
-      System.exit(-1);
+      System.exit(1);
     }
     SiteConfiguration siteConfig = opts.getSiteConfiguration();
 

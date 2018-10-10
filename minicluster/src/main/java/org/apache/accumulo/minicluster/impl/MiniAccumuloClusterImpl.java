@@ -77,8 +77,8 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
@@ -111,6 +111,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class provides the backing implementation for {@link MiniAccumuloCluster}, and may contain
@@ -215,6 +217,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "mini runs in the same security context as user providing the url")
   private void append(StringBuilder classpathBuilder, URL url) throws URISyntaxException {
     File file = new File(url.toURI());
     // do not include dirs containing hadoop or accumulo config files
@@ -278,6 +282,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
   }
 
+  @SuppressFBWarnings(value = "COMMAND_INJECTION",
+      justification = "mini runs in the same security context as user providing the args")
   private Process _exec(Class<?> clazz, List<String> extraJvmOpts, String... args)
       throws IOException {
     String javaHome = System.getProperty("java.home");
@@ -515,6 +521,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   /**
    * Starts Accumulo and Zookeeper processes. Can only be called once.
    */
+  @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET",
+      justification = "insecure socket used for reservation")
   @Override
   public synchronized void start() throws IOException, InterruptedException {
     if (config.useMiniDFS() && miniDFS == null) {
@@ -601,7 +609,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
                     + config.getLogDir() + " for errors.  Last exception: " + e);
               }
               // Don't spin absurdly fast
-              Thread.sleep(250);
+              sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
             } finally {
               if (s != null)
                 s.close();

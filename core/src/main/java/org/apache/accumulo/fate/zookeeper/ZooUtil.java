@@ -19,16 +19,27 @@ package org.apache.accumulo.fate.zookeeper;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.math.BigInteger;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -560,6 +571,54 @@ public class ZooUtil {
       }
 
       retry.waitForNextAttempt();
+    }
+  }
+
+  public static String getRoot(final String instanceId) {
+    return Constants.ZROOT + "/" + instanceId;
+  }
+
+  /**
+   * Utility to support certain client side utilities to minimize command-line options.
+   */
+  public static String getInstanceIDFromHdfs(Path instanceDirectory, AccumuloConfiguration conf) {
+    return getInstanceIDFromHdfs(instanceDirectory, conf, CachedConfiguration.getInstance());
+  }
+
+  public static String getInstanceIDFromHdfs(Path instanceDirectory, AccumuloConfiguration conf,
+      Configuration hadoopConf) {
+    try {
+      FileSystem fs = VolumeConfiguration.getVolume(instanceDirectory.toString(), hadoopConf, conf)
+          .getFileSystem();
+      FileStatus[] files = null;
+      try {
+        files = fs.listStatus(instanceDirectory);
+      } catch (FileNotFoundException ex) {
+        // ignored
+      }
+      log.debug("Trying to read instance id from {}", instanceDirectory);
+      if (files == null || files.length == 0) {
+        log.error("unable obtain instance id at {}", instanceDirectory);
+        throw new RuntimeException(
+            "Accumulo not initialized, there is no instance id at " + instanceDirectory);
+      } else if (files.length != 1) {
+        log.error("multiple potential instances in {}", instanceDirectory);
+        throw new RuntimeException(
+            "Accumulo found multiple possible instance ids in " + instanceDirectory);
+      } else {
+        return files[0].getPath().getName();
+      }
+    } catch (IOException e) {
+      log.error("Problem reading instance id out of hdfs at " + instanceDirectory, e);
+      throw new RuntimeException(
+          "Can't tell if Accumulo is initialized; can't read instance id at " + instanceDirectory,
+          e);
+    } catch (IllegalArgumentException exception) {
+      /* HDFS throws this when there's a UnknownHostException due to DNS troubles. */
+      if (exception.getCause() instanceof UnknownHostException) {
+        log.error("Problem reading instance id out of hdfs at " + instanceDirectory, exception);
+      }
+      throw exception;
     }
   }
 

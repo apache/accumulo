@@ -31,6 +31,8 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.converters.IParameterSplitter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ConfigOpts extends Help {
 
   private static final Logger log = LoggerFactory.getLogger(ConfigOpts.class);
@@ -60,6 +62,8 @@ public class ConfigOpts extends Help {
 
   private SiteConfiguration siteConfig = null;
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "process runs in same security context as admin who provided path")
   public synchronized SiteConfiguration getSiteConfiguration() {
     if (siteConfig == null) {
       siteConfig = new SiteConfiguration(new File(getPropertiesPath()), getOverrides());

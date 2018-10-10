@@ -20,7 +20,7 @@ import java.security.SecureRandom;
 import java.util.Random;
 
 public class RandomVolumeChooser implements VolumeChooser {
-  private final Random random = new SecureRandom();
+  protected final Random random = new SecureRandom();
 
   @Override
   public String choose(VolumeChooserEnvironment env, String[] options)

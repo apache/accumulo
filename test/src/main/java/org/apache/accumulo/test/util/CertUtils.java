@@ -63,6 +63,8 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CertUtils {
   private static final Logger log = LoggerFactory.getLogger(CertUtils.class);
   static {
@@ -123,6 +125,7 @@ public class CertUtils {
     @Parameter(names = "--keysize", description = "Key size used by encryption algorithm")
     public int keysize = 2048;
 
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
     public SiteConfiguration getSiteConfiguration() {
       if (accumuloPropsFile == null) {
         return new SiteConfiguration();
@@ -132,6 +135,7 @@ public class CertUtils {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(CertUtils.class.getName(), args);
@@ -196,6 +200,7 @@ public class CertUtils {
         rootKeystorePassword, truststorePassword);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public void createPublicCert(File targetKeystoreFile, String keyName, String rootKeystorePath,
       String rootKeystorePassword, String truststorePassword)
       throws NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException,
@@ -215,6 +220,7 @@ public class CertUtils {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public void createSignedCert(File targetKeystoreFile, String keyName, String keystorePassword,
       String signerKeystorePath, String signerKeystorePassword) throws KeyStoreException,
       CertificateException, NoSuchAlgorithmException, IOException, OperatorCreationException,

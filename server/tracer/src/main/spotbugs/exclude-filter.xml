@@ -15,21 +15,12 @@
   limitations under the License.
 -->
 <FindBugsFilter>
-  <Match>
-    <!-- TODO open ticket to make this use thrift SSL -->
-    <Class name="org.apache.accumulo.tracer.SendSpansViaThrift" />
-    <Bug code="UNENCRYPTED" pattern="UNENCRYPTED_SOCKET" />
-  </Match>
+  <!--
+    DO NOT exclude anything other than generated files here. Other files
+    can be excluded inline by adding the @SuppressFBWarnings annotation.
+  -->
   <Match>
     <!-- ignore thrift-generated classes -->
     <Package name="org.apache.accumulo.tracer.thrift" />
-  </Match>
-  <Match>
-    <!-- Test doesn't need SSL -->
-    <Class name="org.apache.accumulo.tracer.TracerTest"/>
-    <Or>
-      <Bug code="UNENCRYPTED" pattern="UNENCRYPTED_SOCKET" />
-      <Bug code="UNENCRYPTED" pattern="UNENCRYPTED_SERVER_SOCKET" />
-    </Or>
   </Match>
 </FindBugsFilter>

@@ -52,6 +52,8 @@ import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.commons.io.IOUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Example implementation of AES encryption for Accumulo
  */
@@ -424,6 +426,7 @@ public class AESCryptoService implements CryptoService {
       return new AESCBCFileDecrypter(fek);
     }
 
+    @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is provided for WALs")
     public class AESCBCFileEncrypter implements FileEncrypter {
 
       private Key fek = AESKeyUtils.generateKey(sr, KEY_LENGTH_IN_BYTES);
@@ -458,6 +461,7 @@ public class AESCryptoService implements CryptoService {
       }
     }
 
+    @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is provided for WALs")
     public class AESCBCFileDecrypter implements FileDecrypter {
       private Key fek;
 

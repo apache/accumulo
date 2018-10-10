@@ -54,6 +54,8 @@ import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * General Integration-Test base class that provides access to a {@link MiniAccumuloCluster} for
  * testing. Tests using these typically do very disruptive things to the instance, and require
@@ -83,6 +85,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
   protected static void configureForSsl(MiniAccumuloConfigImpl cfg, File sslDir) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     if ("true".equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
@@ -148,6 +151,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
         lastException);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   private void createMiniAccumulo() throws Exception {
     // createTestDir will give us a empty directory, we don't need to clean it up ourselves
     File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName());

@@ -164,12 +164,15 @@ import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory;
 import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory.RateProvider;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
@@ -216,9 +219,6 @@ import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
-import org.apache.accumulo.server.zookeeper.ZooCache;
-import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
@@ -356,7 +356,7 @@ public class TabletServer implements Runnable {
 
   public TabletServer(ServerContext context) {
     this.context = context;
-    this.masterLockCache = new ZooCache(context);
+    this.masterLockCache = new ZooCache(context.getZooReaderWriter(), null);
     this.watcher = new TransactionWatcher(context);
     this.confFactory = context.getServerConfFactory();
     this.fs = context.getVolumeManager();

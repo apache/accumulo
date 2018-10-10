@@ -47,10 +47,10 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -68,7 +68,7 @@ public class ReplicationUtil {
   private final ReplicaSystemFactory factory;
 
   public ReplicationUtil(ServerContext context) {
-    this(context, new ZooCache(context), new ReplicaSystemFactory());
+    this(context, new ZooCache(context.getZooReaderWriter(), null), new ReplicaSystemFactory());
   }
 
   public ReplicationUtil(ServerContext context, ZooCache cache, ReplicaSystemFactory factory) {

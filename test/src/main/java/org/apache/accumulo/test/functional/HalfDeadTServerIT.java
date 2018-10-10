@@ -44,6 +44,8 @@ import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class HalfDeadTServerIT extends ConfigurableMacBase {
 
   @Override
@@ -112,6 +114,8 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
     return test(seconds, false);
   }
 
+  @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "COMMAND_INJECTION"},
+      justification = "path provided by test; command args provided by test")
   public String test(int seconds, boolean expectTserverDied) throws Exception {
     if (!makeDiskFailureLibrary())
       return null;

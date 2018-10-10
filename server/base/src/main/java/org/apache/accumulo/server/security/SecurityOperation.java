@@ -47,6 +47,7 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.handler.Authenticator;
 import org.apache.accumulo.server.security.handler.Authorizor;
@@ -55,7 +56,6 @@ import org.apache.accumulo.server.security.handler.PermissionHandler;
 import org.apache.accumulo.server.security.handler.ZKAuthenticator;
 import org.apache.accumulo.server.security.handler.ZKAuthorizor;
 import org.apache.accumulo.server.security.handler.ZKPermHandler;
-import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,7 +113,7 @@ public class SecurityOperation {
   protected SecurityOperation(ServerContext context) {
     this.context = context;
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
-    zooCache = new ZooCache(context);
+    zooCache = new ZooCache(context.getZooReaderWriter(), null);
   }
 
   public SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,

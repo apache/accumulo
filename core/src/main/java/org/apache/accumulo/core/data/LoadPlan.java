@@ -28,6 +28,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.UnsignedBytes;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Information about where to load files into an Accumulo table.
  *
@@ -49,6 +51,8 @@ public class LoadPlan {
     return data == null ? null : data.toString().getBytes(StandardCharsets.UTF_8);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "this code is validating the input")
   private static String checkFileName(String fileName) {
     Preconditions.checkArgument(Paths.get(fileName).getNameCount() == 1,
         "Expected only filename, but got %s", fileName);

@@ -58,9 +58,9 @@ import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.TraceSamplers;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -78,9 +78,12 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.htrace.impl.ProbabilitySampler;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class AccumuloReplicaSystem implements ReplicaSystem {
   private static final Logger log = LoggerFactory.getLogger(AccumuloReplicaSystem.class);
@@ -156,6 +159,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by admin")
   @Override
   public Status replicate(final Path p, final Status status, final ReplicationTarget target,
       final ReplicaSystemHelper helper) {
@@ -238,7 +242,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       final ClientContext peerContext, final UserGroupInformation accumuloUgi) {
     try {
       double tracePercent = localConf.getFraction(Property.REPLICATION_TRACE_PERCENT);
-      ProbabilitySampler sampler = new ProbabilitySampler(tracePercent);
+      ProbabilitySampler sampler = TraceSamplers.probabilitySampler(tracePercent);
       Trace.on("AccumuloReplicaSystem", sampler);
 
       // Remote identifier is an integer (table id) in this case.

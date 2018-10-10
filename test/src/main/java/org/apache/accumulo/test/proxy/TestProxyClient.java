@@ -47,6 +47,8 @@ import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class TestProxyClient {
 
   protected AccumuloProxy.Client proxy;
@@ -93,6 +95,7 @@ public class TestProxyClient {
     return proxy;
   }
 
+  @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "test password is okay")
   public static void main(String[] args) throws Exception {
 
     TestProxyClient tpc = new TestProxyClient("localhost", 42424);

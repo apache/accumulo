@@ -40,6 +40,8 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Contains a list of property keys recognized by the Accumulo client and convenience methods for
  * setting them.
@@ -215,6 +217,8 @@ public class ClientConfiguration {
     return new ClientConfiguration(Collections.singletonList(mapConf));
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "process runs in same security context as user who provided path")
   private static ClientConfiguration loadFromSearchPath(List<String> paths) {
     List<Configuration> configs = new LinkedList<>();
     for (String path : paths) {
@@ -259,6 +263,8 @@ public class ClientConfiguration {
    * @param clientConfPath
    *          The value of ACCUMULO_CLIENT_CONF_PATH.
    */
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "process runs in same security context as user who provided path")
   static String getClientConfPath(String clientConfPath) {
     if (null == clientConfPath) {
       return null;

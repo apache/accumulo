@@ -36,7 +36,7 @@ public class ZooQueueLock implements QueueLock {
   private String path;
   private boolean ephemeral;
 
-  protected ZooQueueLock(IZooReaderWriter zrw, String path, boolean ephemeral) {
+  public ZooQueueLock(IZooReaderWriter zrw, String path, boolean ephemeral) {
     this.zoo = zrw;
     this.path = path;
     this.ephemeral = ephemeral;

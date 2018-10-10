@@ -33,14 +33,18 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CacheTestWriter {
 
   static final int NUM_DATA = 3;
 
+  @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "OBJECT_DESERIALIZATION"},
+      justification = "path provided by test; object deserialization is okay for test")
   public static void main(String[] args) throws Exception {
     IZooReaderWriter zk = new ZooReaderWriter(new SiteConfiguration());
 

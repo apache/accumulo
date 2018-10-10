@@ -21,12 +21,15 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.io.FileUtils;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CacheTestClean {
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static void main(String[] args) throws Exception {
     String rootDir = args[0];
     File reportDir = new File(args[1]);

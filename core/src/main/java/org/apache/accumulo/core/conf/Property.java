@@ -46,6 +46,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public enum Property {
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
   // across all nodes in an instance)
@@ -957,6 +959,8 @@ public enum Property {
     return computedDefaultValue;
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who providing the file")
   private void precomputeDefaultValue() {
     String v;
     if (isInterpolated()) {

@@ -22,6 +22,8 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.io.InputStream;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class is like byte array input stream with two differences. It supports seeking and avoids
  * synchronization.
@@ -36,6 +38,8 @@ public class SeekableByteArrayInputStream extends InputStream {
   // however the expectation is that the byte array is static. In the case of it being static,
   // volatile ensures that
   // thread 2 sees all of thread 1 changes before setting the volatile.
+  @SuppressFBWarnings(value = "VO_VOLATILE_REFERENCE_TO_ARRAY",
+      justification = "see explanation above")
   private volatile byte buffer[];
   private int cur;
   private int max;

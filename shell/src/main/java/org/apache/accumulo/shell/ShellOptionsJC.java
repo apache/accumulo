@@ -38,6 +38,8 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.converters.FileConverter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ShellOptionsJC {
 
   @Parameter(names = {"-u", "--user"}, description = "username")
@@ -54,6 +56,8 @@ public class ShellOptionsJC {
         }
       },
       FILE("file:") {
+        @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+            justification = "app is run in same security context as user providing the filename")
         @Override
         String process(String value) {
           Scanner scanner = null;
@@ -274,6 +278,8 @@ public class ShellOptionsJC {
     return clientConfigFile;
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "app is run in same security context as user providing the filename")
   public Properties getClientProperties() {
     Properties props = new Properties();
     if (getClientConfigFile() != null) {

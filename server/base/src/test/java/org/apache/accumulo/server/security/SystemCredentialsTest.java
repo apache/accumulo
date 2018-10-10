@@ -33,6 +33,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class SystemCredentialsTest {
 
   @Rule
@@ -42,6 +44,7 @@ public class SystemCredentialsTest {
   private String instanceId = UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0})
       .toString();
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "input not from a user")
   @BeforeClass
   public static void setUp() throws IOException {
     File testInstanceId = new File(

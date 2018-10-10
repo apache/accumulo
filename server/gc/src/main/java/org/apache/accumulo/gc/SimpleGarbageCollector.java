@@ -66,9 +66,9 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.trace.ProbabilitySampler;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.TraceSamplers;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -76,6 +76,7 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
@@ -91,10 +92,10 @@ import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.util.Halt;
-import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.impl.ProbabilitySampler;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,6 +104,8 @@ import com.beust.jcommander.Parameter;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 // Could/Should implement HighlyAvaialbleService but the Thrift server is already started before
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
@@ -504,6 +507,7 @@ public class SimpleGarbageCollector implements Iface {
     }
   }
 
+  @SuppressFBWarnings(value = "DM_EXIT", justification = "main class can call System.exit")
   private void run() {
     long tStart, tStop;
 
@@ -527,8 +531,8 @@ public class SimpleGarbageCollector implements Iface {
       return;
     }
 
-    ProbabilitySampler sampler = new ProbabilitySampler(
-        getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
+    ProbabilitySampler sampler = TraceSamplers
+        .probabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
 
     while (true) {
       Trace.on("gc", sampler);

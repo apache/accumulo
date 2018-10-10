@@ -52,6 +52,8 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Tracer;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class AccumuloClientImpl extends Connector implements AccumuloClient {
   private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security."
       + "SystemCredentials$SystemToken";
@@ -391,6 +393,8 @@ public class AccumuloClientImpl extends Connector implements AccumuloClient {
       return this;
     }
 
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+        justification = "code runs in same security context as user who provided configFile")
     @Override
     public AccumuloClientFactory usingProperties(String configFile) {
       Properties properties = new Properties();

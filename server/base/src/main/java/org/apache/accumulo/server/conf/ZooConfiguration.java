@@ -27,8 +27,8 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

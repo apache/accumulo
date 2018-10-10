@@ -14,16 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.iterators;
+package org.apache.accumulo.server.cli;
 
-/**
- * This class remains here for backwards compatibility.
- *
- * @deprecated since 1.4, replaced by
- *             {@link org.apache.accumulo.core.iterators.user.RowDeletingIterator}
- */
-@Deprecated
-public class RowDeletingIterator
-    extends org.apache.accumulo.core.iterators.user.RowDeletingIterator {
+import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.server.ServerContext;
 
+public class ServerUtilOpts extends ClientOpts {
+  {
+    setPrincipal("root");
+  }
+
+  public ClientContext getClientContext() {
+    return new ClientContext(getClientInfo());
+  }
+
+  private ServerContext context;
+
+  public synchronized ServerContext getServerContext() {
+    if (context == null) {
+      if (instance == null) {
+        context = new ServerContext(new SiteConfiguration());
+      } else {
+        context = new ServerContext(new SiteConfiguration(), getClientInfo());
+      }
+    }
+    return context;
+  }
 }

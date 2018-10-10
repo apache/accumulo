@@ -175,6 +175,7 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 import com.google.auto.service.AutoService;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jline.console.ConsoleReader;
 import jline.console.UserInterruptException;
 import jline.console.history.FileHistory;
@@ -502,6 +503,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return "Runs Accumulo shell";
   }
 
+  @SuppressFBWarnings(value = "DM_EXIT", justification = "System.exit() from a main class is okay")
   @Override
   public void execute(final String[] args) throws IOException {
     try {
@@ -985,6 +987,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   public static class PrintFile implements PrintLine {
     PrintWriter writer;
 
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_OUT",
+        justification = "app is run in same security context as user providing the filename")
     public PrintFile(String filename) throws FileNotFoundException {
       writer = new PrintWriter(
           new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), UTF_8)));

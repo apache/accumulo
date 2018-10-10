@@ -77,7 +77,8 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.Accumulo;
@@ -99,7 +100,6 @@ import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.server.util.TablePropUtil;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -118,12 +118,14 @@ import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Joiner;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jline.console.ConsoleReader;
 
 /**
  * This class is used to setup the directory structure and the root tablet to get an instance
  * started
  */
+@SuppressFBWarnings(value = "DM_EXIT", justification = "CLI utility can exit")
 @AutoService(KeywordExecutable.class)
 public class Initialize implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Initialize.class);

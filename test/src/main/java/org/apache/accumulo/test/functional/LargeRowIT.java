@@ -49,6 +49,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class LargeRowIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(LargeRowIT.class);
 
@@ -106,6 +108,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
     }
   }
 
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "predictable random is okay for testing")
   @Test
   public void run() throws Exception {
     Random r = new Random();
@@ -146,6 +150,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
     basicTest(c, PRE_SPLIT_TABLE_NAME, NUM_PRE_SPLITS);
   }
 
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "predictable random is okay for testing")
   private void basicTest(AccumuloClient c, String table, int expectedSplits) throws Exception {
     BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
 
@@ -187,6 +193,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
     FunctionalTestUtils.checkSplits(c, table, expectedSplits, expectedSplits);
   }
 
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "predictable random is okay for testing")
   private void verify(AccumuloClient c, String table) throws Exception {
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];

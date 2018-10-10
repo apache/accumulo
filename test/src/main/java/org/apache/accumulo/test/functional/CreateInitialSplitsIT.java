@@ -44,6 +44,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CreateInitialSplitsIT extends AccumuloClusterHarness {
 
   private AccumuloClient client;
@@ -216,6 +218,8 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     return generateBinarySplits(numItems, len, false);
   }
 
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "predictable random is okay for testing")
   private SortedSet<Text> generateBinarySplits(final int numItems, final int len,
       final boolean useB64) {
     SortedSet<Text> splits = new TreeSet<>();

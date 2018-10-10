@@ -33,14 +33,14 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.io.Text;
 
 public class CheckForMetadataProblems {
   private static boolean sawProblems = false;
 
-  public static void checkTable(String tablename, TreeSet<KeyExtent> tablets, ClientOpts opts)
+  public static void checkTable(String tablename, TreeSet<KeyExtent> tablets, ServerUtilOpts opts)
       throws AccumuloSecurityException {
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
@@ -92,7 +92,7 @@ public class CheckForMetadataProblems {
       sawProblems = true;
   }
 
-  public static void checkMetadataAndRootTableEntries(String tableNameToCheck, ClientOpts opts,
+  public static void checkMetadataAndRootTableEntries(String tableNameToCheck, ServerUtilOpts opts,
       VolumeManager fs) throws Exception {
     System.out.println("Checking table: " + tableNameToCheck);
     Map<String,TreeSet<KeyExtent>> tables = new HashMap<>();
@@ -165,7 +165,7 @@ public class CheckForMetadataProblems {
   }
 
   public static void main(String[] args) throws Exception {
-    ClientOpts opts = new ClientOpts();
+    ServerUtilOpts opts = new ServerUtilOpts();
     opts.parseArgs(CheckForMetadataProblems.class.getName(), args);
 
     VolumeManager fs = opts.getServerContext().getVolumeManager();

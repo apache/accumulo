@@ -21,9 +21,13 @@ import java.io.IOException;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.mapred.InputSplit;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
  */
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
+    justification = "Intended to share code between mapred and mapreduce")
 public class RangeInputSplit extends org.apache.accumulo.core.client.mapreduce.RangeInputSplit
     implements InputSplit {
 

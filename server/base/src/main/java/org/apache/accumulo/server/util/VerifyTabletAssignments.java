@@ -51,7 +51,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -63,7 +63,7 @@ import com.beust.jcommander.Parameter;
 public class VerifyTabletAssignments {
   private static final Logger log = LoggerFactory.getLogger(VerifyTabletAssignments.class);
 
-  static class Opts extends ClientOpts {
+  static class Opts extends ServerUtilOpts {
     @Parameter(names = {"-v", "--verbose"},
         description = "verbose mode (prints locations of tablets)")
     boolean verbose = false;

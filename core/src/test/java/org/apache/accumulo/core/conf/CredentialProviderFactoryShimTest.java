@@ -41,6 +41,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CredentialProviderFactoryShimTest {
 
   private static final Logger log = LoggerFactory
@@ -50,6 +52,7 @@ public class CredentialProviderFactoryShimTest {
       emptyKeyStoreName = "/empty.jceks";
   private static File emptyKeyStore, populatedKeyStore;
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
   @BeforeClass
   public static void checkCredentialProviderAvailable() {
     try {

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.test.util.memory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 abstract class MemoryUsageCheck {
   abstract void addEntry(int i);
 
@@ -29,6 +31,7 @@ abstract class MemoryUsageCheck {
 
   abstract void init();
 
+  @SuppressFBWarnings(value = "DM_GC", justification = "gc is okay for test")
   public void run() {
     System.gc();
     long usedMem = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();

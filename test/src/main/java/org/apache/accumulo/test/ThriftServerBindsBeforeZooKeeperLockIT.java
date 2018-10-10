@@ -44,6 +44,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Test class that verifies "HA-capable" servers put up their thrift servers before acquiring their
  * ZK lock.
@@ -124,6 +126,8 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
     }
   }
 
+  @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET",
+      justification = "unencrypted socket is okay for testing")
   @Test
   public void testMasterService() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
@@ -187,6 +191,8 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
     }
   }
 
+  @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET",
+      justification = "unencrypted socket is okay for testing")
   @Test
   public void testGarbageCollectorPorts() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();

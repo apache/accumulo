@@ -33,6 +33,8 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class SiteConfigurationTest {
   private static boolean isCredentialProviderAvailable;
 
@@ -46,6 +48,8 @@ public class SiteConfigurationTest {
     }
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "path to keystore not provided by user input")
   @Test
   public void testOnlySensitivePropertiesExtractedFromCredentialProvider()
       throws SecurityException {

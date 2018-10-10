@@ -47,8 +47,10 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -59,11 +61,11 @@ import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
-import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SplitRecoveryIT extends ConfigurableMacBase {
 
@@ -84,12 +86,16 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     ZooLock zl = new ZooLock(zoo, zPath);
     boolean gotLock = zl.tryLock(new LockWatcher() {
 
+      @SuppressFBWarnings(value = "DM_EXIT",
+          justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
       @Override
       public void lostLock(LockLossReason reason) {
         System.exit(-1);
 
       }
 
+      @SuppressFBWarnings(value = "DM_EXIT",
+          justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
       @Override
       public void unableToMonitorLockNode(Throwable e) {
         System.exit(-1);

@@ -35,6 +35,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
@@ -44,7 +45,6 @@ import org.apache.accumulo.server.master.recovery.HadoopLogCloser;
 import org.apache.accumulo.server.master.recovery.LogCloser;
 import org.apache.accumulo.server.master.recovery.RecoveryPath;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
-import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -64,7 +64,7 @@ public class RecoveryManager {
   public RecoveryManager(Master master) {
     this.master = master;
     executor = Executors.newScheduledThreadPool(4, new NamingThreadFactory("Walog sort starter "));
-    zooCache = new ZooCache(master.getContext());
+    zooCache = new ZooCache(master.getContext().getZooReaderWriter(), null);
     try {
       List<String> workIDs = new DistributedWorkQueue(
           master.getZooKeeperRoot() + Constants.ZRECOVERY, master.getConfiguration())

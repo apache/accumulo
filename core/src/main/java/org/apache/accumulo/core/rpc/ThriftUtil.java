@@ -52,6 +52,8 @@ import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Factory methods for creating Thrift client objects
  */
@@ -450,6 +452,8 @@ public class ThriftUtil {
    * @param params
    *          Parameters to use to create the SSLContext
    */
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who providing the keystore files")
   private static SSLContext createSSLContext(SslConnectionParams params)
       throws TTransportException {
     SSLContext ctx;

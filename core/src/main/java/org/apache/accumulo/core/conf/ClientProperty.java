@@ -32,6 +32,8 @@ import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public enum ClientProperty {
 
   // Instance
@@ -230,6 +232,8 @@ public enum ClientProperty {
     properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), keytabPath);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who providing the token file")
   public static AuthenticationToken getAuthenticationToken(Properties properties) {
     String authType = ClientProperty.AUTH_TYPE.getValue(properties);
     String token = ClientProperty.AUTH_TOKEN.getValue(properties);

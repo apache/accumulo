@@ -51,6 +51,8 @@ import org.apache.hadoop.io.WritableComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class TabletLocatorImpl extends TabletLocator {
 
   private static final Logger log = LoggerFactory.getLogger(TabletLocatorImpl.class);
@@ -673,6 +675,8 @@ public class TabletLocatorImpl extends TabletLocator {
     return lcSession.checkLock(locateTabletInCache(row));
   }
 
+  @SuppressFBWarnings(value = {"UL_UNRELEASED_LOCK", "UL_UNRELEASED_LOCK_EXCEPTION_PATH"},
+      justification = "locking is confusing, but probably correct")
   private void processInvalidated(ClientContext context, LockCheckerSession lcSession)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
 

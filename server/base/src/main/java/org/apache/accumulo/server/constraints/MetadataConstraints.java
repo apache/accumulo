@@ -40,12 +40,12 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.TransactionWatcher.Arbitrator;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
-import org.apache.accumulo.server.zookeeper.ZooCache;
-import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -262,7 +262,7 @@ public class MetadataConstraints implements Constraint {
         } else if (new ColumnFQ(columnUpdate)
             .equals(TabletsSection.ServerColumnFamily.LOCK_COLUMN)) {
           if (zooCache == null) {
-            zooCache = new ZooCache(context);
+            zooCache = new ZooCache(context.getZooReaderWriter(), null);
           }
 
           if (zooRoot == null) {

@@ -217,6 +217,10 @@ public class ZooCache {
     this(new ZooReader(zooKeepers, sessionTimeout), watcher);
   }
 
+  public ZooCache(ZooReader reader) {
+    this(reader, null);
+  }
+
   /**
    * Creates a new cache. The given watcher is called whenever a watched node changes.
    *
