@@ -28,6 +28,7 @@ public class LogEvent {
   public Object application;
   public int count;
   public String level, message;
+  public String[] stacktrace;
 
   public LogEvent() {}
 
@@ -45,11 +46,13 @@ public class LogEvent {
    * @param message
    *          log event message
    */
-  public LogEvent(long timestamp, Object application, int count, String level, String message) {
+  public LogEvent(long timestamp, Object application, int count, String level, String message,
+      String[] stacktrace) {
     this.timestamp = timestamp;
     this.application = application;
     this.count = count;
     this.level = level;
     this.message = message;
+    this.stacktrace = stacktrace;
   }
 }

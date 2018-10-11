@@ -15,7 +15,7 @@
   limitations under the License.
 -->
      <script>
-      var logList;
+        var logList;
         /**
          * Creates DataTables table
          *   - uses ajax call for data source and saves sort state in session
@@ -45,10 +45,65 @@
                   return data;
                 }
               },
-              { "data": "message" }
+              { "data": "message" },
+              {
+                "class":          "details-control",
+                "orderable":      false,
+                "data":           null,
+                "defaultContent": ""
+              }
             ]
           });
-        });
+          // Array to track the ids of the details displayed rows
+          var detailRows = [];
+
+          $("#logTable tbody").on( 'click', 'tr td.details-control', function () {
+            var tr = $(this).closest('tr');
+            var row = logList.row( tr );
+            var idx = $.inArray( tr.attr('id'), detailRows );
+
+            if ( row.child.isShown() ) {
+                tr.removeClass( 'details' );
+                row.child.hide();
+
+                // Remove from the 'open' array
+                detailRows.splice( idx, 1 );
+            }
+            else {
+                tr.addClass( 'details' );
+                row.child( formatStacktrace(row.data().stacktrace) ).show();
+
+                // Add to the 'open' array
+                if ( idx === -1 ) {
+                    detailRows.push( tr.attr('id') );
+                }
+            }
+          });
+
+          logList.on( 'draw', function () {
+              // remove the details button for rows without a stacktrace
+              $("#logTable tr").each(function( i, element) {
+                var r = logList.row(element).data();
+                if (r && r.stacktrace == null) {
+                  var c = $(element).find('td:last-child');
+                  c.removeClass('details-control');
+                }
+              });
+              // On each draw, loop over the `detailRows` array and show any child rows
+              $.each( detailRows, function ( i, id ) {
+                  $('#'+id+' td.details-control').trigger( 'click' );
+              });
+          });
+        }); // end document ready
+
+        // format stacktrace
+        function formatStacktrace(d) {
+          var str = new String();
+          $.each(d, function( index, value ) {
+            str = str + value + "<br>&nbsp;&nbsp;";
+          });
+          return str;
+        }
 
         /**
          * Used to refresh the table
@@ -65,7 +120,8 @@
               <th>Application</th>
               <th>Count</th>
               <th>Level</th>
-              <th class="logevent">Message</th></tr>
+              <th class="logevent">Message</th>
+              <th>Stacktrace</th></tr>
             </thead>
             <tbody></tbody>
         </table>

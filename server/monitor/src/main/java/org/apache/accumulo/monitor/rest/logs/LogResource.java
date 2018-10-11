@@ -62,15 +62,11 @@ public class LogResource {
             || type == Character.NON_SPACING_MARK || type == Character.PRIVATE_USE;
         text.append(notPrintable ? '?' : c);
       }
-      StringBuilder builder = new StringBuilder(text.toString());
-      if (ev.getThrowableStrRep() != null)
-        for (String line : ev.getThrowableStrRep())
-          builder.append("\n\t").append(line);
-      msg = sanitize(builder.toString().trim());
+      msg = sanitize(text.toString());
 
       // Add a new log event to the list
       logEvents.add(new LogEvent(ev.getTimeStamp(), application, dev.getCount(),
-          ev.getLevel().toString(), msg.toString().trim()));
+          ev.getLevel().toString(), msg.trim(), ev.getThrowableStrRep()));
     }
     return logEvents;
   }
