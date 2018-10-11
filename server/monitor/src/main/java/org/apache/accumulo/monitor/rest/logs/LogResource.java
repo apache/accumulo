@@ -27,6 +27,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.spi.LoggingEvent;
 
 /**
@@ -71,8 +72,11 @@ public class LogResource {
     return logEvents;
   }
 
-  private String sanitize(String xml) {
-    return xml.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  private String sanitize(String s) {
+    String clean = s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    if (clean.length() > 300)
+      clean = StringUtils.abbreviate(clean, 300);
+    return clean;
   }
 
   /**
