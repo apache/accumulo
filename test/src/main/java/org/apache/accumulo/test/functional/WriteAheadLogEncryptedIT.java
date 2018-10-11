@@ -47,8 +47,7 @@ public class WriteAheadLogEncryptedIT extends AccumuloClusterHarness {
         + "/target/mini-tests/WriteAheadLogEncryptedIT-testkeyfile";
     cfg.setProperty(Property.INSTANCE_CRYPTO_SERVICE,
         "org.apache.accumulo.core.security.crypto.impl.AESCryptoService");
-    cfg.setProperty(INSTANCE_CRYPTO_PREFIX.getKey() + "key.location", keyPath);
-    cfg.setProperty(INSTANCE_CRYPTO_PREFIX.getKey() + "key.provider", "uri");
+    cfg.setProperty(INSTANCE_CRYPTO_PREFIX.getKey() + "key.uri", keyPath);
 
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "2M");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");

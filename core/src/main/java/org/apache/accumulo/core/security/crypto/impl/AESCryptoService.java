@@ -72,12 +72,11 @@ public class AESCryptoService implements CryptoService {
 
   @Override
   public void init(Map<String,String> conf) throws CryptoException {
-    String keyLocation = conf.get("instance.crypto.opts.key.location");
-    String keyMgr = conf.get("instance.crypto.opts.key.provider");
+    String keyLocation = conf.get("instance.crypto.opts.key.uri");
+    // get key from URI for now, keyMgr framework could be expanded on in the future
+    String keyMgr = "uri";
     Objects.requireNonNull(keyLocation,
-        "Config property instance.crypto.opts.key.location is required.");
-    Objects.requireNonNull(keyMgr,
-        "Config property instance.crypto.opts.key.provider is required.");
+        "Config property instance.crypto.opts.key.uri is required.");
     this.sr = CryptoUtils.newSha1SecureRandom();
     this.decryptingKeys = new HashMap<>();
     switch (keyMgr) {

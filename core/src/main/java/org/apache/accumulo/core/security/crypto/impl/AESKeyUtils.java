@@ -24,7 +24,6 @@ import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 
 import javax.crypto.Cipher;
@@ -40,7 +39,6 @@ public class AESKeyUtils {
 
   public static final String URI = "uri";
   public static final String KEY_WRAP_TRANSFORM = "AESWrap";
-  public static final String KEY_PROVIDER = "SunJCE";
 
   public static Key generateKey(SecureRandom sr, int size) {
     byte[] bytes = new byte[size];
@@ -53,11 +51,10 @@ public class AESKeyUtils {
   public static Key unwrapKey(byte[] fek, Key kek) {
     Key result = null;
     try {
-      Cipher c = Cipher.getInstance(KEY_WRAP_TRANSFORM, KEY_PROVIDER);
+      Cipher c = Cipher.getInstance(KEY_WRAP_TRANSFORM);
       c.init(Cipher.UNWRAP_MODE, kek);
       result = c.unwrap(fek, "AES", Cipher.SECRET_KEY);
-    } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchProviderException
-        | NoSuchPaddingException e) {
+    } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException e) {
       throw new CryptoException("Unable to unwrap file encryption key", e);
     }
     return result;
@@ -68,11 +65,11 @@ public class AESKeyUtils {
   public static byte[] wrapKey(Key fek, Key kek) {
     byte[] result = null;
     try {
-      Cipher c = Cipher.getInstance(KEY_WRAP_TRANSFORM, KEY_PROVIDER);
+      Cipher c = Cipher.getInstance(KEY_WRAP_TRANSFORM);
       c.init(Cipher.WRAP_MODE, kek);
       result = c.wrap(fek);
-    } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchProviderException
-        | NoSuchPaddingException | IllegalBlockSizeException e) {
+    } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException
+        | IllegalBlockSizeException e) {
       throw new CryptoException("Unable to wrap file encryption key", e);
     }
 
