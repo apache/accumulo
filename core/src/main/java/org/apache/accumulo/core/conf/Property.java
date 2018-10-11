@@ -98,7 +98,8 @@ public enum Property {
           + Integer.MAX_VALUE),
   @Deprecated
   INSTANCE_DFS_URI("instance.dfs.uri", "", PropertyType.URI,
-      "A url accumulo should use to connect to DFS. If this is empty, accumulo"
+      "This property is deprecated since 1.6.0. "
+          + "A url accumulo should use to connect to DFS. If this is empty, accumulo"
           + " will obtain this information from the hadoop configuration. This property"
           + " will only be used when creating new files if instance.volumes is empty."
           + " After an upgrade to 1.6.0 Accumulo will start using absolute paths to"
@@ -107,7 +108,8 @@ public enum Property {
           + " (if empty using the hadoop config)."),
   @Deprecated
   INSTANCE_DFS_DIR("instance.dfs.dir", "/accumulo", PropertyType.ABSOLUTEPATH,
-      "HDFS directory in which accumulo instance will run. "
+      "This property is deprecated since 1.6.0. "
+          + "HDFS directory in which accumulo instance will run. "
           + "Do not change after accumulo is initialized."),
   @Sensitive
   INSTANCE_SECRET("instance.secret", "DEFAULT", PropertyType.STRING,
@@ -193,7 +195,7 @@ public enum Property {
           + " do not have to be consistent throughout a cloud."),
   @Deprecated
   GENERAL_CLASSPATHS(AccumuloClassLoader.GENERAL_CLASSPATHS, "", PropertyType.STRING,
-      "This property is deprecated. The class path should instead be configured"
+      "This property is deprecated since 2.0.0. The class path should instead be configured"
           + " by the launch environment (for example, accumulo-env.sh). A list of all"
           + " of the places to look for a class. Order does matter, as it will look for"
           + " the jar starting in the first location to the last. Supports full regex"
@@ -484,7 +486,7 @@ public enum Property {
           + " problems recovering from sudden system resets."),
   @Deprecated
   TSERV_WAL_SYNC_METHOD("tserver.wal.sync.method", "hsync", PropertyType.STRING,
-      "This property is deprecated. Use table.durability instead."),
+      "This property is deprecated since 1.7.0. Use table.durability instead."),
   TSERV_ASSIGNMENT_DURATION_WARNING("tserver.assignment.duration.warning", "10m",
       PropertyType.TIMEDURATION,
       "The amount of time an assignment can run before the server will print a"
@@ -689,7 +691,7 @@ public enum Property {
           + " summary cache size."),
   @Deprecated
   TABLE_WALOG_ENABLED("table.walog.enabled", "true", PropertyType.BOOLEAN,
-      "This setting is deprecated.  Use table.durability=none instead."),
+      "This setting is deprecated since 1.7.0. Use table.durability=none instead."),
   TABLE_BLOOM_ENABLED("table.bloom.enabled", "false", PropertyType.BOOLEAN,
       "Use bloom filters on this table."),
   TABLE_BLOOM_LOAD_THRESHOLD("table.bloom.load.threshold", "1", PropertyType.COUNT,

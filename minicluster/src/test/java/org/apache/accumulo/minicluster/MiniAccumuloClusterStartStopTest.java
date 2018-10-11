@@ -21,7 +21,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.accumulo.core.client.Connector;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -75,11 +74,12 @@ public class MiniAccumuloClusterStartStopTest {
     }
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void multipleStopsIsAllowed() throws Exception {
     accumulo.start();
 
-    Connector conn = accumulo.getConnector("root", "superSecret");
+    org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", "superSecret");
     conn.tableOperations().create("foo");
 
     accumulo.stop();

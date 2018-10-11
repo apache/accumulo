@@ -25,7 +25,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.util.Pair;
@@ -121,9 +120,11 @@ public class MiniAccumuloCluster {
    * @since 1.6.0
    * @deprecated since 2.0.0, replaced by {@link #getAccumuloClient(String, AuthenticationToken)}
    */
-  public Connector getConnector(String user, String passwd)
+  @Deprecated
+  public org.apache.accumulo.core.client.Connector getConnector(String user, String passwd)
       throws AccumuloException, AccumuloSecurityException {
-    return Connector.from(impl.getAccumuloClient(user, new PasswordToken(passwd)));
+    return org.apache.accumulo.core.client.Connector
+        .from(impl.getAccumuloClient(user, new PasswordToken(passwd)));
   }
 
   /**
@@ -138,7 +139,7 @@ public class MiniAccumuloCluster {
 
   /**
    * @since 1.6.0
-   * @deprecated since 2.0.0, replaced by {{@link #getClientInfo()}}
+   * @deprecated since 2.0.0, replaced by {@link #getClientInfo()}
    */
   @Deprecated
   public org.apache.accumulo.core.client.ClientConfiguration getClientConfig() {

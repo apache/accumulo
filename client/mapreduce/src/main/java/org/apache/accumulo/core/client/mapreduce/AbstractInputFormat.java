@@ -222,7 +222,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @param tokenFile
    *          the path to the token file
    * @since 1.6.0
-   * @deprecated since 2.0.0, use {{@link #setClientPropertiesFile(Job, String)}}
+   * @deprecated since 2.0.0, use {@link #setClientPropertiesFile(Job, String)}
    */
   @Deprecated
   public static void setConnectorInfo(Job job, String principal, String tokenFile)
@@ -409,6 +409,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          The Job
    * @return The ClientConfiguration
    * @since 1.7.0
+   * @deprecated since 2.0.0; use {@link #getClientInfo(JobContext)} instead
    */
   @Deprecated
   protected static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(

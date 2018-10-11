@@ -361,7 +361,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          The job
    * @return The client configuration for the job
    * @since 1.7.0
-   * @deprecated since 2.0.0, replaced by {{@link #getClientInfo(JobConf)}}
+   * @deprecated since 2.0.0, replaced by {@link #getClientInfo(JobConf)}
    */
   @Deprecated
   protected static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(

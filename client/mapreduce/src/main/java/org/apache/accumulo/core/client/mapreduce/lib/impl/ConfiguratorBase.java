@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
@@ -308,6 +307,7 @@ public class ConfiguratorBase {
    * @param clientConfig
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0
+   * @deprecated since 2.0.0; use {@link #setClientInfo(Class, Configuration, ClientInfo)} instead
    */
   @Deprecated
   public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf,
@@ -337,7 +337,8 @@ public class ConfiguratorBase {
   @Deprecated
   public static org.apache.accumulo.core.client.Instance getInstance(Class<?> implementingClass,
       Configuration conf) {
-    return Connector.from(getClient(implementingClass, conf)).getInstance();
+    return org.apache.accumulo.core.client.Connector.from(getClient(implementingClass, conf))
+        .getInstance();
   }
 
   /**
@@ -368,6 +369,7 @@ public class ConfiguratorBase {
    *
    * @return A ClientConfiguration
    * @since 1.7.0
+   * @deprecated since 2.0.0; use {@link #getClientInfo(Class, Configuration)} instead
    */
   @Deprecated
   public static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(

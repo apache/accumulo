@@ -37,6 +37,8 @@ import org.apache.accumulo.core.data.Value;
  * final FormatterConfig config = new FormatterConfig().setPrintTimestamps(true)
  *     .setDateFormatSupplier(dfSupplier);
  * </pre>
+ *
+ * @deprecated since 1.8.0
  */
 @Deprecated
 public class DateStringFormatter implements Formatter {

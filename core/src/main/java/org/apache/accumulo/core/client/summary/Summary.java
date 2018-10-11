@@ -104,7 +104,7 @@ public class Summary {
     /**
      * @return The total number of files that had some kind of issue which would cause summary
      *         statistics to be inaccurate. This is the sum of {@link #getMissing()},
-     *         {@link #getExtra()}, {{@link #getLarge()}, and {@link #getDeleted()}.
+     *         {@link #getExtra()}, {@link #getLarge()}, and {@link #getDeleted()}.
      */
     public long getInaccurate() {
       return getMissing() + getExtra() + getLarge() + getDeleted();
