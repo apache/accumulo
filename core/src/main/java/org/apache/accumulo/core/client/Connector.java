@@ -21,6 +21,8 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
+import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
@@ -275,6 +277,6 @@ public abstract class Connector {
    * @since 2.0
    */
   public static Connector from(AccumuloClient client) {
-    return (Connector) client;
+    return new ConnectorImpl((AccumuloClientImpl) client);
   }
 }
