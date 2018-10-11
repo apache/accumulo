@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.CuratorFramework;
@@ -90,9 +89,10 @@ public class MiniAccumuloClusterExistingZooKeepersTest {
     }
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void canConnectViaExistingZooKeeper() throws Exception {
-    Connector conn = accumulo.getConnector("root", SECRET);
+    org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", SECRET);
     ClientContext context = new ClientContext(accumulo.getClientInfo());
     assertEquals(zooKeeper.getConnectString(), context.getZooKeepers());
 

@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -138,9 +137,10 @@ public class ClientContext {
       }
 
       @Override
-      public Connector getConnector(String principal, AuthenticationToken token)
-          throws AccumuloException, AccumuloSecurityException {
-        return Connector.from(context.getClient().changeUser(principal, token));
+      public org.apache.accumulo.core.client.Connector getConnector(String principal,
+          AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
+        return org.apache.accumulo.core.client.Connector
+            .from(context.getClient().changeUser(principal, token));
       }
     };
   }

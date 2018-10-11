@@ -23,8 +23,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 
 /**
- * @deprecated Use {@link DefaultFormatter} providing showLength and printTimestamps via
- *             {@link FormatterConfig}.
+ * @deprecated since 1.8.0; Use {@link DefaultFormatter} providing showLength and printTimestamps
+ *             via {@link FormatterConfig}.
  */
 @Deprecated
 public class BinaryFormatter extends DefaultFormatter {

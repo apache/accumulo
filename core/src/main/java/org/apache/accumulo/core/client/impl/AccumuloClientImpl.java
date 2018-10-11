@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -54,7 +53,8 @@ import org.apache.accumulo.core.trace.Tracer;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class AccumuloClientImpl extends Connector implements AccumuloClient {
+public class AccumuloClientImpl extends org.apache.accumulo.core.client.Connector
+    implements AccumuloClient {
   private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security."
       + "SystemCredentials$SystemToken";
   private final ClientContext context;

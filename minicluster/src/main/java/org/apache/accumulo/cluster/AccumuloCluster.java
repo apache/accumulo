@@ -63,7 +63,7 @@ public interface AccumuloCluster {
   /**
    * Get the client configuration for the cluster
    *
-   * @deprecated since 2.0.0, replaced by {{@link #getClientInfo()}}
+   * @deprecated since 2.0.0, replaced by {@link #getClientInfo()}
    */
   @Deprecated
   org.apache.accumulo.core.client.ClientConfiguration getClientConfig();

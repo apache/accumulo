@@ -31,7 +31,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -87,9 +86,10 @@ public class MiniAccumuloClusterTest {
     assertEquals("dfs.replication", DFSConfigKeys.DFS_REPLICATION_KEY);
   }
 
+  @SuppressWarnings("deprecation")
   @Test(timeout = 30000)
   public void test() throws Exception {
-    Connector conn = accumulo.getConnector("root", "superSecret");
+    org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", "superSecret");
 
     conn.tableOperations().create("table1", new NewTableConfiguration());
 
@@ -105,7 +105,7 @@ public class MiniAccumuloClusterTest {
 
     conn.tableOperations().attachIterator("table1", is);
 
-    Connector uconn = accumulo.getConnector("user1", "pass1");
+    org.apache.accumulo.core.client.Connector uconn = accumulo.getConnector("user1", "pass1");
 
     BatchWriter bw = uconn.createBatchWriter("table1", new BatchWriterConfig());
 
@@ -162,10 +162,11 @@ public class MiniAccumuloClusterTest {
   public TemporaryFolder folder = new TemporaryFolder(
       new File(System.getProperty("user.dir") + "/target"));
 
+  @SuppressWarnings("deprecation")
   @Test(timeout = 60000)
   public void testPerTableClasspath() throws Exception {
 
-    Connector conn = accumulo.getConnector("root", "superSecret");
+    org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", "superSecret");
 
     conn.tableOperations().create("table2");
 
