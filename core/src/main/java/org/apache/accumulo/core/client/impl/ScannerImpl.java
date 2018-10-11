@@ -93,8 +93,8 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   @Override
   public synchronized Iterator<Entry<Key,Value>> iterator() {
-    return new ScannerIterator(context, tableId, authorizations, range, size, getTimeOut(), this,
-        isolated, readaheadThreshold);
+    return new ScannerIterator(context, tableId, authorizations, range, size,
+        getTimeout(TimeUnit.SECONDS), this, isolated, readaheadThreshold);
   }
 
   @Override
@@ -110,24 +110,6 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   @Override
   public synchronized void disableIsolation() {
     this.isolated = false;
-  }
-
-  @Deprecated
-  @Override
-  public void setTimeOut(int timeOut) {
-    if (timeOut == Integer.MAX_VALUE)
-      setTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-    else
-      setTimeout(timeOut, TimeUnit.SECONDS);
-  }
-
-  @Deprecated
-  @Override
-  public int getTimeOut() {
-    long timeout = getTimeout(TimeUnit.SECONDS);
-    if (timeout >= Integer.MAX_VALUE)
-      return Integer.MAX_VALUE;
-    return (int) timeout;
   }
 
   @Override

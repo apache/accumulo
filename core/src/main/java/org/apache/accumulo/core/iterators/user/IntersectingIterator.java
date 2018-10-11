@@ -528,31 +528,6 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   }
 
   /**
-   * @deprecated since 1.6.0
-   */
-  @Deprecated
-  public void addSource(SortedKeyValueIterator<Key,Value> source, IteratorEnvironment env,
-      Text term, boolean notFlag) {
-    // Check if we have space for the added Source
-    if (sources == null) {
-      sources = new TermSource[1];
-    } else {
-      // allocate space for node, and copy current tree.
-      // TODO: Should we change this to an ArrayList so that we can just add() ? - ACCUMULO-1309
-      TermSource[] localSources = new TermSource[sources.length + 1];
-      int currSource = 0;
-      for (TermSource myTerm : sources) {
-        // TODO: Do I need to call new here? or can I just re-use the term? - ACCUMULO-1309
-        localSources[currSource] = new TermSource(myTerm);
-        currSource++;
-      }
-      sources = localSources;
-    }
-    sources[sourcesCount] = new TermSource(source.deepCopy(env), term, notFlag);
-    sourcesCount++;
-  }
-
-  /**
    * Encode the columns to be used when iterating.
    */
   public static void setColumnFamilies(IteratorSetting cfg, Text[] columns) {

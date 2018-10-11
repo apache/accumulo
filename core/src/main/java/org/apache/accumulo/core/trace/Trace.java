@@ -55,29 +55,10 @@ public class Trace {
   }
 
   /**
-   * @deprecated since 1.7, use {@link #off()} instead
-   */
-  @Deprecated
-  public static void offNoFlush() {
-    off();
-  }
-
-  /**
    * Returns whether tracing is currently on.
    */
   public static boolean isTracing() {
     return org.apache.htrace.Trace.isTracing();
-  }
-
-  /**
-   * Return the current span.
-   *
-   * @deprecated since 1.7 -- it is better to save the span you create in a local variable and call
-   *             its methods, rather than retrieving the current span
-   */
-  @Deprecated
-  public static Span currentTrace() {
-    return new Span(org.apache.htrace.Trace.currentSpan());
   }
 
   /**

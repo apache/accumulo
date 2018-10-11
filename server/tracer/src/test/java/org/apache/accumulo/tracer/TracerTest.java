@@ -102,7 +102,6 @@ public class TracerTest {
     public void close() throws IOException {}
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void testTrace() throws Exception {
     TestReceiver tracer = new TestReceiver();
@@ -117,8 +116,7 @@ public class TracerTest {
     assertEquals(1, tracer.traces.size());
     assertFalse(Trace.isTracing());
 
-    Span start = Trace.on("testing");
-    assertEquals(Trace.currentTrace().getSpan(), start.getScope().getSpan());
+    Trace.on("testing");
     assertTrue(Trace.isTracing());
 
     Span span = Trace.start("shortest trace ever");

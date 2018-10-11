@@ -33,7 +33,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
-import java.util.List;
 
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
@@ -99,13 +98,6 @@ public class ValueTest {
   @Test
   public void testByteBuffer() {
     Value v = new Value(DATABUFF);
-    assertArrayEquals(DATA, v.get());
-  }
-
-  @Test
-  public void testByteBufferCopy() {
-    @SuppressWarnings("deprecation")
-    Value v = new Value(DATABUFF, true);
     assertArrayEquals(DATA, v.get());
   }
 
@@ -197,24 +189,6 @@ public class ValueTest {
     assertEquals(v2, v1);
     Value v3 = new Value(toBytes("datb"));
     assertNotEquals(v1, v3);
-  }
-
-  @Test
-  @Deprecated
-  public void testToArray() {
-    List<byte[]> l = new java.util.ArrayList<>();
-    byte[] one = toBytes("one");
-    byte[] two = toBytes("two");
-    byte[] three = toBytes("three");
-    l.add(one);
-    l.add(two);
-    l.add(three);
-
-    byte[][] a = Value.toArray(l);
-    assertEquals(3, a.length);
-    assertArrayEquals(one, a[0]);
-    assertArrayEquals(two, a[1]);
-    assertArrayEquals(three, a[2]);
   }
 
   @Test

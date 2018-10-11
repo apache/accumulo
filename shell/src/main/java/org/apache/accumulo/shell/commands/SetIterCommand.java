@@ -54,7 +54,7 @@ public class SetIterCommand extends Command {
 
   private Option allScopeOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt;
   Option profileOpt, priorityOpt, nameOpt;
-  Option aggTypeOpt, ageoffTypeOpt, regexTypeOpt, versionTypeOpt, reqvisTypeOpt, classnameTypeOpt;
+  Option ageoffTypeOpt, regexTypeOpt, versionTypeOpt, reqvisTypeOpt, classnameTypeOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -69,13 +69,7 @@ public class SetIterCommand extends Command {
 
     final Map<String,String> options = new HashMap<>();
     String classname = cl.getOptionValue(classnameTypeOpt.getOpt());
-    if (cl.hasOption(aggTypeOpt.getOpt())) {
-      Shell.log.warn("aggregators are deprecated");
-      @SuppressWarnings("deprecation")
-      String deprecatedClassName = org.apache.accumulo.core.iterators.AggregatingIterator.class
-          .getName();
-      classname = deprecatedClassName;
-    } else if (cl.hasOption(regexTypeOpt.getOpt())) {
+    if (cl.hasOption(regexTypeOpt.getOpt())) {
       classname = RegExFilter.class.getName();
     } else if (cl.hasOption(ageoffTypeOpt.getOpt())) {
       classname = AgeOffFilter.class.getName();
@@ -149,19 +143,6 @@ public class SetIterCommand extends Command {
 
     ScanCommand.ensureTserversCanLoadIterator(shellState, tableName, classname);
 
-    final String aggregatorClass = options.get("aggregatorClass");
-    // @formatter:off
-    @SuppressWarnings("deprecation")
-    String deprecatedAggregatorClassName =
-      org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
-    // @formatter:on
-    if (aggregatorClass != null && !shellState.getAccumuloClient().tableOperations()
-        .testClassLoad(tableName, aggregatorClass, deprecatedAggregatorClassName)) {
-      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
-          "Servers are unable to load " + aggregatorClass + " as type "
-              + deprecatedAggregatorClassName);
-    }
-
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
       final Entry<String,String> entry = i.next();
       if (entry.getValue() == null || entry.getValue().isEmpty()) {
@@ -198,19 +179,6 @@ public class SetIterCommand extends Command {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
           "Servers are unable to load " + classname + " as type "
               + SortedKeyValueIterator.class.getName());
-    }
-
-    final String aggregatorClass = options.get("aggregatorClass");
-    // @formatter:off
-    @SuppressWarnings("deprecation")
-    String deprecatedAggregatorClassName =
-      org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
-    // @formatter:on
-    if (aggregatorClass != null && !shellState.getAccumuloClient().namespaceOperations()
-        .testClassLoad(namespace, aggregatorClass, deprecatedAggregatorClassName)) {
-      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
-          "Servers are unable to load " + aggregatorClass + " as type "
-              + deprecatedAggregatorClassName);
     }
 
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
@@ -441,7 +409,6 @@ public class SetIterCommand extends Command {
     classnameTypeOpt = new Option("class", "class-name", true,
         "a java class that implements SortedKeyValueIterator");
     classnameTypeOpt.setArgName("name");
-    aggTypeOpt = new Option("agg", "aggregator", false, "an aggregating type");
     regexTypeOpt = new Option("regex", "regular-expression", false, "a regex matching iterator");
     versionTypeOpt = new Option("vers", "version", false, "a versioning iterator");
     reqvisTypeOpt = new Option("reqvis", "require-visibility", false,
@@ -449,7 +416,6 @@ public class SetIterCommand extends Command {
     ageoffTypeOpt = new Option("ageoff", "ageoff", false, "an aging off iterator");
 
     typeGroup.addOption(classnameTypeOpt);
-    typeGroup.addOption(aggTypeOpt);
     typeGroup.addOption(regexTypeOpt);
     typeGroup.addOption(versionTypeOpt);
     typeGroup.addOption(reqvisTypeOpt);

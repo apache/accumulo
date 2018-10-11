@@ -25,7 +25,6 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.List;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
@@ -92,22 +91,6 @@ public class Value implements WritableComparable<Object> {
    *          May not be null
    */
   public Value(ByteBuffer bytes) {
-    /* TODO ACCUMULO-2509 right now this uses the entire backing array, which must be accessible. */
-    this(toBytes(bytes), false);
-  }
-
-  /**
-   * @deprecated A copy of the bytes in the buffer is always made. Use {@link #Value(ByteBuffer)}
-   *             instead.
-   *
-   * @param bytes
-   *          bytes of value (may not be null)
-   * @param copy
-   *          false to use the backing array of the buffer directly as the backing array, true to
-   *          force a copy
-   */
-  @Deprecated
-  public Value(ByteBuffer bytes, boolean copy) {
     /* TODO ACCUMULO-2509 right now this uses the entire backing array, which must be accessible. */
     this(toBytes(bytes), false);
   }
@@ -289,24 +272,6 @@ public class Value implements WritableComparable<Object> {
 
   static { // register this comparator
     WritableComparator.define(Value.class, new Comparator());
-  }
-
-  /**
-   * Converts a list of byte arrays to a two-dimensional array.
-   *
-   * @param array
-   *          list of byte arrays
-   * @return two-dimensional byte array containing one given byte array per row
-   * @deprecated since 1.7.0; this utility method is not appropriate for the {@link Value} object
-   */
-  @Deprecated
-  public static byte[][] toArray(final List<byte[]> array) {
-    // List#toArray doesn't work on lists of byte [].
-    byte[][] results = new byte[array.size()][];
-    for (int i = 0; i < array.size(); i++) {
-      results[i] = array.get(i);
-    }
-    return results;
   }
 
 }

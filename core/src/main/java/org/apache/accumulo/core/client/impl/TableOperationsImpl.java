@@ -79,7 +79,6 @@ import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.client.impl.thrift.TDiskUsage;
@@ -205,28 +204,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void create(String tableName)
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     create(tableName, new NewTableConfiguration());
-  }
-
-  @Override
-  @Deprecated
-  public void create(String tableName, boolean limitVersion)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    create(tableName, limitVersion, TimeType.MILLIS);
-  }
-
-  @Override
-  @Deprecated
-  public void create(String tableName, boolean limitVersion, TimeType timeType)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(timeType != null, "timeType is null");
-
-    NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(timeType);
-
-    if (limitVersion)
-      create(tableName, ntc);
-    else
-      create(tableName, ntc.withoutDefaultIterators());
   }
 
   @Override
@@ -688,16 +665,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return endRows;
   }
 
-  @Deprecated
-  @Override
-  public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
-    try {
-      return listSplits(tableName);
-    } catch (AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   @Override
   public Collection<Text> listSplits(String tableName, int maxSplits)
       throws TableNotFoundException, AccumuloSecurityException {
@@ -722,16 +689,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     return subset;
-  }
-
-  @Deprecated
-  @Override
-  public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException {
-    try {
-      return listSplits(tableName, maxSplits);
-    } catch (AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   @Override
@@ -801,7 +758,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  @Deprecated
   public void flush(String tableName) throws AccumuloException, AccumuloSecurityException {
     try {
       flush(tableName, null, null, false);

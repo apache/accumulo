@@ -24,9 +24,7 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map.Entry;
@@ -280,82 +278,6 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
    */
   public Mutation getPrevRowUpdateMutation() {
     return getPrevRowUpdateMutation(this);
-  }
-
-  /**
-   * Empty start or end rows tell the method there are no start or end rows, and to use all the
-   * keyextents that are before the end row if no start row etc.
-   *
-   * @deprecated this method not intended for public use and is likely to be removed in a future
-   *             version.
-   * @return all the key extents that the rows cover
-   */
-  @Deprecated
-  public static Collection<KeyExtent> getKeyExtentsForRange(Text startRow, Text endRow,
-      Set<KeyExtent> kes) {
-    if (kes == null)
-      return Collections.emptyList();
-    if (startRow == null)
-      startRow = new Text();
-    if (endRow == null)
-      endRow = new Text();
-    Collection<KeyExtent> keys = new ArrayList<>();
-    for (KeyExtent ckes : kes) {
-      if (ckes.getPrevEndRow() == null) {
-        if (ckes.getEndRow() == null) {
-          // only tablet
-          keys.add(ckes);
-        } else {
-          // first tablet
-          // if start row = '' then we want everything up to the endRow which will always include
-          // the first tablet
-          if (startRow.getLength() == 0) {
-            keys.add(ckes);
-          } else if (ckes.getEndRow().compareTo(startRow) >= 0) {
-            keys.add(ckes);
-          }
-        }
-      } else {
-        if (ckes.getEndRow() == null) {
-          // last tablet
-          // if endRow = '' and we're at the last tablet, add it
-          if (endRow.getLength() == 0) {
-            keys.add(ckes);
-          }
-          if (ckes.getPrevEndRow().compareTo(endRow) < 0) {
-            keys.add(ckes);
-          }
-        } else {
-          // tablet in the middle
-          if (startRow.getLength() == 0) {
-            // no start row
-
-            if (endRow.getLength() == 0) {
-              // no start & end row
-              keys.add(ckes);
-            } else {
-              // just no start row
-              if (ckes.getPrevEndRow().compareTo(endRow) < 0) {
-                keys.add(ckes);
-              }
-            }
-          } else if (endRow.getLength() == 0) {
-            // no end row
-            if (ckes.getEndRow().compareTo(startRow) >= 0) {
-              keys.add(ckes);
-            }
-          } else {
-            // no null prevEnd or endRows and no empty string start or end rows
-            if (ckes.getPrevEndRow().compareTo(endRow) < 0
-                && ckes.getEndRow().compareTo(startRow) >= 0) {
-              keys.add(ckes);
-            }
-          }
-
-        }
-      }
-    }
-    return keys;
   }
 
   public static Text decodePrevEndRow(Value ibw) {

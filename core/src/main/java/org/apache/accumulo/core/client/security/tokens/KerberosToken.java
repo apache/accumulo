@@ -86,30 +86,9 @@ public class KerberosToken implements AuthenticationToken {
    *          A keytab file containing the principal's credentials.
    */
   public KerberosToken(String principal, File keytab) throws IOException {
-    this(principal, keytab, false);
-  }
-
-  /**
-   * Creates a token and logs in via {@link UserGroupInformation} using the provided principal and
-   * keytab. A key for the principal must exist in the keytab, otherwise login will fail.
-   *
-   * @param principal
-   *          The Kerberos principal
-   * @param keytab
-   *          A keytab file
-   * @param replaceCurrentUser
-   *          Should the current Hadoop user be replaced with this user
-   * @deprecated since 1.8.0, @see #KerberosToken(String, File)
-   */
-  @Deprecated
-  public KerberosToken(String principal, File keytab, boolean replaceCurrentUser)
-      throws IOException {
     this.principal = requireNonNull(principal, "Principal was null");
     this.keytab = requireNonNull(keytab, "Keytab was null");
     checkArgument(keytab.exists() && keytab.isFile(), "Keytab was not a normal file");
-    if (replaceCurrentUser) {
-      UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
-    }
   }
 
   /**

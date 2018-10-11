@@ -48,7 +48,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   private static final Logger log = LoggerFactory.getLogger(ScannerIterator.class);
 
   // scanner options
-  private int timeOut;
+  private long timeOut;
 
   // scanner state
   private Iterator<KeyValue> iter;
@@ -107,7 +107,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   }
 
   ScannerIterator(ClientContext context, Table.ID tableId, Authorizations authorizations,
-      Range range, int size, int timeOut, ScannerOptions options, boolean isolated,
+      Range range, int size, long timeOut, ScannerOptions options, boolean isolated,
       long readaheadThreshold) {
     this.timeOut = timeOut;
     this.readaheadThreshold = readaheadThreshold;

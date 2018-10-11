@@ -67,7 +67,6 @@ public class SetIterCommandTest {
     EasyMock.expect(cli.getOptionValue("class"))
         .andReturn("org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter");
     EasyMock.expect(cli.hasOption("ageoff")).andReturn(false);
-    EasyMock.expect(cli.hasOption("agg")).andReturn(false);
     EasyMock.expect(cli.hasOption("regex")).andReturn(false);
     EasyMock.expect(cli.hasOption("reqvis")).andReturn(false);
     EasyMock.expect(cli.hasOption("vers")).andReturn(false);

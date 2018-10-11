@@ -23,7 +23,6 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.security.AuthorizationContainer;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.TCredentials;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.SystemEnvironment;
@@ -34,7 +33,6 @@ public class TservConstraintEnv implements SystemEnvironment {
   private final ServerContext context;
   private final TCredentials credentials;
   private final SecurityOperation security;
-  private Authorizations auths;
   private KeyExtent ke;
 
   TservConstraintEnv(ServerContext context, SecurityOperation secOp, TCredentials credentials) {
@@ -55,18 +53,6 @@ public class TservConstraintEnv implements SystemEnvironment {
   @Override
   public String getUser() {
     return credentials.getPrincipal();
-  }
-
-  @Override
-  @Deprecated
-  public Authorizations getAuthorizations() {
-    if (auths == null)
-      try {
-        this.auths = security.getUserAuthorizations(credentials);
-      } catch (ThriftSecurityException e) {
-        throw new RuntimeException(e);
-      }
-    return auths;
   }
 
   @Override
