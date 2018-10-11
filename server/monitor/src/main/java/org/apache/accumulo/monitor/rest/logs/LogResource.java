@@ -55,28 +55,33 @@ public class LogResource {
       if (application == null)
         application = "";
       String msg = ev.getMessage().toString();
-      StringBuilder text = new StringBuilder();
-      for (int i = 0; i < msg.length(); i++) {
-        char c = msg.charAt(i);
-        int type = Character.getType(c);
-        boolean notPrintable = type == Character.UNASSIGNED || type == Character.LINE_SEPARATOR
-            || type == Character.NON_SPACING_MARK || type == Character.PRIVATE_USE;
-        text.append(notPrintable ? '?' : c);
-      }
-      msg = sanitize(text.toString());
+      msg = sanitize(msg);
+
+      if (msg.length() > 300)
+        msg = StringUtils.abbreviate(msg, 300);
+
+      String[] stacktrace = ev.getThrowableStrRep();
+      if (stacktrace != null)
+        for (int i = 0; i < stacktrace.length; i++)
+          stacktrace[i] = sanitize(stacktrace[i]);
 
       // Add a new log event to the list
       logEvents.add(new LogEvent(ev.getTimeStamp(), application, dev.getCount(),
-          ev.getLevel().toString(), msg.trim(), ev.getThrowableStrRep()));
+          ev.getLevel().toString(), msg.trim(), stacktrace));
     }
     return logEvents;
   }
 
   private String sanitize(String s) {
-    String clean = s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-    if (clean.length() > 300)
-      clean = StringUtils.abbreviate(clean, 300);
-    return clean;
+    StringBuilder text = new StringBuilder();
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      int type = Character.getType(c);
+      boolean notPrintable = type == Character.UNASSIGNED || type == Character.LINE_SEPARATOR
+          || type == Character.NON_SPACING_MARK || type == Character.PRIVATE_USE;
+      text.append(notPrintable ? '?' : c);
+    }
+    return text.toString().replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   }
 
   /**

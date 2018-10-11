@@ -98,10 +98,11 @@
 
         // format stacktrace
         function formatStacktrace(d) {
-          var str = new String();
+          var str = new String("<pre>");
           $.each(d, function( index, value ) {
-            str = str + value + "<br>&nbsp;&nbsp;";
+            str = str + value + "<br>";
           });
+          str = str + "</pre>";
           return str;
         }
 
