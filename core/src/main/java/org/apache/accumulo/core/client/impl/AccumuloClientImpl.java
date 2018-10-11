@@ -53,11 +53,10 @@ import org.apache.accumulo.core.trace.Tracer;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class AccumuloClientImpl extends org.apache.accumulo.core.client.Connector
-    implements AccumuloClient {
+public class AccumuloClientImpl implements AccumuloClient {
   private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security."
       + "SystemCredentials$SystemToken";
-  private final ClientContext context;
+  final ClientContext context;
   private final String instanceID;
   private SecurityOperations secops = null;
   private TableOperationsImpl tableops = null;
@@ -92,17 +91,11 @@ public class AccumuloClientImpl extends org.apache.accumulo.core.client.Connecto
     this.namespaceops = new NamespaceOperationsImpl(context, tableops);
   }
 
-  private Table.ID getTableId(String tableName) throws TableNotFoundException {
+  Table.ID getTableId(String tableName) throws TableNotFoundException {
     Table.ID tableId = Tables.getTableId(context, tableName);
     if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
       throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
     return tableId;
-  }
-
-  @Override
-  @Deprecated
-  public org.apache.accumulo.core.client.Instance getInstance() {
-    return context.getDeprecatedInstance();
   }
 
   @Override
@@ -123,18 +116,6 @@ public class AccumuloClientImpl extends org.apache.accumulo.core.client.Connecto
     return createBatchScanner(tableName, authorizations, numQueryThreads);
   }
 
-  @Deprecated
-  @Override
-  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
-      int numQueryThreads, long maxMemory, long maxLatency, int maxWriteThreads)
-      throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations,
-        numQueryThreads, new BatchWriterConfig().setMaxMemory(maxMemory)
-            .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
-  }
-
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException {
@@ -148,16 +129,6 @@ public class AccumuloClientImpl extends org.apache.accumulo.core.client.Connecto
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads) throws TableNotFoundException {
     return createBatchDeleter(tableName, authorizations, numQueryThreads, new BatchWriterConfig());
-  }
-
-  @Deprecated
-  @Override
-  public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency,
-      int maxWriteThreads) throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    return new BatchWriterImpl(context, getTableId(tableName),
-        new BatchWriterConfig().setMaxMemory(maxMemory)
-            .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override
@@ -175,14 +146,6 @@ public class AccumuloClientImpl extends org.apache.accumulo.core.client.Connecto
   @Override
   public BatchWriter createBatchWriter(String tableName) throws TableNotFoundException {
     return createBatchWriter(tableName, new BatchWriterConfig());
-  }
-
-  @Deprecated
-  @Override
-  public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency,
-      int maxWriteThreads) {
-    return new MultiTableBatchWriterImpl(context, new BatchWriterConfig().setMaxMemory(maxMemory)
-        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override
