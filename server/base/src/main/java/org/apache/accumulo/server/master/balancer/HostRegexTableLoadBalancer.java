@@ -119,7 +119,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   private volatile boolean isIpBasedRegex = false;
   private volatile boolean randomAssignOnEmptyDefaultPool = true;
   private Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = new HashMap<>();
-  private final Random random = new Random();
+  private final Random random = new SecureRandom();
   private volatile int maxTServerMigrations = HOST_BALANCER_REGEX_MAX_MIGRATIONS_DEFAULT;
   private volatile int maxOutstandingMigrations = DEFAULT_OUTSTANDING_MIGRATIONS;
   private final Map<KeyExtent,TabletMigration> migrationsFromLastPass = new HashMap<>();
@@ -342,8 +342,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
         currentView = pools.get(DEFAULT_POOL);
         if (null == currentView) {
           if (randomAssignOnEmptyDefaultPool) {
-            LOG.warn(
-                "No tablet servers exist in the default pool; getting a random pool for assignment");
+            LOG.warn("No tablet servers exist in the default pool; "
+                + "getting a random pool for assignment");
 
             // Create a list of blacklisted pools so we don't pick one that is empty
             Set<String> blacklistedPools = new HashSet<>();
@@ -365,9 +365,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
                 LOG.warn("Pool {} is empty; getting another random pool", randomPool);
                 blacklistedPools.add(randomPool);
               } else {
-                LOG.warn(
-                    "No tablet servers exist in the default pool; assigning tablets for table {} to {}",
-                    tableName, randomPool);
+                LOG.warn("No tablet servers exist in the default pool; "
+                    + "assigning tablets for table {} to {}", tableName, randomPool);
               }
             }
 
@@ -379,7 +378,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
             }
           } else {
             LOG.error(
-                "No tablet servers exist in the default pool and {} is false, unable to assign tablets for table {}",
+                "No tablet servers exist in the default pool and {} is false, "
+                    + "unable to assign tablets for table {}",
                 HOST_BALANCER_RANDOM_ASSIGN_ON_EMPTY_DEFAULT_POOL, tableName);
             continue;
           }
