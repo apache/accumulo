@@ -1787,8 +1787,7 @@ public class RFileTest {
       case CryptoTest.CRYPTO_ON_CONF:
         cfg.set(Property.INSTANCE_CRYPTO_SERVICE,
             "org.apache.accumulo.core.security.crypto.impl.AESCryptoService");
-        cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "key.location", CryptoTest.keyPath);
-        cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "key.provider", "uri");
+        cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "key.uri", CryptoTest.keyPath);
     }
     return cfg;
   }
