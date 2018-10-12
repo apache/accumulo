@@ -61,6 +61,8 @@ public class BulkImportVolumeIT extends AccumuloClusterHarness {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
+  // suppress importDirectory deprecated since this tests legacy failure directory
+  @SuppressWarnings("deprecation")
   @Test
   public void testBulkImportFailure() throws Exception {
     String tableName = getUniqueNames(1)[0];

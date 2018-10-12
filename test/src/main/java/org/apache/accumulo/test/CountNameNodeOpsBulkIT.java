@@ -56,8 +56,11 @@ import com.google.gson.Gson;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-// ACCUMULO-3949, ACCUMULO-3953
-public class GetFileInfoBulkIT extends ConfigurableMacBase {
+/**
+ * Originally written for ACCUMULO-3949 & ACCUMULO-3953 to count the number of FileInfo calls to
+ * the NameNode.  Updated in 2.0 to count the calls for new bulk import comparing it to the old.
+ */
+public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -85,7 +88,7 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void compareOldNewBulkImportTest() throws Exception {
     final AccumuloClient c = getClient();
     getCluster().getClusterControl().kill(ServerType.GARBAGE_COLLECTOR, "localhost");
     final String tableName = getUniqueNames(1)[0];
@@ -113,13 +116,11 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
     fs.mkdirs(base);
 
     ExecutorService es = Executors.newFixedThreadPool(5);
-    List<Future<Pair<String,String>>> futures = new ArrayList<>();
+    List<Future<String>> futures = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       final int which = i;
       futures.add(es.submit(() -> {
-        Path bulkFailures = new Path(base, "failures" + which);
         Path files = new Path(base, "files" + which);
-        fs.mkdirs(bulkFailures);
         fs.mkdirs(files);
         for (int i1 = 0; i1 < 100; i1++) {
           FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
@@ -131,22 +132,20 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
           }
           writer.close();
         }
-        return new Pair<>(files.toString(), bulkFailures.toString());
+        return files.toString();
       }));
     }
-    List<Pair<String,String>> dirs = new ArrayList<>();
-    for (Future<Pair<String,String>> f : futures) {
+    List<String> dirs = new ArrayList<>();
+    for (Future<String> f : futures) {
       dirs.add(f.get());
     }
     log.info("Importing");
     long startOps = getOpts();
     long now = System.currentTimeMillis();
     List<Future<Object>> errs = new ArrayList<>();
-    for (Pair<String,String> entry : dirs) {
-      final String dir = entry.getFirst();
-      final String err = entry.getSecond();
+    for (String dir : dirs) {
       errs.add(es.submit(() -> {
-        c.tableOperations().importDirectory(tableName, dir, err, false);
+        c.tableOperations().importDirectory(dir).to(tableName).load();
         return null;
       }));
     }
@@ -159,8 +158,13 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
         String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
     sleepUninterruptibly(30, TimeUnit.SECONDS);
     long getFileInfoOpts = getOpts() - startOps;
-    log.info("# opts: {}", getFileInfoOpts);
-    assertTrue("unexpected number of getFileOps", getFileInfoOpts < 2100 && getFileInfoOpts > 1000);
+    log.info("New bulk import used {} opts, vs old using 2060", getFileInfoOpts);
+    // counts for old bulk import:
+    // assertTrue("unexpected number of getFileOps", getFileInfoOpts < 2100 && getFileInfoOpts > 1000);
+    // new bulk import is way better :)
+    assertEquals("unexpected number of getFileOps", 20, getFileInfoOpts);
   }
+
+
 
 }
