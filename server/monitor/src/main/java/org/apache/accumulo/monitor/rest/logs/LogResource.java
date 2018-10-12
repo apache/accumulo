@@ -27,6 +27,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.spi.LoggingEvent;
 
 /**
@@ -54,29 +55,31 @@ public class LogResource {
       if (application == null)
         application = "";
       String msg = ev.getMessage().toString();
-      StringBuilder text = new StringBuilder();
-      for (int i = 0; i < msg.length(); i++) {
-        char c = msg.charAt(i);
-        int type = Character.getType(c);
-        boolean notPrintable = type == Character.UNASSIGNED || type == Character.LINE_SEPARATOR
-            || type == Character.NON_SPACING_MARK || type == Character.PRIVATE_USE;
-        text.append(notPrintable ? '?' : c);
-      }
-      StringBuilder builder = new StringBuilder(text.toString());
-      if (ev.getThrowableStrRep() != null)
-        for (String line : ev.getThrowableStrRep())
-          builder.append("\n\t").append(line);
-      msg = sanitize(builder.toString().trim());
+      // truncate if full hadoop errors get logged as a message
+      msg = StringUtils.abbreviate(sanitize(msg), 300);
+
+      String[] stacktrace = ev.getThrowableStrRep();
+      if (stacktrace != null)
+        for (int i = 0; i < stacktrace.length; i++)
+          stacktrace[i] = sanitize(stacktrace[i]);
 
       // Add a new log event to the list
       logEvents.add(new LogEvent(ev.getTimeStamp(), application, dev.getCount(),
-          ev.getLevel().toString(), msg.toString().trim()));
+          ev.getLevel().toString(), msg.trim(), stacktrace));
     }
     return logEvents;
   }
 
-  private String sanitize(String xml) {
-    return xml.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  private String sanitize(String s) {
+    StringBuilder text = new StringBuilder();
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      int type = Character.getType(c);
+      boolean notPrintable = type == Character.UNASSIGNED || type == Character.LINE_SEPARATOR
+          || type == Character.NON_SPACING_MARK || type == Character.PRIVATE_USE;
+      text.append(notPrintable ? '?' : c);
+    }
+    return text.toString().replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   }
 
   /**
