@@ -88,7 +88,8 @@ public class AESCryptoService implements CryptoService {
       default:
         throw new CryptoException("Unrecognized key manager");
     }
-
+    Objects.requireNonNull(this.encryptingKek,
+        "Encrypting Key Encryption Key was null, init failed");
   }
 
   @Override
