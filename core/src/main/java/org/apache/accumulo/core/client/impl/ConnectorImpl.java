@@ -50,6 +50,10 @@ public class ConnectorImpl extends Connector {
     this.impl = impl;
   }
 
+  public AccumuloClientImpl getAccumuloClient() {
+    return impl;
+  }
+
   @Override
   @Deprecated
   public org.apache.accumulo.core.client.Instance getInstance() {
