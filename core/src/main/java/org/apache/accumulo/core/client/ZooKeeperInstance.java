@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
 import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.ClientContext;
 import org.apache.accumulo.core.client.impl.ClientInfoImpl;
+import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.client.impl.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -82,7 +83,6 @@ public class ZooKeeperInstance implements Instance {
    * @param zooKeepers
    *          A comma separated list of zoo keeper server locations. Each location can contain an
    *          optional port, of the format host:port.
-   * @deprecated since 2.0.0; use {@link Accumulo#newClient()} instead
    */
   public ZooKeeperInstance(String instanceName, String zooKeepers) {
     this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
@@ -113,9 +113,7 @@ public class ZooKeeperInstance implements Instance {
    *          {@link ClientConfiguration} which extends Configuration with convenience methods
    *          specific to Accumulo.
    * @since 1.9.0
-   * @deprecated since 2.0.0; use {@link Accumulo#newClient()} instead
    */
-  @Deprecated
   public ZooKeeperInstance(ClientConfiguration config) {
     this(config, new ZooCacheFactory());
   }
@@ -225,7 +223,8 @@ public class ZooKeeperInstance implements Instance {
     Properties properties = ClientConfConverter.toProperties(clientConf);
     properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
     properties.setProperty(ClientProperty.INSTANCE_NAME.getKey(), getInstanceName());
-    return new AccumuloClientImpl(new ClientContext(new ClientInfoImpl(properties, token)));
+    return new ConnectorImpl(
+        new AccumuloClientImpl(new ClientContext(new ClientInfoImpl(properties, token))));
   }
 
   @Override

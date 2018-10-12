@@ -18,8 +18,6 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -33,31 +31,20 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
 
 public class NewTableConfigurationIT extends SharedMiniClusterBase {
-  private static final Logger log = LoggerFactory.getLogger(NewTableConfigurationIT.class);
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -678,150 +665,4 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     return propertyMap;
   }
 
-  public int numProperties(AccumuloClient accumuloClient, String tableName)
-      throws AccumuloException, TableNotFoundException {
-    return Iterators.size(accumuloClient.tableOperations().getProperties(tableName).iterator());
-  }
-
-  public int compareProperties(AccumuloClient accumuloClient, String tableNameOrig,
-      String tableName, String changedProp) throws AccumuloException, TableNotFoundException {
-    boolean inNew = false;
-    int countOrig = 0;
-    for (Entry<String,String> orig : accumuloClient.tableOperations()
-        .getProperties(tableNameOrig)) {
-      countOrig++;
-      for (Entry<String,String> entry : accumuloClient.tableOperations().getProperties(tableName)) {
-        if (entry.equals(orig)) {
-          inNew = true;
-          break;
-        } else if (entry.getKey().equals(orig.getKey()) && !entry.getKey().equals(changedProp))
-          fail("Property " + orig.getKey() + " has different value than deprecated method");
-      }
-      if (!inNew)
-        fail("Original property missing after using the new create method");
-    }
-    return countOrig;
-  }
-
-  public boolean checkTimeType(AccumuloClient accumuloClient, String tableName,
-      TimeType expectedTimeType) throws TableNotFoundException {
-    final Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    String tableID = accumuloClient.tableOperations().tableIdMap().get(tableName) + "<";
-    for (Entry<Key,Value> entry : scanner) {
-      Key k = entry.getKey();
-
-      if (k.getRow().toString().equals(tableID) && k.getColumnQualifier().toString()
-          .equals(ServerColumnFamily.TIME_COLUMN.getColumnQualifier().toString())) {
-        if (expectedTimeType == TimeType.MILLIS && entry.getValue().toString().charAt(0) == 'M')
-          return true;
-        if (expectedTimeType == TimeType.LOGICAL && entry.getValue().toString().charAt(0) == 'L')
-          return true;
-      }
-    }
-    return false;
-  }
-
-  @SuppressWarnings("deprecation")
-  @Test
-  public void tableNameOnly() throws Exception {
-    log.info("Starting tableNameOnly");
-
-    // Create a table with the initial properties
-    AccumuloClient accumuloClient = getClient();
-    String tableName = getUniqueNames(2)[0];
-    accumuloClient.tableOperations().create(tableName, new NewTableConfiguration());
-
-    String tableNameOrig = "original";
-    accumuloClient.tableOperations().create(tableNameOrig, true);
-
-    int countNew = numProperties(accumuloClient, tableName);
-    int countOrig = compareProperties(accumuloClient, tableNameOrig, tableName, null);
-
-    assertEquals("Extra properties using the new create method", countOrig, countNew);
-    assertTrue("Wrong TimeType", checkTimeType(accumuloClient, tableName, TimeType.MILLIS));
-  }
-
-  @SuppressWarnings("deprecation")
-  @Test
-  public void tableNameAndLimitVersion() throws Exception {
-    log.info("Starting tableNameAndLimitVersion");
-
-    // Create a table with the initial properties
-    AccumuloClient accumuloClient = getClient();
-    String tableName = getUniqueNames(2)[0];
-    boolean limitVersion = false;
-    accumuloClient.tableOperations().create(tableName,
-        new NewTableConfiguration().withoutDefaultIterators());
-
-    String tableNameOrig = "originalWithLimitVersion";
-    accumuloClient.tableOperations().create(tableNameOrig, limitVersion);
-
-    int countNew = numProperties(accumuloClient, tableName);
-    int countOrig = compareProperties(accumuloClient, tableNameOrig, tableName, null);
-
-    assertEquals("Extra properties using the new create method", countOrig, countNew);
-    assertTrue("Wrong TimeType", checkTimeType(accumuloClient, tableName, TimeType.MILLIS));
-  }
-
-  @SuppressWarnings("deprecation")
-  @Test
-  public void tableNameLimitVersionAndTimeType() throws Exception {
-    log.info("Starting tableNameLimitVersionAndTimeType");
-
-    // Create a table with the initial properties
-    AccumuloClient accumuloClient = getClient();
-    String tableName = getUniqueNames(2)[0];
-    boolean limitVersion = false;
-    TimeType tt = TimeType.LOGICAL;
-    accumuloClient.tableOperations().create(tableName,
-        new NewTableConfiguration().withoutDefaultIterators().setTimeType(tt));
-
-    String tableNameOrig = "originalWithLimitVersionAndTimeType";
-    accumuloClient.tableOperations().create(tableNameOrig, limitVersion, tt);
-
-    int countNew = numProperties(accumuloClient, tableName);
-    int countOrig = compareProperties(accumuloClient, tableNameOrig, tableName, null);
-
-    assertEquals("Extra properties using the new create method", countOrig, countNew);
-    assertTrue("Wrong TimeType", checkTimeType(accumuloClient, tableName, tt));
-  }
-
-  @SuppressWarnings("deprecation")
-  @Test
-  public void addCustomPropAndChangeExisting() throws Exception {
-    log.info("Starting addCustomPropAndChangeExisting");
-
-    // Create and populate initial properties map for creating table 1
-    Map<String,String> properties = new HashMap<>();
-    String propertyName = Property.TABLE_SPLIT_THRESHOLD.getKey();
-    String volume = "10K";
-    properties.put(propertyName, volume);
-
-    String propertyName2 = "table.custom.testProp";
-    String volume2 = "Test property";
-    properties.put(propertyName2, volume2);
-
-    // Create a table with the initial properties
-    AccumuloClient accumuloClient = getClient();
-    String tableName = getUniqueNames(2)[0];
-    accumuloClient.tableOperations().create(tableName,
-        new NewTableConfiguration().setProperties(properties));
-
-    String tableNameOrig = "originalWithTableName";
-    accumuloClient.tableOperations().create(tableNameOrig, true);
-
-    int countNew = numProperties(accumuloClient, tableName);
-    int countOrig = compareProperties(accumuloClient, tableNameOrig, tableName, propertyName);
-
-    for (Entry<String,String> entry : accumuloClient.tableOperations().getProperties(tableName)) {
-      if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-        assertEquals("TABLE_SPLIT_THRESHOLD has been changed", "10K", entry.getValue());
-      if (entry.getKey().equals("table.custom.testProp"))
-        assertEquals("table.custom.testProp has been changed", "Test property", entry.getValue());
-    }
-
-    assertEquals("Extra properties using the new create method", countOrig + 1, countNew);
-    assertTrue("Wrong TimeType", checkTimeType(accumuloClient, tableName, TimeType.MILLIS));
-
-  }
 }

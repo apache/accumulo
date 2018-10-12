@@ -291,24 +291,6 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     return smi.scanner.getAuthorizations();
   }
 
-  @Deprecated
-  @Override
-  public void setTimeOut(int timeOut) {
-    if (timeOut == Integer.MAX_VALUE)
-      setTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-    else
-      setTimeout(timeOut, TimeUnit.SECONDS);
-  }
-
-  @Deprecated
-  @Override
-  public int getTimeOut() {
-    long timeout = getTimeout(TimeUnit.SECONDS);
-    if (timeout >= Integer.MAX_VALUE)
-      return Integer.MAX_VALUE;
-    return (int) timeout;
-  }
-
   @Override
   public void setRange(final Range range) {
     this.range = range;

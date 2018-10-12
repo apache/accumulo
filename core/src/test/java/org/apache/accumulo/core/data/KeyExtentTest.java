@@ -16,13 +16,9 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -30,9 +26,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -292,57 +285,6 @@ public class KeyExtentTest {
     out.readFields(new DataInputStream(bais));
 
     return out;
-  }
-
-  @SuppressWarnings("deprecation")
-  @Test
-  public void testKeyExtentsForSimpleRange() {
-    Collection<KeyExtent> results;
-
-    results = KeyExtent.getKeyExtentsForRange(null, null, null);
-    assertTrue("Non-empty set returned from no extents", results.isEmpty());
-
-    results = KeyExtent.getKeyExtentsForRange(null, null, Collections.emptySet());
-    assertTrue("Non-empty set returned from no extents", results.isEmpty());
-
-    KeyExtent t = nke("t", null, null);
-    results = KeyExtent.getKeyExtentsForRange(null, null, Collections.singleton(t));
-    assertEquals("Single tablet should always be returned", 1, results.size());
-    assertEquals(t, results.iterator().next());
-  }
-
-  @SuppressWarnings("deprecation")
-  @Test
-  public void testKeyExtentsForRange() {
-    KeyExtent b = nke("t", "b", null);
-    KeyExtent e = nke("t", "e", "b");
-    KeyExtent h = nke("t", "h", "e");
-    KeyExtent m = nke("t", "m", "h");
-    KeyExtent z = nke("t", null, "m");
-
-    set0.addAll(Arrays.asList(b, e, h, m, z));
-
-    Collection<KeyExtent> results;
-
-    results = KeyExtent.getKeyExtentsForRange(null, null, set0);
-    assertThat("infinite range should return full set", results.size(), is(5));
-    assertThat("infinite range should return full set", results, hasItems(b, e, h, m, z));
-
-    results = KeyExtent.getKeyExtentsForRange(new Text("a"), new Text("z"), set0);
-    assertThat("full overlap should return full set", results.size(), is(5));
-    assertThat("full overlap should return full set", results, hasItems(b, e, h, m, z));
-
-    results = KeyExtent.getKeyExtentsForRange(null, new Text("f"), set0);
-    assertThat("end row should return head set", results.size(), is(3));
-    assertThat("end row should return head set", results, hasItems(b, e, h));
-
-    results = KeyExtent.getKeyExtentsForRange(new Text("f"), null, set0);
-    assertThat("start row should return tail set", results.size(), is(3));
-    assertThat("start row should return tail set", results, hasItems(h, m, z));
-
-    results = KeyExtent.getKeyExtentsForRange(new Text("f"), new Text("g"), set0);
-    assertThat("slice should return correct subset", results.size(), is(1));
-    assertThat("slice should return correct subset", results, hasItem(h));
   }
 
   @Test

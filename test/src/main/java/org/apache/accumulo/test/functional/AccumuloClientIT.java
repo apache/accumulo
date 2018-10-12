@@ -31,6 +31,15 @@ import org.junit.Test;
 
 public class AccumuloClientIT extends AccumuloClusterHarness {
 
+  @SuppressWarnings("deprecation")
+  @Test
+  public void testGetConnectorFromAccumuloClient() {
+    AccumuloClient client = getAccumuloClient();
+    org.apache.accumulo.core.client.Connector c = org.apache.accumulo.core.client.Connector
+        .from(client);
+    assertEquals(client.whoami(), c.whoami());
+  }
+
   @Test
   public void testclientectorBuilder() throws Exception {
     AccumuloClient c = getAccumuloClient();

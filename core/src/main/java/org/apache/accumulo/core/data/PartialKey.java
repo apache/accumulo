@@ -35,24 +35,6 @@ public enum PartialKey {
   }
 
   /**
-   * Get a partial key specification by depth of the specification.
-   *
-   * @param depth
-   *          depth of scope (i.e., number of fields included)
-   * @return partial key
-   * @throws IllegalArgumentException
-   *           if no partial key has the given depth
-   * @deprecated since 1.7.0
-   */
-  @Deprecated
-  public static PartialKey getByDepth(int depth) {
-    for (PartialKey d : PartialKey.values())
-      if (depth == d.depth)
-        return d;
-    throw new IllegalArgumentException("Invalid legacy depth " + depth);
-  }
-
-  /**
    * Gets the depth of this partial key.
    *
    * @return depth

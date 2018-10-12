@@ -22,8 +22,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.apache.accumulo.core.security.Authorizations;
-
 public class Constants {
 
   public static final String VERSION = FilteredConstants.VERSION;
@@ -110,12 +108,6 @@ public class Constants {
 
   // Security configuration
   public static final String PW_HASH_ALGORITHM = "SHA-256";
-
-  /**
-   * @deprecated since 1.6.0; Use {@link Authorizations#EMPTY} instead
-   */
-  @Deprecated
-  public static final Authorizations NO_AUTHS = Authorizations.EMPTY;
 
   public static final int MAX_DATA_TO_PRINT = 64;
   public static final String CORE_PACKAGE_NAME = "org.apache.accumulo.core";

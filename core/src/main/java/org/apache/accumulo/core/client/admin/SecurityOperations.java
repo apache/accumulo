@@ -36,26 +36,6 @@ public interface SecurityOperations {
   /**
    * Create a user
    *
-   * @param user
-   *          the name of the user to create
-   * @param password
-   *          the plaintext password for the user
-   * @param authorizations
-   *          the authorizations that the user has for scanning
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to create a user
-   * @deprecated since 1.5.0; use {@link #createLocalUser(String, PasswordToken)} or the user
-   *             management functions of your configured authenticator instead.
-   */
-  @Deprecated
-  void createUser(String user, byte[] password, Authorizations authorizations)
-      throws AccumuloException, AccumuloSecurityException;
-
-  /**
-   * Create a user
-   *
    * @param principal
    *          the name of the user to create
    * @param password
@@ -68,21 +48,6 @@ public interface SecurityOperations {
    */
   void createLocalUser(String principal, PasswordToken password)
       throws AccumuloException, AccumuloSecurityException;
-
-  /**
-   * Delete a user
-   *
-   * @param user
-   *          the user name to delete
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to delete a user
-   * @deprecated since 1.5.0; use {@link #dropLocalUser(String)} or the user management functions of
-   *             your configured authenticator instead.
-   */
-  @Deprecated
-  void dropUser(String user) throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Delete a user
@@ -100,25 +65,6 @@ public interface SecurityOperations {
   /**
    * Verify a username/password combination is valid
    *
-   * @param user
-   *          the name of the user to authenticate
-   * @param password
-   *          the plaintext password for the user
-   * @return true if the user asking is allowed to know and the specified user/password is valid,
-   *         false otherwise
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to ask
-   * @deprecated since 1.5.0; use {@link #authenticateUser(String, AuthenticationToken)} instead.
-   */
-  @Deprecated
-  boolean authenticateUser(String user, byte[] password)
-      throws AccumuloException, AccumuloSecurityException;
-
-  /**
-   * Verify a username/password combination is valid
-   *
    * @param principal
    *          the name of the user to authenticate
    * @param token
@@ -132,24 +78,6 @@ public interface SecurityOperations {
    * @since 1.5.0
    */
   boolean authenticateUser(String principal, AuthenticationToken token)
-      throws AccumuloException, AccumuloSecurityException;
-
-  /**
-   * Set the user's password
-   *
-   * @param user
-   *          the name of the user to modify
-   * @param password
-   *          the plaintext password for the user
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to modify a user
-   * @deprecated since 1.5.0; use {@link #changeLocalUserPassword(String, PasswordToken)} or the
-   *             user management functions of your configured authenticator instead.
-   */
-  @Deprecated
-  void changeUserPassword(String user, byte[] password)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -346,20 +274,6 @@ public interface SecurityOperations {
    */
   void revokeNamespacePermission(String principal, String namespace, NamespacePermission permission)
       throws AccumuloException, AccumuloSecurityException;
-
-  /**
-   * Return a list of users in accumulo
-   *
-   * @return a set of user names
-   * @throws AccumuloException
-   *           if a general error occurs
-   * @throws AccumuloSecurityException
-   *           if the user does not have permission to query users
-   * @deprecated since 1.5.0; use {@link #listLocalUsers()} or the user management functions of your
-   *             configured authenticator instead.
-   */
-  @Deprecated
-  Set<String> listUsers() throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Return a list of users in accumulo

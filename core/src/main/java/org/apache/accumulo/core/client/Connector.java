@@ -21,6 +21,8 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
+import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
@@ -30,9 +32,10 @@ import org.apache.accumulo.core.security.Authorizations;
  * The Connector enforces security on the client side by forcing all API calls to be accompanied by
  * user credentials.
  *
- * @deprecated since 2.0.0. Use {@link AccumuloClient} for wiriting new code. Connector is available
+ * @deprecated since 2.0.0. Use {@link AccumuloClient} for writing new code. Connector is available
  *             for existing code. Use {@link #from(AccumuloClient)} as a bridge between the two.
  */
+@Deprecated
 public abstract class Connector {
 
   /**
@@ -106,7 +109,6 @@ public abstract class Connector {
    * @return BatchDeleter object for configuring and deleting
    * @since 1.5.0
    */
-
   public abstract BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException;
 
@@ -221,9 +223,7 @@ public abstract class Connector {
    * Accessor method for internal instance object.
    *
    * @return the internal instance object
-   * @deprecated since 2.0.0, use {@link AccumuloClient#info()} instead
    */
-  @Deprecated
   public abstract Instance getInstance();
 
   /**
@@ -277,6 +277,6 @@ public abstract class Connector {
    * @since 2.0
    */
   public static Connector from(AccumuloClient client) {
-    return (Connector) client;
+    return new ConnectorImpl((AccumuloClientImpl) client);
   }
 }
