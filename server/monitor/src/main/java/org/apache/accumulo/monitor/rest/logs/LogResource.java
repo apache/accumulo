@@ -55,10 +55,8 @@ public class LogResource {
       if (application == null)
         application = "";
       String msg = ev.getMessage().toString();
-      msg = sanitize(msg);
-
-      if (msg.length() > 300)
-        msg = StringUtils.abbreviate(msg, 300);
+      // truncate if full hadoop errors get logged as a message
+      msg = StringUtils.abbreviate(sanitize(msg), 300);
 
       String[] stacktrace = ev.getThrowableStrRep();
       if (stacktrace != null)
