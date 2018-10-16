@@ -183,6 +183,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
         throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException {}
 
