@@ -146,14 +146,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
 
     if (newPools.get(DEFAULT_POOL) == null) {
       LOG.warn("Default pool is empty; assigning all tablet servers to the default pool");
-      for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
-        SortedMap<TServerInstance,TabletServerStatus> np = newPools.get(DEFAULT_POOL);
-        if (null == np) {
-          np = new TreeMap<>(current.comparator());
-          newPools.put(DEFAULT_POOL, np);
-        }
-        np.put(e.getKey(), e.getValue());
-      }
+      SortedMap<TServerInstance, TabletServerStatus> dp = new TreeMap<>(current.comparator());
+      dp.putAll(current);
+      newPools.put(DEFAULT_POOL, dp);
     }
 
     pools = newPools;
