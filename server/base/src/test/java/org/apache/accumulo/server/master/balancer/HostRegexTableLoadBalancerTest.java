@@ -231,25 +231,31 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     });
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups = this
         .splitCurrentByRegex(createCurrent(15));
-    assertEquals(2, groups.size());
+
+    // Groups foo, bar, and the default pool which contains all known hosts
+    assertEquals(3, groups.size());
     assertTrue(groups.containsKey(FOO.getTableName()));
-    SortedMap<TServerInstance,TabletServerStatus> fooHosts = groups.get(FOO.getTableName());
-    assertEquals(15, fooHosts.size());
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.3:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.4:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.5:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.6:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.7:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.8:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.9:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.10:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.11:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.12:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.13:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.14:9997", 1)));
-    assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.15:9997", 1)));
+    assertTrue(groups.containsKey(DEFAULT_POOL));
+    for (String pool : new String[] {FOO.getTableName(), DEFAULT_POOL}) {
+      SortedMap<TServerInstance, TabletServerStatus> fooHosts = groups.get(pool);
+      assertEquals(15, fooHosts.size());
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.3:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.4:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.5:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.6:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.7:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.8:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.9:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.10:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.11:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.12:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.13:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.14:9997", 1)));
+      assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.15:9997", 1)));
+    }
+
     assertTrue(groups.containsKey(BAR.getTableName()));
     SortedMap<TServerInstance,TabletServerStatus> barHosts = groups.get(BAR.getTableName());
     assertEquals(10, barHosts.size());
@@ -491,47 +497,6 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
         fail("tablet unexpectedly in bounds: " + e.getKey() + " -> " + e.getValue().host());
       }
     }
-  }
-
-  @Test
-  public void testUnassignedWithNoDefaultPoolNoRandomAssign() {
-    init();
-    Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
-    Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
-    for (KeyExtent ke : tableExtents.get(BAR.getTableName())) {
-      unassigned.put(ke, null);
-    }
-
-    SortedMap<TServerInstance,TabletServerStatus> current = createCurrent(15);
-    // Remove the BAR tablet servers and default pool from current
-    List<TServerInstance> removals = new ArrayList<>();
-    for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
-      if (e.getKey().host().equals("192.168.0.6") || e.getKey().host().equals("192.168.0.7")
-          || e.getKey().host().equals("192.168.0.8") || e.getKey().host().equals("192.168.0.9")
-          || e.getKey().host().equals("192.168.0.10") || e.getKey().host().equals("192.168.0.11")
-          || e.getKey().host().equals("192.168.0.12") || e.getKey().host().equals("192.168.0.13")
-          || e.getKey().host().equals("192.168.0.14") || e.getKey().host().equals("192.168.0.15")) {
-        removals.add(e.getKey());
-      }
-    }
-
-    for (TServerInstance r : removals) {
-      current.remove(r);
-    }
-
-    // Change property to not assign if the default pool is empty
-    DEFAULT_TABLE_PROPERTIES
-        .put(HostRegexTableLoadBalancer.HOST_BALANCER_RANDOM_ASSIGN_ON_EMPTY_DEFAULT_POOL, "false");
-    this.propertiesChanged();
-
-    // Run the assignments and set the default property back
-    this.getAssignments(Collections.unmodifiableSortedMap(current),
-        Collections.unmodifiableMap(unassigned), assignments);
-    DEFAULT_TABLE_PROPERTIES
-        .put(HostRegexTableLoadBalancer.HOST_BALANCER_RANDOM_ASSIGN_ON_EMPTY_DEFAULT_POOL, "true");
-
-    // Assert that nothing was assigned
-    assertEquals(0, assignments.size());
   }
 
   @Test
