@@ -237,7 +237,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     assertTrue(groups.containsKey(FOO.getTableName()));
     assertTrue(groups.containsKey(DEFAULT_POOL));
     for (String pool : new String[] {FOO.getTableName(), DEFAULT_POOL}) {
-      SortedMap<TServerInstance, TabletServerStatus> fooHosts = groups.get(pool);
+      SortedMap<TServerInstance,TabletServerStatus> fooHosts = groups.get(pool);
       assertEquals(15, fooHosts.size());
       assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.1:9997", 1)));
       assertTrue(fooHosts.containsKey(new TServerInstance("192.168.0.2:9997", 1)));
