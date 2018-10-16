@@ -18,7 +18,6 @@ package org.apache.accumulo.test;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -41,7 +40,6 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -57,8 +55,8 @@ import com.google.gson.Gson;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * Originally written for ACCUMULO-3949 & ACCUMULO-3953 to count the number of FileInfo calls to
- * the NameNode.  Updated in 2.0 to count the calls for new bulk import comparing it to the old.
+ * Originally written for ACCUMULO-3949 and ACCUMULO-3953 to count the number of FileInfo calls to
+ * the NameNode. Updated in 2.0 to count the calls for new bulk import comparing it to the old.
  */
 public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
 
@@ -160,11 +158,10 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     long getFileInfoOpts = getOpts() - startOps;
     log.info("New bulk import used {} opts, vs old using 2060", getFileInfoOpts);
     // counts for old bulk import:
-    // assertTrue("unexpected number of getFileOps", getFileInfoOpts < 2100 && getFileInfoOpts > 1000);
+    // assertTrue("unexpected number of getFileOps", getFileInfoOpts < 2100 && getFileInfoOpts >
+    // 1000);
     // new bulk import is way better :)
     assertEquals("unexpected number of getFileOps", 20, getFileInfoOpts);
   }
-
-
 
 }
