@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -68,7 +69,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
 
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "URLCONNECTION_SSRF_FD"},
       justification = "path provided by test; url provided by test")
-  private long getOpts() throws Exception {
+  private Map<String,?> getStats() throws Exception {
     String uri = getCluster().getMiniDfs().getHttpUri(0);
     URL url = new URL(uri + "/jmx");
     log.debug("Fetching web page " + url);
@@ -77,12 +78,16 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     Map<?,?> jsonObject = (Map<?,?>) gson.fromJson(jsonString, Object.class);
     List<?> beans = (List<?>) jsonObject.get("beans");
     for (Object bean : beans) {
-      Map<?,?> map = (Map<?,?>) bean;
+      Map<String,?> map = (Map<String,?>) bean;
       if (map.get("name").toString().equals("Hadoop:service=NameNode,name=NameNodeActivity")) {
-        return (long) Double.parseDouble(map.get("FileInfoOps").toString());
+        return map;
       }
     }
-    return 0;
+    return new HashMap<>(0);
+  }
+
+  private long getStat(Map<String,?> map, String stat) {
+    return (long) Double.parseDouble(map.get(stat).toString());
   }
 
   @Test
@@ -138,7 +143,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       dirs.add(f.get());
     }
     log.info("Importing");
-    long startOps = getOpts();
+    long startOps = getStat(getStats(), "FileInfoOps");
     long now = System.currentTimeMillis();
     List<Future<Object>> errs = new ArrayList<>();
     for (String dir : dirs) {
@@ -155,7 +160,14 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     log.info(
         String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
     sleepUninterruptibly(30, TimeUnit.SECONDS);
-    long getFileInfoOpts = getOpts() - startOps;
+    Map<String,?> map = getStats();
+    map.forEach((k, v) -> {
+      try {
+        if (v != null && Double.parseDouble(v.toString()) > 0.0)
+          log.debug("{}:{}", k, v);
+      } catch (NumberFormatException e) {}
+    });
+    long getFileInfoOpts = getStat(map, "FileInfoOps") - startOps;
     log.info("New bulk import used {} opts, vs old using 2060", getFileInfoOpts);
     // counts for old bulk import:
     // assertTrue("unexpected number of getFileOps", getFileInfoOpts < 2100 && getFileInfoOpts >
