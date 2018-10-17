@@ -717,13 +717,15 @@ public class SummaryIT extends AccumuloClusterHarness {
     SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FamilySummarizer.class).build();
     SummarizerConfiguration sc2 = SummarizerConfiguration.builder(BasicSummarizer.class).build();
     ntc.enableSummarization(sc1, sc2);
-    c.tableOperations().create(table, ntc);
 
     Map<String,Set<Text>> lgroups = new HashMap<>();
     lgroups.put("lg1", ImmutableSet.of(new Text("chocolate"), new Text("coffee")));
     lgroups.put("lg2", ImmutableSet.of(new Text(" broccoli "), new Text("cabbage")));
+    // create a locality group that will not have data in it
+    lgroups.put("lg3", ImmutableSet.of(new Text(" apple "), new Text("orange")));
 
-    c.tableOperations().setLocalityGroups(table, lgroups);
+    ntc.setLocalityGroups(lgroups);
+    c.tableOperations().create(table, ntc);
 
     Map<Key,Value> expected = new HashMap<>();
     try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
