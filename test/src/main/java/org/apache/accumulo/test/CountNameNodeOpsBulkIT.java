@@ -75,7 +75,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     log.debug("Fetching web page " + url);
     String jsonString = FunctionalTestUtils.readAll(url.openStream());
     Gson gson = new Gson();
-    Map<?,?> jsonObject = (Map<?,?>) gson.fromJson(jsonString, Object.class);
+    Map<?,?> jsonObject = gson.fromJson(jsonString, Map.class);
     List<?> beans = (List<?>) jsonObject.get("beans");
     for (Object bean : beans) {
       Map<?,?> map = (Map<?,?>) bean;
@@ -165,7 +165,9 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       try {
         if (v != null && Double.parseDouble(v.toString()) > 0.0)
           log.debug("{}:{}", k, v);
-      } catch (NumberFormatException e) {}
+      } catch (NumberFormatException e) {
+        // only looking for numbers
+      }
     });
     long getFileInfoOpts = getStat(map, "FileInfoOps") - startOps;
     log.info("New bulk import used {} opts, vs old using 2060", getFileInfoOpts);
