@@ -433,6 +433,10 @@ class SummarySerializer {
 
     boolean exceedsRange(Text startRow, Text endRow) {
 
+      if (summaries.length == 0) {
+        return false;
+      }
+
       Text lastRow = summaries[summaries.length - 1].lastRow;
       if (startRow != null && firstRow.compareTo(startRow) <= 0
           && startRow.compareTo(lastRow) < 0) {
