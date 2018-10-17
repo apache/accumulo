@@ -69,7 +69,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
 
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "URLCONNECTION_SSRF_FD"},
       justification = "path provided by test; url provided by test")
-  private Map<String,?> getStats() throws Exception {
+  private Map<?,?> getStats() throws Exception {
     String uri = getCluster().getMiniDfs().getHttpUri(0);
     URL url = new URL(uri + "/jmx");
     log.debug("Fetching web page " + url);
@@ -78,7 +78,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     Map<?,?> jsonObject = (Map<?,?>) gson.fromJson(jsonString, Object.class);
     List<?> beans = (List<?>) jsonObject.get("beans");
     for (Object bean : beans) {
-      Map<String,?> map = (Map<String,?>) bean;
+      Map<?,?> map = (Map<?,?>) bean;
       if (map.get("name").toString().equals("Hadoop:service=NameNode,name=NameNodeActivity")) {
         return map;
       }
@@ -86,7 +86,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     return new HashMap<>(0);
   }
 
-  private long getStat(Map<String,?> map, String stat) {
+  private long getStat(Map<?,?> map, String stat) {
     return (long) Double.parseDouble(map.get(stat).toString());
   }
 
@@ -160,7 +160,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     log.info(
         String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
     sleepUninterruptibly(30, TimeUnit.SECONDS);
-    Map<String,?> map = getStats();
+    Map<?,?> map = getStats();
     map.forEach((k, v) -> {
       try {
         if (v != null && Double.parseDouble(v.toString()) > 0.0)
@@ -170,10 +170,9 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     long getFileInfoOpts = getStat(map, "FileInfoOps") - startOps;
     log.info("New bulk import used {} opts, vs old using 2060", getFileInfoOpts);
     // counts for old bulk import:
-    // assertTrue("unexpected number of getFileOps", getFileInfoOpts < 2100 && getFileInfoOpts >
-    // 1000);
+    // Expected number of FileInfoOps was between 1000 and 2100
     // new bulk import is way better :)
-    assertEquals("unexpected number of getFileOps", 20, getFileInfoOpts);
+    assertEquals("unexpected number of FileInfoOps", 20, getFileInfoOpts);
   }
 
 }
