@@ -43,6 +43,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+/**
+ * Tests old bulk import technique. For new bulk import see {@link BulkFileIT}
+ */
 public class BulkFileIT extends AccumuloClusterHarness {
 
   @Override
@@ -55,6 +58,8 @@ public class BulkFileIT extends AccumuloClusterHarness {
     return 4 * 60;
   }
 
+  // suppress importDirectory deprecated since this is the only test for legacy technique
+  @SuppressWarnings("deprecation")
   @Test
   public void testBulkFile() throws Exception {
     AccumuloClient c = getAccumuloClient();
@@ -78,7 +83,17 @@ public class BulkFileIT extends AccumuloClusterHarness {
     writeData(conf, aconf, fs, dir, "f2", 334, 999);
     writeData(conf, aconf, fs, dir, "f3", 1000, 1999);
 
-    c.tableOperations().importDirectory(dir).to(tableName).load();
+    String failDir = dir + "_failures";
+    Path failPath = new Path(failDir);
+    fs.delete(failPath, true);
+    fs.mkdirs(failPath);
+
+    // Ensure server can read/modify files
+    c.tableOperations().importDirectory(tableName, dir, failDir, false);
+
+    if (fs.listStatus(failPath).length > 0) {
+      throw new Exception("Some files failed to bulk import");
+    }
 
     FunctionalTestUtils.checkRFiles(c, tableName, 6, 6, 1, 1);
 

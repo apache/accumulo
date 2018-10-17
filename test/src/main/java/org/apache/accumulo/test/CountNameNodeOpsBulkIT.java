@@ -18,10 +18,10 @@ package org.apache.accumulo.test;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -41,7 +41,6 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -56,8 +55,11 @@ import com.google.gson.Gson;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-// ACCUMULO-3949, ACCUMULO-3953
-public class GetFileInfoBulkIT extends ConfigurableMacBase {
+/**
+ * Originally written for ACCUMULO-3949 and ACCUMULO-3953 to count the number of FileInfo calls to
+ * the NameNode. Updated in 2.0 to count the calls for new bulk import comparing it to the old.
+ */
+public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -67,25 +69,29 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
 
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "URLCONNECTION_SSRF_FD"},
       justification = "path provided by test; url provided by test")
-  private long getOpts() throws Exception {
+  private Map<?,?> getStats() throws Exception {
     String uri = getCluster().getMiniDfs().getHttpUri(0);
     URL url = new URL(uri + "/jmx");
     log.debug("Fetching web page " + url);
     String jsonString = FunctionalTestUtils.readAll(url.openStream());
     Gson gson = new Gson();
-    Map<?,?> jsonObject = (Map<?,?>) gson.fromJson(jsonString, Object.class);
+    Map<?,?> jsonObject = gson.fromJson(jsonString, Map.class);
     List<?> beans = (List<?>) jsonObject.get("beans");
     for (Object bean : beans) {
       Map<?,?> map = (Map<?,?>) bean;
       if (map.get("name").toString().equals("Hadoop:service=NameNode,name=NameNodeActivity")) {
-        return (long) Double.parseDouble(map.get("FileInfoOps").toString());
+        return map;
       }
     }
-    return 0;
+    return new HashMap<>(0);
+  }
+
+  private long getStat(Map<?,?> map, String stat) {
+    return (long) Double.parseDouble(map.get(stat).toString());
   }
 
   @Test
-  public void test() throws Exception {
+  public void compareOldNewBulkImportTest() throws Exception {
     final AccumuloClient c = getClient();
     getCluster().getClusterControl().kill(ServerType.GARBAGE_COLLECTOR, "localhost");
     final String tableName = getUniqueNames(1)[0];
@@ -113,13 +119,11 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
     fs.mkdirs(base);
 
     ExecutorService es = Executors.newFixedThreadPool(5);
-    List<Future<Pair<String,String>>> futures = new ArrayList<>();
+    List<Future<String>> futures = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       final int which = i;
       futures.add(es.submit(() -> {
-        Path bulkFailures = new Path(base, "failures" + which);
         Path files = new Path(base, "files" + which);
-        fs.mkdirs(bulkFailures);
         fs.mkdirs(files);
         for (int i1 = 0; i1 < 100; i1++) {
           FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
@@ -131,22 +135,20 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
           }
           writer.close();
         }
-        return new Pair<>(files.toString(), bulkFailures.toString());
+        return files.toString();
       }));
     }
-    List<Pair<String,String>> dirs = new ArrayList<>();
-    for (Future<Pair<String,String>> f : futures) {
+    List<String> dirs = new ArrayList<>();
+    for (Future<String> f : futures) {
       dirs.add(f.get());
     }
     log.info("Importing");
-    long startOps = getOpts();
+    long startOps = getStat(getStats(), "FileInfoOps");
     long now = System.currentTimeMillis();
     List<Future<Object>> errs = new ArrayList<>();
-    for (Pair<String,String> entry : dirs) {
-      final String dir = entry.getFirst();
-      final String err = entry.getSecond();
+    for (String dir : dirs) {
       errs.add(es.submit(() -> {
-        c.tableOperations().importDirectory(tableName, dir, err, false);
+        c.tableOperations().importDirectory(dir).to(tableName).load();
         return null;
       }));
     }
@@ -158,9 +160,21 @@ public class GetFileInfoBulkIT extends ConfigurableMacBase {
     log.info(
         String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
     sleepUninterruptibly(30, TimeUnit.SECONDS);
-    long getFileInfoOpts = getOpts() - startOps;
-    log.info("# opts: {}", getFileInfoOpts);
-    assertTrue("unexpected number of getFileOps", getFileInfoOpts < 2100 && getFileInfoOpts > 1000);
+    Map<?,?> map = getStats();
+    map.forEach((k, v) -> {
+      try {
+        if (v != null && Double.parseDouble(v.toString()) > 0.0)
+          log.debug("{}:{}", k, v);
+      } catch (NumberFormatException e) {
+        // only looking for numbers
+      }
+    });
+    long getFileInfoOpts = getStat(map, "FileInfoOps") - startOps;
+    log.info("New bulk import used {} opts, vs old using 2060", getFileInfoOpts);
+    // counts for old bulk import:
+    // Expected number of FileInfoOps was between 1000 and 2100
+    // new bulk import is way better :)
+    assertEquals("unexpected number of FileInfoOps", 20, getFileInfoOpts);
   }
 
 }

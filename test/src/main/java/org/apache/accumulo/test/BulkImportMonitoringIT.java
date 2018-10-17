@@ -56,6 +56,8 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
     cfg.useMiniDFS(true);
   }
 
+  // suppress importDirectory deprecated since this tests legacy monitoring
+  @SuppressWarnings("deprecation")
   @Test
   public void test() throws Exception {
     getCluster().getClusterControl().start(ServerType.MONITOR);
