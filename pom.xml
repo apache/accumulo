@@ -78,9 +78,7 @@
   </mailingLists>
   <modules>
     <module>assemble</module>
-    <!--
     <module>client/mapreduce</module>
-    -->
     <module>core</module>
     <module>iterator-test-harness</module>
     <module>minicluster</module>
