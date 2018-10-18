@@ -138,11 +138,13 @@
       <artifactId>log4j</artifactId>
       <optional>true</optional>
     </dependency>
+    <!--
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-client-mapreduce</artifactId>
       <optional>true</optional>
     </dependency>
+    -->
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
