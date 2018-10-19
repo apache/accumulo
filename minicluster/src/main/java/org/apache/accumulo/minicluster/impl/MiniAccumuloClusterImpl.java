@@ -54,6 +54,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -82,7 +83,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.master.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -542,7 +543,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-      Path instanceIdPath = Accumulo.getAccumuloInstanceIdPath(fs);
+      Path instanceIdPath = ServerUtil.getAccumuloInstanceIdPath(fs);
 
       String instanceIdFromFile = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, cc, hadoopConf);
       IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(
@@ -783,8 +784,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public AccumuloClient getAccumuloClient(String user, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
-    return new AccumuloClientImpl.AccumuloClientBuilderImpl().usingClientInfo(getClientInfo())
-        .usingToken(user, token).build();
+    return Accumulo.newClient().usingClientInfo(getClientInfo()).usingToken(user, token).build();
   }
 
   @SuppressWarnings("deprecation")
@@ -797,7 +797,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public ClientInfo getClientInfo() {
     if (clientInfo == null) {
-      clientInfo = new AccumuloClientImpl.AccumuloClientBuilderImpl()
+      clientInfo = Accumulo.newClient()
           .usingProperties(config.getClientPropsFile().getAbsolutePath()).info();
     }
     return clientInfo;

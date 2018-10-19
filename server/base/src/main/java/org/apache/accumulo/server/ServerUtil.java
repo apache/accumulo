@@ -47,9 +47,9 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Accumulo {
+public class ServerUtil {
 
-  private static final Logger log = LoggerFactory.getLogger(Accumulo.class);
+  private static final Logger log = LoggerFactory.getLogger(ServerUtil.class);
 
   public static synchronized void updateAccumuloVersion(VolumeManager fs, int oldVersion) {
     for (Volume volume : fs.getVolumes()) {
@@ -104,14 +104,14 @@ public class Accumulo {
     return ServerConstants.getInstanceIdLocation(v);
   }
 
-  public static void init(ServerContext context, String application) throws IOException {
+  public static void init(ServerContext context, String application) {
     final AccumuloConfiguration conf = context.getConfiguration();
 
     log.info("{} starting", application);
     log.info("Instance {}", context.getInstanceID());
-    int dataVersion = Accumulo.getAccumuloPersistentVersion(context.getVolumeManager());
+    int dataVersion = ServerUtil.getAccumuloPersistentVersion(context.getVolumeManager());
     log.info("Data Version {}", dataVersion);
-    Accumulo.waitForZookeeperAndHdfs(context);
+    ServerUtil.waitForZookeeperAndHdfs(context);
 
     if (!(canUpgradeFromDataVersion(dataVersion))) {
       throw new RuntimeException("This version of accumulo (" + Constants.VERSION
@@ -159,33 +159,27 @@ public class Accumulo {
     return ServerConstants.NEEDS_UPGRADE.get(accumuloPersistentVersion);
   }
 
-  /**
-   *
-   */
   public static void monitorSwappiness(AccumuloConfiguration config) {
-    SimpleTimer.getInstance(config).schedule(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          String procFile = "/proc/sys/vm/swappiness";
-          File swappiness = new File(procFile);
-          if (swappiness.exists() && swappiness.canRead()) {
-            try (InputStream is = new FileInputStream(procFile)) {
-              byte[] buffer = new byte[10];
-              int bytes = is.read(buffer);
-              String setting = new String(buffer, 0, bytes, UTF_8);
-              setting = setting.trim();
-              if (bytes > 0 && Integer.parseInt(setting) > 10) {
-                log.warn("System swappiness setting is greater than ten ({})"
-                    + " which can cause time-sensitive operations to be delayed."
-                    + " Accumulo is time sensitive because it needs to maintain"
-                    + " distributed lock agreement.", setting);
-              }
+    SimpleTimer.getInstance(config).schedule(() -> {
+      try {
+        String procFile = "/proc/sys/vm/swappiness";
+        File swappiness = new File(procFile);
+        if (swappiness.exists() && swappiness.canRead()) {
+          try (InputStream is = new FileInputStream(procFile)) {
+            byte[] buffer = new byte[10];
+            int bytes = is.read(buffer);
+            String setting = new String(buffer, 0, bytes, UTF_8);
+            setting = setting.trim();
+            if (bytes > 0 && Integer.parseInt(setting) > 10) {
+              log.warn("System swappiness setting is greater than ten ({})"
+                  + " which can cause time-sensitive operations to be delayed."
+                  + " Accumulo is time sensitive because it needs to maintain"
+                  + " distributed lock agreement.", setting);
             }
           }
-        } catch (Throwable t) {
-          log.error("", t);
         }
+      } catch (Throwable t) {
+        log.error("", t);
       }
     }, 1000, 10 * 60 * 1000);
   }
@@ -260,7 +254,7 @@ public class Accumulo {
    */
   public static void abortIfFateTransactions(ServerContext context) {
     try {
-      final ReadOnlyTStore<Accumulo> fate = new ReadOnlyStore<>(new ZooStore<>(
+      final ReadOnlyTStore<ServerUtil> fate = new ReadOnlyStore<>(new ZooStore<>(
           context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
       if (!(fate.list().isEmpty())) {
         throw new AccumuloException("Aborting upgrade because there are"

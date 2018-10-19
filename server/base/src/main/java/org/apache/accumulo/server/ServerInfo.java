@@ -86,7 +86,7 @@ public class ServerInfo implements ClientInfo {
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
-    Path instanceIdPath = Accumulo.getAccumuloInstanceIdPath(volumeManager);
+    Path instanceIdPath = ServerUtil.getAccumuloInstanceIdPath(volumeManager);
     instanceID = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, config);
     zooKeeperRoot = ZooUtil.getRoot(instanceID);
     zooKeepers = config.get(Property.INSTANCE_ZK_HOST);

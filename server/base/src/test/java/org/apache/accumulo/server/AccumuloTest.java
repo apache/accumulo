@@ -61,7 +61,7 @@ public class AccumuloTest {
     expect(fs.listStatus(path)).andReturn(files);
     replay(fs);
 
-    assertEquals(42, Accumulo.getAccumuloPersistentVersion(fs, path));
+    assertEquals(42, ServerUtil.getAccumuloPersistentVersion(fs, path));
   }
 
   @Test
@@ -69,7 +69,7 @@ public class AccumuloTest {
     expect(fs.listStatus(path)).andReturn(null);
     replay(fs);
 
-    assertEquals(-1, Accumulo.getAccumuloPersistentVersion(fs, path));
+    assertEquals(-1, ServerUtil.getAccumuloPersistentVersion(fs, path));
   }
 
   @Test
@@ -77,7 +77,7 @@ public class AccumuloTest {
     expect(fs.listStatus(path)).andReturn(new FileStatus[0]);
     replay(fs);
 
-    assertEquals(-1, Accumulo.getAccumuloPersistentVersion(fs, path));
+    assertEquals(-1, ServerUtil.getAccumuloPersistentVersion(fs, path));
   }
 
   @Test(expected = RuntimeException.class)
@@ -85,7 +85,7 @@ public class AccumuloTest {
     expect(fs.listStatus(path)).andThrow(new FileNotFoundException());
     replay(fs);
 
-    assertEquals(-1, Accumulo.getAccumuloPersistentVersion(fs, path));
+    assertEquals(-1, ServerUtil.getAccumuloPersistentVersion(fs, path));
   }
 
   @Test
@@ -134,6 +134,6 @@ public class AccumuloTest {
     expect(vm.create(newVersion2)).andReturn(fsdos2);
     replay(vm);
 
-    Accumulo.updateAccumuloVersion(vm, 7);
+    ServerUtil.updateAccumuloVersion(vm, 7);
   }
 }
