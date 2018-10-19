@@ -29,6 +29,7 @@ import java.util.Properties;
 import java.util.Scanner;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.impl.ClientInfoImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.security.UserGroupInformation;
 
@@ -283,12 +284,7 @@ public class ShellOptionsJC {
   public Properties getClientProperties() {
     Properties props = new Properties();
     if (getClientConfigFile() != null) {
-      try (InputStream is = new FileInputStream(getClientConfigFile())) {
-        props.load(is);
-      } catch (IOException e) {
-        throw new IllegalArgumentException(
-            "Failed to load properties from " + getClientConfigFile());
-      }
+      props = ClientInfoImpl.toProperties(getClientConfigFile());
     }
     for (Map.Entry<String,String> entry : commandLineProperties.entrySet()) {
       props.setProperty(entry.getKey(), entry.getValue());

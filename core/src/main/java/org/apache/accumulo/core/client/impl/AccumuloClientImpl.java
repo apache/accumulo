@@ -360,13 +360,7 @@ public class AccumuloClientImpl implements AccumuloClient {
         justification = "code runs in same security context as user who provided configFile")
     @Override
     public AccumuloClientFactory usingProperties(String configFile) {
-      Properties properties = new Properties();
-      try (InputStream is = new FileInputStream(configFile)) {
-        properties.load(is);
-      } catch (IOException e) {
-        throw new IllegalArgumentException(e);
-      }
-      return usingProperties(properties);
+      return usingProperties(ClientInfoImpl.toProperties(configFile));
     }
 
     @Override

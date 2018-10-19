@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
+import org.apache.accumulo.core.client.impl.ClientInfoImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -207,12 +208,7 @@ public class ClientOpts extends Help {
     if (cachedProps == null) {
       cachedProps = new Properties();
       if (getClientConfigFile() != null) {
-        try (InputStream is = new FileInputStream(getClientConfigFile())) {
-          cachedProps.load(is);
-        } catch (IOException e) {
-          throw new IllegalArgumentException(
-              "Failed to load properties from " + getClientConfigFile());
-        }
+        cachedProps = ClientInfoImpl.toProperties(getClientConfigFile());
       }
       if (saslEnabled) {
         cachedProps.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");

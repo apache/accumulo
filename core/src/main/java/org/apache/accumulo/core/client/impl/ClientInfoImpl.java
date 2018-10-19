@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.ClientInfo;
@@ -27,6 +30,10 @@ public class ClientInfoImpl implements ClientInfo {
 
   private Properties properties;
   private AuthenticationToken token;
+
+  public ClientInfoImpl(String configFile) {
+    this(ClientInfoImpl.toProperties(configFile));
+  }
 
   public ClientInfoImpl(Properties properties) {
     this(properties, null);
@@ -82,5 +89,15 @@ public class ClientInfoImpl implements ClientInfo {
 
   private String getString(ClientProperty property) {
     return property.getValue(properties);
+  }
+
+  public static Properties toProperties(String configFile) {
+    Properties properties = new Properties();
+    try (InputStream is = new FileInputStream(configFile)) {
+      properties.load(is);
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Failed to load properties from " + configFile, e);
+    }
+    return properties;
   }
 }
