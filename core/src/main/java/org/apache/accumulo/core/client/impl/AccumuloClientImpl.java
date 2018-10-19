@@ -18,9 +18,6 @@ package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -50,8 +47,6 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Tracer;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class AccumuloClientImpl implements AccumuloClient {
   private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security."
@@ -356,8 +351,6 @@ public class AccumuloClientImpl implements AccumuloClient {
       return this;
     }
 
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-        justification = "code runs in same security context as user who provided configFile")
     @Override
     public AccumuloClientFactory usingProperties(String configFile) {
       return usingProperties(ClientInfoImpl.toProperties(configFile));

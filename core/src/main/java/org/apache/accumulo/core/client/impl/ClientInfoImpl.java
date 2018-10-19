@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -91,6 +92,8 @@ public class ClientInfoImpl implements ClientInfo {
     return property.getValue(properties);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided configFile")
   public static Properties toProperties(String configFile) {
     Properties properties = new Properties();
     try (InputStream is = new FileInputStream(configFile)) {

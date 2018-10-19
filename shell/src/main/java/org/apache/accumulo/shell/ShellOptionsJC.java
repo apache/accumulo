@@ -17,10 +17,7 @@
 package org.apache.accumulo.shell;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -279,8 +276,6 @@ public class ShellOptionsJC {
     return clientConfigFile;
   }
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "app is run in same security context as user providing the filename")
   public Properties getClientProperties() {
     Properties props = new Properties();
     if (getClientConfigFile() != null) {
