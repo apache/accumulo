@@ -297,7 +297,7 @@
               <classpathScope>test</classpathScope>
               <arguments>
                 <argument>--generate-markdown</argument>
-                <argument>${project.build.directory}/generated-docs/properties.md</argument>
+                <argument>${project.build.directory}/generated-docs/server-properties.md</argument>
               </arguments>
             </configuration>
           </execution>
