@@ -671,9 +671,26 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static Map<String,InputTableConfig> getInputTableConfigs(Class<?> implementingClass,
       Configuration conf) {
+    return getInputTableConfigs(implementingClass, conf, getInputTableName(implementingClass, conf));
+  }
+
+  /**
+   * Returns all {@link InputTableConfig} objects associated with this job.
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @param tableName
+   *          the table name for which to retrieve the configuration
+   * @return all of the table query configs for the job
+   * @since 1.6.0
+   */
+  private static Map<String,InputTableConfig> getInputTableConfigs(Class<?> implementingClass,
+      Configuration conf, String tableName) {
     Map<String,InputTableConfig> configs = new HashMap<>();
     Map.Entry<String,InputTableConfig> defaultConfig = getDefaultInputTableConfig(implementingClass,
-        conf);
+        conf, tableName);
     if (defaultConfig != null)
       configs.put(defaultConfig.getKey(), defaultConfig.getValue());
     String configString = conf.get(enumToConfKey(implementingClass, ScanOpts.TABLE_CONFIGS));
@@ -709,7 +726,7 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static InputTableConfig getInputTableConfig(Class<?> implementingClass, Configuration conf,
       String tableName) {
-    Map<String,InputTableConfig> queryConfigs = getInputTableConfigs(implementingClass, conf);
+    Map<String,InputTableConfig> queryConfigs = getInputTableConfigs(implementingClass, conf, tableName);
     return queryConfigs.get(tableName);
   }
 
@@ -881,12 +898,13 @@ public class InputConfigurator extends ConfiguratorBase {
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop instance for which to retrieve the configuration
+   * @param tableName
+   *          the table name for which to retrieve the configuration
    * @return the config object built from the single input table properties set on the job
    * @since 1.6.0
    */
   protected static Map.Entry<String,InputTableConfig> getDefaultInputTableConfig(
-      Class<?> implementingClass, Configuration conf) {
-    String tableName = getInputTableName(implementingClass, conf);
+      Class<?> implementingClass, Configuration conf, String tableName) {
     if (tableName != null) {
       InputTableConfig queryConfig = new InputTableConfig();
       List<IteratorSetting> itrs = getIterators(implementingClass, conf);
