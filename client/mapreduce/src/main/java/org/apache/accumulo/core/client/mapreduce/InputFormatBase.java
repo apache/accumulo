@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -381,8 +380,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *
    * @since 2.0.0
    */
-  public static void setExecutionHints(JobConf job, Map<String,String> hints) {
-    InputConfigurator.setExecutionHints(CLASS, job, hints);
+  public static void setExecutionHints(Job job, Map<String,String> hints) {
+    InputConfigurator.setExecutionHints(CLASS, job.getConfiguration(), hints);
   }
 
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
