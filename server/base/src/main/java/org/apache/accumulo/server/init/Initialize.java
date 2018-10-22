@@ -81,7 +81,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
@@ -865,10 +865,10 @@ public class Initialize implements KeywordExecutable {
             aBasePath, Property.INSTANCE_VOLUMES_REPLACEMENTS, Property.INSTANCE_VOLUMES);
     }
 
-    if (ServerConstants.DATA_VERSION != Accumulo.getAccumuloPersistentVersion(
+    if (ServerConstants.DATA_VERSION != ServerUtil.getAccumuloPersistentVersion(
         versionPath.getFileSystem(CachedConfiguration.getInstance()), versionPath)) {
       throw new IOException("Accumulo " + Constants.VERSION + " cannot initialize data version "
-          + Accumulo.getAccumuloPersistentVersion(fs));
+          + ServerUtil.getAccumuloPersistentVersion(fs));
     }
 
     initDirs(fs, uuid, uinitializedDirs.toArray(new String[uinitializedDirs.size()]), true);

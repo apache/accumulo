@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -226,8 +227,7 @@ public class AccumuloClientImpl implements AccumuloClient {
   @Override
   public AccumuloClient changeUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException, AccumuloException {
-    return new AccumuloClientBuilderImpl().usingClientInfo(info()).usingToken(principal, token)
-        .build();
+    return Accumulo.newClient().usingClientInfo(info()).usingToken(principal, token).build();
   }
 
   public static class AccumuloClientBuilderImpl

@@ -96,7 +96,7 @@ import org.apache.accumulo.master.replication.MasterReplicationCoordinator;
 import org.apache.accumulo.master.replication.ReplicationDriver;
 import org.apache.accumulo.master.replication.WorkDriver;
 import org.apache.accumulo.master.state.TableCounts;
-import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -330,8 +330,8 @@ public class Master
     // introduce unnecessary complexity to try to make the master do it), but be aware
     // that the master is not the only thing that may alter zookeeper before starting.
 
-    final int accumuloPersistentVersion = Accumulo.getAccumuloPersistentVersion(fs);
-    if (Accumulo.persistentVersionNeedsUpgrade(accumuloPersistentVersion)) {
+    final int accumuloPersistentVersion = ServerUtil.getAccumuloPersistentVersion(fs);
+    if (ServerUtil.persistentVersionNeedsUpgrade(accumuloPersistentVersion)) {
       // This Master hasn't started Fate yet, so any outstanding transactions must be from before
       // the upgrade.
       // Change to Guava's Verify once we use Guava 17.
@@ -340,7 +340,7 @@ public class Master
             + " initialized prior to the Master transitioning to active. Please"
             + " save all logs and file a bug.");
       }
-      Accumulo.abortIfFateTransactions(getContext());
+      ServerUtil.abortIfFateTransactions(getContext());
       try {
         log.info("Upgrading zookeeper");
 
@@ -493,8 +493,8 @@ public class Master
     // we make sure we're only doing the rest of this method once so that we can signal to other
     // threads that an upgrade wasn't needed.
     if (upgradeMetadataRunning.compareAndSet(false, true)) {
-      final int accumuloPersistentVersion = Accumulo.getAccumuloPersistentVersion(fs);
-      if (Accumulo.persistentVersionNeedsUpgrade(accumuloPersistentVersion)) {
+      final int accumuloPersistentVersion = ServerUtil.getAccumuloPersistentVersion(fs);
+      if (ServerUtil.persistentVersionNeedsUpgrade(accumuloPersistentVersion)) {
         // sanity check that we passed the Fate verification prior to ZooKeeper upgrade, and that
         // Fate still hasn't been started.
         // Change both to use Guava's Verify once we use Guava 17.
@@ -533,7 +533,7 @@ public class Master
                 version++;
               }
               log.info("Updating persistent data version.");
-              Accumulo.updateAccumuloVersion(fs, accumuloPersistentVersion);
+              ServerUtil.updateAccumuloVersion(fs, accumuloPersistentVersion);
               log.info("Upgrade complete");
               waitForMetadataUpgrade.countDown();
             } catch (Exception ex) {

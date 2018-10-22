@@ -22,7 +22,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
 
@@ -40,7 +40,7 @@ public class SetGoalState {
 
     ServerContext context = new ServerContext(new SiteConfiguration());
     SecurityUtil.serverLogin(context.getConfiguration());
-    Accumulo.waitForZookeeperAndHdfs(context);
+    ServerUtil.waitForZookeeperAndHdfs(context);
     context.getZooReaderWriter().putPersistentData(
         context.getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(UTF_8),
         NodeExistsPolicy.OVERWRITE);

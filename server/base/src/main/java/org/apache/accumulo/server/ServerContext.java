@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Objects;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -96,11 +97,7 @@ public class ServerContext extends ClientContext {
     SecurityUtil.serverLogin(info.getSiteConfiguration());
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + info.getInstanceID());
-    try {
-      Accumulo.init(this, applicationName);
-    } catch (IOException e) {
-      throw new IllegalStateException(e);
-    }
+    ServerUtil.init(this, applicationName);
     MetricsSystemHelper.configure(applicationClassName);
     DistributedTrace.enable(hostname, applicationName,
         getServerConfFactory().getSystemConfiguration());
@@ -248,8 +245,7 @@ public class ServerContext extends ClientContext {
 
   public AccumuloClient getClient(String principal, AuthenticationToken token)
       throws AccumuloSecurityException, AccumuloException {
-    return new AccumuloClientImpl.AccumuloClientBuilderImpl().usingClientInfo(info)
-        .usingToken(principal, token).build();
+    return Accumulo.newClient().usingClientInfo(info).usingToken(principal, token).build();
   }
 
   public synchronized TableManager getTableManager() {

@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -51,7 +52,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -273,8 +274,8 @@ public class TraceServer implements Watcher {
           at = token;
         }
 
-        accumuloClient = new AccumuloClientImpl.AccumuloClientBuilderImpl()
-            .usingClientInfo(context.getClientInfo()).usingToken(principal, at).build();
+        accumuloClient = Accumulo.newClient().usingClientInfo(context.getClientInfo())
+            .usingToken(principal, at).build();
         if (!accumuloClient.tableOperations().exists(tableName)) {
           accumuloClient.tableOperations().create(tableName);
           IteratorSetting setting = new IteratorSetting(10, "ageoff", AgeOffFilter.class.getName());
@@ -404,7 +405,7 @@ public class TraceServer implements Watcher {
     ServerContext context = new ServerContext(opts.getSiteConfiguration());
     loginTracer(context.getConfiguration());
     MetricsSystemHelper.configure(TraceServer.class.getSimpleName());
-    Accumulo.init(context, app);
+    ServerUtil.init(context, app);
     TraceServer server = new TraceServer(context, opts.getAddress());
     try {
       server.run();
