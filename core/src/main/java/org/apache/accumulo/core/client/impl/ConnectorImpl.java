@@ -36,6 +36,8 @@ import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 
 /**
  * This class now delegates to {@link AccumuloClientImpl}, except for the methods which were not
@@ -48,6 +50,7 @@ public class ConnectorImpl extends Connector {
 
   public ConnectorImpl(AccumuloClientImpl impl) {
     this.impl = impl;
+    SingletonManager.setMode(Mode.CONNECTOR);
   }
 
   public AccumuloClientImpl getAccumuloClient() {

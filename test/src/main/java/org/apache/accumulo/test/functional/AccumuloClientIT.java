@@ -18,26 +18,57 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.ClientInfo;
+import org.apache.accumulo.core.client.ConditionalWriterConfig;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
+
 public class AccumuloClientIT extends AccumuloClusterHarness {
+
+  private static interface CloseCheck {
+    void check() throws Exception;
+  }
+
+  private static void expectClosed(CloseCheck cc) throws Exception {
+    try {
+      cc.check();
+      fail();
+    } catch (IllegalStateException e) {
+      assertTrue(e.getMessage().toLowerCase().contains("closed"));
+    }
+  }
 
   @SuppressWarnings("deprecation")
   @Test
-  public void testGetConnectorFromAccumuloClient() {
+  public void testGetConnectorFromAccumuloClient() throws Exception {
     AccumuloClient client = getAccumuloClient();
     org.apache.accumulo.core.client.Connector c = org.apache.accumulo.core.client.Connector
         .from(client);
     assertEquals(client.whoami(), c.whoami());
+
+    // this should cause the connector to stop functioning
+    client.close();
+
+    expectClosed(() -> c.tableOperations());
   }
 
   @Test
@@ -70,6 +101,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     props.put(ClientProperty.AUTH_PRINCIPAL.getKey(), user);
     props.put(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(), "22s");
     ClientProperty.setPassword(props, password);
+    client.close();
     client = Accumulo.newClient().usingProperties(props).build();
 
     assertEquals(instanceName, client.info().getInstanceName());
@@ -103,5 +135,72 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     assertEquals(instanceName, info.getInstanceName());
     assertEquals(zookeepers, info.getZooKeepers());
     assertEquals(user3, info.getPrincipal());
+
+    c.close();
+    client.close();
+    client2.close();
+    client3.close();
+  }
+
+  @Test
+  public void testClose() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+
+    Scanner scanner;
+
+    assertEquals(0, SingletonManager.getReservationCount());
+    try (AccumuloClient c = Accumulo.newClient().usingClientInfo(getClientInfo()).build()) {
+      assertEquals(1, SingletonManager.getReservationCount());
+
+      c.tableOperations().create(tableName);
+
+      try (BatchWriter writer = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("0001");
+        m.at().family("f007").qualifier("q4").put("j");
+        writer.addMutation(m);
+      }
+
+      scanner = c.createScanner(tableName, Authorizations.EMPTY);
+    }
+
+    // scanner created from closed client should fail
+    expectClosed(() -> scanner.iterator().next());
+
+    assertEquals(0, SingletonManager.getReservationCount());
+
+    AccumuloClient c = Accumulo.newClient().usingClientInfo(getClientInfo()).build();
+    assertEquals(1, SingletonManager.getReservationCount());
+
+    // ensure client created after everything was closed works
+    Scanner scanner2 = c.createScanner(tableName, Authorizations.EMPTY);
+    Entry<Key,Value> e = Iterables.getOnlyElement(scanner2);
+    assertEquals("0001", e.getKey().getRowData().toString());
+    assertEquals("f007", e.getKey().getColumnFamilyData().toString());
+    assertEquals("q4", e.getKey().getColumnQualifierData().toString());
+    assertEquals("j", e.getValue().toString());
+
+    // grab table ops before closing, will get an exception if trying to get it after closing
+    TableOperations tops = c.tableOperations();
+
+    c.close();
+
+    assertEquals(0, SingletonManager.getReservationCount());
+
+    expectClosed(() -> c.createScanner(tableName, Authorizations.EMPTY));
+    expectClosed(() -> c.createConditionalWriter(tableName, new ConditionalWriterConfig()));
+    expectClosed(() -> c.createBatchWriter(tableName));
+    expectClosed(() -> c.tableOperations());
+    expectClosed(() -> c.instanceOperations());
+    expectClosed(() -> c.securityOperations());
+    expectClosed(() -> c.namespaceOperations());
+    expectClosed(() -> c.info());
+    expectClosed(() -> c.getInstanceID());
+    expectClosed(() -> c.changeUser("root", new PasswordToken("secret")));
+
+    // check a few table ops to ensure they fail
+    expectClosed(() -> tops.create("expectFail"));
+    expectClosed(() -> tops.cancelCompaction(tableName));
+    expectClosed(() -> tops.listSplits(tableName));
+
   }
 }

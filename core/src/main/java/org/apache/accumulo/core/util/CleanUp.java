@@ -18,22 +18,34 @@ package org.apache.accumulo.core.util;
 
 import java.util.Set;
 
-import org.apache.accumulo.core.client.impl.ThriftTransportPool;
-import org.apache.accumulo.fate.zookeeper.ZooSession;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class was created because Connector was used static resource that created threads. There was
+ * no way to clean these resource up other than using this class. The new {@link AccumuloClient} API
+ * is closable. For code than only uses AccumuloClient, when all AccumuloClients are closed then
+ * resources will be cleaned up. However any code creating Connectors via Instance.getConnector()
+ * would still need to call this code to clean up resources. Connectors that are derived from an
+ * AccumuloClient do not necessitate the use of this code.
+ *
+ * @deprecated since 2.0.0 Use only {@link AccumuloClient} instead. Also, make sure you close the
+ *             AccumuloClient instances.
+ */
+@Deprecated
 public class CleanUp {
 
   private static final Logger log = LoggerFactory.getLogger(CleanUp.class);
 
   /**
    * kills all threads created by internal Accumulo singleton resources. After this method is
-   * called, no accumulo client will work in the current classloader.
+   * called, no Connector will work in the current classloader.
    */
   public static void shutdownNow() {
-    ThriftTransportPool.getInstance().shutdown();
-    ZooSession.shutdown();
+    SingletonManager.setMode(Mode.CLIENT);
     waitForZooKeeperClientThreads();
   }
 

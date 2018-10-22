@@ -47,7 +47,11 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.trace.Tracer;
+
+import com.google.common.base.Preconditions;
 
 public class AccumuloClientImpl implements AccumuloClient {
   private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security."
@@ -59,9 +63,16 @@ public class AccumuloClientImpl implements AccumuloClient {
   private NamespaceOperations namespaceops = null;
   private InstanceOperations instanceops = null;
   private ReplicationOperations replicationops = null;
+  private final SingletonReservation singletonReservation;
+  private volatile boolean closed = false;
+  private final boolean autoClose;
 
-  public AccumuloClientImpl(final ClientContext context)
-      throws AccumuloSecurityException, AccumuloException {
+  private void ensureOpen() {
+    Preconditions.checkState(!closed, "This client was closed.");
+  }
+
+  public AccumuloClientImpl(SingletonReservation reservation, final ClientContext context,
+      boolean autoClose) throws AccumuloSecurityException, AccumuloException {
     checkArgument(context != null, "Context is null");
     checkArgument(context.getCredentials() != null, "Credentials are null");
     checkArgument(context.getCredentials().getToken() != null, "Authentication token is null");
@@ -69,6 +80,7 @@ public class AccumuloClientImpl implements AccumuloClient {
       throw new AccumuloSecurityException(context.getCredentials().getPrincipal(),
           SecurityErrorCode.TOKEN_EXPIRED);
 
+    this.singletonReservation = Objects.requireNonNull(reservation);
     this.context = context;
     instanceID = context.getInstanceID();
 
@@ -85,6 +97,7 @@ public class AccumuloClientImpl implements AccumuloClient {
 
     this.tableops = new TableOperationsImpl(context);
     this.namespaceops = new NamespaceOperationsImpl(context, tableops);
+    this.autoClose = autoClose;
   }
 
   Table.ID getTableId(String tableName) throws TableNotFoundException {
@@ -99,6 +112,7 @@ public class AccumuloClientImpl implements AccumuloClient {
       int numQueryThreads) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
+    ensureOpen();
     return new TabletServerBatchReader(context, getTableId(tableName), authorizations,
         numQueryThreads);
   }
@@ -109,6 +123,7 @@ public class AccumuloClientImpl implements AccumuloClient {
     Integer numQueryThreads = ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS
         .getInteger(context.getClientInfo().getProperties());
     Objects.requireNonNull(numQueryThreads);
+    ensureOpen();
     return createBatchScanner(tableName, authorizations, numQueryThreads);
   }
 
@@ -117,6 +132,7 @@ public class AccumuloClientImpl implements AccumuloClient {
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
+    ensureOpen();
     return new TabletServerBatchDeleter(context, getTableId(tableName), authorizations,
         numQueryThreads, config.merge(context.getBatchWriterConfig()));
   }
@@ -124,6 +140,7 @@ public class AccumuloClientImpl implements AccumuloClient {
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads) throws TableNotFoundException {
+    ensureOpen();
     return createBatchDeleter(tableName, authorizations, numQueryThreads, new BatchWriterConfig());
   }
 
@@ -131,6 +148,7 @@ public class AccumuloClientImpl implements AccumuloClient {
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
+    ensureOpen();
     // we used to allow null inputs for bw config
     if (config == null) {
       config = new BatchWriterConfig();
@@ -146,6 +164,7 @@ public class AccumuloClientImpl implements AccumuloClient {
 
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
+    ensureOpen();
     return new MultiTableBatchWriterImpl(context, config.merge(context.getBatchWriterConfig()));
   }
 
@@ -157,6 +176,7 @@ public class AccumuloClientImpl implements AccumuloClient {
   @Override
   public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
       throws TableNotFoundException {
+    ensureOpen();
     return new ConditionalWriterImpl(context, getTableId(tableName), config);
   }
 
@@ -165,6 +185,7 @@ public class AccumuloClientImpl implements AccumuloClient {
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
+    ensureOpen();
     Scanner scanner = new ScannerImpl(context, getTableId(tableName), authorizations);
     Integer batchSize = ClientProperty.SCANNER_BATCH_SIZE
         .getInteger(context.getClientInfo().getProperties());
@@ -176,26 +197,31 @@ public class AccumuloClientImpl implements AccumuloClient {
 
   @Override
   public String whoami() {
+    ensureOpen();
     return context.getCredentials().getPrincipal();
   }
 
   @Override
   public String getInstanceID() {
+    ensureOpen();
     return instanceID;
   }
 
   @Override
   public synchronized TableOperations tableOperations() {
+    ensureOpen();
     return tableops;
   }
 
   @Override
   public synchronized NamespaceOperations namespaceOperations() {
+    ensureOpen();
     return namespaceops;
   }
 
   @Override
   public synchronized SecurityOperations securityOperations() {
+    ensureOpen();
     if (secops == null)
       secops = new SecurityOperationsImpl(context);
 
@@ -204,6 +230,7 @@ public class AccumuloClientImpl implements AccumuloClient {
 
   @Override
   public synchronized InstanceOperations instanceOperations() {
+    ensureOpen();
     if (instanceops == null)
       instanceops = new InstanceOperationsImpl(context);
 
@@ -212,6 +239,7 @@ public class AccumuloClientImpl implements AccumuloClient {
 
   @Override
   public synchronized ReplicationOperations replicationOperations() {
+    ensureOpen();
     if (null == replicationops) {
       replicationops = new ReplicationOperationsImpl(context);
     }
@@ -221,13 +249,35 @@ public class AccumuloClientImpl implements AccumuloClient {
 
   @Override
   public ClientInfo info() {
+    ensureOpen();
     return this.context.getClientInfo();
   }
 
   @Override
   public AccumuloClient changeUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException, AccumuloException {
+    ensureOpen();
     return Accumulo.newClient().usingClientInfo(info()).usingToken(principal, token).build();
+  }
+
+  @Override
+  public void close() {
+    closed = true;
+    try {
+      context.close();
+    } finally {
+      singletonReservation.close();
+    }
+  }
+
+  @Override
+  public void finalize() throws Throwable {
+    try {
+      if (autoClose)
+        close();
+    } finally {
+      super.finalize();
+    }
   }
 
   public static class AccumuloClientBuilderImpl
@@ -246,7 +296,13 @@ public class AccumuloClientImpl implements AccumuloClient {
 
     @Override
     public AccumuloClient build() throws AccumuloException, AccumuloSecurityException {
-      return org.apache.accumulo.core.client.impl.ClientInfoFactory.getClient(getClientInfo());
+      SingletonReservation reservation = SingletonManager.getClientReservation();
+      try {
+        return new AccumuloClientImpl(reservation, new ClientContext(getClientInfo()), true);
+      } catch (AccumuloException | AccumuloSecurityException | RuntimeException e) {
+        reservation.close();
+        throw e;
+      }
     }
 
     @Override

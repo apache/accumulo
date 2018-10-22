@@ -51,11 +51,12 @@ public final class Accumulo {
    *
    * <pre>
    * <code>
-   *    AccumuloClient client = Accumulo.newClient()
-   *      .forInstance(instanceName, zookeepers)
-   *      .usingPassword(user, password)
-   *      .withZkTimeout(1234)
-   *      .build();
+   * try (AccumuloClient client = Accumulo.newClient()
+   *        .forInstance(instanceName, zookeepers)
+   *        .usingPassword(user, password).build())
+   * {
+   *   // use the client
+   * }
    * </code>
    * </pre>
    *

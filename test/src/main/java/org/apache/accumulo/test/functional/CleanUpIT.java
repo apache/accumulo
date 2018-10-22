@@ -30,7 +30,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.CleanUp;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -97,7 +96,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
         fail("Not seeing expected threads. Saw " + threadCount);
       }
 
-      CleanUp.shutdownNow();
+      cleanup();
 
       Mutation m2 = new Mutation("r2");
       m2.put("cf1", "cq1", 1, "6");
@@ -136,6 +135,11 @@ public class CleanUpIT extends SharedMiniClusterBase {
         fail("Threads did not go away. Saw " + threadCount);
       }
     }
+  }
+
+  @SuppressWarnings("deprecation")
+  private void cleanup() {
+    org.apache.accumulo.core.util.CleanUp.shutdownNow();
   }
 
   private void printThreadNames() {
