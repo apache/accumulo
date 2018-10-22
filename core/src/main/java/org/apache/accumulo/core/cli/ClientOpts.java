@@ -18,9 +18,6 @@ package org.apache.accumulo.core.cli;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.util.Properties;
 
@@ -30,6 +27,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
+import org.apache.accumulo.core.client.impl.ClientInfoImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -41,8 +39,6 @@ import org.apache.log4j.Logger;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClientOpts extends Help {
 
@@ -201,18 +197,11 @@ public class ClientOpts extends Help {
     return clientConfigFile;
   }
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "code runs in same security context as user who specified config path")
   public Properties getClientProperties() {
     if (cachedProps == null) {
       cachedProps = new Properties();
       if (getClientConfigFile() != null) {
-        try (InputStream is = new FileInputStream(getClientConfigFile())) {
-          cachedProps.load(is);
-        } catch (IOException e) {
-          throw new IllegalArgumentException(
-              "Failed to load properties from " + getClientConfigFile());
-        }
+        cachedProps = ClientInfoImpl.toProperties(getClientConfigFile());
       }
       if (saslEnabled) {
         cachedProps.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");

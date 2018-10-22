@@ -76,4 +76,11 @@ public interface ClientInfo {
   static ClientInfo from(Properties properties, AuthenticationToken token) {
     return new ClientInfoImpl(properties, token);
   }
+
+  /**
+   * @return ClientInfo given path to client config file
+   */
+  static ClientInfo from(String configFile) {
+    return new ClientInfoImpl(configFile);
+  }
 }

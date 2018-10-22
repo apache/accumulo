@@ -17,10 +17,7 @@
 package org.apache.accumulo.shell;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,6 +26,7 @@ import java.util.Properties;
 import java.util.Scanner;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.impl.ClientInfoImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.security.UserGroupInformation;
 
@@ -278,17 +276,10 @@ public class ShellOptionsJC {
     return clientConfigFile;
   }
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "app is run in same security context as user providing the filename")
   public Properties getClientProperties() {
     Properties props = new Properties();
     if (getClientConfigFile() != null) {
-      try (InputStream is = new FileInputStream(getClientConfigFile())) {
-        props.load(is);
-      } catch (IOException e) {
-        throw new IllegalArgumentException(
-            "Failed to load properties from " + getClientConfigFile());
-      }
+      props = ClientInfoImpl.toProperties(getClientConfigFile());
     }
     for (Map.Entry<String,String> entry : commandLineProperties.entrySet()) {
       props.setProperty(entry.getKey(), entry.getValue());
