@@ -51,8 +51,6 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.trace.Tracer;
 
-import com.google.common.base.Preconditions;
-
 public class AccumuloClientImpl implements AccumuloClient {
   private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security."
       + "SystemCredentials$SystemToken";
@@ -68,7 +66,9 @@ public class AccumuloClientImpl implements AccumuloClient {
   private final boolean autoClose;
 
   private void ensureOpen() {
-    Preconditions.checkState(!closed, "This client was closed.");
+    if (closed) {
+      throw new IllegalStateException("This client was closed.");
+    }
   }
 
   public AccumuloClientImpl(SingletonReservation reservation, final ClientContext context,

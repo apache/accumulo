@@ -46,7 +46,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 
 /**
@@ -81,7 +80,9 @@ public class ClientContext {
   private volatile boolean closed = false;
 
   private void ensureOpen() {
-    Preconditions.checkState(!closed, "This client was closed.");
+    if (closed) {
+      throw new IllegalStateException("This client was closed.");
+    }
   }
 
   private static <T> Supplier<T> memoizeWithExpiration(Supplier<T> s) {
