@@ -159,10 +159,11 @@
                 <include>org[.]apache[.]accumulo[.]minicluster[.].*</include>
               </includes>
               <excludes>
+                <exclude>.*Impl</exclude>
                 <exclude>.*[.]impl[.].*</exclude>
               </excludes>
               <allows>
-                <allow>org[.]apache[.]accumulo[.]core[.](?:client|data|security)[.](?!.*(impl|thrift|crypto).*).*</allow>
+                <allow>org[.]apache[.]accumulo[.]core[.](client|data|security)[.](?!.*(impl|thrift|crypto).*).*</allow>
               </allows>
             </configuration>
           </execution>
