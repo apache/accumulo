@@ -66,14 +66,13 @@ public class DurabilityIT extends ConfigurableMacBase {
 
   static final long N = 100000;
 
-  private String[] init() throws Exception {
+  private String[] init(AccumuloClient c) throws Exception {
     String[] tableNames = getUniqueNames(4);
-    AccumuloClient c = getClient();
     TableOperations tableOps = c.tableOperations();
-    createTable(tableNames[0]);
-    createTable(tableNames[1]);
-    createTable(tableNames[2]);
-    createTable(tableNames[3]);
+    createTable(c, tableNames[0]);
+    createTable(c, tableNames[1]);
+    createTable(c, tableNames[2]);
+    createTable(c, tableNames[3]);
     // default is sync
     tableOps.setProperty(tableNames[1], Property.TABLE_DURABILITY.getKey(), "flush");
     tableOps.setProperty(tableNames[2], Property.TABLE_DURABILITY.getKey(), "log");
@@ -81,98 +80,107 @@ public class DurabilityIT extends ConfigurableMacBase {
     return tableNames;
   }
 
-  private void cleanup(String[] tableNames) throws Exception {
-    AccumuloClient c = getClient();
+  private void cleanup(AccumuloClient c, String[] tableNames) throws Exception {
     for (String tableName : tableNames) {
       c.tableOperations().delete(tableName);
     }
   }
 
-  private void createTable(String tableName) throws Exception {
-    TableOperations tableOps = getClient().tableOperations();
-    tableOps.create(tableName);
+  private void createTable(AccumuloClient c, String tableName) throws Exception {
+    c.tableOperations().create(tableName);
   }
 
   @Test(timeout = 2 * 60 * 1000)
   public void testWriteSpeed() throws Exception {
-    TableOperations tableOps = getClient().tableOperations();
-    String tableNames[] = init();
-    // write some gunk, delete the table to keep that table from messing with the performance
-    // numbers of successive calls
-    // sync
-    long t0 = writeSome(tableNames[0], N);
-    tableOps.delete(tableNames[0]);
-    // flush
-    long t1 = writeSome(tableNames[1], N);
-    tableOps.delete(tableNames[1]);
-    // log
-    long t2 = writeSome(tableNames[2], N);
-    tableOps.delete(tableNames[2]);
-    // none
-    long t3 = writeSome(tableNames[3], N);
-    tableOps.delete(tableNames[3]);
-    System.out.println(String.format("sync %d flush %d log %d none %d", t0, t1, t2, t3));
-    assertTrue("flush should be faster than sync", t0 > t1);
-    assertTrue("log should be faster than flush", t1 > t2);
-    assertTrue("no durability should be faster than log", t2 > t3);
+    try (AccumuloClient client = getClient()) {
+      TableOperations tableOps = client.tableOperations();
+      String tableNames[] = init(client);
+      // write some gunk, delete the table to keep that table from messing with the performance
+      // numbers of successive calls
+      // sync
+      long t0 = writeSome(client, tableNames[0], N);
+      tableOps.delete(tableNames[0]);
+      // flush
+      long t1 = writeSome(client, tableNames[1], N);
+      tableOps.delete(tableNames[1]);
+      // log
+      long t2 = writeSome(client, tableNames[2], N);
+      tableOps.delete(tableNames[2]);
+      // none
+      long t3 = writeSome(client, tableNames[3], N);
+      tableOps.delete(tableNames[3]);
+      System.out.println(String.format("sync %d flush %d log %d none %d", t0, t1, t2, t3));
+      assertTrue("flush should be faster than sync", t0 > t1);
+      assertTrue("log should be faster than flush", t1 > t2);
+      assertTrue("no durability should be faster than log", t2 > t3);
+    }
   }
 
   @Test(timeout = 4 * 60 * 1000)
   public void testSync() throws Exception {
-    String tableNames[] = init();
-    // sync table should lose nothing
-    writeSome(tableNames[0], N);
-    restartTServer();
-    assertEquals(N, readSome(tableNames[0]));
-    cleanup(tableNames);
+    try (AccumuloClient client = getClient()) {
+      String tableNames[] = init(client);
+      // sync table should lose nothing
+      writeSome(client, tableNames[0], N);
+      restartTServer();
+      assertEquals(N, readSome(client, tableNames[0]));
+      cleanup(client, tableNames);
+    }
   }
 
   @Test(timeout = 4 * 60 * 1000)
   public void testFlush() throws Exception {
-    String tableNames[] = init();
-    // flush table won't lose anything since we're not losing power/dfs
-    writeSome(tableNames[1], N);
-    restartTServer();
-    assertEquals(N, readSome(tableNames[1]));
-    cleanup(tableNames);
+    try (AccumuloClient client = getClient()) {
+      String tableNames[] = init(client);
+      // flush table won't lose anything since we're not losing power/dfs
+      writeSome(client, tableNames[1], N);
+      restartTServer();
+      assertEquals(N, readSome(client, tableNames[1]));
+      cleanup(client, tableNames);
+    }
   }
 
   @Test(timeout = 4 * 60 * 1000)
   public void testLog() throws Exception {
-    String tableNames[] = init();
-    // we're probably going to lose something the the log setting
-    writeSome(tableNames[2], N);
-    restartTServer();
-    long numResults = readSome(tableNames[2]);
-    assertTrue("Expected " + N + " >= " + numResults, N >= numResults);
-    cleanup(tableNames);
+    try (AccumuloClient client = getClient()) {
+      String tableNames[] = init(client);
+      // we're probably going to lose something the the log setting
+      writeSome(client, tableNames[2], N);
+      restartTServer();
+      long numResults = readSome(client, tableNames[2]);
+      assertTrue("Expected " + N + " >= " + numResults, N >= numResults);
+      cleanup(client, tableNames);
+    }
   }
 
   @Test(timeout = 4 * 60 * 1000)
   public void testNone() throws Exception {
-    String tableNames[] = init();
-    // probably won't get any data back without logging
-    writeSome(tableNames[3], N);
-    restartTServer();
-    long numResults = readSome(tableNames[3]);
-    assertTrue("Expected " + N + " >= " + numResults, N >= numResults);
-    cleanup(tableNames);
+    try (AccumuloClient client = getClient()) {
+      String tableNames[] = init(client);
+      // probably won't get any data back without logging
+      writeSome(client, tableNames[3], N);
+      restartTServer();
+      long numResults = readSome(client, tableNames[3]);
+      assertTrue("Expected " + N + " >= " + numResults, N >= numResults);
+      cleanup(client, tableNames);
+    }
   }
 
   @Test(timeout = 4 * 60 * 1000)
   public void testIncreaseDurability() throws Exception {
-    AccumuloClient c = getClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "none");
-    writeSome(tableName, N);
-    restartTServer();
-    long numResults = readSome(tableName);
-    assertTrue("Expected " + N + " >= " + numResults, N >= numResults);
-    c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
-    writeSome(tableName, N);
-    restartTServer();
-    assertEquals(N, readSome(tableName));
+    try (AccumuloClient c = getClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "none");
+      writeSome(c, tableName, N);
+      restartTServer();
+      long numResults = readSome(c, tableName);
+      assertTrue("Expected " + N + " >= " + numResults, N >= numResults);
+      c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
+      writeSome(c, tableName, N);
+      restartTServer();
+      assertEquals(N, readSome(c, tableName));
+    }
   }
 
   private static Map<String,String> map(Iterable<Entry<String,String>> entries) {
@@ -197,8 +205,8 @@ public class DurabilityIT extends ConfigurableMacBase {
     assertTrue(c.tableOperations().exists(tableName));
   }
 
-  private long readSome(String table) throws Exception {
-    return Iterators.size(getClient().createScanner(table, Authorizations.EMPTY).iterator());
+  private long readSome(AccumuloClient client, String table) throws Exception {
+    return Iterators.size(client.createScanner(table, Authorizations.EMPTY).iterator());
   }
 
   private void restartTServer() throws Exception {
@@ -208,12 +216,11 @@ public class DurabilityIT extends ConfigurableMacBase {
     cluster.start();
   }
 
-  private long writeSome(String table, long count) throws Exception {
+  private long writeSome(AccumuloClient c, String table, long count) throws Exception {
     int iterations = 5;
     long[] attempts = new long[iterations];
     for (int attempt = 0; attempt < iterations; attempt++) {
       long now = System.currentTimeMillis();
-      AccumuloClient c = getClient();
       BatchWriter bw = c.createBatchWriter(table, null);
       for (int i = 1; i < count + 1; i++) {
         Mutation m = new Mutation("" + i);

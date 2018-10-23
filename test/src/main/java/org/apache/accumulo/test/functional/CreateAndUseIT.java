@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -61,72 +62,78 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
 
   @Test
   public void verifyDataIsPresent() throws Exception {
-    Text cf = new Text("cf1");
-    Text cq = new Text("cq1");
 
-    String tableName = getUniqueNames(1)[0];
-    getAccumuloClient().tableOperations().create(tableName);
-    getAccumuloClient().tableOperations().addSplits(tableName, splits);
-    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
+    try (AccumuloClient client = getAccumuloClient()) {
 
-    for (int i = 1; i < 257; i++) {
-      Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
-      m.put(cf, cq, new Value(Integer.toString(i).getBytes(UTF_8)));
+      Text cf = new Text("cf1");
+      Text cq = new Text("cq1");
 
-      bw.addMutation(m);
-    }
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
+      client.tableOperations().addSplits(tableName, splits);
+      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
 
-    bw.close();
-    try (Scanner scanner1 = getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)) {
+      for (int i = 1; i < 257; i++) {
+        Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
+        m.put(cf, cq, new Value(Integer.toString(i).getBytes(UTF_8)));
 
-      int ei = 1;
-
-      for (Entry<Key,Value> entry : scanner1) {
-        assertEquals(String.format("%08x", (ei << 8) - 16), entry.getKey().getRow().toString());
-        assertEquals(Integer.toString(ei), entry.getValue().toString());
-
-        ei++;
+        bw.addMutation(m);
       }
-      assertEquals("Did not see expected number of rows", 257, ei);
+
+      bw.close();
+      try (Scanner scanner1 = client.createScanner(tableName, Authorizations.EMPTY)) {
+
+        int ei = 1;
+
+        for (Entry<Key,Value> entry : scanner1) {
+          assertEquals(String.format("%08x", (ei << 8) - 16), entry.getKey().getRow().toString());
+          assertEquals(Integer.toString(ei), entry.getValue().toString());
+
+          ei++;
+        }
+        assertEquals("Did not see expected number of rows", 257, ei);
+      }
     }
   }
 
   @Test
   public void createTableAndScan() throws Exception {
-    String table2 = getUniqueNames(1)[0];
-    getAccumuloClient().tableOperations().create(table2);
-    getAccumuloClient().tableOperations().addSplits(table2, splits);
-    try (Scanner scanner2 = getAccumuloClient().createScanner(table2, Authorizations.EMPTY)) {
-      int count = 0;
-      for (Entry<Key,Value> entry : scanner2) {
-        if (entry != null)
-          count++;
-      }
+    try (AccumuloClient client = getAccumuloClient()) {
+      String table2 = getUniqueNames(1)[0];
+      client.tableOperations().create(table2);
+      client.tableOperations().addSplits(table2, splits);
+      try (Scanner scanner2 = client.createScanner(table2, Authorizations.EMPTY)) {
+        int count = 0;
+        for (Entry<Key,Value> entry : scanner2) {
+          if (entry != null)
+            count++;
+        }
 
-      if (count != 0) {
-        throw new Exception("Did not see expected number of entries, count = " + count);
+        if (count != 0) {
+          throw new Exception("Did not see expected number of entries, count = " + count);
+        }
       }
     }
   }
 
   @Test
   public void createTableAndBatchScan() throws Exception {
-    ArrayList<Range> ranges = new ArrayList<>();
-    for (int i = 1; i < 257; i++) {
-      ranges.add(new Range(new Text(String.format("%08x", (i << 8) - 16))));
-    }
+    try (AccumuloClient client = getAccumuloClient()) {
+      ArrayList<Range> ranges = new ArrayList<>();
+      for (int i = 1; i < 257; i++) {
+        ranges.add(new Range(new Text(String.format("%08x", (i << 8) - 16))));
+      }
 
-    String table3 = getUniqueNames(1)[0];
-    getAccumuloClient().tableOperations().create(table3);
-    getAccumuloClient().tableOperations().addSplits(table3, splits);
-    try (
-        BatchScanner bs = getAccumuloClient().createBatchScanner(table3, Authorizations.EMPTY, 3)) {
-      bs.setRanges(ranges);
-      Iterator<Entry<Key,Value>> iter = bs.iterator();
-      int count = Iterators.size(iter);
+      String table3 = getUniqueNames(1)[0];
+      client.tableOperations().create(table3);
+      client.tableOperations().addSplits(table3, splits);
+      try (BatchScanner bs = client.createBatchScanner(table3, Authorizations.EMPTY, 3)) {
+        bs.setRanges(ranges);
+        Iterator<Entry<Key,Value>> iter = bs.iterator();
+        int count = Iterators.size(iter);
 
-      assertEquals("Did not expect to find any entries", 0, count);
+        assertEquals("Did not expect to find any entries", 0, count);
+      }
     }
   }
-
 }

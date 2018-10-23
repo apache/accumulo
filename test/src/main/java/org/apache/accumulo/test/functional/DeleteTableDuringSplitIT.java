@@ -26,6 +26,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Future;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -47,66 +48,72 @@ public class DeleteTableDuringSplitIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    // 96 invocations, 8 at a time
-    int batches = 12, batchSize = 8;
-    String[] tableNames = getUniqueNames(batches * batchSize);
-    // make a bunch of tables
-    for (String tableName : tableNames) {
-      getAccumuloClient().tableOperations().create(tableName);
-    }
-    final SortedSet<Text> splits = new TreeSet<>();
-    for (byte i = 0; i < 100; i++) {
-      splits.add(new Text(new byte[] {0, 0, i}));
-    }
 
-    List<Future<?>> results = new ArrayList<>();
-    List<Runnable> tasks = new ArrayList<>();
-    SimpleThreadPool es = new SimpleThreadPool(batchSize * 2, "concurrent-api-requests");
-    for (String tableName : tableNames) {
-      final String finalName = tableName;
-      tasks.add(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            getAccumuloClient().tableOperations().addSplits(finalName, splits);
-          } catch (TableNotFoundException ex) {
-            // expected, ignore
-          } catch (Exception ex) {
-            throw new RuntimeException(finalName, ex);
-          }
-        }
-      });
-      tasks.add(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            UtilWaitThread.sleep(500);
-            getAccumuloClient().tableOperations().delete(finalName);
-          } catch (Exception ex) {
-            throw new RuntimeException(ex);
-          }
-        }
-      });
-    }
-    Iterator<Runnable> itr = tasks.iterator();
-    for (int batch = 0; batch < batches; batch++) {
-      for (int i = 0; i < batchSize; i++) {
-        Future<?> f = es.submit(itr.next());
-        results.add(f);
-        f = es.submit(itr.next());
-        results.add(f);
+    try (AccumuloClient client = getAccumuloClient()) {
+
+      // 96 invocations, 8 at a time
+      int batches = 12, batchSize = 8;
+      String[] tableNames = getUniqueNames(batches * batchSize);
+      // make a bunch of tables
+      for (String tableName : tableNames) {
+        client.tableOperations().create(tableName);
       }
-      for (Future<?> f : results) {
-        f.get();
+      final SortedSet<Text> splits = new TreeSet<>();
+      for (byte i = 0; i < 100; i++) {
+        splits.add(new Text(new byte[] {0, 0, i}));
       }
-      results.clear();
-    }
-    // Shut down the ES
-    List<Runnable> queued = es.shutdownNow();
-    assertTrue("Had more tasks to run", queued.isEmpty());
-    assertFalse("Had more tasks that needed to be submitted", itr.hasNext());
-    for (String tableName : tableNames) {
-      assertFalse(getAccumuloClient().tableOperations().exists(tableName));
+
+      List<Future<?>> results = new ArrayList<>();
+      List<Runnable> tasks = new ArrayList<>();
+      SimpleThreadPool es = new SimpleThreadPool(batchSize * 2, "concurrent-api-requests");
+      for (String tableName : tableNames) {
+        final String finalName = tableName;
+        tasks.add(new Runnable() {
+          @Override
+          public void run() {
+            try {
+              client.tableOperations().addSplits(finalName, splits);
+            } catch (TableNotFoundException ex) {
+              // expected, ignore
+            } catch (Exception ex) {
+              throw new RuntimeException(finalName, ex);
+            }
+          }
+        });
+        tasks.add(new Runnable() {
+          @Override
+          public void run() {
+            try {
+              UtilWaitThread.sleep(500);
+              client.tableOperations().delete(finalName);
+            } catch (Exception ex) {
+              throw new RuntimeException(ex);
+            }
+          }
+        });
+      }
+      Iterator<Runnable> itr = tasks.iterator();
+      for (int batch = 0; batch < batches; batch++) {
+        for (int i = 0; i < batchSize; i++) {
+          Future<?> f = es.submit(itr.next());
+          results.add(f);
+          f = es.submit(itr.next());
+          results.add(f);
+        }
+        for (Future<?> f : results) {
+          f.get();
+        }
+        results.clear();
+      }
+      // Shut down the ES
+      List<Runnable> queued = es.shutdownNow();
+      assertTrue("Had more tasks to run", queued.isEmpty());
+      assertFalse("Had more tasks that needed to be submitted", itr.hasNext());
+      for (String tableName : tableNames) {
+        assertFalse(client.tableOperations().exists(tableName));
+      }
+
+      client.close();
     }
   }
 

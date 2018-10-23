@@ -62,36 +62,38 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   @Before
   public void emptyAuths() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    origAuths = c.securityOperations().getUserAuthorizations(getAdminPrincipal());
+    try (AccumuloClient c = getAccumuloClient()) {
+      origAuths = c.securityOperations().getUserAuthorizations(getAdminPrincipal());
+    }
   }
 
   @After
   public void resetAuths() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    if (null != origAuths) {
-      c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), origAuths);
+    try (AccumuloClient c = getAccumuloClient()) {
+      if (null != origAuths) {
+        c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), origAuths);
+      }
     }
   }
 
   @Test
   public void run() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String[] tableNames = getUniqueNames(2);
-    String table = tableNames[0];
-    c.tableOperations().create(table);
-    String table2 = tableNames[1];
-    c.tableOperations().create(table2);
-    c.tableOperations().setProperty(table2, Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(),
-        "DEFLABEL");
+    try (AccumuloClient c = getAccumuloClient()) {
+      String[] tableNames = getUniqueNames(2);
+      String table = tableNames[0];
+      c.tableOperations().create(table);
+      String table2 = tableNames[1];
+      c.tableOperations().create(table2);
+      c.tableOperations().setProperty(table2, Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(),
+          "DEFLABEL");
 
-    insertData(c, table);
-    queryData(c, table);
-    deleteData(c, table);
+      insertData(c, table);
+      queryData(c, table);
+      deleteData(c, table);
 
-    insertDefaultData(c, table2);
-    queryDefaultData(c, table2);
-
+      insertDefaultData(c, table2);
+      queryDefaultData(c, table2);
+    }
   }
 
   private static SortedSet<String> nss(String... labels) {
@@ -258,19 +260,17 @@ public class VisibilityIT extends AccumuloClusterHarness {
     // should return no records
     c.securityOperations().changeUserAuthorizations(getAdminPrincipal(),
         new Authorizations("BASE", "DEFLABEL"));
-    try (Scanner scanner = getAccumuloClient().createScanner(tableName, new Authorizations())) {
+    try (Scanner scanner = c.createScanner(tableName, new Authorizations())) {
       verifyDefault(scanner, 0);
     }
 
     // should return one record
-    try (Scanner scanner = getAccumuloClient().createScanner(tableName,
-        new Authorizations("BASE"))) {
+    try (Scanner scanner = c.createScanner(tableName, new Authorizations("BASE"))) {
       verifyDefault(scanner, 1);
     }
 
     // should return all three records
-    try (Scanner scanner = getAccumuloClient().createScanner(tableName,
-        new Authorizations("BASE", "DEFLABEL"))) {
+    try (Scanner scanner = c.createScanner(tableName, new Authorizations("BASE", "DEFLABEL"))) {
       verifyDefault(scanner, 3);
     }
   }
@@ -303,8 +303,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
   private void verify(AccumuloClient c, String tableName, ByteArraySet nss, String... expected)
       throws Exception {
     try (Scanner scanner = c.createScanner(tableName, new Authorizations(nss));
-        BatchScanner bs = getAccumuloClient().createBatchScanner(tableName, new Authorizations(nss),
-            3)) {
+        BatchScanner bs = c.createBatchScanner(tableName, new Authorizations(nss), 3)) {
 
       verify(scanner.iterator(), expected);
 

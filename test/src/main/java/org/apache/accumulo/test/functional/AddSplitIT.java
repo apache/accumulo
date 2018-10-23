@@ -54,7 +54,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
     AccumuloClient c = getAccumuloClient();
     c.tableOperations().create(tableName);
 
-    insertData(tableName, 1L);
+    insertData(c, tableName, 1L);
 
     TreeSet<Text> splits = new TreeSet<>();
     splits.add(new Text(String.format("%09d", 333)));
@@ -70,8 +70,8 @@ public class AddSplitIT extends AccumuloClusterHarness {
       throw new Exception(splits + " != " + actualSplits);
     }
 
-    verifyData(tableName, 1L);
-    insertData(tableName, 2L);
+    verifyData(c, tableName, 1L);
+    insertData(c, tableName, 2L);
 
     // did not clear splits on purpose, it should ignore existing split points
     // and still create the three additional split points
@@ -90,11 +90,11 @@ public class AddSplitIT extends AccumuloClusterHarness {
       throw new Exception(splits + " != " + actualSplits);
     }
 
-    verifyData(tableName, 2L);
+    verifyData(c, tableName, 2L);
   }
 
-  private void verifyData(String tableName, long ts) throws Exception {
-    try (Scanner scanner = getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)) {
+  private void verifyData(AccumuloClient client, String tableName, long ts) throws Exception {
+    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
@@ -126,9 +126,10 @@ public class AddSplitIT extends AccumuloClusterHarness {
     }
   }
 
-  private void insertData(String tableName, long ts) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
-    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, null);
+  private void insertData(AccumuloClient client, String tableName, long ts)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      MutationsRejectedException {
+    BatchWriter bw = client.createBatchWriter(tableName, null);
 
     for (int i = 0; i < 10000; i++) {
       String row = String.format("%09d", i);

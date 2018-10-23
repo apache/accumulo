@@ -57,38 +57,39 @@ public class ConstraintIT extends AccumuloClusterHarness {
   @Test
   public void run() throws Exception {
     String[] tableNames = getUniqueNames(3);
-    AccumuloClient c = getAccumuloClient();
-    for (String table : tableNames) {
-      c.tableOperations().create(table);
-      c.tableOperations().addConstraint(table, NumericValueConstraint.class.getName());
-      c.tableOperations().addConstraint(table, AlphaNumKeyConstraint.class.getName());
-    }
-
-    // A static sleep to just let ZK do its thing
-    Thread.sleep(10 * 1000);
-
-    // Then check that the client has at least gotten the updates
-    for (String table : tableNames) {
-      log.debug("Checking constraints on {}", table);
-      Map<String,Integer> constraints = c.tableOperations().listConstraints(table);
-      while (!constraints.containsKey(NumericValueConstraint.class.getName())
-          || !constraints.containsKey(AlphaNumKeyConstraint.class.getName())) {
-        log.debug("Failed to verify constraints. Sleeping and retrying");
-        Thread.sleep(2000);
-        constraints = c.tableOperations().listConstraints(table);
+    try (AccumuloClient c = getAccumuloClient()) {
+      for (String table : tableNames) {
+        c.tableOperations().create(table);
+        c.tableOperations().addConstraint(table, NumericValueConstraint.class.getName());
+        c.tableOperations().addConstraint(table, AlphaNumKeyConstraint.class.getName());
       }
-      log.debug("Verified all constraints on {}", table);
+
+      // A static sleep to just let ZK do its thing
+      Thread.sleep(10 * 1000);
+
+      // Then check that the client has at least gotten the updates
+      for (String table : tableNames) {
+        log.debug("Checking constraints on {}", table);
+        Map<String,Integer> constraints = c.tableOperations().listConstraints(table);
+        while (!constraints.containsKey(NumericValueConstraint.class.getName())
+            || !constraints.containsKey(AlphaNumKeyConstraint.class.getName())) {
+          log.debug("Failed to verify constraints. Sleeping and retrying");
+          Thread.sleep(2000);
+          constraints = c.tableOperations().listConstraints(table);
+        }
+        log.debug("Verified all constraints on {}", table);
+      }
+
+      log.debug("Verified constraints on all tables. Running tests");
+
+      test1(c, tableNames[0]);
+
+      test2(c, tableNames[1], false);
+      test2(c, tableNames[2], true);
     }
-
-    log.debug("Verified constraints on all tables. Running tests");
-
-    test1(tableNames[0]);
-
-    test2(tableNames[1], false);
-    test2(tableNames[2], true);
   }
 
-  private void test1(String tableName) throws Exception {
+  private void test1(AccumuloClient client, String tableName) throws Exception {
     BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
 
     Mutation mut1 = new Mutation(new Text("r1"));
@@ -99,7 +100,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
     // should not throw any exceptions
     bw.close();
 
-    bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
+    bw = client.createBatchWriter(tableName, new BatchWriterConfig());
 
     // create a mutation with a non numeric value
     Mutation mut2 = new Mutation(new Text("r1"));
@@ -139,7 +140,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
     }
 
     // verify mutation did not go through
-    try (Scanner scanner = getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
       scanner.setRange(new Range(new Text("r1")));
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
@@ -159,11 +160,11 @@ public class ConstraintIT extends AccumuloClusterHarness {
       }
 
       // remove the numeric value constraint
-      getAccumuloClient().tableOperations().removeConstraint(tableName, 2);
+      client.tableOperations().removeConstraint(tableName, 2);
       sleepUninterruptibly(1, TimeUnit.SECONDS);
 
       // now should be able to add a non numeric value
-      bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
+      bw = client.createBatchWriter(tableName, new BatchWriterConfig());
       bw.addMutation(mut2);
       bw.close();
 
@@ -185,12 +186,12 @@ public class ConstraintIT extends AccumuloClusterHarness {
       }
 
       // add a constraint that references a non-existent class
-      getAccumuloClient().tableOperations().setProperty(tableName,
-          Property.TABLE_CONSTRAINT_PREFIX + "1", "com.foobar.nonExistantClass");
+      client.tableOperations().setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX + "1",
+          "com.foobar.nonExistantClass");
       sleepUninterruptibly(1, TimeUnit.SECONDS);
 
       // add a mutation
-      bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
+      bw = client.createBatchWriter(tableName, new BatchWriterConfig());
 
       Mutation mut3 = new Mutation(new Text("r1"));
       mut3.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(UTF_8)));
@@ -229,11 +230,11 @@ public class ConstraintIT extends AccumuloClusterHarness {
       }
 
       // remove the bad constraint
-      getAccumuloClient().tableOperations().removeConstraint(tableName, 1);
+      client.tableOperations().removeConstraint(tableName, 1);
       sleepUninterruptibly(1, TimeUnit.SECONDS);
 
       // try the mutation again
-      bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
+      bw = client.createBatchWriter(tableName, new BatchWriterConfig());
       bw.addMutation(mut3);
       bw.close();
 
@@ -262,13 +263,13 @@ public class ConstraintIT extends AccumuloClusterHarness {
     return mut1;
   }
 
-  private void test2(String table, boolean doFlush) throws Exception {
+  private void test2(AccumuloClient client, String table, boolean doFlush) throws Exception {
     // test sending multiple mutations with multiple constrain violations... all of the non
     // violating mutations
     // should go through
     int numericErrors = 2;
 
-    BatchWriter bw = getAccumuloClient().createBatchWriter(table, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
     bw.addMutation(newMut("r1", "cf1", "cq1", "123"));
     bw.addMutation(newMut("r1", "cf1", "cq2", "I'm a bad value"));
     if (doFlush) {
@@ -282,7 +283,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
         } catch (MutationsRejectedException ex) {
           // ignored
         }
-        bw = getAccumuloClient().createBatchWriter(table, new BatchWriterConfig());
+        bw = client.createBatchWriter(table, new BatchWriterConfig());
         numericErrors = 1;
       }
     }
@@ -325,7 +326,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       throw new Exception("Did not see MutationsRejectedException");
     }
 
-    try (Scanner scanner = getAccumuloClient().createScanner(table, Authorizations.EMPTY)) {
+    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
