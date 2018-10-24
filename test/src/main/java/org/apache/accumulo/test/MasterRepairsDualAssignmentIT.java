@@ -69,81 +69,83 @@ public class MasterRepairsDualAssignmentIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     // make some tablets, spread 'em around
-    AccumuloClient c = getClient();
-    ClientContext context = getClientContext();
-    String table = this.getUniqueNames(1)[0];
-    c.securityOperations().grantTablePermission("root", MetadataTable.NAME, TablePermission.WRITE);
-    c.securityOperations().grantTablePermission("root", RootTable.NAME, TablePermission.WRITE);
-    c.tableOperations().create(table);
-    SortedSet<Text> partitions = new TreeSet<>();
-    for (String part : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
-      partitions.add(new Text(part));
-    }
-    c.tableOperations().addSplits(table, partitions);
-    // scan the metadata table and get the two table location states
-    Set<TServerInstance> states = new HashSet<>();
-    Set<TabletLocationState> oldLocations = new HashSet<>();
-    MetaDataStateStore store = new MetaDataStateStore(context, null);
-    while (states.size() < 2) {
-      UtilWaitThread.sleep(250);
-      oldLocations.clear();
-      for (TabletLocationState tls : store) {
-        if (tls.current != null) {
-          states.add(tls.current);
-          oldLocations.add(tls);
+    try (AccumuloClient c = getClient()) {
+      ClientContext context = getClientContext();
+      String table = this.getUniqueNames(1)[0];
+      c.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+          TablePermission.WRITE);
+      c.securityOperations().grantTablePermission("root", RootTable.NAME, TablePermission.WRITE);
+      c.tableOperations().create(table);
+      SortedSet<Text> partitions = new TreeSet<>();
+      for (String part : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
+        partitions.add(new Text(part));
+      }
+      c.tableOperations().addSplits(table, partitions);
+      // scan the metadata table and get the two table location states
+      Set<TServerInstance> states = new HashSet<>();
+      Set<TabletLocationState> oldLocations = new HashSet<>();
+      MetaDataStateStore store = new MetaDataStateStore(context, null);
+      while (states.size() < 2) {
+        UtilWaitThread.sleep(250);
+        oldLocations.clear();
+        for (TabletLocationState tls : store) {
+          if (tls.current != null) {
+            states.add(tls.current);
+            oldLocations.add(tls);
+          }
         }
       }
-    }
-    assertEquals(2, states.size());
-    // Kill a tablet server... we don't care which one... wait for everything to be reassigned
-    cluster.killProcess(ServerType.TABLET_SERVER,
-        cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
-    Set<TServerInstance> replStates = new HashSet<>();
-    // Find out which tablet server remains
-    while (true) {
-      UtilWaitThread.sleep(1000);
-      states.clear();
-      replStates.clear();
-      boolean allAssigned = true;
-      for (TabletLocationState tls : store) {
-        if (tls != null && tls.current != null) {
-          states.add(tls.current);
-        } else if (tls != null
-            && tls.extent.equals(new KeyExtent(ReplicationTable.ID, null, null))) {
-          replStates.add(tls.current);
-        } else {
-          allAssigned = false;
+      assertEquals(2, states.size());
+      // Kill a tablet server... we don't care which one... wait for everything to be reassigned
+      cluster.killProcess(ServerType.TABLET_SERVER,
+          cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
+      Set<TServerInstance> replStates = new HashSet<>();
+      // Find out which tablet server remains
+      while (true) {
+        UtilWaitThread.sleep(1000);
+        states.clear();
+        replStates.clear();
+        boolean allAssigned = true;
+        for (TabletLocationState tls : store) {
+          if (tls != null && tls.current != null) {
+            states.add(tls.current);
+          } else if (tls != null
+              && tls.extent.equals(new KeyExtent(ReplicationTable.ID, null, null))) {
+            replStates.add(tls.current);
+          } else {
+            allAssigned = false;
+          }
+        }
+        System.out.println(states + " size " + states.size() + " allAssigned " + allAssigned);
+        if (states.size() != 2 && allAssigned)
+          break;
+      }
+      assertEquals(1, replStates.size());
+      assertEquals(1, states.size());
+      // pick an assigned tablet and assign it to the old tablet
+      TabletLocationState moved = null;
+      for (TabletLocationState old : oldLocations) {
+        if (!states.contains(old.current)) {
+          moved = old;
         }
       }
-      System.out.println(states + " size " + states.size() + " allAssigned " + allAssigned);
-      if (states.size() != 2 && allAssigned)
-        break;
+      assertNotEquals(null, moved);
+      // throw a mutation in as if we were the dying tablet
+      BatchWriter bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      Mutation assignment = new Mutation(moved.extent.getMetadataEntry());
+      moved.current.putLocation(assignment);
+      bw.addMutation(assignment);
+      bw.close();
+      // wait for the master to fix the problem
+      waitForCleanStore(store);
+      // now jam up the metadata table
+      bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      assignment = new Mutation(new KeyExtent(MetadataTable.ID, null, null).getMetadataEntry());
+      moved.current.putLocation(assignment);
+      bw.addMutation(assignment);
+      bw.close();
+      waitForCleanStore(new RootTabletStateStore(context, null));
     }
-    assertEquals(1, replStates.size());
-    assertEquals(1, states.size());
-    // pick an assigned tablet and assign it to the old tablet
-    TabletLocationState moved = null;
-    for (TabletLocationState old : oldLocations) {
-      if (!states.contains(old.current)) {
-        moved = old;
-      }
-    }
-    assertNotEquals(null, moved);
-    // throw a mutation in as if we were the dying tablet
-    BatchWriter bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    Mutation assignment = new Mutation(moved.extent.getMetadataEntry());
-    moved.current.putLocation(assignment);
-    bw.addMutation(assignment);
-    bw.close();
-    // wait for the master to fix the problem
-    waitForCleanStore(store);
-    // now jam up the metadata table
-    bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    assignment = new Mutation(new KeyExtent(MetadataTable.ID, null, null).getMetadataEntry());
-    moved.current.putLocation(assignment);
-    bw.addMutation(assignment);
-    bw.close();
-    waitForCleanStore(new RootTabletStateStore(context, null));
   }
 
   private void waitForCleanStore(MetaDataStateStore store) {

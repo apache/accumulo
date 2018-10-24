@@ -88,30 +88,31 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m = new Mutation("row1");
-    m.put("cf", "col1", "Test");
-    bw.addMutation(m);
-    bw.close();
-    scanCheck(c, tableName, "Test");
-    FileSystem fs = getCluster().getFileSystem();
-    Path jarPath = new Path(rootPath + "/lib/ext/Test.jar");
-    copyStreamToFileSystem(fs, "/TestCombinerX.jar", jarPath);
-    sleepUninterruptibly(1, TimeUnit.SECONDS);
-    IteratorSetting is = new IteratorSetting(10, "TestCombiner",
-        "org.apache.accumulo.test.functional.TestCombiner");
-    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf")));
-    c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.scan));
-    sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);
-    scanCheck(c, tableName, "TestX");
-    fs.delete(jarPath, true);
-    copyStreamToFileSystem(fs, "/TestCombinerY.jar", jarPath);
-    sleepUninterruptibly(5, TimeUnit.SECONDS);
-    scanCheck(c, tableName, "TestY");
-    fs.delete(jarPath, true);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      Mutation m = new Mutation("row1");
+      m.put("cf", "col1", "Test");
+      bw.addMutation(m);
+      bw.close();
+      scanCheck(c, tableName, "Test");
+      FileSystem fs = getCluster().getFileSystem();
+      Path jarPath = new Path(rootPath + "/lib/ext/Test.jar");
+      copyStreamToFileSystem(fs, "/TestCombinerX.jar", jarPath);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      IteratorSetting is = new IteratorSetting(10, "TestCombiner",
+          "org.apache.accumulo.test.functional.TestCombiner");
+      Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf")));
+      c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.scan));
+      sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);
+      scanCheck(c, tableName, "TestX");
+      fs.delete(jarPath, true);
+      copyStreamToFileSystem(fs, "/TestCombinerY.jar", jarPath);
+      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      scanCheck(c, tableName, "TestY");
+      fs.delete(jarPath, true);
+    }
   }
 
   private void scanCheck(AccumuloClient c, String tableName, String expected) throws Exception {

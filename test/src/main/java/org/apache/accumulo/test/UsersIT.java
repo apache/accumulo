@@ -35,28 +35,29 @@ public class UsersIT extends AccumuloClusterHarness {
   @Test
   public void testCreateExistingUser() throws Exception {
     ClusterUser user0 = getUser(0);
-    AccumuloClient client = getAccumuloClient();
-    Set<String> currentUsers = client.securityOperations().listLocalUsers();
+    try (AccumuloClient client = getAccumuloClient()) {
+      Set<String> currentUsers = client.securityOperations().listLocalUsers();
 
-    // Ensure that the user exists
-    if (!currentUsers.contains(user0.getPrincipal())) {
-      PasswordToken token = null;
-      if (!saslEnabled()) {
-        token = new PasswordToken(user0.getPassword());
+      // Ensure that the user exists
+      if (!currentUsers.contains(user0.getPrincipal())) {
+        PasswordToken token = null;
+        if (!saslEnabled()) {
+          token = new PasswordToken(user0.getPassword());
+        }
+        client.securityOperations().createLocalUser(user0.getPrincipal(), token);
       }
-      client.securityOperations().createLocalUser(user0.getPrincipal(), token);
-    }
 
-    try {
-      client.securityOperations().createLocalUser(user0.getPrincipal(),
-          new PasswordToken("better_fail"));
-      fail("Creating a user that already exists should throw an exception");
-    } catch (AccumuloSecurityException e) {
-      assertSame("Expected USER_EXISTS error", SecurityErrorCode.USER_EXISTS,
-          e.getSecurityErrorCode());
-      String msg = e.getMessage();
-      assertTrue("Error message didn't contain principal: '" + msg + "'",
-          msg.contains(user0.getPrincipal()));
+      try {
+        client.securityOperations().createLocalUser(user0.getPrincipal(),
+            new PasswordToken("better_fail"));
+        fail("Creating a user that already exists should throw an exception");
+      } catch (AccumuloSecurityException e) {
+        assertSame("Expected USER_EXISTS error", SecurityErrorCode.USER_EXISTS,
+            e.getSecurityErrorCode());
+        String msg = e.getMessage();
+        assertTrue("Error message didn't contain principal: '" + msg + "'",
+            msg.contains(user0.getPrincipal()));
+      }
     }
   }
 

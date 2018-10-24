@@ -46,46 +46,47 @@ public class MasterAssignmentIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = super.getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    String tableId = c.tableOperations().tableIdMap().get(tableName);
-    // wait for the table to be online
-    TabletLocationState newTablet;
-    do {
-      UtilWaitThread.sleep(250);
-      newTablet = getTabletLocationState(c, tableId);
-    } while (newTablet.current == null);
-    assertNull(newTablet.last);
-    assertNull(newTablet.future);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = super.getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      String tableId = c.tableOperations().tableIdMap().get(tableName);
+      // wait for the table to be online
+      TabletLocationState newTablet;
+      do {
+        UtilWaitThread.sleep(250);
+        newTablet = getTabletLocationState(c, tableId);
+      } while (newTablet.current == null);
+      assertNull(newTablet.last);
+      assertNull(newTablet.future);
 
-    // put something in it
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m = new Mutation("a");
-    m.put("b", "c", "d");
-    bw.addMutation(m);
-    bw.close();
-    // give it a last location
-    c.tableOperations().flush(tableName, null, null, true);
+      // put something in it
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      Mutation m = new Mutation("a");
+      m.put("b", "c", "d");
+      bw.addMutation(m);
+      bw.close();
+      // give it a last location
+      c.tableOperations().flush(tableName, null, null, true);
 
-    TabletLocationState flushed = getTabletLocationState(c, tableId);
-    assertEquals(newTablet.current, flushed.current);
-    assertEquals(flushed.current, flushed.last);
-    assertNull(newTablet.future);
+      TabletLocationState flushed = getTabletLocationState(c, tableId);
+      assertEquals(newTablet.current, flushed.current);
+      assertEquals(flushed.current, flushed.last);
+      assertNull(newTablet.future);
 
-    // take the tablet offline
-    c.tableOperations().offline(tableName, true);
-    TabletLocationState offline = getTabletLocationState(c, tableId);
-    assertNull(offline.future);
-    assertNull(offline.current);
-    assertEquals(flushed.current, offline.last);
+      // take the tablet offline
+      c.tableOperations().offline(tableName, true);
+      TabletLocationState offline = getTabletLocationState(c, tableId);
+      assertNull(offline.future);
+      assertNull(offline.current);
+      assertEquals(flushed.current, offline.last);
 
-    // put it back online
-    c.tableOperations().online(tableName, true);
-    TabletLocationState online = getTabletLocationState(c, tableId);
-    assertNull(online.future);
-    assertNotNull(online.current);
-    assertEquals(online.current, online.last);
+      // put it back online
+      c.tableOperations().online(tableName, true);
+      TabletLocationState online = getTabletLocationState(c, tableId);
+      assertNull(online.future);
+      assertNotNull(online.current);
+      assertEquals(online.current, online.last);
+    }
   }
 
   private TabletLocationState getTabletLocationState(AccumuloClient c, String tableId)

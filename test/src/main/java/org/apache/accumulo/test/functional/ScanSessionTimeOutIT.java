@@ -64,12 +64,14 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
 
   @Before
   public void reduceSessionIdle() throws Exception {
-    InstanceOperations ops = getAccumuloClient().instanceOperations();
-    sessionIdle = ops.getSystemConfiguration().get(Property.TSERV_SESSION_MAXIDLE.getKey());
-    ops.setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
-    log.info("Waiting for existing session idle time to expire");
-    Thread.sleep(ConfigurationTypeHelper.getTimeInMillis(sessionIdle));
-    log.info("Finished waiting");
+    try (AccumuloClient client = getAccumuloClient()) {
+      InstanceOperations ops = client.instanceOperations();
+      sessionIdle = ops.getSystemConfiguration().get(Property.TSERV_SESSION_MAXIDLE.getKey());
+      ops.setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
+      log.info("Waiting for existing session idle time to expire");
+      Thread.sleep(ConfigurationTypeHelper.getTimeInMillis(sessionIdle));
+      log.info("Finished waiting");
+    }
   }
 
   /**
@@ -84,40 +86,43 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
   @After
   public void resetSessionIdle() throws Exception {
     if (null != sessionIdle) {
-      getAccumuloClient().instanceOperations().setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(),
-          sessionIdle);
+      try (AccumuloClient client = getAccumuloClient()) {
+        client.instanceOperations().setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(),
+            sessionIdle);
+      }
     }
   }
 
   @Test
   public void run() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
 
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
 
-    for (int i = 0; i < 100000; i++) {
-      Mutation m = new Mutation(new Text(String.format("%08d", i)));
-      for (int j = 0; j < 3; j++)
-        m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
+      for (int i = 0; i < 100000; i++) {
+        Mutation m = new Mutation(new Text(String.format("%08d", i)));
+        for (int j = 0; j < 3; j++)
+          m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
 
-      bw.addMutation(m);
-    }
+        bw.addMutation(m);
+      }
 
-    bw.close();
+      bw.close();
 
-    try (Scanner scanner = c.createScanner(tableName, new Authorizations())) {
-      scanner.setBatchSize(1000);
+      try (Scanner scanner = c.createScanner(tableName, new Authorizations())) {
+        scanner.setBatchSize(1000);
 
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
-      verify(iter, 0, 200);
+        verify(iter, 0, 200);
 
-      // sleep three times the session timeout
-      sleepUninterruptibly(9, TimeUnit.SECONDS);
+        // sleep three times the session timeout
+        sleepUninterruptibly(9, TimeUnit.SECONDS);
 
-      verify(iter, 200, 100000);
+        verify(iter, 200, 100000);
+      }
     }
   }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -43,31 +44,41 @@ public class SslIT extends ConfigurableMacBase {
 
   @Test
   public void binary() throws AccumuloException, AccumuloSecurityException, Exception {
-    String tableName = getUniqueNames(1)[0];
-    getClient().tableOperations().create(tableName);
-    BinaryIT.runTest(getClient(), tableName);
+    try (AccumuloClient client = getClient()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
+      BinaryIT.runTest(client, tableName);
+    }
   }
 
   @Test
   public void concurrency() throws Exception {
-    ConcurrencyIT.runTest(getClient(), getUniqueNames(1)[0]);
+    try (AccumuloClient client = getClient()) {
+      ConcurrencyIT.runTest(client, getUniqueNames(1)[0]);
+    }
   }
 
   @Test
   public void adminStop() throws Exception {
-    ShutdownIT.runAdminStopTest(getClient(), getCluster());
+    try (AccumuloClient client = getClient()) {
+      ShutdownIT.runAdminStopTest(client, getCluster());
+    }
   }
 
   @Test
   public void bulk() throws Exception {
-    BulkIT.runTest(getClient(), getClientInfo(), cluster.getFileSystem(),
-        new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"), getUniqueNames(1)[0],
-        this.getClass().getName(), testName.getMethodName(), true);
+    try (AccumuloClient client = getClient()) {
+      BulkIT.runTest(client, getClientInfo(), cluster.getFileSystem(),
+          new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"),
+          getUniqueNames(1)[0], this.getClass().getName(), testName.getMethodName(), true);
+    }
   }
 
   @Test
   public void mapReduce() throws Exception {
-    MapReduceIT.runTest(getClient(), getCluster());
+    try (AccumuloClient client = getClient()) {
+      MapReduceIT.runTest(client, getCluster());
+    }
   }
 
 }

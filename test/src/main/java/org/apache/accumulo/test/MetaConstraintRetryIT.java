@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.test;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.impl.Writer;
 import org.apache.accumulo.core.data.Mutation;
@@ -39,23 +40,24 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
   // a test for ACCUMULO-3096
   @Test(expected = ConstraintViolationException.class)
   public void test() throws Exception {
+    try (AccumuloClient client = getAccumuloClient()) {
+      client.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME,
+          TablePermission.WRITE);
 
-    getAccumuloClient().securityOperations().grantTablePermission(getAdminPrincipal(),
-        MetadataTable.NAME, TablePermission.WRITE);
+      ServerContext context = getServerContext();
+      Writer w = new Writer(context, MetadataTable.ID);
+      KeyExtent extent = new KeyExtent(Table.ID.of("5"), null, null);
 
-    ServerContext context = getServerContext();
-    Writer w = new Writer(context, MetadataTable.ID);
-    KeyExtent extent = new KeyExtent(Table.ID.of("5"), null, null);
+      Mutation m = new Mutation(extent.getMetadataEntry());
+      // unknown columns should cause constraint violation
+      m.put("badcolfam", "badcolqual", "3");
 
-    Mutation m = new Mutation(extent.getMetadataEntry());
-    // unknown columns should cause constraint violation
-    m.put("badcolfam", "badcolqual", "3");
-
-    try {
-      MetadataTableUtil.update(context, w, null, m);
-    } catch (RuntimeException e) {
-      if (e.getCause().getClass().equals(ConstraintViolationException.class)) {
-        throw (ConstraintViolationException) e.getCause();
+      try {
+        MetadataTableUtil.update(context, w, null, m);
+      } catch (RuntimeException e) {
+        if (e.getCause().getClass().equals(ConstraintViolationException.class)) {
+          throw (ConstraintViolationException) e.getCause();
+        }
       }
     }
   }

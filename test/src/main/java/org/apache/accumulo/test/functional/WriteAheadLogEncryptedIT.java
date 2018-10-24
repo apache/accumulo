@@ -82,22 +82,23 @@ public class WriteAheadLogEncryptedIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "750K");
-    TestIngest.Opts opts = new TestIngest.Opts();
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    opts.setTableName(tableName);
-    opts.setClientInfo(getClientInfo());
-    vopts.setClientInfo(getClientInfo());
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "750K");
+      TestIngest.Opts opts = new TestIngest.Opts();
+      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+      opts.setTableName(tableName);
+      opts.setClientInfo(getClientInfo());
+      vopts.setClientInfo(getClientInfo());
 
-    TestIngest.ingest(c, opts, new BatchWriterOpts());
-    vopts.setTableName(tableName);
-    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-    getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      TestIngest.ingest(c, opts, new BatchWriterOpts());
+      vopts.setTableName(tableName);
+      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+    }
   }
 
 }

@@ -138,108 +138,109 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void basicSummaryTest() throws Exception {
     final String table = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BasicSummarizer.class.getName())
-        .build();
-    ntc.enableSummarization(sc1);
-    c.tableOperations().create(table, ntc);
+    try (AccumuloClient c = getAccumuloClient()) {
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BasicSummarizer.class.getName())
+          .build();
+      ntc.enableSummarization(sc1);
+      c.tableOperations().create(table, ntc);
 
-    BatchWriter bw = writeData(table, c);
+      BatchWriter bw = writeData(table, c);
 
-    Collection<Summary> summaries = c.tableOperations().summaries(table).flush(false).retrieve();
-    assertEquals(0, summaries.size());
+      Collection<Summary> summaries = c.tableOperations().summaries(table).flush(false).retrieve();
+      assertEquals(0, summaries.size());
 
-    LongSummaryStatistics stats = getTimestampStats(table, c);
+      LongSummaryStatistics stats = getTimestampStats(table, c);
 
-    summaries = c.tableOperations().summaries(table).flush(true).retrieve();
-    checkSummaries(summaries, sc1, 1, 0, 0, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT,
-        stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
+      summaries = c.tableOperations().summaries(table).flush(true).retrieve();
+      checkSummaries(summaries, sc1, 1, 0, 0, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT,
+          stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
 
-    Mutation m = new Mutation(String.format("r%09x", 999));
-    m.put("f1", "q1", "999-0");
-    m.putDelete("f1", "q2");
-    bw.addMutation(m);
-    bw.flush();
+      Mutation m = new Mutation(String.format("r%09x", 999));
+      m.put("f1", "q1", "999-0");
+      m.putDelete("f1", "q2");
+      bw.addMutation(m);
+      bw.flush();
 
-    c.tableOperations().flush(table, null, null, true);
+      c.tableOperations().flush(table, null, null, true);
 
-    stats = getTimestampStats(table, c);
+      stats = getTimestampStats(table, c);
 
-    summaries = c.tableOperations().summaries(table).retrieve();
+      summaries = c.tableOperations().summaries(table).retrieve();
 
-    checkSummaries(summaries, sc1, 2, 0, 0, TOTAL_STAT, 100_002L, MIN_TIMESTAMP_STAT,
-        stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 1L);
+      checkSummaries(summaries, sc1, 2, 0, 0, TOTAL_STAT, 100_002L, MIN_TIMESTAMP_STAT,
+          stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 1L);
 
-    bw.close();
+      bw.close();
 
-    c.tableOperations().compact(table, new CompactionConfig().setWait(true));
+      c.tableOperations().compact(table, new CompactionConfig().setWait(true));
 
-    summaries = c.tableOperations().summaries(table).retrieve();
-    checkSummaries(summaries, sc1, 1, 0, 0, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT,
-        stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
+      summaries = c.tableOperations().summaries(table).retrieve();
+      checkSummaries(summaries, sc1, 1, 0, 0, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT,
+          stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
 
-    // split tablet into two
-    String sp1 = String.format("r%09x", 50_000);
-    addSplits(table, c, sp1);
+      // split tablet into two
+      String sp1 = String.format("r%09x", 50_000);
+      addSplits(table, c, sp1);
 
-    summaries = c.tableOperations().summaries(table).retrieve();
+      summaries = c.tableOperations().summaries(table).retrieve();
 
-    checkSummaries(summaries, sc1, 1, 0, 0, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT,
-        stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
+      checkSummaries(summaries, sc1, 1, 0, 0, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT,
+          stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
 
-    // compact 2nd tablet
-    c.tableOperations().compact(table,
-        new CompactionConfig().setStartRow(new Text(sp1)).setWait(true));
+      // compact 2nd tablet
+      c.tableOperations().compact(table,
+          new CompactionConfig().setStartRow(new Text(sp1)).setWait(true));
 
-    summaries = c.tableOperations().summaries(table).retrieve();
-    checkSummaries(summaries, sc1, 2, 0, 1, TOTAL_STAT, 113_999L, MIN_TIMESTAMP_STAT,
-        stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
+      summaries = c.tableOperations().summaries(table).retrieve();
+      checkSummaries(summaries, sc1, 2, 0, 1, TOTAL_STAT, 113_999L, MIN_TIMESTAMP_STAT,
+          stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
 
-    // get summaries for first tablet
-    stats = getTimestampStats(table, c, sp1, null);
-    summaries = c.tableOperations().summaries(table).startRow(sp1).retrieve();
-    checkSummaries(summaries, sc1, 1, 0, 0, TOTAL_STAT, 49_999L, MIN_TIMESTAMP_STAT, stats.getMin(),
-        MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
+      // get summaries for first tablet
+      stats = getTimestampStats(table, c, sp1, null);
+      summaries = c.tableOperations().summaries(table).startRow(sp1).retrieve();
+      checkSummaries(summaries, sc1, 1, 0, 0, TOTAL_STAT, 49_999L, MIN_TIMESTAMP_STAT,
+          stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
 
-    // compact all tablets and regenerate all summaries
-    c.tableOperations().compact(table, new CompactionConfig());
+      // compact all tablets and regenerate all summaries
+      c.tableOperations().compact(table, new CompactionConfig());
 
-    summaries = c.tableOperations().summaries(table).retrieve();
-    stats = getTimestampStats(table, c);
-    checkSummaries(summaries, sc1, 2, 0, 0, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT,
-        stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
+      summaries = c.tableOperations().summaries(table).retrieve();
+      stats = getTimestampStats(table, c);
+      checkSummaries(summaries, sc1, 2, 0, 0, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT,
+          stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
 
-    summaries = c.tableOperations().summaries(table).startRow(String.format("r%09x", 75_000))
-        .endRow(String.format("r%09x", 80_000)).retrieve();
-    Summary summary = Iterables.getOnlyElement(summaries);
-    assertEquals(1, summary.getFileStatistics().getTotal());
-    assertEquals(1, summary.getFileStatistics().getExtra());
-    long total = summary.getStatistics().get(TOTAL_STAT);
-    assertTrue("Total " + total + " out of expected range", total > 0 && total <= 10_000);
+      summaries = c.tableOperations().summaries(table).startRow(String.format("r%09x", 75_000))
+          .endRow(String.format("r%09x", 80_000)).retrieve();
+      Summary summary = Iterables.getOnlyElement(summaries);
+      assertEquals(1, summary.getFileStatistics().getTotal());
+      assertEquals(1, summary.getFileStatistics().getExtra());
+      long total = summary.getStatistics().get(TOTAL_STAT);
+      assertTrue("Total " + total + " out of expected range", total > 0 && total <= 10_000);
 
-    // test adding and removing
-    c.tableOperations().removeSummarizers(table, sc -> sc.getClassName().contains("foo"));
+      // test adding and removing
+      c.tableOperations().removeSummarizers(table, sc -> sc.getClassName().contains("foo"));
 
-    List<SummarizerConfiguration> summarizers = c.tableOperations().listSummarizers(table);
-    assertEquals(1, summarizers.size());
-    assertTrue(summarizers.contains(sc1));
+      List<SummarizerConfiguration> summarizers = c.tableOperations().listSummarizers(table);
+      assertEquals(1, summarizers.size());
+      assertTrue(summarizers.contains(sc1));
 
-    c.tableOperations().removeSummarizers(table,
-        sc -> sc.getClassName().equals(BasicSummarizer.class.getName()));
-    summarizers = c.tableOperations().listSummarizers(table);
-    assertEquals(0, summarizers.size());
+      c.tableOperations().removeSummarizers(table,
+          sc -> sc.getClassName().equals(BasicSummarizer.class.getName()));
+      summarizers = c.tableOperations().listSummarizers(table);
+      assertEquals(0, summarizers.size());
 
-    c.tableOperations().compact(table, new CompactionConfig().setWait(true));
+      c.tableOperations().compact(table, new CompactionConfig().setWait(true));
 
-    summaries = c.tableOperations().summaries(table).retrieve();
-    assertEquals(0, summaries.size());
+      summaries = c.tableOperations().summaries(table).retrieve();
+      assertEquals(0, summaries.size());
 
-    c.tableOperations().addSummarizers(table, sc1);
-    c.tableOperations().compact(table, new CompactionConfig().setWait(true));
-    summaries = c.tableOperations().summaries(table).retrieve();
-    checkSummaries(summaries, sc1, 2, 0, 0, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT,
-        stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
+      c.tableOperations().addSummarizers(table, sc1);
+      c.tableOperations().compact(table, new CompactionConfig().setWait(true));
+      summaries = c.tableOperations().summaries(table).retrieve();
+      checkSummaries(summaries, sc1, 2, 0, 0, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT,
+          stats.getMin(), MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
+    }
   }
 
   private BatchWriter writeData(final String table, AccumuloClient c)
@@ -314,77 +315,79 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void selectionTest() throws Exception {
     final String table = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BasicSummarizer.class).build();
-    SummarizerConfiguration sc2 = SummarizerConfiguration.builder(KeySizeSummarizer.class)
-        .addOption("maxLen", "512").build();
-    ntc.enableSummarization(sc1, sc2);
-    c.tableOperations().create(table, ntc);
+    try (AccumuloClient c = getAccumuloClient()) {
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BasicSummarizer.class).build();
+      SummarizerConfiguration sc2 = SummarizerConfiguration.builder(KeySizeSummarizer.class)
+          .addOption("maxLen", "512").build();
+      ntc.enableSummarization(sc1, sc2);
+      c.tableOperations().create(table, ntc);
 
-    BatchWriter bw = writeData(table, c);
-    bw.close();
+      BatchWriter bw = writeData(table, c);
+      bw.close();
 
-    c.tableOperations().flush(table, null, null, true);
+      c.tableOperations().flush(table, null, null, true);
 
-    LongSummaryStatistics stats = getTimestampStats(table, c);
+      LongSummaryStatistics stats = getTimestampStats(table, c);
 
-    Collection<Summary> summaries = c.tableOperations().summaries(table).withConfiguration(sc2)
-        .retrieve();
-    assertEquals(1, summaries.size());
-    checkSummary(summaries, sc2, "len=14", 100_000L);
+      Collection<Summary> summaries = c.tableOperations().summaries(table).withConfiguration(sc2)
+          .retrieve();
+      assertEquals(1, summaries.size());
+      checkSummary(summaries, sc2, "len=14", 100_000L);
 
-    summaries = c.tableOperations().summaries(table).withConfiguration(sc1).retrieve();
-    assertEquals(1, summaries.size());
-    checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
-        MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
+      summaries = c.tableOperations().summaries(table).withConfiguration(sc1).retrieve();
+      assertEquals(1, summaries.size());
+      checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
+          MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
 
-    // retrieve a nonexistent summary
-    SummarizerConfiguration sc3 = SummarizerConfiguration.builder(KeySizeSummarizer.class.getName())
-        .addOption("maxLen", "256").build();
-    summaries = c.tableOperations().summaries(table).withConfiguration(sc3).retrieve();
-    assertEquals(0, summaries.size());
+      // retrieve a nonexistent summary
+      SummarizerConfiguration sc3 = SummarizerConfiguration
+          .builder(KeySizeSummarizer.class.getName()).addOption("maxLen", "256").build();
+      summaries = c.tableOperations().summaries(table).withConfiguration(sc3).retrieve();
+      assertEquals(0, summaries.size());
 
-    summaries = c.tableOperations().summaries(table).withConfiguration(sc1, sc2).retrieve();
-    assertEquals(2, summaries.size());
-    checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
-        MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
-    checkSummary(summaries, sc2, "len=14", 100_000L);
+      summaries = c.tableOperations().summaries(table).withConfiguration(sc1, sc2).retrieve();
+      assertEquals(2, summaries.size());
+      checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
+          MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
+      checkSummary(summaries, sc2, "len=14", 100_000L);
 
-    summaries = c.tableOperations().summaries(table).retrieve();
-    assertEquals(2, summaries.size());
-    checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
-        MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
-    checkSummary(summaries, sc2, "len=14", 100_000L);
+      summaries = c.tableOperations().summaries(table).retrieve();
+      assertEquals(2, summaries.size());
+      checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
+          MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
+      checkSummary(summaries, sc2, "len=14", 100_000L);
 
-    summaries = c.tableOperations().summaries(table)
-        .withMatchingConfiguration(".*BasicSummarizer \\{\\}.*").retrieve();
-    assertEquals(1, summaries.size());
-    checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
-        MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
-
-    summaries = c.tableOperations().summaries(table)
-        .withMatchingConfiguration(".*KeySizeSummarizer \\{maxLen=512\\}.*").retrieve();
-    assertEquals(1, summaries.size());
-    checkSummary(summaries, sc2, "len=14", 100_000L);
-
-    summaries = c.tableOperations().summaries(table)
-        .withMatchingConfiguration(".*KeySizeSummarizer \\{maxLen=256\\}.*").retrieve();
-    assertEquals(0, summaries.size());
-
-    summaries = c.tableOperations().summaries(table)
-        .withMatchingConfiguration(".*BasicSummarizer \\{\\}.*").withConfiguration(sc2).retrieve();
-    assertEquals(2, summaries.size());
-    checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
-        MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
-    checkSummary(summaries, sc2, "len=14", 100_000L);
-
-    // Ensure a bad regex fails fast.
-    try {
       summaries = c.tableOperations().summaries(table)
-          .withMatchingConfiguration(".*KeySizeSummarizer {maxLen=256}.*").retrieve();
-      fail("Bad regex should have caused exception");
-    } catch (PatternSyntaxException e) {}
+          .withMatchingConfiguration(".*BasicSummarizer \\{\\}.*").retrieve();
+      assertEquals(1, summaries.size());
+      checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
+          MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
+
+      summaries = c.tableOperations().summaries(table)
+          .withMatchingConfiguration(".*KeySizeSummarizer \\{maxLen=512\\}.*").retrieve();
+      assertEquals(1, summaries.size());
+      checkSummary(summaries, sc2, "len=14", 100_000L);
+
+      summaries = c.tableOperations().summaries(table)
+          .withMatchingConfiguration(".*KeySizeSummarizer \\{maxLen=256\\}.*").retrieve();
+      assertEquals(0, summaries.size());
+
+      summaries = c.tableOperations().summaries(table)
+          .withMatchingConfiguration(".*BasicSummarizer \\{\\}.*").withConfiguration(sc2)
+          .retrieve();
+      assertEquals(2, summaries.size());
+      checkSummary(summaries, sc1, TOTAL_STAT, 100_000L, MIN_TIMESTAMP_STAT, stats.getMin(),
+          MAX_TIMESTAMP_STAT, stats.getMax(), DELETES_STAT, 0L);
+      checkSummary(summaries, sc2, "len=14", 100_000L);
+
+      // Ensure a bad regex fails fast.
+      try {
+        summaries = c.tableOperations().summaries(table)
+            .withMatchingConfiguration(".*KeySizeSummarizer {maxLen=256}.*").retrieve();
+        fail("Bad regex should have caused exception");
+      } catch (PatternSyntaxException e) {}
+    }
   }
 
   /**
@@ -476,59 +479,61 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void compactionTest() throws Exception {
     final String table = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FooCounter.class.getName())
-        .build();
-    ntc.enableSummarization(sc1);
-    c.tableOperations().create(table, ntc);
+    try (AccumuloClient c = getAccumuloClient()) {
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FooCounter.class.getName())
+          .build();
+      ntc.enableSummarization(sc1);
+      c.tableOperations().create(table, ntc);
 
-    try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
-      write(bw, "bar1", "f1", "q1", "v1");
-      write(bw, "bar2", "f1", "q1", "v2");
-      write(bw, "foo1", "f1", "q1", "v3");
-    }
+      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+        write(bw, "bar1", "f1", "q1", "v1");
+        write(bw, "bar2", "f1", "q1", "v2");
+        write(bw, "foo1", "f1", "q1", "v3");
+      }
 
-    // Create a compaction config that will filter out foos if there are too many. Uses summary data
-    // to know if there are too many foos.
-    CompactionStrategyConfig csc = new CompactionStrategyConfig(FooCS.class.getName());
-    List<IteratorSetting> iterators = Collections
-        .singletonList(new IteratorSetting(100, FooFilter.class));
-    CompactionConfig compactConfig = new CompactionConfig().setFlush(true)
-        .setCompactionStrategy(csc).setIterators(iterators).setWait(true);
+      // Create a compaction config that will filter out foos if there are too many. Uses summary
+      // data
+      // to know if there are too many foos.
+      CompactionStrategyConfig csc = new CompactionStrategyConfig(FooCS.class.getName());
+      List<IteratorSetting> iterators = Collections
+          .singletonList(new IteratorSetting(100, FooFilter.class));
+      CompactionConfig compactConfig = new CompactionConfig().setFlush(true)
+          .setCompactionStrategy(csc).setIterators(iterators).setWait(true);
 
-    // this compaction should make no changes because there are less foos than bars
-    c.tableOperations().compact(table, compactConfig);
+      // this compaction should make no changes because there are less foos than bars
+      c.tableOperations().compact(table, compactConfig);
 
-    try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
-      Stream<Entry<Key,Value>> stream = StreamSupport.stream(scanner.spliterator(), false);
-      Map<String,Long> counts = stream.map(e -> e.getKey().getRowData().toString()) // convert to
-                                                                                    // row
-          .map(r -> r.replaceAll("[0-9]+", "")) // strip numbers off row
-          .collect(groupingBy(identity(), counting())); // count different row types
-      assertEquals(1L, (long) counts.getOrDefault("foo", 0L));
-      assertEquals(2L, (long) counts.getOrDefault("bar", 0L));
-      assertEquals(2, counts.size());
-    }
+      try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
+        Stream<Entry<Key,Value>> stream = StreamSupport.stream(scanner.spliterator(), false);
+        Map<String,Long> counts = stream.map(e -> e.getKey().getRowData().toString()) // convert to
+                                                                                      // row
+            .map(r -> r.replaceAll("[0-9]+", "")) // strip numbers off row
+            .collect(groupingBy(identity(), counting())); // count different row types
+        assertEquals(1L, (long) counts.getOrDefault("foo", 0L));
+        assertEquals(2L, (long) counts.getOrDefault("bar", 0L));
+        assertEquals(2, counts.size());
+      }
 
-    try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
-      write(bw, "foo2", "f1", "q1", "v4");
-      write(bw, "foo3", "f1", "q1", "v5");
-      write(bw, "foo4", "f1", "q1", "v6");
-    }
+      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+        write(bw, "foo2", "f1", "q1", "v4");
+        write(bw, "foo3", "f1", "q1", "v5");
+        write(bw, "foo4", "f1", "q1", "v6");
+      }
 
-    // this compaction should remove all foos because there are more foos than bars
-    c.tableOperations().compact(table, compactConfig);
+      // this compaction should remove all foos because there are more foos than bars
+      c.tableOperations().compact(table, compactConfig);
 
-    try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
-      Stream<Entry<Key,Value>> stream = StreamSupport.stream(scanner.spliterator(), false);
-      Map<String,Long> counts = stream.map(e -> e.getKey().getRowData().toString()) // convert to
-                                                                                    // row
-          .map(r -> r.replaceAll("[0-9]+", "")) // strip numbers off row
-          .collect(groupingBy(identity(), counting())); // count different row types
-      assertEquals(0L, (long) counts.getOrDefault("foo", 0L));
-      assertEquals(2L, (long) counts.getOrDefault("bar", 0L));
-      assertEquals(1, counts.size());
+      try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
+        Stream<Entry<Key,Value>> stream = StreamSupport.stream(scanner.spliterator(), false);
+        Map<String,Long> counts = stream.map(e -> e.getKey().getRowData().toString()) // convert to
+                                                                                      // row
+            .map(r -> r.replaceAll("[0-9]+", "")) // strip numbers off row
+            .collect(groupingBy(identity(), counting())); // count different row types
+        assertEquals(0L, (long) counts.getOrDefault("foo", 0L));
+        assertEquals(2L, (long) counts.getOrDefault("bar", 0L));
+        assertEquals(1, counts.size());
+      }
     }
   }
 
@@ -544,70 +549,73 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void testBuggySummarizer() throws Exception {
     final String table = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BuggySummarizer.class).build();
-    ntc.enableSummarization(sc1);
-    c.tableOperations().create(table, ntc);
+    try (AccumuloClient c = getAccumuloClient()) {
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BuggySummarizer.class).build();
+      ntc.enableSummarization(sc1);
+      c.tableOperations().create(table, ntc);
 
-    // add a single split so that summary stats merge is forced
-    c.tableOperations().addSplits(table, new TreeSet<>(Collections.singleton(new Text("g"))));
+      // add a single split so that summary stats merge is forced
+      c.tableOperations().addSplits(table, new TreeSet<>(Collections.singleton(new Text("g"))));
 
-    try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
-      write(bw, "bar1", "f1", "q1", "v1");
-      write(bw, "bar2", "f1", "q1", "v2");
-      write(bw, "foo1", "f1", "q1", "v3");
+      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+        write(bw, "bar1", "f1", "q1", "v1");
+        write(bw, "bar2", "f1", "q1", "v2");
+        write(bw, "foo1", "f1", "q1", "v3");
+      }
+
+      c.tableOperations().flush(table, null, null, true);
+      try {
+        c.tableOperations().summaries(table).retrieve();
+        fail("Expected server side failure and did not see it");
+      } catch (AccumuloServerException ase) {}
+
     }
-
-    c.tableOperations().flush(table, null, null, true);
-    try {
-      c.tableOperations().summaries(table).retrieve();
-      fail("Expected server side failure and did not see it");
-    } catch (AccumuloServerException ase) {}
-
   }
 
   @Test
   public void testPermissions() throws Exception {
     final String table = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FooCounter.class).build();
-    ntc.enableSummarization(sc1);
-    c.tableOperations().create(table, ntc);
+    try (AccumuloClient c = getAccumuloClient()) {
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FooCounter.class).build();
+      ntc.enableSummarization(sc1);
+      c.tableOperations().create(table, ntc);
 
-    try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
-      write(bw, "bar1", "f1", "q1", "v1");
-      write(bw, "bar2", "f1", "q1", "v2");
-      write(bw, "foo1", "f1", "q1", "v3");
-    }
+      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+        write(bw, "bar1", "f1", "q1", "v1");
+        write(bw, "bar2", "f1", "q1", "v2");
+        write(bw, "foo1", "f1", "q1", "v3");
+      }
 
-    c.tableOperations().flush(table, null, null, true);
+      c.tableOperations().flush(table, null, null, true);
 
-    PasswordToken passTok = new PasswordToken("letmesee");
-    c.securityOperations().createLocalUser("user1", passTok);
+      PasswordToken passTok = new PasswordToken("letmesee");
+      c.securityOperations().createLocalUser("user1", passTok);
 
-    AccumuloClient c2 = c.changeUser("user1", passTok);
-    try {
-      c2.tableOperations().summaries(table).retrieve();
-      fail("Expected operation to fail because user does not have permssion to get summaries");
-    } catch (AccumuloSecurityException ase) {
-      assertEquals(SecurityErrorCode.PERMISSION_DENIED, ase.getSecurityErrorCode());
-    }
+      try (AccumuloClient c2 = c.changeUser("user1", passTok)) {
+        try {
+          c2.tableOperations().summaries(table).retrieve();
+          fail("Expected operation to fail because user does not have permssion to get summaries");
+        } catch (AccumuloSecurityException ase) {
+          assertEquals(SecurityErrorCode.PERMISSION_DENIED, ase.getSecurityErrorCode());
+        }
 
-    c.securityOperations().grantTablePermission("user1", table, TablePermission.GET_SUMMARIES);
+        c.securityOperations().grantTablePermission("user1", table, TablePermission.GET_SUMMARIES);
 
-    int tries = 0;
-    while (tries < 10) {
-      try {
-        Summary summary = c2.tableOperations().summaries(table).retrieve().get(0);
-        assertEquals(2, summary.getStatistics().size());
-        assertEquals(2L, (long) summary.getStatistics().getOrDefault("bars", 0L));
-        assertEquals(1L, (long) summary.getStatistics().getOrDefault("foos", 0L));
-        break;
-      } catch (AccumuloSecurityException ase) {
-        UtilWaitThread.sleep(500);
-        tries++;
+        int tries = 0;
+        while (tries < 10) {
+          try {
+            Summary summary = c2.tableOperations().summaries(table).retrieve().get(0);
+            assertEquals(2, summary.getStatistics().size());
+            assertEquals(2L, (long) summary.getStatistics().getOrDefault("bars", 0L));
+            assertEquals(1L, (long) summary.getStatistics().getOrDefault("foos", 0L));
+            break;
+          } catch (AccumuloSecurityException ase) {
+            UtilWaitThread.sleep(500);
+            tries++;
+          }
+        }
       }
     }
   }
@@ -643,46 +651,48 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void tooLargeTest() throws Exception {
     final String table = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BigSummarizer.class).build();
-    ntc.enableSummarization(sc1);
-    c.tableOperations().create(table, ntc);
+    try (AccumuloClient c = getAccumuloClient()) {
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BigSummarizer.class).build();
+      ntc.enableSummarization(sc1);
+      c.tableOperations().create(table, ntc);
 
-    try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
-      write(bw, "a_large", "f1", "q1", "v1");
-      write(bw, "v_small", "f1", "q1", "v2");
+      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+        write(bw, "a_large", "f1", "q1", "v1");
+        write(bw, "v_small", "f1", "q1", "v2");
+      }
+
+      c.tableOperations().flush(table, null, null, true);
+      Summary summary = c.tableOperations().summaries(table).retrieve().get(0);
+      assertEquals(1, summary.getFileStatistics().getLarge());
+      assertEquals(0, summary.getFileStatistics().getMissing());
+      assertEquals(0, summary.getFileStatistics().getExtra());
+      assertEquals(0, summary.getFileStatistics().getDeleted());
+      assertEquals(1, summary.getFileStatistics().getInaccurate());
+      assertEquals(1, summary.getFileStatistics().getTotal());
+      assertEquals(Collections.emptyMap(), summary.getStatistics());
+
+      // create situation where one tablet has summary data and one does not because the summary
+      // data
+      // was too large
+      c.tableOperations().addSplits(table, new TreeSet<>(Collections.singleton(new Text("m"))));
+      c.tableOperations().compact(table, new CompactionConfig().setWait(true));
+
+      summary = c.tableOperations().summaries(table).retrieve().get(0);
+      assertEquals(1, summary.getFileStatistics().getLarge());
+      assertEquals(0, summary.getFileStatistics().getMissing());
+      assertEquals(0, summary.getFileStatistics().getExtra());
+      assertEquals(0, summary.getFileStatistics().getDeleted());
+      assertEquals(1, summary.getFileStatistics().getInaccurate());
+      assertEquals(2, summary.getFileStatistics().getTotal());
+
+      HashMap<String,Long> expected = new HashMap<>();
+      for (int i = 0; i < 10; i++) {
+        expected.put(String.format("%09x", i), i * 19L);
+      }
+
+      assertEquals(expected, summary.getStatistics());
     }
-
-    c.tableOperations().flush(table, null, null, true);
-    Summary summary = c.tableOperations().summaries(table).retrieve().get(0);
-    assertEquals(1, summary.getFileStatistics().getLarge());
-    assertEquals(0, summary.getFileStatistics().getMissing());
-    assertEquals(0, summary.getFileStatistics().getExtra());
-    assertEquals(0, summary.getFileStatistics().getDeleted());
-    assertEquals(1, summary.getFileStatistics().getInaccurate());
-    assertEquals(1, summary.getFileStatistics().getTotal());
-    assertEquals(Collections.emptyMap(), summary.getStatistics());
-
-    // create situation where one tablet has summary data and one does not because the summary data
-    // was too large
-    c.tableOperations().addSplits(table, new TreeSet<>(Collections.singleton(new Text("m"))));
-    c.tableOperations().compact(table, new CompactionConfig().setWait(true));
-
-    summary = c.tableOperations().summaries(table).retrieve().get(0);
-    assertEquals(1, summary.getFileStatistics().getLarge());
-    assertEquals(0, summary.getFileStatistics().getMissing());
-    assertEquals(0, summary.getFileStatistics().getExtra());
-    assertEquals(0, summary.getFileStatistics().getDeleted());
-    assertEquals(1, summary.getFileStatistics().getInaccurate());
-    assertEquals(2, summary.getFileStatistics().getTotal());
-
-    HashMap<String,Long> expected = new HashMap<>();
-    for (int i = 0; i < 10; i++) {
-      expected.put(String.format("%09x", i), i * 19L);
-    }
-
-    assertEquals(expected, summary.getStatistics());
   }
 
   private void write(BatchWriter bw, String row, String family, String qualifier, String value)
@@ -712,158 +722,163 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void testLocalityGroups() throws Exception {
     final String table = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FamilySummarizer.class).build();
-    SummarizerConfiguration sc2 = SummarizerConfiguration.builder(BasicSummarizer.class).build();
-    ntc.enableSummarization(sc1, sc2);
+    try (AccumuloClient c = getAccumuloClient()) {
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FamilySummarizer.class).build();
+      SummarizerConfiguration sc2 = SummarizerConfiguration.builder(BasicSummarizer.class).build();
+      ntc.enableSummarization(sc1, sc2);
 
-    Map<String,Set<Text>> lgroups = new HashMap<>();
-    lgroups.put("lg1", ImmutableSet.of(new Text("chocolate"), new Text("coffee")));
-    lgroups.put("lg2", ImmutableSet.of(new Text(" broccoli "), new Text("cabbage")));
-    // create a locality group that will not have data in it
-    lgroups.put("lg3", ImmutableSet.of(new Text(" apple "), new Text("orange")));
+      Map<String,Set<Text>> lgroups = new HashMap<>();
+      lgroups.put("lg1", ImmutableSet.of(new Text("chocolate"), new Text("coffee")));
+      lgroups.put("lg2", ImmutableSet.of(new Text(" broccoli "), new Text("cabbage")));
+      // create a locality group that will not have data in it
+      lgroups.put("lg3", ImmutableSet.of(new Text(" apple "), new Text("orange")));
 
-    ntc.setLocalityGroups(lgroups);
-    c.tableOperations().create(table, ntc);
+      ntc.setLocalityGroups(lgroups);
+      c.tableOperations().create(table, ntc);
 
-    Map<Key,Value> expected = new HashMap<>();
-    try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
-      write(bw, expected, "order:001", "chocolate", "dark", 3L, "99kg");
-      write(bw, expected, "order:001", "chocolate", "light", 4L, "94kg");
-      write(bw, expected, "order:001", "coffee", "dark", 5L, "33kg");
-      write(bw, expected, "order:001", "broccoli", "crowns", 6L, "2kg");
-      write(bw, expected, "order:001", "cheddar", "canadian", 7L, "40kg");
+      Map<Key,Value> expected = new HashMap<>();
+      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+        write(bw, expected, "order:001", "chocolate", "dark", 3L, "99kg");
+        write(bw, expected, "order:001", "chocolate", "light", 4L, "94kg");
+        write(bw, expected, "order:001", "coffee", "dark", 5L, "33kg");
+        write(bw, expected, "order:001", "broccoli", "crowns", 6L, "2kg");
+        write(bw, expected, "order:001", "cheddar", "canadian", 7L, "40kg");
 
-      write(bw, expected, "order:653", "chocolate", "dark", 3L, "3kg");
-      write(bw, expected, "order:653", "chocolate", "light", 4L, "4kg");
-      write(bw, expected, "order:653", "coffee", "dark", 5L, "2kg");
-      write(bw, expected, "order:653", "broccoli", "crowns", 6L, "105kg");
-      write(bw, expected, "order:653", "cabbage", "heads", 7L, "199kg");
-      write(bw, expected, "order:653", "cheddar", "canadian", 8L, "43kg");
-    }
-
-    List<Summary> summaries = c.tableOperations().summaries(table).flush(true).retrieve();
-    assertEquals(2, summaries.stream().map(Summary::getSummarizerConfiguration).distinct().count());
-    for (Summary summary : summaries) {
-      if (summary.getSummarizerConfiguration().equals(sc1)) {
-        Map<String,Long> expectedStats = nm("c:chocolate", 4L, "c:coffee", 2L, "c:broccoli", 2L,
-            "c:cheddar", 2L, "c:cabbage", 1L, TOO_LONG_STAT, 0L, TOO_MANY_STAT, 0L, SEEN_STAT, 11L,
-            EMITTED_STAT, 11L, DELETES_IGNORED_STAT, 0L);
-        assertEquals(expectedStats, summary.getStatistics());
-        assertEquals(0, summary.getFileStatistics().getInaccurate());
-        assertEquals(1, summary.getFileStatistics().getTotal());
-      } else if (summary.getSummarizerConfiguration().equals(sc2)) {
-        Map<String,Long> expectedStats = nm(DELETES_STAT, 0L, TOTAL_STAT, 11L, MIN_TIMESTAMP_STAT,
-            3L, MAX_TIMESTAMP_STAT, 8L);
-        assertEquals(expectedStats, summary.getStatistics());
-        assertEquals(0, summary.getFileStatistics().getInaccurate());
-        assertEquals(1, summary.getFileStatistics().getTotal());
-      } else {
-        fail("unexpected summary config " + summary.getSummarizerConfiguration());
+        write(bw, expected, "order:653", "chocolate", "dark", 3L, "3kg");
+        write(bw, expected, "order:653", "chocolate", "light", 4L, "4kg");
+        write(bw, expected, "order:653", "coffee", "dark", 5L, "2kg");
+        write(bw, expected, "order:653", "broccoli", "crowns", 6L, "105kg");
+        write(bw, expected, "order:653", "cabbage", "heads", 7L, "199kg");
+        write(bw, expected, "order:653", "cheddar", "canadian", 8L, "43kg");
       }
+
+      List<Summary> summaries = c.tableOperations().summaries(table).flush(true).retrieve();
+      assertEquals(2,
+          summaries.stream().map(Summary::getSummarizerConfiguration).distinct().count());
+      for (Summary summary : summaries) {
+        if (summary.getSummarizerConfiguration().equals(sc1)) {
+          Map<String,Long> expectedStats = nm("c:chocolate", 4L, "c:coffee", 2L, "c:broccoli", 2L,
+              "c:cheddar", 2L, "c:cabbage", 1L, TOO_LONG_STAT, 0L, TOO_MANY_STAT, 0L, SEEN_STAT,
+              11L, EMITTED_STAT, 11L, DELETES_IGNORED_STAT, 0L);
+          assertEquals(expectedStats, summary.getStatistics());
+          assertEquals(0, summary.getFileStatistics().getInaccurate());
+          assertEquals(1, summary.getFileStatistics().getTotal());
+        } else if (summary.getSummarizerConfiguration().equals(sc2)) {
+          Map<String,Long> expectedStats = nm(DELETES_STAT, 0L, TOTAL_STAT, 11L, MIN_TIMESTAMP_STAT,
+              3L, MAX_TIMESTAMP_STAT, 8L);
+          assertEquals(expectedStats, summary.getStatistics());
+          assertEquals(0, summary.getFileStatistics().getInaccurate());
+          assertEquals(1, summary.getFileStatistics().getTotal());
+        } else {
+          fail("unexpected summary config " + summary.getSummarizerConfiguration());
+        }
+      }
+
+      Map<Key,Value> actual = new HashMap<>();
+      c.createScanner(table, Authorizations.EMPTY)
+          .forEach(e -> actual.put(e.getKey(), e.getValue()));
+
+      assertEquals(expected, actual);
     }
-
-    Map<Key,Value> actual = new HashMap<>();
-    c.createScanner(table, Authorizations.EMPTY).forEach(e -> actual.put(e.getKey(), e.getValue()));
-
-    assertEquals(expected, actual);
   }
 
   @Test
   public void testExceptions() throws Exception {
-    AccumuloClient c = getAccumuloClient();
+    try (AccumuloClient c = getAccumuloClient()) {
 
-    try {
-      c.tableOperations().summaries("foo").retrieve();
-      fail();
-    } catch (TableNotFoundException e) {}
+      try {
+        c.tableOperations().summaries("foo").retrieve();
+        fail();
+      } catch (TableNotFoundException e) {}
 
-    try {
-      c.tableOperations().addSummarizers("foo",
-          SummarizerConfiguration.builder(VisibilitySummarizer.class).build());
-      fail();
-    } catch (TableNotFoundException e) {}
+      try {
+        c.tableOperations().addSummarizers("foo",
+            SummarizerConfiguration.builder(VisibilitySummarizer.class).build());
+        fail();
+      } catch (TableNotFoundException e) {}
 
-    try {
-      c.tableOperations().listSummarizers("foo");
-      fail();
-    } catch (TableNotFoundException e) {}
+      try {
+        c.tableOperations().listSummarizers("foo");
+        fail();
+      } catch (TableNotFoundException e) {}
 
-    try {
+      try {
+        c.tableOperations().removeSummarizers("foo", sc -> true);
+        fail();
+      } catch (TableNotFoundException e) {}
+
+      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FamilySummarizer.class)
+          .setPropertyId("p1").build();
+      SummarizerConfiguration sc2 = SummarizerConfiguration.builder(VisibilitySummarizer.class)
+          .setPropertyId("p1").build();
+
+      c.tableOperations().create("foo");
+      c.tableOperations().addSummarizers("foo", sc1);
+      c.tableOperations().addSummarizers("foo", sc1);
+      try {
+        // adding second summarizer with same id should fail
+        c.tableOperations().addSummarizers("foo", sc2);
+        fail();
+      } catch (IllegalArgumentException e) {}
+
       c.tableOperations().removeSummarizers("foo", sc -> true);
-      fail();
-    } catch (TableNotFoundException e) {}
+      assertEquals(0, c.tableOperations().listSummarizers("foo").size());
 
-    SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FamilySummarizer.class)
-        .setPropertyId("p1").build();
-    SummarizerConfiguration sc2 = SummarizerConfiguration.builder(VisibilitySummarizer.class)
-        .setPropertyId("p1").build();
+      try {
+        // adding two summarizers at the same time with same id should fail
+        c.tableOperations().addSummarizers("foo", sc1, sc2);
+        fail();
+      } catch (IllegalArgumentException e) {}
+      assertEquals(0, c.tableOperations().listSummarizers("foo").size());
 
-    c.tableOperations().create("foo");
-    c.tableOperations().addSummarizers("foo", sc1);
-    c.tableOperations().addSummarizers("foo", sc1);
-    try {
-      // adding second summarizer with same id should fail
-      c.tableOperations().addSummarizers("foo", sc2);
-      fail();
-    } catch (IllegalArgumentException e) {}
-
-    c.tableOperations().removeSummarizers("foo", sc -> true);
-    assertEquals(0, c.tableOperations().listSummarizers("foo").size());
-
-    try {
-      // adding two summarizers at the same time with same id should fail
-      c.tableOperations().addSummarizers("foo", sc1, sc2);
-      fail();
-    } catch (IllegalArgumentException e) {}
-    assertEquals(0, c.tableOperations().listSummarizers("foo").size());
-
-    c.tableOperations().offline("foo", true);
-    try {
-      c.tableOperations().summaries("foo").retrieve();
-      fail();
-    } catch (TableOfflineException e) {}
+      c.tableOperations().offline("foo", true);
+      try {
+        c.tableOperations().summaries("foo").retrieve();
+        fail();
+      } catch (TableOfflineException e) {}
+    }
   }
 
   @Test
   public void testManyFiles() throws Exception {
     final String table = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    ntc.enableSummarization(SummarizerConfiguration.builder(FamilySummarizer.class).build());
-    c.tableOperations().create(table, ntc);
+    try (AccumuloClient c = getAccumuloClient()) {
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      ntc.enableSummarization(SummarizerConfiguration.builder(FamilySummarizer.class).build());
+      c.tableOperations().create(table, ntc);
 
-    Random rand = new SecureRandom();
-    int q = 0;
+      Random rand = new SecureRandom();
+      int q = 0;
 
-    SortedSet<Text> partitionKeys = new TreeSet<>();
-    for (int split = 100_000; split < 1_000_000; split += 100_000) {
-      partitionKeys.add(new Text(String.format("%06d", split)));
-    }
-    c.tableOperations().addSplits(table, partitionKeys);
-    Map<String,Long> famCounts = new HashMap<>();
-
-    for (int t = 0; t < 20; t++) {
-      // this loop should cause a varying number of files and compactions
-      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
-        for (int i = 0; i < 10000; i++) {
-          String row = String.format("%06d", rand.nextInt(1_000_000));
-          String fam = String.format("%03d", rand.nextInt(100));
-          String qual = String.format("%06d", q++);
-          write(bw, row, fam, qual, "val");
-          famCounts.merge(fam, 1L, Long::sum);
-        }
+      SortedSet<Text> partitionKeys = new TreeSet<>();
+      for (int split = 100_000; split < 1_000_000; split += 100_000) {
+        partitionKeys.add(new Text(String.format("%06d", split)));
       }
+      c.tableOperations().addSplits(table, partitionKeys);
+      Map<String,Long> famCounts = new HashMap<>();
 
-      List<Summary> summaries = c.tableOperations().summaries(table).flush(true).retrieve();
-      assertEquals(1, summaries.size());
-      CounterSummary cs = new CounterSummary(summaries.get(0));
-      assertEquals(famCounts, cs.getCounters());
-      FileStatistics fileStats = summaries.get(0).getFileStatistics();
-      assertEquals(0, fileStats.getInaccurate());
-      assertTrue("Saw " + fileStats.getTotal() + " files expected >=10",
-          fileStats.getTotal() >= 10);
+      for (int t = 0; t < 20; t++) {
+        // this loop should cause a varying number of files and compactions
+        try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+          for (int i = 0; i < 10000; i++) {
+            String row = String.format("%06d", rand.nextInt(1_000_000));
+            String fam = String.format("%03d", rand.nextInt(100));
+            String qual = String.format("%06d", q++);
+            write(bw, row, fam, qual, "val");
+            famCounts.merge(fam, 1L, Long::sum);
+          }
+        }
+
+        List<Summary> summaries = c.tableOperations().summaries(table).flush(true).retrieve();
+        assertEquals(1, summaries.size());
+        CounterSummary cs = new CounterSummary(summaries.get(0));
+        assertEquals(famCounts, cs.getCounters());
+        FileStatistics fileStats = summaries.get(0).getFileStatistics();
+        assertEquals(0, fileStats.getInaccurate());
+        assertTrue("Saw " + fileStats.getTotal() + " files expected >=10",
+            fileStats.getTotal() >= 10);
+      }
     }
   }
 }

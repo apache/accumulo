@@ -49,45 +49,46 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     log.info("Creating table");
     String tableName = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(tableName);
-    log.info("Adding slow iterator");
-    IteratorSetting setting = new IteratorSetting(50, SlowIterator.class);
-    SlowIterator.setSleepTime(setting, 1000);
-    c.tableOperations().attachIterator(tableName, setting);
-    log.info("Splitting the table");
-    SortedSet<Text> partitionKeys = new TreeSet<>();
-    partitionKeys.add(new Text("5"));
-    c.tableOperations().addSplits(tableName, partitionKeys);
-    log.info("waiting for zookeeper propagation");
-    UtilWaitThread.sleep(5 * 1000);
-    log.info("Adding a few entries");
-    BatchWriter bw = c.createBatchWriter(tableName, null);
-    for (int i = 0; i < 10; i++) {
-      Mutation m = new Mutation("" + i);
-      m.put("", "", "");
-      bw.addMutation(m);
-    }
-    bw.close();
-    log.info("Fetching some entries: should timeout and return something");
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(tableName);
+      log.info("Adding slow iterator");
+      IteratorSetting setting = new IteratorSetting(50, SlowIterator.class);
+      SlowIterator.setSleepTime(setting, 1000);
+      c.tableOperations().attachIterator(tableName, setting);
+      log.info("Splitting the table");
+      SortedSet<Text> partitionKeys = new TreeSet<>();
+      partitionKeys.add(new Text("5"));
+      c.tableOperations().addSplits(tableName, partitionKeys);
+      log.info("waiting for zookeeper propagation");
+      UtilWaitThread.sleep(5 * 1000);
+      log.info("Adding a few entries");
+      BatchWriter bw = c.createBatchWriter(tableName, null);
+      for (int i = 0; i < 10; i++) {
+        Mutation m = new Mutation("" + i);
+        m.put("", "", "");
+        bw.addMutation(m);
+      }
+      bw.close();
+      log.info("Fetching some entries: should timeout and return something");
 
-    log.info("Scanner");
-    try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
-      s.setBatchTimeout(500, TimeUnit.MILLISECONDS);
-      testScanner(s, 1200);
+      log.info("Scanner");
+      try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
+        s.setBatchTimeout(500, TimeUnit.MILLISECONDS);
+        testScanner(s, 1200);
 
-      log.info("IsolatedScanner");
-      IsolatedScanner is = new IsolatedScanner(s);
-      is.setReadaheadThreshold(1);
-      // buffers an entire row
-      testScanner(is, 2200);
-    }
+        log.info("IsolatedScanner");
+        IsolatedScanner is = new IsolatedScanner(s);
+        is.setReadaheadThreshold(1);
+        // buffers an entire row
+        testScanner(is, 2200);
+      }
 
-    log.info("BatchScanner");
-    try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 5)) {
-      bs.setBatchTimeout(500, TimeUnit.MILLISECONDS);
-      bs.setRanges(Collections.singletonList(new Range()));
-      testScanner(bs, 1200);
+      log.info("BatchScanner");
+      try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 5)) {
+        bs.setBatchTimeout(500, TimeUnit.MILLISECONDS);
+        bs.setRanges(Collections.singletonList(new Range()));
+        testScanner(bs, 1200);
+      }
     }
   }
 

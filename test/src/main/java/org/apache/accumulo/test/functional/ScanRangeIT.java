@@ -48,23 +48,24 @@ public class ScanRangeIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String[] tableNames = getUniqueNames(2);
-    String table1 = tableNames[0];
-    c.tableOperations().create(table1);
-    String table2 = tableNames[1];
-    c.tableOperations().create(table2);
-    TreeSet<Text> splitRows = new TreeSet<>();
-    int splits = 3;
-    for (int i = (ROW_LIMIT / splits); i < ROW_LIMIT; i += (ROW_LIMIT / splits))
-      splitRows.add(createRow(i));
-    c.tableOperations().addSplits(table2, splitRows);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String[] tableNames = getUniqueNames(2);
+      String table1 = tableNames[0];
+      c.tableOperations().create(table1);
+      String table2 = tableNames[1];
+      c.tableOperations().create(table2);
+      TreeSet<Text> splitRows = new TreeSet<>();
+      int splits = 3;
+      for (int i = (ROW_LIMIT / splits); i < ROW_LIMIT; i += (ROW_LIMIT / splits))
+        splitRows.add(createRow(i));
+      c.tableOperations().addSplits(table2, splitRows);
 
-    insertData(c, table1);
-    scanTable(c, table1);
+      insertData(c, table1);
+      scanTable(c, table1);
 
-    insertData(c, table2);
-    scanTable(c, table2);
+      insertData(c, table2);
+      scanTable(c, table2);
+    }
   }
 
   private void scanTable(AccumuloClient c, String table) throws Exception {

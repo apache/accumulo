@@ -51,24 +51,25 @@ public class DeletedTablesDontFlushIT extends SharedMiniClusterBase {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    IteratorSetting setting = new IteratorSetting(100, SlowIterator.class);
-    SlowIterator.setSleepTime(setting, 1000);
-    c.tableOperations().attachIterator(tableName, setting, EnumSet.of(IteratorScope.minc));
-    // let the configuration change propagate through zookeeper
-    UtilWaitThread.sleep(1000);
+    try (AccumuloClient c = getClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      IteratorSetting setting = new IteratorSetting(100, SlowIterator.class);
+      SlowIterator.setSleepTime(setting, 1000);
+      c.tableOperations().attachIterator(tableName, setting, EnumSet.of(IteratorScope.minc));
+      // let the configuration change propagate through zookeeper
+      UtilWaitThread.sleep(1000);
 
-    Mutation m = new Mutation("xyzzy");
-    for (int i = 0; i < 100; i++) {
-      m.put("cf", "" + i, new Value(new byte[] {}));
+      Mutation m = new Mutation("xyzzy");
+      for (int i = 0; i < 100; i++) {
+        m.put("cf", "" + i, new Value(new byte[] {}));
+      }
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      bw.addMutation(m);
+      bw.close();
+      // should go fast
+      c.tableOperations().delete(tableName);
     }
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    bw.addMutation(m);
-    bw.close();
-    // should go fast
-    c.tableOperations().delete(tableName);
   }
 
 }

@@ -183,22 +183,23 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    final AccumuloClient client = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
-    BatchWriter writer = null;
-    try {
-      writer = client.createBatchWriter(tableName, new BatchWriterConfig());
-      insertList(writer, row1);
-      insertList(writer, row2);
-      insertList(writer, row3);
-    } finally {
-      if (writer != null) {
-        writer.close();
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
+      BatchWriter writer = null;
+      try {
+        writer = client.createBatchWriter(tableName, new BatchWriterConfig());
+        insertList(writer, row1);
+        insertList(writer, row2);
+        insertList(writer, row3);
+      } finally {
+        if (writer != null) {
+          writer.close();
+        }
       }
+      MRTester.main(new String[] {tableName});
+      assertNull(e1);
+      assertNull(e2);
     }
-    MRTester.main(new String[] {tableName});
-    assertNull(e1);
-    assertNull(e2);
   }
 }

@@ -102,68 +102,71 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
             rootUser.getKeytab().getAbsolutePath());
       }
       accumuloClient.securityOperations().dropLocalUser(user);
+
+      accumuloClient.close();
     }
   }
 
   @Test
   public void run() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
+    try (AccumuloClient c = getAccumuloClient()) {
 
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
 
-    for (int i = 0; i < 1000; i++) {
-      Mutation m = new Mutation(new Text(String.format("%06d", i)));
-      m.put(new Text("cf1"), new Text("cq1"),
-          new Value(Integer.toString(1000 - i).getBytes(UTF_8)));
-      m.put(new Text("cf1"), new Text("cq2"),
-          new Value(Integer.toString(i - 1000).getBytes(UTF_8)));
+      for (int i = 0; i < 1000; i++) {
+        Mutation m = new Mutation(new Text(String.format("%06d", i)));
+        m.put(new Text("cf1"), new Text("cq1"),
+            new Value(Integer.toString(1000 - i).getBytes(UTF_8)));
+        m.put(new Text("cf1"), new Text("cq2"),
+            new Value(Integer.toString(i - 1000).getBytes(UTF_8)));
 
-      bw.addMutation(m);
-    }
-
-    bw.close();
-
-    try (Scanner scanner = c.createScanner(tableName, new Authorizations());
-        BatchScanner bscanner = c.createBatchScanner(tableName, new Authorizations(), 3)) {
-
-      setupIter(scanner);
-      verify(scanner, 1, 999);
-
-      bscanner.setRanges(Collections.singleton(new Range((Key) null, null)));
-
-      setupIter(bscanner);
-      verify(bscanner, 1, 999);
-
-      ArrayList<Range> ranges = new ArrayList<>();
-      ranges.add(new Range(new Text(String.format("%06d", 1))));
-      ranges
-          .add(new Range(new Text(String.format("%06d", 6)), new Text(String.format("%06d", 16))));
-      ranges.add(new Range(new Text(String.format("%06d", 20))));
-      ranges.add(new Range(new Text(String.format("%06d", 23))));
-      ranges
-          .add(new Range(new Text(String.format("%06d", 56)), new Text(String.format("%06d", 61))));
-      ranges.add(
-          new Range(new Text(String.format("%06d", 501)), new Text(String.format("%06d", 504))));
-      ranges.add(
-          new Range(new Text(String.format("%06d", 998)), new Text(String.format("%06d", 1000))));
-
-      HashSet<Integer> got = new HashSet<>();
-      HashSet<Integer> expected = new HashSet<>();
-      for (int i : new int[] {1, 7, 9, 11, 13, 15, 23, 57, 59, 61, 501, 503, 999}) {
-        expected.add(i);
+        bw.addMutation(m);
       }
 
-      bscanner.setRanges(ranges);
+      bw.close();
 
-      for (Entry<Key,Value> entry : bscanner) {
-        got.add(Integer.parseInt(entry.getKey().getRow().toString()));
-      }
+      try (Scanner scanner = c.createScanner(tableName, new Authorizations());
+          BatchScanner bscanner = c.createBatchScanner(tableName, new Authorizations(), 3)) {
 
-      System.out.println("got : " + got);
+        setupIter(scanner);
+        verify(scanner, 1, 999);
 
-      if (!got.equals(expected)) {
-        throw new Exception(got + " != " + expected);
+        bscanner.setRanges(Collections.singleton(new Range((Key) null, null)));
+
+        setupIter(bscanner);
+        verify(bscanner, 1, 999);
+
+        ArrayList<Range> ranges = new ArrayList<>();
+        ranges.add(new Range(new Text(String.format("%06d", 1))));
+        ranges.add(
+            new Range(new Text(String.format("%06d", 6)), new Text(String.format("%06d", 16))));
+        ranges.add(new Range(new Text(String.format("%06d", 20))));
+        ranges.add(new Range(new Text(String.format("%06d", 23))));
+        ranges.add(
+            new Range(new Text(String.format("%06d", 56)), new Text(String.format("%06d", 61))));
+        ranges.add(
+            new Range(new Text(String.format("%06d", 501)), new Text(String.format("%06d", 504))));
+        ranges.add(
+            new Range(new Text(String.format("%06d", 998)), new Text(String.format("%06d", 1000))));
+
+        HashSet<Integer> got = new HashSet<>();
+        HashSet<Integer> expected = new HashSet<>();
+        for (int i : new int[] {1, 7, 9, 11, 13, 15, 23, 57, 59, 61, 501, 503, 999}) {
+          expected.add(i);
+        }
+
+        bscanner.setRanges(ranges);
+
+        for (Entry<Key,Value> entry : bscanner) {
+          got.add(Integer.parseInt(entry.getKey().getRow().toString()));
+        }
+
+        System.out.println("got : " + got);
+
+        if (!got.equals(expected)) {
+          throw new Exception(got + " != " + expected);
+        }
       }
     }
   }

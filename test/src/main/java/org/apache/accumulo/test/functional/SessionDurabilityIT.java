@@ -51,43 +51,45 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void nondurableTableHasDurableWrites() throws Exception {
-    AccumuloClient c = getClient();
-    String tableName = getUniqueNames(1)[0];
-    // table default has no durability
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "none");
-    // send durable writes
-    BatchWriterConfig cfg = new BatchWriterConfig();
-    cfg.setDurability(Durability.SYNC);
-    writeSome(tableName, 10, cfg);
-    assertEquals(10, count(tableName));
-    // verify writes servive restart
-    restartTServer();
-    assertEquals(10, count(tableName));
+    try (AccumuloClient c = getClient()) {
+      String tableName = getUniqueNames(1)[0];
+      // table default has no durability
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "none");
+      // send durable writes
+      BatchWriterConfig cfg = new BatchWriterConfig();
+      cfg.setDurability(Durability.SYNC);
+      writeSome(c, tableName, 10, cfg);
+      assertEquals(10, count(c, tableName));
+      // verify writes servive restart
+      restartTServer();
+      assertEquals(10, count(c, tableName));
+    }
   }
 
   @Test(timeout = 3 * 60 * 1000)
   public void durableTableLosesNonDurableWrites() throws Exception {
-    AccumuloClient c = getClient();
-    String tableName = getUniqueNames(1)[0];
-    // table default is durable writes
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
-    // write with no durability
-    BatchWriterConfig cfg = new BatchWriterConfig();
-    cfg.setDurability(Durability.NONE);
-    writeSome(tableName, 10, cfg);
-    // verify writes are lost on restart
-    restartTServer();
-    assertTrue(10 > count(tableName));
+    try (AccumuloClient c = getClient()) {
+      String tableName = getUniqueNames(1)[0];
+      // table default is durable writes
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
+      // write with no durability
+      BatchWriterConfig cfg = new BatchWriterConfig();
+      cfg.setDurability(Durability.NONE);
+      writeSome(c, tableName, 10, cfg);
+      // verify writes are lost on restart
+      restartTServer();
+      assertTrue(10 > count(c, tableName));
+    }
   }
 
-  private int count(String tableName) throws Exception {
-    return Iterators.size(getClient().createScanner(tableName, Authorizations.EMPTY).iterator());
+  private int count(AccumuloClient client, String tableName) throws Exception {
+    return Iterators.size(client.createScanner(tableName, Authorizations.EMPTY).iterator());
   }
 
-  private void writeSome(String tableName, int n, BatchWriterConfig cfg) throws Exception {
-    AccumuloClient c = getClient();
+  private void writeSome(AccumuloClient c, String tableName, int n, BatchWriterConfig cfg)
+      throws Exception {
     BatchWriter bw = c.createBatchWriter(tableName, cfg);
     for (int i = 0; i < n; i++) {
       Mutation m = new Mutation(i + "");
@@ -99,43 +101,44 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void testConditionDurability() throws Exception {
-    AccumuloClient c = getClient();
-    String tableName = getUniqueNames(1)[0];
-    // table default is durable writes
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
-    // write without durability
-    ConditionalWriterConfig cfg = new ConditionalWriterConfig();
-    cfg.setDurability(Durability.NONE);
-    conditionWriteSome(tableName, 10, cfg);
-    // everything in there?
-    assertEquals(10, count(tableName));
-    // restart the server and verify the updates are lost
-    restartTServer();
-    assertEquals(0, count(tableName));
+    try (AccumuloClient c = getClient()) {
+      String tableName = getUniqueNames(1)[0];
+      // table default is durable writes
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
+      // write without durability
+      ConditionalWriterConfig cfg = new ConditionalWriterConfig();
+      cfg.setDurability(Durability.NONE);
+      conditionWriteSome(c, tableName, 10, cfg);
+      // everything in there?
+      assertEquals(10, count(c, tableName));
+      // restart the server and verify the updates are lost
+      restartTServer();
+      assertEquals(0, count(c, tableName));
+    }
   }
 
   @Test(timeout = 3 * 60 * 1000)
   public void testConditionDurability2() throws Exception {
-    AccumuloClient c = getClient();
-    String tableName = getUniqueNames(1)[0];
-    // table default is durable writes
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "none");
-    // write with durability
-    ConditionalWriterConfig cfg = new ConditionalWriterConfig();
-    cfg.setDurability(Durability.SYNC);
-    conditionWriteSome(tableName, 10, cfg);
-    // everything in there?
-    assertEquals(10, count(tableName));
-    // restart the server and verify the updates are still there
-    restartTServer();
-    assertEquals(10, count(tableName));
+    try (AccumuloClient c = getClient()) {
+      String tableName = getUniqueNames(1)[0];
+      // table default is durable writes
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "none");
+      // write with durability
+      ConditionalWriterConfig cfg = new ConditionalWriterConfig();
+      cfg.setDurability(Durability.SYNC);
+      conditionWriteSome(c, tableName, 10, cfg);
+      // everything in there?
+      assertEquals(10, count(c, tableName));
+      // restart the server and verify the updates are still there
+      restartTServer();
+      assertEquals(10, count(c, tableName));
+    }
   }
 
-  private void conditionWriteSome(String tableName, int n, ConditionalWriterConfig cfg)
-      throws Exception {
-    AccumuloClient c = getClient();
+  private void conditionWriteSome(AccumuloClient c, String tableName, int n,
+      ConditionalWriterConfig cfg) throws Exception {
     ConditionalWriter cw = c.createConditionalWriter(tableName, cfg);
     for (int i = 0; i < n; i++) {
       ConditionalMutation m = new ConditionalMutation(i + "", new Condition("", ""));

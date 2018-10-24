@@ -73,18 +73,20 @@ public class CompactionIT extends AccumuloClusterHarness {
   @Before
   public void alterConfig() throws Exception {
     if (ClusterType.STANDALONE == getClusterType()) {
-      InstanceOperations iops = getAccumuloClient().instanceOperations();
-      Map<String,String> config = iops.getSystemConfiguration();
-      majcThreadMaxOpen = config.get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey());
-      majcDelay = config.get(Property.TSERV_MAJC_DELAY.getKey());
-      majcMaxConcurrent = config.get(Property.TSERV_MAJC_MAXCONCURRENT.getKey());
+      try (AccumuloClient client = getAccumuloClient()) {
+        InstanceOperations iops = client.instanceOperations();
+        Map<String,String> config = iops.getSystemConfiguration();
+        majcThreadMaxOpen = config.get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey());
+        majcDelay = config.get(Property.TSERV_MAJC_DELAY.getKey());
+        majcMaxConcurrent = config.get(Property.TSERV_MAJC_MAXCONCURRENT.getKey());
 
-      iops.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), "4");
-      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1");
-      iops.setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
+        iops.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), "4");
+        iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1");
+        iops.setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "1");
 
-      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+        getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+        getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      }
     }
   }
 
@@ -92,75 +94,78 @@ public class CompactionIT extends AccumuloClusterHarness {
   public void resetConfig() throws Exception {
     // We set the values..
     if (null != majcThreadMaxOpen) {
-      InstanceOperations iops = getAccumuloClient().instanceOperations();
+      try (AccumuloClient client = getAccumuloClient()) {
+        InstanceOperations iops = client.instanceOperations();
 
-      iops.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), majcThreadMaxOpen);
-      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
-      iops.setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), majcMaxConcurrent);
+        iops.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), majcThreadMaxOpen);
+        iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
+        iops.setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), majcMaxConcurrent);
 
-      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+        getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+        getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      }
     }
   }
 
   @Test
   public void test() throws Exception {
-    final AccumuloClient c = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
-    FileSystem fs = getFileSystem();
-    Path root = new Path(cluster.getTemporaryPath(), getClass().getName());
-    Path testrf = new Path(root, "testrf");
-    FunctionalTestUtils.createRFiles(c, fs, testrf.toString(), 500000, 59, 4);
+    try (AccumuloClient c = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
+      FileSystem fs = getFileSystem();
+      Path root = new Path(cluster.getTemporaryPath(), getClass().getName());
+      Path testrf = new Path(root, "testrf");
+      FunctionalTestUtils.createRFiles(c, fs, testrf.toString(), 500000, 59, 4);
 
-    c.tableOperations().importDirectory(testrf.toString()).to(tableName).load();
-    int beforeCount = countFiles(c);
+      c.tableOperations().importDirectory(testrf.toString()).to(tableName).load();
+      int beforeCount = countFiles(c);
 
-    final AtomicBoolean fail = new AtomicBoolean(false);
-    final int THREADS = 5;
-    for (int count = 0; count < THREADS; count++) {
-      ExecutorService executor = Executors.newFixedThreadPool(THREADS);
-      final int span = 500000 / 59;
-      for (int i = 0; i < 500000; i += 500000 / 59) {
-        final int finalI = i;
-        Runnable r = new Runnable() {
-          @Override
-          public void run() {
-            try {
-              VerifyIngest.Opts opts = new VerifyIngest.Opts();
-              opts.startRow = finalI;
-              opts.rows = span;
-              opts.random = 56;
-              opts.dataSize = 50;
-              opts.cols = 1;
-              opts.setTableName(tableName);
-              opts.setClientInfo(getClientInfo());
-              VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
-            } catch (Exception ex) {
-              log.warn("Got exception verifying data", ex);
-              fail.set(true);
+      final AtomicBoolean fail = new AtomicBoolean(false);
+      final int THREADS = 5;
+      for (int count = 0; count < THREADS; count++) {
+        ExecutorService executor = Executors.newFixedThreadPool(THREADS);
+        final int span = 500000 / 59;
+        for (int i = 0; i < 500000; i += 500000 / 59) {
+          final int finalI = i;
+          Runnable r = new Runnable() {
+            @Override
+            public void run() {
+              try {
+                VerifyIngest.Opts opts = new VerifyIngest.Opts();
+                opts.startRow = finalI;
+                opts.rows = span;
+                opts.random = 56;
+                opts.dataSize = 50;
+                opts.cols = 1;
+                opts.setTableName(tableName);
+                opts.setClientInfo(getClientInfo());
+                VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
+              } catch (Exception ex) {
+                log.warn("Got exception verifying data", ex);
+                fail.set(true);
+              }
             }
-          }
-        };
-        executor.execute(r);
+          };
+          executor.execute(r);
+        }
+        executor.shutdown();
+        executor.awaitTermination(defaultTimeoutSeconds(), TimeUnit.SECONDS);
+        assertFalse("Failed to successfully run all threads, Check the test output for error",
+            fail.get());
       }
-      executor.shutdown();
-      executor.awaitTermination(defaultTimeoutSeconds(), TimeUnit.SECONDS);
-      assertFalse("Failed to successfully run all threads, Check the test output for error",
-          fail.get());
-    }
 
-    int finalCount = countFiles(c);
-    assertTrue(finalCount < beforeCount);
-    try {
-      getClusterControl().adminStopAll();
-    } finally {
-      // Make sure the internal state in the cluster is reset (e.g. processes in MAC)
-      getCluster().stop();
-      if (ClusterType.STANDALONE == getClusterType()) {
-        // Then restart things for the next test if it's a standalone
-        getCluster().start();
+      int finalCount = countFiles(c);
+      assertTrue(finalCount < beforeCount);
+      try {
+        getClusterControl().adminStopAll();
+      } finally {
+        // Make sure the internal state in the cluster is reset (e.g. processes in MAC)
+        getCluster().stop();
+        if (ClusterType.STANDALONE == getClusterType()) {
+          // Then restart things for the next test if it's a standalone
+          getCluster().start();
+        }
       }
     }
   }

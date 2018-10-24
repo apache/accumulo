@@ -69,54 +69,56 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
 
   @Test(timeout = 5 * 60 * 1000)
   public void testDeleteAllRows() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String[] tableNames = this.getUniqueNames(20);
-    for (String tableName : tableNames) {
-      c.tableOperations().create(tableName);
-      c.tableOperations().deleteRows(tableName, null, null);
-      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-        assertEquals(0, Iterators.size(scanner.iterator()));
+    try (AccumuloClient c = getAccumuloClient()) {
+      String[] tableNames = this.getUniqueNames(20);
+      for (String tableName : tableNames) {
+        c.tableOperations().create(tableName);
+        c.tableOperations().deleteRows(tableName, null, null);
+        try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+          assertEquals(0, Iterators.size(scanner.iterator()));
+        }
       }
     }
   }
 
   @Test
   public void testManyRows() throws Exception {
-    // Delete ranges of rows, and verify the tablets are removed.
-    int i = 0;
-    // Eliminate whole tablets
-    String tableName = getUniqueNames(1)[0];
-    testSplit(tableName + i++, "f", "h", "abcdefijklmnopqrstuvwxyz", 260);
-    // Eliminate whole tablets, partial first tablet
-    testSplit(tableName + i++, "f1", "h", "abcdeff1ijklmnopqrstuvwxyz", 262);
-    // Eliminate whole tablets, partial last tablet
-    testSplit(tableName + i++, "f", "h1", "abcdefijklmnopqrstuvwxyz", 258);
-    // Eliminate whole tablets, partial first and last tablet
-    testSplit(tableName + i++, "f1", "h1", "abcdeff1ijklmnopqrstuvwxyz", 260);
-    // Eliminate one tablet
-    testSplit(tableName + i++, "f", "g", "abcdefhijklmnopqrstuvwxyz", 270);
-    // Eliminate partial tablet, matches start split
-    testSplit(tableName + i++, "f", "f1", "abcdefghijklmnopqrstuvwxyz", 278);
-    // Eliminate partial tablet, matches end split
-    testSplit(tableName + i++, "f1", "g", "abcdeff1hijklmnopqrstuvwxyz", 272);
-    // Eliminate tablets starting at -inf
-    testSplit(tableName + i++, null, "h", "ijklmnopqrstuvwxyz", 200);
-    // Eliminate tablets ending at +inf
-    testSplit(tableName + i++, "t", null, "abcdefghijklmnopqrst", 200);
-    // Eliminate some rows inside one tablet
-    testSplit(tableName + i++, "t0", "t2", "abcdefghijklmnopqrstt0uvwxyz", 278);
-    // Eliminate some rows in the first tablet
-    testSplit(tableName + i++, null, "A1", "abcdefghijklmnopqrstuvwxyz", 278);
-    // Eliminate some rows in the last tablet
-    testSplit(tableName + i++, "{1", null, "abcdefghijklmnopqrstuvwxyz{1", 272);
-    // Delete everything
-    testSplit(tableName + i++, null, null, "", 0);
+    try (AccumuloClient c = getAccumuloClient()) {
+      // Delete ranges of rows, and verify the tablets are removed.
+      int i = 0;
+      // Eliminate whole tablets
+      String tableName = getUniqueNames(1)[0];
+      testSplit(c, tableName + i++, "f", "h", "abcdefijklmnopqrstuvwxyz", 260);
+      // Eliminate whole tablets, partial first tablet
+      testSplit(c, tableName + i++, "f1", "h", "abcdeff1ijklmnopqrstuvwxyz", 262);
+      // Eliminate whole tablets, partial last tablet
+      testSplit(c, tableName + i++, "f", "h1", "abcdefijklmnopqrstuvwxyz", 258);
+      // Eliminate whole tablets, partial first and last tablet
+      testSplit(c, tableName + i++, "f1", "h1", "abcdeff1ijklmnopqrstuvwxyz", 260);
+      // Eliminate one tablet
+      testSplit(c, tableName + i++, "f", "g", "abcdefhijklmnopqrstuvwxyz", 270);
+      // Eliminate partial tablet, matches start split
+      testSplit(c, tableName + i++, "f", "f1", "abcdefghijklmnopqrstuvwxyz", 278);
+      // Eliminate partial tablet, matches end split
+      testSplit(c, tableName + i++, "f1", "g", "abcdeff1hijklmnopqrstuvwxyz", 272);
+      // Eliminate tablets starting at -inf
+      testSplit(c, tableName + i++, null, "h", "ijklmnopqrstuvwxyz", 200);
+      // Eliminate tablets ending at +inf
+      testSplit(c, tableName + i++, "t", null, "abcdefghijklmnopqrst", 200);
+      // Eliminate some rows inside one tablet
+      testSplit(c, tableName + i++, "t0", "t2", "abcdefghijklmnopqrstt0uvwxyz", 278);
+      // Eliminate some rows in the first tablet
+      testSplit(c, tableName + i++, null, "A1", "abcdefghijklmnopqrstuvwxyz", 278);
+      // Eliminate some rows in the last tablet
+      testSplit(c, tableName + i++, "{1", null, "abcdefghijklmnopqrstuvwxyz{1", 272);
+      // Delete everything
+      testSplit(c, tableName + i++, null, null, "", 0);
+    }
   }
 
-  private void testSplit(String table, String start, String end, String result, int entries)
-      throws Exception {
+  private void testSplit(AccumuloClient c, String table, String start, String end, String result,
+      int entries) throws Exception {
     // Put a bunch of rows on each tablet
-    AccumuloClient c = getAccumuloClient();
     c.tableOperations().create(table);
     BatchWriter bw = c.createBatchWriter(table, null);
     for (String row : ROWS) {

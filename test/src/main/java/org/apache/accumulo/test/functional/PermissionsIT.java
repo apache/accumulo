@@ -77,11 +77,12 @@ public class PermissionsIT extends AccumuloClusterHarness {
   @Before
   public void limitToMini() throws Exception {
     Assume.assumeTrue(ClusterType.MINI == getClusterType());
-    AccumuloClient c = getAccumuloClient();
-    Set<String> users = c.securityOperations().listLocalUsers();
-    ClusterUser user = getUser(0);
-    if (users.contains(user.getPrincipal())) {
-      c.securityOperations().dropLocalUser(user.getPrincipal());
+    try (AccumuloClient c = getAccumuloClient()) {
+      Set<String> users = c.securityOperations().listLocalUsers();
+      ClusterUser user = getUser(0);
+      if (users.contains(user.getPrincipal())) {
+        c.securityOperations().dropLocalUser(user.getPrincipal());
+      }
     }
   }
 
@@ -95,37 +96,41 @@ public class PermissionsIT extends AccumuloClusterHarness {
     ClusterUser testUser = getUser(0), rootUser = getAdminUser();
 
     // verify that the test is being run by root
-    AccumuloClient c = getAccumuloClient();
-    verifyHasOnlyTheseSystemPermissions(c, c.whoami(), SystemPermission.values());
+    try (AccumuloClient c = getAccumuloClient()) {
+      verifyHasOnlyTheseSystemPermissions(c, c.whoami(), SystemPermission.values());
 
-    // create the test user
-    String principal = testUser.getPrincipal();
-    AuthenticationToken token = testUser.getToken();
-    PasswordToken passwordToken = null;
-    if (token instanceof PasswordToken) {
-      passwordToken = (PasswordToken) token;
-    }
-    loginAs(rootUser);
-    c.securityOperations().createLocalUser(principal, passwordToken);
-    loginAs(testUser);
-    AccumuloClient test_user_client = c.changeUser(principal, token);
-    loginAs(rootUser);
-    verifyHasNoSystemPermissions(c, principal, SystemPermission.values());
-
-    // test each permission
-    for (SystemPermission perm : SystemPermission.values()) {
-      log.debug("Verifying the {} permission", perm);
-
-      // test permission before and after granting it
-      String tableNamePrefix = getUniqueNames(1)[0];
-      testMissingSystemPermission(tableNamePrefix, c, rootUser, test_user_client, testUser, perm);
+      // create the test user
+      String principal = testUser.getPrincipal();
+      AuthenticationToken token = testUser.getToken();
+      PasswordToken passwordToken = null;
+      if (token instanceof PasswordToken) {
+        passwordToken = (PasswordToken) token;
+      }
       loginAs(rootUser);
-      c.securityOperations().grantSystemPermission(principal, perm);
-      verifyHasOnlyTheseSystemPermissions(c, principal, perm);
-      testGrantedSystemPermission(tableNamePrefix, c, rootUser, test_user_client, testUser, perm);
-      loginAs(rootUser);
-      c.securityOperations().revokeSystemPermission(principal, perm);
-      verifyHasNoSystemPermissions(c, principal, perm);
+      c.securityOperations().createLocalUser(principal, passwordToken);
+      loginAs(testUser);
+      try (AccumuloClient test_user_client = c.changeUser(principal, token)) {
+        loginAs(rootUser);
+        verifyHasNoSystemPermissions(c, principal, SystemPermission.values());
+
+        // test each permission
+        for (SystemPermission perm : SystemPermission.values()) {
+          log.debug("Verifying the {} permission", perm);
+
+          // test permission before and after granting it
+          String tableNamePrefix = getUniqueNames(1)[0];
+          testMissingSystemPermission(tableNamePrefix, c, rootUser, test_user_client, testUser,
+              perm);
+          loginAs(rootUser);
+          c.securityOperations().grantSystemPermission(principal, perm);
+          verifyHasOnlyTheseSystemPermissions(c, principal, perm);
+          testGrantedSystemPermission(tableNamePrefix, c, rootUser, test_user_client, testUser,
+              perm);
+          loginAs(rootUser);
+          c.securityOperations().revokeSystemPermission(principal, perm);
+          verifyHasNoSystemPermissions(c, principal, perm);
+        }
+      }
     }
   }
 
@@ -562,36 +567,38 @@ public class PermissionsIT extends AccumuloClusterHarness {
       passwordToken = (PasswordToken) token;
     }
     loginAs(rootUser);
-    AccumuloClient c = getAccumuloClient();
-    c.securityOperations().createLocalUser(principal, passwordToken);
-    loginAs(testUser);
-    AccumuloClient test_user_client = c.changeUser(principal, token);
-
-    // check for read-only access to metadata table
-    loginAs(rootUser);
-    verifyHasOnlyTheseTablePermissions(c, c.whoami(), MetadataTable.NAME, TablePermission.READ,
-        TablePermission.ALTER_TABLE);
-    verifyHasOnlyTheseTablePermissions(c, principal, MetadataTable.NAME, TablePermission.READ);
-    String tableName = getUniqueNames(1)[0] + "__TABLE_PERMISSION_TEST__";
-
-    // test each permission
-    for (TablePermission perm : TablePermission.values()) {
-      log.debug("Verifying the {} permission", perm);
-
-      // test permission before and after granting it
-      createTestTable(c, principal, tableName);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.securityOperations().createLocalUser(principal, passwordToken);
       loginAs(testUser);
-      testMissingTablePermission(test_user_client, testUser, perm, tableName);
-      loginAs(rootUser);
-      c.securityOperations().grantTablePermission(principal, tableName, perm);
-      verifyHasOnlyTheseTablePermissions(c, principal, tableName, perm);
-      loginAs(testUser);
-      testGrantedTablePermission(test_user_client, testUser, perm, tableName);
+      try (AccumuloClient test_user_client = c.changeUser(principal, token)) {
 
-      loginAs(rootUser);
-      createTestTable(c, principal, tableName);
-      c.securityOperations().revokeTablePermission(principal, tableName, perm);
-      verifyHasNoTablePermissions(c, principal, tableName, perm);
+        // check for read-only access to metadata table
+        loginAs(rootUser);
+        verifyHasOnlyTheseTablePermissions(c, c.whoami(), MetadataTable.NAME, TablePermission.READ,
+            TablePermission.ALTER_TABLE);
+        verifyHasOnlyTheseTablePermissions(c, principal, MetadataTable.NAME, TablePermission.READ);
+        String tableName = getUniqueNames(1)[0] + "__TABLE_PERMISSION_TEST__";
+
+        // test each permission
+        for (TablePermission perm : TablePermission.values()) {
+          log.debug("Verifying the {} permission", perm);
+
+          // test permission before and after granting it
+          createTestTable(c, principal, tableName);
+          loginAs(testUser);
+          testMissingTablePermission(test_user_client, testUser, perm, tableName);
+          loginAs(rootUser);
+          c.securityOperations().grantTablePermission(principal, tableName, perm);
+          verifyHasOnlyTheseTablePermissions(c, principal, tableName, perm);
+          loginAs(testUser);
+          testGrantedTablePermission(test_user_client, testUser, perm, tableName);
+
+          loginAs(rootUser);
+          createTestTable(c, principal, tableName);
+          c.securityOperations().revokeTablePermission(principal, tableName, perm);
+          verifyHasNoTablePermissions(c, principal, tableName, perm);
+        }
+      }
     }
   }
 

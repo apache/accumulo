@@ -57,22 +57,23 @@ public class CombinerIT extends AccumuloClusterHarness {
 
   @Test
   public void aggregationTest() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    IteratorSetting setting = new IteratorSetting(10, SummingCombiner.class);
-    SummingCombiner.setEncodingType(setting, Type.STRING);
-    SummingCombiner.setColumns(setting,
-        Collections.singletonList(new IteratorSetting.Column("cf")));
-    c.tableOperations().attachIterator(tableName, setting);
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    for (int i = 0; i < 10; i++) {
-      Mutation m = new Mutation("row1");
-      m.put("cf".getBytes(), "col1".getBytes(), ("" + i).getBytes());
-      bw.addMutation(m);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      IteratorSetting setting = new IteratorSetting(10, SummingCombiner.class);
+      SummingCombiner.setEncodingType(setting, Type.STRING);
+      SummingCombiner.setColumns(setting,
+          Collections.singletonList(new IteratorSetting.Column("cf")));
+      c.tableOperations().attachIterator(tableName, setting);
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      for (int i = 0; i < 10; i++) {
+        Mutation m = new Mutation("row1");
+        m.put("cf".getBytes(), "col1".getBytes(), ("" + i).getBytes());
+        bw.addMutation(m);
+      }
+      bw.close();
+      checkSum(tableName, c);
     }
-    bw.close();
-    checkSum(tableName, c);
   }
 
 }

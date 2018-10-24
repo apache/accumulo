@@ -84,57 +84,58 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
   @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "test password is okay")
   @Test
   public void testDurability() throws Exception {
-    AccumuloClient c = getClient();
-    Properties proxyProps = new Properties();
-    // Avoid issues with locally installed client configuration files with custom properties
-    File emptyFile = Files.createTempFile(null, null).toFile();
-    emptyFile.deleteOnExit();
-    proxyProps.put("tokenClass", PasswordToken.class.getName());
-    proxyProps.putAll(getClientInfo().getProperties());
+    try (AccumuloClient c = getClient()) {
+      Properties proxyProps = new Properties();
+      // Avoid issues with locally installed client configuration files with custom properties
+      File emptyFile = Files.createTempFile(null, null).toFile();
+      emptyFile.deleteOnExit();
+      proxyProps.put("tokenClass", PasswordToken.class.getName());
+      proxyProps.putAll(getClientInfo().getProperties());
 
-    TJSONProtocol.Factory protocol = new TJSONProtocol.Factory();
+      TJSONProtocol.Factory protocol = new TJSONProtocol.Factory();
 
-    int proxyPort = PortUtils.getRandomFreePort();
-    final TServer proxyServer = Proxy.createProxyServer(
-        HostAndPort.fromParts("localhost", proxyPort), protocol, proxyProps).server;
-    while (!proxyServer.isServing())
-      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-    Client client = new TestProxyClient("localhost", proxyPort, protocol).proxy();
-    Map<String,String> properties = new TreeMap<>();
-    properties.put("password", ROOT_PASSWORD);
-    ByteBuffer login = client.login("root", properties);
+      int proxyPort = PortUtils.getRandomFreePort();
+      final TServer proxyServer = Proxy.createProxyServer(
+          HostAndPort.fromParts("localhost", proxyPort), protocol, proxyProps).server;
+      while (!proxyServer.isServing())
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      Client client = new TestProxyClient("localhost", proxyPort, protocol).proxy();
+      Map<String,String> properties = new TreeMap<>();
+      properties.put("password", ROOT_PASSWORD);
+      ByteBuffer login = client.login("root", properties);
 
-    String tableName = getUniqueNames(1)[0];
-    client.createTable(login, tableName, true, TimeType.MILLIS);
-    assertTrue(c.tableOperations().exists(tableName));
+      String tableName = getUniqueNames(1)[0];
+      client.createTable(login, tableName, true, TimeType.MILLIS);
+      assertTrue(c.tableOperations().exists(tableName));
 
-    WriterOptions options = new WriterOptions();
-    options.setDurability(Durability.NONE);
-    String writer = client.createWriter(login, tableName, options);
-    Map<ByteBuffer,List<ColumnUpdate>> cells = new TreeMap<>();
-    ColumnUpdate column = new ColumnUpdate(bytes("cf"), bytes("cq"));
-    column.setValue("value".getBytes());
-    cells.put(bytes("row"), Collections.singletonList(column));
-    client.update(writer, cells);
-    client.closeWriter(writer);
-    assertEquals(1, count(tableName));
-    restartTServer();
-    assertEquals(0, count(tableName));
+      WriterOptions options = new WriterOptions();
+      options.setDurability(Durability.NONE);
+      String writer = client.createWriter(login, tableName, options);
+      Map<ByteBuffer,List<ColumnUpdate>> cells = new TreeMap<>();
+      ColumnUpdate column = new ColumnUpdate(bytes("cf"), bytes("cq"));
+      column.setValue("value".getBytes());
+      cells.put(bytes("row"), Collections.singletonList(column));
+      client.update(writer, cells);
+      client.closeWriter(writer);
+      assertEquals(1, count(c, tableName));
+      restartTServer();
+      assertEquals(0, count(c, tableName));
 
-    ConditionalWriterOptions cfg = new ConditionalWriterOptions();
-    cfg.setDurability(Durability.SYNC);
-    String cwriter = client.createConditionalWriter(login, tableName, cfg);
-    ConditionalUpdates updates = new ConditionalUpdates();
-    updates.addToConditions(new Condition(new Column(bytes("cf"), bytes("cq"), bytes(""))));
-    updates.addToUpdates(column);
-    Map<ByteBuffer,ConditionalStatus> status = client.updateRowsConditionally(cwriter,
-        Collections.singletonMap(bytes("row"), updates));
-    assertEquals(ConditionalStatus.ACCEPTED, status.get(bytes("row")));
-    assertEquals(1, count(tableName));
-    restartTServer();
-    assertEquals(1, count(tableName));
+      ConditionalWriterOptions cfg = new ConditionalWriterOptions();
+      cfg.setDurability(Durability.SYNC);
+      String cwriter = client.createConditionalWriter(login, tableName, cfg);
+      ConditionalUpdates updates = new ConditionalUpdates();
+      updates.addToConditions(new Condition(new Column(bytes("cf"), bytes("cq"), bytes(""))));
+      updates.addToUpdates(column);
+      Map<ByteBuffer,ConditionalStatus> status = client.updateRowsConditionally(cwriter,
+          Collections.singletonMap(bytes("row"), updates));
+      assertEquals(ConditionalStatus.ACCEPTED, status.get(bytes("row")));
+      assertEquals(1, count(c, tableName));
+      restartTServer();
+      assertEquals(1, count(c, tableName));
 
-    proxyServer.stop();
+      proxyServer.stop();
+    }
   }
 
   private void restartTServer() throws Exception {
@@ -144,8 +145,8 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
     cluster.start();
   }
 
-  private int count(String tableName) throws Exception {
-    return Iterators.size((getClient().createScanner(tableName, Authorizations.EMPTY)).iterator());
+  private int count(AccumuloClient client, String tableName) throws Exception {
+    return Iterators.size((client.createScanner(tableName, Authorizations.EMPTY)).iterator());
   }
 
 }

@@ -24,10 +24,10 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.MemoryUnit;
@@ -59,46 +59,47 @@ public class ManySplitIT extends ConfigurableMacBase {
 
     final String tableName = getUniqueNames(1)[0];
 
-    log.info("Creating table");
-    final TableOperations tableOperations = getClient().tableOperations();
+    try (AccumuloClient client = getClient()) {
 
-    log.info("splitting metadata table");
-    tableOperations.create(tableName);
-    SortedSet<Text> splits = new TreeSet<>();
-    for (byte b : "123456789abcde".getBytes(UTF_8)) {
-      splits.add(new Text(new byte[] {'1', ';', b}));
-    }
-    tableOperations.addSplits(MetadataTable.NAME, splits);
-    splits.clear();
-    for (int i = 0; i < SPLITS; i++) {
-      splits.add(new Text(Integer.toHexString(i)));
-    }
-    log.info("Adding splits");
-    // print out the number of splits so we have some idea of what's going on
-    final AtomicBoolean stop = new AtomicBoolean(false);
-    Thread t = new Thread() {
-      @Override
-      public void run() {
-        while (!stop.get()) {
-          UtilWaitThread.sleep(1000);
-          try {
-            log.info("splits: " + tableOperations.listSplits(tableName).size());
-          } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+      log.info("Creating table");
+      log.info("splitting metadata table");
+      client.tableOperations().create(tableName);
+      SortedSet<Text> splits = new TreeSet<>();
+      for (byte b : "123456789abcde".getBytes(UTF_8)) {
+        splits.add(new Text(new byte[] {'1', ';', b}));
+      }
+      client.tableOperations().addSplits(MetadataTable.NAME, splits);
+      splits.clear();
+      for (int i = 0; i < SPLITS; i++) {
+        splits.add(new Text(Integer.toHexString(i)));
+      }
+      log.info("Adding splits");
+      // print out the number of splits so we have some idea of what's going on
+      final AtomicBoolean stop = new AtomicBoolean(false);
+      Thread t = new Thread() {
+        @Override
+        public void run() {
+          while (!stop.get()) {
+            UtilWaitThread.sleep(1000);
+            try {
+              log.info("splits: " + client.tableOperations().listSplits(tableName).size());
+            } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+            }
           }
         }
-      }
-    };
-    t.start();
-    long now = System.currentTimeMillis();
-    tableOperations.addSplits(tableName, splits);
-    long diff = System.currentTimeMillis() - now;
-    double splitsPerSec = SPLITS / (diff / 1000.);
-    log.info("Done: {} splits per second", splitsPerSec);
-    assertTrue("splits created too slowly", splitsPerSec > 100);
-    stop.set(true);
-    t.join();
+      };
+      t.start();
+      long now = System.currentTimeMillis();
+      client.tableOperations().addSplits(tableName, splits);
+      long diff = System.currentTimeMillis() - now;
+      double splitsPerSec = SPLITS / (diff / 1000.);
+      log.info("Done: {} splits per second", splitsPerSec);
+      assertTrue("splits created too slowly", splitsPerSec > 100);
+      stop.set(true);
+      t.join();
+    }
   }
 
   @Override

@@ -53,25 +53,26 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String[] names = getUniqueNames(1);
-    String tableName = names[0];
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    ntc.setProperties(Stream
-        .of(new Pair<>(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K"),
-            new Pair<>(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K"))
-        .collect(Collectors.toMap(k -> k.getFirst(), v -> v.getSecond())));
-    c.tableOperations().create(tableName, ntc);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String[] names = getUniqueNames(1);
+      String tableName = names[0];
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      ntc.setProperties(Stream
+          .of(new Pair<>(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K"),
+              new Pair<>(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K"))
+          .collect(Collectors.toMap(k -> k.getFirst(), v -> v.getSecond())));
+      c.tableOperations().create(tableName, ntc);
 
-    TestIngest.Opts opts = new TestIngest.Opts();
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    vopts.rows = opts.rows = 20000;
-    opts.setTableName(tableName);
-    vopts.setTableName(tableName);
-    opts.setClientInfo(getClientInfo());
-    vopts.setClientInfo(getClientInfo());
-    TestIngest.ingest(c, opts, new BatchWriterOpts());
-    c.tableOperations().flush(tableName, null, null, true);
-    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      TestIngest.Opts opts = new TestIngest.Opts();
+      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+      vopts.rows = opts.rows = 20000;
+      opts.setTableName(tableName);
+      vopts.setTableName(tableName);
+      opts.setClientInfo(getClientInfo());
+      vopts.setClientInfo(getClientInfo());
+      TestIngest.ingest(c, opts, new BatchWriterOpts());
+      c.tableOperations().flush(tableName, null, null, true);
+      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+    }
   }
 }

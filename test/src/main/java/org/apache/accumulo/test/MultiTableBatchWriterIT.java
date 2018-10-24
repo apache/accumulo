@@ -29,20 +29,18 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.MultiTableBatchWriterImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -64,9 +62,13 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
     mtbw = getMultiTableBatchWriter();
   }
 
+  @After
+  public void closeClient() {
+    accumuloClient.close();
+  }
+
   public MultiTableBatchWriter getMultiTableBatchWriter() {
-    ClientContext context = getClientContext();
-    return new MultiTableBatchWriterImpl(context, new BatchWriterConfig());
+    return accumuloClient.createMultiTableBatchWriter();
   }
 
   @Test

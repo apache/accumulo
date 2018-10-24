@@ -41,6 +41,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -67,6 +68,11 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
   @Before
   public void setupInitialSplits() {
     client = getAccumuloClient();
+  }
+
+  @After
+  public void closeClient() {
+    client.close();
   }
 
   /**

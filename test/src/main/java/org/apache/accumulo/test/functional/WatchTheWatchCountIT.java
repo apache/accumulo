@@ -47,37 +47,38 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
       justification = "unencrypted socket is okay for testing")
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getClient();
-    String[] tableNames = getUniqueNames(3);
-    for (String tableName : tableNames) {
-      c.tableOperations().create(tableName);
-    }
-    c.tableOperations().list();
-    String zooKeepers = c.info().getZooKeepers();
-    final long MIN = 475L;
-    final long MAX = 700L;
-    long total = 0;
-    final HostAndPort hostAndPort = HostAndPort.fromString(zooKeepers);
-    for (int i = 0; i < 5; i++) {
-      try (Socket socket = new Socket(hostAndPort.getHost(), hostAndPort.getPort())) {
-        socket.getOutputStream().write("wchs\n".getBytes(), 0, 5);
-        byte[] buffer = new byte[1024];
-        int n = socket.getInputStream().read(buffer);
-        String response = new String(buffer, 0, n);
-        total = Long.parseLong(response.split(":")[1].trim());
-        log.info("Total: {}", total);
-        if (total > MIN && total < MAX) {
-          break;
-        }
-        log.debug("Expected number of watchers to be contained in ({}, {}), but"
-            + " actually was {}. Sleeping and retrying", MIN, MAX, total);
-        Thread.sleep(5000);
+    try (AccumuloClient c = getClient()) {
+      String[] tableNames = getUniqueNames(3);
+      for (String tableName : tableNames) {
+        c.tableOperations().create(tableName);
       }
+      c.tableOperations().list();
+      String zooKeepers = c.info().getZooKeepers();
+      final long MIN = 475L;
+      final long MAX = 700L;
+      long total = 0;
+      final HostAndPort hostAndPort = HostAndPort.fromString(zooKeepers);
+      for (int i = 0; i < 5; i++) {
+        try (Socket socket = new Socket(hostAndPort.getHost(), hostAndPort.getPort())) {
+          socket.getOutputStream().write("wchs\n".getBytes(), 0, 5);
+          byte[] buffer = new byte[1024];
+          int n = socket.getInputStream().read(buffer);
+          String response = new String(buffer, 0, n);
+          total = Long.parseLong(response.split(":")[1].trim());
+          log.info("Total: {}", total);
+          if (total > MIN && total < MAX) {
+            break;
+          }
+          log.debug("Expected number of watchers to be contained in ({}, {}), but"
+              + " actually was {}. Sleeping and retrying", MIN, MAX, total);
+          Thread.sleep(5000);
+        }
+      }
+
+      assertTrue("Expected number of watchers to be contained in (" + MIN + ", " + MAX
+          + "), but actually was " + total, total > MIN && total < MAX);
+
     }
-
-    assertTrue("Expected number of watchers to be contained in (" + MIN + ", " + MAX
-        + "), but actually was " + total, total > MIN && total < MAX);
-
   }
 
 }

@@ -94,17 +94,19 @@ public class LargeRowIT extends AccumuloClusterHarness {
     REG_TABLE_NAME = names[0];
     PRE_SPLIT_TABLE_NAME = names[1];
 
-    AccumuloClient c = getAccumuloClient();
-    tservMajcDelay = c.instanceOperations().getSystemConfiguration()
-        .get(Property.TSERV_MAJC_DELAY.getKey());
-    c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "10ms");
+    try (AccumuloClient c = getAccumuloClient()) {
+      tservMajcDelay = c.instanceOperations().getSystemConfiguration()
+          .get(Property.TSERV_MAJC_DELAY.getKey());
+      c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "10ms");
+    }
   }
 
   @After
   public void resetMajcDelay() throws Exception {
     if (null != tservMajcDelay) {
-      AccumuloClient client = getAccumuloClient();
-      client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
+      try (AccumuloClient client = getAccumuloClient()) {
+        client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
+      }
     }
   }
 
@@ -121,15 +123,16 @@ public class LargeRowIT extends AccumuloClusterHarness {
       TestIngest.toPrintableChars(rowData);
       splitPoints.add(new Text(rowData));
     }
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(REG_TABLE_NAME);
-    c.tableOperations().create(PRE_SPLIT_TABLE_NAME);
-    c.tableOperations().setProperty(PRE_SPLIT_TABLE_NAME, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
-        "256K");
-    sleepUninterruptibly(3, TimeUnit.SECONDS);
-    c.tableOperations().addSplits(PRE_SPLIT_TABLE_NAME, splitPoints);
-    test1(c);
-    test2(c);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(REG_TABLE_NAME);
+      c.tableOperations().create(PRE_SPLIT_TABLE_NAME);
+      c.tableOperations().setProperty(PRE_SPLIT_TABLE_NAME,
+          Property.TABLE_MAX_END_ROW_SIZE.getKey(), "256K");
+      sleepUninterruptibly(3, TimeUnit.SECONDS);
+      c.tableOperations().addSplits(PRE_SPLIT_TABLE_NAME, splitPoints);
+      test1(c);
+      test2(c);
+    }
   }
 
   private void test1(AccumuloClient c) throws Exception {

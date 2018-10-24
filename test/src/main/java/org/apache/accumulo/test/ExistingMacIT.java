@@ -158,37 +158,38 @@ public class ExistingMacIT extends ConfigurableMacBase {
   @Test
   public void testExistingRunningInstance() throws Exception {
     final String table = getUniqueNames(1)[0];
-    AccumuloClient client = getClient();
-    // Ensure that a master and tserver are up so the existing instance check won't fail.
-    client.tableOperations().create(table);
-    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
-    Mutation m = new Mutation("foo");
-    m.put("cf", "cq", "value");
-    bw.addMutation(m);
-    bw.close();
+    try (AccumuloClient client = getClient()) {
+      // Ensure that a master and tserver are up so the existing instance check won't fail.
+      client.tableOperations().create(table);
+      BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
+      Mutation m = new Mutation("foo");
+      m.put("cf", "cq", "value");
+      bw.addMutation(m);
+      bw.close();
 
-    File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf_2");
-    FileUtils.deleteQuietly(hadoopConfDir);
-    assertTrue(hadoopConfDir.mkdirs());
-    createEmptyConfig(new File(hadoopConfDir, "core-site.xml"));
-    createEmptyConfig(new File(hadoopConfDir, "hdfs-site.xml"));
+      File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf_2");
+      FileUtils.deleteQuietly(hadoopConfDir);
+      assertTrue(hadoopConfDir.mkdirs());
+      createEmptyConfig(new File(hadoopConfDir, "core-site.xml"));
+      createEmptyConfig(new File(hadoopConfDir, "hdfs-site.xml"));
 
-    File testDir2 = createTestDir(ExistingMacIT.class.getSimpleName() + "_3");
-    FileUtils.deleteQuietly(testDir2);
+      File testDir2 = createTestDir(ExistingMacIT.class.getSimpleName() + "_3");
+      FileUtils.deleteQuietly(testDir2);
 
-    MiniAccumuloConfigImpl macConfig2 = new MiniAccumuloConfigImpl(testDir2, "notused");
-    macConfig2.useExistingInstance(
-        new File(getCluster().getConfig().getConfDir(), "accumulo.properties"), hadoopConfDir);
+      MiniAccumuloConfigImpl macConfig2 = new MiniAccumuloConfigImpl(testDir2, "notused");
+      macConfig2.useExistingInstance(
+          new File(getCluster().getConfig().getConfDir(), "accumulo.properties"), hadoopConfDir);
 
-    System.out
-        .println("conf " + new File(getCluster().getConfig().getConfDir(), "accumulo.properties"));
+      System.out.println(
+          "conf " + new File(getCluster().getConfig().getConfDir(), "accumulo.properties"));
 
-    MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
-    try {
-      accumulo2.start();
-      fail("A 2nd MAC instance should not be able to start over an existing MAC instance");
-    } catch (RuntimeException e) {
-      // TODO check message or throw more explicit exception
+      MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
+      try {
+        accumulo2.start();
+        fail("A 2nd MAC instance should not be able to start over an existing MAC instance");
+      } catch (RuntimeException e) {
+        // TODO check message or throw more explicit exception
+      }
     }
   }
 }

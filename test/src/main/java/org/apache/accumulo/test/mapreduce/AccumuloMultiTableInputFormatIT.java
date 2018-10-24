@@ -138,25 +138,26 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
     String[] tableNames = getUniqueNames(2);
     String table1 = tableNames[0];
     String table2 = tableNames[1];
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(table1);
-    c.tableOperations().create(table2);
-    BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
-    BatchWriter bw2 = c.createBatchWriter(table2, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation t1m = new Mutation(new Text(String.format("%s_%09x", table1, i + 1)));
-      t1m.put(new Text(), new Text(), new Value(String.format("%s_%09x", table1, i).getBytes()));
-      bw.addMutation(t1m);
-      Mutation t2m = new Mutation(new Text(String.format("%s_%09x", table2, i + 1)));
-      t2m.put(new Text(), new Text(), new Value(String.format("%s_%09x", table2, i).getBytes()));
-      bw2.addMutation(t2m);
-    }
-    bw.close();
-    bw2.close();
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(table1);
+      c.tableOperations().create(table2);
+      BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
+      BatchWriter bw2 = c.createBatchWriter(table2, new BatchWriterConfig());
+      for (int i = 0; i < 100; i++) {
+        Mutation t1m = new Mutation(new Text(String.format("%s_%09x", table1, i + 1)));
+        t1m.put(new Text(), new Text(), new Value(String.format("%s_%09x", table1, i).getBytes()));
+        bw.addMutation(t1m);
+        Mutation t2m = new Mutation(new Text(String.format("%s_%09x", table2, i + 1)));
+        t2m.put(new Text(), new Text(), new Value(String.format("%s_%09x", table2, i).getBytes()));
+        bw2.addMutation(t2m);
+      }
+      bw.close();
+      bw2.close();
 
-    MRTester.main(new String[] {table1, table2});
-    assertNull(e1);
-    assertNull(e2);
+      MRTester.main(new String[] {table1, table2});
+      assertNull(e1);
+      assertNull(e2);
+    }
   }
 
 }

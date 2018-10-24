@@ -60,11 +60,12 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
   public void testNormalWrite() throws Exception {
     String[] uniqueNames = getUniqueNames(2);
     String t1 = uniqueNames[0], t2 = uniqueNames[1];
-    AccumuloClient c = getAccumuloClient();
-    int numEntriesToWritePerEntry = 50;
-    IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000,
-        numEntriesToWritePerEntry, t2, c, getAdminToken(), false, false);
-    test(t1, t2, c, itset, numEntriesToWritePerEntry);
+    try (AccumuloClient c = getAccumuloClient()) {
+      int numEntriesToWritePerEntry = 50;
+      IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000,
+          numEntriesToWritePerEntry, t2, c, getAdminToken(), false, false);
+      test(t1, t2, c, itset, numEntriesToWritePerEntry);
+    }
   }
 
   /**
@@ -79,11 +80,12 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
   public void testClearLocatorAndSplitWrite() throws Exception {
     String[] uniqueNames = getUniqueNames(2);
     String t1 = uniqueNames[0], t2 = uniqueNames[1];
-    AccumuloClient c = getAccumuloClient();
-    int numEntriesToWritePerEntry = 50;
-    IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000,
-        numEntriesToWritePerEntry, t2, c, getAdminToken(), true, true);
-    test(t1, t2, c, itset, numEntriesToWritePerEntry);
+    try (AccumuloClient c = getAccumuloClient()) {
+      int numEntriesToWritePerEntry = 50;
+      IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000,
+          numEntriesToWritePerEntry, t2, c, getAdminToken(), true, true);
+      test(t1, t2, c, itset, numEntriesToWritePerEntry);
+    }
   }
 
   private void test(String t1, String t2, AccumuloClient c, IteratorSetting itset,

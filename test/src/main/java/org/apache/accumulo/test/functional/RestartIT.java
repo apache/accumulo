@@ -106,230 +106,237 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void restartMaster() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    OPTS.setTableName(tableName);
-    VOPTS.setTableName(tableName);
-    c.tableOperations().create(tableName);
-    final AuthenticationToken token = getAdminToken();
-    final ClusterControl control = getCluster().getClusterControl();
+    try (AccumuloClient c = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      OPTS.setTableName(tableName);
+      VOPTS.setTableName(tableName);
+      c.tableOperations().create(tableName);
+      final AuthenticationToken token = getAdminToken();
+      final ClusterControl control = getCluster().getClusterControl();
 
-    final String[] args;
-    if (token instanceof PasswordToken) {
-      byte[] password = ((PasswordToken) token).getPassword();
-      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i",
-          cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows", "" + OPTS.rows,
-          "--table", tableName};
-    } else if (token instanceof KerberosToken) {
-      ClusterUser rootUser = getAdminUser();
-      args = new String[] {"-u", getAdminPrincipal(), "--keytab",
-          rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
-          cluster.getZooKeepers(), "--rows", "" + OPTS.rows, "--table", tableName};
-    } else {
-      throw new RuntimeException("Unknown token");
-    }
-    OPTS.setClientInfo(getClientInfo());
-
-    Future<Integer> ret = svc.submit(() -> {
-      try {
-        return control.exec(TestIngest.class, args);
-      } catch (IOException e) {
-        log.error("Error running TestIngest", e);
-        return -1;
+      final String[] args;
+      if (token instanceof PasswordToken) {
+        byte[] password = ((PasswordToken) token).getPassword();
+        args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i",
+            cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows", "" + OPTS.rows,
+            "--table", tableName};
+      } else if (token instanceof KerberosToken) {
+        ClusterUser rootUser = getAdminUser();
+        args = new String[] {"-u", getAdminPrincipal(), "--keytab",
+            rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
+            cluster.getZooKeepers(), "--rows", "" + OPTS.rows, "--table", tableName};
+      } else {
+        throw new RuntimeException("Unknown token");
       }
-    });
+      OPTS.setClientInfo(getClientInfo());
 
-    control.stopAllServers(ServerType.MASTER);
-    control.startAllServers(ServerType.MASTER);
-    assertEquals(0, ret.get().intValue());
-    VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+      Future<Integer> ret = svc.submit(() -> {
+        try {
+          return control.exec(TestIngest.class, args);
+        } catch (IOException e) {
+          log.error("Error running TestIngest", e);
+          return -1;
+        }
+      });
+
+      control.stopAllServers(ServerType.MASTER);
+      control.startAllServers(ServerType.MASTER);
+      assertEquals(0, ret.get().intValue());
+      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+    }
   }
 
   @Test
   public void restartMasterRecovery() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    OPTS.setTableName(tableName);
-    VOPTS.setTableName(tableName);
-    OPTS.setClientInfo(getClientInfo());
-    VOPTS.setClientInfo(getClientInfo());
-    TestIngest.ingest(c, OPTS, BWOPTS);
-    ClusterControl control = getCluster().getClusterControl();
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      OPTS.setTableName(tableName);
+      VOPTS.setTableName(tableName);
+      OPTS.setClientInfo(getClientInfo());
+      VOPTS.setClientInfo(getClientInfo());
+      TestIngest.ingest(c, OPTS, BWOPTS);
+      ClusterControl control = getCluster().getClusterControl();
 
-    // TODO implement a kill all too?
-    // cluster.stop() would also stop ZooKeeper
-    control.stopAllServers(ServerType.MASTER);
-    control.stopAllServers(ServerType.TRACER);
-    control.stopAllServers(ServerType.TABLET_SERVER);
-    control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
-    control.stopAllServers(ServerType.MONITOR);
+      // TODO implement a kill all too?
+      // cluster.stop() would also stop ZooKeeper
+      control.stopAllServers(ServerType.MASTER);
+      control.stopAllServers(ServerType.TRACER);
+      control.stopAllServers(ServerType.TABLET_SERVER);
+      control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
+      control.stopAllServers(ServerType.MONITOR);
 
-    ZooReader zreader = new ZooReader(c.info().getZooKeepers(),
-        c.info().getZooKeepersSessionTimeOut());
-    ZooCache zcache = new ZooCache(zreader, null);
-    byte[] masterLockData;
-    do {
-      masterLockData = ZooLock.getLockData(zcache,
-          ZooUtil.getRoot(c.getInstanceID()) + Constants.ZMASTER_LOCK, null);
-      if (null != masterLockData) {
-        log.info("Master lock is still held");
-        Thread.sleep(1000);
-      }
-    } while (null != masterLockData);
+      ZooReader zreader = new ZooReader(c.info().getZooKeepers(),
+          c.info().getZooKeepersSessionTimeOut());
+      ZooCache zcache = new ZooCache(zreader, null);
+      byte[] masterLockData;
+      do {
+        masterLockData = ZooLock.getLockData(zcache,
+            ZooUtil.getRoot(c.getInstanceID()) + Constants.ZMASTER_LOCK, null);
+        if (null != masterLockData) {
+          log.info("Master lock is still held");
+          Thread.sleep(1000);
+        }
+      } while (null != masterLockData);
 
-    cluster.start();
-    sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
-    control.stopAllServers(ServerType.MASTER);
+      cluster.start();
+      sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
+      control.stopAllServers(ServerType.MASTER);
 
-    masterLockData = new byte[0];
-    do {
-      masterLockData = ZooLock.getLockData(zcache,
-          ZooUtil.getRoot(c.getInstanceID()) + Constants.ZMASTER_LOCK, null);
-      if (null != masterLockData) {
-        log.info("Master lock is still held");
-        Thread.sleep(1000);
-      }
-    } while (null != masterLockData);
-    cluster.start();
-    VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+      masterLockData = new byte[0];
+      do {
+        masterLockData = ZooLock.getLockData(zcache,
+            ZooUtil.getRoot(c.getInstanceID()) + Constants.ZMASTER_LOCK, null);
+        if (null != masterLockData) {
+          log.info("Master lock is still held");
+          Thread.sleep(1000);
+        }
+      } while (null != masterLockData);
+      cluster.start();
+      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+    }
   }
 
   @Test
   public void restartMasterSplit() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    final AuthenticationToken token = getAdminToken();
-    final ClusterControl control = getCluster().getClusterControl();
-    VOPTS.setTableName(tableName);
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
+    try (AccumuloClient c = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      final AuthenticationToken token = getAdminToken();
+      final ClusterControl control = getCluster().getClusterControl();
+      VOPTS.setTableName(tableName);
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
 
-    final String[] args;
-    if (token instanceof PasswordToken) {
-      byte[] password = ((PasswordToken) token).getPassword();
-      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i",
-          cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows",
-          Integer.toString(VOPTS.rows), "--table", tableName};
-    } else if (token instanceof KerberosToken) {
-      ClusterUser rootUser = getAdminUser();
-      args = new String[] {"-u", getAdminPrincipal(), "--keytab",
-          rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
-          cluster.getZooKeepers(), "--rows", Integer.toString(VOPTS.rows), "--table", tableName};
-    } else {
-      throw new RuntimeException("Unknown token");
+      final String[] args;
+      if (token instanceof PasswordToken) {
+        byte[] password = ((PasswordToken) token).getPassword();
+        args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i",
+            cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows",
+            Integer.toString(VOPTS.rows), "--table", tableName};
+      } else if (token instanceof KerberosToken) {
+        ClusterUser rootUser = getAdminUser();
+        args = new String[] {"-u", getAdminPrincipal(), "--keytab",
+            rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
+            cluster.getZooKeepers(), "--rows", Integer.toString(VOPTS.rows), "--table", tableName};
+      } else {
+        throw new RuntimeException("Unknown token");
+      }
+      OPTS.setClientInfo(getClientInfo());
+      VOPTS.setClientInfo(getClientInfo());
+
+      Future<Integer> ret = svc.submit(() -> {
+        try {
+          return control.exec(TestIngest.class, args);
+        } catch (Exception e) {
+          log.error("Error running TestIngest", e);
+          return -1;
+        }
+      });
+
+      control.stopAllServers(ServerType.MASTER);
+
+      ZooReader zreader = new ZooReader(c.info().getZooKeepers(),
+          c.info().getZooKeepersSessionTimeOut());
+      ZooCache zcache = new ZooCache(zreader, null);
+      byte[] masterLockData;
+      do {
+        masterLockData = ZooLock.getLockData(zcache,
+            ZooUtil.getRoot(c.getInstanceID()) + Constants.ZMASTER_LOCK, null);
+        if (null != masterLockData) {
+          log.info("Master lock is still held");
+          Thread.sleep(1000);
+        }
+      } while (null != masterLockData);
+
+      cluster.start();
+      assertEquals(0, ret.get().intValue());
+      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
     }
-    OPTS.setClientInfo(getClientInfo());
-    VOPTS.setClientInfo(getClientInfo());
-
-    Future<Integer> ret = svc.submit(() -> {
-      try {
-        return control.exec(TestIngest.class, args);
-      } catch (Exception e) {
-        log.error("Error running TestIngest", e);
-        return -1;
-      }
-    });
-
-    control.stopAllServers(ServerType.MASTER);
-
-    ZooReader zreader = new ZooReader(c.info().getZooKeepers(),
-        c.info().getZooKeepersSessionTimeOut());
-    ZooCache zcache = new ZooCache(zreader, null);
-    byte[] masterLockData;
-    do {
-      masterLockData = ZooLock.getLockData(zcache,
-          ZooUtil.getRoot(c.getInstanceID()) + Constants.ZMASTER_LOCK, null);
-      if (null != masterLockData) {
-        log.info("Master lock is still held");
-        Thread.sleep(1000);
-      }
-    } while (null != masterLockData);
-
-    cluster.start();
-    assertEquals(0, ret.get().intValue());
-    VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
 
   @Test
   public void killedTabletServer() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    OPTS.setTableName(tableName);
-    VOPTS.setTableName(tableName);
-    OPTS.setClientInfo(getClientInfo());
-    VOPTS.setClientInfo(getClientInfo());
-    TestIngest.ingest(c, OPTS, BWOPTS);
-    VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
-    cluster.getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    cluster.start();
-    VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      OPTS.setTableName(tableName);
+      VOPTS.setTableName(tableName);
+      OPTS.setClientInfo(getClientInfo());
+      VOPTS.setClientInfo(getClientInfo());
+      TestIngest.ingest(c, OPTS, BWOPTS);
+      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+      cluster.getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      cluster.start();
+      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+    }
   }
 
   @Test
   public void killedTabletServer2() throws Exception {
-    final AccumuloClient c = getAccumuloClient();
-    final String[] names = getUniqueNames(2);
-    final String tableName = names[0];
-    final ClusterControl control = getCluster().getClusterControl();
-    c.tableOperations().create(tableName);
-    // Original test started and then stopped a GC. Not sure why it did this. The GC was
-    // already running by default, and it would have nothing to do after only creating a table
-    control.stopAllServers(ServerType.TABLET_SERVER);
+    try (AccumuloClient c = getAccumuloClient()) {
+      final String[] names = getUniqueNames(2);
+      final String tableName = names[0];
+      final ClusterControl control = getCluster().getClusterControl();
+      c.tableOperations().create(tableName);
+      // Original test started and then stopped a GC. Not sure why it did this. The GC was
+      // already running by default, and it would have nothing to do after only creating a table
+      control.stopAllServers(ServerType.TABLET_SERVER);
 
-    cluster.start();
-    c.tableOperations().create(names[1]);
+      cluster.start();
+      c.tableOperations().create(names[1]);
+    }
   }
 
   @Test
   public void killedTabletServerDuringShutdown() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    OPTS.setTableName(tableName);
-    OPTS.setClientInfo(getClientInfo());
-    TestIngest.ingest(c, OPTS, BWOPTS);
-    try {
-      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getCluster().getClusterControl().adminStopAll();
-    } finally {
-      getCluster().start();
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      OPTS.setTableName(tableName);
+      OPTS.setClientInfo(getClientInfo());
+      TestIngest.ingest(c, OPTS, BWOPTS);
+      try {
+        getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+        getCluster().getClusterControl().adminStopAll();
+      } finally {
+        getCluster().start();
+      }
     }
   }
 
   @Test
   public void shutdownDuringCompactingSplitting() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    VOPTS.setTableName(tableName);
-    OPTS.setClientInfo(getClientInfo());
-    VOPTS.setClientInfo(getClientInfo());
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    String splitThreshold = null;
-    for (Entry<String,String> entry : c.tableOperations().getProperties(tableName)) {
-      if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey())) {
-        splitThreshold = entry.getValue();
-        break;
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      VOPTS.setTableName(tableName);
+      OPTS.setClientInfo(getClientInfo());
+      VOPTS.setClientInfo(getClientInfo());
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+      String splitThreshold = null;
+      for (Entry<String,String> entry : c.tableOperations().getProperties(tableName)) {
+        if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey())) {
+          splitThreshold = entry.getValue();
+          break;
+        }
       }
-    }
-    assertNotNull(splitThreshold);
-    try {
-      c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-          "20K");
-      TestIngest.Opts opts = new TestIngest.Opts();
-      opts.setTableName(tableName);
-      opts.setClientInfo(getClientInfo());
-      TestIngest.ingest(c, opts, BWOPTS);
-      c.tableOperations().flush(tableName, null, null, false);
-      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
-      getCluster().stop();
-    } finally {
-      if (getClusterType() == ClusterType.STANDALONE) {
-        getCluster().start();
+      assertNotNull(splitThreshold);
+      try {
         c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-            splitThreshold);
+            "20K");
+        TestIngest.Opts opts = new TestIngest.Opts();
+        opts.setTableName(tableName);
+        opts.setClientInfo(getClientInfo());
+        TestIngest.ingest(c, opts, BWOPTS);
+        c.tableOperations().flush(tableName, null, null, false);
+        VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+        getCluster().stop();
+      } finally {
+        if (getClusterType() == ClusterType.STANDALONE) {
+          getCluster().start();
+          c.tableOperations().setProperty(MetadataTable.NAME,
+              Property.TABLE_SPLIT_THRESHOLD.getKey(), splitThreshold);
+        }
       }
     }
   }

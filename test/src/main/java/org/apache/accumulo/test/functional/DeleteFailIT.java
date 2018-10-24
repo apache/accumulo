@@ -35,24 +35,23 @@ public class DeleteFailIT extends AccumuloClusterHarness {
 
   @Test
   public void testFail() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    ntc.setProperties(
-        Collections.singletonMap(Property.TABLE_DELETE_BEHAVIOR.getKey(), Behavior.FAIL.name()));
-    c.tableOperations().create(tableName, ntc);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      ntc.setProperties(
+          Collections.singletonMap(Property.TABLE_DELETE_BEHAVIOR.getKey(), Behavior.FAIL.name()));
+      c.tableOperations().create(tableName, ntc);
 
-    try (BatchWriter writer = c.createBatchWriter(tableName)) {
-      Mutation m = new Mutation("1234");
-      m.putDelete("f1", "q1", 2L);
-      writer.addMutation(m);
+      try (BatchWriter writer = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("1234");
+        m.putDelete("f1", "q1", 2L);
+        writer.addMutation(m);
+      }
+
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);) {
+        scanner.forEach(e -> {});
+        fail("Expected scan to fail because  deletes are present.");
+      } catch (RuntimeException e) {}
     }
-
-    Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-
-    try {
-      scanner.forEach(e -> {});
-      fail("Expected scan to fail because  deletes are present.");
-    } catch (RuntimeException e) {}
   }
 }

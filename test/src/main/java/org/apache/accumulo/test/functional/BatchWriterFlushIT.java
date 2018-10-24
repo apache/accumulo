@@ -183,78 +183,79 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
   @Test
   public void runMultiThreadedBinningTest() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String[] tableNames = getUniqueNames(1);
-    String tableName = tableNames[0];
-    c.tableOperations().create(tableName);
-    for (int x = 0; x < NUM_THREADS; x++) {
-      c.tableOperations().addSplits(tableName,
-          new TreeSet<>(Collections.singleton(new Text(Integer.toString(x * NUM_TO_FLUSH)))));
-    }
-    c.instanceOperations().waitForBalance();
-
-    // Logger.getLogger(TabletServerBatchWriter.class).setLevel(Level.TRACE);
-    final List<Set<Mutation>> allMuts = new LinkedList<>();
-    List<Mutation> data = new ArrayList<>();
-    for (int i = 0; i < NUM_THREADS; i++) {
-      for (int j = 0; j < NUM_TO_FLUSH; j++) {
-        int row = i * NUM_TO_FLUSH + j;
-        Mutation m = new Mutation(new Text(String.format("%10d", row)));
-        m.put(new Text("cf" + i), new Text("cq"), new Value(("" + row).getBytes()));
-        data.add(m);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String[] tableNames = getUniqueNames(1);
+      String tableName = tableNames[0];
+      c.tableOperations().create(tableName);
+      for (int x = 0; x < NUM_THREADS; x++) {
+        c.tableOperations().addSplits(tableName,
+            new TreeSet<>(Collections.singleton(new Text(Integer.toString(x * NUM_TO_FLUSH)))));
       }
-    }
-    assertEquals(NUM_THREADS * NUM_TO_FLUSH, data.size());
-    Collections.shuffle(data);
-    for (int n = 0; n < (NUM_THREADS * NUM_TO_FLUSH); n += NUM_TO_FLUSH) {
-      Set<Mutation> muts = new HashSet<>(data.subList(n, n + NUM_TO_FLUSH));
-      allMuts.add(muts);
-    }
+      c.instanceOperations().waitForBalance();
 
-    SimpleThreadPool threads = new SimpleThreadPool(NUM_THREADS, "ClientThreads");
-    threads.allowCoreThreadTimeOut(false);
-    threads.prestartAllCoreThreads();
-
-    BatchWriterConfig cfg = new BatchWriterConfig();
-    cfg.setMaxLatency(10, TimeUnit.SECONDS);
-    cfg.setMaxMemory(1 * 1024 * 1024);
-    cfg.setMaxWriteThreads(NUM_THREADS);
-    final BatchWriter bw = c.createBatchWriter(tableName, cfg);
-
-    for (int k = 0; k < NUM_THREADS; k++) {
-      final int idx = k;
-      threads.execute(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            bw.addMutations(allMuts.get(idx));
-            bw.flush();
-          } catch (MutationsRejectedException e) {
-            fail("Error adding mutations to batch writer");
-          }
+      // Logger.getLogger(TabletServerBatchWriter.class).setLevel(Level.TRACE);
+      final List<Set<Mutation>> allMuts = new LinkedList<>();
+      List<Mutation> data = new ArrayList<>();
+      for (int i = 0; i < NUM_THREADS; i++) {
+        for (int j = 0; j < NUM_TO_FLUSH; j++) {
+          int row = i * NUM_TO_FLUSH + j;
+          Mutation m = new Mutation(new Text(String.format("%10d", row)));
+          m.put(new Text("cf" + i), new Text("cq"), new Value(("" + row).getBytes()));
+          data.add(m);
         }
-      });
-    }
-    threads.shutdown();
-    threads.awaitTermination(3, TimeUnit.MINUTES);
-    bw.close();
-    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-      for (Entry<Key,Value> e : scanner) {
-        Mutation m = new Mutation(e.getKey().getRow());
-        m.put(e.getKey().getColumnFamily(), e.getKey().getColumnQualifier(), e.getValue());
-        boolean found = false;
-        for (int l = 0; l < NUM_THREADS; l++) {
-          if (allMuts.get(l).contains(m)) {
-            found = true;
-            allMuts.get(l).remove(m);
-            break;
-          }
-        }
-        assertTrue("Mutation not found: " + m, found);
+      }
+      assertEquals(NUM_THREADS * NUM_TO_FLUSH, data.size());
+      Collections.shuffle(data);
+      for (int n = 0; n < (NUM_THREADS * NUM_TO_FLUSH); n += NUM_TO_FLUSH) {
+        Set<Mutation> muts = new HashSet<>(data.subList(n, n + NUM_TO_FLUSH));
+        allMuts.add(muts);
       }
 
-      for (int m = 0; m < NUM_THREADS; m++) {
-        assertEquals(0, allMuts.get(m).size());
+      SimpleThreadPool threads = new SimpleThreadPool(NUM_THREADS, "ClientThreads");
+      threads.allowCoreThreadTimeOut(false);
+      threads.prestartAllCoreThreads();
+
+      BatchWriterConfig cfg = new BatchWriterConfig();
+      cfg.setMaxLatency(10, TimeUnit.SECONDS);
+      cfg.setMaxMemory(1 * 1024 * 1024);
+      cfg.setMaxWriteThreads(NUM_THREADS);
+      final BatchWriter bw = c.createBatchWriter(tableName, cfg);
+
+      for (int k = 0; k < NUM_THREADS; k++) {
+        final int idx = k;
+        threads.execute(new Runnable() {
+          @Override
+          public void run() {
+            try {
+              bw.addMutations(allMuts.get(idx));
+              bw.flush();
+            } catch (MutationsRejectedException e) {
+              fail("Error adding mutations to batch writer");
+            }
+          }
+        });
+      }
+      threads.shutdown();
+      threads.awaitTermination(3, TimeUnit.MINUTES);
+      bw.close();
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> e : scanner) {
+          Mutation m = new Mutation(e.getKey().getRow());
+          m.put(e.getKey().getColumnFamily(), e.getKey().getColumnQualifier(), e.getValue());
+          boolean found = false;
+          for (int l = 0; l < NUM_THREADS; l++) {
+            if (allMuts.get(l).contains(m)) {
+              found = true;
+              allMuts.get(l).remove(m);
+              break;
+            }
+          }
+          assertTrue("Mutation not found: " + m, found);
+        }
+
+        for (int m = 0; m < NUM_THREADS; m++) {
+          assertEquals(0, allMuts.get(m).size());
+        }
       }
     }
   }

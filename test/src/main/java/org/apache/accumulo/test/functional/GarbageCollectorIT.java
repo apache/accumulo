@@ -115,32 +115,33 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void gcTest() throws Exception {
     killMacGc();
-    AccumuloClient c = getClient();
-    c.tableOperations().create("test_ingest");
-    c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
-    TestIngest.Opts opts = new TestIngest.Opts();
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    vopts.rows = opts.rows = 10000;
-    vopts.cols = opts.cols = 1;
-    opts.setClientInfo(getClientInfo());
-    vopts.setClientInfo(getClientInfo());
-    TestIngest.ingest(c, cluster.getFileSystem(), opts, new BatchWriterOpts());
-    c.tableOperations().compact("test_ingest", null, null, true, true);
-    int before = countFiles();
-    while (true) {
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
-      int more = countFiles();
-      if (more <= before)
-        break;
-      before = more;
-    }
+    try (AccumuloClient c = getClient()) {
+      c.tableOperations().create("test_ingest");
+      c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
+      TestIngest.Opts opts = new TestIngest.Opts();
+      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+      vopts.rows = opts.rows = 10000;
+      vopts.cols = opts.cols = 1;
+      opts.setClientInfo(getClientInfo());
+      vopts.setClientInfo(getClientInfo());
+      TestIngest.ingest(c, cluster.getFileSystem(), opts, new BatchWriterOpts());
+      c.tableOperations().compact("test_ingest", null, null, true, true);
+      int before = countFiles();
+      while (true) {
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        int more = countFiles();
+        if (more <= before)
+          break;
+        before = more;
+      }
 
-    // restart GC
-    getCluster().start();
-    sleepUninterruptibly(15, TimeUnit.SECONDS);
-    int after = countFiles();
-    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-    assertTrue(after < before);
+      // restart GC
+      getCluster().start();
+      sleepUninterruptibly(15, TimeUnit.SECONDS);
+      int after = countFiles();
+      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      assertTrue(after < before);
+    }
   }
 
   @Test
@@ -148,45 +149,47 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     killMacGc();
 
     log.info("Filling metadata table with bogus delete flags");
-    AccumuloClient c = getClient();
-    addEntries(c, new BatchWriterOpts());
-    cluster.getConfig().setDefaultMemory(10, MemoryUnit.MEGABYTE);
-    Process gc = cluster.exec(SimpleGarbageCollector.class);
-    sleepUninterruptibly(20, TimeUnit.SECONDS);
-    String output = "";
-    while (!output.contains("delete candidates has exceeded")) {
-      byte buffer[] = new byte[10 * 1024];
-      try {
-        int n = gc.getInputStream().read(buffer);
-        output = new String(buffer, 0, n, UTF_8);
-      } catch (IOException ex) {
-        break;
+    try (AccumuloClient c = getClient()) {
+      addEntries(c, new BatchWriterOpts());
+      cluster.getConfig().setDefaultMemory(10, MemoryUnit.MEGABYTE);
+      Process gc = cluster.exec(SimpleGarbageCollector.class);
+      sleepUninterruptibly(20, TimeUnit.SECONDS);
+      String output = "";
+      while (!output.contains("delete candidates has exceeded")) {
+        byte buffer[] = new byte[10 * 1024];
+        try {
+          int n = gc.getInputStream().read(buffer);
+          output = new String(buffer, 0, n, UTF_8);
+        } catch (IOException ex) {
+          break;
+        }
       }
+      gc.destroy();
+      assertTrue(output.contains("delete candidates has exceeded"));
     }
-    gc.destroy();
-    assertTrue(output.contains("delete candidates has exceeded"));
   }
 
   @Test
   public void dontGCRootLog() throws Exception {
     killMacGc();
     // dirty metadata
-    AccumuloClient c = getClient();
-    String table = getUniqueNames(1)[0];
-    c.tableOperations().create(table);
-    // let gc run for a bit
-    cluster.start();
-    sleepUninterruptibly(20, TimeUnit.SECONDS);
-    killMacGc();
-    // kill tservers
-    for (ProcessReference ref : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
-      cluster.killProcess(ServerType.TABLET_SERVER, ref);
-    }
-    // run recovery
-    cluster.start();
-    // did it recover?
-    try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      Iterators.size(scanner.iterator());
+    try (AccumuloClient c = getClient()) {
+      String table = getUniqueNames(1)[0];
+      c.tableOperations().create(table);
+      // let gc run for a bit
+      cluster.start();
+      sleepUninterruptibly(20, TimeUnit.SECONDS);
+      killMacGc();
+      // kill tservers
+      for (ProcessReference ref : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
+        cluster.killProcess(ServerType.TABLET_SERVER, ref);
+      }
+      // run recovery
+      cluster.start();
+      // did it recover?
+      try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        Iterators.size(scanner.iterator());
+      }
     }
   }
 
@@ -200,99 +203,101 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void testInvalidDelete() throws Exception {
     killMacGc();
+    try (AccumuloClient c = getClient()) {
+      String table = getUniqueNames(1)[0];
+      c.tableOperations().create(table);
 
-    String table = getUniqueNames(1)[0];
-    getClient().tableOperations().create(table);
+      BatchWriter bw2 = c.createBatchWriter(table, new BatchWriterConfig());
+      Mutation m1 = new Mutation("r1");
+      m1.put("cf1", "cq1", "v1");
+      bw2.addMutation(m1);
+      bw2.close();
 
-    BatchWriter bw2 = getClient().createBatchWriter(table, new BatchWriterConfig());
-    Mutation m1 = new Mutation("r1");
-    m1.put("cf1", "cq1", "v1");
-    bw2.addMutation(m1);
-    bw2.close();
+      c.tableOperations().flush(table, null, null, true);
 
-    getClient().tableOperations().flush(table, null, null, true);
+      // ensure an invalid delete entry does not cause GC to go berserk ACCUMULO-2520
+      c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME,
+          TablePermission.WRITE);
+      BatchWriter bw3 = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
-    // ensure an invalid delete entry does not cause GC to go berserk ACCUMULO-2520
-    getClient().securityOperations().grantTablePermission(getClient().whoami(), MetadataTable.NAME,
-        TablePermission.WRITE);
-    BatchWriter bw3 = getClient().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      bw3.addMutation(createDelMutation("", "", "", ""));
+      bw3.addMutation(createDelMutation("", "testDel", "test", "valueTest"));
+      bw3.addMutation(createDelMutation("/", "", "", ""));
+      bw3.close();
 
-    bw3.addMutation(createDelMutation("", "", "", ""));
-    bw3.addMutation(createDelMutation("", "testDel", "test", "valueTest"));
-    bw3.addMutation(createDelMutation("/", "", "", ""));
-    bw3.close();
-
-    Process gc = cluster.exec(SimpleGarbageCollector.class);
-    try {
-      String output = "";
-      while (!output.contains("Ignoring invalid deletion candidate")) {
-        sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
-        try {
-          output = FunctionalTestUtils.readAll(cluster, SimpleGarbageCollector.class, gc);
-        } catch (IOException ioe) {
-          log.error("Could not read all from cluster.", ioe);
+      Process gc = cluster.exec(SimpleGarbageCollector.class);
+      try {
+        String output = "";
+        while (!output.contains("Ignoring invalid deletion candidate")) {
+          sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+          try {
+            output = FunctionalTestUtils.readAll(cluster, SimpleGarbageCollector.class, gc);
+          } catch (IOException ioe) {
+            log.error("Could not read all from cluster.", ioe);
+          }
         }
+      } finally {
+        gc.destroy();
       }
-    } finally {
-      gc.destroy();
-    }
 
-    try (Scanner scanner = getClient().createScanner(table, Authorizations.EMPTY)) {
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      assertTrue(iter.hasNext());
-      Entry<Key,Value> entry = iter.next();
-      assertEquals("r1", entry.getKey().getRow().toString());
-      assertEquals("cf1", entry.getKey().getColumnFamily().toString());
-      assertEquals("cq1", entry.getKey().getColumnQualifier().toString());
-      assertEquals("v1", entry.getValue().toString());
-      assertFalse(iter.hasNext());
+      try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        assertTrue(iter.hasNext());
+        Entry<Key,Value> entry = iter.next();
+        assertEquals("r1", entry.getKey().getRow().toString());
+        assertEquals("cf1", entry.getKey().getColumnFamily().toString());
+        assertEquals("cq1", entry.getKey().getColumnQualifier().toString());
+        assertEquals("v1", entry.getValue().toString());
+        assertFalse(iter.hasNext());
+      }
     }
   }
 
   @Test
   public void testProperPortAdvertisement() throws Exception {
 
-    AccumuloClient client = getClient();
+    try (AccumuloClient client = getClient()) {
 
-    ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
-    String path = ZooUtil.getRoot(client.getInstanceID()) + Constants.ZGC_LOCK;
-    for (int i = 0; i < 5; i++) {
-      List<String> locks;
-      try {
-        locks = zk.getChildren(path, null);
-      } catch (NoNodeException e) {
+      ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
+      String path = ZooUtil.getRoot(client.getInstanceID()) + Constants.ZGC_LOCK;
+      for (int i = 0; i < 5; i++) {
+        List<String> locks;
+        try {
+          locks = zk.getChildren(path, null);
+        } catch (NoNodeException e) {
+          Thread.sleep(5000);
+          continue;
+        }
+
+        if (locks != null && locks.size() > 0) {
+          Collections.sort(locks);
+
+          String lockPath = path + "/" + locks.get(0);
+
+          String gcLoc = new String(zk.getData(lockPath, null));
+
+          assertTrue("Found unexpected data in zookeeper for GC location: " + gcLoc,
+              gcLoc.startsWith(Service.GC_CLIENT.name()));
+          int loc = gcLoc.indexOf(ServerServices.SEPARATOR_CHAR);
+          assertNotEquals("Could not find split point of GC location for: " + gcLoc, -1, loc);
+          String addr = gcLoc.substring(loc + 1);
+
+          int addrSplit = addr.indexOf(':');
+          assertNotEquals("Could not find split of GC host:port for: " + addr, -1, addrSplit);
+
+          String host = addr.substring(0, addrSplit), port = addr.substring(addrSplit + 1);
+          // We shouldn't have the "bindall" address in zk
+          assertNotEquals("0.0.0.0", host);
+          // Nor should we have the "random port" in zk
+          assertNotEquals(0, Integer.parseInt(port));
+          return;
+        }
+
         Thread.sleep(5000);
-        continue;
       }
 
-      if (locks != null && locks.size() > 0) {
-        Collections.sort(locks);
-
-        String lockPath = path + "/" + locks.get(0);
-
-        String gcLoc = new String(zk.getData(lockPath, null));
-
-        assertTrue("Found unexpected data in zookeeper for GC location: " + gcLoc,
-            gcLoc.startsWith(Service.GC_CLIENT.name()));
-        int loc = gcLoc.indexOf(ServerServices.SEPARATOR_CHAR);
-        assertNotEquals("Could not find split point of GC location for: " + gcLoc, -1, loc);
-        String addr = gcLoc.substring(loc + 1);
-
-        int addrSplit = addr.indexOf(':');
-        assertNotEquals("Could not find split of GC host:port for: " + addr, -1, addrSplit);
-
-        String host = addr.substring(0, addrSplit), port = addr.substring(addrSplit + 1);
-        // We shouldn't have the "bindall" address in zk
-        assertNotEquals("0.0.0.0", host);
-        // Nor should we have the "random port" in zk
-        assertNotEquals(0, Integer.parseInt(port));
-        return;
-      }
-
-      Thread.sleep(5000);
+      fail("Could not find advertised GC address");
     }
-
-    fail("Could not find advertised GC address");
   }
 
   private int countFiles() throws Exception {

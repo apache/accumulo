@@ -98,45 +98,46 @@ public class RestartStressIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    final AccumuloClient c = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    final AuthenticationToken token = getAdminToken();
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "500K");
-    final ClusterControl control = getCluster().getClusterControl();
-    final String[] args;
-    if (token instanceof PasswordToken) {
-      byte[] password = ((PasswordToken) token).getPassword();
-      args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i",
-          cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows", "" + VOPTS.rows,
-          "--table", tableName};
-    } else if (token instanceof KerberosToken) {
-      ClusterUser rootUser = getAdminUser();
-      args = new String[] {"-u", getAdminPrincipal(), "--keytab",
-          rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
-          cluster.getZooKeepers(), "--rows", "" + VOPTS.rows, "--table", tableName};
-    } else {
-      throw new RuntimeException("Unrecognized token");
-    }
-
-    Future<Integer> retCode = svc.submit(() -> {
-      try {
-        return control.exec(TestIngest.class, args);
-      } catch (Exception e) {
-        log.error("Error running TestIngest", e);
-        return -1;
+    try (AccumuloClient c = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      final AuthenticationToken token = getAdminToken();
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "500K");
+      final ClusterControl control = getCluster().getClusterControl();
+      final String[] args;
+      if (token instanceof PasswordToken) {
+        byte[] password = ((PasswordToken) token).getPassword();
+        args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i",
+            cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows", "" + VOPTS.rows,
+            "--table", tableName};
+      } else if (token instanceof KerberosToken) {
+        ClusterUser rootUser = getAdminUser();
+        args = new String[] {"-u", getAdminPrincipal(), "--keytab",
+            rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
+            cluster.getZooKeepers(), "--rows", "" + VOPTS.rows, "--table", tableName};
+      } else {
+        throw new RuntimeException("Unrecognized token");
       }
-    });
 
-    for (int i = 0; i < 2; i++) {
-      sleepUninterruptibly(10, TimeUnit.SECONDS);
-      control.stopAllServers(ServerType.TABLET_SERVER);
-      control.startAllServers(ServerType.TABLET_SERVER);
+      Future<Integer> retCode = svc.submit(() -> {
+        try {
+          return control.exec(TestIngest.class, args);
+        } catch (Exception e) {
+          log.error("Error running TestIngest", e);
+          return -1;
+        }
+      });
+
+      for (int i = 0; i < 2; i++) {
+        sleepUninterruptibly(10, TimeUnit.SECONDS);
+        control.stopAllServers(ServerType.TABLET_SERVER);
+        control.startAllServers(ServerType.TABLET_SERVER);
+      }
+      assertEquals(0, retCode.get().intValue());
+      VOPTS.setTableName(tableName);
+      VOPTS.setClientInfo(getClientInfo());
+      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
     }
-    assertEquals(0, retCode.get().intValue());
-    VOPTS.setTableName(tableName);
-    VOPTS.setClientInfo(getClientInfo());
-    VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
   }
 
 }

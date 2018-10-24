@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -61,46 +62,48 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
   @Test
   public void testBulkImportFailure() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    TableOperations to = getAccumuloClient().tableOperations();
-    to.create(tableName);
-    FileSystem fs = getFileSystem();
-    Path rootPath = new Path(fs.makeQualified(getUsableDir()), getClass().getSimpleName());
-    log.info("Writing to {}", rootPath);
-    if (fs.exists(rootPath)) {
-      assertTrue(fs.delete(rootPath, true));
+    try (AccumuloClient client = getAccumuloClient()) {
+      TableOperations to = client.tableOperations();
+      to.create(tableName);
+      FileSystem fs = getFileSystem();
+      Path rootPath = new Path(fs.makeQualified(getUsableDir()), getClass().getSimpleName());
+      log.info("Writing to {}", rootPath);
+      if (fs.exists(rootPath)) {
+        assertTrue(fs.delete(rootPath, true));
+      }
+      assertTrue(fs.mkdirs(rootPath));
+
+      Path bulk = new Path(rootPath, "bulk");
+      log.info("bulk: {}", bulk);
+      assertTrue(fs.mkdirs(bulk));
+
+      assertTrue(fs.mkdirs(bulk));
+
+      Path rfile = new Path(bulk, "file.rf");
+
+      log.info("Generating RFile {}", rfile.toUri());
+
+      GenerateSequentialRFile.main(new String[] {"-f", rfile.toUri().toString(), "-nr",
+          Long.toString(NR), "-nv", Long.toString(NV)});
+
+      assertTrue("Expected that " + rfile + " exists, but it does not", fs.exists(rfile));
+
+      FsShell fsShell = new FsShell(fs.getConf());
+      assertEquals("Failed to chmod " + rootPath, 0,
+          fsShell.run(new String[] {"-chmod", "-R", "777", rootPath.toString()}));
+
+      // Add some splits
+      to.addSplits(tableName, getSplits());
+
+      // Then import a single rfile to all the tablets, hoping that we get a failure to import
+      // because
+      // of the balancer moving tablets around
+      // and then we get to verify that the bug is actually fixed.
+      to.importDirectory(bulk.toString()).to(tableName).load();
+
+      // The bug is that some tablets don't get imported into.
+      assertEquals(NR * NV, Iterables.size(client.createScanner(tableName, Authorizations.EMPTY)));
     }
-    assertTrue(fs.mkdirs(rootPath));
-
-    Path bulk = new Path(rootPath, "bulk");
-    log.info("bulk: {}", bulk);
-    assertTrue(fs.mkdirs(bulk));
-
-    assertTrue(fs.mkdirs(bulk));
-
-    Path rfile = new Path(bulk, "file.rf");
-
-    log.info("Generating RFile {}", rfile.toUri());
-
-    GenerateSequentialRFile.main(new String[] {"-f", rfile.toUri().toString(), "-nr",
-        Long.toString(NR), "-nv", Long.toString(NV)});
-
-    assertTrue("Expected that " + rfile + " exists, but it does not", fs.exists(rfile));
-
-    FsShell fsShell = new FsShell(fs.getConf());
-    assertEquals("Failed to chmod " + rootPath, 0,
-        fsShell.run(new String[] {"-chmod", "-R", "777", rootPath.toString()}));
-
-    // Add some splits
-    to.addSplits(tableName, getSplits());
-
-    // Then import a single rfile to all the tablets, hoping that we get a failure to import because
-    // of the balancer moving tablets around
-    // and then we get to verify that the bug is actually fixed.
-    to.importDirectory(bulk.toString()).to(tableName).load();
-
-    // The bug is that some tablets don't get imported into.
-    assertEquals(NR * NV,
-        Iterables.size(getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)));
   }
 
   private TreeSet<Text> getSplits() {

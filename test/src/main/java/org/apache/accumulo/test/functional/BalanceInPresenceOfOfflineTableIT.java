@@ -49,6 +49,7 @@ import org.apache.commons.lang.math.NumberUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -89,10 +90,10 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
   @Before
   public void setupTables() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
-    AccumuloClient client = getAccumuloClient();
+    accumuloClient = getAccumuloClient();
     // Need at least two tservers
     Assume.assumeTrue("Not enough tservers to run test",
-        client.instanceOperations().getTabletServers().size() >= 2);
+        accumuloClient.instanceOperations().getTabletServers().size() >= 2);
 
     // set up splits
     final SortedSet<Text> splits = new TreeSet<>();
@@ -105,7 +106,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     TEST_TABLE = names[1];
 
     // load into a table we won't use
-    accumuloClient = getAccumuloClient();
+
     accumuloClient.tableOperations().create(UNUSED_TABLE);
     accumuloClient.tableOperations().addSplits(UNUSED_TABLE, splits);
     // mark the table offline before it can rebalance.
@@ -115,6 +116,11 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     accumuloClient.tableOperations().create(TEST_TABLE);
     accumuloClient.tableOperations().setProperty(TEST_TABLE,
         Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+  }
+
+  @After
+  public void closeClient() {
+    accumuloClient.close();
   }
 
   @Test
@@ -152,7 +158,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
         try {
           client = MasterClient.getConnectionWithRetry(getClientContext());
           stats = client.getMasterStats(Tracer.traceInfo(),
-              creds.toThrift(getAccumuloClient().getInstanceID()));
+              creds.toThrift(accumuloClient.getInstanceID()));
           break;
         } catch (ThriftSecurityException exception) {
           throw new AccumuloSecurityException(exception);

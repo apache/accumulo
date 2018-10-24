@@ -124,84 +124,86 @@ public class SampleIT extends AccumuloClusterHarness {
   @Test
   public void testBasic() throws Exception {
 
-    AccumuloClient client = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    String clone = tableName + "_clone";
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      String clone = tableName + "_clone";
 
-    client.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
+      client.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
 
-    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
 
-    TreeMap<Key,Value> expected = new TreeMap<>();
-    String someRow = writeData(bw, SC1, expected);
-    assertEquals(20, expected.size());
+      TreeMap<Key,Value> expected = new TreeMap<>();
+      String someRow = writeData(bw, SC1, expected);
+      assertEquals(20, expected.size());
 
-    Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
-    Scanner isoScanner = new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY));
-    Scanner csiScanner = new ClientSideIteratorScanner(
-        client.createScanner(tableName, Authorizations.EMPTY));
-    scanner.setSamplerConfiguration(SC1);
-    csiScanner.setSamplerConfiguration(SC1);
-    isoScanner.setSamplerConfiguration(SC1);
-    isoScanner.setBatchSize(10);
+      Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
+      Scanner isoScanner = new IsolatedScanner(
+          client.createScanner(tableName, Authorizations.EMPTY));
+      Scanner csiScanner = new ClientSideIteratorScanner(
+          client.createScanner(tableName, Authorizations.EMPTY));
+      scanner.setSamplerConfiguration(SC1);
+      csiScanner.setSamplerConfiguration(SC1);
+      isoScanner.setSamplerConfiguration(SC1);
+      isoScanner.setBatchSize(10);
 
-    BatchScanner bScanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 2);
-    bScanner.setSamplerConfiguration(SC1);
-    bScanner.setRanges(Arrays.asList(new Range()));
+      BatchScanner bScanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 2);
+      bScanner.setSamplerConfiguration(SC1);
+      bScanner.setRanges(Arrays.asList(new Range()));
 
-    check(expected, scanner, bScanner, isoScanner, csiScanner);
+      check(expected, scanner, bScanner, isoScanner, csiScanner);
 
-    client.tableOperations().flush(tableName, null, null, true);
+      client.tableOperations().flush(tableName, null, null, true);
 
-    Scanner oScanner = newOfflineScanner(client, tableName, clone, SC1);
-    check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
+      Scanner oScanner = newOfflineScanner(client, tableName, clone, SC1);
+      check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
 
-    // ensure non sample data can be scanned after scanning sample data
-    for (ScannerBase sb : Arrays.asList(scanner, bScanner, isoScanner, csiScanner, oScanner)) {
-      sb.clearSamplerConfiguration();
-      assertEquals(20000, Iterables.size(sb));
-      sb.setSamplerConfiguration(SC1);
-    }
-
-    Iterator<Key> it = expected.keySet().iterator();
-    while (it.hasNext()) {
-      Key k = it.next();
-      if (k.getRow().toString().equals(someRow)) {
-        it.remove();
+      // ensure non sample data can be scanned after scanning sample data
+      for (ScannerBase sb : Arrays.asList(scanner, bScanner, isoScanner, csiScanner, oScanner)) {
+        sb.clearSamplerConfiguration();
+        assertEquals(20000, Iterables.size(sb));
+        sb.setSamplerConfiguration(SC1);
       }
+
+      Iterator<Key> it = expected.keySet().iterator();
+      while (it.hasNext()) {
+        Key k = it.next();
+        if (k.getRow().toString().equals(someRow)) {
+          it.remove();
+        }
+      }
+
+      expected.put(new Key(someRow, "cf1", "cq1", 8), new Value("42".getBytes()));
+      expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise".getBytes()));
+
+      Mutation m = new Mutation(someRow);
+
+      m.put("cf1", "cq1", 8, "42");
+      m.putDelete("cf1", "cq2", 8);
+      m.put("cf1", "cq3", 8, "suprise");
+
+      bw.addMutation(m);
+      bw.close();
+
+      check(expected, scanner, bScanner, isoScanner, csiScanner);
+
+      client.tableOperations().flush(tableName, null, null, true);
+
+      oScanner = newOfflineScanner(client, tableName, clone, SC1);
+      check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
+
+      scanner.setRange(new Range(someRow));
+      isoScanner.setRange(new Range(someRow));
+      csiScanner.setRange(new Range(someRow));
+      oScanner.setRange(new Range(someRow));
+      bScanner.setRanges(Arrays.asList(new Range(someRow)));
+
+      expected.clear();
+
+      expected.put(new Key(someRow, "cf1", "cq1", 8), new Value("42".getBytes()));
+      expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise".getBytes()));
+
+      check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
     }
-
-    expected.put(new Key(someRow, "cf1", "cq1", 8), new Value("42".getBytes()));
-    expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise".getBytes()));
-
-    Mutation m = new Mutation(someRow);
-
-    m.put("cf1", "cq1", 8, "42");
-    m.putDelete("cf1", "cq2", 8);
-    m.put("cf1", "cq3", 8, "suprise");
-
-    bw.addMutation(m);
-    bw.close();
-
-    check(expected, scanner, bScanner, isoScanner, csiScanner);
-
-    client.tableOperations().flush(tableName, null, null, true);
-
-    oScanner = newOfflineScanner(client, tableName, clone, SC1);
-    check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
-
-    scanner.setRange(new Range(someRow));
-    isoScanner.setRange(new Range(someRow));
-    csiScanner.setRange(new Range(someRow));
-    oScanner.setRange(new Range(someRow));
-    bScanner.setRanges(Arrays.asList(new Range(someRow)));
-
-    expected.clear();
-
-    expected.put(new Key(someRow, "cf1", "cq1", 8), new Value("42".getBytes()));
-    expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise".getBytes()));
-
-    check(expected, scanner, bScanner, isoScanner, csiScanner, oScanner);
   }
 
   private Scanner newOfflineScanner(AccumuloClient client, String tableName, String clone,
@@ -306,105 +308,106 @@ public class SampleIT extends AccumuloClusterHarness {
 
   @Test
   public void testIterator() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    String clone = tableName + "_clone";
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      String clone = tableName + "_clone";
 
-    client.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
+      client.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
 
-    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
 
-    TreeMap<Key,Value> expected = new TreeMap<>();
-    writeData(bw, SC1, expected);
+      TreeMap<Key,Value> expected = new TreeMap<>();
+      writeData(bw, SC1, expected);
 
-    ArrayList<Key> keys = new ArrayList<>(expected.keySet());
+      ArrayList<Key> keys = new ArrayList<>(expected.keySet());
 
-    Range range1 = new Range(keys.get(6), true, keys.get(11), true);
+      Range range1 = new Range(keys.get(6), true, keys.get(11), true);
 
-    Scanner scanner = null;
-    Scanner isoScanner = null;
-    ClientSideIteratorScanner csiScanner = null;
-    BatchScanner bScanner = null;
-    Scanner oScanner = null;
-    try {
-      scanner = client.createScanner(tableName, Authorizations.EMPTY);
-      isoScanner = new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY));
-      csiScanner = new ClientSideIteratorScanner(
-          client.createScanner(tableName, Authorizations.EMPTY));
-      bScanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 2);
+      Scanner scanner = null;
+      Scanner isoScanner = null;
+      ClientSideIteratorScanner csiScanner = null;
+      BatchScanner bScanner = null;
+      Scanner oScanner = null;
+      try {
+        scanner = client.createScanner(tableName, Authorizations.EMPTY);
+        isoScanner = new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY));
+        csiScanner = new ClientSideIteratorScanner(
+            client.createScanner(tableName, Authorizations.EMPTY));
+        bScanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 2);
 
-      csiScanner.setIteratorSamplerConfiguration(SC1);
+        csiScanner.setIteratorSamplerConfiguration(SC1);
 
-      List<? extends ScannerBase> scanners = Arrays.asList(scanner, isoScanner, bScanner,
-          csiScanner);
+        List<? extends ScannerBase> scanners = Arrays.asList(scanner, isoScanner, bScanner,
+            csiScanner);
 
-      for (ScannerBase s : scanners) {
-        s.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
-      }
-
-      // the iterator should see less than 10 entries in sample data, and return data
-      setRange(range1, scanners);
-      for (ScannerBase s : scanners) {
-        assertEquals(2954, countEntries(s));
-      }
-
-      Range range2 = new Range(keys.get(5), true, keys.get(18), true);
-      setRange(range2, scanners);
-
-      // the iterator should see more than 10 entries in sample data, and return no data
-      for (ScannerBase s : scanners) {
-        assertEquals(0, countEntries(s));
-      }
-
-      // flush an rerun same test against files
-      client.tableOperations().flush(tableName, null, null, true);
-
-      oScanner = newOfflineScanner(client, tableName, clone, null);
-      oScanner.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
-      scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
-
-      setRange(range1, scanners);
-      for (ScannerBase s : scanners) {
-        assertEquals(2954, countEntries(s));
-      }
-
-      setRange(range2, scanners);
-      for (ScannerBase s : scanners) {
-        assertEquals(0, countEntries(s));
-      }
-
-      updateSamplingConfig(client, tableName, SC2);
-
-      csiScanner.setIteratorSamplerConfiguration(SC2);
-
-      oScanner = newOfflineScanner(client, tableName, clone, null);
-      oScanner.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
-      scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
-
-      for (ScannerBase s : scanners) {
-        try {
-          countEntries(s);
-          fail("Expected SampleNotPresentException, but it did not happen : "
-              + s.getClass().getSimpleName());
-        } catch (SampleNotPresentException e) {
-
+        for (ScannerBase s : scanners) {
+          s.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
         }
-      }
-    } finally {
-      if (scanner != null) {
-        scanner.close();
-      }
-      if (bScanner != null) {
-        bScanner.close();
-      }
-      if (isoScanner != null) {
-        isoScanner.close();
-      }
-      if (csiScanner != null) {
-        csiScanner.close();
-      }
-      if (oScanner != null) {
-        oScanner.close();
+
+        // the iterator should see less than 10 entries in sample data, and return data
+        setRange(range1, scanners);
+        for (ScannerBase s : scanners) {
+          assertEquals(2954, countEntries(s));
+        }
+
+        Range range2 = new Range(keys.get(5), true, keys.get(18), true);
+        setRange(range2, scanners);
+
+        // the iterator should see more than 10 entries in sample data, and return no data
+        for (ScannerBase s : scanners) {
+          assertEquals(0, countEntries(s));
+        }
+
+        // flush an rerun same test against files
+        client.tableOperations().flush(tableName, null, null, true);
+
+        oScanner = newOfflineScanner(client, tableName, clone, null);
+        oScanner.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
+        scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
+
+        setRange(range1, scanners);
+        for (ScannerBase s : scanners) {
+          assertEquals(2954, countEntries(s));
+        }
+
+        setRange(range2, scanners);
+        for (ScannerBase s : scanners) {
+          assertEquals(0, countEntries(s));
+        }
+
+        updateSamplingConfig(client, tableName, SC2);
+
+        csiScanner.setIteratorSamplerConfiguration(SC2);
+
+        oScanner = newOfflineScanner(client, tableName, clone, null);
+        oScanner.addScanIterator(new IteratorSetting(100, IteratorThatUsesSample.class));
+        scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
+
+        for (ScannerBase s : scanners) {
+          try {
+            countEntries(s);
+            fail("Expected SampleNotPresentException, but it did not happen : "
+                + s.getClass().getSimpleName());
+          } catch (SampleNotPresentException e) {
+
+          }
+        }
+      } finally {
+        if (scanner != null) {
+          scanner.close();
+        }
+        if (bScanner != null) {
+          bScanner.close();
+        }
+        if (isoScanner != null) {
+          isoScanner.close();
+        }
+        if (csiScanner != null) {
+          csiScanner.close();
+        }
+        if (oScanner != null) {
+          oScanner.close();
+        }
       }
     }
   }
@@ -418,68 +421,70 @@ public class SampleIT extends AccumuloClusterHarness {
   @Test
   public void testSampleNotPresent() throws Exception {
 
-    AccumuloClient client = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    String clone = tableName + "_clone";
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      String clone = tableName + "_clone";
 
-    client.tableOperations().create(tableName);
+      client.tableOperations().create(tableName);
 
-    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+      TreeMap<Key,Value> expected = new TreeMap<>();
+      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+        writeData(bw, SC1, expected);
+      }
 
-    TreeMap<Key,Value> expected = new TreeMap<>();
-    writeData(bw, SC1, expected);
+      Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
+      Scanner isoScanner = new IsolatedScanner(
+          client.createScanner(tableName, Authorizations.EMPTY));
+      isoScanner.setBatchSize(10);
+      Scanner csiScanner = new ClientSideIteratorScanner(
+          client.createScanner(tableName, Authorizations.EMPTY));
+      BatchScanner bScanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 2);
+      bScanner.setRanges(Arrays.asList(new Range()));
 
-    Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
-    Scanner isoScanner = new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY));
-    isoScanner.setBatchSize(10);
-    Scanner csiScanner = new ClientSideIteratorScanner(
-        client.createScanner(tableName, Authorizations.EMPTY));
-    BatchScanner bScanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 2);
-    bScanner.setRanges(Arrays.asList(new Range()));
+      // ensure sample not present exception occurs when sampling is not configured
+      assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner);
 
-    // ensure sample not present exception occurs when sampling is not configured
-    assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner);
+      client.tableOperations().flush(tableName, null, null, true);
 
-    client.tableOperations().flush(tableName, null, null, true);
+      Scanner oScanner = newOfflineScanner(client, tableName, clone, SC1);
+      assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner, oScanner);
 
-    Scanner oScanner = newOfflineScanner(client, tableName, clone, SC1);
-    assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner, oScanner);
+      // configure sampling, however there exist an rfile w/o sample data... so should still see
+      // sample not present exception
 
-    // configure sampling, however there exist an rfile w/o sample data... so should still see
-    // sample not present exception
+      updateSamplingConfig(client, tableName, SC1);
 
-    updateSamplingConfig(client, tableName, SC1);
+      // create clone with new config
+      oScanner = newOfflineScanner(client, tableName, clone, SC1);
 
-    // create clone with new config
-    oScanner = newOfflineScanner(client, tableName, clone, SC1);
+      assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner, oScanner);
 
-    assertSampleNotPresent(SC1, scanner, isoScanner, bScanner, csiScanner, oScanner);
+      // create rfile with sample data present
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
-    // create rfile with sample data present
-    client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      // should be able to scan sample now
+      oScanner = newOfflineScanner(client, tableName, clone, SC1);
+      setSamplerConfig(SC1, scanner, csiScanner, isoScanner, bScanner, oScanner);
+      check(expected, scanner, isoScanner, bScanner, csiScanner, oScanner);
 
-    // should be able to scan sample now
-    oScanner = newOfflineScanner(client, tableName, clone, SC1);
-    setSamplerConfig(SC1, scanner, csiScanner, isoScanner, bScanner, oScanner);
-    check(expected, scanner, isoScanner, bScanner, csiScanner, oScanner);
+      // change sampling config
+      updateSamplingConfig(client, tableName, SC2);
 
-    // change sampling config
-    updateSamplingConfig(client, tableName, SC2);
+      // create clone with new config
+      oScanner = newOfflineScanner(client, tableName, clone, SC2);
 
-    // create clone with new config
-    oScanner = newOfflineScanner(client, tableName, clone, SC2);
+      // rfile should have different sample config than table, and scan should not work
+      assertSampleNotPresent(SC2, scanner, isoScanner, bScanner, csiScanner, oScanner);
 
-    // rfile should have different sample config than table, and scan should not work
-    assertSampleNotPresent(SC2, scanner, isoScanner, bScanner, csiScanner, oScanner);
+      // create rfile that has same sample data as table config
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
-    // create rfile that has same sample data as table config
-    client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-
-    // should be able to scan sample now
-    updateExpected(SC2, expected);
-    oScanner = newOfflineScanner(client, tableName, clone, SC2);
-    setSamplerConfig(SC2, scanner, csiScanner, isoScanner, bScanner, oScanner);
-    check(expected, scanner, isoScanner, bScanner, csiScanner, oScanner);
+      // should be able to scan sample now
+      updateExpected(SC2, expected);
+      oScanner = newOfflineScanner(client, tableName, clone, SC2);
+      setSamplerConfig(SC2, scanner, csiScanner, isoScanner, bScanner, oScanner);
+      check(expected, scanner, isoScanner, bScanner, csiScanner, oScanner);
+    }
   }
 
   private void updateSamplingConfig(AccumuloClient client, String tableName,

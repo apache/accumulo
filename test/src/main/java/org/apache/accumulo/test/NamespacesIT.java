@@ -127,6 +127,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
       if (!getAdminPrincipal().equals(u))
         c.securityOperations().dropLocalUser(u);
     assertEquals(1, c.securityOperations().listLocalUsers().size());
+
+    c.close();
   }
 
   @Test
@@ -677,193 +679,195 @@ public class NamespacesIT extends AccumuloClusterHarness {
     c.securityOperations().createLocalUser(u1, pass);
 
     loginAs(user1);
-    AccumuloClient user1Con = c.changeUser(u1, user1.getToken());
+    try (AccumuloClient user1Con = c.changeUser(u1, user1.getToken())) {
 
-    try {
+      try {
+        user1Con.tableOperations().create(t2);
+        fail();
+      } catch (AccumuloSecurityException e) {
+        expectPermissionDenied(e);
+      }
+
+      loginAs(root);
+      c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.CREATE_TABLE);
+      loginAs(user1);
       user1Con.tableOperations().create(t2);
-      fail();
-    } catch (AccumuloSecurityException e) {
-      expectPermissionDenied(e);
-    }
+      loginAs(root);
+      assertTrue(c.tableOperations().list().contains(t2));
+      c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.CREATE_TABLE);
 
-    loginAs(root);
-    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.CREATE_TABLE);
-    loginAs(user1);
-    user1Con.tableOperations().create(t2);
-    loginAs(root);
-    assertTrue(c.tableOperations().list().contains(t2));
-    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.CREATE_TABLE);
+      loginAs(user1);
+      try {
+        user1Con.tableOperations().delete(t1);
+        fail();
+      } catch (AccumuloSecurityException e) {
+        expectPermissionDenied(e);
+      }
 
-    loginAs(user1);
-    try {
+      loginAs(root);
+      c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.DROP_TABLE);
+      loginAs(user1);
       user1Con.tableOperations().delete(t1);
-      fail();
-    } catch (AccumuloSecurityException e) {
-      expectPermissionDenied(e);
-    }
+      loginAs(root);
+      assertTrue(!c.tableOperations().list().contains(t1));
+      c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.DROP_TABLE);
 
-    loginAs(root);
-    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.DROP_TABLE);
-    loginAs(user1);
-    user1Con.tableOperations().delete(t1);
-    loginAs(root);
-    assertTrue(!c.tableOperations().list().contains(t1));
-    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.DROP_TABLE);
-
-    c.tableOperations().create(t3);
-    BatchWriter bw = c.createBatchWriter(t3, null);
-    Mutation m = new Mutation("row");
-    m.put("cf", "cq", "value");
-    bw.addMutation(m);
-    bw.close();
-
-    loginAs(user1);
-    Iterator<Entry<Key,Value>> i = user1Con.createScanner(t3, new Authorizations()).iterator();
-    try {
-      i.next();
-      fail();
-    } catch (RuntimeException e) {
-      assertEquals(AccumuloSecurityException.class.getName(), e.getCause().getClass().getName());
-      expectPermissionDenied((AccumuloSecurityException) e.getCause());
-    }
-
-    loginAs(user1);
-    m = new Mutation(u1);
-    m.put("cf", "cq", "turtles");
-    bw = user1Con.createBatchWriter(t3, null);
-    try {
+      c.tableOperations().create(t3);
+      BatchWriter bw = c.createBatchWriter(t3, null);
+      Mutation m = new Mutation("row");
+      m.put("cf", "cq", "value");
       bw.addMutation(m);
       bw.close();
-      fail();
-    } catch (MutationsRejectedException e) {
-      assertEquals(1, e.getSecurityErrorCodes().size());
-      assertEquals(1, e.getSecurityErrorCodes().entrySet().iterator().next().getValue().size());
-      switch (e.getSecurityErrorCodes().entrySet().iterator().next().getValue().iterator().next()) {
-        case PERMISSION_DENIED:
-          break;
-        default:
-          fail();
+
+      loginAs(user1);
+      Iterator<Entry<Key,Value>> i = user1Con.createScanner(t3, new Authorizations()).iterator();
+      try {
+        i.next();
+        fail();
+      } catch (RuntimeException e) {
+        assertEquals(AccumuloSecurityException.class.getName(), e.getCause().getClass().getName());
+        expectPermissionDenied((AccumuloSecurityException) e.getCause());
       }
-    }
 
-    loginAs(root);
-    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.READ);
-    loginAs(user1);
-    i = user1Con.createScanner(t3, new Authorizations()).iterator();
-    assertTrue(i.hasNext());
-    loginAs(root);
-    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.READ);
-    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.WRITE);
+      loginAs(user1);
+      m = new Mutation(u1);
+      m.put("cf", "cq", "turtles");
+      bw = user1Con.createBatchWriter(t3, null);
+      try {
+        bw.addMutation(m);
+        bw.close();
+        fail();
+      } catch (MutationsRejectedException e) {
+        assertEquals(1, e.getSecurityErrorCodes().size());
+        assertEquals(1, e.getSecurityErrorCodes().entrySet().iterator().next().getValue().size());
+        switch (e.getSecurityErrorCodes().entrySet().iterator().next().getValue().iterator()
+            .next()) {
+          case PERMISSION_DENIED:
+            break;
+          default:
+            fail();
+        }
+      }
 
-    loginAs(user1);
-    m = new Mutation(u1);
-    m.put("cf", "cq", "turtles");
-    bw = user1Con.createBatchWriter(t3, null);
-    bw.addMutation(m);
-    bw.close();
-    loginAs(root);
-    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.WRITE);
+      loginAs(root);
+      c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.READ);
+      loginAs(user1);
+      i = user1Con.createScanner(t3, new Authorizations()).iterator();
+      assertTrue(i.hasNext());
+      loginAs(root);
+      c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.READ);
+      c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.WRITE);
 
-    loginAs(user1);
-    try {
+      loginAs(user1);
+      m = new Mutation(u1);
+      m.put("cf", "cq", "turtles");
+      bw = user1Con.createBatchWriter(t3, null);
+      bw.addMutation(m);
+      bw.close();
+      loginAs(root);
+      c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.WRITE);
+
+      loginAs(user1);
+      try {
+        user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42");
+        fail();
+      } catch (AccumuloSecurityException e) {
+        expectPermissionDenied(e);
+      }
+
+      loginAs(root);
+      c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
+      loginAs(user1);
       user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42");
-      fail();
-    } catch (AccumuloSecurityException e) {
-      expectPermissionDenied(e);
-    }
+      user1Con.tableOperations().removeProperty(t3, Property.TABLE_FILE_MAX.getKey());
+      loginAs(root);
+      c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
 
-    loginAs(root);
-    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
-    loginAs(user1);
-    user1Con.tableOperations().setProperty(t3, Property.TABLE_FILE_MAX.getKey(), "42");
-    user1Con.tableOperations().removeProperty(t3, Property.TABLE_FILE_MAX.getKey());
-    loginAs(root);
-    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_TABLE);
+      loginAs(user1);
+      try {
+        user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "55");
+        fail();
+      } catch (AccumuloSecurityException e) {
+        expectPermissionDenied(e);
+      }
 
-    loginAs(user1);
-    try {
-      user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "55");
-      fail();
-    } catch (AccumuloSecurityException e) {
-      expectPermissionDenied(e);
-    }
+      loginAs(root);
+      c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
+      loginAs(user1);
+      user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "42");
+      user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
+      loginAs(root);
+      c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
 
-    loginAs(root);
-    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
-    loginAs(user1);
-    user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "42");
-    user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
-    loginAs(root);
-    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.ALTER_NAMESPACE);
+      loginAs(root);
+      c.securityOperations().createLocalUser(u2,
+          (root.getPassword() == null ? null : new PasswordToken(user2.getPassword())));
+      loginAs(user1);
+      try {
+        user1Con.securityOperations().grantNamespacePermission(u2, n1,
+            NamespacePermission.ALTER_NAMESPACE);
+        fail();
+      } catch (AccumuloSecurityException e) {
+        expectPermissionDenied(e);
+      }
 
-    loginAs(root);
-    c.securityOperations().createLocalUser(u2,
-        (root.getPassword() == null ? null : new PasswordToken(user2.getPassword())));
-    loginAs(user1);
-    try {
+      loginAs(root);
+      c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.GRANT);
+      loginAs(user1);
       user1Con.securityOperations().grantNamespacePermission(u2, n1,
           NamespacePermission.ALTER_NAMESPACE);
-      fail();
-    } catch (AccumuloSecurityException e) {
-      expectPermissionDenied(e);
-    }
+      user1Con.securityOperations().revokeNamespacePermission(u2, n1,
+          NamespacePermission.ALTER_NAMESPACE);
+      loginAs(root);
+      c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.GRANT);
 
-    loginAs(root);
-    c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.GRANT);
-    loginAs(user1);
-    user1Con.securityOperations().grantNamespacePermission(u2, n1,
-        NamespacePermission.ALTER_NAMESPACE);
-    user1Con.securityOperations().revokeNamespacePermission(u2, n1,
-        NamespacePermission.ALTER_NAMESPACE);
-    loginAs(root);
-    c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.GRANT);
+      loginAs(user1);
+      try {
+        user1Con.namespaceOperations().create(n2);
+        fail();
+      } catch (AccumuloSecurityException e) {
+        expectPermissionDenied(e);
+      }
 
-    loginAs(user1);
-    try {
+      loginAs(root);
+      c.securityOperations().grantSystemPermission(u1, SystemPermission.CREATE_NAMESPACE);
+      loginAs(user1);
       user1Con.namespaceOperations().create(n2);
-      fail();
-    } catch (AccumuloSecurityException e) {
-      expectPermissionDenied(e);
-    }
+      loginAs(root);
+      c.securityOperations().revokeSystemPermission(u1, SystemPermission.CREATE_NAMESPACE);
 
-    loginAs(root);
-    c.securityOperations().grantSystemPermission(u1, SystemPermission.CREATE_NAMESPACE);
-    loginAs(user1);
-    user1Con.namespaceOperations().create(n2);
-    loginAs(root);
-    c.securityOperations().revokeSystemPermission(u1, SystemPermission.CREATE_NAMESPACE);
+      c.securityOperations().revokeNamespacePermission(u1, n2, NamespacePermission.DROP_NAMESPACE);
+      loginAs(user1);
+      try {
+        user1Con.namespaceOperations().delete(n2);
+        fail();
+      } catch (AccumuloSecurityException e) {
+        expectPermissionDenied(e);
+      }
 
-    c.securityOperations().revokeNamespacePermission(u1, n2, NamespacePermission.DROP_NAMESPACE);
-    loginAs(user1);
-    try {
+      loginAs(root);
+      c.securityOperations().grantSystemPermission(u1, SystemPermission.DROP_NAMESPACE);
+      loginAs(user1);
       user1Con.namespaceOperations().delete(n2);
-      fail();
-    } catch (AccumuloSecurityException e) {
-      expectPermissionDenied(e);
-    }
+      loginAs(root);
+      c.securityOperations().revokeSystemPermission(u1, SystemPermission.DROP_NAMESPACE);
 
-    loginAs(root);
-    c.securityOperations().grantSystemPermission(u1, SystemPermission.DROP_NAMESPACE);
-    loginAs(user1);
-    user1Con.namespaceOperations().delete(n2);
-    loginAs(root);
-    c.securityOperations().revokeSystemPermission(u1, SystemPermission.DROP_NAMESPACE);
+      loginAs(user1);
+      try {
+        user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "33");
+        fail();
+      } catch (AccumuloSecurityException e) {
+        expectPermissionDenied(e);
+      }
 
-    loginAs(user1);
-    try {
+      loginAs(root);
+      c.securityOperations().grantSystemPermission(u1, SystemPermission.ALTER_NAMESPACE);
+      loginAs(user1);
       user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "33");
-      fail();
-    } catch (AccumuloSecurityException e) {
-      expectPermissionDenied(e);
+      user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
+      loginAs(root);
+      c.securityOperations().revokeSystemPermission(u1, SystemPermission.ALTER_NAMESPACE);
     }
-
-    loginAs(root);
-    c.securityOperations().grantSystemPermission(u1, SystemPermission.ALTER_NAMESPACE);
-    loginAs(user1);
-    user1Con.namespaceOperations().setProperty(n1, Property.TABLE_FILE_MAX.getKey(), "33");
-    user1Con.namespaceOperations().removeProperty(n1, Property.TABLE_FILE_MAX.getKey());
-    loginAs(root);
-    c.securityOperations().revokeSystemPermission(u1, SystemPermission.ALTER_NAMESPACE);
   }
 
   @Test

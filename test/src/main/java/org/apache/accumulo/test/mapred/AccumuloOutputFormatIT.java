@@ -70,46 +70,47 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
   // Prevent regression of ACCUMULO-3709.
   @Test
   public void testMapred() throws Exception {
-    AccumuloClient accumuloClient = getClient();
-    // create a table and put some data in it
-    accumuloClient.tableOperations().create(testName.getMethodName());
+    try (AccumuloClient accumuloClient = getClient()) {
+      // create a table and put some data in it
+      accumuloClient.tableOperations().create(testName.getMethodName());
 
-    JobConf job = new JobConf();
-    BatchWriterConfig batchConfig = new BatchWriterConfig();
-    // no flushes!!!!!
-    batchConfig.setMaxLatency(0, TimeUnit.MILLISECONDS);
-    // use a single thread to ensure our update session times out
-    batchConfig.setMaxWriteThreads(1);
-    // set the max memory so that we ensure we don't flush on the write.
-    batchConfig.setMaxMemory(Long.MAX_VALUE);
-    AccumuloOutputFormat outputFormat = new AccumuloOutputFormat();
-    AccumuloOutputFormat.setClientInfo(job, getClientInfo());
-    AccumuloOutputFormat.setBatchWriterOptions(job, batchConfig);
-    RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(null, job, "Test", null);
+      JobConf job = new JobConf();
+      BatchWriterConfig batchConfig = new BatchWriterConfig();
+      // no flushes!!!!!
+      batchConfig.setMaxLatency(0, TimeUnit.MILLISECONDS);
+      // use a single thread to ensure our update session times out
+      batchConfig.setMaxWriteThreads(1);
+      // set the max memory so that we ensure we don't flush on the write.
+      batchConfig.setMaxMemory(Long.MAX_VALUE);
+      AccumuloOutputFormat outputFormat = new AccumuloOutputFormat();
+      AccumuloOutputFormat.setClientInfo(job, getClientInfo());
+      AccumuloOutputFormat.setBatchWriterOptions(job, batchConfig);
+      RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(null, job, "Test", null);
 
-    try {
-      for (int i = 0; i < 3; i++) {
-        Mutation m = new Mutation(new Text(String.format("%08d", i)));
-        for (int j = 0; j < 3; j++) {
-          m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
+      try {
+        for (int i = 0; i < 3; i++) {
+          Mutation m = new Mutation(new Text(String.format("%08d", i)));
+          for (int j = 0; j < 3; j++) {
+            m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
+          }
+          writer.write(new Text(testName.getMethodName()), m);
         }
-        writer.write(new Text(testName.getMethodName()), m);
+
+      } catch (Exception e) {
+        e.printStackTrace();
+        // we don't want the exception to come from write
       }
 
-    } catch (Exception e) {
-      e.printStackTrace();
-      // we don't want the exception to come from write
-    }
+      accumuloClient.securityOperations().revokeTablePermission("root", testName.getMethodName(),
+          TablePermission.WRITE);
 
-    accumuloClient.securityOperations().revokeTablePermission("root", testName.getMethodName(),
-        TablePermission.WRITE);
-
-    try {
-      writer.close(null);
-      fail("Did not throw exception");
-    } catch (IOException ex) {
-      log.info(ex.getMessage(), ex);
-      assertTrue(ex.getCause() instanceof MutationsRejectedException);
+      try {
+        writer.close(null);
+        fail("Did not throw exception");
+      } catch (IOException ex) {
+        log.info(ex.getMessage(), ex);
+        assertTrue(ex.getCause() instanceof MutationsRejectedException);
+      }
     }
   }
 
@@ -201,30 +202,31 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
   @Test
   public void testMR() throws Exception {
-    AccumuloClient c = getClient();
-    String instanceName = getCluster().getInstanceName();
-    String table1 = instanceName + "_t1";
-    String table2 = instanceName + "_t2";
-    c.tableOperations().create(table1);
-    c.tableOperations().create(table2);
-    BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
-    }
-    bw.close();
+    try (AccumuloClient c = getClient()) {
+      String instanceName = getCluster().getInstanceName();
+      String table1 = instanceName + "_t1";
+      String table2 = instanceName + "_t2";
+      c.tableOperations().create(table1);
+      c.tableOperations().create(table2);
+      BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
+      for (int i = 0; i < 100; i++) {
+        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+        bw.addMutation(m);
+      }
+      bw.close();
 
-    MRTester.main(new String[] {"root", ROOT_PASSWORD, table1, table2, instanceName,
-        getCluster().getZooKeepers()});
-    assertNull(e1);
+      MRTester.main(new String[] {"root", ROOT_PASSWORD, table1, table2, instanceName,
+          getCluster().getZooKeepers()});
+      assertNull(e1);
 
-    try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      assertTrue(iter.hasNext());
-      Entry<Key,Value> entry = iter.next();
-      assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
-      assertFalse(iter.hasNext());
+      try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        assertTrue(iter.hasNext());
+        Entry<Key,Value> entry = iter.next();
+        assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
+        assertFalse(iter.hasNext());
+      }
     }
   }
 

@@ -190,6 +190,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
         tops.delete(table);
       }
     }
+
+    client.close();
   }
 
   @Test

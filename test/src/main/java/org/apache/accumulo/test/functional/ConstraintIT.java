@@ -90,7 +90,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
   }
 
   private void test1(AccumuloClient client, String tableName) throws Exception {
-    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
 
     Mutation mut1 = new Mutation(new Text("r1"));
     mut1.put(new Text("cf1"), new Text("cq1"), new Value("123".getBytes(UTF_8)));

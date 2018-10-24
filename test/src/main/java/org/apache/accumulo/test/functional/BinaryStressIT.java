@@ -62,26 +62,28 @@ public class BinaryStressIT extends AccumuloClusterHarness {
     if (ClusterType.MINI == getClusterType()) {
       return;
     }
+    try (AccumuloClient client = getAccumuloClient()) {
+      InstanceOperations iops = client.instanceOperations();
+      Map<String,String> conf = iops.getSystemConfiguration();
+      majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
+      maxMem = conf.get(Property.TSERV_MAXMEM.getKey());
 
-    InstanceOperations iops = getAccumuloClient().instanceOperations();
-    Map<String,String> conf = iops.getSystemConfiguration();
-    majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
-    maxMem = conf.get(Property.TSERV_MAXMEM.getKey());
+      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "0");
+      iops.setProperty(Property.TSERV_MAXMEM.getKey(), "50K");
 
-    iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "0");
-    iops.setProperty(Property.TSERV_MAXMEM.getKey(), "50K");
-
-    getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    }
   }
 
   @After
   public void resetConfig() throws Exception {
     if (null != majcDelay) {
-      InstanceOperations iops = getAccumuloClient().instanceOperations();
-      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
-      iops.setProperty(Property.TSERV_MAXMEM.getKey(), maxMem);
-
+      try (AccumuloClient client = getAccumuloClient()) {
+        InstanceOperations iops = client.instanceOperations();
+        iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
+        iops.setProperty(Property.TSERV_MAXMEM.getKey(), maxMem);
+      }
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);
     }
@@ -89,20 +91,21 @@ public class BinaryStressIT extends AccumuloClusterHarness {
 
   @Test
   public void binaryStressTest() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    BinaryIT.runTest(c, tableName);
-    String id = c.tableOperations().tableIdMap().get(tableName);
-    Set<Text> tablets = new HashSet<>();
-    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(Range.prefix(id));
-      for (Entry<Key,Value> entry : s) {
-        tablets.add(entry.getKey().getRow());
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+      BinaryIT.runTest(c, tableName);
+      String id = c.tableOperations().tableIdMap().get(tableName);
+      Set<Text> tablets = new HashSet<>();
+      try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        s.setRange(Range.prefix(id));
+        for (Entry<Key,Value> entry : s) {
+          tablets.add(entry.getKey().getRow());
+        }
       }
+      assertTrue("Expected at least 8 tablets, saw " + tablets.size(), tablets.size() > 7);
     }
-    assertTrue("Expected at least 8 tablets, saw " + tablets.size(), tablets.size() > 7);
   }
 
 }

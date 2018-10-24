@@ -109,81 +109,82 @@ public class ScanIdIT extends AccumuloClusterHarness {
   public void testScanId() throws Exception {
 
     final String tableName = getUniqueNames(1)[0];
-    AccumuloClient client = getAccumuloClient();
-    client.tableOperations().create(tableName);
+    try (AccumuloClient client = getAccumuloClient()) {
+      client.tableOperations().create(tableName);
 
-    addSplits(client, tableName);
+      addSplits(client, tableName);
 
-    log.info("Splits added");
+      log.info("Splits added");
 
-    generateSampleData(client, tableName);
+      generateSampleData(client, tableName);
 
-    log.info("Generated data for {}", tableName);
+      log.info("Generated data for {}", tableName);
 
-    attachSlowIterator(client, tableName);
+      attachSlowIterator(client, tableName);
 
-    CountDownLatch latch = new CountDownLatch(NUM_SCANNERS);
+      CountDownLatch latch = new CountDownLatch(NUM_SCANNERS);
 
-    for (int scannerIndex = 0; scannerIndex < NUM_SCANNERS; scannerIndex++) {
-      ScannerThread st = new ScannerThread(client, scannerIndex, tableName, latch);
-      pool.submit(st);
-    }
-
-    // wait for scanners to report a result.
-    while (testInProgress.get()) {
-
-      if (resultsByWorker.size() < NUM_SCANNERS) {
-        log.trace("Results reported {}", resultsByWorker.size());
-        sleepUninterruptibly(750, TimeUnit.MILLISECONDS);
-      } else {
-        // each worker has reported at least one result.
-        testInProgress.set(false);
-
-        log.debug("Final result count {}", resultsByWorker.size());
-
-        // delay to allow scanners to react to end of test and cleanly close.
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+      for (int scannerIndex = 0; scannerIndex < NUM_SCANNERS; scannerIndex++) {
+        ScannerThread st = new ScannerThread(client, scannerIndex, tableName, latch);
+        pool.submit(st);
       }
 
-    }
+      // wait for scanners to report a result.
+      while (testInProgress.get()) {
 
-    // all scanner have reported at least 1 result, so check for unique scan ids.
-    Set<Long> scanIds = new HashSet<>();
+        if (resultsByWorker.size() < NUM_SCANNERS) {
+          log.trace("Results reported {}", resultsByWorker.size());
+          sleepUninterruptibly(750, TimeUnit.MILLISECONDS);
+        } else {
+          // each worker has reported at least one result.
+          testInProgress.set(false);
 
-    List<String> tservers = client.instanceOperations().getTabletServers();
+          log.debug("Final result count {}", resultsByWorker.size());
 
-    log.debug("tablet servers {}", tservers);
+          // delay to allow scanners to react to end of test and cleanly close.
+          sleepUninterruptibly(1, TimeUnit.SECONDS);
+        }
 
-    for (String tserver : tservers) {
+      }
 
-      List<ActiveScan> activeScans = null;
-      for (int i = 0; i < 10; i++) {
-        try {
-          activeScans = client.instanceOperations().getActiveScans(tserver);
-          break;
-        } catch (AccumuloException e) {
-          if (e.getCause() instanceof TableNotFoundException) {
-            log.debug("Got TableNotFoundException, will retry");
-            Thread.sleep(200);
-            continue;
+      // all scanner have reported at least 1 result, so check for unique scan ids.
+      Set<Long> scanIds = new HashSet<>();
+
+      List<String> tservers = client.instanceOperations().getTabletServers();
+
+      log.debug("tablet servers {}", tservers);
+
+      for (String tserver : tservers) {
+
+        List<ActiveScan> activeScans = null;
+        for (int i = 0; i < 10; i++) {
+          try {
+            activeScans = client.instanceOperations().getActiveScans(tserver);
+            break;
+          } catch (AccumuloException e) {
+            if (e.getCause() instanceof TableNotFoundException) {
+              log.debug("Got TableNotFoundException, will retry");
+              Thread.sleep(200);
+              continue;
+            }
+            throw e;
           }
-          throw e;
+        }
+
+        assertNotNull("Repeatedly got exception trying to active scans", activeScans);
+
+        log.debug("TServer {} has {} active scans", tserver, activeScans.size());
+
+        for (ActiveScan scan : activeScans) {
+          log.debug("Tserver {} scan id {}", tserver, scan.getScanid());
+          scanIds.add(scan.getScanid());
         }
       }
 
-      assertNotNull("Repeatedly got exception trying to active scans", activeScans);
+      assertTrue("Expected at least " + NUM_SCANNERS + " scanIds, but saw " + scanIds.size(),
+          NUM_SCANNERS <= scanIds.size());
 
-      log.debug("TServer {} has {} active scans", tserver, activeScans.size());
-
-      for (ActiveScan scan : activeScans) {
-        log.debug("Tserver {} scan id {}", tserver, scan.getScanid());
-        scanIds.add(scan.getScanid());
-      }
     }
-
-    assertTrue("Expected at least " + NUM_SCANNERS + " scanIds, but saw " + scanIds.size(),
-        NUM_SCANNERS <= scanIds.size());
-
   }
 
   /**

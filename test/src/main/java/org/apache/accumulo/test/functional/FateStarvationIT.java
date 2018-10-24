@@ -41,36 +41,36 @@ public class FateStarvationIT extends AccumuloClusterHarness {
   @Test
   public void run() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(tableName);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(tableName);
 
-    c.tableOperations().addSplits(tableName, TestIngest.getSplitPoints(0, 100000, 50));
+      c.tableOperations().addSplits(tableName, TestIngest.getSplitPoints(0, 100000, 50));
 
-    TestIngest.Opts opts = new TestIngest.Opts();
-    opts.random = 89;
-    opts.timestamp = 7;
-    opts.dataSize = 50;
-    opts.rows = 100000;
-    opts.cols = 1;
-    opts.setTableName(tableName);
-    opts.setClientInfo(getClientInfo());
-    TestIngest.ingest(c, opts, new BatchWriterOpts());
+      TestIngest.Opts opts = new TestIngest.Opts();
+      opts.random = 89;
+      opts.timestamp = 7;
+      opts.dataSize = 50;
+      opts.rows = 100000;
+      opts.cols = 1;
+      opts.setTableName(tableName);
+      opts.setClientInfo(getClientInfo());
+      TestIngest.ingest(c, opts, new BatchWriterOpts());
 
-    c.tableOperations().flush(tableName, null, null, true);
+      c.tableOperations().flush(tableName, null, null, true);
 
-    List<Text> splits = new ArrayList<>(TestIngest.getSplitPoints(0, 100000, 67));
-    Random rand = new SecureRandom();
+      List<Text> splits = new ArrayList<>(TestIngest.getSplitPoints(0, 100000, 67));
+      Random rand = new SecureRandom();
 
-    for (int i = 0; i < 100; i++) {
-      int idx1 = rand.nextInt(splits.size() - 1);
-      int idx2 = rand.nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
+      for (int i = 0; i < 100; i++) {
+        int idx1 = rand.nextInt(splits.size() - 1);
+        int idx2 = rand.nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
 
-      c.tableOperations().compact(tableName, splits.get(idx1), splits.get(idx2), false, false);
+        c.tableOperations().compact(tableName, splits.get(idx1), splits.get(idx2), false, false);
+      }
+
+      c.tableOperations().offline(tableName);
+
+      FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
     }
-
-    c.tableOperations().offline(tableName);
-
-    FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
   }
-
 }

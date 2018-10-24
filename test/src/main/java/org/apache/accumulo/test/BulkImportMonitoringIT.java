@@ -61,83 +61,84 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     getCluster().getClusterControl().start(ServerType.MONITOR);
-    final AccumuloClient c = getClient();
-    final String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1");
-    // splits to slow down bulk import
-    SortedSet<Text> splits = new TreeSet<>();
-    for (int i = 1; i < 0xf; i++) {
-      splits.add(new Text(Integer.toHexString(i)));
-    }
-    c.tableOperations().addSplits(tableName, splits);
+    try (final AccumuloClient c = getClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1");
+      // splits to slow down bulk import
+      SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 1; i < 0xf; i++) {
+        splits.add(new Text(Integer.toHexString(i)));
+      }
+      c.tableOperations().addSplits(tableName, splits);
 
-    MasterMonitorInfo stats = getCluster().getMasterMonitorInfo();
-    assertEquals(1, stats.tServerInfo.size());
-    assertEquals(0, stats.bulkImports.size());
-    assertEquals(0, stats.tServerInfo.get(0).bulkImports.size());
+      MasterMonitorInfo stats = getCluster().getMasterMonitorInfo();
+      assertEquals(1, stats.tServerInfo.size());
+      assertEquals(0, stats.bulkImports.size());
+      assertEquals(0, stats.tServerInfo.get(0).bulkImports.size());
 
-    log.info("Creating lots of bulk import files");
-    final FileSystem fs = getCluster().getFileSystem();
-    final Path basePath = getCluster().getTemporaryPath();
-    CachedConfiguration.setInstance(fs.getConf());
+      log.info("Creating lots of bulk import files");
+      final FileSystem fs = getCluster().getFileSystem();
+      final Path basePath = getCluster().getTemporaryPath();
+      CachedConfiguration.setInstance(fs.getConf());
 
-    final Path base = new Path(basePath, "testBulkLoad" + tableName);
-    fs.delete(base, true);
-    fs.mkdirs(base);
+      final Path base = new Path(basePath, "testBulkLoad" + tableName);
+      fs.delete(base, true);
+      fs.mkdirs(base);
 
-    ExecutorService es = Executors.newFixedThreadPool(5);
-    List<Future<Pair<String,String>>> futures = new ArrayList<>();
-    for (int i = 0; i < 10; i++) {
-      final int which = i;
-      futures.add(es.submit(() -> {
-        Path bulkFailures = new Path(base, "failures" + which);
-        Path files = new Path(base, "files" + which);
-        fs.mkdirs(bulkFailures);
-        fs.mkdirs(files);
-        for (int i1 = 0; i1 < 10; i1++) {
-          FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-              .forFile(files + "/bulk_" + i1 + "." + RFile.EXTENSION, fs, fs.getConf())
-              .withTableConfiguration(DefaultConfiguration.getInstance()).build();
-          writer.startDefaultLocalityGroup();
-          for (int j = 0x100; j < 0xfff; j += 3) {
-            writer.append(new Key(Integer.toHexString(j)), new Value(new byte[0]));
+      ExecutorService es = Executors.newFixedThreadPool(5);
+      List<Future<Pair<String,String>>> futures = new ArrayList<>();
+      for (int i = 0; i < 10; i++) {
+        final int which = i;
+        futures.add(es.submit(() -> {
+          Path bulkFailures = new Path(base, "failures" + which);
+          Path files = new Path(base, "files" + which);
+          fs.mkdirs(bulkFailures);
+          fs.mkdirs(files);
+          for (int i1 = 0; i1 < 10; i1++) {
+            FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
+                .forFile(files + "/bulk_" + i1 + "." + RFile.EXTENSION, fs, fs.getConf())
+                .withTableConfiguration(DefaultConfiguration.getInstance()).build();
+            writer.startDefaultLocalityGroup();
+            for (int j = 0x100; j < 0xfff; j += 3) {
+              writer.append(new Key(Integer.toHexString(j)), new Value(new byte[0]));
+            }
+            writer.close();
           }
-          writer.close();
-        }
-        return new Pair<>(files.toString(), bulkFailures.toString());
-      }));
+          return new Pair<>(files.toString(), bulkFailures.toString());
+        }));
+      }
+      List<Pair<String,String>> dirs = new ArrayList<>();
+      for (Future<Pair<String,String>> f : futures) {
+        dirs.add(f.get());
+      }
+      log.info("Importing");
+      long now = System.currentTimeMillis();
+      List<Future<Object>> errs = new ArrayList<>();
+      for (Pair<String,String> entry : dirs) {
+        final String dir = entry.getFirst();
+        final String err = entry.getSecond();
+        errs.add(es.submit(() -> {
+          c.tableOperations().importDirectory(tableName, dir, err, false);
+          return null;
+        }));
+      }
+      es.shutdown();
+      while (!es.isTerminated()
+          && stats.bulkImports.size() + stats.tServerInfo.get(0).bulkImports.size() == 0) {
+        es.awaitTermination(10, TimeUnit.MILLISECONDS);
+        stats = getCluster().getMasterMonitorInfo();
+      }
+      log.info(stats.bulkImports.toString());
+      assertTrue(stats.bulkImports.size() > 0);
+      // look for exception
+      for (Future<Object> err : errs) {
+        err.get();
+      }
+      es.awaitTermination(2, TimeUnit.MINUTES);
+      assertTrue(es.isTerminated());
+      log.info(
+          String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
     }
-    List<Pair<String,String>> dirs = new ArrayList<>();
-    for (Future<Pair<String,String>> f : futures) {
-      dirs.add(f.get());
-    }
-    log.info("Importing");
-    long now = System.currentTimeMillis();
-    List<Future<Object>> errs = new ArrayList<>();
-    for (Pair<String,String> entry : dirs) {
-      final String dir = entry.getFirst();
-      final String err = entry.getSecond();
-      errs.add(es.submit(() -> {
-        c.tableOperations().importDirectory(tableName, dir, err, false);
-        return null;
-      }));
-    }
-    es.shutdown();
-    while (!es.isTerminated()
-        && stats.bulkImports.size() + stats.tServerInfo.get(0).bulkImports.size() == 0) {
-      es.awaitTermination(10, TimeUnit.MILLISECONDS);
-      stats = getCluster().getMasterMonitorInfo();
-    }
-    log.info(stats.bulkImports.toString());
-    assertTrue(stats.bulkImports.size() > 0);
-    // look for exception
-    for (Future<Object> err : errs) {
-      err.get();
-    }
-    es.awaitTermination(2, TimeUnit.MINUTES);
-    assertTrue(es.isTerminated());
-    log.info(
-        String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
   }
 }

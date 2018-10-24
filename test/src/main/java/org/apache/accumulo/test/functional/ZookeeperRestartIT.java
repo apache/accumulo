@@ -59,32 +59,33 @@ public class ZookeeperRestartIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getClient();
-    c.tableOperations().create("test_ingest");
-    BatchWriter bw = c.createBatchWriter("test_ingest", null);
-    Mutation m = new Mutation("row");
-    m.put("cf", "cq", "value");
-    bw.addMutation(m);
-    bw.close();
+    try (AccumuloClient c = getClient()) {
+      c.tableOperations().create("test_ingest");
+      BatchWriter bw = c.createBatchWriter("test_ingest", null);
+      Mutation m = new Mutation("row");
+      m.put("cf", "cq", "value");
+      bw.addMutation(m);
+      bw.close();
 
-    // kill zookeeper
-    for (ProcessReference proc : cluster.getProcesses().get(ServerType.ZOOKEEPER))
-      cluster.killProcess(ServerType.ZOOKEEPER, proc);
+      // kill zookeeper
+      for (ProcessReference proc : cluster.getProcesses().get(ServerType.ZOOKEEPER))
+        cluster.killProcess(ServerType.ZOOKEEPER, proc);
 
-    // give the servers time to react
-    sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // give the servers time to react
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
 
-    // start zookeeper back up
-    cluster.start();
+      // start zookeeper back up
+      cluster.start();
 
-    // use the tservers
-    try (Scanner s = c.createScanner("test_ingest", Authorizations.EMPTY)) {
-      Iterator<Entry<Key,Value>> i = s.iterator();
-      assertTrue(i.hasNext());
-      assertEquals("row", i.next().getKey().getRow().toString());
-      assertFalse(i.hasNext());
-      // use the master
-      c.tableOperations().delete("test_ingest");
+      // use the tservers
+      try (Scanner s = c.createScanner("test_ingest", Authorizations.EMPTY)) {
+        Iterator<Entry<Key,Value>> i = s.iterator();
+        assertTrue(i.hasNext());
+        assertEquals("row", i.next().getKey().getRow().toString());
+        assertFalse(i.hasNext());
+        // use the master
+        c.tableOperations().delete("test_ingest");
+      }
     }
   }
 

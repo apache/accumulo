@@ -42,40 +42,41 @@ public class KeyValueEqualityIT extends AccumuloClusterHarness {
 
   @Test
   public void testEquality() throws Exception {
-    AccumuloClient client = this.getAccumuloClient();
-    final BatchWriterConfig config = new BatchWriterConfig();
+    try (AccumuloClient client = this.getAccumuloClient()) {
+      final BatchWriterConfig config = new BatchWriterConfig();
 
-    final String[] tables = getUniqueNames(2);
-    final String table1 = tables[0], table2 = tables[1];
-    final TableOperations tops = client.tableOperations();
-    tops.create(table1);
-    tops.create(table2);
+      final String[] tables = getUniqueNames(2);
+      final String table1 = tables[0], table2 = tables[1];
+      final TableOperations tops = client.tableOperations();
+      tops.create(table1);
+      tops.create(table2);
 
-    final BatchWriter bw1 = client.createBatchWriter(table1, config),
-        bw2 = client.createBatchWriter(table2, config);
+      final BatchWriter bw1 = client.createBatchWriter(table1, config),
+          bw2 = client.createBatchWriter(table2, config);
 
-    for (int row = 0; row < 100; row++) {
-      Mutation m = new Mutation(Integer.toString(row));
-      for (int col = 0; col < 10; col++) {
-        m.put(Integer.toString(col), "", System.currentTimeMillis(), Integer.toString(col * 2));
+      for (int row = 0; row < 100; row++) {
+        Mutation m = new Mutation(Integer.toString(row));
+        for (int col = 0; col < 10; col++) {
+          m.put(Integer.toString(col), "", System.currentTimeMillis(), Integer.toString(col * 2));
+        }
+        bw1.addMutation(m);
+        bw2.addMutation(m);
       }
-      bw1.addMutation(m);
-      bw2.addMutation(m);
-    }
 
-    bw1.close();
-    bw2.close();
+      bw1.close();
+      bw2.close();
 
-    Iterator<Entry<Key,Value>> t1 = client.createScanner(table1, Authorizations.EMPTY).iterator(),
-        t2 = client.createScanner(table2, Authorizations.EMPTY).iterator();
-    while (t1.hasNext() && t2.hasNext()) {
-      // KeyValue, the implementation of Entry<Key,Value>, should support equality and hashCode
-      // properly
-      Entry<Key,Value> e1 = t1.next(), e2 = t2.next();
-      assertEquals(e1, e2);
-      assertEquals(e1.hashCode(), e2.hashCode());
+      Iterator<Entry<Key,Value>> t1 = client.createScanner(table1, Authorizations.EMPTY).iterator(),
+          t2 = client.createScanner(table2, Authorizations.EMPTY).iterator();
+      while (t1.hasNext() && t2.hasNext()) {
+        // KeyValue, the implementation of Entry<Key,Value>, should support equality and hashCode
+        // properly
+        Entry<Key,Value> e1 = t1.next(), e2 = t2.next();
+        assertEquals(e1, e2);
+        assertEquals(e1.hashCode(), e2.hashCode());
+      }
+      assertFalse("table1 had more data to read", t1.hasNext());
+      assertFalse("table2 had more data to read", t2.hasNext());
     }
-    assertFalse("table1 had more data to read", t1.hasNext());
-    assertFalse("table2 had more data to read", t2.hasNext());
   }
 }

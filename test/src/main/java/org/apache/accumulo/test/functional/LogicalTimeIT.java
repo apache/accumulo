@@ -45,46 +45,48 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
   public void run() throws Exception {
     int tc = 0;
     String tableName = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a"}, null, null, "b", 2L);
-    runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"z"}, null, null, "b", 2L);
-    runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a", "z"}, null, null, "b",
-        2L);
-    runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a", "c", "z"}, null, null,
-        "b", 3L);
-    runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a", "y", "z"}, null, null,
-        "b", 3L);
+    try (AccumuloClient c = getAccumuloClient()) {
+      runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a"}, null, null, "b",
+          2L);
+      runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"z"}, null, null, "b",
+          2L);
+      runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a", "z"}, null, null,
+          "b", 2L);
+      runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a", "c", "z"}, null,
+          null, "b", 3L);
+      runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a", "y", "z"}, null,
+          null, "b", 3L);
 
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a"}, null, null, "b",
-        2L);
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"h"}, null, null, "b",
-        2L);
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"s"}, null, null, "b",
-        2L);
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "h", "s"}, null,
-        null, "b", 2L);
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "c", "h", "s"},
-        null, null, "b", 3L);
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "h", "s", "i"},
-        null, null, "b", 3L);
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"t", "a", "h", "s"},
-        null, null, "b", 3L);
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a"}, null, null,
+          "b", 2L);
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"h"}, null, null,
+          "b", 2L);
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"s"}, null, null,
+          "b", 2L);
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "h", "s"}, null,
+          null, "b", 2L);
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "c", "h", "s"},
+          null, null, "b", 3L);
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "h", "s", "i"},
+          null, null, "b", 3L);
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"t", "a", "h", "s"},
+          null, null, "b", 3L);
 
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a"}, null, "h", "b",
-        2L);
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"h"}, null, "h", "b",
-        2L);
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"s"}, null, "h", "b",
-        1L);
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "h", "s"}, null,
-        "h", "b", 2L);
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "c", "h", "s"},
-        null, "h", "b", 3L);
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "h", "s", "i"},
-        null, "h", "b", 3L);
-    runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"t", "a", "h", "s"},
-        null, "h", "b", 2L);
-
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a"}, null, "h", "b",
+          2L);
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"h"}, null, "h", "b",
+          2L);
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"s"}, null, "h", "b",
+          1L);
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "h", "s"}, null,
+          "h", "b", 2L);
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "c", "h", "s"},
+          null, "h", "b", 3L);
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"a", "h", "s", "i"},
+          null, "h", "b", 3L);
+      runMergeTest(c, tableName + tc++, new String[] {"g", "r"}, new String[] {"t", "a", "h", "s"},
+          null, "h", "b", 2L);
+    }
   }
 
   private void runMergeTest(AccumuloClient client, String table, String[] splits, String[] inserts,

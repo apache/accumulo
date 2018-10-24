@@ -143,31 +143,32 @@ public class TokenFileIT extends AccumuloClusterHarness {
     String[] tableNames = getUniqueNames(2);
     String table1 = tableNames[0];
     String table2 = tableNames[1];
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(table1);
-    c.tableOperations().create(table2);
-    BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
-    }
-    bw.close();
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(table1);
+      c.tableOperations().create(table2);
+      BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
+      for (int i = 0; i < 100; i++) {
+        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+        bw.addMutation(m);
+      }
+      bw.close();
 
-    File tf = folder.newFile("client.properties");
-    try (PrintStream out = new PrintStream(tf)) {
-      getClientInfo().getProperties().store(out, "Credentials for " + getClass().getName());
-    }
+      File tf = folder.newFile("client.properties");
+      try (PrintStream out = new PrintStream(tf)) {
+        getClientInfo().getProperties().store(out, "Credentials for " + getClass().getName());
+      }
 
-    MRTokenFileTester.main(new String[] {tf.getAbsolutePath(), table1, table2});
-    assertNull(e1);
+      MRTokenFileTester.main(new String[] {tf.getAbsolutePath(), table1, table2});
+      assertNull(e1);
 
-    try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
-      Iterator<Entry<Key,Value>> iter = scanner.iterator();
-      assertTrue(iter.hasNext());
-      Entry<Key,Value> entry = iter.next();
-      assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
-      assertFalse(iter.hasNext());
+      try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        assertTrue(iter.hasNext());
+        Entry<Key,Value> entry = iter.next();
+        assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
+        assertFalse(iter.hasNext());
+      }
     }
   }
 }

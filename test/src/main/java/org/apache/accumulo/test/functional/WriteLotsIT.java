@@ -38,45 +38,46 @@ public class WriteLotsIT extends AccumuloClusterHarness {
 
   @Test
   public void writeLots() throws Exception {
-    final AccumuloClient c = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    final AtomicReference<Exception> ref = new AtomicReference<>();
-    final int THREADS = 5;
-    ThreadPoolExecutor tpe = new ThreadPoolExecutor(0, THREADS, 0, TimeUnit.SECONDS,
-        new ArrayBlockingQueue<>(THREADS));
-    for (int i = 0; i < THREADS; i++) {
-      final int index = i;
-      Runnable r = new Runnable() {
-        @Override
-        public void run() {
-          try {
-            TestIngest.Opts opts = new TestIngest.Opts();
-            opts.startRow = index * 10000;
-            opts.rows = 10000;
-            opts.setTableName(tableName);
-            opts.setClientInfo(getClientInfo());
-            BatchWriterOpts bwOpts = new BatchWriterOpts();
-            bwOpts.batchMemory = 1024L * 1024;
-            bwOpts.batchThreads = 2;
-            TestIngest.ingest(c, opts, new BatchWriterOpts());
-          } catch (Exception ex) {
-            ref.set(ex);
+    try (AccumuloClient c = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      final AtomicReference<Exception> ref = new AtomicReference<>();
+      final int THREADS = 5;
+      ThreadPoolExecutor tpe = new ThreadPoolExecutor(0, THREADS, 0, TimeUnit.SECONDS,
+          new ArrayBlockingQueue<>(THREADS));
+      for (int i = 0; i < THREADS; i++) {
+        final int index = i;
+        Runnable r = new Runnable() {
+          @Override
+          public void run() {
+            try {
+              TestIngest.Opts opts = new TestIngest.Opts();
+              opts.startRow = index * 10000;
+              opts.rows = 10000;
+              opts.setTableName(tableName);
+              opts.setClientInfo(getClientInfo());
+              BatchWriterOpts bwOpts = new BatchWriterOpts();
+              bwOpts.batchMemory = 1024L * 1024;
+              bwOpts.batchThreads = 2;
+              TestIngest.ingest(c, opts, new BatchWriterOpts());
+            } catch (Exception ex) {
+              ref.set(ex);
+            }
           }
-        }
-      };
-      tpe.execute(r);
+        };
+        tpe.execute(r);
+      }
+      tpe.shutdown();
+      tpe.awaitTermination(90, TimeUnit.SECONDS);
+      if (ref.get() != null) {
+        throw ref.get();
+      }
+      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+      vopts.rows = 10000 * THREADS;
+      vopts.setTableName(tableName);
+      vopts.setClientInfo(getClientInfo());
+      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     }
-    tpe.shutdown();
-    tpe.awaitTermination(90, TimeUnit.SECONDS);
-    if (ref.get() != null) {
-      throw ref.get();
-    }
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    vopts.rows = 10000 * THREADS;
-    vopts.setTableName(tableName);
-    vopts.setClientInfo(getClientInfo());
-    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
   }
 
 }

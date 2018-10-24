@@ -56,43 +56,45 @@ public class MergeIT extends AccumuloClusterHarness {
 
   @Test
   public void merge() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k".split(" ")));
-    BatchWriter bw = c.createBatchWriter(tableName, null);
-    for (String row : "a b c d e f g h i j k".split(" ")) {
-      Mutation m = new Mutation(row);
-      m.put("cf", "cq", "value");
-      bw.addMutation(m);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k".split(" ")));
+      BatchWriter bw = c.createBatchWriter(tableName, null);
+      for (String row : "a b c d e f g h i j k".split(" ")) {
+        Mutation m = new Mutation(row);
+        m.put("cf", "cq", "value");
+        bw.addMutation(m);
+      }
+      bw.close();
+      c.tableOperations().flush(tableName, null, null, true);
+      c.tableOperations().merge(tableName, new Text("c1"), new Text("f1"));
+      assertEquals(8, c.tableOperations().listSplits(tableName).size());
     }
-    bw.close();
-    c.tableOperations().flush(tableName, null, null, true);
-    c.tableOperations().merge(tableName, new Text("c1"), new Text("f1"));
-    assertEquals(8, c.tableOperations().listSplits(tableName).size());
   }
 
   @Test
   public void mergeSize() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    c.tableOperations().addSplits(tableName,
-        splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
-    BatchWriter bw = c.createBatchWriter(tableName, null);
-    for (String row : "c e f y".split(" ")) {
-      Mutation m = new Mutation(row);
-      m.put("cf", "cq", "mersydotesanddozeydotesanlittolamsiedives");
-      bw.addMutation(m);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().addSplits(tableName,
+          splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
+      BatchWriter bw = c.createBatchWriter(tableName, null);
+      for (String row : "c e f y".split(" ")) {
+        Mutation m = new Mutation(row);
+        m.put("cf", "cq", "mersydotesanddozeydotesanlittolamsiedives");
+        bw.addMutation(m);
+      }
+      bw.close();
+      c.tableOperations().flush(tableName, null, null, true);
+      Merge merge = new Merge();
+      merge.mergomatic(c, tableName, null, null, 100, false);
+      assertArrayEquals("b c d e f x y".split(" "),
+          toStrings(c.tableOperations().listSplits(tableName)));
+      merge.mergomatic(c, tableName, null, null, 100, true);
+      assertArrayEquals("c e f y".split(" "), toStrings(c.tableOperations().listSplits(tableName)));
     }
-    bw.close();
-    c.tableOperations().flush(tableName, null, null, true);
-    Merge merge = new Merge();
-    merge.mergomatic(c, tableName, null, null, 100, false);
-    assertArrayEquals("b c d e f x y".split(" "),
-        toStrings(c.tableOperations().listSplits(tableName)));
-    merge.mergomatic(c, tableName, null, null, 100, true);
-    assertArrayEquals("c e f y".split(" "), toStrings(c.tableOperations().listSplits(tableName)));
   }
 
   private String[] toStrings(Collection<Text> listSplits) {
@@ -111,38 +113,39 @@ public class MergeIT extends AccumuloClusterHarness {
   @Test
   public void mergeTest() throws Exception {
     int tc = 0;
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    runMergeTest(c, tableName + tc++, ns(), ns(), ns("l", "m", "n"), ns(null, "l"), ns(null, "n"));
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      runMergeTest(c, tableName + tc++, ns(), ns(), ns("l", "m", "n"), ns(null, "l"),
+          ns(null, "n"));
 
-    runMergeTest(c, tableName + tc++, ns("m"), ns(), ns("l", "m", "n"), ns(null, "l"),
-        ns(null, "n"));
-    runMergeTest(c, tableName + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns("m", "n"),
-        ns(null, "z"));
-    runMergeTest(c, tableName + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns(null, "b"),
-        ns("l", "m"));
+      runMergeTest(c, tableName + tc++, ns("m"), ns(), ns("l", "m", "n"), ns(null, "l"),
+          ns(null, "n"));
+      runMergeTest(c, tableName + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns("m", "n"),
+          ns(null, "z"));
+      runMergeTest(c, tableName + tc++, ns("m"), ns("m"), ns("l", "m", "n"), ns(null, "b"),
+          ns("l", "m"));
 
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns(),
-        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns(null, "s"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("m", "r"),
-        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("c", "m"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("r"),
-        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("n", "r"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b"),
-        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns(null, "s"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m"),
-        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("m", "n"), ns(null, "s"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "r"),
-        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns("q", "r"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"),
-        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("aa", "b"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"),
-        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("r", "s"), ns(null, "z"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"),
-        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns("l", "m"));
-    runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"),
-        ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("m", "n"), ns("q", "r"));
-
+      runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns(),
+          ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns(null, "s"));
+      runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("m", "r"),
+          ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("c", "m"));
+      runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("r"),
+          ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("n", "r"));
+      runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b"),
+          ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns(null, "s"));
+      runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m"),
+          ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("m", "n"), ns(null, "s"));
+      runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "r"),
+          ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns("q", "r"));
+      runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"),
+          ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns(null, "a"), ns("aa", "b"));
+      runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"),
+          ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("r", "s"), ns(null, "z"));
+      runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"),
+          ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("b", "c"), ns("l", "m"));
+      runMergeTest(c, tableName + tc++, ns("b", "m", "r"), ns("b", "m", "r"),
+          ns("a", "b", "c", "l", "m", "n", "q", "r", "s"), ns("m", "n"), ns("q", "r"));
+    }
   }
 
   private void runMergeTest(AccumuloClient c, String table, String[] splits,

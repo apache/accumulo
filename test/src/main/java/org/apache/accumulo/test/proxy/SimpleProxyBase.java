@@ -176,61 +176,62 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   public static void setUpProxy() throws Exception {
     assertNotNull("Implementations must initialize the TProtocolFactory", factory);
 
-    AccumuloClient c = SharedMiniClusterBase.getClient();
-    waitForAccumulo(c);
+    try (AccumuloClient c = SharedMiniClusterBase.getClient()) {
+      waitForAccumulo(c);
 
-    hostname = InetAddress.getLocalHost().getCanonicalHostName();
-
-    Properties props = new Properties();
-    props.put("instance", c.info().getInstanceName());
-    props.put("zookeepers", c.info().getZooKeepers());
-
-    final String tokenClass;
-    if (isKerberosEnabled()) {
-      tokenClass = KerberosToken.class.getName();
-      TestingKdc kdc = getKdc();
-
-      // Create a principal+keytab for the proxy
-      proxyKeytab = new File(kdc.getKeytabDir(), "proxy.keytab");
       hostname = InetAddress.getLocalHost().getCanonicalHostName();
-      // Set the primary because the client needs to know it
-      proxyPrimary = "proxy";
-      // Qualify with an instance
-      proxyPrincipal = proxyPrimary + "/" + hostname;
-      kdc.createPrincipal(proxyKeytab, proxyPrincipal);
-      // Tack on the realm too
-      proxyPrincipal = kdc.qualifyUser(proxyPrincipal);
 
-      props.setProperty("kerberosPrincipal", proxyPrincipal);
-      props.setProperty("kerberosKeytab", proxyKeytab.getCanonicalPath());
-      props.setProperty("thriftServerType", "sasl");
+      Properties props = new Properties();
+      props.put("instance", c.info().getInstanceName());
+      props.put("zookeepers", c.info().getZooKeepers());
 
-      // Enabled kerberos auth
-      Configuration conf = new Configuration(false);
-      conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
-      UserGroupInformation.setConfiguration(conf);
+      final String tokenClass;
+      if (isKerberosEnabled()) {
+        tokenClass = KerberosToken.class.getName();
+        TestingKdc kdc = getKdc();
 
-      // Login for the Proxy itself
-      UserGroupInformation.loginUserFromKeytab(proxyPrincipal, proxyKeytab.getAbsolutePath());
+        // Create a principal+keytab for the proxy
+        proxyKeytab = new File(kdc.getKeytabDir(), "proxy.keytab");
+        hostname = InetAddress.getLocalHost().getCanonicalHostName();
+        // Set the primary because the client needs to know it
+        proxyPrimary = "proxy";
+        // Qualify with an instance
+        proxyPrincipal = proxyPrimary + "/" + hostname;
+        kdc.createPrincipal(proxyKeytab, proxyPrincipal);
+        // Tack on the realm too
+        proxyPrincipal = kdc.qualifyUser(proxyPrincipal);
 
-      // User for tests
-      ClusterUser user = kdc.getRootUser();
-      clientPrincipal = user.getPrincipal();
-      clientKeytab = user.getKeytab();
-    } else {
-      clientPrincipal = "root";
-      tokenClass = PasswordToken.class.getName();
-      properties.put("password", SharedMiniClusterBase.getRootPassword());
-      hostname = "localhost";
+        props.setProperty("kerberosPrincipal", proxyPrincipal);
+        props.setProperty("kerberosKeytab", proxyKeytab.getCanonicalPath());
+        props.setProperty("thriftServerType", "sasl");
+
+        // Enabled kerberos auth
+        Configuration conf = new Configuration(false);
+        conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "kerberos");
+        UserGroupInformation.setConfiguration(conf);
+
+        // Login for the Proxy itself
+        UserGroupInformation.loginUserFromKeytab(proxyPrincipal, proxyKeytab.getAbsolutePath());
+
+        // User for tests
+        ClusterUser user = kdc.getRootUser();
+        clientPrincipal = user.getPrincipal();
+        clientKeytab = user.getKeytab();
+      } else {
+        clientPrincipal = "root";
+        tokenClass = PasswordToken.class.getName();
+        properties.put("password", SharedMiniClusterBase.getRootPassword());
+        hostname = "localhost";
+      }
+
+      props.put("tokenClass", tokenClass);
+      props.putAll(SharedMiniClusterBase.getCluster().getClientInfo().getProperties());
+      proxyPort = PortUtils.getRandomFreePort();
+      proxyServer = Proxy.createProxyServer(HostAndPort.fromParts(hostname, proxyPort), factory,
+          props).server;
+      while (!proxyServer.isServing())
+        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     }
-
-    props.put("tokenClass", tokenClass);
-    props.putAll(SharedMiniClusterBase.getCluster().getClientInfo().getProperties());
-    proxyPort = PortUtils.getRandomFreePort();
-    proxyServer = Proxy.createProxyServer(HostAndPort.fromParts(hostname, proxyPort), factory,
-        props).server;
-    while (!proxyServer.isServing())
-      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
   }
 
   @AfterClass

@@ -39,89 +39,90 @@ import org.junit.Test;
 public class TooManyDeletesIT extends AccumuloClusterHarness {
   @Test
   public void tooManyDeletesCompactionStrategyIT() throws Exception {
-    AccumuloClient c = getAccumuloClient();
+    try (AccumuloClient c = getAccumuloClient()) {
 
-    String table = getUniqueNames(1)[0];
+      String table = getUniqueNames(1)[0];
 
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(DeletesSummarizer.class).build();
+      SummarizerConfiguration sc = SummarizerConfiguration.builder(DeletesSummarizer.class).build();
 
-    // TODO open issue about programmatic config of compaction strategies
+      // TODO open issue about programmatic config of compaction strategies
 
-    NewTableConfiguration ntc = new NewTableConfiguration().enableSummarization(sc);
-    HashMap<String,String> props = new HashMap<>();
-    props.put(Property.TABLE_COMPACTION_STRATEGY.getKey(),
-        TooManyDeletesCompactionStrategy.class.getName());
-    props.put(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()
-        + TooManyDeletesCompactionStrategy.THRESHOLD_OPT, ".25");
-    // ensure compaction does not happen because of the number of files
-    props.put(Property.TABLE_MAJC_RATIO.getKey(), "10");
-    ntc.setProperties(props);
+      NewTableConfiguration ntc = new NewTableConfiguration().enableSummarization(sc);
+      HashMap<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_COMPACTION_STRATEGY.getKey(),
+          TooManyDeletesCompactionStrategy.class.getName());
+      props.put(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey()
+          + TooManyDeletesCompactionStrategy.THRESHOLD_OPT, ".25");
+      // ensure compaction does not happen because of the number of files
+      props.put(Property.TABLE_MAJC_RATIO.getKey(), "10");
+      ntc.setProperties(props);
 
-    c.tableOperations().create(table, ntc);
+      c.tableOperations().create(table, ntc);
 
-    try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
-      for (int i = 0; i < 1000; i++) {
-        Mutation m = new Mutation("row" + i);
-        m.put("f", "q", "v" + i);
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+        for (int i = 0; i < 1000; i++) {
+          Mutation m = new Mutation("row" + i);
+          m.put("f", "q", "v" + i);
+          bw.addMutation(m);
+        }
       }
-    }
 
-    List<Summary> summaries = c.tableOperations().summaries(table).flush(true).withConfiguration(sc)
-        .retrieve();
-    assertEquals(1, summaries.size());
+      List<Summary> summaries = c.tableOperations().summaries(table).flush(true)
+          .withConfiguration(sc).retrieve();
+      assertEquals(1, summaries.size());
 
-    Summary summary = summaries.get(0);
+      Summary summary = summaries.get(0);
 
-    assertEquals(1000L, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
-    assertEquals(0L, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
+      assertEquals(1000L, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
+      assertEquals(0L, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
 
-    try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
-      for (int i = 0; i < 100; i++) {
-        Mutation m = new Mutation("row" + i);
-        m.putDelete("f", "q");
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+        for (int i = 0; i < 100; i++) {
+          Mutation m = new Mutation("row" + i);
+          m.putDelete("f", "q");
+          bw.addMutation(m);
+        }
       }
-    }
 
-    summaries = c.tableOperations().summaries(table).flush(true).withConfiguration(sc).retrieve();
-    assertEquals(1, summaries.size());
-
-    summary = summaries.get(0);
-
-    assertEquals(1100L, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
-    assertEquals(100L, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
-
-    try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
-      for (int i = 100; i < 300; i++) {
-        Mutation m = new Mutation("row" + i);
-        m.putDelete("f", "q");
-        bw.addMutation(m);
-      }
-    }
-
-    // after a flush occurs Accumulo will check if a major compaction is needed. This check should
-    // call the compaction strategy, which should decide to compact
-    // all files based on the number of deletes.
-    c.tableOperations().flush(table, null, null, true);
-
-    // wait for the compaction to happen
-    while (true) {
-      // the flush should cause
-      summaries = c.tableOperations().summaries(table).flush(false).withConfiguration(sc)
-          .retrieve();
+      summaries = c.tableOperations().summaries(table).flush(true).withConfiguration(sc).retrieve();
       assertEquals(1, summaries.size());
 
       summary = summaries.get(0);
-      long total = summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT);
-      long deletes = summary.getStatistics().get(DeletesSummarizer.DELETES_STAT);
 
-      if (total == 700 && deletes == 0) {
-        // a compaction was triggered based on the number of deletes
-        break;
+      assertEquals(1100L, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
+      assertEquals(100L, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
+
+      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+        for (int i = 100; i < 300; i++) {
+          Mutation m = new Mutation("row" + i);
+          m.putDelete("f", "q");
+          bw.addMutation(m);
+        }
       }
 
-      UtilWaitThread.sleep(50);
+      // after a flush occurs Accumulo will check if a major compaction is needed. This check should
+      // call the compaction strategy, which should decide to compact
+      // all files based on the number of deletes.
+      c.tableOperations().flush(table, null, null, true);
+
+      // wait for the compaction to happen
+      while (true) {
+        // the flush should cause
+        summaries = c.tableOperations().summaries(table).flush(false).withConfiguration(sc)
+            .retrieve();
+        assertEquals(1, summaries.size());
+
+        summary = summaries.get(0);
+        long total = summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT);
+        long deletes = summary.getStatistics().get(DeletesSummarizer.DELETES_STAT);
+
+        if (total == 700 && deletes == 0) {
+          // a compaction was triggered based on the number of deletes
+          break;
+        }
+
+        UtilWaitThread.sleep(50);
+      }
     }
   }
 }

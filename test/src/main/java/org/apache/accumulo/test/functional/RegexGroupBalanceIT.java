@@ -53,89 +53,92 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
   @Test(timeout = 120000)
   public void testBalancing() throws Exception {
-    AccumuloClient client = getClient();
-    String tablename = getUniqueNames(1)[0];
-    client.tableOperations().create(tablename);
+    try (AccumuloClient client = getClient()) {
+      String tablename = getUniqueNames(1)[0];
+      client.tableOperations().create(tablename);
 
-    SortedSet<Text> splits = new TreeSet<>();
-    splits.add(new Text("01a"));
-    splits.add(new Text("01m"));
-    splits.add(new Text("01z"));
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("01a"));
+      splits.add(new Text("01m"));
+      splits.add(new Text("01z"));
 
-    splits.add(new Text("02a"));
-    splits.add(new Text("02f"));
-    splits.add(new Text("02r"));
-    splits.add(new Text("02z"));
+      splits.add(new Text("02a"));
+      splits.add(new Text("02f"));
+      splits.add(new Text("02r"));
+      splits.add(new Text("02z"));
 
-    splits.add(new Text("03a"));
-    splits.add(new Text("03f"));
-    splits.add(new Text("03m"));
-    splits.add(new Text("03r"));
+      splits.add(new Text("03a"));
+      splits.add(new Text("03f"));
+      splits.add(new Text("03m"));
+      splits.add(new Text("03r"));
 
-    client.tableOperations().setProperty(tablename, RegexGroupBalancer.REGEX_PROPERTY,
-        "(\\d\\d).*");
-    client.tableOperations().setProperty(tablename, RegexGroupBalancer.DEFAUT_GROUP_PROPERTY, "03");
-    client.tableOperations().setProperty(tablename, RegexGroupBalancer.WAIT_TIME_PROPERTY, "50ms");
-    client.tableOperations().setProperty(tablename, Property.TABLE_LOAD_BALANCER.getKey(),
-        RegexGroupBalancer.class.getName());
+      client.tableOperations().setProperty(tablename, RegexGroupBalancer.REGEX_PROPERTY,
+          "(\\d\\d).*");
+      client.tableOperations().setProperty(tablename, RegexGroupBalancer.DEFAUT_GROUP_PROPERTY,
+          "03");
+      client.tableOperations().setProperty(tablename, RegexGroupBalancer.WAIT_TIME_PROPERTY,
+          "50ms");
+      client.tableOperations().setProperty(tablename, Property.TABLE_LOAD_BALANCER.getKey(),
+          RegexGroupBalancer.class.getName());
 
-    client.tableOperations().addSplits(tablename, splits);
+      client.tableOperations().addSplits(tablename, splits);
 
-    while (true) {
-      Thread.sleep(250);
+      while (true) {
+        Thread.sleep(250);
 
-      Table<String,String,MutableInt> groupLocationCounts = getCounts(client, tablename);
+        Table<String,String,MutableInt> groupLocationCounts = getCounts(client, tablename);
 
-      boolean allGood = true;
-      allGood &= checkGroup(groupLocationCounts, "01", 1, 1, 3);
-      allGood &= checkGroup(groupLocationCounts, "02", 1, 1, 4);
-      allGood &= checkGroup(groupLocationCounts, "03", 1, 2, 4);
-      allGood &= checkTabletsPerTserver(groupLocationCounts, 3, 3, 4);
+        boolean allGood = true;
+        allGood &= checkGroup(groupLocationCounts, "01", 1, 1, 3);
+        allGood &= checkGroup(groupLocationCounts, "02", 1, 1, 4);
+        allGood &= checkGroup(groupLocationCounts, "03", 1, 2, 4);
+        allGood &= checkTabletsPerTserver(groupLocationCounts, 3, 3, 4);
 
-      if (allGood) {
-        break;
+        if (allGood) {
+          break;
+        }
       }
-    }
 
-    splits.clear();
-    splits.add(new Text("01b"));
-    splits.add(new Text("01f"));
-    splits.add(new Text("01l"));
-    splits.add(new Text("01r"));
-    client.tableOperations().addSplits(tablename, splits);
+      splits.clear();
+      splits.add(new Text("01b"));
+      splits.add(new Text("01f"));
+      splits.add(new Text("01l"));
+      splits.add(new Text("01r"));
+      client.tableOperations().addSplits(tablename, splits);
 
-    while (true) {
-      Thread.sleep(250);
+      while (true) {
+        Thread.sleep(250);
 
-      Table<String,String,MutableInt> groupLocationCounts = getCounts(client, tablename);
+        Table<String,String,MutableInt> groupLocationCounts = getCounts(client, tablename);
 
-      boolean allGood = true;
-      allGood &= checkGroup(groupLocationCounts, "01", 1, 2, 4);
-      allGood &= checkGroup(groupLocationCounts, "02", 1, 1, 4);
-      allGood &= checkGroup(groupLocationCounts, "03", 1, 2, 4);
-      allGood &= checkTabletsPerTserver(groupLocationCounts, 4, 4, 4);
+        boolean allGood = true;
+        allGood &= checkGroup(groupLocationCounts, "01", 1, 2, 4);
+        allGood &= checkGroup(groupLocationCounts, "02", 1, 1, 4);
+        allGood &= checkGroup(groupLocationCounts, "03", 1, 2, 4);
+        allGood &= checkTabletsPerTserver(groupLocationCounts, 4, 4, 4);
 
-      if (allGood) {
-        break;
+        if (allGood) {
+          break;
+        }
       }
-    }
 
-    // merge group 01 down to one tablet
-    client.tableOperations().merge(tablename, null, new Text("01z"));
+      // merge group 01 down to one tablet
+      client.tableOperations().merge(tablename, null, new Text("01z"));
 
-    while (true) {
-      Thread.sleep(250);
+      while (true) {
+        Thread.sleep(250);
 
-      Table<String,String,MutableInt> groupLocationCounts = getCounts(client, tablename);
+        Table<String,String,MutableInt> groupLocationCounts = getCounts(client, tablename);
 
-      boolean allGood = true;
-      allGood &= checkGroup(groupLocationCounts, "01", 1, 1, 1);
-      allGood &= checkGroup(groupLocationCounts, "02", 1, 1, 4);
-      allGood &= checkGroup(groupLocationCounts, "03", 1, 2, 4);
-      allGood &= checkTabletsPerTserver(groupLocationCounts, 2, 3, 4);
+        boolean allGood = true;
+        allGood &= checkGroup(groupLocationCounts, "01", 1, 1, 1);
+        allGood &= checkGroup(groupLocationCounts, "02", 1, 1, 4);
+        allGood &= checkGroup(groupLocationCounts, "03", 1, 2, 4);
+        allGood &= checkTabletsPerTserver(groupLocationCounts, 2, 3, 4);
 
-      if (allGood) {
-        break;
+        if (allGood) {
+          break;
+        }
       }
     }
   }

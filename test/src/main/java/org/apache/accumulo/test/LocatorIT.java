@@ -86,59 +86,61 @@ public class LocatorIT extends AccumuloClusterHarness {
 
   @Test
   public void testBasic() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
 
-    client.tableOperations().create(tableName);
+      client.tableOperations().create(tableName);
 
-    Range r1 = new Range("m");
-    Range r2 = new Range("o", "x");
+      Range r1 = new Range("m");
+      Range r2 = new Range("o", "x");
 
-    String tableId = client.tableOperations().tableIdMap().get(tableName);
+      String tableId = client.tableOperations().tableIdMap().get(tableName);
 
-    TabletId t1 = newTabletId(tableId, null, null);
-    TabletId t2 = newTabletId(tableId, "r", null);
-    TabletId t3 = newTabletId(tableId, null, "r");
+      TabletId t1 = newTabletId(tableId, null, null);
+      TabletId t2 = newTabletId(tableId, "r", null);
+      TabletId t3 = newTabletId(tableId, null, "r");
 
-    ArrayList<Range> ranges = new ArrayList<>();
+      ArrayList<Range> ranges = new ArrayList<>();
 
-    HashSet<String> tservers = new HashSet<>(client.instanceOperations().getTabletServers());
+      HashSet<String> tservers = new HashSet<>(client.instanceOperations().getTabletServers());
 
-    ranges.add(r1);
-    Locations ret = client.tableOperations().locate(tableName, ranges);
-    assertContains(ret, tservers, ImmutableMap.of(r1, ImmutableSet.of(t1)),
-        ImmutableMap.of(t1, ImmutableSet.of(r1)));
+      ranges.add(r1);
+      Locations ret = client.tableOperations().locate(tableName, ranges);
+      assertContains(ret, tservers, ImmutableMap.of(r1, ImmutableSet.of(t1)),
+          ImmutableMap.of(t1, ImmutableSet.of(r1)));
 
-    ranges.add(r2);
-    ret = client.tableOperations().locate(tableName, ranges);
-    assertContains(ret, tservers, ImmutableMap.of(r1, ImmutableSet.of(t1), r2, ImmutableSet.of(t1)),
-        ImmutableMap.of(t1, ImmutableSet.of(r1, r2)));
+      ranges.add(r2);
+      ret = client.tableOperations().locate(tableName, ranges);
+      assertContains(ret, tservers,
+          ImmutableMap.of(r1, ImmutableSet.of(t1), r2, ImmutableSet.of(t1)),
+          ImmutableMap.of(t1, ImmutableSet.of(r1, r2)));
 
-    TreeSet<Text> splits = new TreeSet<>();
-    splits.add(new Text("r"));
-    client.tableOperations().addSplits(tableName, splits);
+      TreeSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("r"));
+      client.tableOperations().addSplits(tableName, splits);
 
-    ret = client.tableOperations().locate(tableName, ranges);
-    assertContains(ret, tservers,
-        ImmutableMap.of(r1, ImmutableSet.of(t2), r2, ImmutableSet.of(t2, t3)),
-        ImmutableMap.of(t2, ImmutableSet.of(r1, r2), t3, ImmutableSet.of(r2)));
+      ret = client.tableOperations().locate(tableName, ranges);
+      assertContains(ret, tservers,
+          ImmutableMap.of(r1, ImmutableSet.of(t2), r2, ImmutableSet.of(t2, t3)),
+          ImmutableMap.of(t2, ImmutableSet.of(r1, r2), t3, ImmutableSet.of(r2)));
 
-    client.tableOperations().offline(tableName, true);
+      client.tableOperations().offline(tableName, true);
 
-    try {
-      client.tableOperations().locate(tableName, ranges);
-      fail();
-    } catch (TableOfflineException e) {
-      // expected
-    }
+      try {
+        client.tableOperations().locate(tableName, ranges);
+        fail();
+      } catch (TableOfflineException e) {
+        // expected
+      }
 
-    client.tableOperations().delete(tableName);
+      client.tableOperations().delete(tableName);
 
-    try {
-      client.tableOperations().locate(tableName, ranges);
-      fail();
-    } catch (TableNotFoundException e) {
-      // expected
+      try {
+        client.tableOperations().locate(tableName, ranges);
+        fail();
+      } catch (TableNotFoundException e) {
+        // expected
+      }
     }
   }
 }

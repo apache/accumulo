@@ -58,14 +58,16 @@ public class TabletIT extends AccumuloClusterHarness {
 
   @Test
   public void createTableTest() throws Exception {
-    String tableName = getUniqueNames(1)[0];
-    createTableTest(tableName, false);
-    createTableTest(tableName, true);
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      createTableTest(client, tableName, false);
+      createTableTest(client, tableName, true);
+    }
   }
 
-  public void createTableTest(String tableName, boolean readOnly) throws Exception {
+  public void createTableTest(AccumuloClient accumuloClient, String tableName, boolean readOnly)
+      throws Exception {
     // create the test table within accumulo
-    AccumuloClient accumuloClient = getAccumuloClient();
 
     if (!readOnly) {
       TreeSet<Text> keys = new TreeSet<>();
@@ -90,7 +92,7 @@ public class TabletIT extends AccumuloClusterHarness {
       b.close();
     }
 
-    try (Scanner scanner = getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)) {
+    try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
       int count = 0;
       for (Entry<Key,Value> elt : scanner) {
         String expected = String.format("%05d", count);

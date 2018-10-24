@@ -65,24 +65,28 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    InstanceOperations iops = getAccumuloClient().instanceOperations();
-    Map<String,String> sysConfig = iops.getSystemConfiguration();
-    scanMaxOpenFiles = sysConfig.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey());
-    majcConcurrent = sysConfig.get(Property.TSERV_MAJC_MAXCONCURRENT.getKey());
-    majcThreadMaxOpen = sysConfig.get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey());
+    try (AccumuloClient client = getAccumuloClient()) {
+      InstanceOperations iops = client.instanceOperations();
+      Map<String,String> sysConfig = iops.getSystemConfiguration();
+      scanMaxOpenFiles = sysConfig.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey());
+      majcConcurrent = sysConfig.get(Property.TSERV_MAJC_MAXCONCURRENT.getKey());
+      majcThreadMaxOpen = sysConfig.get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey());
+    }
   }
 
   @After
   public void restoreConfig() throws Exception {
-    InstanceOperations iops = getAccumuloClient().instanceOperations();
-    if (null != scanMaxOpenFiles) {
-      iops.setProperty(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), scanMaxOpenFiles);
-    }
-    if (null != majcConcurrent) {
-      iops.setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), majcConcurrent);
-    }
-    if (null != majcThreadMaxOpen) {
-      iops.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), majcThreadMaxOpen);
+    try (AccumuloClient client = getAccumuloClient()) {
+      InstanceOperations iops = client.instanceOperations();
+      if (null != scanMaxOpenFiles) {
+        iops.setProperty(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), scanMaxOpenFiles);
+      }
+      if (null != majcConcurrent) {
+        iops.setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), majcConcurrent);
+      }
+      if (null != majcThreadMaxOpen) {
+        iops.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), majcThreadMaxOpen);
+      }
     }
   }
 
@@ -91,43 +95,43 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    final AccumuloClient c = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
-    c.tableOperations().addSplits(tableName,
-        TestIngest.getSplitPoints(0, NUM_TO_INGEST, NUM_TABLETS));
+    try (AccumuloClient c = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
+      c.tableOperations().addSplits(tableName,
+          TestIngest.getSplitPoints(0, NUM_TO_INGEST, NUM_TABLETS));
 
-    // the following loop should create three tablets in each map file
-    for (int i = 0; i < 3; i++) {
-      TestIngest.Opts opts = new TestIngest.Opts();
-      opts.timestamp = i;
-      opts.dataSize = 50;
-      opts.rows = NUM_TO_INGEST;
-      opts.cols = 1;
-      opts.random = i;
-      opts.setTableName(tableName);
-      opts.setClientInfo(getClientInfo());
-      TestIngest.ingest(c, opts, new BatchWriterOpts());
+      // the following loop should create three tablets in each map file
+      for (int i = 0; i < 3; i++) {
+        TestIngest.Opts opts = new TestIngest.Opts();
+        opts.timestamp = i;
+        opts.dataSize = 50;
+        opts.rows = NUM_TO_INGEST;
+        opts.cols = 1;
+        opts.random = i;
+        opts.setTableName(tableName);
+        opts.setClientInfo(getClientInfo());
+        TestIngest.ingest(c, opts, new BatchWriterOpts());
 
-      c.tableOperations().flush(tableName, null, null, true);
-      FunctionalTestUtils.checkRFiles(c, tableName, NUM_TABLETS, NUM_TABLETS, i + 1, i + 1);
+        c.tableOperations().flush(tableName, null, null, true);
+        FunctionalTestUtils.checkRFiles(c, tableName, NUM_TABLETS, NUM_TABLETS, i + 1, i + 1);
+      }
+
+      List<Range> ranges = new ArrayList<>(NUM_TO_INGEST);
+
+      for (int i = 0; i < NUM_TO_INGEST; i++) {
+        ranges.add(new Range(TestIngest.generateRow(i, 0)));
+      }
+
+      long time1 = batchScan(c, tableName, ranges, 1);
+      // run it again, now that stuff is cached on the client and sever
+      time1 = batchScan(c, tableName, ranges, 1);
+      long time2 = batchScan(c, tableName, ranges, NUM_TABLETS);
+
+      System.out.printf("Single thread scan time   %6.2f %n", time1 / 1000.0);
+      System.out.printf("Multiple thread scan time %6.2f %n", time2 / 1000.0);
     }
-
-    List<Range> ranges = new ArrayList<>(NUM_TO_INGEST);
-
-    for (int i = 0; i < NUM_TO_INGEST; i++) {
-      ranges.add(new Range(TestIngest.generateRow(i, 0)));
-    }
-
-    long time1 = batchScan(c, tableName, ranges, 1);
-    // run it again, now that stuff is cached on the client and sever
-    time1 = batchScan(c, tableName, ranges, 1);
-    long time2 = batchScan(c, tableName, ranges, NUM_TABLETS);
-
-    System.out.printf("Single thread scan time   %6.2f %n", time1 / 1000.0);
-    System.out.printf("Multiple thread scan time %6.2f %n", time2 / 1000.0);
-
   }
 
   @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",

@@ -56,73 +56,73 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
     Random random = new SecureRandom();
-    AccumuloClient c = getClient();
-    c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
-        "" + SMALL_QUEUE_SIZE);
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "9999");
-    c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "999");
-    sleepUninterruptibly(1, TimeUnit.SECONDS);
-    // get an idea of how fast the syncs occur
-    byte row[] = new byte[250];
-    BatchWriterConfig cfg = new BatchWriterConfig();
-    cfg.setMaxWriteThreads(10);
-    cfg.setMaxLatency(1, TimeUnit.SECONDS);
-    cfg.setMaxMemory(1024 * 1024);
-    long realSyncs = getSyncs();
-    BatchWriter bw = c.createBatchWriter(tableName, cfg);
-    long now = System.currentTimeMillis();
-    long bytesSent = 0;
-    for (int i = 0; i < N; i++) {
-      random.nextBytes(row);
-      Mutation m = new Mutation(row);
-      m.put("", "", "");
-      bw.addMutation(m);
-      bytesSent += m.estimatedMemoryUsed();
-    }
-    bw.close();
-    long diff = System.currentTimeMillis() - now;
-    double secs = diff / 1000.;
-    double syncs = bytesSent / SMALL_QUEUE_SIZE;
-    double syncsPerSec = syncs / secs;
-    System.out
-        .println(String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)",
-            bytesSent, secs, ((long) syncs), syncsPerSec));
-    long update = getSyncs();
-    System.out.println("Syncs " + (update - realSyncs));
-    realSyncs = update;
+    try (AccumuloClient c = getClient()) {
+      c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
+          "" + SMALL_QUEUE_SIZE);
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "9999");
+      c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "999");
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // get an idea of how fast the syncs occur
+      byte row[] = new byte[250];
+      BatchWriterConfig cfg = new BatchWriterConfig();
+      cfg.setMaxWriteThreads(10);
+      cfg.setMaxLatency(1, TimeUnit.SECONDS);
+      cfg.setMaxMemory(1024 * 1024);
+      long realSyncs = getSyncs(c);
+      BatchWriter bw = c.createBatchWriter(tableName, cfg);
+      long now = System.currentTimeMillis();
+      long bytesSent = 0;
+      for (int i = 0; i < N; i++) {
+        random.nextBytes(row);
+        Mutation m = new Mutation(row);
+        m.put("", "", "");
+        bw.addMutation(m);
+        bytesSent += m.estimatedMemoryUsed();
+      }
+      bw.close();
+      long diff = System.currentTimeMillis() - now;
+      double secs = diff / 1000.;
+      double syncs = bytesSent / SMALL_QUEUE_SIZE;
+      double syncsPerSec = syncs / secs;
+      System.out.println(
+          String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)",
+              bytesSent, secs, ((long) syncs), syncsPerSec));
+      long update = getSyncs(c);
+      System.out.println("Syncs " + (update - realSyncs));
+      realSyncs = update;
 
-    // Now with a much bigger total queue
-    c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
-        "" + LARGE_QUEUE_SIZE);
-    c.tableOperations().flush(tableName, null, null, true);
-    sleepUninterruptibly(1, TimeUnit.SECONDS);
-    bw = c.createBatchWriter(tableName, cfg);
-    now = System.currentTimeMillis();
-    bytesSent = 0;
-    for (int i = 0; i < N; i++) {
-      random.nextBytes(row);
-      Mutation m = new Mutation(row);
-      m.put("", "", "");
-      bw.addMutation(m);
-      bytesSent += m.estimatedMemoryUsed();
+      // Now with a much bigger total queue
+      c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
+          "" + LARGE_QUEUE_SIZE);
+      c.tableOperations().flush(tableName, null, null, true);
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      bw = c.createBatchWriter(tableName, cfg);
+      now = System.currentTimeMillis();
+      bytesSent = 0;
+      for (int i = 0; i < N; i++) {
+        random.nextBytes(row);
+        Mutation m = new Mutation(row);
+        m.put("", "", "");
+        bw.addMutation(m);
+        bytesSent += m.estimatedMemoryUsed();
+      }
+      bw.close();
+      diff = System.currentTimeMillis() - now;
+      secs = diff / 1000.;
+      syncs = bytesSent / LARGE_QUEUE_SIZE;
+      syncsPerSec = syncs / secs;
+      System.out.println(
+          String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)",
+              bytesSent, secs, ((long) syncs), syncsPerSec));
+      update = getSyncs(c);
+      System.out.println("Syncs " + (update - realSyncs));
+      assertTrue(update - realSyncs < realSyncs);
     }
-    bw.close();
-    diff = System.currentTimeMillis() - now;
-    secs = diff / 1000.;
-    syncs = bytesSent / LARGE_QUEUE_SIZE;
-    syncsPerSec = syncs / secs;
-    System.out
-        .println(String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)",
-            bytesSent, secs, ((long) syncs), syncsPerSec));
-    update = getSyncs();
-    System.out.println("Syncs " + (update - realSyncs));
-    assertTrue(update - realSyncs < realSyncs);
   }
 
-  private long getSyncs() throws Exception {
-    AccumuloClient c = getClient();
+  private long getSyncs(AccumuloClient c) throws Exception {
     ServerContext context = getServerContext();
     for (String address : c.instanceOperations().getTabletServers()) {
       TabletClientService.Client client = ThriftUtil

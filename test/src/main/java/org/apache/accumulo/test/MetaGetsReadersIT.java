@@ -80,40 +80,41 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     final String tableName = getUniqueNames(1)[0];
-    final AccumuloClient c = getClient();
-    c.tableOperations().create(tableName);
-    Random random = new SecureRandom();
-    BatchWriter bw = c.createBatchWriter(tableName, null);
-    for (int i = 0; i < 50000; i++) {
-      byte[] row = new byte[100];
-      random.nextBytes(row);
-      Mutation m = new Mutation(row);
-      m.put("", "", "");
-      bw.addMutation(m);
-    }
-    bw.close();
-    c.tableOperations().flush(tableName, null, null, true);
-    final AtomicBoolean stop = new AtomicBoolean(false);
-    Thread t1 = slowScan(c, tableName, stop);
-    t1.start();
-    Thread t2 = slowScan(c, tableName, stop);
-    t2.start();
-    sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
-    long now = System.currentTimeMillis();
+    try (AccumuloClient c = getClient()) {
+      c.tableOperations().create(tableName);
+      Random random = new SecureRandom();
+      BatchWriter bw = c.createBatchWriter(tableName, null);
+      for (int i = 0; i < 50000; i++) {
+        byte[] row = new byte[100];
+        random.nextBytes(row);
+        Mutation m = new Mutation(row);
+        m.put("", "", "");
+        bw.addMutation(m);
+      }
+      bw.close();
+      c.tableOperations().flush(tableName, null, null, true);
+      final AtomicBoolean stop = new AtomicBoolean(false);
+      Thread t1 = slowScan(c, tableName, stop);
+      t1.start();
+      Thread t2 = slowScan(c, tableName, stop);
+      t2.start();
+      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      long now = System.currentTimeMillis();
 
-    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      Iterators.size(s.iterator());
-    }
+      try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        Iterators.size(s.iterator());
+      }
 
-    long delay = System.currentTimeMillis() - now;
-    System.out.println("Delay = " + delay);
-    assertTrue("metadata table scan was slow", delay < 1000);
-    assertFalse(stop.get());
-    stop.set(true);
-    t1.interrupt();
-    t2.interrupt();
-    t1.join();
-    t2.join();
+      long delay = System.currentTimeMillis() - now;
+      System.out.println("Delay = " + delay);
+      assertTrue("metadata table scan was slow", delay < 1000);
+      assertFalse(stop.get());
+      stop.set(true);
+      t1.interrupt();
+      t2.interrupt();
+      t1.join();
+      t2.join();
+    }
   }
 
 }

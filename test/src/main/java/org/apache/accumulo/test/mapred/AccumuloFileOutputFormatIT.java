@@ -81,20 +81,23 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void testEmptyWrite() throws Exception {
-    getAccumuloClient().tableOperations().create(EMPTY_TABLE);
-    handleWriteTests(false);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(EMPTY_TABLE);
+      handleWriteTests(false);
+    }
   }
 
   @Test
   public void testRealWrite() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(TEST_TABLE);
-    BatchWriter bw = c.createBatchWriter(TEST_TABLE, new BatchWriterConfig());
-    Mutation m = new Mutation("Key");
-    m.put("", "", "");
-    bw.addMutation(m);
-    bw.close();
-    handleWriteTests(true);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(TEST_TABLE);
+      BatchWriter bw = c.createBatchWriter(TEST_TABLE, new BatchWriterConfig());
+      Mutation m = new Mutation("Key");
+      m.put("", "", "");
+      bw.addMutation(m);
+      bw.close();
+      handleWriteTests(true);
+    }
   }
 
   private static class MRTester extends Configured implements Tool {
@@ -202,21 +205,22 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void writeBadVisibility() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(BAD_TABLE);
-    BatchWriter bw = c.createBatchWriter(BAD_TABLE, new BatchWriterConfig());
-    Mutation m = new Mutation("r1");
-    m.put("cf1", "cq1", "A&B");
-    m.put("cf1", "cq1", "A&B");
-    m.put("cf1", "cq2", "A&");
-    bw.addMutation(m);
-    bw.close();
-    File f = folder.newFile(testName.getMethodName());
-    if (f.delete()) {
-      log.debug("Deleted {}", f);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(BAD_TABLE);
+      BatchWriter bw = c.createBatchWriter(BAD_TABLE, new BatchWriterConfig());
+      Mutation m = new Mutation("r1");
+      m.put("cf1", "cq1", "A&B");
+      m.put("cf1", "cq1", "A&B");
+      m.put("cf1", "cq2", "A&");
+      bw.addMutation(m);
+      bw.close();
+      File f = folder.newFile(testName.getMethodName());
+      if (f.delete()) {
+        log.debug("Deleted {}", f);
+      }
+      MRTester.main(new String[] {BAD_TABLE, f.getAbsolutePath()});
+      assertNull(e1);
+      assertNull(e2);
     }
-    MRTester.main(new String[] {BAD_TABLE, f.getAbsolutePath()});
-    assertNull(e1);
-    assertNull(e2);
   }
 }

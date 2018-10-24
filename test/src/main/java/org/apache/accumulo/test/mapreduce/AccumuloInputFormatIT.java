@@ -94,112 +94,114 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
    */
   @Test
   public void testGetSplits() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String table = getUniqueNames(1)[0];
-    client.tableOperations().create(table);
-    insertData(table, currentTimeMillis());
+    try (AccumuloClient client = getAccumuloClient()) {
+      String table = getUniqueNames(1)[0];
+      client.tableOperations().create(table);
+      insertData(client, table, currentTimeMillis());
 
-    Job job = Job.getInstance();
-    AccumuloInputFormat.setInputTableName(job, table);
-    AccumuloInputFormat.setClientInfo(job, getClientInfo());
+      Job job = Job.getInstance();
+      AccumuloInputFormat.setInputTableName(job, table);
+      AccumuloInputFormat.setClientInfo(job, getClientInfo());
 
-    // split table
-    TreeSet<Text> splitsToAdd = new TreeSet<>();
-    for (int i = 0; i < 10000; i += 1000)
-      splitsToAdd.add(new Text(String.format("%09d", i)));
-    client.tableOperations().addSplits(table, splitsToAdd);
-    sleepUninterruptibly(500, TimeUnit.MILLISECONDS); // wait for splits to be propagated
+      // split table
+      TreeSet<Text> splitsToAdd = new TreeSet<>();
+      for (int i = 0; i < 10000; i += 1000)
+        splitsToAdd.add(new Text(String.format("%09d", i)));
+      client.tableOperations().addSplits(table, splitsToAdd);
+      sleepUninterruptibly(500, TimeUnit.MILLISECONDS); // wait for splits to be propagated
 
-    // get splits without setting any range
-    Collection<Text> actualSplits = client.tableOperations().listSplits(table);
-    List<InputSplit> splits = inputFormat.getSplits(job);
-    assertEquals(actualSplits.size() + 1, splits.size()); // No ranges set on the job so it'll start
-                                                          // with -inf
+      // get splits without setting any range
+      Collection<Text> actualSplits = client.tableOperations().listSplits(table);
+      List<InputSplit> splits = inputFormat.getSplits(job);
+      assertEquals(actualSplits.size() + 1, splits.size()); // No ranges set on the job so it'll
+                                                            // start
+                                                            // with -inf
 
-    // set ranges and get splits
-    List<Range> ranges = new ArrayList<>();
-    for (Text text : actualSplits)
-      ranges.add(new Range(text));
-    AccumuloInputFormat.setRanges(job, ranges);
-    splits = inputFormat.getSplits(job);
-    assertEquals(actualSplits.size(), splits.size());
+      // set ranges and get splits
+      List<Range> ranges = new ArrayList<>();
+      for (Text text : actualSplits)
+        ranges.add(new Range(text));
+      AccumuloInputFormat.setRanges(job, ranges);
+      splits = inputFormat.getSplits(job);
+      assertEquals(actualSplits.size(), splits.size());
 
-    // offline mode
-    AccumuloInputFormat.setOfflineTableScan(job, true);
-    try {
-      inputFormat.getSplits(job);
-      fail("An exception should have been thrown");
-    } catch (IOException e) {}
+      // offline mode
+      AccumuloInputFormat.setOfflineTableScan(job, true);
+      try {
+        inputFormat.getSplits(job);
+        fail("An exception should have been thrown");
+      } catch (IOException e) {}
 
-    client.tableOperations().offline(table, true);
-    splits = inputFormat.getSplits(job);
-    assertEquals(actualSplits.size(), splits.size());
+      client.tableOperations().offline(table, true);
+      splits = inputFormat.getSplits(job);
+      assertEquals(actualSplits.size(), splits.size());
 
-    // auto adjust ranges
-    ranges = new ArrayList<>();
-    for (int i = 0; i < 5; i++)
-      // overlapping ranges
-      ranges.add(new Range(String.format("%09d", i), String.format("%09d", i + 2)));
-    AccumuloInputFormat.setRanges(job, ranges);
-    splits = inputFormat.getSplits(job);
-    assertEquals(2, splits.size());
+      // auto adjust ranges
+      ranges = new ArrayList<>();
+      for (int i = 0; i < 5; i++)
+        // overlapping ranges
+        ranges.add(new Range(String.format("%09d", i), String.format("%09d", i + 2)));
+      AccumuloInputFormat.setRanges(job, ranges);
+      splits = inputFormat.getSplits(job);
+      assertEquals(2, splits.size());
 
-    AccumuloInputFormat.setAutoAdjustRanges(job, false);
-    splits = inputFormat.getSplits(job);
-    assertEquals(ranges.size(), splits.size());
+      AccumuloInputFormat.setAutoAdjustRanges(job, false);
+      splits = inputFormat.getSplits(job);
+      assertEquals(ranges.size(), splits.size());
 
-    // BatchScan not available for offline scans
-    AccumuloInputFormat.setBatchScan(job, true);
-    // Reset auto-adjust ranges too
-    AccumuloInputFormat.setAutoAdjustRanges(job, true);
+      // BatchScan not available for offline scans
+      AccumuloInputFormat.setBatchScan(job, true);
+      // Reset auto-adjust ranges too
+      AccumuloInputFormat.setAutoAdjustRanges(job, true);
 
-    AccumuloInputFormat.setOfflineTableScan(job, true);
-    try {
-      inputFormat.getSplits(job);
-      fail("An exception should have been thrown");
-    } catch (IllegalArgumentException e) {}
+      AccumuloInputFormat.setOfflineTableScan(job, true);
+      try {
+        inputFormat.getSplits(job);
+        fail("An exception should have been thrown");
+      } catch (IllegalArgumentException e) {}
 
-    client.tableOperations().online(table, true);
-    AccumuloInputFormat.setOfflineTableScan(job, false);
+      client.tableOperations().online(table, true);
+      AccumuloInputFormat.setOfflineTableScan(job, false);
 
-    // test for resumption of success
-    splits = inputFormat.getSplits(job);
-    assertEquals(2, splits.size());
+      // test for resumption of success
+      splits = inputFormat.getSplits(job);
+      assertEquals(2, splits.size());
 
-    // BatchScan not available with isolated iterators
-    AccumuloInputFormat.setScanIsolation(job, true);
-    try {
-      inputFormat.getSplits(job);
-      fail("An exception should have been thrown");
-    } catch (IllegalArgumentException e) {}
-    AccumuloInputFormat.setScanIsolation(job, false);
+      // BatchScan not available with isolated iterators
+      AccumuloInputFormat.setScanIsolation(job, true);
+      try {
+        inputFormat.getSplits(job);
+        fail("An exception should have been thrown");
+      } catch (IllegalArgumentException e) {}
+      AccumuloInputFormat.setScanIsolation(job, false);
 
-    // test for resumption of success
-    splits = inputFormat.getSplits(job);
-    assertEquals(2, splits.size());
+      // test for resumption of success
+      splits = inputFormat.getSplits(job);
+      assertEquals(2, splits.size());
 
-    // BatchScan not available with local iterators
-    AccumuloInputFormat.setLocalIterators(job, true);
-    try {
-      inputFormat.getSplits(job);
-      fail("An exception should have been thrown");
-    } catch (IllegalArgumentException e) {}
-    AccumuloInputFormat.setLocalIterators(job, false);
+      // BatchScan not available with local iterators
+      AccumuloInputFormat.setLocalIterators(job, true);
+      try {
+        inputFormat.getSplits(job);
+        fail("An exception should have been thrown");
+      } catch (IllegalArgumentException e) {}
+      AccumuloInputFormat.setLocalIterators(job, false);
 
-    // Check we are getting back correct type pf split
-    client.tableOperations().online(table);
-    splits = inputFormat.getSplits(job);
-    for (InputSplit split : splits)
-      assert (split instanceof BatchInputSplit);
+      // Check we are getting back correct type pf split
+      client.tableOperations().online(table);
+      splits = inputFormat.getSplits(job);
+      for (InputSplit split : splits)
+        assert (split instanceof BatchInputSplit);
 
-    // We should divide along the tablet lines similar to when using `setAutoAdjustRanges(job,
-    // true)`
-    assertEquals(2, splits.size());
+      // We should divide along the tablet lines similar to when using `setAutoAdjustRanges(job,
+      // true)`
+      assertEquals(2, splits.size());
+    }
   }
 
-  private void insertData(String tableName, long ts)
+  private void insertData(AccumuloClient client, String tableName, long ts)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, null);
+    BatchWriter bw = client.createBatchWriter(tableName, null);
 
     for (int i = 0; i < 10000; i++) {
       String row = String.format("%09d", i);
@@ -313,20 +315,21 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void testMap() throws Exception {
     final String TEST_TABLE_1 = getUniqueNames(1)[0];
 
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(TEST_TABLE_1);
-    BatchWriter bw = c.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
-    }
-    bw.close();
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(TEST_TABLE_1);
+      BatchWriter bw = c.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
+      for (int i = 0; i < 100; i++) {
+        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+        bw.addMutation(m);
+      }
+      bw.close();
 
-    assertEquals(0,
-        MRTester.main(new String[] {TEST_TABLE_1, AccumuloInputFormat.class.getName()}));
-    assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_map").size());
-    assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_cleanup").size());
+      assertEquals(0,
+          MRTester.main(new String[] {TEST_TABLE_1, AccumuloInputFormat.class.getName()}));
+      assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_map").size());
+      assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_cleanup").size());
+    }
   }
 
   private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
@@ -336,53 +339,55 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void testSample() throws Exception {
     final String TEST_TABLE_3 = getUniqueNames(1)[0];
 
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(TEST_TABLE_3,
-        new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
-    BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(TEST_TABLE_3,
+          new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
+      BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
+      for (int i = 0; i < 100; i++) {
+        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+        bw.addMutation(m);
+      }
+      bw.close();
+
+      assertEquals(0, MRTester
+          .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "True"}));
+      assertEquals(39, assertionErrors.get(TEST_TABLE_3 + "_map").size());
+      assertEquals(2, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
+
+      assertionErrors.clear();
+      assertEquals(0, MRTester.main(
+          new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "False"}));
+      assertEquals(1, assertionErrors.get(TEST_TABLE_3 + "_map").size());
+      assertEquals(1, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
+
+      assertionErrors.clear();
+      assertEquals(0, MRTester
+          .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "True", "True"}));
+      assertEquals(39, assertionErrors.get(TEST_TABLE_3 + "_map").size());
+      assertEquals(2, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
     }
-    bw.close();
-
-    assertEquals(0, MRTester
-        .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "True"}));
-    assertEquals(39, assertionErrors.get(TEST_TABLE_3 + "_map").size());
-    assertEquals(2, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
-
-    assertionErrors.clear();
-    assertEquals(0, MRTester
-        .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "False", "False"}));
-    assertEquals(1, assertionErrors.get(TEST_TABLE_3 + "_map").size());
-    assertEquals(1, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
-
-    assertionErrors.clear();
-    assertEquals(0, MRTester
-        .main(new String[] {TEST_TABLE_3, AccumuloInputFormat.class.getName(), "True", "True"}));
-    assertEquals(39, assertionErrors.get(TEST_TABLE_3 + "_map").size());
-    assertEquals(2, assertionErrors.get(TEST_TABLE_3 + "_cleanup").size());
   }
 
   @Test
   public void testMapWithBatchScanner() throws Exception {
     final String TEST_TABLE_2 = getUniqueNames(1)[0];
 
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(TEST_TABLE_2);
-    BatchWriter bw = c.createBatchWriter(TEST_TABLE_2, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
-    }
-    bw.close();
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(TEST_TABLE_2);
+      BatchWriter bw = c.createBatchWriter(TEST_TABLE_2, new BatchWriterConfig());
+      for (int i = 0; i < 100; i++) {
+        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+        bw.addMutation(m);
+      }
+      bw.close();
 
-    assertEquals(0, MRTester
-        .main(new String[] {TEST_TABLE_2, AccumuloInputFormat.class.getName(), "True", "False"}));
-    assertEquals(1, assertionErrors.get(TEST_TABLE_2 + "_map").size());
-    assertEquals(1, assertionErrors.get(TEST_TABLE_2 + "_cleanup").size());
+      assertEquals(0, MRTester
+          .main(new String[] {TEST_TABLE_2, AccumuloInputFormat.class.getName(), "True", "False"}));
+      assertEquals(1, assertionErrors.get(TEST_TABLE_2 + "_map").size());
+      assertEquals(1, assertionErrors.get(TEST_TABLE_2 + "_cleanup").size());
+    }
   }
 
   @Test
@@ -396,53 +401,55 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
-    AccumuloClient accumuloClient = getAccumuloClient();
-    accumuloClient.tableOperations().create(table);
+    try (AccumuloClient accumuloClient = getAccumuloClient()) {
+      accumuloClient.tableOperations().create(table);
 
-    AccumuloInputFormat.setClientInfo(job, getClientInfo());
-    AccumuloInputFormat.setInputTableName(job, table);
-    AccumuloInputFormat.setScanAuthorizations(job, auths);
-    AccumuloInputFormat.setScanIsolation(job, isolated);
-    AccumuloInputFormat.setLocalIterators(job, localIters);
-    AccumuloInputFormat.fetchColumns(job, fetchColumns);
-    AccumuloInputFormat.setLogLevel(job, level);
+      AccumuloInputFormat.setClientInfo(job, getClientInfo());
+      AccumuloInputFormat.setInputTableName(job, table);
+      AccumuloInputFormat.setScanAuthorizations(job, auths);
+      AccumuloInputFormat.setScanIsolation(job, isolated);
+      AccumuloInputFormat.setLocalIterators(job, localIters);
+      AccumuloInputFormat.fetchColumns(job, fetchColumns);
+      AccumuloInputFormat.setLogLevel(job, level);
 
-    AccumuloInputFormat aif = new AccumuloInputFormat();
+      AccumuloInputFormat aif = new AccumuloInputFormat();
 
-    List<InputSplit> splits = aif.getSplits(job);
+      List<InputSplit> splits = aif.getSplits(job);
 
-    assertEquals(1, splits.size());
+      assertEquals(1, splits.size());
 
-    InputSplit split = splits.get(0);
+      InputSplit split = splits.get(0);
 
-    assertEquals(RangeInputSplit.class, split.getClass());
+      assertEquals(RangeInputSplit.class, split.getClass());
 
-    RangeInputSplit risplit = (RangeInputSplit) split;
+      RangeInputSplit risplit = (RangeInputSplit) split;
 
-    assertEquals(table, risplit.getTableName());
-    assertEquals(isolated, risplit.isIsolatedScan());
-    assertEquals(localIters, risplit.usesLocalIterators());
-    assertEquals(fetchColumns, risplit.getFetchedColumns());
-    assertEquals(level, risplit.getLogLevel());
+      assertEquals(table, risplit.getTableName());
+      assertEquals(isolated, risplit.isIsolatedScan());
+      assertEquals(localIters, risplit.usesLocalIterators());
+      assertEquals(fetchColumns, risplit.getFetchedColumns());
+      assertEquals(level, risplit.getLogLevel());
+    }
   }
 
   @Test
   public void testPartialInputSplitDelegationToConfiguration() throws Exception {
     String table = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(table);
-    BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
-    }
-    bw.close();
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(table);
+      BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
+      for (int i = 0; i < 100; i++) {
+        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+        bw.addMutation(m);
+      }
+      bw.close();
 
-    assertEquals(0,
-        MRTester.main(new String[] {table, EmptySplitsAccumuloInputFormat.class.getName()}));
-    assertEquals(1, assertionErrors.get(table + "_map").size());
-    assertEquals(1, assertionErrors.get(table + "_cleanup").size());
+      assertEquals(0,
+          MRTester.main(new String[] {table, EmptySplitsAccumuloInputFormat.class.getName()}));
+      assertEquals(1, assertionErrors.get(table + "_map").size());
+      assertEquals(1, assertionErrors.get(table + "_cleanup").size());
+    }
   }
 
   /**

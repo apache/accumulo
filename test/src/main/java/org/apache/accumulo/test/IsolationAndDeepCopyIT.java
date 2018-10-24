@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -46,36 +45,35 @@ public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
     // test bug fox for ACCUMULO-3977
 
     String table = super.getUniqueNames(1)[0];
-    AccumuloClient client = getAccumuloClient();
+    try (AccumuloClient client = getAccumuloClient()) {
 
-    client.tableOperations().create(table);
+      client.tableOperations().create(table);
 
-    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
+      try (BatchWriter bw = client.createBatchWriter(table)) {
+        addDocument(bw, "000A", "dog", "cat", "hamster", "iguana", "the");
+        addDocument(bw, "000B", "java", "perl", "C++", "pascal", "the");
+        addDocument(bw, "000C", "chrome", "firefox", "safari", "opera", "the");
+        addDocument(bw, "000D", "logarithmic", "quadratic", "linear", "exponential", "the");
+      }
 
-    addDocument(bw, "000A", "dog", "cat", "hamster", "iguana", "the");
-    addDocument(bw, "000B", "java", "perl", "C++", "pascal", "the");
-    addDocument(bw, "000C", "chrome", "firefox", "safari", "opera", "the");
-    addDocument(bw, "000D", "logarithmic", "quadratic", "linear", "exponential", "the");
+      // its a bug when using rfiles, so flush
+      client.tableOperations().flush(table, null, null, true);
 
-    bw.close();
+      IteratorSetting iterCfg = new IteratorSetting(30, "ayeaye",
+          IntersectingIterator.class.getName());
+      IntersectingIterator.setColumnFamilies(iterCfg,
+          new Text[] {new Text("the"), new Text("hamster")});
 
-    // its a bug when using rfiles, so flush
-    client.tableOperations().flush(table, null, null, true);
+      try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
+        scanner.enableIsolation();
+        scanner.addScanIterator(iterCfg);
 
-    IteratorSetting iterCfg = new IteratorSetting(30, "ayeaye",
-        IntersectingIterator.class.getName());
-    IntersectingIterator.setColumnFamilies(iterCfg,
-        new Text[] {new Text("the"), new Text("hamster")});
-
-    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
-      scanner.enableIsolation();
-      scanner.addScanIterator(iterCfg);
-
-      for (int i = 0; i < 100; i++) {
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        assertTrue(iter.hasNext());
-        assertEquals("000A", iter.next().getKey().getColumnQualifierData().toString());
-        assertFalse(iter.hasNext());
+        for (int i = 0; i < 100; i++) {
+          Iterator<Entry<Key,Value>> iter = scanner.iterator();
+          assertTrue(iter.hasNext());
+          assertEquals("000A", iter.next().getKey().getColumnQualifierData().toString());
+          assertFalse(iter.hasNext());
+        }
       }
     }
   }

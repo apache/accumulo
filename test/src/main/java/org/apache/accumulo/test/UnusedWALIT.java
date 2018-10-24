@@ -77,38 +77,39 @@ public class UnusedWALIT extends ConfigurableMacBase {
     String[] tableNames = getUniqueNames(2);
     String bigTable = tableNames[0];
     String lilTable = tableNames[1];
-    AccumuloClient c = getClient();
-    c.tableOperations().create(bigTable);
-    c.tableOperations().create(lilTable);
+    try (AccumuloClient c = getClient()) {
+      c.tableOperations().create(bigTable);
+      c.tableOperations().create(lilTable);
 
-    ServerContext context = getServerContext();
-    new ZooReaderWriter(c.info().getZooKeepers(), c.info().getZooKeepersSessionTimeOut(), "");
+      ServerContext context = getServerContext();
+      new ZooReaderWriter(c.info().getZooKeepers(), c.info().getZooKeepersSessionTimeOut(), "");
 
-    // put some data in a log that should be replayed for both tables
-    writeSomeData(c, bigTable, 0, 10, 0, 10);
-    scanSomeData(c, bigTable, 0, 10, 0, 10);
-    writeSomeData(c, lilTable, 0, 1, 0, 1);
-    scanSomeData(c, lilTable, 0, 1, 0, 1);
-    assertEquals(2, getWALCount(context));
+      // put some data in a log that should be replayed for both tables
+      writeSomeData(c, bigTable, 0, 10, 0, 10);
+      scanSomeData(c, bigTable, 0, 10, 0, 10);
+      writeSomeData(c, lilTable, 0, 1, 0, 1);
+      scanSomeData(c, lilTable, 0, 1, 0, 1);
+      assertEquals(2, getWALCount(context));
 
-    // roll the logs by pushing data into bigTable
-    writeSomeData(c, bigTable, 0, 3000, 0, 1000);
-    assertEquals(3, getWALCount(context));
+      // roll the logs by pushing data into bigTable
+      writeSomeData(c, bigTable, 0, 3000, 0, 1000);
+      assertEquals(3, getWALCount(context));
 
-    // put some data in the latest log
-    writeSomeData(c, lilTable, 1, 10, 0, 10);
-    scanSomeData(c, lilTable, 1, 10, 0, 10);
+      // put some data in the latest log
+      writeSomeData(c, lilTable, 1, 10, 0, 10);
+      scanSomeData(c, lilTable, 1, 10, 0, 10);
 
-    // bounce the tserver
-    getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
-    getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+      // bounce the tserver
+      getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
-    // wait for the metadata table to be online
-    Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+      // wait for the metadata table to be online
+      Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
 
-    // check our two sets of data in different logs
-    scanSomeData(c, lilTable, 0, 1, 0, 1);
-    scanSomeData(c, lilTable, 1, 10, 0, 10);
+      // check our two sets of data in different logs
+      scanSomeData(c, lilTable, 0, 1, 0, 1);
+      scanSomeData(c, lilTable, 1, 10, 0, 10);
+    }
   }
 
   private void scanSomeData(AccumuloClient c, String table, int startRow, int rowCount,

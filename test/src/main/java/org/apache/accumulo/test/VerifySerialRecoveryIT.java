@@ -74,52 +74,54 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
   public void testSerializedRecovery() throws Exception {
     // make a table with many splits
     String tableName = getUniqueNames(1)[0];
-    AccumuloClient c = getClient();
-    c.tableOperations().create(tableName);
-    SortedSet<Text> splits = new TreeSet<>();
-    for (int i = 0; i < 200; i++) {
-      splits.add(new Text(randomHex(8)));
-    }
-    c.tableOperations().addSplits(tableName, splits);
-    // load data to give the recovery something to do
-    BatchWriter bw = c.createBatchWriter(tableName, null);
-    for (int i = 0; i < 50000; i++) {
-      Mutation m = new Mutation(randomHex(8));
-      m.put("", "", "");
-      bw.addMutation(m);
-    }
-    bw.close();
-    // kill the tserver
-    for (ProcessReference ref : getCluster().getProcesses().get(ServerType.TABLET_SERVER))
-      getCluster().killProcess(ServerType.TABLET_SERVER, ref);
-    final Process ts = cluster.exec(TabletServer.class);
+    try (AccumuloClient c = getClient()) {
+      c.tableOperations().create(tableName);
+      SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 0; i < 200; i++) {
+        splits.add(new Text(randomHex(8)));
+      }
+      c.tableOperations().addSplits(tableName, splits);
+      // load data to give the recovery something to do
+      BatchWriter bw = c.createBatchWriter(tableName, null);
+      for (int i = 0; i < 50000; i++) {
+        Mutation m = new Mutation(randomHex(8));
+        m.put("", "", "");
+        bw.addMutation(m);
+      }
+      bw.close();
+      // kill the tserver
+      for (ProcessReference ref : getCluster().getProcesses().get(ServerType.TABLET_SERVER))
+        getCluster().killProcess(ServerType.TABLET_SERVER, ref);
+      final Process ts = cluster.exec(TabletServer.class);
 
-    // wait for recovery
-    Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
-    ts.waitFor();
-    String result = FunctionalTestUtils.readAll(cluster, TabletServer.class, ts);
-    for (String line : result.split("\n")) {
-      System.out.println(line);
-    }
-    // walk through the output, verifying that only a single normal recovery was running at one time
-    boolean started = false;
-    int recoveries = 0;
-    for (String line : result.split("\n")) {
-      // ignore metadata tables
-      if (line.contains("!0") || line.contains("+r"))
-        continue;
-      if (line.contains("Starting Write-Ahead Log")) {
-        assertFalse(started);
-        started = true;
-        recoveries++;
+      // wait for recovery
+      Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+      ts.waitFor();
+      String result = FunctionalTestUtils.readAll(cluster, TabletServer.class, ts);
+      for (String line : result.split("\n")) {
+        System.out.println(line);
       }
-      if (line.contains("Write-Ahead Log recovery complete")) {
-        assertTrue(started);
-        started = false;
+      // walk through the output, verifying that only a single normal recovery was running at one
+      // time
+      boolean started = false;
+      int recoveries = 0;
+      for (String line : result.split("\n")) {
+        // ignore metadata tables
+        if (line.contains("!0") || line.contains("+r"))
+          continue;
+        if (line.contains("Starting Write-Ahead Log")) {
+          assertFalse(started);
+          started = true;
+          recoveries++;
+        }
+        if (line.contains("Write-Ahead Log recovery complete")) {
+          assertTrue(started);
+          started = false;
+        }
       }
+      assertFalse(started);
+      assertTrue(recoveries > 0);
     }
-    assertFalse(started);
-    assertTrue(recoveries > 0);
   }
 }

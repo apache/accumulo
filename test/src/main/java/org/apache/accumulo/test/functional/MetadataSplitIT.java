@@ -44,15 +44,16 @@ public class MetadataSplitIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getClient();
-    assertEquals(1, c.tableOperations().listSplits(MetadataTable.NAME).size());
-    c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-        "500");
-    for (int i = 0; i < 10; i++) {
-      c.tableOperations().create("table" + i);
-      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
+    try (AccumuloClient c = getClient()) {
+      assertEquals(1, c.tableOperations().listSplits(MetadataTable.NAME).size());
+      c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+          "500");
+      for (int i = 0; i < 10; i++) {
+        c.tableOperations().create("table" + i);
+        c.tableOperations().flush(MetadataTable.NAME, null, null, true);
+      }
+      sleepUninterruptibly(10, TimeUnit.SECONDS);
+      assertTrue(c.tableOperations().listSplits(MetadataTable.NAME).size() > 2);
     }
-    sleepUninterruptibly(10, TimeUnit.SECONDS);
-    assertTrue(c.tableOperations().listSplits(MetadataTable.NAME).size() > 2);
   }
 }

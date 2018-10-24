@@ -80,94 +80,95 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getClient();
-    c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME,
-        TablePermission.WRITE);
-    final String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
+    try (AccumuloClient c = getClient()) {
+      c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME,
+          TablePermission.WRITE);
+      final String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
 
-    // Write some data to a table and add some splits
-    BatchWriter bw = c.createBatchWriter(tableName, null);
-    final SortedSet<Text> splits = new TreeSet<>();
-    for (String split : "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",")) {
-      splits.add(new Text(split));
-      Mutation m = new Mutation(new Text(split));
-      m.put(new byte[] {}, new byte[] {}, new byte[] {});
-      bw.addMutation(m);
-    }
-    bw.close();
-    c.tableOperations().addSplits(tableName, splits);
-
-    try (BatchScanner scanner = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
-      DIRECTORY_COLUMN.fetch(scanner);
-      Table.ID tableId = Table.ID.of(c.tableOperations().tableIdMap().get(tableName));
-      assertNotNull("TableID for " + tableName + " was null", tableId);
-      scanner.setRanges(Collections.singletonList(TabletsSection.getRange(tableId)));
-      // verify the directory entries are all on v1, make a few entries relative
-      bw = c.createBatchWriter(MetadataTable.NAME, null);
-      int count = 0;
-      for (Entry<Key,Value> entry : scanner) {
-        assertTrue("Expected " + entry.getValue() + " to contain " + v1,
-            entry.getValue().toString().contains(v1.toString()));
-        count++;
-        if (count % 2 == 0) {
-          String parts[] = entry.getValue().toString().split("/");
-          Key key = entry.getKey();
-          Mutation m = new Mutation(key.getRow());
-          m.put(key.getColumnFamily(), key.getColumnQualifier(),
-              new Value((Path.SEPARATOR + parts[parts.length - 1]).getBytes()));
-          bw.addMutation(m);
-        }
+      // Write some data to a table and add some splits
+      BatchWriter bw = c.createBatchWriter(tableName, null);
+      final SortedSet<Text> splits = new TreeSet<>();
+      for (String split : "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",")) {
+        splits.add(new Text(split));
+        Mutation m = new Mutation(new Text(split));
+        m.put(new byte[] {}, new byte[] {}, new byte[] {});
+        bw.addMutation(m);
       }
       bw.close();
-      assertEquals(splits.size() + 1, count);
+      c.tableOperations().addSplits(tableName, splits);
 
-      // This should fail: only one volume
-      assertEquals(1, cluster.exec(RandomizeVolumes.class, "-z", cluster.getZooKeepers(), "-i",
-          c.info().getInstanceName(), "-t", tableName).waitFor());
-
-      cluster.stop();
-
-      // add the 2nd volume
-      PropertiesConfiguration conf = new PropertiesConfiguration();
-      conf.load(cluster.getAccumuloPropertiesPath());
-      conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2);
-      conf.save(cluster.getAccumuloPropertiesPath());
-
-      // initialize volume
-      assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
-      cluster.start();
-      c = getClient();
-
-      // change the directory entries
-      assertEquals(0, cluster.exec(Admin.class, "randomizeVolumes", "-t", tableName).waitFor());
-
-      // verify a more equal sharing
-      int v1Count = 0, v2Count = 0;
-      for (Entry<Key,Value> entry : scanner) {
-        if (entry.getValue().toString().contains(v1.toString())) {
-          v1Count++;
+      try (BatchScanner scanner = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY,
+          1)) {
+        DIRECTORY_COLUMN.fetch(scanner);
+        Table.ID tableId = Table.ID.of(c.tableOperations().tableIdMap().get(tableName));
+        assertNotNull("TableID for " + tableName + " was null", tableId);
+        scanner.setRanges(Collections.singletonList(TabletsSection.getRange(tableId)));
+        // verify the directory entries are all on v1, make a few entries relative
+        bw = c.createBatchWriter(MetadataTable.NAME, null);
+        int count = 0;
+        for (Entry<Key,Value> entry : scanner) {
+          assertTrue("Expected " + entry.getValue() + " to contain " + v1,
+              entry.getValue().toString().contains(v1.toString()));
+          count++;
+          if (count % 2 == 0) {
+            String parts[] = entry.getValue().toString().split("/");
+            Key key = entry.getKey();
+            Mutation m = new Mutation(key.getRow());
+            m.put(key.getColumnFamily(), key.getColumnQualifier(),
+                new Value((Path.SEPARATOR + parts[parts.length - 1]).getBytes()));
+            bw.addMutation(m);
+          }
         }
-        if (entry.getValue().toString().contains(v2.toString())) {
-          v2Count++;
+        bw.close();
+        assertEquals(splits.size() + 1, count);
+
+        // This should fail: only one volume
+        assertEquals(1, cluster.exec(RandomizeVolumes.class, "-z", cluster.getZooKeepers(), "-i",
+            c.info().getInstanceName(), "-t", tableName).waitFor());
+
+        cluster.stop();
+
+        // add the 2nd volume
+        PropertiesConfiguration conf = new PropertiesConfiguration();
+        conf.load(cluster.getAccumuloPropertiesPath());
+        conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2);
+        conf.save(cluster.getAccumuloPropertiesPath());
+
+        // initialize volume
+        assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
+        cluster.start();
+
+        // change the directory entries
+        assertEquals(0, cluster.exec(Admin.class, "randomizeVolumes", "-t", tableName).waitFor());
+
+        // verify a more equal sharing
+        int v1Count = 0, v2Count = 0;
+        for (Entry<Key,Value> entry : scanner) {
+          if (entry.getValue().toString().contains(v1.toString())) {
+            v1Count++;
+          }
+          if (entry.getValue().toString().contains(v2.toString())) {
+            v2Count++;
+          }
         }
-      }
 
-      log.info("Count for volume1: {}", v1Count);
-      log.info("Count for volume2: {}", v2Count);
+        log.info("Count for volume1: {}", v1Count);
+        log.info("Count for volume2: {}", v2Count);
 
-      assertEquals(splits.size() + 1, v1Count + v2Count);
-      // a fair chooser will differ by less than count(volumes)
-      assertTrue("Expected the number of files to differ between volumes by less than 10. "
-          + v1Count + " " + v2Count, Math.abs(v1Count - v2Count) < 2);
-      // verify we can read the old data
-      count = 0;
-      for (Entry<Key,Value> entry : c.createScanner(tableName, Authorizations.EMPTY)) {
-        assertTrue("Found unexpected entry in table: " + entry,
-            splits.contains(entry.getKey().getRow()));
-        count++;
+        assertEquals(splits.size() + 1, v1Count + v2Count);
+        // a fair chooser will differ by less than count(volumes)
+        assertTrue("Expected the number of files to differ between volumes by less than 10. "
+            + v1Count + " " + v2Count, Math.abs(v1Count - v2Count) < 2);
+        // verify we can read the old data
+        count = 0;
+        for (Entry<Key,Value> entry : c.createScanner(tableName, Authorizations.EMPTY)) {
+          assertTrue("Found unexpected entry in table: " + entry,
+              splits.contains(entry.getKey().getRow()));
+          count++;
+        }
+        assertEquals(splits.size(), count);
       }
-      assertEquals(splits.size(), count);
     }
   }
 }

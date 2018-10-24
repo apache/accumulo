@@ -51,19 +51,20 @@ public class BigRootTabletIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().addSplits(MetadataTable.NAME,
-        FunctionalTestUtils.splits("0 1 2 3 4 5 6 7 8 9 a".split(" ")));
-    String[] names = getUniqueNames(10);
-    for (String name : names) {
-      c.tableOperations().create(name);
-      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
-      c.tableOperations().flush(RootTable.NAME, null, null, true);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().addSplits(MetadataTable.NAME,
+          FunctionalTestUtils.splits("0 1 2 3 4 5 6 7 8 9 a".split(" ")));
+      String[] names = getUniqueNames(10);
+      for (String name : names) {
+        c.tableOperations().create(name);
+        c.tableOperations().flush(MetadataTable.NAME, null, null, true);
+        c.tableOperations().flush(RootTable.NAME, null, null, true);
+      }
+      cluster.stop();
+      cluster.start();
+      assertTrue(
+          Iterators.size(c.createScanner(RootTable.NAME, Authorizations.EMPTY).iterator()) > 0);
     }
-    cluster.stop();
-    cluster.start();
-    assertTrue(
-        Iterators.size(c.createScanner(RootTable.NAME, Authorizations.EMPTY).iterator()) > 0);
   }
 
 }

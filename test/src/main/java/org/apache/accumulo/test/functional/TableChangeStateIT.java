@@ -56,6 +56,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -80,6 +81,11 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
   public void setup() {
     accumuloClient = getAccumuloClient();
     context = new ClientContext(accumuloClient.info());
+  }
+
+  @After
+  public void closeClient() {
+    accumuloClient.close();
   }
 
   @Override
