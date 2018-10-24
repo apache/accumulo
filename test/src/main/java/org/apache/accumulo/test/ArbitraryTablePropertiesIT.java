@@ -120,7 +120,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     // Create a root user and create the table
     // Create a test user and grant that user permission to alter the table
     final String tableName = getUniqueNames(1)[0];
-    try (final AccumuloClient c = getClient()) {
+    try (AccumuloClient c = getClient()) {
       c.securityOperations().createLocalUser(testUser,
           (testToken instanceof PasswordToken ? (PasswordToken) testToken : null));
       c.tableOperations().create(tableName);
@@ -190,7 +190,7 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
     // Create a root user and create the table
     // Create a test user and grant that user permission to alter the table
     final String tableName = getUniqueNames(1)[0];
-    try (final AccumuloClient c = getClient()) {
+    try (AccumuloClient c = getClient()) {
       c.securityOperations().createLocalUser(testUser,
           (testToken instanceof PasswordToken ? (PasswordToken) testToken : null));
       c.tableOperations().create(tableName);

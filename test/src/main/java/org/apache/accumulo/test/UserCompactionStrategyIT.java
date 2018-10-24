@@ -150,7 +150,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
     // test per-table classpath + user specified compaction strategy
 
-    try (final AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = getAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       File target = new File(System.getProperty("user.dir"), "target");
       assertTrue(target.mkdirs() || target.isDirectory());
