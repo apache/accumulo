@@ -47,10 +47,11 @@ public class TimeoutIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String[] tableNames = getUniqueNames(2);
-    testBatchWriterTimeout(client, tableNames[0]);
-    testBatchScannerTimeout(client, tableNames[1]);
+    try (AccumuloClient client = getAccumuloClient()) {
+      String[] tableNames = getUniqueNames(2);
+      testBatchWriterTimeout(client, tableNames[0]);
+      testBatchScannerTimeout(client, tableNames[1]);
+    }
   }
 
   public void testBatchWriterTimeout(AccumuloClient client, String tableName) throws Exception {

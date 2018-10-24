@@ -193,16 +193,17 @@ public class DurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 4 * 60 * 1000)
   public void testMetaDurability() throws Exception {
-    AccumuloClient c = getClient();
-    String tableName = getUniqueNames(1)[0];
-    c.instanceOperations().setProperty(Property.TABLE_DURABILITY.getKey(), "none");
-    Map<String,String> props = map(c.tableOperations().getProperties(MetadataTable.NAME));
-    assertEquals("sync", props.get(Property.TABLE_DURABILITY.getKey()));
-    c.tableOperations().create(tableName);
-    props = map(c.tableOperations().getProperties(tableName));
-    assertEquals("none", props.get(Property.TABLE_DURABILITY.getKey()));
-    restartTServer();
-    assertTrue(c.tableOperations().exists(tableName));
+    try (AccumuloClient c = getClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.instanceOperations().setProperty(Property.TABLE_DURABILITY.getKey(), "none");
+      Map<String,String> props = map(c.tableOperations().getProperties(MetadataTable.NAME));
+      assertEquals("sync", props.get(Property.TABLE_DURABILITY.getKey()));
+      c.tableOperations().create(tableName);
+      props = map(c.tableOperations().getProperties(tableName));
+      assertEquals("none", props.get(Property.TABLE_DURABILITY.getKey()));
+      restartTServer();
+      assertTrue(c.tableOperations().exists(tableName));
+    }
   }
 
   private long readSome(AccumuloClient client, String table) throws Exception {

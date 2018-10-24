@@ -60,59 +60,60 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getClient();
-    SortedSet<Text> splits = new TreeSet<>();
-    for (int i = 0; i < 1000; i++) {
-      splits.add(new Text(String.format("%03d", i)));
-    }
-    c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-        "10000");
-    // propagation time
-    sleepUninterruptibly(5, TimeUnit.SECONDS);
-    for (int i = 0; i < 5; i++) {
-      String tableName = "table" + i;
-      log.info("Creating {}", tableName);
-      c.tableOperations().create(tableName);
-      log.info("adding splits");
-      c.tableOperations().addSplits(tableName, splits);
-      log.info("flushing");
-      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
-      c.tableOperations().flush(RootTable.NAME, null, null, true);
-    }
-    log.info("shutting down");
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
-    cluster.stop();
-    log.info("starting up");
-    cluster.start();
+    try (AccumuloClient c = getClient()) {
+      SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 0; i < 1000; i++) {
+        splits.add(new Text(String.format("%03d", i)));
+      }
+      c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+          "10000");
+      // propagation time
+      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      for (int i = 0; i < 5; i++) {
+        String tableName = "table" + i;
+        log.info("Creating {}", tableName);
+        c.tableOperations().create(tableName);
+        log.info("adding splits");
+        c.tableOperations().addSplits(tableName, splits);
+        log.info("flushing");
+        c.tableOperations().flush(MetadataTable.NAME, null, null, true);
+        c.tableOperations().flush(RootTable.NAME, null, null, true);
+      }
+      log.info("shutting down");
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+      cluster.stop();
+      log.info("starting up");
+      cluster.start();
 
-    while (true) {
-      MasterMonitorInfo stats = null;
-      Client client = null;
-      try {
-        ClientContext context = getClientContext();
-        client = MasterClient.getConnectionWithRetry(context);
-        log.info("Fetching stats");
-        stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
-      } catch (ThriftNotActiveServiceException e) {
-        // Let it loop, fetching a new location
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-        continue;
-      } finally {
-        if (client != null)
-          MasterClient.close(client);
-      }
-      int tablets = 0;
-      for (TabletServerStatus tserver : stats.tServerInfo) {
-        for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {
-          if (entry.getKey().startsWith("!") || entry.getKey().startsWith("+"))
-            continue;
-          tablets += entry.getValue().onlineTablets;
+      while (true) {
+        MasterMonitorInfo stats = null;
+        Client client = null;
+        try {
+          ClientContext context = getClientContext();
+          client = MasterClient.getConnectionWithRetry(context);
+          log.info("Fetching stats");
+          stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
+        } catch (ThriftNotActiveServiceException e) {
+          // Let it loop, fetching a new location
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          continue;
+        } finally {
+          if (client != null)
+            MasterClient.close(client);
         }
+        int tablets = 0;
+        for (TabletServerStatus tserver : stats.tServerInfo) {
+          for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {
+            if (entry.getKey().startsWith("!") || entry.getKey().startsWith("+"))
+              continue;
+            tablets += entry.getValue().onlineTablets;
+          }
+        }
+        log.info("Online tablets " + tablets);
+        if (tablets == 5005)
+          break;
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
-      log.info("Online tablets " + tablets);
-      if (tablets == 5005)
-        break;
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
   }
 }
