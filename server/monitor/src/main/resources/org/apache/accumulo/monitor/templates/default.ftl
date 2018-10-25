@@ -32,6 +32,7 @@
       <script src="/resources/external/datatables/js/dataTables.bootstrap.js"></script>
       <script src="/resources/external/flot/jquery.flot.js"></script>
       <script src="/resources/external/flot/jquery.flot.time.js"></script>
+      <script src="/resources/external/flot/jquery.flot.resize.js"></script>
       <script src="/resources/external/ellipsis.js"></script>
       <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap.css" />
       <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap-theme.css" />
