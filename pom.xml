@@ -78,8 +78,8 @@
   </mailingLists>
   <modules>
     <module>assemble</module>
-    <module>client/mapreduce</module>
     <module>core</module>
+    <module>hadoop-mapreduce</module>
     <module>iterator-test-harness</module>
     <module>minicluster</module>
     <module>proxy</module>
@@ -311,17 +311,17 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-client-mapreduce</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-core</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-gc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-hadoop-mapreduce</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
