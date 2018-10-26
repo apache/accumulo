@@ -69,9 +69,12 @@ public class Tables {
 
       @Override
       public synchronized void disable() {
-        instanceToMapCache.invalidateAll();
-        instanceToZooCache.invalidateAll();
-        enabled = false;
+        try {
+          instanceToMapCache.invalidateAll();
+          instanceToZooCache.invalidateAll();
+        } finally {
+          enabled = false;
+        }
       }
     });
   }

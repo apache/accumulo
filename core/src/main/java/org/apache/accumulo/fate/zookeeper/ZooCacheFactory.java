@@ -45,9 +45,12 @@ public class ZooCacheFactory {
 
   private static void disable() {
     synchronized (instances) {
-      instances.values().forEach(zc -> zc.close());
-      instances.clear();
-      enabled = false;
+      try {
+        instances.values().forEach(zc -> zc.close());
+      } finally {
+        instances.clear();
+        enabled = false;
+      }
     }
   }
 
