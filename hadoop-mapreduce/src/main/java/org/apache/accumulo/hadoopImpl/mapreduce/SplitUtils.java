@@ -22,8 +22,6 @@ import java.math.BigInteger;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.hadoop.mapreduce.InputTableConfig;
-import org.apache.accumulo.hadoop.mapreduce.RangeInputSplit;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 

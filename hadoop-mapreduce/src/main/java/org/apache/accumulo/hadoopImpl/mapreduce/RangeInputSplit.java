@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.hadoop.mapreduce;
+package org.apache.accumulo.hadoopImpl.mapreduce;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -37,7 +37,6 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.hadoopImpl.mapreduce.SplitUtils;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;

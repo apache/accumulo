@@ -24,6 +24,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
+import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase;
+import org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;

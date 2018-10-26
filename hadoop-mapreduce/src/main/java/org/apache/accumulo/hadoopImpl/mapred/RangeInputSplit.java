@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.hadoop.mapred;
+package org.apache.accumulo.hadoopImpl.mapred;
 
 import java.io.IOException;
 
@@ -28,7 +28,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
     justification = "Intended to share code between mapred and mapreduce")
-public class RangeInputSplit extends org.apache.accumulo.hadoop.mapreduce.RangeInputSplit
+public class RangeInputSplit extends org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit
     implements InputSplit {
 
   public RangeInputSplit() {

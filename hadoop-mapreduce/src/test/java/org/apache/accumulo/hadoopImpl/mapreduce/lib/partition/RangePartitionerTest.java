@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.hadoop.mapreduce.lib.partition;
+package org.apache.accumulo.hadoopImpl.mapreduce.lib.partition;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
+import org.apache.accumulo.hadoopImpl.mapreduce.lib.partition.RangePartitioner;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.junit.Test;

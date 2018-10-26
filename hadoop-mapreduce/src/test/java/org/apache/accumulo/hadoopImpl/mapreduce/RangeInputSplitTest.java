@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.hadoop.mapreduce;
+package org.apache.accumulo.hadoopImpl.mapreduce;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.junit.Test;
