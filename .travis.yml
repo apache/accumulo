@@ -30,4 +30,4 @@ env:
   - BUILD_ARGS="clean verify -PskipQA,sec-bugs -Dspotbugs.skip=false"  # check for spotbugs+security
   - BUILD_ARGS="clean compile -Dhadoop.version=3.0.3 -Dzookeeper.version=3.4.12"  # quick compile to verify older API
 script:
-  - mvn $BUILD_ARGS
+  - travis_wait 20 mvn $BUILD_ARGS
