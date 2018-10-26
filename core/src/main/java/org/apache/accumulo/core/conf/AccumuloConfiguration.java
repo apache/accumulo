@@ -390,6 +390,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     throw new UnsupportedOperationException();
   }
 
+  // deprecation property warning could get spammy in tserver so only warn once
+  boolean depPropWarned = false;
+
   @SuppressWarnings("deprecation")
   Integer getDeprecatedScanThreads(String name) {
 
@@ -407,10 +410,14 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
 
     if (!isPropertySet(prop) && isPropertySet(deprecatedProp)) {
-      log.warn("Property {} is deprecated, use {} instead.", prop.getKey(),
-          deprecatedProp.getKey());
+      if (!depPropWarned) {
+        depPropWarned = true;
+        log.warn("Property {} is deprecated, use {} instead.", deprecatedProp.getKey(),
+            prop.getKey());
+      }
       return Integer.valueOf(get(deprecatedProp));
-    } else if (isPropertySet(prop) && isPropertySet(deprecatedProp)) {
+    } else if (isPropertySet(prop) && isPropertySet(deprecatedProp) && !depPropWarned) {
+      depPropWarned = true;
       log.warn("Deprecated property {} ignored because {} is set", deprecatedProp.getKey(),
           prop.getKey());
     }
