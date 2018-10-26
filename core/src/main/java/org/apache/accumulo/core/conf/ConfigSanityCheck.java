@@ -66,6 +66,16 @@ public class ConfigSanityCheck {
         fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType()
             + ") : " + value);
 
+      if (prop!=null) { 
+          if (prop.hasAnnotation(Deprecated.class)) {
+            log.warn("Use of {} is deprecated.", key);
+          }
+          ReplacedBy replacedBy = prop.getAnnotation(ReplacedBy.class);
+          if (replacedBy != null) {
+            log.warn("Consider using {} instead of {}.", replacedBy.replacedByProperty(), key);
+          }
+      }
+
       if (key.equals(Property.INSTANCE_ZK_TIMEOUT.getKey())) {
         instanceZkTimeoutValue = value;
       }
@@ -94,10 +104,6 @@ public class ConfigSanityCheck {
           new CheckTimeDurationBetween(1000, 300000));
     }
 
-    if (!usingVolumes) {
-      log.warn("Use of {} and {} are deprecated. Consider using {} instead.", INSTANCE_DFS_URI,
-          INSTANCE_DFS_DIR, Property.INSTANCE_VOLUMES);
-    }
   }
 
   private interface CheckTimeDuration {
