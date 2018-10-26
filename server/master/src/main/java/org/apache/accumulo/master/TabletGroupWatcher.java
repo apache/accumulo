@@ -204,7 +204,8 @@ abstract class TabletGroupWatcher extends Daemon {
           }
           Master.log.debug(store.name() + " location State: " + tls);
           // ignore entries for tables that do not exist in zookeeper
-          if (TableManager.getInstance().getTableState(tls.extent.getTableId()) == null)
+          TableState tableState = TableManager.getInstance().getTableState(tls.extent.getTableId());
+          if (tableState == null || tableState == TableState.DELETING)
             continue;
 
           if (Master.log.isTraceEnabled())

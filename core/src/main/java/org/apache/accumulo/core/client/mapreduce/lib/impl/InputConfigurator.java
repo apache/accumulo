@@ -671,7 +671,8 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static Map<String,InputTableConfig> getInputTableConfigs(Class<?> implementingClass,
       Configuration conf) {
-    return getInputTableConfigs(implementingClass, conf, getInputTableName(implementingClass, conf));
+    return getInputTableConfigs(implementingClass, conf,
+        getInputTableName(implementingClass, conf));
   }
 
   /**
@@ -726,7 +727,8 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static InputTableConfig getInputTableConfig(Class<?> implementingClass, Configuration conf,
       String tableName) {
-    Map<String,InputTableConfig> queryConfigs = getInputTableConfigs(implementingClass, conf, tableName);
+    Map<String,InputTableConfig> queryConfigs = getInputTableConfigs(implementingClass, conf,
+        tableName);
     return queryConfigs.get(tableName);
   }
 

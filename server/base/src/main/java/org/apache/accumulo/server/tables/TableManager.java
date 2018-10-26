@@ -49,6 +49,8 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class TableManager {
   private static SecurityPermission TABLE_MANAGER_PERMISSION = new SecurityPermission(
       "tableManagerPermission");
@@ -163,6 +165,7 @@ public class TableManager {
   }
 
   public synchronized void transitionTableState(final String tableId, final TableState newState) {
+    Preconditions.checkArgument(newState != TableState.UNKNOWN);
     String statePath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_STATE;
 
@@ -174,6 +177,11 @@ public class TableManager {
               TableState oldState = TableState.UNKNOWN;
               if (oldData != null)
                 oldState = TableState.valueOf(new String(oldData, UTF_8));
+
+              // this check makes the transition operation idempotent
+              if (oldState == newState)
+                return null; // already at desired state, so nothing to do
+
               boolean transition = true;
               // +--------+
               // v |
@@ -199,6 +207,18 @@ public class TableManager {
               return newState.name().getBytes(UTF_8);
             }
           });
+
+      if (newState == TableState.DELETING) {
+        // Updating the cache of table states in this method is very tricky because of distributed
+        // race conditions and should be avoided. However in the case of the deleting table state,
+        // its a terminal state so its ok to update as long as the cache currently has some value.
+        // If the cache has no value it may have already transitioned from deleting to deleted.
+        synchronized (tableStateCache) {
+          if (tableStateCache.containsKey(tableId)) {
+            tableStateCache.put(tableId, TableState.DELETING);
+          }
+        }
+      }
     } catch (Exception e) {
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
       log.error("FATAL Failed to transition table to state " + newState);
