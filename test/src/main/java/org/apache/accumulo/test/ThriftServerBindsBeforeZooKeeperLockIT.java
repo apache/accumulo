@@ -72,7 +72,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
 
     while (true) {
       try {
-        MonitorUtil.getLocation(getClientContext());
+        MonitorUtil.getLocation(getServerContext());
         break;
       } catch (Exception e) {
         LOG.debug("Failed to find active monitor location, retrying", e);

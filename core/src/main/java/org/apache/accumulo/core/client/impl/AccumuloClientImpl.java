@@ -272,6 +272,8 @@ public class AccumuloClientImpl implements AccumuloClient {
 
   @Override
   public void finalize() throws Throwable {
+    // TODO remove this method, its bad news... need to update the error messages
+
     try {
       if (autoClose)
         close();

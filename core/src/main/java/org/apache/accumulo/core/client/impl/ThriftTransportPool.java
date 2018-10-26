@@ -652,8 +652,11 @@ public class ThriftTransportPool {
 
   private static synchronized void disable() {
     if (instance != null) {
-      instance.shutdown();
-      instance = null;
+      try {
+        instance.shutdown();
+      } finally {
+        instance = null;
+      }
     }
   }
 
@@ -665,6 +668,7 @@ public class ThriftTransportPool {
   }
 
   private void shutdown() {
+    Thread ctl;
     synchronized (this) {
       if (cache == null)
         return;
@@ -683,13 +687,17 @@ public class ThriftTransportPool {
 
       // this will render the pool unusable and cause the background thread to exit
       this.cache = null;
+
+      ctl = checkThread;
     }
 
-    try {
-      checkThread.interrupt();
-      checkThread.join();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+    if (ctl != null) {
+      try {
+        ctl.interrupt();
+        ctl.join();
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 

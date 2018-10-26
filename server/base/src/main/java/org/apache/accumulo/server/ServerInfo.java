@@ -31,6 +31,8 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -52,6 +54,7 @@ public class ServerInfo implements ClientInfo {
 
   ServerInfo(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
       int zooKeepersSessionTimeOut) {
+    SingletonManager.setMode(Mode.SERVER);
     this.siteConfig = siteConfig;
     this.instanceName = instanceName;
     this.zooKeepers = zooKeepers;
@@ -80,6 +83,7 @@ public class ServerInfo implements ClientInfo {
   }
 
   ServerInfo(SiteConfiguration config) {
+    SingletonManager.setMode(Mode.SERVER);
     siteConfig = config;
     try {
       volumeManager = VolumeManagerImpl.get(siteConfig);

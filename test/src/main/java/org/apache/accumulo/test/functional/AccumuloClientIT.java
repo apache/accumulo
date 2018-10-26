@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
 
@@ -149,6 +150,8 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     Scanner scanner;
 
     assertEquals(0, SingletonManager.getReservationCount());
+    assertEquals(Mode.CLIENT, SingletonManager.getMode());
+
     try (AccumuloClient c = Accumulo.newClient().usingClientInfo(getClientInfo()).build()) {
       assertEquals(1, SingletonManager.getReservationCount());
 

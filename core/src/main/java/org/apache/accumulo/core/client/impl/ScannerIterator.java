@@ -160,10 +160,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
       if (obj instanceof Exception) {
         finished = true;
-        if (obj instanceof RuntimeException)
-          throw (RuntimeException) obj;
-        else
-          throw new RuntimeException((Exception) obj);
+        // TODO fix this in 1.9, very confusing old behavior
+        throw new RuntimeException((Exception) obj);
       }
 
       List<KeyValue> currentBatch = (List<KeyValue>) obj;

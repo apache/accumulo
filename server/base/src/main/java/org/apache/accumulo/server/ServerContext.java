@@ -35,8 +35,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.trace.DistributedTrace;
@@ -89,7 +87,6 @@ public class ServerContext extends ClientContext {
 
   private ServerContext(ServerInfo info) {
     super(info, info.getSiteConfiguration());
-    SingletonManager.setMode(Mode.SERVER);
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
   }

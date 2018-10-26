@@ -88,6 +88,7 @@ public class SingletonManager {
     try {
       service.enable();
     } catch (RuntimeException e) {
+      // TODO log
       e.printStackTrace();
     }
   }
@@ -96,6 +97,7 @@ public class SingletonManager {
     try {
       service.disable();
     } catch (RuntimeException e) {
+      // TODO log
       e.printStackTrace();
     }
   }
@@ -164,7 +166,7 @@ public class SingletonManager {
   }
 
   @VisibleForTesting
-  static synchronized Mode getMode() {
+  public static synchronized Mode getMode() {
     return mode;
   }
 

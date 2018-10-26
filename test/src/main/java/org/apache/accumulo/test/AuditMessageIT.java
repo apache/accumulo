@@ -176,7 +176,12 @@ public class AuditMessageIT extends ConfigurableMacBase {
   }
 
   @After
-  public void removeUsersAndTables() throws Exception {
+  public void cleanUp() throws Exception {
+    removeUsersAndTables();
+    client.close();
+  }
+
+  private void removeUsersAndTables() throws Exception {
     for (String user : Arrays.asList(AUDIT_USER_1, AUDIT_USER_2)) {
       if (client.securityOperations().listLocalUsers().contains(user)) {
         client.securityOperations().dropLocalUser(user);
@@ -190,8 +195,6 @@ public class AuditMessageIT extends ConfigurableMacBase {
         tops.delete(table);
       }
     }
-
-    client.close();
   }
 
   @Test

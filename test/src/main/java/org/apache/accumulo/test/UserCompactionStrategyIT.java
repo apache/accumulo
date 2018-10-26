@@ -71,7 +71,10 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @After
   public void checkForDanglingFateLocks() {
-    FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
+    // create an accumulo client even though its not used inorder to enable static stuff
+    try (AccumuloClient c = getAccumuloClient()) {
+      FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
+    }
   }
 
   @Test
