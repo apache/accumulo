@@ -167,7 +167,7 @@ if [[ "$1" =~ ^tserver-[1-9][0-9]*$ ]]; then
   set -- "$APP" "${@:2}"
 
   # The extra system property we'll pass to the java cmd
-  INSTANCE_OPT="-Daccumulo.service.instance=${INSTANCE}"
+  INSTANCE_OPT="-Daccumulo.metrics.service.instance=${INSTANCE}"
 fi
 
 #
