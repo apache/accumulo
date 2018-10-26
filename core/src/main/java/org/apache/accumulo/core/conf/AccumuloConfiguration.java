@@ -409,10 +409,12 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       return null;
     }
 
-    if (!isPropertySet(prop) && isPropertySet(deprecatedProp) && !depPropWarned) {
-      depPropWarned = true;
-      log.warn("Property {} is deprecated, use {} instead.", deprecatedProp.getKey(),
-          prop.getKey());
+    if (!isPropertySet(prop) && isPropertySet(deprecatedProp)) {
+      if (!depPropWarned) {
+        depPropWarned = true;
+        log.warn("Property {} is deprecated, use {} instead.", deprecatedProp.getKey(),
+            prop.getKey());
+      }
       return Integer.valueOf(get(deprecatedProp));
     } else if (isPropertySet(prop) && isPropertySet(deprecatedProp) && !depPropWarned) {
       depPropWarned = true;
