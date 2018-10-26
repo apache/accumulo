@@ -30,6 +30,8 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -49,6 +51,30 @@ public class Tables {
       .expireAfterAccess(10, TimeUnit.MINUTES).build();
   private static Cache<String,ZooCache> instanceToZooCache = CacheBuilder.newBuilder()
       .expireAfterAccess(10, TimeUnit.MINUTES).build();
+
+  static {
+    SingletonManager.register(new SingletonService() {
+
+      boolean enabled = false;
+
+      @Override
+      public synchronized boolean isEnabled() {
+        return enabled;
+      }
+
+      @Override
+      public synchronized void enable() {
+        enabled = true;
+      }
+
+      @Override
+      public synchronized void disable() {
+        instanceToMapCache.invalidateAll();
+        instanceToZooCache.invalidateAll();
+        enabled = false;
+      }
+    });
+  }
 
   /**
    * Lookup table ID in ZK. Throw TableNotFoundException if not found. Also wraps

@@ -40,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -61,6 +62,8 @@ public class ZooCache {
 
   private final ZooReader zReader;
   private final SecureRandom secureRandom = new SecureRandom();
+
+  private volatile boolean closed = false;
 
   public static class ZcStat {
     private long ephemeralOwner;
@@ -149,7 +152,6 @@ public class ZooCache {
   private class ZCacheWatcher implements Watcher {
     @Override
     public void process(WatchedEvent event) {
-
       if (log.isTraceEnabled()) {
         log.trace("{}", event);
       }
@@ -308,6 +310,7 @@ public class ZooCache {
    * @return children list, or null if node has no children or does not exist
    */
   public List<String> getChildren(final String zPath) {
+    Preconditions.checkState(!closed);
 
     ZooRunnable<List<String>> zr = new ZooRunnable<List<String>>() {
 
@@ -373,6 +376,7 @@ public class ZooCache {
    * @return path data, or null if non-existent
    */
   public byte[] get(final String zPath, final ZcStat status) {
+    Preconditions.checkState(!closed);
     ZooRunnable<byte[]> zr = new ZooRunnable<byte[]>() {
 
       @Override
@@ -440,6 +444,7 @@ public class ZooCache {
    *          cached statistic, that is or will be cached
    */
   protected void copyStats(ZcStat userStat, ZcStat cachedStat) {
+    Preconditions.checkState(!closed);
     if (userStat != null && cachedStat != null) {
       userStat.set(cachedStat);
     }
@@ -474,6 +479,7 @@ public class ZooCache {
    * Clears this cache.
    */
   public void clear() {
+    Preconditions.checkState(!closed);
     cacheWriteLock.lock();
     try {
       cache.clear();
@@ -486,11 +492,16 @@ public class ZooCache {
     }
   }
 
+  public void close() {
+    closed = true;
+  }
+
   /**
    * Returns a monotonically increasing count of the number of time the cache was updated. If the
    * count is the same, then it means cache did not change.
    */
   public long getUpdateCount() {
+    Preconditions.checkState(!closed);
     return immutableCache.updateCount;
   }
 
@@ -536,6 +547,7 @@ public class ZooCache {
    *          path of top node
    */
   public void clear(String zPath) {
+    Preconditions.checkState(!closed);
     cacheWriteLock.lock();
     try {
       for (Iterator<String> i = cache.keySet().iterator(); i.hasNext();) {

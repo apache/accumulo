@@ -180,10 +180,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     peerCluster.start();
 
-    try {
-      final AccumuloClient clientMaster = getClient();
-      final AccumuloClient clientPeer = peerCluster.getAccumuloClient("root",
-          new PasswordToken(ROOT_PASSWORD));
+    try (AccumuloClient clientMaster = getClient();
+        AccumuloClient clientPeer = peerCluster.getAccumuloClient("root",
+            new PasswordToken(ROOT_PASSWORD))) {
 
       ReplicationTable.setOnline(clientMaster);
 
@@ -346,10 +345,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     peer1Cluster.start();
 
-    try {
-      AccumuloClient clientMaster = getClient();
-      AccumuloClient clientPeer = peer1Cluster.getAccumuloClient("root",
-          new PasswordToken(ROOT_PASSWORD));
+    try (AccumuloClient clientMaster = getClient();
+        AccumuloClient clientPeer = peer1Cluster.getAccumuloClient("root",
+            new PasswordToken(ROOT_PASSWORD))) {
 
       String peerClusterName = "peer";
       String peerUserName = "peer", peerPassword = "foo";
@@ -522,103 +520,107 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     peerCluster.start();
 
-    AccumuloClient clientMaster = getClient();
-    AccumuloClient clientPeer = peerCluster.getAccumuloClient("root",
-        new PasswordToken(ROOT_PASSWORD));
+    try (AccumuloClient clientMaster = getClient();
+        AccumuloClient clientPeer = peerCluster.getAccumuloClient("root",
+            new PasswordToken(ROOT_PASSWORD))) {
 
-    String peerUserName = "repl";
-    String peerPassword = "passwd";
+      String peerUserName = "repl";
+      String peerPassword = "passwd";
 
-    // Create a user on the peer for replication to use
-    clientPeer.securityOperations().createLocalUser(peerUserName, new PasswordToken(peerPassword));
+      // Create a user on the peer for replication to use
+      clientPeer.securityOperations().createLocalUser(peerUserName,
+          new PasswordToken(peerPassword));
 
-    String peerClusterName = "peer";
+      String peerClusterName = "peer";
 
-    // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
-    clientMaster.instanceOperations().setProperty(
-        Property.REPLICATION_PEERS.getKey() + peerClusterName,
-        ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
-            AccumuloReplicaSystem.buildConfiguration(peerCluster.getInstanceName(),
-                peerCluster.getZooKeepers())));
+      // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
+      clientMaster.instanceOperations().setProperty(
+          Property.REPLICATION_PEERS.getKey() + peerClusterName,
+          ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
+              AccumuloReplicaSystem.buildConfiguration(peerCluster.getInstanceName(),
+                  peerCluster.getZooKeepers())));
 
-    // Configure the credentials we should use to authenticate ourselves to the peer for replication
-    clientMaster.instanceOperations()
-        .setProperty(Property.REPLICATION_PEER_USER.getKey() + peerClusterName, peerUserName);
-    clientMaster.instanceOperations()
-        .setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + peerClusterName, peerPassword);
+      // Configure the credentials we should use to authenticate ourselves to the peer for
+      // replication
+      clientMaster.instanceOperations()
+          .setProperty(Property.REPLICATION_PEER_USER.getKey() + peerClusterName, peerUserName);
+      clientMaster.instanceOperations()
+          .setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + peerClusterName, peerPassword);
 
-    String masterTable = "master", peerTable = "peer";
+      String masterTable = "master", peerTable = "peer";
 
-    clientMaster.tableOperations().create(masterTable);
-    String masterTableId = clientMaster.tableOperations().tableIdMap().get(masterTable);
-    assertNotNull(masterTableId);
+      clientMaster.tableOperations().create(masterTable);
+      String masterTableId = clientMaster.tableOperations().tableIdMap().get(masterTable);
+      assertNotNull(masterTableId);
 
-    clientPeer.tableOperations().create(peerTable);
-    String peerTableId = clientPeer.tableOperations().tableIdMap().get(peerTable);
-    assertNotNull(peerTableId);
+      clientPeer.tableOperations().create(peerTable);
+      String peerTableId = clientPeer.tableOperations().tableIdMap().get(peerTable);
+      assertNotNull(peerTableId);
 
-    // Give our replication user the ability to write to the table
-    clientPeer.securityOperations().grantTablePermission(peerUserName, peerTable,
-        TablePermission.WRITE);
+      // Give our replication user the ability to write to the table
+      clientPeer.securityOperations().grantTablePermission(peerUserName, peerTable,
+          TablePermission.WRITE);
 
-    // Replicate this table to the peerClusterName in a table with the peerTableId table id
-    clientMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION.getKey(),
-        "true");
-    clientMaster.tableOperations().setProperty(masterTable,
-        Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
+      // Replicate this table to the peerClusterName in a table with the peerTableId table id
+      clientMaster.tableOperations().setProperty(masterTable, Property.TABLE_REPLICATION.getKey(),
+          "true");
+      clientMaster.tableOperations().setProperty(masterTable,
+          Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
 
-    // Write some data to table1
-    BatchWriter bw = clientMaster.createBatchWriter(masterTable, new BatchWriterConfig());
-    for (int rows = 0; rows < 5000; rows++) {
-      Mutation m = new Mutation(Integer.toString(rows));
-      for (int cols = 0; cols < 100; cols++) {
-        String value = Integer.toString(cols);
-        m.put(value, "", value);
-      }
-      bw.addMutation(m);
-    }
-
-    bw.close();
-
-    log.info("Wrote all data to master cluster");
-
-    Set<String> files = clientMaster.replicationOperations().referencedFiles(masterTable);
-    for (String s : files) {
-      log.info("Found referenced file for {}: {}", masterTable, s);
-    }
-
-    for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
-      cluster.killProcess(ServerType.TABLET_SERVER, proc);
-    }
-
-    cluster.exec(TabletServer.class);
-
-    Iterators.size(clientMaster.createScanner(masterTable, Authorizations.EMPTY).iterator());
-
-    for (Entry<Key,Value> kv : clientMaster.createScanner(ReplicationTable.NAME,
-        Authorizations.EMPTY)) {
-      log.debug("{} {}", kv.getKey().toStringNoTruncate(),
-          ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
-    }
-
-    clientMaster.replicationOperations().drain(masterTable, files);
-
-    try (Scanner master = clientMaster.createScanner(masterTable, Authorizations.EMPTY);
-        Scanner peer = clientPeer.createScanner(peerTable, Authorizations.EMPTY)) {
-      Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
-      assertTrue("No data in master table", masterIter.hasNext());
-      assertTrue("No data in peer table", peerIter.hasNext());
-      while (masterIter.hasNext() && peerIter.hasNext()) {
-        Entry<Key,Value> masterEntry = masterIter.next(), peerEntry = peerIter.next();
-        assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0, masterEntry
-            .getKey().compareTo(peerEntry.getKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
-        assertEquals(masterEntry.getValue(), peerEntry.getValue());
+      // Write some data to table1
+      BatchWriter bw = clientMaster.createBatchWriter(masterTable, new BatchWriterConfig());
+      for (int rows = 0; rows < 5000; rows++) {
+        Mutation m = new Mutation(Integer.toString(rows));
+        for (int cols = 0; cols < 100; cols++) {
+          String value = Integer.toString(cols);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
       }
 
-      assertFalse("Had more data to read from the master", masterIter.hasNext());
-      assertFalse("Had more data to read from the peer", peerIter.hasNext());
+      bw.close();
+
+      log.info("Wrote all data to master cluster");
+
+      Set<String> files = clientMaster.replicationOperations().referencedFiles(masterTable);
+      for (String s : files) {
+        log.info("Found referenced file for {}: {}", masterTable, s);
+      }
+
+      for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
+        cluster.killProcess(ServerType.TABLET_SERVER, proc);
+      }
+
+      cluster.exec(TabletServer.class);
+
+      Iterators.size(clientMaster.createScanner(masterTable, Authorizations.EMPTY).iterator());
+
+      for (Entry<Key,Value> kv : clientMaster.createScanner(ReplicationTable.NAME,
+          Authorizations.EMPTY)) {
+        log.debug("{} {}", kv.getKey().toStringNoTruncate(),
+            ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
+      }
+
+      clientMaster.replicationOperations().drain(masterTable, files);
+
+      try (Scanner master = clientMaster.createScanner(masterTable, Authorizations.EMPTY);
+          Scanner peer = clientPeer.createScanner(peerTable, Authorizations.EMPTY)) {
+        Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
+        assertTrue("No data in master table", masterIter.hasNext());
+        assertTrue("No data in peer table", peerIter.hasNext());
+        while (masterIter.hasNext() && peerIter.hasNext()) {
+          Entry<Key,Value> masterEntry = masterIter.next(), peerEntry = peerIter.next();
+          assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
+              masterEntry.getKey().compareTo(peerEntry.getKey(),
+                  PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
+          assertEquals(masterEntry.getValue(), peerEntry.getValue());
+        }
+
+        assertFalse("Had more data to read from the master", masterIter.hasNext());
+        assertFalse("Had more data to read from the peer", peerIter.hasNext());
+      }
+      peerCluster.stop();
     }
-    peerCluster.stop();
   }
 
   @Test
@@ -634,10 +636,9 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     peer1Cluster.start();
 
-    try {
-      AccumuloClient clientMaster = getClient();
-      AccumuloClient clientPeer = peer1Cluster.getAccumuloClient("root",
-          new PasswordToken(ROOT_PASSWORD));
+    try (AccumuloClient clientMaster = getClient();
+        AccumuloClient clientPeer = peer1Cluster.getAccumuloClient("root",
+            new PasswordToken(ROOT_PASSWORD))) {
 
       String peerClusterName = "peer";
 

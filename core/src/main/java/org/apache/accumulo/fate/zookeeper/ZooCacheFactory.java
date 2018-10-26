@@ -19,6 +19,8 @@ package org.apache.accumulo.fate.zookeeper;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.zookeeper.Watcher;
 
 /**
@@ -27,6 +29,50 @@ import org.apache.zookeeper.Watcher;
 public class ZooCacheFactory {
   // TODO: make this better - LRU, soft references, ...
   private static Map<String,ZooCache> instances = new HashMap<>();
+  private static boolean enabled = true;
+
+  private static boolean isEnabled() {
+    synchronized (instances) {
+      return enabled;
+    }
+  }
+
+  private static void enable() {
+    synchronized (instances) {
+      enabled = true;
+    }
+  }
+
+  private static void disable() {
+    synchronized (instances) {
+      instances.values().forEach(zc -> zc.close());
+      instances.clear();
+      enabled = false;
+    }
+  }
+
+  static {
+    // important because of ZOOKEEPER-2368.. when zookeeper client is closed it does not generate an
+    // event!
+    SingletonManager.register(new SingletonService() {
+
+      @Override
+      public synchronized boolean isEnabled() {
+        return ZooCacheFactory.isEnabled();
+      }
+
+      @Override
+      public synchronized void enable() {
+        ZooCacheFactory.enable();
+      }
+
+      @Override
+      public synchronized void disable() {
+        ZooCacheFactory.disable();
+      }
+    });
+
+  }
 
   /**
    * Gets a {@link ZooCache}. The same object may be returned for multiple calls with the same
@@ -41,6 +87,10 @@ public class ZooCacheFactory {
   public ZooCache getZooCache(String zooKeepers, int sessionTimeout) {
     String key = zooKeepers + ":" + sessionTimeout;
     synchronized (instances) {
+      if (!isEnabled()) {
+        throw new IllegalStateException("\"The Accumulo singleton for zookeeper caching is "
+            + "disabled. This is likely caused by all AccumuloClients being closed");
+      }
       ZooCache zc = instances.get(key);
       if (zc == null) {
         zc = new ZooCache(zooKeepers, sessionTimeout);
@@ -78,5 +128,4 @@ public class ZooCacheFactory {
       instances.clear();
     }
   }
-
 }
