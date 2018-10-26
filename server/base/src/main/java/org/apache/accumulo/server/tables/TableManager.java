@@ -207,18 +207,6 @@ public class TableManager {
               return newState.name().getBytes(UTF_8);
             }
           });
-
-      if (newState == TableState.DELETING) {
-        // Updating the cache of table states in this method is very tricky because of distributed
-        // race conditions and should be avoided. However in the case of the deleting table state,
-        // its a terminal state so its ok to update as long as the cache currently has some value.
-        // If the cache has no value it may have already transitioned from deleting to deleted.
-        synchronized (tableStateCache) {
-          if (tableStateCache.containsKey(tableId)) {
-            tableStateCache.put(tableId, TableState.DELETING);
-          }
-        }
-      }
     } catch (Exception e) {
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
       log.error("FATAL Failed to transition table to state " + newState);
