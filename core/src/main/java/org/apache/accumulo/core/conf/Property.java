@@ -96,21 +96,6 @@ public enum Property {
       "Zookeeper session timeout; "
           + "max value when represented as milliseconds should be no larger than "
           + Integer.MAX_VALUE),
-  @Deprecated
-  INSTANCE_DFS_URI("instance.dfs.uri", "", PropertyType.URI,
-      "This property is deprecated since 1.6.0. "
-          + "A url accumulo should use to connect to DFS. If this is empty, accumulo"
-          + " will obtain this information from the hadoop configuration. This property"
-          + " will only be used when creating new files if instance.volumes is empty."
-          + " After an upgrade to 1.6.0 Accumulo will start using absolute paths to"
-          + " reference files. Files created before a 1.6.0 upgrade are referenced via"
-          + " relative paths. Relative paths will always be resolved using this config"
-          + " (if empty using the hadoop config)."),
-  @Deprecated
-  INSTANCE_DFS_DIR("instance.dfs.dir", "/accumulo", PropertyType.ABSOLUTEPATH,
-      "This property is deprecated since 1.6.0. "
-          + "HDFS directory in which accumulo instance will run. "
-          + "Do not change after accumulo is initialized."),
   @Sensitive
   INSTANCE_SECRET("instance.secret", "DEFAULT", PropertyType.STRING,
       "A secret unique to a given instance that all servers must know in order"
@@ -131,6 +116,23 @@ public enum Property {
           + " reference files created at that location before the config change. To use"
           + " a comma or other reserved characters in a URI use standard URI hex"
           + " encoding. For example replace commas with %2C."),
+  @Deprecated
+  @ReplacedBy(replacedByProperty=INSTANCE_VOLUMES)
+  INSTANCE_DFS_URI("instance.dfs.uri", "", PropertyType.URI,
+		  "This property is deprecated since 1.6.0. "
+				  + "A url accumulo should use to connect to DFS. If this is empty, accumulo"
+				  + " will obtain this information from the hadoop configuration. This property"
+				  + " will only be used when creating new files if instance.volumes is empty."
+				  + " After an upgrade to 1.6.0 Accumulo will start using absolute paths to"
+				  + " reference files. Files created before a 1.6.0 upgrade are referenced via"
+				  + " relative paths. Relative paths will always be resolved using this config"
+				  + " (if empty using the hadoop config)."),
+  @Deprecated
+  @ReplacedBy(replacedByProperty=INSTANCE_VOLUMES)
+  INSTANCE_DFS_DIR("instance.dfs.dir", "/accumulo", PropertyType.ABSOLUTEPATH,
+		  "This property is deprecated since 1.6.0. "
+				  + "HDFS directory in which accumulo instance will run. "
+				  + "Do not change after accumulo is initialized."),
   INSTANCE_VOLUMES_REPLACEMENTS("instance.volumes.replacements", "", PropertyType.STRING,
       "Since accumulo stores absolute URIs changing the location of a namenode "
           + "could prevent Accumulo from starting. The property helps deal with "
@@ -1077,7 +1079,7 @@ public enum Property {
     return false;
   }
 
-  private <T extends Annotation> boolean hasAnnotation(Class<T> annotationType) {
+  public <T extends Annotation> boolean hasAnnotation(Class<T> annotationType) {
     Logger log = LoggerFactory.getLogger(getClass());
     try {
       for (Annotation a : getClass().getField(name()).getAnnotations())
@@ -1088,6 +1090,18 @@ public enum Property {
     }
     return false;
   }
+
+  public <T extends Annotation> T getAnnotation(Class<T> annotationType) {
+	    Logger log = LoggerFactory.getLogger(getClass());
+	    try {
+	      for (Annotation a : getClass().getField(name()).getAnnotations())
+	        if (annotationType.isInstance(a))
+	          return (T) a;
+	    } catch (SecurityException | NoSuchFieldException e) {
+	      log.error("{}", e.getMessage(), e);
+	    }
+	    return null;
+	  }
 
   private static <T extends Annotation> boolean hasPrefixWithAnnotation(String key,
       Class<T> annotationType) {
