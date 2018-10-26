@@ -72,8 +72,7 @@ public class ConfigSanityCheck {
           }
           ReplacedBy replacedBy = prop.getAnnotation(ReplacedBy.class);
           if (replacedBy != null) {
-            log.warn("Consider using {} instead of {}.", key,
-                replacedBy.replacedByProperty());
+            log.warn("Consider using {} instead of {}.", replacedBy.replacedByProperty(), key);
           }
       }
 
