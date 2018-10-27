@@ -21,22 +21,20 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.curator.test.TestingServer;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -46,68 +44,44 @@ public class MiniAccumuloClusterExistingZooKeepersTest {
 
   private static final String SECRET = "superSecret";
 
-  private static final Logger log = LoggerFactory
-      .getLogger(MiniAccumuloClusterExistingZooKeepersTest.class);
-  private TestingServer zooKeeper;
-  private MiniAccumuloCluster accumulo;
+  private MiniAccumuloConfig config;
 
   @Rule
   public TestName testName = new TestName();
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "intput determined by test")
   @Before
-  public void setupTestCluster() throws Exception {
+  public void setupTestCluster() {
     assertTrue(BASE_DIR.mkdirs() || BASE_DIR.isDirectory());
     File testDir = new File(BASE_DIR, testName.getMethodName());
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
-
-    zooKeeper = new TestingServer();
-
-    MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, SECRET);
-    config.getImpl().setExistingZooKeepers(zooKeeper.getConnectString());
-    accumulo = new MiniAccumuloCluster(config);
-    accumulo.start();
+    config = new MiniAccumuloConfig(testDir, SECRET);
   }
 
-  @After
-  public void teardownTestCluster() {
-    if (accumulo != null) {
-      try {
-        accumulo.stop();
-      } catch (IOException | InterruptedException e) {
-        log.warn("Failure during tear down", e);
-      }
-    }
-
-    if (zooKeeper != null) {
-      try {
-        zooKeeper.close();
-      } catch (IOException e) {
-        log.warn("Failure stopping test ZooKeeper server");
-      }
-    }
-  }
-
-  @SuppressWarnings("deprecation")
   @Test
   public void canConnectViaExistingZooKeeper() throws Exception {
-    org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", SECRET);
-    ClientContext context = new ClientContext(accumulo.getClientInfo());
-    assertEquals(zooKeeper.getConnectString(), context.getZooKeepers());
+    try(TestingServer zooKeeper = new TestingServer();
+        MiniAccumuloCluster accumulo = new MiniAccumuloCluster(config.setZooKeeperPort(zooKeeper.getPort()))
+    ) {
+      accumulo.start();
 
-    String tableName = "foo";
-    conn.tableOperations().create(tableName);
-    Map<String,String> tableIds = conn.tableOperations().tableIdMap();
-    assertTrue(tableIds.containsKey(tableName));
+      AccumuloClient client = accumulo.getAccumuloClient("root", new PasswordToken(SECRET));
+      ClientContext context = new ClientContext(accumulo.getClientInfo());
 
-    String zkTablePath = String.format("/accumulo/%s/tables/%s/name", context.getInstanceID(),
-        tableIds.get(tableName));
-    try (CuratorFramework client = CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(),
-        new RetryOneTime(1))) {
-      client.start();
-      assertNotNull(client.checkExists().forPath(zkTablePath));
-      assertEquals(tableName, new String(client.getData().forPath(zkTablePath)));
+      String tableName = "foo";
+      client.tableOperations().create(tableName);
+      Map<String, String> tableIds = client.tableOperations().tableIdMap();
+      assertTrue(tableIds.containsKey(tableName));
+
+      String zkTablePath = String.format("/accumulo/%s/tables/%s/name", context.getInstanceID(),
+              tableIds.get(tableName));
+      try (CuratorFramework zkClient = CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(),
+              new RetryOneTime(1))) {
+        zkClient.start();
+        assertNotNull(zkClient.checkExists().forPath(zkTablePath));
+        assertEquals(tableName, new String(zkClient.getData().forPath(zkTablePath)));
+      }
     }
   }
 }

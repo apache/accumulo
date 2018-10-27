@@ -40,7 +40,7 @@ import com.google.common.base.Preconditions;
  *
  * @since 1.5.0
  */
-public class MiniAccumuloCluster {
+public class MiniAccumuloCluster implements AutoCloseable {
 
   private MiniAccumuloClusterImpl impl;
 
@@ -166,5 +166,10 @@ public class MiniAccumuloCluster {
     File clientProps = new File(new File(directory, "conf"), "accumulo-client.properties");
     Preconditions.checkArgument(clientProps.exists());
     return Accumulo.newClient().usingProperties(clientProps.getAbsolutePath()).info();
+  }
+
+  @Override
+  public void close() throws Exception {
+    this.stop();
   }
 }
