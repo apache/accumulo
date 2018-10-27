@@ -26,15 +26,10 @@ $(document).ready(function() {
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshBulkImport() {
-  $.ajaxSetup({
-    async: false
+  getBulkImports().then(function() {
+    refreshBulkImportTable();
+    refreshServerBulkTable();
   });
-  getBulkImports();
-  $.ajaxSetup({
-    async: true
-  });
-  refreshBulkImportTable();
-  refreshServerBulkTable();
 }
 
 /**

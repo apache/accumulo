@@ -20,14 +20,9 @@ var type, minutes;
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshListType() {
-  $.ajaxSetup({
-    async: false
+  getTraceOfType(type, minutes).then(function() {
+    refreshTypeTraceTable(minutes);
   });
-  getTraceOfType(type, minutes);
-  $.ajaxSetup({
-    async: true
-  });
-  refreshTypeTraceTable(minutes);
 }
 
 /**

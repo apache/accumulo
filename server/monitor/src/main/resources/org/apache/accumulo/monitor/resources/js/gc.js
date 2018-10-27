@@ -26,14 +26,9 @@ $(document).ready(function() {
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshGC() {
-  $.ajaxSetup({
-    async: false
+  getGarbageCollector().then(function() {
+    refreshGCTable();
   });
-  getGarbageCollector();
-  $.ajaxSetup({
-    async: true
-  });
-  refreshGCTable();
 }
 
 /**

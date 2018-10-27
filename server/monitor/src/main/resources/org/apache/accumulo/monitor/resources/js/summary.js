@@ -19,14 +19,9 @@ var minutes;
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshSummary() {
-  $.ajaxSetup({
-    async: false
+  getTraceSummary(minutes).then(function() {
+    refreshTraceSummaryTable(minutes);
   });
-  getTraceSummary(minutes);
-  $.ajaxSetup({
-    async: true
-  });
-  refreshTraceSummaryTable(minutes);
 }
 
 /**
