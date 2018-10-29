@@ -367,6 +367,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-vfs2</artifactId>
+        <!-- commons-vfs2 version 2.2 has defects that impacts changing Accumulo classpath contexts. -->
         <version>2.1</version>
       </dependency>
       <dependency>
