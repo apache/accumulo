@@ -74,8 +74,13 @@ if [[ "$HOST" = "$(hostname -s)" ]]; then
 fi
 
 # ACCUMULO-1985 Allow monitor to bind on all interfaces
-if [[ ${SERVICE} == "monitor" && ${ACCUMULO_MONITOR_BIND_ALL} == "true" ]]; then
-   ADDRESS="0.0.0.0"
+if [[ ${SERVICE} == "monitor" ]]; then
+  # Check for "true" case-insensitively
+  shopt -s nocasematch
+  if [[ ${ACCUMULO_MONITOR_BIND_ALL} == "true" ]]; then
+    ADDRESS="0.0.0.0"
+  fi
+  shopt -u nocasematch
 fi
 
 COMMAND="${bin}/accumulo"
