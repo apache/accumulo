@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.volume.Volume;
@@ -125,6 +126,17 @@ public class ServerUtil {
     for (Entry<String,String> entry : sortedProps.entrySet()) {
       String key = entry.getKey();
       log.info("{} = {}", key, (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
+      Property prop = Property.getPropertyByKey(key);
+      if (conf.isPropertySet(prop)) {
+        if (prop.isDeprecated()) {
+          Property replacedBy = prop.replacedBy();
+          if (replacedBy != null) {
+            log.warn("{} is deprecated, use {} instead.", prop.getKey(), replacedBy.getKey());
+          } else {
+            log.warn("{} is deprecated", prop.getKey());
+          }
+        }
+      }
     }
 
     monitorSwappiness(conf);
