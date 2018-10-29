@@ -37,8 +37,6 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -181,19 +179,9 @@ public class SiteConfiguration extends AccumuloConfiguration {
     String key = property.getKey();
     // If the property is sensitive, see if CredentialProvider was configured.
     if (property.isSensitive()) {
-      org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
-      if (null != hadoopConf) {
-        // Try to find the sensitive value from the CredentialProvider
-        try {
-          char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
-              key);
-          if (null != value) {
-            return new String(value);
-          }
-        } catch (IOException e) {
-          log.warn("Failed to extract sensitive property (" + key
-              + ") from Hadoop CredentialProvider, falling back to accumulo.properties", e);
-        }
+      String hadoopVal = getSensitiveFromHadoop(property);
+      if (hadoopVal != null) {
+        return hadoopVal;
       }
     }
 
@@ -214,10 +202,32 @@ public class SiteConfiguration extends AccumuloConfiguration {
     return value;
   }
 
+  private String getSensitiveFromHadoop(Property property) {
+    org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
+    if (null != hadoopConf) {
+      // Try to find the sensitive value from the CredentialProvider
+      try {
+        char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
+            property.getKey());
+        if (null != value) {
+          return new String(value);
+        }
+      } catch (IOException e) {
+        log.warn("Failed to extract sensitive property (" + property.getKey()
+            + ") from Hadoop CredentialProvider, falling back to accumulo.properties", e);
+      }
+    }
+    return null;
+  }
+
   @Override
   public boolean isPropertySet(Property prop) {
-    Preconditions.checkArgument(!prop.isSensitive(),
-        "This method not implemented for sensitive props");
+    if (prop.isSensitive()) {
+      String hadoopVal = getSensitiveFromHadoop(prop);
+      if (hadoopVal != null) {
+        return true;
+      }
+    }
     return overrides.containsKey(prop.getKey()) || staticConfigs.containsKey(prop.getKey())
         || getConfiguration().containsKey(prop.getKey()) || parent.isPropertySet(prop);
   }
