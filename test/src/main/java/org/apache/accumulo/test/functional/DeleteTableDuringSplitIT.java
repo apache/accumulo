@@ -112,8 +112,6 @@ public class DeleteTableDuringSplitIT extends AccumuloClusterHarness {
       for (String tableName : tableNames) {
         assertFalse(client.tableOperations().exists(tableName));
       }
-
-      client.close();
     }
   }
 

@@ -17,6 +17,9 @@
 
 package org.apache.accumulo.core.singletons;
 
+/**
+ * @see SingletonManager#getClientReservation()
+ */
 public class SingletonReservation implements AutoCloseable {
 
   private boolean closed = false;

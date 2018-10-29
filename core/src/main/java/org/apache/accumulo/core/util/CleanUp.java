@@ -25,12 +25,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class was created because Connector was used static resource that created threads. There was
- * no way to clean these resource up other than using this class. The new {@link AccumuloClient} API
- * is closable. For code than only uses AccumuloClient, when all AccumuloClients are closed then
- * resources will be cleaned up. However any code creating Connectors via Instance.getConnector()
- * would still need to call this code to clean up resources. Connectors that are derived from an
- * AccumuloClient do not necessitate the use of this code.
+ * Connector uses static resource that create threads and use memory. The only way to clean up these
+ * static resource related to Connectors created using ZookeeperInstance is to use this class.
+ *
+ * <p>
+ * This class is not needed when only using {@link AccumuloClient}. The new AccumuloClient API that
+ * replaces Connector is closable. For code that only uses AccumuloClient, when all AccumuloClients
+ * are closed resources are cleaned up. Connectors that are derived from an AccumuloClient do not
+ * necessitate the use of this code.
  *
  * @deprecated since 2.0.0 Use only {@link AccumuloClient} instead. Also, make sure you close the
  *             AccumuloClient instances.

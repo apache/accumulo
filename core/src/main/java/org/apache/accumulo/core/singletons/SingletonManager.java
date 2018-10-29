@@ -80,7 +80,6 @@ public class SingletonManager {
   }
 
   static {
-    // test code calls this, so always use it inorder to give credibility to test results
     reset();
   }
 
@@ -119,8 +118,8 @@ public class SingletonManager {
 
   /**
    * This method should be called when creating Accumulo clients using the public API. Accumulo
-   * client created internally within the code probably should not call this method. While a client
-   * hold a reservation singleton services are enabled.
+   * clients created internally within the code probably should not call this method. While a client
+   * holds a reservation, singleton services are enabled.
    *
    * @return A reservation that must be closed when the AccumuloClient is closed.
    */

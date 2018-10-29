@@ -17,6 +17,11 @@
 
 package org.apache.accumulo.core.singletons;
 
+/**
+ * The {@link SingletonManager} uses this interface to enable and disable singleton services.
+ *
+ * @see SingletonManager#register(SingletonService)
+ */
 public interface SingletonService {
 
   public boolean isEnabled();

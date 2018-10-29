@@ -93,6 +93,8 @@ public class ZooKeeperInstance implements Instance {
 
   ZooKeeperInstance(ClientConfiguration config, ZooCacheFactory zcf) {
     checkArgument(config != null, "config is null");
+    // Enable singletons before before getting a zoocache
+    SingletonManager.setMode(Mode.CONNECTOR);
     this.clientConf = config;
     this.instanceId = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_ID);
     this.instanceName = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_NAME);
@@ -226,7 +228,6 @@ public class ZooKeeperInstance implements Instance {
     Properties properties = ClientConfConverter.toProperties(clientConf);
     properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
     properties.setProperty(ClientProperty.INSTANCE_NAME.getKey(), getInstanceName());
-    SingletonManager.setMode(Mode.CONNECTOR);
     return new ConnectorImpl(new AccumuloClientImpl(SingletonReservation.fake(),
         new ClientContext(new ClientInfoImpl(properties, token)), false));
   }
