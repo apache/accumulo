@@ -125,6 +125,17 @@ public class ServerUtil {
     for (Entry<String,String> entry : sortedProps.entrySet()) {
       String key = entry.getKey();
       log.info("{} = {}", key, (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
+      Property prop = Property.getPropertyByKey(key);
+      if (prop != null && conf.isPropertySet(prop)) {
+        if (prop.isDeprecated()) {
+          Property replacedBy = prop.replacedBy();
+          if (replacedBy != null) {
+            log.warn("{} is deprecated, use {} instead.", prop.getKey(), replacedBy.getKey());
+          } else {
+            log.warn("{} is deprecated", prop.getKey());
+          }
+        }
+      }
     }
 
     monitorSwappiness(conf);

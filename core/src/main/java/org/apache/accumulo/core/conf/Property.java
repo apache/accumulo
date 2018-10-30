@@ -96,21 +96,6 @@ public enum Property {
       "Zookeeper session timeout; "
           + "max value when represented as milliseconds should be no larger than "
           + Integer.MAX_VALUE),
-  @Deprecated
-  INSTANCE_DFS_URI("instance.dfs.uri", "", PropertyType.URI,
-      "This property is deprecated since 1.6.0. "
-          + "A url accumulo should use to connect to DFS. If this is empty, accumulo"
-          + " will obtain this information from the hadoop configuration. This property"
-          + " will only be used when creating new files if instance.volumes is empty."
-          + " After an upgrade to 1.6.0 Accumulo will start using absolute paths to"
-          + " reference files. Files created before a 1.6.0 upgrade are referenced via"
-          + " relative paths. Relative paths will always be resolved using this config"
-          + " (if empty using the hadoop config)."),
-  @Deprecated
-  INSTANCE_DFS_DIR("instance.dfs.dir", "/accumulo", PropertyType.ABSOLUTEPATH,
-      "This property is deprecated since 1.6.0. "
-          + "HDFS directory in which accumulo instance will run. "
-          + "Do not change after accumulo is initialized."),
   @Sensitive
   INSTANCE_SECRET("instance.secret", "DEFAULT", PropertyType.STRING,
       "A secret unique to a given instance that all servers must know in order"
@@ -193,13 +178,6 @@ public enum Property {
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of accumulo overall, but"
           + " do not have to be consistent throughout a cloud."),
-  @Deprecated
-  GENERAL_CLASSPATHS(AccumuloClassLoader.GENERAL_CLASSPATHS, "", PropertyType.STRING,
-      "This property is deprecated since 2.0.0. The class path should instead be configured"
-          + " by the launch environment (for example, accumulo-env.sh). A list of all"
-          + " of the places to look for a class. Order does matter, as it will look for"
-          + " the jar starting in the first location to the last. Supports full regex"
-          + " on filename alone."),
   GENERAL_DYNAMIC_CLASSPATHS(AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME,
       AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE, PropertyType.STRING,
       "A list of all of the places where changes in jars or classes will force "
@@ -384,17 +362,6 @@ public enum Property {
       "When a tablet server's SimpleTimer thread triggers to check idle"
           + " sessions, this configurable option will be used to evaluate update"
           + " sessions to determine if they can be closed due to inactivity"),
-  @Deprecated
-  TSERV_READ_AHEAD_MAXCONCURRENT("tserver.readahead.concurrent.max", "16", PropertyType.COUNT,
-      "This property is deprecated since 2.0.0, use tserver.scan.executors.default.threads "
-          + "instead. The maximum number of concurrent read ahead that will execute. This "
-          + "effectively limits the number of long running scans that can run concurrently "
-          + "per tserver.\""),
-  @Deprecated
-  TSERV_METADATA_READ_AHEAD_MAXCONCURRENT("tserver.metadata.readahead.concurrent.max", "8",
-      PropertyType.COUNT,
-      "This property is deprecated since 2.0.0, use tserver.scan.executors.meta.threads instead. "
-          + "The maximum number of concurrent metadata read ahead that will execute."),
   TSERV_SCAN_EXECUTORS_PREFIX("tserver.scan.executors.", null, PropertyType.PREFIX,
       "Prefix for defining executors to service scans. See "
           + "[scan executors]({% durl administration/scan-executors %}) for an overview of why and"
@@ -484,9 +451,6 @@ public enum Property {
   TSERV_WAL_SYNC("tserver.wal.sync", "true", PropertyType.BOOLEAN,
       "Use the SYNC_BLOCK create flag to sync WAL writes to disk. Prevents"
           + " problems recovering from sudden system resets."),
-  @Deprecated
-  TSERV_WAL_SYNC_METHOD("tserver.wal.sync.method", "hsync", PropertyType.STRING,
-      "This property is deprecated since 1.7.0. Use table.durability instead."),
   TSERV_ASSIGNMENT_DURATION_WARNING("tserver.assignment.duration.warning", "10m",
       PropertyType.TIMEDURATION,
       "The amount of time an assignment can run before the server will print a"
@@ -568,7 +532,6 @@ public enum Property {
           + " monitor.ssl.include.ciphers to allow ciphers"),
   MONITOR_SSL_INCLUDE_PROTOCOLS("monitor.ssl.include.protocols", "TLSv1.2", PropertyType.STRING,
       "A comma-separate list of allowed SSL protocols"),
-
   MONITOR_LOCK_CHECK_INTERVAL("monitor.lock.check.interval", "5s", PropertyType.TIMEDURATION,
       "The amount of time to sleep between checking for the Montior ZooKeeper lock"),
   MONITOR_RESOURCES_EXTERNAL("monitor.resources.external", "", PropertyType.STRING,
@@ -689,9 +652,6 @@ public enum Property {
           + " Summary.getFileStatistics().getLarge(). When adjusting this consider the"
           + " expected number RFiles with summaries on each tablet server and the"
           + " summary cache size."),
-  @Deprecated
-  TABLE_WALOG_ENABLED("table.walog.enabled", "true", PropertyType.BOOLEAN,
-      "This setting is deprecated since 1.7.0. Use table.durability=none instead."),
   TABLE_BLOOM_ENABLED("table.bloom.enabled", "false", PropertyType.BOOLEAN,
       "Use bloom filters on this table."),
   TABLE_BLOOM_LOAD_THRESHOLD("table.bloom.load.threshold", "1", PropertyType.COUNT,
@@ -717,6 +677,7 @@ public enum Property {
           + " none, which skips the write-ahead log; log, which sends the data to the"
           + " write-ahead log, but does nothing to make it durable; flush, which pushes"
           + " data to the file system; and sync, which ensures the data is written to disk."),
+
   TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN,
       "If you want queries for your table to hang or fail when data is missing"
           + " from the system, then set this to false. When this set to true missing"
@@ -904,7 +865,53 @@ public enum Property {
       "The sampling percentage to use for replication traces"),
   REPLICATION_RPC_TIMEOUT("replication.rpc.timeout", "2m", PropertyType.TIMEDURATION,
       "Amount of time for a single replication RPC call to last before failing"
-          + " the attempt. See replication.work.attempts.");
+          + " the attempt. See replication.work.attempts."),
+  // deprecated properties grouped at the end to reference property that replaces them
+  @Deprecated
+  @ReplacedBy(property = INSTANCE_VOLUMES)
+  INSTANCE_DFS_URI("instance.dfs.uri", "", PropertyType.URI,
+      "This property is deprecated since 1.6.0. "
+          + "A url accumulo should use to connect to DFS. If this is empty, accumulo"
+          + " will obtain this information from the hadoop configuration. This property"
+          + " will only be used when creating new files if instance.volumes is empty."
+          + " After an upgrade to 1.6.0 Accumulo will start using absolute paths to"
+          + " reference files. Files created before a 1.6.0 upgrade are referenced via"
+          + " relative paths. Relative paths will always be resolved using this config"
+          + " (if empty using the hadoop config)."),
+  @Deprecated
+  @ReplacedBy(property = INSTANCE_VOLUMES)
+  INSTANCE_DFS_DIR("instance.dfs.dir", "/accumulo", PropertyType.ABSOLUTEPATH,
+      "This property is deprecated since 1.6.0. "
+          + "HDFS directory in which accumulo instance will run. "
+          + "Do not change after accumulo is initialized."),
+  @Deprecated
+  GENERAL_CLASSPATHS(AccumuloClassLoader.GENERAL_CLASSPATHS, "", PropertyType.STRING,
+      "This property is deprecated since 2.0.0. The class path should instead be configured"
+          + " by the launch environment (for example, accumulo-env.sh). A list of all"
+          + " of the places to look for a class. Order does matter, as it will look for"
+          + " the jar starting in the first location to the last. Supports full regex"
+          + " on filename alone."),
+  @Deprecated
+  @ReplacedBy(property = TABLE_DURABILITY)
+  TSERV_WAL_SYNC_METHOD("tserver.wal.sync.method", "hsync", PropertyType.STRING,
+      "This property is deprecated since 1.7.0. Use table.durability instead."),
+  @Deprecated
+  @ReplacedBy(property = TABLE_DURABILITY)
+  TABLE_WALOG_ENABLED("table.walog.enabled", "true", PropertyType.BOOLEAN,
+      "This setting is deprecated since 1.7.0. Use table.durability=none instead."),
+  @Deprecated
+  @ReplacedBy(property = TSERV_SCAN_EXECUTORS_DEFAULT_THREADS)
+  TSERV_READ_AHEAD_MAXCONCURRENT("tserver.readahead.concurrent.max", "16", PropertyType.COUNT,
+      "This property is deprecated since 2.0.0, use tserver.scan.executors.default.threads "
+          + "instead. The maximum number of concurrent read ahead that will execute. This "
+          + "effectively limits the number of long running scans that can run concurrently "
+          + "per tserver.\""),
+  @Deprecated
+  @ReplacedBy(property = TSERV_SCAN_EXECUTORS_META_THREADS)
+  TSERV_METADATA_READ_AHEAD_MAXCONCURRENT("tserver.metadata.readahead.concurrent.max", "8",
+      PropertyType.COUNT,
+      "This property is deprecated since 2.0.0, use tserver.scan.executors.meta.threads instead. "
+          + "The maximum number of concurrent metadata read ahead that will execute.");
 
   private String key;
   private String defaultValue;
@@ -916,6 +923,7 @@ public enum Property {
   private boolean isDeprecated;
   private boolean isExperimental;
   private boolean isInterpolated;
+  private Property replacedBy = null;
   private PropertyType type;
 
   private Property(String name, String defaultValue, PropertyType type, String description) {
@@ -1040,6 +1048,12 @@ public enum Property {
     return isSensitive;
   }
 
+  public Property replacedBy() {
+    Preconditions.checkState(annotationsComputed,
+        "precomputeAnnotations() must be called before calling this method");
+    return replacedBy;
+  }
+
   private void precomputeAnnotations() {
     isSensitive = hasAnnotation(Sensitive.class)
         || hasPrefixWithAnnotation(getKey(), Sensitive.class);
@@ -1049,6 +1063,12 @@ public enum Property {
         || hasPrefixWithAnnotation(getKey(), Experimental.class);
     isInterpolated = hasAnnotation(Interpolated.class)
         || hasPrefixWithAnnotation(getKey(), Interpolated.class);
+    if (hasAnnotation(ReplacedBy.class)) {
+      ReplacedBy rb = getAnnotation(ReplacedBy.class);
+      if (rb != null) {
+        replacedBy = rb.property();
+      }
+    }
     annotationsComputed = true;
   }
 
@@ -1073,7 +1093,6 @@ public enum Property {
         }
       }
     }
-
     return false;
   }
 
@@ -1087,6 +1106,18 @@ public enum Property {
       log.error("{}", e.getMessage(), e);
     }
     return false;
+  }
+
+  private <T extends Annotation> T getAnnotation(Class<T> annotationType) {
+    Logger log = LoggerFactory.getLogger(getClass());
+    try {
+      for (Annotation a : getClass().getField(name()).getAnnotations())
+        if (annotationType.isInstance(a))
+          return (T) a;
+    } catch (SecurityException | NoSuchFieldException e) {
+      log.error("{}", e.getMessage(), e);
+    }
+    return null;
   }
 
   private static <T extends Annotation> boolean hasPrefixWithAnnotation(String key,

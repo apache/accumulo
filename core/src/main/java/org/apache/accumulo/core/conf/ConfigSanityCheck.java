@@ -33,10 +33,6 @@ public class ConfigSanityCheck {
 
   private static final Logger log = LoggerFactory.getLogger(ConfigSanityCheck.class);
   private static final String PREFIX = "BAD CONFIG ";
-  @SuppressWarnings("deprecation")
-  private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
-  @SuppressWarnings("deprecation")
-  private static final Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
 
   /**
    * Validates the given configuration entries. A valid configuration contains only valid properties
@@ -51,7 +47,6 @@ public class ConfigSanityCheck {
    */
   public static void validate(Iterable<Entry<String,String>> entries) {
     String instanceZkTimeoutValue = null;
-    boolean usingVolumes = false;
     for (Entry<String,String> entry : entries) {
       String key = entry.getKey();
       String value = entry.getValue();
@@ -68,10 +63,6 @@ public class ConfigSanityCheck {
 
       if (key.equals(Property.INSTANCE_ZK_TIMEOUT.getKey())) {
         instanceZkTimeoutValue = value;
-      }
-
-      if (key.equals(Property.INSTANCE_VOLUMES.getKey())) {
-        usingVolumes = value != null && !value.isEmpty();
       }
 
       // If the block size or block size index is configured to be too large, we throw an exception
@@ -92,11 +83,6 @@ public class ConfigSanityCheck {
     if (instanceZkTimeoutValue != null) {
       checkTimeDuration(Property.INSTANCE_ZK_TIMEOUT, instanceZkTimeoutValue,
           new CheckTimeDurationBetween(1000, 300000));
-    }
-
-    if (!usingVolumes) {
-      log.warn("Use of {} and {} are deprecated. Consider using {} instead.", INSTANCE_DFS_URI,
-          INSTANCE_DFS_DIR, Property.INSTANCE_VOLUMES);
     }
   }
 
