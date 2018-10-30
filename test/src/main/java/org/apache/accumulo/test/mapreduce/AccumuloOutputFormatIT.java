@@ -47,6 +47,10 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated
 public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
   private static AssertionError e1 = null;
 
@@ -95,6 +99,7 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       job.setInputFormatClass(AccumuloInputFormat.class);
 
       ClientInfo ci = getClientInfo();
+      AccumuloInputFormat.setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
       AccumuloInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloInputFormat.setInputTableName(job, table1);
 
@@ -105,6 +110,7 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
+      AccumuloOutputFormat.setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
       AccumuloOutputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloOutputFormat.setCreateTables(job, false);
       AccumuloOutputFormat.setDefaultTableName(job, table2);

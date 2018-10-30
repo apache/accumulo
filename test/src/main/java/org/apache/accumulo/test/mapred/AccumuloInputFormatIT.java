@@ -55,6 +55,10 @@ import org.apache.log4j.Level;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated
 public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
   @BeforeClass
@@ -125,6 +129,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       job.setInputFormat(AccumuloInputFormat.class);
 
       ClientInfo ci = getClientInfo();
+      AccumuloInputFormat.setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
       AccumuloInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setBatchScan(job, batchScan);
@@ -222,6 +227,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       accumuloClient.tableOperations().create(table);
 
       ClientInfo ci = getClientInfo();
+      AccumuloInputFormat.setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
       AccumuloInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setScanAuthorizations(job, auths);

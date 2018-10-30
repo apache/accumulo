@@ -25,7 +25,6 @@ import org.apache.hadoop.fs.Path;
 /**
  * @since 1.6.0
  */
-@SuppressWarnings("deprecation")
 public class DistributedCacheHelper {
 
   /**

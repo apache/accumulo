@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -70,7 +71,7 @@ public class ConfiguratorBase {
    * @since 1.6.0
    */
   public enum ConnectorInfo {
-    IS_CONFIGURED, PRINCIPAL, TOKEN,
+    IS_CONFIGURED, PRINCIPAL, TOKEN
   }
 
   public static enum TokenSource {
@@ -357,10 +358,7 @@ public class ConfiguratorBase {
    * @param clientConfig
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0
-   * @deprecated since 2.0.0; use {@link #setClientProperties(Class, Configuration, Properties)}
-   *             instead
    */
-  @Deprecated
   public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf,
       org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
     Properties props = getClientProperties(implementingClass, conf);
@@ -383,9 +381,7 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return an Accumulo instance
    * @since 1.6.0
-   * @deprecated since 2.0.0, replaced by {@link #getClientInfo(Class, Configuration)}
    */
-  @Deprecated
   public static org.apache.accumulo.core.client.Instance getInstance(Class<?> implementingClass,
       Configuration conf) {
     try {
@@ -404,7 +400,6 @@ public class ConfiguratorBase {
    * @param conf
    *          Hadoop configuration object
    * @return Accumulo connector
-   * @since 2.0.0
    */
   public static AccumuloClient getClient(Class<?> implementingClass, Configuration conf) {
     return Accumulo.newClient().from(getClientProperties(implementingClass, conf)).build();
@@ -420,11 +415,9 @@ public class ConfiguratorBase {
    *
    * @return A ClientConfiguration
    * @since 1.7.0
-   * @deprecated since 2.0.0; use {@link #getClientInfo(Class, Configuration)} instead
    */
-  @Deprecated
-  public static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
-      Class<?> implementingClass, Configuration conf) {
+  public static ClientConfiguration getClientConfiguration(Class<?> implementingClass,
+      Configuration conf) {
     return ClientConfConverter.toClientConf(getClientInfo(implementingClass, conf).getProperties());
   }
 

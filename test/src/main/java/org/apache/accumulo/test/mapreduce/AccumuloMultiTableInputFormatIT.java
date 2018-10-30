@@ -45,6 +45,10 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated
 public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
 
   private static AssertionError e1 = null;
@@ -99,6 +103,8 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
       job.setInputFormatClass(AccumuloMultiTableInputFormat.class);
 
       ClientInfo ci = getClientInfo();
+      AccumuloMultiTableInputFormat.setZooKeeperInstance(job, ci.getInstanceName(),
+          ci.getZooKeepers());
       AccumuloMultiTableInputFormat.setConnectorInfo(job, ci.getPrincipal(),
           ci.getAuthenticationToken());
 

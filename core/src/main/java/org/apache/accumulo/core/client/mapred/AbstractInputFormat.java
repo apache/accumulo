@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
@@ -64,7 +65,6 @@ import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit;
 import org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase;
 import org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -87,8 +87,8 @@ import org.apache.log4j.Logger;
  * the very least, any classes inheriting from this class will need to define their own
  * {@link RecordReader}.
  *
- * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
- *             New users should use org.apache.accumulo.hadoop.mapred.AccumuloInputFormat
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
 @Deprecated
 public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
@@ -229,11 +229,30 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    */
   protected static AuthenticationToken getAuthenticationToken(JobConf job) {
     AuthenticationToken token = InputConfigurator.getAuthenticationToken(CLASS, job);
-    return ConfiguratorBase.unwrapAuthenticationToken(job, token);
+    return InputConfigurator.unwrapAuthenticationToken(job, token);
   }
 
   /**
-   * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
+   * Configures a {@link ZooKeeperInstance} for this job.
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param instanceName
+   *          the Accumulo instance name
+   * @param zooKeepers
+   *          a comma-separated list of zookeeper servers
+   * @since 1.5.0
+   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(JobConf, ClientConfiguration)}
+   *             instead.
+   */
+  @Deprecated
+  public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
+    setZooKeeperInstance(job,
+        ClientConfiguration.create().withInstance(instanceName).withZkHosts(zooKeepers));
+  }
+
+  /**
+   * Configures a {@link ZooKeeperInstance} for this job.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -246,8 +265,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Initializes an Accumulo {@link org.apache.accumulo.core.client.Instance} based on the
-   * configuration.
+   * Initializes an Accumulo {@link Instance} based on the configuration.
    *
    * @param job
    *          the Hadoop context for the configured job
@@ -286,8 +304,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Sets the {@link org.apache.accumulo.core.security.Authorizations} used to scan. Must be a
-   * subset of the user's authorization. Defaults to the empty set.
+   * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorization.
+   * Defaults to the empty set.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -370,10 +388,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * An abstract base class to be used to create {@link org.apache.hadoop.mapred.RecordReader}
-   * instances that convert from Accumulo
-   * {@link org.apache.accumulo.core.data.Key}/{@link org.apache.accumulo.core.data.Value} pairs to
-   * the user's K/V types.
+   * An abstract base class to be used to create {@link RecordReader} instances that convert from
+   * Accumulo {@link Key}/{@link Value} pairs to the user's K/V types.
    *
    * Subclasses must implement {@link #next(Object, Object)} to update key and value, and also to
    * update the following variables:
@@ -427,6 +443,24 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
       for (IteratorSetting iterator : iterators)
         scanner.addScanIterator(iterator);
+    }
+
+    /**
+     * Configures the iterators on a scanner for the given table name.
+     *
+     * @param job
+     *          the Hadoop job configuration
+     * @param scanner
+     *          the scanner for which to configure the iterators
+     * @param tableName
+     *          the table name for which the scanner is configured
+     * @since 1.6.0
+     * @deprecated since 1.7.0; Use {@link #jobIterators} instead.
+     */
+    @Deprecated
+    protected void setupIterators(JobConf job, Scanner scanner, String tableName,
+        RangeInputSplit split) {
+      setupIterators(job, (ScannerBase) scanner, tableName, split);
     }
 
     /**

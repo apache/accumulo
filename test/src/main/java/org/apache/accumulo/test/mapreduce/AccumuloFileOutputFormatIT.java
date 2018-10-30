@@ -58,6 +58,10 @@ import org.junit.rules.TemporaryFolder;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated
 public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   private String PREFIX;
@@ -167,6 +171,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       job.setInputFormatClass(AccumuloInputFormat.class);
 
       ClientInfo ci = getClientInfo();
+      AccumuloInputFormat.setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
       AccumuloInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloFileOutputFormat.setOutputPath(job, new Path(args[1]));

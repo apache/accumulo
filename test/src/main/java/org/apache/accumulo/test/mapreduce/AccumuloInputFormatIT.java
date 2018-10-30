@@ -70,6 +70,10 @@ import org.junit.Test;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated
 public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
   AccumuloInputFormat inputFormat;
@@ -103,7 +107,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       Job job = Job.getInstance();
       AccumuloInputFormat.setInputTableName(job, table);
       ClientInfo ci = getClientInfo();
+      AccumuloInputFormat.setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
       AccumuloInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
+
       // split table
       TreeSet<Text> splitsToAdd = new TreeSet<>();
       for (int i = 0; i < 10000; i += 1000)
@@ -114,9 +120,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       // get splits without setting any range
       Collection<Text> actualSplits = client.tableOperations().listSplits(table);
       List<InputSplit> splits = inputFormat.getSplits(job);
-      assertEquals(actualSplits.size() + 1, splits.size()); // No ranges set on the job so it'll
-                                                            // start
-                                                            // with -inf
+      // No ranges set on the job so it'll start with -inf
+      assertEquals(actualSplits.size() + 1, splits.size());
 
       // set ranges and get splits
       List<Range> ranges = new ArrayList<>();
@@ -285,6 +290,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       job.setInputFormatClass(inputFormatClass);
 
       ClientInfo ci = getClientInfo();
+      AccumuloInputFormat.setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
       AccumuloInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setBatchScan(job, batchScan);
@@ -407,6 +413,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       accumuloClient.tableOperations().create(table);
 
       ClientInfo ci = getClientInfo();
+      AccumuloInputFormat.setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
       AccumuloInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setScanAuthorizations(job, auths);

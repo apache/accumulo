@@ -24,7 +24,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -34,6 +33,10 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
+/**
+ * @deprecated since 2.0.0
+ */
+@Deprecated
 public class ConfiguratorBaseTest {
 
   private enum PrivateTestingEnum {
@@ -75,20 +78,6 @@ public class ConfiguratorBaseTest {
         .getClientInfo(this.getClass(), conf).getAuthenticationToken()).getPassword()));
   }
 
-  @Test
-  public void testSetClientProperties() {
-    Configuration conf = new Configuration();
-    Properties props = Accumulo.newClientProperties().to("myinstance", "myzookeepers")
-        .as("user", "pass").build();
-    ConfiguratorBase.setClientProperties(this.getClass(), conf, props);
-    Properties props2 = ConfiguratorBase.getClientProperties(this.getClass(), conf);
-    assertEquals("myinstance", ClientProperty.INSTANCE_NAME.getValue(props2));
-    assertEquals("myzookeepers", ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props2));
-    assertEquals("user", ClientProperty.AUTH_PRINCIPAL.getValue(props2));
-    assertTrue(ClientProperty.getAuthenticationToken(props2) instanceof PasswordToken);
-  }
-
-  @SuppressWarnings("deprecation")
   @Test
   public void testSetZooKeeperInstance() {
     Configuration conf = new Configuration();

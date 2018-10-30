@@ -35,16 +35,17 @@ import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase;
 import org.apache.accumulo.core.clientImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
@@ -77,8 +78,8 @@ import org.apache.log4j.Logger;
  *
  * Other static methods are optional.
  *
- * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
- *             New users see org.apache.accumulo.hadoop.mapreduce.AccumuloOutputFormat
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
 @Deprecated
 public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
@@ -185,6 +186,28 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
 
   /**
+   * Gets the serialized token class from either the configuration or the token file.
+   *
+   * @since 1.5.0
+   * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobContext)} instead.
+   */
+  @Deprecated
+  protected static String getTokenClass(JobContext context) {
+    return getAuthenticationToken(context).getClass().getName();
+  }
+
+  /**
+   * Gets the serialized token from either the configuration or the token file.
+   *
+   * @since 1.5.0
+   * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobContext)} instead.
+   */
+  @Deprecated
+  protected static byte[] getToken(JobContext context) {
+    return AuthenticationTokenSerializer.serialize(getAuthenticationToken(context));
+  }
+
+  /**
    * Gets the authenticated token from either the specified token file or directly from the
    * configuration, whichever was used when the job was configured.
    *
@@ -198,11 +221,29 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   protected static AuthenticationToken getAuthenticationToken(JobContext context) {
     AuthenticationToken token = OutputConfigurator.getAuthenticationToken(CLASS,
         context.getConfiguration());
-    return ConfiguratorBase.unwrapAuthenticationToken(context, token);
+    return OutputConfigurator.unwrapAuthenticationToken(context, token);
   }
 
   /**
-   * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
+   * Configures a {@link ZooKeeperInstance} for this job.
+   *
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param instanceName
+   *          the Accumulo instance name
+   * @param zooKeepers
+   *          a comma-separated list of zookeeper servers
+   * @since 1.5.0
+   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(Job, ClientConfiguration)} instead.
+   */
+  @Deprecated
+  public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
+    setZooKeeperInstance(job,
+        ClientConfiguration.create().withInstance(instanceName).withZkHosts(zooKeepers));
+  }
+
+  /**
+   * Configures a {@link ZooKeeperInstance} for this job.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -211,23 +252,19 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0
    */
-  @Deprecated
-  public static void setZooKeeperInstance(Job job,
-      org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
+  public static void setZooKeeperInstance(Job job, ClientConfiguration clientConfig) {
     OutputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), clientConfig);
   }
 
   /**
-   * Initializes an Accumulo {@link org.apache.accumulo.core.client.Instance} based on the
-   * configuration.
+   * Initializes an Accumulo {@link Instance} based on the configuration.
    *
    * @param context
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
    */
-  @Deprecated
-  protected static org.apache.accumulo.core.client.Instance getInstance(JobContext context) {
+  protected static Instance getInstance(JobContext context) {
     return OutputConfigurator.getInstance(CLASS, context.getConfiguration());
   }
 

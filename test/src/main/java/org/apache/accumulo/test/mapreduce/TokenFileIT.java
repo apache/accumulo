@@ -52,6 +52,10 @@ import org.junit.rules.TemporaryFolder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated
 public class TokenFileIT extends AccumuloClusterHarness {
   private static AssertionError e1 = null;
 
@@ -82,7 +86,6 @@ public class TokenFileIT extends AccumuloClusterHarness {
       }
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public int run(String[] args) throws Exception {
 

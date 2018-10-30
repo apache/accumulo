@@ -54,6 +54,10 @@ import org.apache.hadoop.util.ToolRunner;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated
 public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
 
   private static final String ROW1 = "row1";
@@ -161,6 +165,7 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
       job.setInputFormat(AccumuloRowInputFormat.class);
 
       ClientInfo ci = getClientInfo();
+      AccumuloRowInputFormat.setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
       AccumuloRowInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloRowInputFormat.setInputTableName(job, table);
 

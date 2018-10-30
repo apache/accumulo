@@ -27,6 +27,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 
+/**
+ * @deprecated since 2.0.0
+ */
+@Deprecated
 public class SplitUtils {
 
   /**

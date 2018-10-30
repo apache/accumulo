@@ -36,6 +36,10 @@ import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
+/**
+ * @deprecated since 2.0.0
+ */
+@Deprecated
 public class InputTableConfigTest {
 
   private InputTableConfig tableQueryConfig;

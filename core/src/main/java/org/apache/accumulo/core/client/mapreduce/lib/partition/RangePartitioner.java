@@ -43,9 +43,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Hadoop partitioner that uses ranges, and optionally sub-bins based on hashing.
  *
- * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
- *             New users see org.apache.accumulo.hadoop.mapreduce.partition.RangePartitioner
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce.partition instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated
 public class RangePartitioner extends Partitioner<Text,Writable> implements Configurable {
   private static final String PREFIX = RangePartitioner.class.getName();
   private static final String CUTFILE_KEY = PREFIX + ".cutFile";

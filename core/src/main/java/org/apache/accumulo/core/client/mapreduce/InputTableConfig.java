@@ -24,6 +24,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.accumulo.core.client.ClientSideIteratorScanner;
+import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -37,8 +39,8 @@ import org.apache.hadoop.io.Writable;
  * This class to holds a batch scan configuration for a table. It contains all the properties needed
  * to specify how rows should be returned from the table.
  *
- * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
- *             New users see org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
 @Deprecated
 public class InputTableConfig implements Writable {
@@ -155,10 +157,10 @@ public class InputTableConfig implements Writable {
   }
 
   /**
-   * Controls the use of the {@link org.apache.accumulo.core.client.ClientSideIteratorScanner} in
-   * this job. Enabling this feature will cause the iterator stack to be constructed within the Map
-   * task, rather than within the Accumulo TServer. To use this feature, all classes needed for
-   * those iterators must be available on the classpath for the task.
+   * Controls the use of the {@link ClientSideIteratorScanner} in this job. Enabling this feature
+   * will cause the iterator stack to be constructed within the Map task, rather than within the
+   * Accumulo TServer. To use this feature, all classes needed for those iterators must be available
+   * on the classpath for the task.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -235,7 +237,7 @@ public class InputTableConfig implements Writable {
   }
 
   /**
-   * Controls the use of the {@link org.apache.accumulo.core.client.IsolatedScanner} in this job.
+   * Controls the use of the {@link IsolatedScanner} in this job.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.

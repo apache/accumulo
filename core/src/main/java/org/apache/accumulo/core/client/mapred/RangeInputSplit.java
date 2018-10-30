@@ -26,8 +26,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
  *
- * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
- *             New users should use org.apache.accumulo.hadoop.mapred.AccumuloInputFormat
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
 @Deprecated
 @SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",

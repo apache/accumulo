@@ -26,8 +26,8 @@ import org.apache.hadoop.mapreduce.Partitioner;
 /**
  * Hadoop partitioner that uses ranges based on row keys, and optionally sub-bins based on hashing.
  *
- * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
- *             New users see org.apache.accumulo.hadoop.mapreduce.partition.KeyRangePartitioner
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce.partition instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
 @Deprecated
 public class KeyRangePartitioner extends Partitioner<Key,Writable> implements Configurable {

@@ -43,6 +43,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.junit.Test;
 
+/**
+ * @deprecated since 2.0.0
+ */
+@Deprecated
 public class BatchInputSplitTest {
 
   @Test

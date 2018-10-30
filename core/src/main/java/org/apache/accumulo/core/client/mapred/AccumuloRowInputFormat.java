@@ -50,8 +50,8 @@ import org.apache.hadoop.mapred.Reporter;
  *
  * Other static methods are optional.
  *
- * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
- *             New users should use org.apache.accumulo.hadoop.mapred.AccumuloRowInputFormat
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
 @Deprecated
 public class AccumuloRowInputFormat

@@ -21,8 +21,8 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase;
 import org.apache.accumulo.core.clientImpl.mapreduce.lib.FileOutputConfigurator;
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -50,9 +50,10 @@ import org.apache.log4j.Logger;
  * Hadoop configuration options that affect the behavior of the underlying files directly in the
  * Job's configuration may work, but are not directly supported at this time.
  *
- * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
- *             New users should use org.apache.accumulo.hadoop.mapred.AccumuloFileOutputFormat
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
   private static final Class<?> CLASS = AccumuloFileOutputFormat.class;
@@ -160,7 +161,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);
     final Path file = new Path(getWorkOutputPath(job),
         getUniqueName(job, "part") + "." + extension);
-    final int visCacheSize = ConfiguratorBase.getVisibilityCacheSize(conf);
+    final int visCacheSize = OutputConfigurator.getVisibilityCacheSize(conf);
 
     return new RecordWriter<Key,Value>() {
       RFileWriter out = null;

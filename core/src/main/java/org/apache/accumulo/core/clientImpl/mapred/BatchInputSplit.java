@@ -28,9 +28,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * The Class BatchInputSplit. Encapsulates Accumulo ranges for use in Map Reduce jobs. Can contain
  * several Ranges per InputSplit.
+ *
+ * @deprecated since 2.0.0
  */
 @SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
     justification = "Intended to share code between mapred and mapreduce")
+@Deprecated
 public class BatchInputSplit extends org.apache.accumulo.core.clientImpl.mapreduce.BatchInputSplit
     implements InputSplit {
 

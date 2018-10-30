@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@Deprecated
 /**
  * This package exists to store common helpers for configuring MapReduce jobs in a single location.
  * It contains static configurator methods, stored in classes separate from the things they
@@ -35,5 +36,6 @@
  * to Accumulo.
  *
  * @since 1.6.0
+ * @deprecated since 2.0.0; this is implementation for public API deprecated in 2.0.0
  */
 package org.apache.accumulo.core.clientImpl.mapreduce.lib;

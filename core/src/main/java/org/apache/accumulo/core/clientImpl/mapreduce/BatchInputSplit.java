@@ -33,7 +33,10 @@ import org.apache.accumulo.core.data.Range;
 /**
  * The Class BatchInputSplit. Encapsulates a set of Accumulo ranges on a single tablet for use in
  * Map Reduce jobs. Can contain several Ranges per split.
+ *
+ * @deprecated since 2.0.0
  */
+@Deprecated
 public class BatchInputSplit extends RangeInputSplit {
   private Collection<Range> ranges;
   private float[] rangeProgress = null;

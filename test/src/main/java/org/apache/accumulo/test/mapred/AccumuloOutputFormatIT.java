@@ -59,6 +59,10 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated
 public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
   @Override
@@ -84,6 +88,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       batchConfig.setMaxMemory(Long.MAX_VALUE);
       AccumuloOutputFormat outputFormat = new AccumuloOutputFormat();
       ClientInfo ci = getClientInfo();
+      AccumuloOutputFormat.setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
       AccumuloOutputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloOutputFormat.setBatchWriterOptions(job, batchConfig);
       RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(null, job, "Test", null);
@@ -173,6 +178,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       ClientInfo info = ClientInfo
           .from(Accumulo.newClientProperties().to(instanceName, zooKeepers).as(user, pass).build());
 
+      AccumuloInputFormat.setZooKeeperInstance(job, info.getInstanceName(), info.getZooKeepers());
       AccumuloInputFormat.setConnectorInfo(job, info.getPrincipal(), info.getAuthenticationToken());
       AccumuloInputFormat.setInputTableName(job, table1);
 
@@ -183,6 +189,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
+      AccumuloOutputFormat.setZooKeeperInstance(job, info.getInstanceName(), info.getZooKeepers());
       AccumuloOutputFormat.setConnectorInfo(job, info.getPrincipal(),
           info.getAuthenticationToken());
       AccumuloOutputFormat.setCreateTables(job, false);

@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -53,8 +54,8 @@ import org.apache.hadoop.mapred.Reporter;
  * <p>
  * See {@link AccumuloInputFormat} for an example implementation.
  *
- * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
- *             New users should use org.apache.accumulo.hadoop.mapred.AccumuloInputFormat
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
 @Deprecated
 public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
@@ -317,10 +318,10 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Controls the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job. Using
-   * this feature will group Ranges by their source tablet, producing an InputSplit per tablet
-   * rather than per Range. This batching helps to reduce overhead when querying a large number of
-   * small ranges. (ex: when doing quad-tree decomposition for spatial queries)
+   * Controls the use of the {@link BatchScanner} in this job. Using this feature will group Ranges
+   * by their source tablet, producing an InputSplit per tablet rather than per Range. This batching
+   * helps to reduce overhead when querying a large number of small ranges. (ex: when doing
+   * quad-tree decomposition for spatial queries)
    * <p>
    * In order to achieve good locality of InputSplits this option always clips the input Ranges to
    * tablet boundaries. This may result in one input Range contributing to several InputSplits.
@@ -348,8 +349,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Determines whether a configuration has the {@link org.apache.accumulo.core.client.BatchScanner}
-   * feature enabled.
+   * Determines whether a configuration has the {@link BatchScanner} feature enabled.
    *
    * @param job
    *          the Hadoop context for the configured job
