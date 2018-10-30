@@ -17,12 +17,18 @@
 
 package org.apache.accumulo.core.singletons;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * @see SingletonManager#getClientReservation()
  */
 public class SingletonReservation implements AutoCloseable {
 
-  private boolean closed = false;
+  // volatile so finalize does not need to synchronize to reliably read
+  protected volatile boolean closed = false;
+
+  private static Logger log = LoggerFactory.getLogger(SingletonReservation.class);
 
   @Override
   public synchronized void close() {
@@ -36,16 +42,21 @@ public class SingletonReservation implements AutoCloseable {
   @Override
   protected void finalize() throws Throwable {
     try {
-      close();
+      if (!closed) {
+        log.warn("An Accumulo Client was garbage collected without being closed.");
+      }
     } finally {
       super.finalize();
     }
   }
 
-  private static final SingletonReservation FAKE = new SingletonReservation() {
-    @Override
-    public void close() {}
-  };
+  private static class FakeSingletonReservation extends SingletonReservation {
+    FakeSingletonReservation() {
+      closed = true;
+    }
+  }
+
+  private static final SingletonReservation FAKE = new FakeSingletonReservation();
 
   /**
    * @return A fake reservation where the close method is a no-op.

@@ -63,7 +63,6 @@ public class AccumuloClientImpl implements AccumuloClient {
   private ReplicationOperations replicationops = null;
   private final SingletonReservation singletonReservation;
   private volatile boolean closed = false;
-  private final boolean autoClose;
 
   private void ensureOpen() {
     if (closed) {
@@ -71,8 +70,8 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
   }
 
-  public AccumuloClientImpl(SingletonReservation reservation, final ClientContext context,
-      boolean autoClose) throws AccumuloSecurityException, AccumuloException {
+  public AccumuloClientImpl(SingletonReservation reservation, final ClientContext context)
+      throws AccumuloSecurityException, AccumuloException {
     checkArgument(context != null, "Context is null");
     checkArgument(context.getCredentials() != null, "Credentials are null");
     checkArgument(context.getCredentials().getToken() != null, "Authentication token is null");
@@ -97,7 +96,6 @@ public class AccumuloClientImpl implements AccumuloClient {
 
     this.tableops = new TableOperationsImpl(context);
     this.namespaceops = new NamespaceOperationsImpl(context, tableops);
-    this.autoClose = autoClose;
   }
 
   Table.ID getTableId(String tableName) throws TableNotFoundException {
@@ -270,18 +268,6 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
   }
 
-  @Override
-  public void finalize() throws Throwable {
-    // TODO remove this method, its bad news... need to update the error messages
-
-    try {
-      if (autoClose)
-        close();
-    } finally {
-      super.finalize();
-    }
-  }
-
   public static class AccumuloClientBuilderImpl
       implements InstanceArgs, PropertyOptions, ClientInfoOptions, AuthenticationArgs,
       ConnectionOptions, SslOptions, SaslOptions, AccumuloClientFactory, FromOptions {
@@ -300,7 +286,7 @@ public class AccumuloClientImpl implements AccumuloClient {
     public AccumuloClient build() throws AccumuloException, AccumuloSecurityException {
       SingletonReservation reservation = SingletonManager.getClientReservation();
       try {
-        return new AccumuloClientImpl(reservation, new ClientContext(getClientInfo()), true);
+        return new AccumuloClientImpl(reservation, new ClientContext(getClientInfo()));
       } catch (AccumuloException | AccumuloSecurityException | RuntimeException e) {
         reservation.close();
         throw e;

@@ -239,7 +239,7 @@ public class ServerContext extends ClientContext {
   public synchronized AccumuloClient getClient()
       throws AccumuloException, AccumuloSecurityException {
     if (client == null) {
-      client = new AccumuloClientImpl(SingletonReservation.fake(), this, false);
+      client = new AccumuloClientImpl(SingletonReservation.fake(), this);
     }
     return client;
   }
