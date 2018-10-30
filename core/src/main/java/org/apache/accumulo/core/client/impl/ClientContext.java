@@ -235,7 +235,7 @@ public class ClientContext {
       throws AccumuloException, AccumuloSecurityException {
     ensureOpen();
     if (client == null) {
-      client = new AccumuloClientImpl(SingletonReservation.fake(), this);
+      client = new AccumuloClientImpl(SingletonReservation.noop(), this);
     }
     return client;
   }

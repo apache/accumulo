@@ -160,9 +160,6 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
       if (obj instanceof Exception) {
         finished = true;
-        // TODO open issue about not wrapping when runtime... tried changing this and it broke
-        // isolated scanner... so need to do change on its own... the lack of wrapping makes
-        // debugging very hard
         if (obj instanceof RuntimeException)
           throw (RuntimeException) obj;
         else

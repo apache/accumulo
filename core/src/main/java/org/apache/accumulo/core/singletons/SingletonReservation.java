@@ -50,18 +50,18 @@ public class SingletonReservation implements AutoCloseable {
     }
   }
 
-  private static class FakeSingletonReservation extends SingletonReservation {
-    FakeSingletonReservation() {
+  private static class NoopSingletonReservation extends SingletonReservation {
+    NoopSingletonReservation() {
       closed = true;
     }
   }
 
-  private static final SingletonReservation FAKE = new FakeSingletonReservation();
+  private static final SingletonReservation NOOP = new NoopSingletonReservation();
 
   /**
-   * @return A fake reservation where the close method is a no-op.
+   * @return A reservation where the close method is a no-op.
    */
-  public static SingletonReservation fake() {
-    return FAKE;
+  public static SingletonReservation noop() {
+    return NOOP;
   }
 }

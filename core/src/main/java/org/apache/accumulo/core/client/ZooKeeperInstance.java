@@ -228,7 +228,7 @@ public class ZooKeeperInstance implements Instance {
     Properties properties = ClientConfConverter.toProperties(clientConf);
     properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
     properties.setProperty(ClientProperty.INSTANCE_NAME.getKey(), getInstanceName());
-    return new ConnectorImpl(new AccumuloClientImpl(SingletonReservation.fake(),
+    return new ConnectorImpl(new AccumuloClientImpl(SingletonReservation.noop(),
         new ClientContext(new ClientInfoImpl(properties, token))));
   }
 

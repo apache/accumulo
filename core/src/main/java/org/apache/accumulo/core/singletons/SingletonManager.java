@@ -20,6 +20,9 @@ package org.apache.accumulo.core.singletons;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
@@ -42,6 +45,8 @@ import com.google.common.base.Preconditions;
  */
 
 public class SingletonManager {
+
+  private static final Logger log = LoggerFactory.getLogger(SingletonManager.class);
 
   /**
    * These enums determine the behavior of the SingletonManager.
@@ -87,8 +92,7 @@ public class SingletonManager {
     try {
       service.enable();
     } catch (RuntimeException e) {
-      // TODO log
-      e.printStackTrace();
+      log.error("Failed to enable singleton service ", e);
     }
   }
 
@@ -96,8 +100,7 @@ public class SingletonManager {
     try {
       service.disable();
     } catch (RuntimeException e) {
-      // TODO log
-      e.printStackTrace();
+      log.error("Failed to disable singleton service", e);
     }
   }
 
@@ -118,8 +121,9 @@ public class SingletonManager {
 
   /**
    * This method should be called when creating Accumulo clients using the public API. Accumulo
-   * clients created internally within the code probably should not call this method. While a client
-   * holds a reservation, singleton services are enabled.
+   * clients created internally within Accumulo code should probably call
+   * {@link SingletonReservation#noop()} instead. While a client holds a reservation, singleton
+   * services are enabled.
    *
    * @return A reservation that must be closed when the AccumuloClient is closed.
    */
