@@ -67,49 +67,51 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // make a table and lower the TABLE_END_ROW_MAX_SIZE property
     final String tableName = getUniqueNames(1)[0];
-    final AccumuloClient client = getClient();
-    client.tableOperations().create(tableName);
-    client.tableOperations().setProperty(tableName, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
-        "1000");
+    try (AccumuloClient client = getClient()) {
+      client.tableOperations().create(tableName);
+      client.tableOperations().setProperty(tableName, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
+          "1000");
 
-    // Create a BatchWriter and add a mutation to the table
-    BatchWriter batchWriter = client.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m = new Mutation("Row");
-    m.put("cf", "cq", "value");
-    batchWriter.addMutation(m);
-    batchWriter.close();
+      // Create a BatchWriter and add a mutation to the table
+      BatchWriter batchWriter = client.createBatchWriter(tableName, new BatchWriterConfig());
+      Mutation m = new Mutation("Row");
+      m.put("cf", "cq", "value");
+      batchWriter.addMutation(m);
+      batchWriter.close();
 
-    // Create a split point that is too large to be an end row and fill it with all 'm'
-    SortedSet<Text> partitionKeys = new TreeSet<>();
-    byte data[] = new byte[(int) (ConfigurationTypeHelper
-        .getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
-    for (int i = 0; i < data.length; i++) {
-      data[i] = 'm';
-    }
-    partitionKeys.add(new Text(data));
-
-    // try to add the split point that is too large, if the split point is created the test fails.
-    try {
-      client.tableOperations().addSplits(tableName, partitionKeys);
-      fail();
-    } catch (AccumuloServerException e) {}
-
-    // Make sure that the information that was written to the table before we tried to add the split
-    // point is still correct
-    int counter = 0;
-    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      for (Entry<Key,Value> entry : scanner) {
-        counter++;
-        Key k = entry.getKey();
-        assertEquals("Row", k.getRow().toString());
-        assertEquals("cf", k.getColumnFamily().toString());
-        assertEquals("cq", k.getColumnQualifier().toString());
-        assertEquals("value", entry.getValue().toString());
-
+      // Create a split point that is too large to be an end row and fill it with all 'm'
+      SortedSet<Text> partitionKeys = new TreeSet<>();
+      byte data[] = new byte[(int) (ConfigurationTypeHelper
+          .getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
+      for (int i = 0; i < data.length; i++) {
+        data[i] = 'm';
       }
+      partitionKeys.add(new Text(data));
+
+      // try to add the split point that is too large, if the split point is created the test fails.
+      try {
+        client.tableOperations().addSplits(tableName, partitionKeys);
+        fail();
+      } catch (AccumuloServerException e) {}
+
+      // Make sure that the information that was written to the table before we tried to add the
+      // split
+      // point is still correct
+      int counter = 0;
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> entry : scanner) {
+          counter++;
+          Key k = entry.getKey();
+          assertEquals("Row", k.getRow().toString());
+          assertEquals("cf", k.getColumnFamily().toString());
+          assertEquals("cq", k.getColumnQualifier().toString());
+          assertEquals("value", entry.getValue().toString());
+
+        }
+      }
+      // Make sure there is only one line in the table
+      assertEquals(1, counter);
     }
-    // Make sure there is only one line in the table
-    assertEquals(1, counter);
   }
 
   // Test tablet server split with 250 entries with all the same prefix
@@ -119,128 +121,132 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // make a table and lower the configure properties
     final String tableName = getUniqueNames(1)[0];
-    final AccumuloClient client = getClient();
-    client.tableOperations().create(tableName);
-    client.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    client.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(),
-        "none");
-    client.tableOperations().setProperty(tableName,
-        Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64");
-    client.tableOperations().setProperty(tableName, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
-        "1000");
+    try (AccumuloClient client = getClient()) {
+      client.tableOperations().create(tableName);
+      client.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(),
+          "10K");
+      client.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(),
+          "none");
+      client.tableOperations().setProperty(tableName,
+          Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64");
+      client.tableOperations().setProperty(tableName, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
+          "1000");
 
-    // Create a BatchWriter and key for a table entry that is longer than the allowed size for an
-    // end row
-    // Fill this key with all m's except the last spot
-    BatchWriter batchWriter = client.createBatchWriter(tableName, new BatchWriterConfig());
-    byte data[] = new byte[(int) (ConfigurationTypeHelper
-        .getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
-    for (int i = 0; i < data.length - 1; i++) {
-      data[i] = (byte) 'm';
-    }
-
-    // Make the last place in the key different for every entry added to the table
-    for (int i = 0; i < 250; i++) {
-      data[data.length - 1] = (byte) i;
-      Mutation m = new Mutation(data);
-      m.put("cf", "cq", "value");
-      batchWriter.addMutation(m);
-    }
-    // Flush the BatchWriter and table and sleep for a bit to make sure that there is enough time
-    // for the table to split if need be.
-    batchWriter.close();
-    client.tableOperations().flush(tableName, new Text(), new Text("z"), true);
-    Thread.sleep(500);
-
-    // Make sure all the data that was put in the table is still correct
-    int count = 0;
-    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      for (Entry<Key,Value> entry : scanner) {
-        Key k = entry.getKey();
-        data[data.length - 1] = (byte) count;
-        String expected = new String(data, UTF_8);
-        assertEquals(expected, k.getRow().toString());
-        assertEquals("cf", k.getColumnFamily().toString());
-        assertEquals("cq", k.getColumnQualifier().toString());
-        assertEquals("value", entry.getValue().toString());
-        count++;
+      // Create a BatchWriter and key for a table entry that is longer than the allowed size for an
+      // end row
+      // Fill this key with all m's except the last spot
+      BatchWriter batchWriter = client.createBatchWriter(tableName, new BatchWriterConfig());
+      byte data[] = new byte[(int) (ConfigurationTypeHelper
+          .getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
+      for (int i = 0; i < data.length - 1; i++) {
+        data[i] = (byte) 'm';
       }
-    }
-    assertEquals(250, count);
 
-    // Make sure no splits occurred in the table
-    assertEquals(0, client.tableOperations().listSplits(tableName).size());
+      // Make the last place in the key different for every entry added to the table
+      for (int i = 0; i < 250; i++) {
+        data[data.length - 1] = (byte) i;
+        Mutation m = new Mutation(data);
+        m.put("cf", "cq", "value");
+        batchWriter.addMutation(m);
+      }
+      // Flush the BatchWriter and table and sleep for a bit to make sure that there is enough time
+      // for the table to split if need be.
+      batchWriter.close();
+      client.tableOperations().flush(tableName, new Text(), new Text("z"), true);
+      Thread.sleep(500);
+
+      // Make sure all the data that was put in the table is still correct
+      int count = 0;
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        for (Entry<Key,Value> entry : scanner) {
+          Key k = entry.getKey();
+          data[data.length - 1] = (byte) count;
+          String expected = new String(data, UTF_8);
+          assertEquals(expected, k.getRow().toString());
+          assertEquals("cf", k.getColumnFamily().toString());
+          assertEquals("cq", k.getColumnQualifier().toString());
+          assertEquals("value", entry.getValue().toString());
+          count++;
+        }
+      }
+      assertEquals(250, count);
+
+      // Make sure no splits occurred in the table
+      assertEquals(0, client.tableOperations().listSplits(tableName).size());
+    }
   }
 
   // 10 0's; 10 2's; 10 4's... 10 30's etc
   @Test(timeout = 60 * 1000)
   public void automaticSplitWithGaps() throws Exception {
     log.info("Automatic Split With Gaps");
-
-    automaticSplit(30, 2);
+    try (AccumuloClient client = getClient()) {
+      automaticSplit(client, 30, 2);
+    }
   }
 
   // 10 0's; 10 1's; 10 2's... 10 15's etc
   @Test(timeout = 60 * 1000)
   public void automaticSplitWithoutGaps() throws Exception {
     log.info("Automatic Split Without Gaps");
-
-    automaticSplit(15, 1);
+    try (AccumuloClient client = getClient()) {
+      automaticSplit(client, 15, 1);
+    }
   }
 
   @Test(timeout = 60 * 1000)
   public void automaticSplitLater() throws Exception {
     log.info("Split later");
-    automaticSplit(15, 1);
+    try (AccumuloClient client = getClient()) {
+      automaticSplit(client, 15, 1);
 
-    final AccumuloClient client = getClient();
+      String tableName = new String();
+      java.util.Iterator<String> iterator = client.tableOperations().list().iterator();
 
-    String tableName = new String();
-    java.util.Iterator<String> iterator = client.tableOperations().list().iterator();
-
-    while (iterator.hasNext()) {
-      String curr = iterator.next();
-      if (!curr.startsWith(Namespace.ACCUMULO + ".")) {
-        tableName = curr;
-      }
-    }
-
-    // Create a BatchWriter and key for a table entry that is longer than the allowed size for an
-    // end row
-    BatchWriter batchWriter = client.createBatchWriter(tableName, new BatchWriterConfig());
-    byte data[] = new byte[10];
-
-    // Fill key with all j's except for last spot which alternates through 1 through 10 for every j
-    // value
-    for (int j = 15; j < 150; j += 1) {
-      for (int i = 0; i < data.length - 1; i++) {
-        data[i] = (byte) j;
+      while (iterator.hasNext()) {
+        String curr = iterator.next();
+        if (!curr.startsWith(Namespace.ACCUMULO + ".")) {
+          tableName = curr;
+        }
       }
 
-      for (int i = 0; i < 25; i++) {
-        data[data.length - 1] = (byte) i;
-        Mutation m = new Mutation(data);
-        m.put("cf", "cq", "value");
-        batchWriter.addMutation(m);
+      // Create a BatchWriter and key for a table entry that is longer than the allowed size for an
+      // end row
+      BatchWriter batchWriter = client.createBatchWriter(tableName, new BatchWriterConfig());
+      byte data[] = new byte[10];
+
+      // Fill key with all j's except for last spot which alternates through 1 through 10 for every
+      // j
+      // value
+      for (int j = 15; j < 150; j += 1) {
+        for (int i = 0; i < data.length - 1; i++) {
+          data[i] = (byte) j;
+        }
+
+        for (int i = 0; i < 25; i++) {
+          data[data.length - 1] = (byte) i;
+          Mutation m = new Mutation(data);
+          m.put("cf", "cq", "value");
+          batchWriter.addMutation(m);
+        }
       }
-    }
-    // Flush the BatchWriter and table and sleep for a bit to make sure that there is enough time
-    // for the table to split if need be.
-    batchWriter.close();
-    client.tableOperations().flush(tableName, new Text(), new Text("z"), true);
+      // Flush the BatchWriter and table and sleep for a bit to make sure that there is enough time
+      // for the table to split if need be.
+      batchWriter.close();
+      client.tableOperations().flush(tableName, new Text(), new Text("z"), true);
 
-    // Make sure a split occurs
-    while (client.tableOperations().listSplits(tableName).size() == 0) {
-      Thread.sleep(250);
-    }
+      // Make sure a split occurs
+      while (client.tableOperations().listSplits(tableName).size() == 0) {
+        Thread.sleep(250);
+      }
 
-    assertTrue(0 < client.tableOperations().listSplits(tableName).size());
+      assertTrue(0 < client.tableOperations().listSplits(tableName).size());
+    }
   }
 
-  private void automaticSplit(int max, int spacing) throws Exception {
+  private void automaticSplit(AccumuloClient client, int max, int spacing) throws Exception {
     // make a table and lower the configure properties
     final String tableName = getUniqueNames(1)[0];
-    final AccumuloClient client = getClient();
     client.tableOperations().create(tableName);
     client.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
     client.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(),

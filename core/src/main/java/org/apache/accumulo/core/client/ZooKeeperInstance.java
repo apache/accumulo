@@ -36,6 +36,9 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonManager.Mode;
+import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -90,6 +93,8 @@ public class ZooKeeperInstance implements Instance {
 
   ZooKeeperInstance(ClientConfiguration config, ZooCacheFactory zcf) {
     checkArgument(config != null, "config is null");
+    // Enable singletons before before getting a zoocache
+    SingletonManager.setMode(Mode.CONNECTOR);
     this.clientConf = config;
     this.instanceId = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_ID);
     this.instanceName = clientConf.get(ClientConfiguration.ClientProperty.INSTANCE_NAME);
@@ -223,8 +228,8 @@ public class ZooKeeperInstance implements Instance {
     Properties properties = ClientConfConverter.toProperties(clientConf);
     properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
     properties.setProperty(ClientProperty.INSTANCE_NAME.getKey(), getInstanceName());
-    return new ConnectorImpl(
-        new AccumuloClientImpl(new ClientContext(new ClientInfoImpl(properties, token))));
+    return new ConnectorImpl(new AccumuloClientImpl(SingletonReservation.noop(),
+        new ClientContext(new ClientInfoImpl(properties, token))));
   }
 
   @Override

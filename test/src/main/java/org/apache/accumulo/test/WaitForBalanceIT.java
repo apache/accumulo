@@ -48,28 +48,28 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    final AccumuloClient c = getClient();
-    // ensure the metadata table is online
-    Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
-    c.instanceOperations().waitForBalance();
-    assertTrue(isBalanced());
-    final String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    c.instanceOperations().waitForBalance();
-    final SortedSet<Text> partitionKeys = new TreeSet<>();
-    for (int i = 0; i < 1000; i++) {
-      partitionKeys.add(new Text("" + i));
+    try (AccumuloClient c = getClient()) {
+      // ensure the metadata table is online
+      Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+      c.instanceOperations().waitForBalance();
+      assertTrue(isBalanced(c));
+      final String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.instanceOperations().waitForBalance();
+      final SortedSet<Text> partitionKeys = new TreeSet<>();
+      for (int i = 0; i < 1000; i++) {
+        partitionKeys.add(new Text("" + i));
+      }
+      c.tableOperations().addSplits(tableName, partitionKeys);
+      assertFalse(isBalanced(c));
+      c.instanceOperations().waitForBalance();
+      assertTrue(isBalanced(c));
     }
-    c.tableOperations().addSplits(tableName, partitionKeys);
-    assertFalse(isBalanced());
-    c.instanceOperations().waitForBalance();
-    assertTrue(isBalanced());
   }
 
-  private boolean isBalanced() throws Exception {
+  private boolean isBalanced(AccumuloClient c) throws Exception {
     final Map<String,Integer> counts = new HashMap<>();
     int offline = 0;
-    final AccumuloClient c = getClient();
     for (String tableName : new String[] {MetadataTable.NAME, RootTable.NAME}) {
       try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
         s.setRange(MetadataSchema.TabletsSection.getRange());

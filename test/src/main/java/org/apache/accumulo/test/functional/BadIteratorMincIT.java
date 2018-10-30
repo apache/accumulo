@@ -47,64 +47,64 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getAccumuloClient();
+    try (AccumuloClient c = getAccumuloClient()) {
 
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    IteratorSetting is = new IteratorSetting(30, BadIterator.class);
-    c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc));
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-
-    Mutation m = new Mutation(new Text("r1"));
-    m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes(UTF_8)));
-
-    bw.addMutation(m);
-    bw.close();
-
-    c.tableOperations().flush(tableName, null, null, false);
-    sleepUninterruptibly(1, TimeUnit.SECONDS);
-
-    // minc should fail, so there should be no files
-    FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
-
-    // try to scan table
-    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-      int count = Iterators.size(scanner.iterator());
-      assertEquals("Did not see expected # entries " + count, 1, count);
-
-      // remove the bad iterator
-      c.tableOperations().removeIterator(tableName, BadIterator.class.getSimpleName(),
-          EnumSet.of(IteratorScope.minc));
-
-      sleepUninterruptibly(5, TimeUnit.SECONDS);
-
-      // minc should complete
-      FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 1, 1);
-
-      count = Iterators.size(scanner.iterator());
-
-      if (count != 1)
-        throw new Exception("Did not see expected # entries " + count);
-
-      // now try putting bad iterator back and deleting the table
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      IteratorSetting is = new IteratorSetting(30, BadIterator.class);
       c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc));
-      bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-      m = new Mutation(new Text("r2"));
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+
+      Mutation m = new Mutation(new Text("r1"));
       m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes(UTF_8)));
+
       bw.addMutation(m);
       bw.close();
 
-      // make sure property is given time to propagate
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
-
       c.tableOperations().flush(tableName, null, null, false);
-
-      // make sure the flush has time to start
       sleepUninterruptibly(1, TimeUnit.SECONDS);
 
-      // this should not hang
-      c.tableOperations().delete(tableName);
+      // minc should fail, so there should be no files
+      FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
+
+      // try to scan table
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        int count = Iterators.size(scanner.iterator());
+        assertEquals("Did not see expected # entries " + count, 1, count);
+
+        // remove the bad iterator
+        c.tableOperations().removeIterator(tableName, BadIterator.class.getSimpleName(),
+            EnumSet.of(IteratorScope.minc));
+
+        sleepUninterruptibly(5, TimeUnit.SECONDS);
+
+        // minc should complete
+        FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 1, 1);
+
+        count = Iterators.size(scanner.iterator());
+
+        if (count != 1)
+          throw new Exception("Did not see expected # entries " + count);
+
+        // now try putting bad iterator back and deleting the table
+        c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc));
+        bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+        m = new Mutation(new Text("r2"));
+        m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes(UTF_8)));
+        bw.addMutation(m);
+        bw.close();
+
+        // make sure property is given time to propagate
+        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+
+        c.tableOperations().flush(tableName, null, null, false);
+
+        // make sure the flush has time to start
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
+
+        // this should not hang
+        c.tableOperations().delete(tableName);
+      }
     }
   }
-
 }

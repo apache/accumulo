@@ -60,75 +60,73 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
 
-    int numRows = 1 << 18;
+      int numRows = 1 << 18;
 
-    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
 
-    for (int i = 0; i < numRows; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i)));
-      m.put(new Text("cf1"), new Text("cq1"),
-          new Value(String.format("%016x", numRows - i).getBytes(UTF_8)));
-      bw.addMutation(m);
-    }
-
-    bw.close();
-
-    getAccumuloClient().tableOperations().flush(tableName, null, null, true);
-
-    getAccumuloClient().tableOperations().setProperty(tableName,
-        Property.TABLE_SPLIT_THRESHOLD.getKey(), "4K");
-
-    Collection<Text> splits = getAccumuloClient().tableOperations().listSplits(tableName);
-    while (splits.size() < 2) {
-      sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
-      splits = getAccumuloClient().tableOperations().listSplits(tableName);
-    }
-
-    System.out.println("splits : " + splits);
-
-    Random random = new SecureRandom();
-    HashMap<Text,Value> expected = new HashMap<>();
-    ArrayList<Range> ranges = new ArrayList<>();
-    for (int i = 0; i < 100; i++) {
-      int r = random.nextInt(numRows);
-      Text row = new Text(String.format("%09x", r));
-      expected.put(row, new Value(String.format("%016x", numRows - r).getBytes(UTF_8)));
-      ranges.add(new Range(row));
-    }
-
-    // logger.setLevel(Level.TRACE);
-
-    HashMap<Text,Value> found = new HashMap<>();
-
-    for (int i = 0; i < 20; i++) {
-      try (BatchScanner bs = getAccumuloClient().createBatchScanner(tableName, Authorizations.EMPTY,
-          4)) {
-
-        found.clear();
-
-        long t1 = System.currentTimeMillis();
-
-        bs.setRanges(ranges);
-
-        for (Entry<Key,Value> entry : bs) {
-          found.put(entry.getKey().getRow(), entry.getValue());
-        }
-
-        long t2 = System.currentTimeMillis();
-
-        log.info(String.format("rate : %06.2f%n", ranges.size() / ((t2 - t1) / 1000.0)));
-
-        if (!found.equals(expected))
-          throw new Exception("Found and expected differ " + found + " " + expected);
+      for (int i = 0; i < numRows; i++) {
+        Mutation m = new Mutation(new Text(String.format("%09x", i)));
+        m.put(new Text("cf1"), new Text("cq1"),
+            new Value(String.format("%016x", numRows - i).getBytes(UTF_8)));
+        bw.addMutation(m);
       }
+
+      bw.close();
+
+      c.tableOperations().flush(tableName, null, null, true);
+
+      c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "4K");
+
+      Collection<Text> splits = c.tableOperations().listSplits(tableName);
+      while (splits.size() < 2) {
+        sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
+        splits = c.tableOperations().listSplits(tableName);
+      }
+
+      System.out.println("splits : " + splits);
+
+      Random random = new SecureRandom();
+      HashMap<Text,Value> expected = new HashMap<>();
+      ArrayList<Range> ranges = new ArrayList<>();
+      for (int i = 0; i < 100; i++) {
+        int r = random.nextInt(numRows);
+        Text row = new Text(String.format("%09x", r));
+        expected.put(row, new Value(String.format("%016x", numRows - r).getBytes(UTF_8)));
+        ranges.add(new Range(row));
+      }
+
+      // logger.setLevel(Level.TRACE);
+
+      HashMap<Text,Value> found = new HashMap<>();
+
+      for (int i = 0; i < 20; i++) {
+        try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 4)) {
+
+          found.clear();
+
+          long t1 = System.currentTimeMillis();
+
+          bs.setRanges(ranges);
+
+          for (Entry<Key,Value> entry : bs) {
+            found.put(entry.getKey().getRow(), entry.getValue());
+          }
+
+          long t2 = System.currentTimeMillis();
+
+          log.info(String.format("rate : %06.2f%n", ranges.size() / ((t2 - t1) / 1000.0)));
+
+          if (!found.equals(expected))
+            throw new Exception("Found and expected differ " + found + " " + expected);
+        }
+      }
+
+      splits = c.tableOperations().listSplits(tableName);
+      log.info("splits : {}", splits);
     }
-
-    splits = getAccumuloClient().tableOperations().listSplits(tableName);
-    log.info("splits : {}", splits);
   }
-
 }

@@ -48,84 +48,85 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    IteratorSetting is = new IteratorSetting(5, "Bad Aggregator", BadCombiner.class);
-    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("acf")));
-    c.tableOperations().attachIterator(tableName, is);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      IteratorSetting is = new IteratorSetting(5, "Bad Aggregator", BadCombiner.class);
+      Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("acf")));
+      c.tableOperations().attachIterator(tableName, is);
 
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
 
-    Mutation m = new Mutation(new Text("r1"));
-    m.put(new Text("acf"), new Text("foo"), new Value(new byte[] {'1'}));
+      Mutation m = new Mutation(new Text("r1"));
+      m.put(new Text("acf"), new Text("foo"), new Value(new byte[] {'1'}));
 
-    bw.addMutation(m);
+      bw.addMutation(m);
 
-    bw.close();
+      bw.close();
 
-    boolean caught = false;
-    // try to scan table
-    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+      boolean caught = false;
+      // try to scan table
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
 
-      try {
-        for (Entry<Key,Value> entry : scanner) {
-          entry.getKey();
-        }
-      } catch (Exception e) {
-        caught = true;
-      }
-
-      if (!caught)
-        throw new Exception("Scan did not fail");
-
-      // try to batch scan the table
-      try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
-        bs.setRanges(Collections.singleton(new Range()));
-
-        caught = false;
         try {
-          for (Entry<Key,Value> entry : bs) {
+          for (Entry<Key,Value> entry : scanner) {
             entry.getKey();
           }
         } catch (Exception e) {
           caught = true;
         }
+
+        if (!caught)
+          throw new Exception("Scan did not fail");
+
+        // try to batch scan the table
+        try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
+          bs.setRanges(Collections.singleton(new Range()));
+
+          caught = false;
+          try {
+            for (Entry<Key,Value> entry : bs) {
+              entry.getKey();
+            }
+          } catch (Exception e) {
+            caught = true;
+          }
+        }
+
+        if (!caught)
+          throw new Exception("batch scan did not fail");
+
+        // remove the bad agg so accumulo can shutdown
+        TableOperations to = c.tableOperations();
+        for (Entry<String,String> e : to.getProperties(tableName)) {
+          to.removeProperty(tableName, e.getKey());
+        }
+
+        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
       }
 
-      if (!caught)
-        throw new Exception("batch scan did not fail");
-
-      // remove the bad agg so accumulo can shutdown
-      TableOperations to = c.tableOperations();
-      for (Entry<String,String> e : to.getProperties(tableName)) {
-        to.removeProperty(tableName, e.getKey());
-      }
-
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
-    }
-
-    // should be able to scan now
-    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-      for (Entry<Key,Value> entry : scanner) {
-        entry.getKey();
-      }
-
-      // set a nonexistent iterator, should cause scan to fail on server side
-      scanner.addScanIterator(new IteratorSetting(100, "bogus", "com.bogus.iterator"));
-
-      caught = false;
-      try {
+      // should be able to scan now
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         for (Entry<Key,Value> entry : scanner) {
-          // should error
           entry.getKey();
         }
-      } catch (Exception e) {
-        caught = true;
-      }
 
-      if (!caught)
-        throw new Exception("Scan did not fail");
+        // set a nonexistent iterator, should cause scan to fail on server side
+        scanner.addScanIterator(new IteratorSetting(100, "bogus", "com.bogus.iterator"));
+
+        caught = false;
+        try {
+          for (Entry<Key,Value> entry : scanner) {
+            // should error
+            entry.getKey();
+          }
+        } catch (Exception e) {
+          caught = true;
+        }
+
+        if (!caught)
+          throw new Exception("Scan did not fail");
+      }
     }
   }
 }

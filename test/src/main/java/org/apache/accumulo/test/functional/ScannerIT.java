@@ -48,78 +48,79 @@ public class ScannerIT extends AccumuloClusterHarness {
   @Test
   public void testScannerReadaheadConfiguration() throws Exception {
     final String table = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(table);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(table);
 
-    BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
 
-    Mutation m = new Mutation("a");
-    for (int i = 0; i < 10; i++) {
-      m.put(Integer.toString(i), "", "");
-    }
+      Mutation m = new Mutation("a");
+      for (int i = 0; i < 10; i++) {
+        m.put(Integer.toString(i), "", "");
+      }
 
-    bw.addMutation(m);
-    bw.close();
+      bw.addMutation(m);
+      bw.close();
 
-    IteratorSetting cfg;
-    Stopwatch sw;
-    Iterator<Entry<Key,Value>> iterator;
-    try (Scanner s = c.createScanner(table, new Authorizations())) {
+      IteratorSetting cfg;
+      Stopwatch sw;
+      Iterator<Entry<Key,Value>> iterator;
+      try (Scanner s = c.createScanner(table, new Authorizations())) {
 
-      cfg = new IteratorSetting(100, SlowIterator.class);
-      // A batch size of one will end up calling seek() for each element with no calls to next()
-      SlowIterator.setSeekSleepTime(cfg, 100L);
+        cfg = new IteratorSetting(100, SlowIterator.class);
+        // A batch size of one will end up calling seek() for each element with no calls to next()
+        SlowIterator.setSeekSleepTime(cfg, 100L);
 
-      s.addScanIterator(cfg);
-      // Never start readahead
-      s.setReadaheadThreshold(Long.MAX_VALUE);
-      s.setBatchSize(1);
-      s.setRange(new Range());
+        s.addScanIterator(cfg);
+        // Never start readahead
+        s.setReadaheadThreshold(Long.MAX_VALUE);
+        s.setBatchSize(1);
+        s.setRange(new Range());
 
-      sw = Stopwatch.createUnstarted();
-      iterator = s.iterator();
+        sw = Stopwatch.createUnstarted();
+        iterator = s.iterator();
 
-      sw.start();
-      while (iterator.hasNext()) {
+        sw.start();
+        while (iterator.hasNext()) {
+          sw.stop();
+
+          // While we "do work" in the client, we should be fetching the next result
+          UtilWaitThread.sleep(100L);
+          iterator.next();
+          sw.start();
+        }
+        sw.stop();
+      }
+
+      long millisWithWait = sw.elapsed(TimeUnit.MILLISECONDS);
+
+      try (Scanner s = c.createScanner(table, new Authorizations())) {
+        s.addScanIterator(cfg);
+        s.setRange(new Range());
+        s.setBatchSize(1);
+        s.setReadaheadThreshold(0L);
+
+        sw = Stopwatch.createUnstarted();
+        iterator = s.iterator();
+
+        sw.start();
+        while (iterator.hasNext()) {
+          sw.stop();
+
+          // While we "do work" in the client, we should be fetching the next result
+          UtilWaitThread.sleep(100L);
+          iterator.next();
+          sw.start();
+        }
         sw.stop();
 
-        // While we "do work" in the client, we should be fetching the next result
-        UtilWaitThread.sleep(100L);
-        iterator.next();
-        sw.start();
+        long millisWithNoWait = sw.elapsed(TimeUnit.MILLISECONDS);
+
+        // The "no-wait" time should be much less than the "wait-time"
+        assertTrue(
+            "Expected less time to be taken with immediate readahead (" + millisWithNoWait
+                + ") than without immediate readahead (" + millisWithWait + ")",
+            millisWithNoWait < millisWithWait);
       }
-      sw.stop();
-    }
-
-    long millisWithWait = sw.elapsed(TimeUnit.MILLISECONDS);
-
-    try (Scanner s = c.createScanner(table, new Authorizations())) {
-      s.addScanIterator(cfg);
-      s.setRange(new Range());
-      s.setBatchSize(1);
-      s.setReadaheadThreshold(0L);
-
-      sw = Stopwatch.createUnstarted();
-      iterator = s.iterator();
-
-      sw.start();
-      while (iterator.hasNext()) {
-        sw.stop();
-
-        // While we "do work" in the client, we should be fetching the next result
-        UtilWaitThread.sleep(100L);
-        iterator.next();
-        sw.start();
-      }
-      sw.stop();
-
-      long millisWithNoWait = sw.elapsed(TimeUnit.MILLISECONDS);
-
-      // The "no-wait" time should be much less than the "wait-time"
-      assertTrue(
-          "Expected less time to be taken with immediate readahead (" + millisWithNoWait
-              + ") than without immediate readahead (" + millisWithWait + ")",
-          millisWithNoWait < millisWithWait);
     }
   }
 

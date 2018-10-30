@@ -49,23 +49,24 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String[] names = getUniqueNames(2);
-    c.tableOperations().create(names[0]);
-    TestIngest.Opts opts = new TestIngest.Opts();
-    opts.setTableName(names[0]);
-    opts.setClientInfo(getClientInfo());
-    TestIngest.ingest(c, opts, new BatchWriterOpts());
+    try (AccumuloClient c = getAccumuloClient()) {
+      String[] names = getUniqueNames(2);
+      c.tableOperations().create(names[0]);
+      TestIngest.Opts opts = new TestIngest.Opts();
+      opts.setTableName(names[0]);
+      opts.setClientInfo(getClientInfo());
+      TestIngest.ingest(c, opts, new BatchWriterOpts());
 
-    ClusterControl control = cluster.getClusterControl();
-    control.stopAllServers(ServerType.MASTER);
-    // start up a new one
-    control.startAllServers(ServerType.MASTER);
-    // talk to it
-    c.tableOperations().rename(names[0], names[1]);
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    vopts.setTableName(names[1]);
-    vopts.setClientInfo(getClientInfo());
-    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      ClusterControl control = cluster.getClusterControl();
+      control.stopAllServers(ServerType.MASTER);
+      // start up a new one
+      control.startAllServers(ServerType.MASTER);
+      // talk to it
+      c.tableOperations().rename(names[0], names[1]);
+      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+      vopts.setTableName(names[1]);
+      vopts.setClientInfo(getClientInfo());
+      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+    }
   }
 }

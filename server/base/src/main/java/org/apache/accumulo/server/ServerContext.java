@@ -35,6 +35,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -238,7 +239,7 @@ public class ServerContext extends ClientContext {
   public synchronized AccumuloClient getClient()
       throws AccumuloException, AccumuloSecurityException {
     if (client == null) {
-      client = new AccumuloClientImpl(this);
+      client = new AccumuloClientImpl(SingletonReservation.noop(), this);
     }
     return client;
   }

@@ -152,22 +152,23 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   @Test
   public void testMap() throws Exception {
     String table = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(table);
-    BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(table);
+      BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
+      for (int i = 0; i < 100; i++) {
+        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+        bw.addMutation(m);
+      }
+      bw.close();
+
+      e1 = null;
+      e2 = null;
+
+      MRTester.main(table);
+      assertNull(e1);
+      assertNull(e2);
     }
-    bw.close();
-
-    e1 = null;
-    e2 = null;
-
-    MRTester.main(table);
-    assertNull(e1);
-    assertNull(e2);
   }
 
   private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
@@ -177,31 +178,31 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void testSample() throws Exception {
     final String TEST_TABLE_3 = getUniqueNames(1)[0];
 
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(TEST_TABLE_3,
-        new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
-    BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(TEST_TABLE_3,
+          new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
+      BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
+      for (int i = 0; i < 100; i++) {
+        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+        bw.addMutation(m);
+      }
+      bw.close();
+
+      MRTester.main(TEST_TABLE_3, "False", "True");
+      assertEquals(38, e1Count);
+      assertEquals(1, e2Count);
+
+      e2Count = e1Count = 0;
+      MRTester.main(TEST_TABLE_3, "False", "False");
+      assertEquals(0, e1Count);
+      assertEquals(0, e2Count);
+
+      e2Count = e1Count = 0;
+      MRTester.main(TEST_TABLE_3, "True", "True");
+      assertEquals(38, e1Count);
+      assertEquals(1, e2Count);
     }
-    bw.close();
-
-    MRTester.main(TEST_TABLE_3, "False", "True");
-    assertEquals(38, e1Count);
-    assertEquals(1, e2Count);
-
-    e2Count = e1Count = 0;
-    MRTester.main(TEST_TABLE_3, "False", "False");
-    assertEquals(0, e1Count);
-    assertEquals(0, e2Count);
-
-    e2Count = e1Count = 0;
-    MRTester.main(TEST_TABLE_3, "True", "True");
-    assertEquals(38, e1Count);
-    assertEquals(1, e2Count);
-
   }
 
   @Test
@@ -215,33 +216,34 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
-    AccumuloClient accumuloClient = getAccumuloClient();
-    accumuloClient.tableOperations().create(table);
+    try (AccumuloClient accumuloClient = getAccumuloClient()) {
+      accumuloClient.tableOperations().create(table);
 
-    AccumuloInputFormat.setClientInfo(job, getClientInfo());
-    AccumuloInputFormat.setInputTableName(job, table);
-    AccumuloInputFormat.setScanAuthorizations(job, auths);
-    AccumuloInputFormat.setScanIsolation(job, isolated);
-    AccumuloInputFormat.setLocalIterators(job, localIters);
-    AccumuloInputFormat.fetchColumns(job, fetchColumns);
-    AccumuloInputFormat.setLogLevel(job, level);
+      AccumuloInputFormat.setClientInfo(job, getClientInfo());
+      AccumuloInputFormat.setInputTableName(job, table);
+      AccumuloInputFormat.setScanAuthorizations(job, auths);
+      AccumuloInputFormat.setScanIsolation(job, isolated);
+      AccumuloInputFormat.setLocalIterators(job, localIters);
+      AccumuloInputFormat.fetchColumns(job, fetchColumns);
+      AccumuloInputFormat.setLogLevel(job, level);
 
-    AccumuloInputFormat aif = new AccumuloInputFormat();
+      AccumuloInputFormat aif = new AccumuloInputFormat();
 
-    InputSplit[] splits = aif.getSplits(job, 1);
+      InputSplit[] splits = aif.getSplits(job, 1);
 
-    assertEquals(1, splits.length);
+      assertEquals(1, splits.length);
 
-    InputSplit split = splits[0];
+      InputSplit split = splits[0];
 
-    assertEquals(RangeInputSplit.class, split.getClass());
+      assertEquals(RangeInputSplit.class, split.getClass());
 
-    RangeInputSplit risplit = (RangeInputSplit) split;
+      RangeInputSplit risplit = (RangeInputSplit) split;
 
-    assertEquals(table, risplit.getTableName());
-    assertEquals(isolated, risplit.isIsolatedScan());
-    assertEquals(localIters, risplit.usesLocalIterators());
-    assertEquals(fetchColumns, risplit.getFetchedColumns());
-    assertEquals(level, risplit.getLogLevel());
+      assertEquals(table, risplit.getTableName());
+      assertEquals(isolated, risplit.isIsolatedScan());
+      assertEquals(localIters, risplit.usesLocalIterators());
+      assertEquals(fetchColumns, risplit.getFetchedColumns());
+      assertEquals(level, risplit.getLogLevel());
+    }
   }
 }

@@ -51,50 +51,51 @@ public class AddSplitIT extends AccumuloClusterHarness {
   public void addSplitTest() throws Exception {
 
     String tableName = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(tableName);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(tableName);
 
-    insertData(tableName, 1L);
+      insertData(c, tableName, 1L);
 
-    TreeSet<Text> splits = new TreeSet<>();
-    splits.add(new Text(String.format("%09d", 333)));
-    splits.add(new Text(String.format("%09d", 666)));
+      TreeSet<Text> splits = new TreeSet<>();
+      splits.add(new Text(String.format("%09d", 333)));
+      splits.add(new Text(String.format("%09d", 666)));
 
-    c.tableOperations().addSplits(tableName, splits);
+      c.tableOperations().addSplits(tableName, splits);
 
-    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
 
-    Collection<Text> actualSplits = c.tableOperations().listSplits(tableName);
+      Collection<Text> actualSplits = c.tableOperations().listSplits(tableName);
 
-    if (!splits.equals(new TreeSet<>(actualSplits))) {
-      throw new Exception(splits + " != " + actualSplits);
+      if (!splits.equals(new TreeSet<>(actualSplits))) {
+        throw new Exception(splits + " != " + actualSplits);
+      }
+
+      verifyData(c, tableName, 1L);
+      insertData(c, tableName, 2L);
+
+      // did not clear splits on purpose, it should ignore existing split points
+      // and still create the three additional split points
+
+      splits.add(new Text(String.format("%09d", 200)));
+      splits.add(new Text(String.format("%09d", 500)));
+      splits.add(new Text(String.format("%09d", 800)));
+
+      c.tableOperations().addSplits(tableName, splits);
+
+      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+
+      actualSplits = c.tableOperations().listSplits(tableName);
+
+      if (!splits.equals(new TreeSet<>(actualSplits))) {
+        throw new Exception(splits + " != " + actualSplits);
+      }
+
+      verifyData(c, tableName, 2L);
     }
-
-    verifyData(tableName, 1L);
-    insertData(tableName, 2L);
-
-    // did not clear splits on purpose, it should ignore existing split points
-    // and still create the three additional split points
-
-    splits.add(new Text(String.format("%09d", 200)));
-    splits.add(new Text(String.format("%09d", 500)));
-    splits.add(new Text(String.format("%09d", 800)));
-
-    c.tableOperations().addSplits(tableName, splits);
-
-    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-
-    actualSplits = c.tableOperations().listSplits(tableName);
-
-    if (!splits.equals(new TreeSet<>(actualSplits))) {
-      throw new Exception(splits + " != " + actualSplits);
-    }
-
-    verifyData(tableName, 2L);
   }
 
-  private void verifyData(String tableName, long ts) throws Exception {
-    try (Scanner scanner = getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)) {
+  private void verifyData(AccumuloClient client, String tableName, long ts) throws Exception {
+    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
@@ -126,9 +127,10 @@ public class AddSplitIT extends AccumuloClusterHarness {
     }
   }
 
-  private void insertData(String tableName, long ts) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
-    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, null);
+  private void insertData(AccumuloClient client, String tableName, long ts)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      MutationsRejectedException {
+    BatchWriter bw = client.createBatchWriter(tableName, null);
 
     for (int i = 0; i < 10000; i++) {
       String row = String.format("%09d", i);

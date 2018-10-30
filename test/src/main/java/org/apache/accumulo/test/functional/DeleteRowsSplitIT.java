@@ -67,59 +67,60 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits
     final String tableName = getUniqueNames(1)[0];
-    final AccumuloClient client = getAccumuloClient();
+    try (AccumuloClient client = getAccumuloClient()) {
 
-    // Eliminate whole tablets
-    for (int test = 0; test < 10; test++) {
-      // create a table
-      log.info("Test {}", test);
-      client.tableOperations().create(tableName);
+      // Eliminate whole tablets
+      for (int test = 0; test < 10; test++) {
+        // create a table
+        log.info("Test {}", test);
+        client.tableOperations().create(tableName);
 
-      // put some data in it
-      fillTable(client, tableName);
+        // put some data in it
+        fillTable(client, tableName);
 
-      // generate a random delete range
-      final Text start = new Text();
-      final Text end = new Text();
-      generateRandomRange(start, end);
+        // generate a random delete range
+        final Text start = new Text();
+        final Text end = new Text();
+        generateRandomRange(start, end);
 
-      // initiate the delete range
-      final boolean fail[] = {false};
-      Thread t = new Thread() {
-        @Override
-        public void run() {
-          try {
-            // split the table
-            final SortedSet<Text> afterEnd = SPLITS.tailSet(new Text(end + "\0"));
-            client.tableOperations().addSplits(tableName, afterEnd);
-          } catch (Exception ex) {
-            log.error("Exception", ex);
-            synchronized (fail) {
-              fail[0] = true;
+        // initiate the delete range
+        final boolean fail[] = {false};
+        Thread t = new Thread() {
+          @Override
+          public void run() {
+            try {
+              // split the table
+              final SortedSet<Text> afterEnd = SPLITS.tailSet(new Text(end + "\0"));
+              client.tableOperations().addSplits(tableName, afterEnd);
+            } catch (Exception ex) {
+              log.error("Exception", ex);
+              synchronized (fail) {
+                fail[0] = true;
+              }
             }
           }
-        }
-      };
-      t.start();
+        };
+        t.start();
 
-      sleepUninterruptibly(test * 2, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(test * 2, TimeUnit.MILLISECONDS);
 
-      client.tableOperations().deleteRows(tableName, start, end);
+        client.tableOperations().deleteRows(tableName, start, end);
 
-      t.join();
-      synchronized (fail) {
-        assertTrue(!fail[0]);
-      }
-
-      // scan the table
-      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        for (Entry<Key,Value> entry : scanner) {
-          Text row = entry.getKey().getRow();
-          assertTrue(row.compareTo(start) <= 0 || row.compareTo(end) > 0);
+        t.join();
+        synchronized (fail) {
+          assertTrue(!fail[0]);
         }
 
-        // delete the table
-        client.tableOperations().delete(tableName);
+        // scan the table
+        try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+          for (Entry<Key,Value> entry : scanner) {
+            Text row = entry.getKey().getRow();
+            assertTrue(row.compareTo(start) <= 0 || row.compareTo(end) > 0);
+          }
+
+          // delete the table
+          client.tableOperations().delete(tableName);
+        }
       }
     }
   }

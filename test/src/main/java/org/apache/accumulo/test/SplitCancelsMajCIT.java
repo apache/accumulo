@@ -60,43 +60,45 @@ public class SplitCancelsMajCIT extends SharedMiniClusterBase {
   @Test
   public void test() throws Exception {
     final String tableName = getUniqueNames(1)[0];
-    final AccumuloClient c = getClient();
-    c.tableOperations().create(tableName);
-    // majc should take 100 * .5 secs
-    IteratorSetting it = new IteratorSetting(100, SlowIterator.class);
-    SlowIterator.setSleepTime(it, 500);
-    c.tableOperations().attachIterator(tableName, it, EnumSet.of(IteratorScope.majc));
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation("" + i);
-      m.put("", "", new Value());
-      bw.addMutation(m);
-    }
-    bw.flush();
-    // start majc
-    final AtomicReference<Exception> ex = new AtomicReference<>();
-    Thread thread = new Thread() {
-      @Override
-      public void run() {
-        try {
-          c.tableOperations().compact(tableName, null, null, true, true);
-        } catch (Exception e) {
-          ex.set(e);
+    try (AccumuloClient c = getClient()) {
+      c.tableOperations().create(tableName);
+      // majc should take 100 * .5 secs
+      IteratorSetting it = new IteratorSetting(100, SlowIterator.class);
+      SlowIterator.setSleepTime(it, 500);
+      c.tableOperations().attachIterator(tableName, it, EnumSet.of(IteratorScope.majc));
+      try (BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig())) {
+        for (int i = 0; i < 100; i++) {
+          Mutation m = new Mutation("" + i);
+          m.put("", "", new Value());
+          bw.addMutation(m);
         }
+        bw.flush();
       }
-    };
-    thread.start();
+      // start majc
+      final AtomicReference<Exception> ex = new AtomicReference<>();
+      Thread thread = new Thread() {
+        @Override
+        public void run() {
+          try {
+            c.tableOperations().compact(tableName, null, null, true, true);
+          } catch (Exception e) {
+            ex.set(e);
+          }
+        }
+      };
+      thread.start();
 
-    long now = System.currentTimeMillis();
-    sleepUninterruptibly(10, TimeUnit.SECONDS);
-    // split the table, interrupts the compaction
-    SortedSet<Text> partitionKeys = new TreeSet<>();
-    partitionKeys.add(new Text("10"));
-    c.tableOperations().addSplits(tableName, partitionKeys);
-    thread.join();
-    // wait for the restarted compaction
-    assertTrue(System.currentTimeMillis() - now > 59 * 1000);
-    if (ex.get() != null)
-      throw ex.get();
+      long now = System.currentTimeMillis();
+      sleepUninterruptibly(10, TimeUnit.SECONDS);
+      // split the table, interrupts the compaction
+      SortedSet<Text> partitionKeys = new TreeSet<>();
+      partitionKeys.add(new Text("10"));
+      c.tableOperations().addSplits(tableName, partitionKeys);
+      thread.join();
+      // wait for the restarted compaction
+      assertTrue(System.currentTimeMillis() - now > 59 * 1000);
+      if (ex.get() != null)
+        throw ex.get();
+    }
   }
 }

@@ -68,112 +68,113 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
   @Test
   public void testExportImportThenScan() throws Exception {
-    AccumuloClient client = getAccumuloClient();
+    try (AccumuloClient client = getAccumuloClient()) {
 
-    String[] tableNames = getUniqueNames(2);
-    String srcTable = tableNames[0], destTable = tableNames[1];
-    client.tableOperations().create(srcTable);
+      String[] tableNames = getUniqueNames(2);
+      String srcTable = tableNames[0], destTable = tableNames[1];
+      client.tableOperations().create(srcTable);
 
-    BatchWriter bw = client.createBatchWriter(srcTable, new BatchWriterConfig());
-    for (int row = 0; row < 1000; row++) {
-      Mutation m = new Mutation(Integer.toString(row));
-      for (int col = 0; col < 100; col++) {
-        m.put(Integer.toString(col), "", Integer.toString(col * 2));
-      }
-      bw.addMutation(m);
-    }
-
-    bw.close();
-
-    client.tableOperations().compact(srcTable, null, null, true, true);
-
-    // Make a directory we can use to throw the export and import directories
-    // Must exist on the filesystem the cluster is running.
-    FileSystem fs = cluster.getFileSystem();
-    Path tmp = cluster.getTemporaryPath();
-    log.info("Using FileSystem: " + fs);
-    Path baseDir = new Path(tmp, getClass().getName());
-    if (fs.exists(baseDir)) {
-      log.info("{} exists on filesystem, deleting", baseDir);
-      assertTrue("Failed to deleted " + baseDir, fs.delete(baseDir, true));
-    }
-    log.info("Creating {}", baseDir);
-    assertTrue("Failed to create " + baseDir, fs.mkdirs(baseDir));
-    Path exportDir = new Path(baseDir, "export");
-    Path importDir = new Path(baseDir, "import");
-    for (Path p : new Path[] {exportDir, importDir}) {
-      assertTrue("Failed to create " + baseDir, fs.mkdirs(p));
-    }
-
-    log.info("Exporting table to {}", exportDir);
-    log.info("Importing table from {}", importDir);
-
-    // Offline the table
-    client.tableOperations().offline(srcTable, true);
-    // Then export it
-    client.tableOperations().exportTable(srcTable, exportDir.toString());
-
-    // Make sure the distcp.txt file that exporttable creates is available
-    Path distcp = new Path(exportDir, "distcp.txt");
-    assertTrue("Distcp file doesn't exist", fs.exists(distcp));
-    FSDataInputStream is = fs.open(distcp);
-    BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-
-    // Copy each file that was exported to the import directory
-    String line;
-    while (null != (line = reader.readLine())) {
-      Path p = new Path(line.substring(5));
-      assertTrue("File doesn't exist: " + p, fs.exists(p));
-
-      Path dest = new Path(importDir, p.getName());
-      assertFalse("Did not expect " + dest + " to exist", fs.exists(dest));
-      FileUtil.copy(fs, p, fs, dest, false, fs.getConf());
-    }
-
-    reader.close();
-
-    log.info("Import dir: {}", Arrays.toString(fs.listStatus(importDir)));
-
-    // Import the exported data into a new table
-    client.tableOperations().importTable(destTable, importDir.toString());
-
-    // Get the table ID for the table that the importtable command created
-    final String tableId = client.tableOperations().tableIdMap().get(destTable);
-    assertNotNull(tableId);
-
-    // Get all `file` colfams from the metadata table for the new table
-    log.info("Imported into table with ID: {}", tableId);
-
-    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(MetadataSchema.TabletsSection
-          .getRange(org.apache.accumulo.core.client.impl.Table.ID.of(tableId)));
-      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-      MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
-
-      // Should find a single entry
-      for (Entry<Key,Value> fileEntry : s) {
-        Key k = fileEntry.getKey();
-        String value = fileEntry.getValue().toString();
-        if (k.getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
-          // The file should be an absolute URI (file:///...), not a relative path
-          // (/b-000.../I000001.rf)
-          String fileUri = k.getColumnQualifier().toString();
-          assertFalse("Imported files should have absolute URIs, not relative: " + fileUri,
-              looksLikeRelativePath(fileUri));
-        } else if (k.getColumnFamily()
-            .equals(MetadataSchema.TabletsSection.ServerColumnFamily.NAME)) {
-          assertFalse("Server directory should have absolute URI, not relative: " + value,
-              looksLikeRelativePath(value));
-        } else {
-          fail("Got expected pair: " + k + "=" + fileEntry.getValue());
+      BatchWriter bw = client.createBatchWriter(srcTable, new BatchWriterConfig());
+      for (int row = 0; row < 1000; row++) {
+        Mutation m = new Mutation(Integer.toString(row));
+        for (int col = 0; col < 100; col++) {
+          m.put(Integer.toString(col), "", Integer.toString(col * 2));
         }
+        bw.addMutation(m);
       }
 
-    }
-    // Online the original table before we verify equivalence
-    client.tableOperations().online(srcTable, true);
+      bw.close();
 
-    verifyTableEquality(client, srcTable, destTable);
+      client.tableOperations().compact(srcTable, null, null, true, true);
+
+      // Make a directory we can use to throw the export and import directories
+      // Must exist on the filesystem the cluster is running.
+      FileSystem fs = cluster.getFileSystem();
+      Path tmp = cluster.getTemporaryPath();
+      log.info("Using FileSystem: " + fs);
+      Path baseDir = new Path(tmp, getClass().getName());
+      if (fs.exists(baseDir)) {
+        log.info("{} exists on filesystem, deleting", baseDir);
+        assertTrue("Failed to deleted " + baseDir, fs.delete(baseDir, true));
+      }
+      log.info("Creating {}", baseDir);
+      assertTrue("Failed to create " + baseDir, fs.mkdirs(baseDir));
+      Path exportDir = new Path(baseDir, "export");
+      Path importDir = new Path(baseDir, "import");
+      for (Path p : new Path[] {exportDir, importDir}) {
+        assertTrue("Failed to create " + baseDir, fs.mkdirs(p));
+      }
+
+      log.info("Exporting table to {}", exportDir);
+      log.info("Importing table from {}", importDir);
+
+      // Offline the table
+      client.tableOperations().offline(srcTable, true);
+      // Then export it
+      client.tableOperations().exportTable(srcTable, exportDir.toString());
+
+      // Make sure the distcp.txt file that exporttable creates is available
+      Path distcp = new Path(exportDir, "distcp.txt");
+      assertTrue("Distcp file doesn't exist", fs.exists(distcp));
+      FSDataInputStream is = fs.open(distcp);
+      BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+
+      // Copy each file that was exported to the import directory
+      String line;
+      while (null != (line = reader.readLine())) {
+        Path p = new Path(line.substring(5));
+        assertTrue("File doesn't exist: " + p, fs.exists(p));
+
+        Path dest = new Path(importDir, p.getName());
+        assertFalse("Did not expect " + dest + " to exist", fs.exists(dest));
+        FileUtil.copy(fs, p, fs, dest, false, fs.getConf());
+      }
+
+      reader.close();
+
+      log.info("Import dir: {}", Arrays.toString(fs.listStatus(importDir)));
+
+      // Import the exported data into a new table
+      client.tableOperations().importTable(destTable, importDir.toString());
+
+      // Get the table ID for the table that the importtable command created
+      final String tableId = client.tableOperations().tableIdMap().get(destTable);
+      assertNotNull(tableId);
+
+      // Get all `file` colfams from the metadata table for the new table
+      log.info("Imported into table with ID: {}", tableId);
+
+      try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        s.setRange(MetadataSchema.TabletsSection
+            .getRange(org.apache.accumulo.core.client.impl.Table.ID.of(tableId)));
+        s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
+
+        // Should find a single entry
+        for (Entry<Key,Value> fileEntry : s) {
+          Key k = fileEntry.getKey();
+          String value = fileEntry.getValue().toString();
+          if (k.getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+            // The file should be an absolute URI (file:///...), not a relative path
+            // (/b-000.../I000001.rf)
+            String fileUri = k.getColumnQualifier().toString();
+            assertFalse("Imported files should have absolute URIs, not relative: " + fileUri,
+                looksLikeRelativePath(fileUri));
+          } else if (k.getColumnFamily()
+              .equals(MetadataSchema.TabletsSection.ServerColumnFamily.NAME)) {
+            assertFalse("Server directory should have absolute URI, not relative: " + value,
+                looksLikeRelativePath(value));
+          } else {
+            fail("Got expected pair: " + k + "=" + fileEntry.getValue());
+          }
+        }
+
+      }
+      // Online the original table before we verify equivalence
+      client.tableOperations().online(srcTable, true);
+
+      verifyTableEquality(client, srcTable, destTable);
+    }
   }
 
   private void verifyTableEquality(AccumuloClient client, String srcTable, String destTable)

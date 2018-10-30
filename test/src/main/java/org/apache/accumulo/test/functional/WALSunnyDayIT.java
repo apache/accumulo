@@ -96,67 +96,68 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     MiniAccumuloClusterControl control = mac.getClusterControl();
     control.stop(GARBAGE_COLLECTOR);
     ServerContext context = getServerContext();
-    AccumuloClient c = context.getClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    writeSomeData(c, tableName, 1, 1);
+    try (AccumuloClient c = context.getClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      writeSomeData(c, tableName, 1, 1);
 
-    // wal markers are added lazily
-    Map<String,Boolean> wals = getWALsAndAssertCount(context, 2);
-    for (Boolean b : wals.values()) {
-      assertTrue("logs should be in use", b);
+      // wal markers are added lazily
+      Map<String,Boolean> wals = getWALsAndAssertCount(context, 2);
+      for (Boolean b : wals.values()) {
+        assertTrue("logs should be in use", b);
+      }
+
+      // roll log, get a new next
+      writeSomeData(c, tableName, 1001, 50);
+      Map<String,Boolean> walsAfterRoll = getWALsAndAssertCount(context, 3);
+      assertTrue("new WALs should be a superset of the old WALs",
+          walsAfterRoll.keySet().containsAll(wals.keySet()));
+      assertEquals("all WALs should be in use", 3, countTrue(walsAfterRoll.values()));
+
+      // flush the tables
+      for (String table : new String[] {tableName, MetadataTable.NAME, RootTable.NAME}) {
+        c.tableOperations().flush(table, null, null, true);
+      }
+      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      // rolled WAL is no longer in use, but needs to be GC'd
+      Map<String,Boolean> walsAfterflush = getWALsAndAssertCount(context, 3);
+      assertEquals("inUse should be 2", 2, countTrue(walsAfterflush.values()));
+
+      // let the GC run for a little bit
+      control.start(GARBAGE_COLLECTOR);
+      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      // make sure the unused WAL goes away
+      getWALsAndAssertCount(context, 2);
+      control.stop(GARBAGE_COLLECTOR);
+      // restart the tserver, but don't run recovery on all tablets
+      control.stop(TABLET_SERVER);
+      // this delays recovery on the normal tables
+      assertEquals(0, cluster.exec(SetGoalState.class, "SAFE_MODE").waitFor());
+      control.start(TABLET_SERVER);
+
+      // wait for the metadata table to go back online
+      getRecoveryMarkers(c);
+      // allow a little time for the master to notice ASSIGNED_TO_DEAD_SERVER tablets
+      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      Map<KeyExtent,List<String>> markers = getRecoveryMarkers(c);
+      // log.debug("markers " + markers);
+      assertEquals("one tablet should have markers", 1, markers.keySet().size());
+      assertEquals("tableId of the keyExtent should be 1", "1",
+          markers.keySet().iterator().next().getTableId().canonicalID());
+
+      // put some data in the WAL
+      assertEquals(0, cluster.exec(SetGoalState.class, "NORMAL").waitFor());
+      verifySomeData(c, tableName, 1001 * 50 + 1);
+      writeSomeData(c, tableName, 100, 100);
+
+      Map<String,Boolean> walsAfterRestart = getWALsAndAssertCount(context, 4);
+      // log.debug("wals after " + walsAfterRestart);
+      assertEquals("used WALs after restart should be 4", 4, countTrue(walsAfterRestart.values()));
+      control.start(GARBAGE_COLLECTOR);
+      sleepUninterruptibly(5, TimeUnit.SECONDS);
+      Map<String,Boolean> walsAfterRestartAndGC = getWALsAndAssertCount(context, 2);
+      assertEquals("logs in use should be 2", 2, countTrue(walsAfterRestartAndGC.values()));
     }
-
-    // roll log, get a new next
-    writeSomeData(c, tableName, 1001, 50);
-    Map<String,Boolean> walsAfterRoll = getWALsAndAssertCount(context, 3);
-    assertTrue("new WALs should be a superset of the old WALs",
-        walsAfterRoll.keySet().containsAll(wals.keySet()));
-    assertEquals("all WALs should be in use", 3, countTrue(walsAfterRoll.values()));
-
-    // flush the tables
-    for (String table : new String[] {tableName, MetadataTable.NAME, RootTable.NAME}) {
-      c.tableOperations().flush(table, null, null, true);
-    }
-    sleepUninterruptibly(1, TimeUnit.SECONDS);
-    // rolled WAL is no longer in use, but needs to be GC'd
-    Map<String,Boolean> walsAfterflush = getWALsAndAssertCount(context, 3);
-    assertEquals("inUse should be 2", 2, countTrue(walsAfterflush.values()));
-
-    // let the GC run for a little bit
-    control.start(GARBAGE_COLLECTOR);
-    sleepUninterruptibly(5, TimeUnit.SECONDS);
-    // make sure the unused WAL goes away
-    getWALsAndAssertCount(context, 2);
-    control.stop(GARBAGE_COLLECTOR);
-    // restart the tserver, but don't run recovery on all tablets
-    control.stop(TABLET_SERVER);
-    // this delays recovery on the normal tables
-    assertEquals(0, cluster.exec(SetGoalState.class, "SAFE_MODE").waitFor());
-    control.start(TABLET_SERVER);
-
-    // wait for the metadata table to go back online
-    getRecoveryMarkers(c);
-    // allow a little time for the master to notice ASSIGNED_TO_DEAD_SERVER tablets
-    sleepUninterruptibly(5, TimeUnit.SECONDS);
-    Map<KeyExtent,List<String>> markers = getRecoveryMarkers(c);
-    // log.debug("markers " + markers);
-    assertEquals("one tablet should have markers", 1, markers.keySet().size());
-    assertEquals("tableId of the keyExtent should be 1", "1",
-        markers.keySet().iterator().next().getTableId().canonicalID());
-
-    // put some data in the WAL
-    assertEquals(0, cluster.exec(SetGoalState.class, "NORMAL").waitFor());
-    verifySomeData(c, tableName, 1001 * 50 + 1);
-    writeSomeData(c, tableName, 100, 100);
-
-    Map<String,Boolean> walsAfterRestart = getWALsAndAssertCount(context, 4);
-    // log.debug("wals after " + walsAfterRestart);
-    assertEquals("used WALs after restart should be 4", 4, countTrue(walsAfterRestart.values()));
-    control.start(GARBAGE_COLLECTOR);
-    sleepUninterruptibly(5, TimeUnit.SECONDS);
-    Map<String,Boolean> walsAfterRestartAndGC = getWALsAndAssertCount(context, 2);
-    assertEquals("logs in use should be 2", 2, countTrue(walsAfterRestartAndGC.values()));
   }
 
   private void verifySomeData(AccumuloClient c, String tableName, int expected) throws Exception {

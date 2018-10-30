@@ -24,6 +24,8 @@ import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.zookeeper.WatchedEvent;
@@ -37,6 +39,10 @@ import org.slf4j.LoggerFactory;
 public class ZooSession {
 
   public static class ZooSessionShutdownException extends RuntimeException {
+
+    public ZooSessionShutdownException(String msg) {
+      super(msg);
+    }
 
     private static final long serialVersionUID = 1L;
 
@@ -55,6 +61,26 @@ public class ZooSession {
   private static Map<String,ZooSessionInfo> sessions = new HashMap<>();
 
   private static final SecureRandom secureRandom = new SecureRandom();
+
+  static {
+    SingletonManager.register(new SingletonService() {
+
+      @Override
+      public boolean isEnabled() {
+        return ZooSession.isEnabled();
+      }
+
+      @Override
+      public void enable() {
+        ZooSession.enable();
+      }
+
+      @Override
+      public void disable() {
+        ZooSession.disable();
+      }
+    });
+  }
 
   private static String sessionKey(String keepers, int timeout, String scheme, byte[] auth) {
     return keepers + ":" + timeout + ":" + (scheme == null ? "" : scheme) + ":"
@@ -152,7 +178,9 @@ public class ZooSession {
       byte[] auth) {
 
     if (sessions == null)
-      throw new ZooSessionShutdownException();
+      throw new ZooSessionShutdownException(
+          "The Accumulo singleton that that tracks zookeeper session is disabled.  This is likely "
+              + "caused by all AccumuloClients being closed or garbage collected.");
 
     String sessionKey = sessionKey(zooKeepers, timeout, scheme, auth);
 
@@ -178,7 +206,18 @@ public class ZooSession {
     return zsi.zooKeeper;
   }
 
-  public static synchronized void shutdown() {
+  private static synchronized boolean isEnabled() {
+    return sessions != null;
+  }
+
+  private static synchronized void enable() {
+    if (sessions != null)
+      return;
+
+    sessions = new HashMap<>();
+  }
+
+  private static synchronized void disable() {
     if (sessions == null)
       return;
 

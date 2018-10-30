@@ -37,16 +37,17 @@ public class BalanceIT extends AccumuloClusterHarness {
   @Test
   public void testBalance() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    log.info("Creating table");
-    c.tableOperations().create(tableName);
-    SortedSet<Text> splits = new TreeSet<>();
-    for (int i = 0; i < 10; i++) {
-      splits.add(new Text("" + i));
+    try (AccumuloClient c = getAccumuloClient()) {
+      log.info("Creating table");
+      c.tableOperations().create(tableName);
+      SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 0; i < 10; i++) {
+        splits.add(new Text("" + i));
+      }
+      log.info("Adding splits");
+      c.tableOperations().addSplits(tableName, splits);
+      log.info("Waiting for balance");
+      c.instanceOperations().waitForBalance();
     }
-    log.info("Adding splits");
-    c.tableOperations().addSplits(tableName, splits);
-    log.info("Waiting for balance");
-    c.instanceOperations().waitForBalance();
   }
 }

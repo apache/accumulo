@@ -51,37 +51,38 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getClient();
-    log.info("verifying that everything is up");
-    Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+    try (AccumuloClient c = getClient()) {
+      log.info("verifying that everything is up");
+      Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
 
-    MasterMonitorInfo stats = getStats(c);
-    assertEquals(2, stats.tServerInfo.size());
-    assertEquals(0, stats.badTServers.size());
-    assertEquals(0, stats.deadTabletServers.size());
-    log.info("Killing a tablet server");
-    getCluster().killProcess(TABLET_SERVER,
-        getCluster().getProcesses().get(TABLET_SERVER).iterator().next());
+      MasterMonitorInfo stats = getStats(c);
+      assertEquals(2, stats.tServerInfo.size());
+      assertEquals(0, stats.badTServers.size());
+      assertEquals(0, stats.deadTabletServers.size());
+      log.info("Killing a tablet server");
+      getCluster().killProcess(TABLET_SERVER,
+          getCluster().getProcesses().get(TABLET_SERVER).iterator().next());
 
-    while (true) {
-      stats = getStats(c);
-      if (2 != stats.tServerInfo.size()) {
-        break;
+      while (true) {
+        stats = getStats(c);
+        if (2 != stats.tServerInfo.size()) {
+          break;
+        }
+        UtilWaitThread.sleep(500);
       }
-      UtilWaitThread.sleep(500);
-    }
-    assertEquals(1, stats.tServerInfo.size());
-    assertEquals(1, stats.badTServers.size() + stats.deadTabletServers.size());
-    while (true) {
-      stats = getStats(c);
-      if (0 != stats.deadTabletServers.size()) {
-        break;
+      assertEquals(1, stats.tServerInfo.size());
+      assertEquals(1, stats.badTServers.size() + stats.deadTabletServers.size());
+      while (true) {
+        stats = getStats(c);
+        if (0 != stats.deadTabletServers.size()) {
+          break;
+        }
+        UtilWaitThread.sleep(500);
       }
-      UtilWaitThread.sleep(500);
+      assertEquals(1, stats.tServerInfo.size());
+      assertEquals(0, stats.badTServers.size());
+      assertEquals(1, stats.deadTabletServers.size());
     }
-    assertEquals(1, stats.tServerInfo.size());
-    assertEquals(0, stats.badTServers.size());
-    assertEquals(1, stats.deadTabletServers.size());
   }
 
   private MasterMonitorInfo getStats(AccumuloClient c) throws Exception {

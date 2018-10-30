@@ -272,7 +272,9 @@ public abstract class Connector {
   public abstract ReplicationOperations replicationOperations();
 
   /**
-   * Creates a Connector from an AccumuloClient.
+   * Creates a Connector from an AccumuloClient. This Connector will no longer work after the
+   * AccumuloClient is closed. Also anything derived from the Connector (like a Scanner for example)
+   * is unlikely to work after the AccumuloClient is closed.
    *
    * @since 2.0
    */

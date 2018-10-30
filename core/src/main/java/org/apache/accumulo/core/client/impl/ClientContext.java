@@ -38,6 +38,7 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -75,6 +76,14 @@ public class ClientContext {
   private Supplier<SaslConnectionParams> saslSupplier;
   private Supplier<SslConnectionParams> sslSupplier;
   private TCredentials rpcCreds;
+
+  private volatile boolean closed = false;
+
+  private void ensureOpen() {
+    if (closed) {
+      throw new IllegalStateException("This client was closed.");
+    }
+  }
 
   private static <T> Supplier<T> memoizeWithExpiration(Supplier<T> s) {
     // This insanity exists to make modernizer plugin happy. We are living in the future now.
@@ -146,6 +155,7 @@ public class ClientContext {
   }
 
   public ClientInfo getClientInfo() {
+    ensureOpen();
     return info;
   }
 
@@ -153,6 +163,7 @@ public class ClientContext {
    * Retrieve the credentials used to construct this context
    */
   public synchronized Credentials getCredentials() {
+    ensureOpen();
     if (creds == null) {
       creds = new Credentials(info.getPrincipal(), info.getAuthenticationToken());
     }
@@ -160,14 +171,17 @@ public class ClientContext {
   }
 
   public String getPrincipal() {
+    ensureOpen();
     return getCredentials().getPrincipal();
   }
 
   public AuthenticationToken getAuthenticationToken() {
+    ensureOpen();
     return getCredentials().getToken();
   }
 
   public Properties getProperties() {
+    ensureOpen();
     return info.getProperties();
   }
 
@@ -177,6 +191,7 @@ public class ClientContext {
    */
   public synchronized void setCredentials(Credentials newCredentials) {
     checkArgument(newCredentials != null, "newCredentials is null");
+    ensureOpen();
     creds = newCredentials;
     rpcCreds = null;
   }
@@ -185,6 +200,7 @@ public class ClientContext {
    * Retrieve the configuration used to construct this context
    */
   public AccumuloConfiguration getConfiguration() {
+    ensureOpen();
     return serverConf;
   }
 
@@ -192,6 +208,7 @@ public class ClientContext {
    * Retrieve the universal RPC client timeout from the configuration
    */
   public long getClientTimeoutInMillis() {
+    ensureOpen();
     return timeoutSupplier.get();
   }
 
@@ -199,6 +216,7 @@ public class ClientContext {
    * Retrieve SSL/TLS configuration to initiate an RPC connection to a server
    */
   public SslConnectionParams getClientSslParams() {
+    ensureOpen();
     return sslSupplier.get();
   }
 
@@ -206,6 +224,7 @@ public class ClientContext {
    * Retrieve SASL configuration to initiate an RPC connection to a server
    */
   public SaslConnectionParams getSaslParams() {
+    ensureOpen();
     return saslSupplier.get();
   }
 
@@ -214,13 +233,15 @@ public class ClientContext {
    */
   public synchronized AccumuloClient getClient()
       throws AccumuloException, AccumuloSecurityException {
+    ensureOpen();
     if (client == null) {
-      client = new AccumuloClientImpl(this);
+      client = new AccumuloClientImpl(SingletonReservation.noop(), this);
     }
     return client;
   }
 
   public BatchWriterConfig getBatchWriterConfig() {
+    ensureOpen();
     if (batchWriterConfig == null) {
       batchWriterConfig = ClientInfoFactory.getBatchWriterConfig(getClientInfo());
     }
@@ -231,6 +252,7 @@ public class ClientContext {
    * Serialize the credentials just before initiating the RPC call
    */
   public synchronized TCredentials rpcCreds() {
+    ensureOpen();
     if (getCredentials().getToken().isDestroyed()) {
       rpcCreds = null;
     }
@@ -248,6 +270,7 @@ public class ClientContext {
    * @return location in "hostname:port" form
    */
   public String getRootTabletLocation() {
+    ensureOpen();
     String zRootLocPath = getZooKeeperRoot() + RootTable.ZROOT_TABLET_LOCATION;
 
     OpTimer timer = null;
@@ -280,6 +303,7 @@ public class ClientContext {
    * @return a list of locations in "hostname:port" form
    */
   public List<String> getMasterLocations() {
+    ensureOpen();
     String masterLocPath = getZooKeeperRoot() + Constants.ZMASTER_LOCK;
 
     OpTimer timer = null;
@@ -311,6 +335,7 @@ public class ClientContext {
    * @return a UUID
    */
   public String getInstanceID() {
+    ensureOpen();
     final String instanceName = info.getInstanceName();
     if (instanceId == null) {
       // want the instance id to be stable for the life of this instance object,
@@ -336,6 +361,7 @@ public class ClientContext {
   }
 
   public String getZooKeeperRoot() {
+    ensureOpen();
     return ZooUtil.getRoot(getInstanceID());
   }
 
@@ -345,6 +371,7 @@ public class ClientContext {
    * @return current instance name
    */
   public String getInstanceName() {
+    ensureOpen();
     return info.getInstanceName();
   }
 
@@ -354,6 +381,7 @@ public class ClientContext {
    * @return the zookeeper servers this instance is using in "hostname:port" form
    */
   public String getZooKeepers() {
+    ensureOpen();
     return info.getZooKeepers();
   }
 
@@ -363,10 +391,16 @@ public class ClientContext {
    * @return the configured timeout to connect to zookeeper
    */
   public int getZooKeepersSessionTimeOut() {
+    ensureOpen();
     return info.getZooKeepersSessionTimeOut();
   }
 
   public ZooCache getZooCache() {
+    ensureOpen();
     return zooCache;
+  }
+
+  public void close() {
+    closed = true;
   }
 }

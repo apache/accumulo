@@ -73,27 +73,28 @@ public class ShutdownIT extends ConfigurableMacBase {
 
   @Test
   public void shutdownDuringDeleteTable() throws Exception {
-    final AccumuloClient c = getClient();
-    for (int i = 0; i < 10; i++) {
-      c.tableOperations().create("table" + i);
-    }
-    final AtomicReference<Exception> ref = new AtomicReference<>();
-    Thread async = new Thread() {
-      @Override
-      public void run() {
-        try {
-          for (int i = 0; i < 10; i++)
-            c.tableOperations().delete("table" + i);
-        } catch (Exception ex) {
-          ref.set(ex);
-        }
+    try (AccumuloClient c = getClient()) {
+      for (int i = 0; i < 10; i++) {
+        c.tableOperations().create("table" + i);
       }
-    };
-    async.start();
-    sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
-    if (ref.get() != null)
-      throw ref.get();
+      final AtomicReference<Exception> ref = new AtomicReference<>();
+      Thread async = new Thread() {
+        @Override
+        public void run() {
+          try {
+            for (int i = 0; i < 10; i++)
+              c.tableOperations().delete("table" + i);
+          } catch (Exception ex) {
+            ref.set(ex);
+          }
+        }
+      };
+      async.start();
+      sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+      if (ref.get() != null)
+        throw ref.get();
+    }
   }
 
   @Test
@@ -103,7 +104,9 @@ public class ShutdownIT extends ConfigurableMacBase {
 
   @Test
   public void adminStop() throws Exception {
-    runAdminStopTest(getClient(), cluster);
+    try (AccumuloClient c = getClient()) {
+      runAdminStopTest(c, cluster);
+    }
   }
 
   static void runAdminStopTest(AccumuloClient c, MiniAccumuloClusterImpl cluster)

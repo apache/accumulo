@@ -44,25 +44,26 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
 
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
-    final AccumuloClient client = this.getClient();
-    // Yes, there's a tabletserver
-    assertEquals(1, client.instanceOperations().getTabletServers().size());
-    final String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
-    BatchWriter bw = client.createBatchWriter(tableName, null);
-    for (int i = 0; i < N; i++) {
-      Mutation m = new Mutation("" + i);
-      m.put("", "", "");
-      bw.addMutation(m);
+    try (AccumuloClient client = this.getClient()) {
+      // Yes, there's a tabletserver
+      assertEquals(1, client.instanceOperations().getTabletServers().size());
+      final String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
+      BatchWriter bw = client.createBatchWriter(tableName, null);
+      for (int i = 0; i < N; i++) {
+        Mutation m = new Mutation("" + i);
+        m.put("", "", "");
+        bw.addMutation(m);
+      }
+      bw.close();
+      client.tableOperations().flush(tableName, null, null, true);
+
+      // Kill dfs
+      cluster.getMiniDfs().restartNameNode(false);
+
+      assertEquals(N,
+          Iterators.size(client.createScanner(tableName, Authorizations.EMPTY).iterator()));
     }
-    bw.close();
-    client.tableOperations().flush(tableName, null, null, true);
-
-    // Kill dfs
-    cluster.getMiniDfs().restartNameNode(false);
-
-    assertEquals(N,
-        Iterators.size(client.createScanner(tableName, Authorizations.EMPTY).iterator()));
   }
 
 }

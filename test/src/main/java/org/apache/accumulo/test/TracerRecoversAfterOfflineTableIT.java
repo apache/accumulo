@@ -55,72 +55,73 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     Process tracer = null;
-    AccumuloClient client = getClient();
-    if (!client.tableOperations().exists("trace")) {
-      MiniAccumuloClusterImpl mac = cluster;
-      tracer = mac.exec(TraceServer.class);
-      while (!client.tableOperations().exists("trace")) {
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
-      }
-      sleepUninterruptibly(5, TimeUnit.SECONDS);
-    }
-
-    log.info("Taking table offline");
-    client.tableOperations().offline("trace", true);
-
-    String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
-
-    log.info("Start a distributed trace span");
-
-    DistributedTrace.enable("localhost", "testTrace", getClientInfo().getProperties());
-    Span root = Trace.on("traceTest");
-    BatchWriter bw = client.createBatchWriter(tableName, null);
-    Mutation m = new Mutation("m");
-    m.put("a", "b", "c");
-    bw.addMutation(m);
-    bw.close();
-    root.stop();
-
-    log.info("Bringing trace table back online");
-    client.tableOperations().online("trace", true);
-
-    log.info("Trace table is online, should be able to find trace");
-
-    try (Scanner scanner = client.createScanner("trace", Authorizations.EMPTY)) {
-      scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
-      while (true) {
-        final StringBuilder finalBuffer = new StringBuilder();
-        int traceCount = TraceDump.printTrace(scanner, new Printer() {
-          @Override
-          public void print(final String line) {
-            try {
-              finalBuffer.append(line).append("\n");
-            } catch (Exception ex) {
-              throw new RuntimeException(ex);
-            }
-          }
-        });
-        String traceOutput = finalBuffer.toString();
-        log.info("Trace output:{}", traceOutput);
-        if (traceCount > 0) {
-          int lastPos = 0;
-          for (String part : "traceTest,close,binMutations".split(",")) {
-            log.info("Looking in trace output for '{}'", part);
-            int pos = traceOutput.indexOf(part);
-            assertTrue("Did not find '" + part + "' in output", pos > 0);
-            assertTrue("'" + part + "' occurred earlier than the previous element unexpectedly",
-                pos > lastPos);
-            lastPos = pos;
-          }
-          break;
-        } else {
-          log.info("Ignoring trace output as traceCount not greater than zero: {}", traceCount);
-          Thread.sleep(1000);
+    try (AccumuloClient client = getClient()) {
+      if (!client.tableOperations().exists("trace")) {
+        MiniAccumuloClusterImpl mac = cluster;
+        tracer = mac.exec(TraceServer.class);
+        while (!client.tableOperations().exists("trace")) {
+          sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
+        sleepUninterruptibly(5, TimeUnit.SECONDS);
       }
-      if (tracer != null) {
-        tracer.destroy();
+
+      log.info("Taking table offline");
+      client.tableOperations().offline("trace", true);
+
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
+
+      log.info("Start a distributed trace span");
+
+      DistributedTrace.enable("localhost", "testTrace", getClientInfo().getProperties());
+      Span root = Trace.on("traceTest");
+      BatchWriter bw = client.createBatchWriter(tableName, null);
+      Mutation m = new Mutation("m");
+      m.put("a", "b", "c");
+      bw.addMutation(m);
+      bw.close();
+      root.stop();
+
+      log.info("Bringing trace table back online");
+      client.tableOperations().online("trace", true);
+
+      log.info("Trace table is online, should be able to find trace");
+
+      try (Scanner scanner = client.createScanner("trace", Authorizations.EMPTY)) {
+        scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
+        while (true) {
+          final StringBuilder finalBuffer = new StringBuilder();
+          int traceCount = TraceDump.printTrace(scanner, new Printer() {
+            @Override
+            public void print(final String line) {
+              try {
+                finalBuffer.append(line).append("\n");
+              } catch (Exception ex) {
+                throw new RuntimeException(ex);
+              }
+            }
+          });
+          String traceOutput = finalBuffer.toString();
+          log.info("Trace output:{}", traceOutput);
+          if (traceCount > 0) {
+            int lastPos = 0;
+            for (String part : "traceTest,close,binMutations".split(",")) {
+              log.info("Looking in trace output for '{}'", part);
+              int pos = traceOutput.indexOf(part);
+              assertTrue("Did not find '" + part + "' in output", pos > 0);
+              assertTrue("'" + part + "' occurred earlier than the previous element unexpectedly",
+                  pos > lastPos);
+              lastPos = pos;
+            }
+            break;
+          } else {
+            log.info("Ignoring trace output as traceCount not greater than zero: {}", traceCount);
+            Thread.sleep(1000);
+          }
+        }
+        if (tracer != null) {
+          tracer.destroy();
+        }
       }
     }
   }

@@ -63,64 +63,66 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
 
   @Test
   public void simpleBalancerFairness() throws Exception {
-    AccumuloClient c = getClient();
-    c.tableOperations().create("test_ingest");
-    c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-    c.tableOperations().create("unused");
-    TreeSet<Text> splits = TestIngest.getSplitPoints(0, 10000000, 500);
-    log.info("Creating {} splits", splits.size());
-    c.tableOperations().addSplits("unused", splits);
-    List<String> tservers = c.instanceOperations().getTabletServers();
-    TestIngest.Opts opts = new TestIngest.Opts();
-    opts.rows = 50000;
-    opts.setClientInfo(getClientInfo());
-    TestIngest.ingest(c, opts, new BatchWriterOpts());
-    c.tableOperations().flush("test_ingest", null, null, false);
-    sleepUninterruptibly(45, TimeUnit.SECONDS);
-    Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
-    ClientContext context = getClientContext();
+    try (AccumuloClient c = getClient()) {
+      c.tableOperations().create("test_ingest");
+      c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(),
+          "10K");
+      c.tableOperations().create("unused");
+      TreeSet<Text> splits = TestIngest.getSplitPoints(0, 10000000, 500);
+      log.info("Creating {} splits", splits.size());
+      c.tableOperations().addSplits("unused", splits);
+      List<String> tservers = c.instanceOperations().getTabletServers();
+      TestIngest.Opts opts = new TestIngest.Opts();
+      opts.rows = 50000;
+      opts.setClientInfo(getClientInfo());
+      TestIngest.ingest(c, opts, new BatchWriterOpts());
+      c.tableOperations().flush("test_ingest", null, null, false);
+      sleepUninterruptibly(45, TimeUnit.SECONDS);
+      Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
+      ClientContext context = getClientContext();
 
-    MasterMonitorInfo stats = null;
-    int unassignedTablets = 1;
-    for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
-      MasterClientService.Iface client = null;
-      while (true) {
-        try {
-          client = MasterClient.getConnectionWithRetry(context);
-          stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstanceID()));
-          break;
-        } catch (ThriftNotActiveServiceException e) {
-          // Let it loop, fetching a new location
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-        } finally {
-          if (client != null)
-            MasterClient.close(client);
+      MasterMonitorInfo stats = null;
+      int unassignedTablets = 1;
+      for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
+        MasterClientService.Iface client = null;
+        while (true) {
+          try {
+            client = MasterClient.getConnectionWithRetry(context);
+            stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstanceID()));
+            break;
+          } catch (ThriftNotActiveServiceException e) {
+            // Let it loop, fetching a new location
+            sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          } finally {
+            if (client != null)
+              MasterClient.close(client);
+          }
+        }
+        unassignedTablets = stats.getUnassignedTablets();
+        if (unassignedTablets > 0) {
+          log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
+              unassignedTablets);
+          Thread.sleep(3000);
         }
       }
-      unassignedTablets = stats.getUnassignedTablets();
-      if (unassignedTablets > 0) {
-        log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
-            unassignedTablets);
-        Thread.sleep(3000);
-      }
-    }
 
-    assertEquals("Unassigned tablets were not assigned within 30 seconds", 0, unassignedTablets);
+      assertEquals("Unassigned tablets were not assigned within 30 seconds", 0, unassignedTablets);
 
-    // Compute online tablets per tserver
-    List<Integer> counts = new ArrayList<>();
-    for (TabletServerStatus server : stats.tServerInfo) {
-      int count = 0;
-      for (TableInfo table : server.tableMap.values()) {
-        count += table.onlineTablets;
+      // Compute online tablets per tserver
+      List<Integer> counts = new ArrayList<>();
+      for (TabletServerStatus server : stats.tServerInfo) {
+        int count = 0;
+        for (TableInfo table : server.tableMap.values()) {
+          count += table.onlineTablets;
+        }
+        counts.add(count);
       }
-      counts.add(count);
-    }
-    assertTrue("Expected to have at least two TabletServers", counts.size() > 1);
-    for (int i = 1; i < counts.size(); i++) {
-      int diff = Math.abs(counts.get(0) - counts.get(i));
-      assertTrue("Expected difference in tablets to be less than or equal to " + counts.size()
-          + " but was " + diff + ". Counts " + counts, diff <= tservers.size());
+      assertTrue("Expected to have at least two TabletServers", counts.size() > 1);
+      for (int i = 1; i < counts.size(); i++) {
+        int diff = Math.abs(counts.get(0) - counts.get(i));
+        assertTrue("Expected difference in tablets to be less than or equal to " + counts.size()
+            + " but was " + diff + ". Counts " + counts, diff <= tservers.size());
+      }
     }
   }
 

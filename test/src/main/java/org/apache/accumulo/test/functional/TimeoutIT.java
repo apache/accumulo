@@ -47,10 +47,11 @@ public class TimeoutIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String[] tableNames = getUniqueNames(2);
-    testBatchWriterTimeout(client, tableNames[0]);
-    testBatchScannerTimeout(client, tableNames[1]);
+    try (AccumuloClient client = getAccumuloClient()) {
+      String[] tableNames = getUniqueNames(2);
+      testBatchWriterTimeout(client, tableNames[0]);
+      testBatchScannerTimeout(client, tableNames[1]);
+    }
   }
 
   public void testBatchWriterTimeout(AccumuloClient client, String tableName) throws Exception {
@@ -78,9 +79,9 @@ public class TimeoutIT extends AccumuloClusterHarness {
   }
 
   public void testBatchScannerTimeout(AccumuloClient client, String tableName) throws Exception {
-    getAccumuloClient().tableOperations().create(tableName);
+    client.tableOperations().create(tableName);
 
-    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
 
     Mutation m = new Mutation("r1");
     m.put("cf1", "cq1", "v1");
@@ -91,8 +92,7 @@ public class TimeoutIT extends AccumuloClusterHarness {
     bw.addMutation(m);
     bw.close();
 
-    try (BatchScanner bs = getAccumuloClient().createBatchScanner(tableName, Authorizations.EMPTY,
-        2)) {
+    try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
       bs.setRanges(Collections.singletonList(new Range()));
 
       // should not timeout

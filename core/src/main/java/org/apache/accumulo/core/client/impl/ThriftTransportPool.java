@@ -27,10 +27,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
@@ -72,7 +72,7 @@ public class ThriftTransportPool {
   private Map<ThriftTransportKey,Long> errorTime = new HashMap<>();
   private Set<ThriftTransportKey> serversWarnedAbout = new HashSet<>();
 
-  private CountDownLatch closerExitLatch;
+  private Thread checkThread;
 
   private static final Logger log = LoggerFactory.getLogger(ThriftTransportPool.class);
 
@@ -101,19 +101,21 @@ public class ThriftTransportPool {
   }
 
   public static class TransportPoolShutdownException extends RuntimeException {
+    public TransportPoolShutdownException(String msg) {
+      super(msg);
+    }
+
     private static final long serialVersionUID = 1L;
   }
 
   private static class Closer implements Runnable {
     final ThriftTransportPool pool;
-    private CountDownLatch closerExitLatch;
 
-    public Closer(ThriftTransportPool pool, CountDownLatch closerExitLatch) {
+    public Closer(ThriftTransportPool pool) {
       this.pool = pool;
-      this.closerExitLatch = closerExitLatch;
     }
 
-    private void closeConnections() {
+    private void closeConnections() throws InterruptedException {
       while (true) {
 
         ArrayList<CachedConnection> connectionsToClose = new ArrayList<>();
@@ -151,11 +153,7 @@ public class ThriftTransportPool {
           cachedConnection.transport.close();
         }
 
-        try {
-          Thread.sleep(500);
-        } catch (InterruptedException e) {
-          log.debug("Sleep interrupted in closeConnections()", e);
-        }
+        Thread.sleep(500);
       }
     }
 
@@ -163,9 +161,9 @@ public class ThriftTransportPool {
     public void run() {
       try {
         closeConnections();
-      } catch (TransportPoolShutdownException e) {} finally {
-        closerExitLatch.countDown();
-      }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } catch (TransportPoolShutdownException e) {}
     }
   }
 
@@ -610,23 +608,67 @@ public class ThriftTransportPool {
     log.debug("Set thrift transport pool idle time to {}", time);
   }
 
-  private static ThriftTransportPool instance = new ThriftTransportPool();
-  private static final AtomicBoolean daemonStarted = new AtomicBoolean(false);
+  private static ThriftTransportPool instance = null;
 
-  public static ThriftTransportPool getInstance() {
-    if (daemonStarted.compareAndSet(false, true)) {
-      CountDownLatch closerExitLatch = new CountDownLatch(1);
-      new Daemon(new Closer(instance, closerExitLatch), "Thrift Connection Pool Checker").start();
-      instance.setCloserExitLatch(closerExitLatch);
-    }
+  static {
+    SingletonManager.register(new SingletonService() {
+
+      @Override
+      public boolean isEnabled() {
+        return ThriftTransportPool.isEnabled();
+      }
+
+      @Override
+      public void enable() {
+        ThriftTransportPool.enable();
+      }
+
+      @Override
+      public void disable() {
+        ThriftTransportPool.disable();
+      }
+    });
+  }
+
+  public static synchronized ThriftTransportPool getInstance() {
+    Preconditions.checkState(instance != null,
+        "The Accumulo singleton for connection pooling is disabled.  This is likely caused by all "
+            + "AccumuloClients being closed or garbage collected.");
+    instance.startCheckerThread();
     return instance;
   }
 
-  private synchronized void setCloserExitLatch(CountDownLatch closerExitLatch) {
-    this.closerExitLatch = closerExitLatch;
+  private static synchronized boolean isEnabled() {
+    return instance != null;
   }
 
-  public void shutdown() {
+  private static synchronized void enable() {
+    if (instance == null) {
+      // this code intentionally does not start the thread that closes idle connections. That thread
+      // is created the first time something attempts to use this service.
+      instance = new ThriftTransportPool();
+    }
+  }
+
+  private static synchronized void disable() {
+    if (instance != null) {
+      try {
+        instance.shutdown();
+      } finally {
+        instance = null;
+      }
+    }
+  }
+
+  public synchronized void startCheckerThread() {
+    if (cache != null && checkThread == null) {
+      checkThread = new Daemon(new Closer(instance), "Thrift Connection Pool Checker");
+      checkThread.start();
+    }
+  }
+
+  private void shutdown() {
+    Thread ctl;
     synchronized (this) {
       if (cache == null)
         return;
@@ -645,18 +687,25 @@ public class ThriftTransportPool {
 
       // this will render the pool unusable and cause the background thread to exit
       this.cache = null;
+
+      ctl = checkThread;
     }
 
-    try {
-      closerExitLatch.await();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+    if (ctl != null) {
+      try {
+        ctl.interrupt();
+        ctl.join();
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
   private Map<ThriftTransportKey,CachedConnections> getCache() {
     if (cache == null)
-      throw new TransportPoolShutdownException();
+      throw new TransportPoolShutdownException(
+          "The Accumulo singleton for connection pooling is disabled.  This is likely caused by "
+              + "all AccumuloClients being closed or garbage collected.");
     return cache;
   }
 }

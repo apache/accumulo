@@ -87,6 +87,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   @After
   public void checkForDanglingFateLocks() {
     FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
+    accumuloClient.close();
   }
 
   @Test

@@ -46,31 +46,32 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
 
   @Test(timeout = 45 * 1000)
   public void test() throws Exception {
-    final AccumuloClient client = this.getClient();
-    // Yes, there's a tabletserver
-    assertEquals(1, client.instanceOperations().getTabletServers().size());
-    final String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
-    // Kill dfs
-    cluster.getMiniDfs().shutdown();
-    // ask the tserver to do something
-    final AtomicReference<Exception> ex = new AtomicReference<>();
-    Thread splitter = new Thread() {
-      @Override
-      public void run() {
-        try {
-          TreeSet<Text> splits = new TreeSet<>();
-          splits.add(new Text("X"));
-          client.tableOperations().addSplits(tableName, splits);
-        } catch (Exception e) {
-          ex.set(e);
+    try (AccumuloClient client = this.getClient()) {
+      // Yes, there's a tabletserver
+      assertEquals(1, client.instanceOperations().getTabletServers().size());
+      final String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
+      // Kill dfs
+      cluster.getMiniDfs().shutdown();
+      // ask the tserver to do something
+      final AtomicReference<Exception> ex = new AtomicReference<>();
+      Thread splitter = new Thread() {
+        @Override
+        public void run() {
+          try {
+            TreeSet<Text> splits = new TreeSet<>();
+            splits.add(new Text("X"));
+            client.tableOperations().addSplits(tableName, splits);
+          } catch (Exception e) {
+            ex.set(e);
+          }
         }
+      };
+      splitter.start();
+      // wait for the tserver to give up on writing to the WAL
+      while (client.instanceOperations().getTabletServers().size() == 1) {
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
-    };
-    splitter.start();
-    // wait for the tserver to give up on writing to the WAL
-    while (client.instanceOperations().getTabletServers().size() == 1) {
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
   }
 

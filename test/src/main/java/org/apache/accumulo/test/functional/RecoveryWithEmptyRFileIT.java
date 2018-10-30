@@ -69,44 +69,45 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
   public void replaceMissingRFile() throws Exception {
     log.info("Ingest some data, verify it was stored properly, replace an"
         + " underlying rfile with an empty one and verify we can scan.");
-    AccumuloClient accumuloClient = getClient();
-    String tableName = getUniqueNames(1)[0];
-    ReadWriteIT.ingest(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
-    ReadWriteIT.verify(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
+    try (AccumuloClient accumuloClient = getClient()) {
+      String tableName = getUniqueNames(1)[0];
+      ReadWriteIT.ingest(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
+      ReadWriteIT.verify(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
 
-    accumuloClient.tableOperations().flush(tableName, null, null, true);
-    accumuloClient.tableOperations().offline(tableName, true);
+      accumuloClient.tableOperations().flush(tableName, null, null, true);
+      accumuloClient.tableOperations().offline(tableName, true);
 
-    log.debug("Replacing rfile(s) with empty");
-    try (Scanner meta = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
-      meta.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
-      meta.fetchColumnFamily(DataFileColumnFamily.NAME);
-      boolean foundFile = false;
-      for (Entry<Key,Value> entry : meta) {
-        foundFile = true;
-        Path rfile = new Path(entry.getKey().getColumnQualifier().toString());
-        log.debug("Removing rfile '{}'", rfile);
-        cluster.getFileSystem().delete(rfile, false);
-        Process info = cluster.exec(CreateEmpty.class, rfile.toString());
-        assertEquals(0, info.waitFor());
+      log.debug("Replacing rfile(s) with empty");
+      try (Scanner meta = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
+        meta.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
+        meta.fetchColumnFamily(DataFileColumnFamily.NAME);
+        boolean foundFile = false;
+        for (Entry<Key,Value> entry : meta) {
+          foundFile = true;
+          Path rfile = new Path(entry.getKey().getColumnQualifier().toString());
+          log.debug("Removing rfile '{}'", rfile);
+          cluster.getFileSystem().delete(rfile, false);
+          Process info = cluster.exec(CreateEmpty.class, rfile.toString());
+          assertEquals(0, info.waitFor());
+        }
+        assertTrue(foundFile);
       }
-      assertTrue(foundFile);
-    }
 
-    log.trace("invalidate cached file handles by issuing a compaction");
-    accumuloClient.tableOperations().online(tableName, true);
-    accumuloClient.tableOperations().compact(tableName, null, null, false, true);
+      log.trace("invalidate cached file handles by issuing a compaction");
+      accumuloClient.tableOperations().online(tableName, true);
+      accumuloClient.tableOperations().compact(tableName, null, null, false, true);
 
-    log.debug("make sure we can still scan");
-    try (Scanner scan = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
-      scan.setRange(new Range());
-      long cells = 0L;
-      for (Entry<Key,Value> entry : scan) {
-        if (entry != null)
-          cells++;
+      log.debug("make sure we can still scan");
+      try (Scanner scan = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
+        scan.setRange(new Range());
+        long cells = 0L;
+        for (Entry<Key,Value> entry : scan) {
+          if (entry != null)
+            cells++;
+        }
+        assertEquals(0L, cells);
       }
-      assertEquals(0L, cells);
     }
   }
 

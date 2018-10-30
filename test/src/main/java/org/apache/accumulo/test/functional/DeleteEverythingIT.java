@@ -62,60 +62,62 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
 
   @Before
   public void updateMajcDelay() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    majcDelay = c.instanceOperations().getSystemConfiguration()
-        .get(Property.TSERV_MAJC_DELAY.getKey());
-    c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
-    if (getClusterType() == ClusterType.STANDALONE) {
-      // Gotta wait for the cluster to get out of the default sleep value
-      Thread.sleep(ConfigurationTypeHelper.getTimeInMillis(majcDelay));
+    try (AccumuloClient c = getAccumuloClient()) {
+      majcDelay = c.instanceOperations().getSystemConfiguration()
+          .get(Property.TSERV_MAJC_DELAY.getKey());
+      c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
+      if (getClusterType() == ClusterType.STANDALONE) {
+        // Gotta wait for the cluster to get out of the default sleep value
+        Thread.sleep(ConfigurationTypeHelper.getTimeInMillis(majcDelay));
+      }
     }
   }
 
   @After
   public void resetMajcDelay() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
+    }
   }
 
   @Test
   public void run() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    BatchWriter bw = getAccumuloClient().createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m = new Mutation(new Text("foo"));
-    m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes(UTF_8)));
-    bw.addMutation(m);
-    bw.flush();
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      Mutation m = new Mutation(new Text("foo"));
+      m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes(UTF_8)));
+      bw.addMutation(m);
+      bw.flush();
 
-    getAccumuloClient().tableOperations().flush(tableName, null, null, true);
+      c.tableOperations().flush(tableName, null, null, true);
 
-    FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 1, 1);
+      FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 1, 1);
 
-    m = new Mutation(new Text("foo"));
-    m.putDelete(new Text("bar"), new Text("1910"));
-    bw.addMutation(m);
-    bw.flush();
+      m = new Mutation(new Text("foo"));
+      m.putDelete(new Text("bar"), new Text("1910"));
+      bw.addMutation(m);
+      bw.flush();
 
-    try (Scanner scanner = getAccumuloClient().createScanner(tableName, Authorizations.EMPTY)) {
-      scanner.setRange(new Range());
-      int count = Iterators.size(scanner.iterator());
-      assertEquals("count == " + count, 0, count);
-      getAccumuloClient().tableOperations().flush(tableName, null, null, true);
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new Range());
+        int count = Iterators.size(scanner.iterator());
+        assertEquals("count == " + count, 0, count);
+        c.tableOperations().flush(tableName, null, null, true);
 
-      getAccumuloClient().tableOperations().setProperty(tableName,
-          Property.TABLE_MAJC_RATIO.getKey(), "1.0");
-      sleepUninterruptibly(4, TimeUnit.SECONDS);
+        c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
+        sleepUninterruptibly(4, TimeUnit.SECONDS);
 
-      FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
+        FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
 
-      bw.close();
+        bw.close();
 
-      count = Iterables.size(scanner);
+        count = Iterables.size(scanner);
 
-      if (count != 0) {
-        throw new Exception("count == " + count);
+        if (count != 0) {
+          throw new Exception("count == " + count);
+        }
       }
     }
   }

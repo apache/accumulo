@@ -35,15 +35,16 @@ public class BatchWriterIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     // call the batchwriter with buffer of size zero
     String table = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(table);
-    BatchWriterConfig config = new BatchWriterConfig();
-    config.setMaxMemory(0);
-    BatchWriter writer = c.createBatchWriter(table, config);
-    Mutation m = new Mutation("row");
-    m.put("cf", "cq", new Value("value".getBytes()));
-    writer.addMutation(m);
-    writer.close();
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(table);
+      BatchWriterConfig config = new BatchWriterConfig();
+      config.setMaxMemory(0);
+      try (BatchWriter writer = c.createBatchWriter(table, config)) {
+        Mutation m = new Mutation("row");
+        m.put("cf", "cq", new Value("value".getBytes()));
+        writer.addMutation(m);
+      }
+    }
   }
 
 }

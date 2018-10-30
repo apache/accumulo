@@ -31,15 +31,33 @@ import org.apache.accumulo.core.security.Authorizations;
  * writer for the instance as well as various objects that permit administrative operations.
  * Enforces security on the client side with by requiring user credentials.
  *
+ * <p>
  * Supports fluent API for creation. Various options can be provided to {@link Accumulo#newClient()}
  * and when finished a call to build() will return the AccumuloClient object. For example:
  *
- * {@code Accumulo.newClient().forInstance(instanceName, zookeepers)
- *         .usingPassword(user, password).withZkTimeout(1234).build();}
+ * <p>
+ *
+ * <pre>
+ * <code>
+ * try (AccumuloClient client = Accumulo.newClient()
+ *        .forInstance(instanceName, zookeepers)
+ *        .usingPassword(user, password).build())
+ * {
+ *   // use the client
+ * }
+ * </code>
+ * </pre>
+ *
+ * <p>
+ * If migrating code from Connector to AccumuloClient an important difference to consider is that
+ * AccumuloClient is closable and Connector is not. Connector uses static resources and therefore
+ * creating them is cheap. AccumuloClient attempts to clean up resources on close, so constantly
+ * creating them could perform worse than Connector. Therefore, it would be better to create an
+ * AccumuloClient and pass it around.
  *
  * @since 2.0.0
  */
-public interface AccumuloClient {
+public interface AccumuloClient extends AutoCloseable {
 
   /**
    * Factory method to create a BatchScanner connected to Accumulo.
@@ -275,6 +293,14 @@ public interface AccumuloClient {
    */
   AccumuloClient changeUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException, AccumuloException;
+
+  /**
+   * Cleans up any resources created by an AccumuloClient like threads and sockets. Anything created
+   * from this client will likely not work after calling this method. For example a Scanner created
+   * using this client will likely fail after close is called.
+   */
+  @Override
+  public void close();
 
   /**
    * Builds ClientInfo after all options have been specified

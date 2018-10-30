@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -40,11 +41,11 @@ public class BackupMasterIT extends ConfigurableMacBase {
     UtilWaitThread.sleep(1000);
     // create a backup
     Process backup = exec(Master.class);
-    try {
+    try (AccumuloClient client = getClient()) {
       String secret = getCluster().getSiteConfiguration().get(Property.INSTANCE_SECRET);
       IZooReaderWriter writer = new ZooReaderWriterFactory()
           .getZooReaderWriter(cluster.getZooKeepers(), 30 * 1000, secret);
-      String root = "/accumulo/" + getClient().getInstanceID();
+      String root = "/accumulo/" + client.getInstanceID();
       List<String> children = Collections.emptyList();
       // wait for 2 lock entries
       do {
@@ -63,7 +64,7 @@ public class BackupMasterIT extends ConfigurableMacBase {
       // kill the master by removing its lock
       writer.recursiveDelete(lockPath, NodeMissingPolicy.FAIL);
       // ensure the backup becomes the master
-      getClient().tableOperations().create(getUniqueNames(1)[0]);
+      client.tableOperations().create(getUniqueNames(1)[0]);
     } finally {
       backup.destroy();
     }

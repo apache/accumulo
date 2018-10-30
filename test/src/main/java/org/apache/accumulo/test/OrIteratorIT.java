@@ -59,266 +59,272 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testMultipleRowsInTablet() throws Exception {
-    final AccumuloClient client = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+    try (AccumuloClient client = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
-      Mutation m = new Mutation("row1");
-      m.put("bob", "2", EMPTY);
-      m.put("frank", "3", EMPTY);
-      m.put("steve", "1", EMPTY);
-      bw.addMutation(m);
+      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+        Mutation m = new Mutation("row1");
+        m.put("bob", "2", EMPTY);
+        m.put("frank", "3", EMPTY);
+        m.put("steve", "1", EMPTY);
+        bw.addMutation(m);
 
-      m = new Mutation("row2");
-      m.put("bob", "7", EMPTY);
-      m.put("eddie", "4", EMPTY);
-      m.put("mort", "6", EMPTY);
-      m.put("zed", "5", EMPTY);
-      bw.addMutation(m);
-    }
-
-    IteratorSetting is = new IteratorSetting(50, OrIterator.class);
-    is.addOption(OrIterator.COLUMNS_KEY, "mort,frank");
-    Map<String,String> expectedData = new HashMap<>();
-    expectedData.put("frank", "3");
-    expectedData.put("mort", "6");
-
-    try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
-      Set<Range> ranges = new HashSet<>(Arrays.asList(Range.exact("row1"), Range.exact("row2")));
-      bs.setRanges(ranges);
-      bs.addScanIterator(is);
-      for (Entry<Key,Value> entry : bs) {
-        String term = entry.getKey().getColumnFamily().toString();
-        String expectedDocId = expectedData.remove(term);
-        assertNotNull("Found unexpected term: " + term, expectedDocId);
-        assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
+        m = new Mutation("row2");
+        m.put("bob", "7", EMPTY);
+        m.put("eddie", "4", EMPTY);
+        m.put("mort", "6", EMPTY);
+        m.put("zed", "5", EMPTY);
+        bw.addMutation(m);
       }
-      assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+
+      IteratorSetting is = new IteratorSetting(50, OrIterator.class);
+      is.addOption(OrIterator.COLUMNS_KEY, "mort,frank");
+      Map<String,String> expectedData = new HashMap<>();
+      expectedData.put("frank", "3");
+      expectedData.put("mort", "6");
+
+      try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+        Set<Range> ranges = new HashSet<>(Arrays.asList(Range.exact("row1"), Range.exact("row2")));
+        bs.setRanges(ranges);
+        bs.addScanIterator(is);
+        for (Entry<Key,Value> entry : bs) {
+          String term = entry.getKey().getColumnFamily().toString();
+          String expectedDocId = expectedData.remove(term);
+          assertNotNull("Found unexpected term: " + term, expectedDocId);
+          assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
+        }
+        assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+      }
     }
   }
 
   @Test
   public void testMultipleTablets() throws Exception {
-    final AccumuloClient client = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+    try (AccumuloClient client = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
-      Mutation m = new Mutation("row1");
-      m.put("bob", "2", EMPTY);
-      m.put("frank", "3", EMPTY);
-      m.put("steve", "1", EMPTY);
-      bw.addMutation(m);
+      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+        Mutation m = new Mutation("row1");
+        m.put("bob", "2", EMPTY);
+        m.put("frank", "3", EMPTY);
+        m.put("steve", "1", EMPTY);
+        bw.addMutation(m);
 
-      m = new Mutation("row2");
-      m.put("bob", "7", EMPTY);
-      m.put("eddie", "4", EMPTY);
-      m.put("mort", "6", EMPTY);
-      m.put("zed", "5", EMPTY);
-      bw.addMutation(m);
+        m = new Mutation("row2");
+        m.put("bob", "7", EMPTY);
+        m.put("eddie", "4", EMPTY);
+        m.put("mort", "6", EMPTY);
+        m.put("zed", "5", EMPTY);
+        bw.addMutation(m);
 
-      m = new Mutation("row3");
-      m.put("carl", "9", EMPTY);
-      m.put("george", "8", EMPTY);
-      m.put("nick", "3", EMPTY);
-      m.put("zed", "1", EMPTY);
-      bw.addMutation(m);
-    }
-
-    client.tableOperations().addSplits(tableName,
-        new TreeSet<>(Arrays.asList(new Text("row2"), new Text("row3"))));
-
-    IteratorSetting is = new IteratorSetting(50, OrIterator.class);
-    is.addOption(OrIterator.COLUMNS_KEY, "mort,frank,nick");
-    Map<String,String> expectedData = new HashMap<>();
-    expectedData.put("frank", "3");
-    expectedData.put("mort", "6");
-    expectedData.put("nick", "3");
-
-    try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
-      bs.setRanges(Collections.singleton(new Range()));
-      bs.addScanIterator(is);
-      for (Entry<Key,Value> entry : bs) {
-        String term = entry.getKey().getColumnFamily().toString();
-        String expectedDocId = expectedData.remove(term);
-        assertNotNull("Found unexpected term: " + term, expectedDocId);
-        assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
+        m = new Mutation("row3");
+        m.put("carl", "9", EMPTY);
+        m.put("george", "8", EMPTY);
+        m.put("nick", "3", EMPTY);
+        m.put("zed", "1", EMPTY);
+        bw.addMutation(m);
       }
-      assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+
+      client.tableOperations().addSplits(tableName,
+          new TreeSet<>(Arrays.asList(new Text("row2"), new Text("row3"))));
+
+      IteratorSetting is = new IteratorSetting(50, OrIterator.class);
+      is.addOption(OrIterator.COLUMNS_KEY, "mort,frank,nick");
+      Map<String,String> expectedData = new HashMap<>();
+      expectedData.put("frank", "3");
+      expectedData.put("mort", "6");
+      expectedData.put("nick", "3");
+
+      try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+        bs.setRanges(Collections.singleton(new Range()));
+        bs.addScanIterator(is);
+        for (Entry<Key,Value> entry : bs) {
+          String term = entry.getKey().getColumnFamily().toString();
+          String expectedDocId = expectedData.remove(term);
+          assertNotNull("Found unexpected term: " + term, expectedDocId);
+          assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
+        }
+        assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+      }
     }
   }
 
   @Test
   public void testSingleLargeRow() throws Exception {
-    final AccumuloClient client = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
-    client.tableOperations().setProperty(tableName, Property.TABLE_SCAN_MAXMEM.getKey(), "1");
+    try (AccumuloClient client = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
+      client.tableOperations().setProperty(tableName, Property.TABLE_SCAN_MAXMEM.getKey(), "1");
 
-    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
-      Mutation m = new Mutation("row1");
-      m.put("bob", "02", EMPTY);
-      m.put("carl", "07", EMPTY);
-      m.put("eddie", "04", EMPTY);
-      m.put("frank", "03", EMPTY);
-      m.put("greg", "15", EMPTY);
-      m.put("mort", "06", EMPTY);
-      m.put("nick", "12", EMPTY);
-      m.put("richard", "18", EMPTY);
-      m.put("steve", "01", EMPTY);
-      m.put("ted", "11", EMPTY);
-      m.put("zed", "05", EMPTY);
-      bw.addMutation(m);
-    }
-
-    IteratorSetting is = new IteratorSetting(50, OrIterator.class);
-    is.addOption(OrIterator.COLUMNS_KEY, "richard,carl,frank,nick,eddie,zed");
-    Map<String,String> expectedData = new HashMap<>();
-    expectedData.put("frank", "03");
-    expectedData.put("eddie", "04");
-    expectedData.put("zed", "05");
-    expectedData.put("carl", "07");
-    expectedData.put("nick", "12");
-    expectedData.put("richard", "18");
-
-    try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
-      bs.setRanges(Collections.singleton(new Range()));
-      bs.addScanIterator(is);
-      for (Entry<Key,Value> entry : bs) {
-        String term = entry.getKey().getColumnFamily().toString();
-        String expectedDocId = expectedData.remove(term);
-        assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null",
-            expectedDocId);
-        assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
+      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+        Mutation m = new Mutation("row1");
+        m.put("bob", "02", EMPTY);
+        m.put("carl", "07", EMPTY);
+        m.put("eddie", "04", EMPTY);
+        m.put("frank", "03", EMPTY);
+        m.put("greg", "15", EMPTY);
+        m.put("mort", "06", EMPTY);
+        m.put("nick", "12", EMPTY);
+        m.put("richard", "18", EMPTY);
+        m.put("steve", "01", EMPTY);
+        m.put("ted", "11", EMPTY);
+        m.put("zed", "05", EMPTY);
+        bw.addMutation(m);
       }
-      assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+
+      IteratorSetting is = new IteratorSetting(50, OrIterator.class);
+      is.addOption(OrIterator.COLUMNS_KEY, "richard,carl,frank,nick,eddie,zed");
+      Map<String,String> expectedData = new HashMap<>();
+      expectedData.put("frank", "03");
+      expectedData.put("eddie", "04");
+      expectedData.put("zed", "05");
+      expectedData.put("carl", "07");
+      expectedData.put("nick", "12");
+      expectedData.put("richard", "18");
+
+      try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+        bs.setRanges(Collections.singleton(new Range()));
+        bs.addScanIterator(is);
+        for (Entry<Key,Value> entry : bs) {
+          String term = entry.getKey().getColumnFamily().toString();
+          String expectedDocId = expectedData.remove(term);
+          assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null",
+              expectedDocId);
+          assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
+        }
+        assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+      }
     }
   }
 
   @Test
   public void testNoMatchesForTable() throws Exception {
-    final AccumuloClient client = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+    try (AccumuloClient client = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
-      Mutation m = new Mutation("row1");
-      m.put("bob", "02", EMPTY);
-      m.put("carl", "07", EMPTY);
-      m.put("eddie", "04", EMPTY);
-      m.put("frank", "03", EMPTY);
-      m.put("greg", "15", EMPTY);
-      m.put("mort", "06", EMPTY);
-      m.put("nick", "12", EMPTY);
-      m.put("richard", "18", EMPTY);
-      m.put("steve", "01", EMPTY);
-      m.put("ted", "11", EMPTY);
-      m.put("zed", "05", EMPTY);
-      bw.addMutation(m);
-    }
-
-    IteratorSetting is = new IteratorSetting(50, OrIterator.class);
-    is.addOption(OrIterator.COLUMNS_KEY, "theresa,sally");
-    Map<String,String> expectedData = Collections.emptyMap();
-
-    try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
-      bs.setRanges(Collections.singleton(new Range()));
-      bs.addScanIterator(is);
-      for (Entry<Key,Value> entry : bs) {
-        String term = entry.getKey().getColumnFamily().toString();
-        String expectedDocId = expectedData.remove(term);
-        assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null",
-            expectedDocId);
-        assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
+      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+        Mutation m = new Mutation("row1");
+        m.put("bob", "02", EMPTY);
+        m.put("carl", "07", EMPTY);
+        m.put("eddie", "04", EMPTY);
+        m.put("frank", "03", EMPTY);
+        m.put("greg", "15", EMPTY);
+        m.put("mort", "06", EMPTY);
+        m.put("nick", "12", EMPTY);
+        m.put("richard", "18", EMPTY);
+        m.put("steve", "01", EMPTY);
+        m.put("ted", "11", EMPTY);
+        m.put("zed", "05", EMPTY);
+        bw.addMutation(m);
       }
-      assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+
+      IteratorSetting is = new IteratorSetting(50, OrIterator.class);
+      is.addOption(OrIterator.COLUMNS_KEY, "theresa,sally");
+      Map<String,String> expectedData = Collections.emptyMap();
+
+      try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+        bs.setRanges(Collections.singleton(new Range()));
+        bs.addScanIterator(is);
+        for (Entry<Key,Value> entry : bs) {
+          String term = entry.getKey().getColumnFamily().toString();
+          String expectedDocId = expectedData.remove(term);
+          assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null",
+              expectedDocId);
+          assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
+        }
+        assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+      }
     }
   }
 
   @Test
   public void testNoMatchesInSingleTablet() throws Exception {
-    final AccumuloClient client = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+    try (AccumuloClient client = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
-      Mutation m = new Mutation("row1");
-      m.put("bob", "02", EMPTY);
-      m.put("carl", "07", EMPTY);
-      m.put("eddie", "04", EMPTY);
-      bw.addMutation(m);
+      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+        Mutation m = new Mutation("row1");
+        m.put("bob", "02", EMPTY);
+        m.put("carl", "07", EMPTY);
+        m.put("eddie", "04", EMPTY);
+        bw.addMutation(m);
 
-      m = new Mutation("row2");
-      m.put("frank", "03", EMPTY);
-      m.put("greg", "15", EMPTY);
-      m.put("mort", "06", EMPTY);
-      m.put("nick", "12", EMPTY);
-      bw.addMutation(m);
+        m = new Mutation("row2");
+        m.put("frank", "03", EMPTY);
+        m.put("greg", "15", EMPTY);
+        m.put("mort", "06", EMPTY);
+        m.put("nick", "12", EMPTY);
+        bw.addMutation(m);
 
-      m = new Mutation("row3");
-      m.put("richard", "18", EMPTY);
-      m.put("steve", "01", EMPTY);
-      m.put("ted", "11", EMPTY);
-      m.put("zed", "05", EMPTY);
-      bw.addMutation(m);
-    }
-
-    IteratorSetting is = new IteratorSetting(50, OrIterator.class);
-    is.addOption(OrIterator.COLUMNS_KEY, "bob,eddie,steve,zed");
-    Map<String,String> expectedData = new HashMap<>();
-    expectedData.put("bob", "02");
-    expectedData.put("eddie", "04");
-    expectedData.put("zed", "05");
-    expectedData.put("steve", "01");
-
-    // Split each row into its own tablet
-    client.tableOperations().addSplits(tableName,
-        new TreeSet<>(Arrays.asList(new Text("row2"), new Text("row3"))));
-
-    try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
-      bs.setRanges(Collections.singleton(new Range()));
-      bs.addScanIterator(is);
-      for (Entry<Key,Value> entry : bs) {
-        String term = entry.getKey().getColumnFamily().toString();
-        String expectedDocId = expectedData.remove(term);
-        assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null",
-            expectedDocId);
-        assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
+        m = new Mutation("row3");
+        m.put("richard", "18", EMPTY);
+        m.put("steve", "01", EMPTY);
+        m.put("ted", "11", EMPTY);
+        m.put("zed", "05", EMPTY);
+        bw.addMutation(m);
       }
-      assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+
+      IteratorSetting is = new IteratorSetting(50, OrIterator.class);
+      is.addOption(OrIterator.COLUMNS_KEY, "bob,eddie,steve,zed");
+      Map<String,String> expectedData = new HashMap<>();
+      expectedData.put("bob", "02");
+      expectedData.put("eddie", "04");
+      expectedData.put("zed", "05");
+      expectedData.put("steve", "01");
+
+      // Split each row into its own tablet
+      client.tableOperations().addSplits(tableName,
+          new TreeSet<>(Arrays.asList(new Text("row2"), new Text("row3"))));
+
+      try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+        bs.setRanges(Collections.singleton(new Range()));
+        bs.addScanIterator(is);
+        for (Entry<Key,Value> entry : bs) {
+          String term = entry.getKey().getColumnFamily().toString();
+          String expectedDocId = expectedData.remove(term);
+          assertNotNull("Found unexpected term: " + term + " or the docId was unexpectedly null",
+              expectedDocId);
+          assertEquals(expectedDocId, entry.getKey().getColumnQualifier().toString());
+        }
+        assertTrue("Expected no leftover entries but saw " + expectedData, expectedData.isEmpty());
+      }
     }
   }
 
   @Test
   public void testResultOrder() throws Exception {
-    final AccumuloClient client = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+    try (AccumuloClient client = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
-      Mutation m = new Mutation("row1");
-      m.put("bob", "2", EMPTY);
-      m.put("frank", "3", EMPTY);
-      m.put("steve", "1", EMPTY);
-      bw.addMutation(m);
-    }
+      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+        Mutation m = new Mutation("row1");
+        m.put("bob", "2", EMPTY);
+        m.put("frank", "3", EMPTY);
+        m.put("steve", "1", EMPTY);
+        bw.addMutation(m);
+      }
 
-    IteratorSetting is = new IteratorSetting(50, OrIterator.class);
-    is.addOption(OrIterator.COLUMNS_KEY, "bob,steve");
+      IteratorSetting is = new IteratorSetting(50, OrIterator.class);
+      is.addOption(OrIterator.COLUMNS_KEY, "bob,steve");
 
-    try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
-      s.addScanIterator(is);
-      Iterator<Entry<Key,Value>> iter = s.iterator();
-      assertTrue(iter.hasNext());
-      Key k = iter.next().getKey();
-      assertEquals("Actual key was " + k, 0,
-          k.compareTo(new Key("row1", "steve", "1"), PartialKey.ROW_COLFAM_COLQUAL));
-      assertTrue(iter.hasNext());
-      k = iter.next().getKey();
-      assertEquals("Actual key was " + k, 0,
-          k.compareTo(new Key("row1", "bob", "2"), PartialKey.ROW_COLFAM_COLQUAL));
-      assertFalse(iter.hasNext());
+      try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
+        s.addScanIterator(is);
+        Iterator<Entry<Key,Value>> iter = s.iterator();
+        assertTrue(iter.hasNext());
+        Key k = iter.next().getKey();
+        assertEquals("Actual key was " + k, 0,
+            k.compareTo(new Key("row1", "steve", "1"), PartialKey.ROW_COLFAM_COLQUAL));
+        assertTrue(iter.hasNext());
+        k = iter.next().getKey();
+        assertEquals("Actual key was " + k, 0,
+            k.compareTo(new Key("row1", "bob", "2"), PartialKey.ROW_COLFAM_COLQUAL));
+        assertFalse(iter.hasNext());
+      }
     }
   }
 }

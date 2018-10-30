@@ -70,70 +70,73 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
   @Test
   public void testCombinerSetOnMetadata() throws Exception {
-    TableOperations tops = getClient().tableOperations();
-    Map<String,EnumSet<IteratorScope>> iterators = tops.listIterators(MetadataTable.NAME);
+    try (AccumuloClient client = getClient()) {
+      TableOperations tops = client.tableOperations();
+      Map<String,EnumSet<IteratorScope>> iterators = tops.listIterators(MetadataTable.NAME);
 
-    assertTrue(iterators.containsKey(ReplicationTableUtil.COMBINER_NAME));
-    EnumSet<IteratorScope> scopes = iterators.get(ReplicationTableUtil.COMBINER_NAME);
-    assertEquals(3, scopes.size());
-    assertTrue(scopes.contains(IteratorScope.scan));
-    assertTrue(scopes.contains(IteratorScope.minc));
-    assertTrue(scopes.contains(IteratorScope.majc));
+      assertTrue(iterators.containsKey(ReplicationTableUtil.COMBINER_NAME));
+      EnumSet<IteratorScope> scopes = iterators.get(ReplicationTableUtil.COMBINER_NAME);
+      assertEquals(3, scopes.size());
+      assertTrue(scopes.contains(IteratorScope.scan));
+      assertTrue(scopes.contains(IteratorScope.minc));
+      assertTrue(scopes.contains(IteratorScope.majc));
 
-    Iterable<Entry<String,String>> propIter = tops.getProperties(MetadataTable.NAME);
-    HashMap<String,String> properties = new HashMap<>();
-    for (Entry<String,String> entry : propIter) {
-      properties.put(entry.getKey(), entry.getValue());
-    }
+      Iterable<Entry<String,String>> propIter = tops.getProperties(MetadataTable.NAME);
+      HashMap<String,String> properties = new HashMap<>();
+      for (Entry<String,String> entry : propIter) {
+        properties.put(entry.getKey(), entry.getValue());
+      }
 
-    for (IteratorScope scope : scopes) {
-      String key = Property.TABLE_ITERATOR_PREFIX.getKey() + scope.name() + "."
-          + ReplicationTableUtil.COMBINER_NAME + ".opt.columns";
-      assertTrue("Properties did not contain key : " + key, properties.containsKey(key));
-      assertEquals(MetadataSchema.ReplicationSection.COLF.toString(), properties.get(key));
+      for (IteratorScope scope : scopes) {
+        String key = Property.TABLE_ITERATOR_PREFIX.getKey() + scope.name() + "."
+            + ReplicationTableUtil.COMBINER_NAME + ".opt.columns";
+        assertTrue("Properties did not contain key : " + key, properties.containsKey(key));
+        assertEquals(MetadataSchema.ReplicationSection.COLF.toString(), properties.get(key));
+      }
     }
   }
 
   @Test
   public void test() throws Exception {
-    AccumuloClient client = getClient();
-    ClusterUser user = getAdminUser();
+    try (AccumuloClient client = getClient()) {
+      ClusterUser user = getAdminUser();
 
-    ReplicationTable.setOnline(client);
-    client.securityOperations().grantTablePermission(user.getPrincipal(), ReplicationTable.NAME,
-        TablePermission.WRITE);
-    BatchWriter bw = ReplicationTable.getBatchWriter(client);
-    long createTime = System.currentTimeMillis();
-    try {
-      Mutation m = new Mutation(
-          "file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
-      StatusSection.add(m, Table.ID.of("1"), StatusUtil.fileCreatedValue(createTime));
-      bw.addMutation(m);
-    } finally {
-      bw.close();
-    }
-
-    Entry<Key,Value> entry;
-    try (Scanner s = ReplicationTable.getScanner(client)) {
-      entry = Iterables.getOnlyElement(s);
-      assertEquals(StatusUtil.fileCreatedValue(createTime), entry.getValue());
-
-      bw = ReplicationTable.getBatchWriter(client);
+      ReplicationTable.setOnline(client);
+      client.securityOperations().grantTablePermission(user.getPrincipal(), ReplicationTable.NAME,
+          TablePermission.WRITE);
+      BatchWriter bw = ReplicationTable.getBatchWriter(client);
+      long createTime = System.currentTimeMillis();
       try {
         Mutation m = new Mutation(
             "file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
-        StatusSection.add(m, Table.ID.of("1"),
-            ProtobufUtil.toValue(StatusUtil.replicated(Long.MAX_VALUE)));
+        StatusSection.add(m, Table.ID.of("1"), StatusUtil.fileCreatedValue(createTime));
         bw.addMutation(m);
       } finally {
         bw.close();
       }
-    }
 
-    try (Scanner s = ReplicationTable.getScanner(client)) {
-      entry = Iterables.getOnlyElement(s);
-      Status stat = Status.parseFrom(entry.getValue().get());
-      assertEquals(Long.MAX_VALUE, stat.getBegin());
+      Entry<Key,Value> entry;
+      try (Scanner s = ReplicationTable.getScanner(client)) {
+        entry = Iterables.getOnlyElement(s);
+        assertEquals(StatusUtil.fileCreatedValue(createTime), entry.getValue());
+
+        bw = ReplicationTable.getBatchWriter(client);
+        try {
+          Mutation m = new Mutation(
+              "file:/accumulo/wal/HW10447.local+56808/93cdc17e-7521-44fa-87b5-37f45bcb92d3");
+          StatusSection.add(m, Table.ID.of("1"),
+              ProtobufUtil.toValue(StatusUtil.replicated(Long.MAX_VALUE)));
+          bw.addMutation(m);
+        } finally {
+          bw.close();
+        }
+      }
+
+      try (Scanner s = ReplicationTable.getScanner(client)) {
+        entry = Iterables.getOnlyElement(s);
+        Status stat = Status.parseFrom(entry.getValue().get());
+        assertEquals(Long.MAX_VALUE, stat.getBegin());
+      }
     }
   }
 

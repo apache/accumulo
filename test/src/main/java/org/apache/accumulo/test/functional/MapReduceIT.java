@@ -64,7 +64,9 @@ public class MapReduceIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    runTest(getClient(), getCluster());
+    try (AccumuloClient client = getClient()) {
+      runTest(client, getCluster());
+    }
   }
 
   @SuppressFBWarnings(value = "WEAK_MESSAGE_DIGEST_MD5", justification = "md5 is okay for testing")

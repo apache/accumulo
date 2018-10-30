@@ -71,49 +71,49 @@ public class CloneTestIT extends AccumuloClusterHarness {
     String table1 = tableNames[0];
     String table2 = tableNames[1];
 
-    AccumuloClient c = getAccumuloClient();
+    try (AccumuloClient c = getAccumuloClient()) {
 
-    c.tableOperations().create(table1);
+      c.tableOperations().create(table1);
 
-    c.tableOperations().setProperty(table1, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(),
-        "1M");
-    c.tableOperations().setProperty(table1,
-        Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(), "2M");
-    c.tableOperations().setProperty(table1, Property.TABLE_FILE_MAX.getKey(), "23");
+      c.tableOperations().setProperty(table1, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(),
+          "1M");
+      c.tableOperations().setProperty(table1,
+          Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(), "2M");
+      c.tableOperations().setProperty(table1, Property.TABLE_FILE_MAX.getKey(), "23");
 
-    BatchWriter bw = writeData(table1, c);
+      BatchWriter bw = writeData(table1, c);
 
-    Map<String,String> props = new HashMap<>();
-    props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
 
-    Set<String> exclude = new HashSet<>();
-    exclude.add(Property.TABLE_FILE_MAX.getKey());
+      Set<String> exclude = new HashSet<>();
+      exclude.add(Property.TABLE_FILE_MAX.getKey());
 
-    c.tableOperations().clone(table1, table2, true, props, exclude);
+      c.tableOperations().clone(table1, table2, true, props, exclude);
 
-    Mutation m3 = new Mutation("009");
-    m3.put("data", "x", "1");
-    m3.put("data", "y", "2");
-    bw.addMutation(m3);
-    bw.close();
+      Mutation m3 = new Mutation("009");
+      m3.put("data", "x", "1");
+      m3.put("data", "y", "2");
+      bw.addMutation(m3);
+      bw.close();
 
-    checkData(table2, c);
+      checkData(table2, c);
 
-    checkMetadata(table2, c);
+      checkMetadata(table2, c);
 
-    HashMap<String,String> tableProps = new HashMap<>();
-    for (Entry<String,String> prop : c.tableOperations().getProperties(table2)) {
-      tableProps.put(prop.getKey(), prop.getValue());
+      HashMap<String,String> tableProps = new HashMap<>();
+      for (Entry<String,String> prop : c.tableOperations().getProperties(table2)) {
+        tableProps.put(prop.getKey(), prop.getValue());
+      }
+
+      assertEquals("500K", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey()));
+      assertEquals(Property.TABLE_FILE_MAX.getDefaultValue(),
+          tableProps.get(Property.TABLE_FILE_MAX.getKey()));
+      assertEquals("2M", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey()));
+
+      c.tableOperations().delete(table1);
+      c.tableOperations().delete(table2);
     }
-
-    assertEquals("500K", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey()));
-    assertEquals(Property.TABLE_FILE_MAX.getDefaultValue(),
-        tableProps.get(Property.TABLE_FILE_MAX.getKey()));
-    assertEquals("2M", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey()));
-
-    c.tableOperations().delete(table1);
-    c.tableOperations().delete(table2);
-
   }
 
   private void checkData(String table2, AccumuloClient c) throws TableNotFoundException {
@@ -205,99 +205,99 @@ public class CloneTestIT extends AccumuloClusterHarness {
     String table2 = tableNames[1];
     String table3 = tableNames[2];
 
-    AccumuloClient c = getAccumuloClient();
-    AccumuloCluster cluster = getCluster();
-    Assume.assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
-    MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
-    String rootPath = mac.getConfig().getDir().getAbsolutePath();
+    try (AccumuloClient c = getAccumuloClient()) {
+      AccumuloCluster cluster = getCluster();
+      Assume.assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
+      MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
+      String rootPath = mac.getConfig().getDir().getAbsolutePath();
 
-    // verify that deleting a new table removes the files
-    c.tableOperations().create(table3);
-    writeData(table3, c).close();
-    c.tableOperations().flush(table3, null, null, true);
-    // check for files
-    FileSystem fs = getCluster().getFileSystem();
-    String id = c.tableOperations().tableIdMap().get(table3);
-    FileStatus[] status = fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id));
-    assertTrue(status.length > 0);
-    // verify disk usage
-    List<DiskUsage> diskUsage = c.tableOperations().getDiskUsage(Collections.singleton(table3));
-    assertEquals(1, diskUsage.size());
-    assertTrue(diskUsage.get(0).getUsage() > 100);
-    // delete the table
-    c.tableOperations().delete(table3);
-    // verify its gone from the file system
-    Path tablePath = new Path(rootPath + "/accumulo/tables/" + id);
-    if (fs.exists(tablePath)) {
-      status = fs.listStatus(tablePath);
-      assertTrue(status == null || status.length == 0);
+      // verify that deleting a new table removes the files
+      c.tableOperations().create(table3);
+      writeData(table3, c).close();
+      c.tableOperations().flush(table3, null, null, true);
+      // check for files
+      FileSystem fs = getCluster().getFileSystem();
+      String id = c.tableOperations().tableIdMap().get(table3);
+      FileStatus[] status = fs.listStatus(new Path(rootPath + "/accumulo/tables/" + id));
+      assertTrue(status.length > 0);
+      // verify disk usage
+      List<DiskUsage> diskUsage = c.tableOperations().getDiskUsage(Collections.singleton(table3));
+      assertEquals(1, diskUsage.size());
+      assertTrue(diskUsage.get(0).getUsage() > 100);
+      // delete the table
+      c.tableOperations().delete(table3);
+      // verify its gone from the file system
+      Path tablePath = new Path(rootPath + "/accumulo/tables/" + id);
+      if (fs.exists(tablePath)) {
+        status = fs.listStatus(tablePath);
+        assertTrue(status == null || status.length == 0);
+      }
+
+      c.tableOperations().create(table1);
+
+      BatchWriter bw = writeData(table1, c);
+
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
+
+      Set<String> exclude = new HashSet<>();
+      exclude.add(Property.TABLE_FILE_MAX.getKey());
+
+      c.tableOperations().clone(table1, table2, true, props, exclude);
+
+      Mutation m3 = new Mutation("009");
+      m3.put("data", "x", "1");
+      m3.put("data", "y", "2");
+      bw.addMutation(m3);
+      bw.close();
+
+      // delete source table, should not affect clone
+      c.tableOperations().delete(table1);
+
+      checkData(table2, c);
+
+      c.tableOperations().compact(table2, null, null, true, true);
+
+      checkData(table2, c);
+
+      c.tableOperations().delete(table2);
     }
-
-    c.tableOperations().create(table1);
-
-    BatchWriter bw = writeData(table1, c);
-
-    Map<String,String> props = new HashMap<>();
-    props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
-
-    Set<String> exclude = new HashSet<>();
-    exclude.add(Property.TABLE_FILE_MAX.getKey());
-
-    c.tableOperations().clone(table1, table2, true, props, exclude);
-
-    Mutation m3 = new Mutation("009");
-    m3.put("data", "x", "1");
-    m3.put("data", "y", "2");
-    bw.addMutation(m3);
-    bw.close();
-
-    // delete source table, should not affect clone
-    c.tableOperations().delete(table1);
-
-    checkData(table2, c);
-
-    c.tableOperations().compact(table2, null, null, true, true);
-
-    checkData(table2, c);
-
-    c.tableOperations().delete(table2);
-
   }
 
   @Test
   public void testCloneWithSplits() throws Exception {
-    AccumuloClient client = getAccumuloClient();
+    try (AccumuloClient client = getAccumuloClient()) {
 
-    List<Mutation> mutations = new ArrayList<>();
-    TreeSet<Text> splits = new TreeSet<>();
-    for (int i = 0; i < 10; i++) {
-      splits.add(new Text(Integer.toString(i)));
-      Mutation m = new Mutation(Integer.toString(i));
-      m.put("", "", "");
-      mutations.add(m);
+      List<Mutation> mutations = new ArrayList<>();
+      TreeSet<Text> splits = new TreeSet<>();
+      for (int i = 0; i < 10; i++) {
+        splits.add(new Text(Integer.toString(i)));
+        Mutation m = new Mutation(Integer.toString(i));
+        m.put("", "", "");
+        mutations.add(m);
+      }
+
+      String[] tables = getUniqueNames(2);
+
+      client.tableOperations().create(tables[0]);
+
+      client.tableOperations().addSplits(tables[0], splits);
+
+      BatchWriter bw = client.createBatchWriter(tables[0], new BatchWriterConfig());
+      bw.addMutations(mutations);
+      bw.close();
+
+      client.tableOperations().clone(tables[0], tables[1], true, null, null);
+
+      client.tableOperations().deleteRows(tables[1], new Text("4"), new Text("8"));
+
+      List<String> rows = Arrays.asList("0", "1", "2", "3", "4", "9");
+      List<String> actualRows = new ArrayList<>();
+      for (Entry<Key,Value> entry : client.createScanner(tables[1], Authorizations.EMPTY)) {
+        actualRows.add(entry.getKey().getRow().toString());
+      }
+
+      assertEquals(rows, actualRows);
     }
-
-    String[] tables = getUniqueNames(2);
-
-    client.tableOperations().create(tables[0]);
-
-    client.tableOperations().addSplits(tables[0], splits);
-
-    BatchWriter bw = client.createBatchWriter(tables[0], new BatchWriterConfig());
-    bw.addMutations(mutations);
-    bw.close();
-
-    client.tableOperations().clone(tables[0], tables[1], true, null, null);
-
-    client.tableOperations().deleteRows(tables[1], new Text("4"), new Text("8"));
-
-    List<String> rows = Arrays.asList("0", "1", "2", "3", "4", "9");
-    List<String> actualRows = new ArrayList<>();
-    for (Entry<Key,Value> entry : client.createScanner(tables[1], Authorizations.EMPTY)) {
-      actualRows.add(entry.getKey().getRow().toString());
-    }
-
-    assertEquals(rows, actualRows);
   }
-
 }

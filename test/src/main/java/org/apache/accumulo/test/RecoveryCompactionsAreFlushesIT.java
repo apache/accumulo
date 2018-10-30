@@ -61,43 +61,43 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     // create a table
     String tableName = getUniqueNames(1)[0];
-    AccumuloClient c = getAccumuloClient();
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100");
-    c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "3");
-    // create 3 flush files
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m = new Mutation("a");
-    m.put("b", "c", new Value("v".getBytes()));
-    for (int i = 0; i < 3; i++) {
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100");
+      c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "3");
+      // create 3 flush files
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      Mutation m = new Mutation("a");
+      m.put("b", "c", new Value("v".getBytes()));
+      for (int i = 0; i < 3; i++) {
+        bw.addMutation(m);
+        bw.flush();
+        c.tableOperations().flush(tableName, null, null, true);
+      }
+      // create an unsaved mutation
       bw.addMutation(m);
-      bw.flush();
-      c.tableOperations().flush(tableName, null, null, true);
-    }
-    // create an unsaved mutation
-    bw.addMutation(m);
-    bw.close();
+      bw.close();
 
-    ClusterControl control = cluster.getClusterControl();
+      ClusterControl control = cluster.getClusterControl();
 
-    // kill the tablet servers
-    control.stopAllServers(ServerType.TABLET_SERVER);
+      // kill the tablet servers
+      control.stopAllServers(ServerType.TABLET_SERVER);
 
-    // recover
-    control.startAllServers(ServerType.TABLET_SERVER);
+      // recover
+      control.startAllServers(ServerType.TABLET_SERVER);
 
-    // ensure the table is readable
-    Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
+      // ensure the table is readable
+      Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
 
-    // ensure that the recovery was not a merging minor compaction
-    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-      for (Entry<Key,Value> entry : s) {
-        String filename = entry.getKey().getColumnQualifier().toString();
-        String parts[] = filename.split("/");
-        assertFalse(parts[parts.length - 1].startsWith("M"));
+      // ensure that the recovery was not a merging minor compaction
+      try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+        for (Entry<Key,Value> entry : s) {
+          String filename = entry.getKey().getColumnQualifier().toString();
+          String parts[] = filename.split("/");
+          assertFalse(parts[parts.length - 1].startsWith("M"));
+        }
       }
     }
   }
-
 }

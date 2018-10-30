@@ -53,17 +53,18 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
     // not yet, please
     String tableName = getUniqueNames(1)[0];
     cluster.getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
-    AccumuloClient c = getClient();
-    c.tableOperations().create(tableName);
-    // count the number of WALs in the filesystem
-    assertEquals(2, countWALsInFS(cluster));
-    cluster.getClusterControl().stop(ServerType.TABLET_SERVER);
-    cluster.getClusterControl().start(ServerType.GARBAGE_COLLECTOR);
-    cluster.getClusterControl().start(ServerType.TABLET_SERVER);
-    Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
-    // let GC run
-    UtilWaitThread.sleep(3 * 5 * 1000);
-    assertEquals(2, countWALsInFS(cluster));
+    try (AccumuloClient c = getClient()) {
+      c.tableOperations().create(tableName);
+      // count the number of WALs in the filesystem
+      assertEquals(2, countWALsInFS(cluster));
+      cluster.getClusterControl().stop(ServerType.TABLET_SERVER);
+      cluster.getClusterControl().start(ServerType.GARBAGE_COLLECTOR);
+      cluster.getClusterControl().start(ServerType.TABLET_SERVER);
+      Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+      // let GC run
+      UtilWaitThread.sleep(3 * 5 * 1000);
+      assertEquals(2, countWALsInFS(cluster));
+    }
   }
 
   private int countWALsInFS(MiniAccumuloClusterImpl cluster) throws Exception {

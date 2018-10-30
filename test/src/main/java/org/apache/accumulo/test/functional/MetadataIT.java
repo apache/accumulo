@@ -61,92 +61,95 @@ public class MetadataIT extends AccumuloClusterHarness {
 
   @Test
   public void testFlushAndCompact() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableNames[] = getUniqueNames(2);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableNames[] = getUniqueNames(2);
 
-    // create a table to write some data to metadata table
-    c.tableOperations().create(tableNames[0]);
+      // create a table to write some data to metadata table
+      c.tableOperations().create(tableNames[0]);
 
-    try (Scanner rootScanner = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
-      rootScanner.setRange(MetadataSchema.TabletsSection.getRange());
-      rootScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      try (Scanner rootScanner = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
+        rootScanner.setRange(MetadataSchema.TabletsSection.getRange());
+        rootScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
 
-      Set<String> files1 = new HashSet<>();
-      for (Entry<Key,Value> entry : rootScanner)
-        files1.add(entry.getKey().getColumnQualifier().toString());
+        Set<String> files1 = new HashSet<>();
+        for (Entry<Key,Value> entry : rootScanner)
+          files1.add(entry.getKey().getColumnQualifier().toString());
 
-      c.tableOperations().create(tableNames[1]);
-      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
+        c.tableOperations().create(tableNames[1]);
+        c.tableOperations().flush(MetadataTable.NAME, null, null, true);
 
-      Set<String> files2 = new HashSet<>();
-      for (Entry<Key,Value> entry : rootScanner)
-        files2.add(entry.getKey().getColumnQualifier().toString());
+        Set<String> files2 = new HashSet<>();
+        for (Entry<Key,Value> entry : rootScanner)
+          files2.add(entry.getKey().getColumnQualifier().toString());
 
-      // flush of metadata table should change file set in root table
-      assertTrue(files2.size() > 0);
-      assertNotEquals(files1, files2);
+        // flush of metadata table should change file set in root table
+        assertTrue(files2.size() > 0);
+        assertNotEquals(files1, files2);
 
-      c.tableOperations().compact(MetadataTable.NAME, null, null, false, true);
+        c.tableOperations().compact(MetadataTable.NAME, null, null, false, true);
 
-      Set<String> files3 = new HashSet<>();
-      for (Entry<Key,Value> entry : rootScanner)
-        files3.add(entry.getKey().getColumnQualifier().toString());
+        Set<String> files3 = new HashSet<>();
+        for (Entry<Key,Value> entry : rootScanner)
+          files3.add(entry.getKey().getColumnQualifier().toString());
 
-      // compaction of metadata table should change file set in root table
-      assertNotEquals(files2, files3);
+        // compaction of metadata table should change file set in root table
+        assertNotEquals(files2, files3);
+      }
     }
   }
 
   @Test
   public void mergeMeta() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String[] names = getUniqueNames(5);
-    SortedSet<Text> splits = new TreeSet<>();
-    for (String id : "1 2 3 4 5".split(" ")) {
-      splits.add(new Text(id));
-    }
-    c.tableOperations().addSplits(MetadataTable.NAME, splits);
-    for (String tableName : names) {
-      c.tableOperations().create(tableName);
-    }
-    c.tableOperations().merge(MetadataTable.NAME, null, null);
-    try (Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(MetadataSchema.DeletesSection.getRange());
-      while (Iterators.size(s.iterator()) == 0) {
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String[] names = getUniqueNames(5);
+      SortedSet<Text> splits = new TreeSet<>();
+      for (String id : "1 2 3 4 5".split(" ")) {
+        splits.add(new Text(id));
       }
-      assertEquals(0, c.tableOperations().listSplits(MetadataTable.NAME).size());
+      c.tableOperations().addSplits(MetadataTable.NAME, splits);
+      for (String tableName : names) {
+        c.tableOperations().create(tableName);
+      }
+      c.tableOperations().merge(MetadataTable.NAME, null, null);
+      try (Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
+        s.setRange(MetadataSchema.DeletesSection.getRange());
+        while (Iterators.size(s.iterator()) == 0) {
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        }
+        assertEquals(0, c.tableOperations().listSplits(MetadataTable.NAME).size());
+      }
     }
   }
 
   @Test
   public void batchScanTest() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
 
-    // batch scan regular metadata table
-    int count = 0;
-    try (BatchScanner s = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
+      // batch scan regular metadata table
+      int count = 0;
+      try (BatchScanner s = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
 
-      s.setRanges(Collections.singleton(new Range()));
-      for (Entry<Key,Value> e : s) {
-        if (e != null)
-          count++;
+        s.setRanges(Collections.singleton(new Range()));
+        for (Entry<Key,Value> e : s) {
+          if (e != null)
+            count++;
+        }
       }
-    }
 
-    assertTrue(count > 0);
-
-    // batch scan root metadata table
-    try (BatchScanner s = c.createBatchScanner(RootTable.NAME, Authorizations.EMPTY, 1)) {
-      s.setRanges(Collections.singleton(new Range()));
-      count = 0;
-      for (Entry<Key,Value> e : s) {
-        if (e != null)
-          count++;
-      }
       assertTrue(count > 0);
+
+      // batch scan root metadata table
+      try (BatchScanner s = c.createBatchScanner(RootTable.NAME, Authorizations.EMPTY, 1)) {
+        s.setRanges(Collections.singleton(new Range()));
+        count = 0;
+        for (Entry<Key,Value> e : s) {
+          if (e != null)
+            count++;
+        }
+        assertTrue(count > 0);
+      }
     }
   }
 

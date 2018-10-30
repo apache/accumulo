@@ -119,90 +119,91 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
   public String test(int seconds, boolean expectTserverDied) throws Exception {
     if (!makeDiskFailureLibrary())
       return null;
-    AccumuloClient c = getClient();
-    assertEquals(1, c.instanceOperations().getTabletServers().size());
-
-    // create our own tablet server with the special test library
-    String javaHome = System.getProperty("java.home");
-    String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
-    String classpath = System.getProperty("java.class.path");
-    classpath = new File(cluster.getConfig().getDir(), "conf") + File.pathSeparator + classpath;
-    String className = TabletServer.class.getName();
-    ArrayList<String> argList = new ArrayList<>();
-    argList.addAll(Arrays.asList(javaBin, "-cp", classpath));
-    argList.addAll(Arrays.asList(Main.class.getName(), className));
-    ProcessBuilder builder = new ProcessBuilder(argList);
-    Map<String,String> env = builder.environment();
-    env.put("ACCUMULO_HOME", cluster.getConfig().getDir().getAbsolutePath());
-    env.put("ACCUMULO_LOG_DIR", cluster.getConfig().getLogDir().getAbsolutePath());
-    String trickFilename = cluster.getConfig().getLogDir().getAbsolutePath() + "/TRICK_FILE";
-    env.put("TRICK_FILE", trickFilename);
-    String libPath = System.getProperty("user.dir") + "/target/fake_disk_failure.so";
-    env.put("LD_PRELOAD", libPath);
-    env.put("DYLD_INSERT_LIBRARIES", libPath);
-    env.put("DYLD_FORCE_FLAT_NAMESPACE", "true");
-    Process ingest = null;
-    Process tserver = builder.start();
-    DumpOutput t = new DumpOutput(tserver.getInputStream());
-    try {
-      t.start();
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
-      // don't need the regular tablet server
-      cluster.killProcess(ServerType.TABLET_SERVER,
-          cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
-      c.tableOperations().create("test_ingest");
+    try (AccumuloClient c = getClient()) {
       assertEquals(1, c.instanceOperations().getTabletServers().size());
-      int rows = 100 * 1000;
-      ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z",
-          cluster.getZooKeepers(), "-p", ROOT_PASSWORD, "--rows", rows + "");
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
-      // block I/O with some side-channel trickiness
-      File trickFile = new File(trickFilename);
+      // create our own tablet server with the special test library
+      String javaHome = System.getProperty("java.home");
+      String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
+      String classpath = System.getProperty("java.class.path");
+      classpath = new File(cluster.getConfig().getDir(), "conf") + File.pathSeparator + classpath;
+      String className = TabletServer.class.getName();
+      ArrayList<String> argList = new ArrayList<>();
+      argList.addAll(Arrays.asList(javaBin, "-cp", classpath));
+      argList.addAll(Arrays.asList(Main.class.getName(), className));
+      ProcessBuilder builder = new ProcessBuilder(argList);
+      Map<String,String> env = builder.environment();
+      env.put("ACCUMULO_HOME", cluster.getConfig().getDir().getAbsolutePath());
+      env.put("ACCUMULO_LOG_DIR", cluster.getConfig().getLogDir().getAbsolutePath());
+      String trickFilename = cluster.getConfig().getLogDir().getAbsolutePath() + "/TRICK_FILE";
+      env.put("TRICK_FILE", trickFilename);
+      String libPath = System.getProperty("user.dir") + "/target/fake_disk_failure.so";
+      env.put("LD_PRELOAD", libPath);
+      env.put("DYLD_INSERT_LIBRARIES", libPath);
+      env.put("DYLD_FORCE_FLAT_NAMESPACE", "true");
+      Process ingest = null;
+      Process tserver = builder.start();
+      DumpOutput t = new DumpOutput(tserver.getInputStream());
       try {
-        assertTrue(trickFile.createNewFile());
-        sleepUninterruptibly(seconds, TimeUnit.SECONDS);
-      } finally {
-        if (!trickFile.delete()) {
-          log.error("Couldn't delete {}", trickFile);
-        }
-      }
+        t.start();
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        // don't need the regular tablet server
+        cluster.killProcess(ServerType.TABLET_SERVER,
+            cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        c.tableOperations().create("test_ingest");
+        assertEquals(1, c.instanceOperations().getTabletServers().size());
+        int rows = 100 * 1000;
+        ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z",
+            cluster.getZooKeepers(), "-p", ROOT_PASSWORD, "--rows", rows + "");
+        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
-      if (seconds <= 10) {
-        assertEquals(0, ingest.waitFor());
-        VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-        vopts.rows = rows;
-        vopts.setClientInfo(getClientInfo());
-        VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-      } else {
-        sleepUninterruptibly(5, TimeUnit.SECONDS);
-        tserver.waitFor();
-        t.join();
-        tserver = null;
-      }
-      // verify the process was blocked
-      String results = t.toString();
-      assertTrue(results.contains("sleeping\nsleeping\nsleeping\n"));
-      return results;
-    } finally {
-      if (ingest != null) {
-        ingest.destroy();
-        ingest.waitFor();
-      }
-      if (tserver != null) {
+        // block I/O with some side-channel trickiness
+        File trickFile = new File(trickFilename);
         try {
-          if (expectTserverDied) {
-            try {
-              tserver.exitValue();
-            } catch (IllegalThreadStateException e) {
-              fail("Expected TServer to kill itself, but it is still running");
-            }
-          }
+          assertTrue(trickFile.createNewFile());
+          sleepUninterruptibly(seconds, TimeUnit.SECONDS);
         } finally {
-          tserver.destroy();
+          if (!trickFile.delete()) {
+            log.error("Couldn't delete {}", trickFile);
+          }
+        }
+
+        if (seconds <= 10) {
+          assertEquals(0, ingest.waitFor());
+          VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+          vopts.rows = rows;
+          vopts.setClientInfo(getClientInfo());
+          VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+        } else {
+          sleepUninterruptibly(5, TimeUnit.SECONDS);
           tserver.waitFor();
           t.join();
+          tserver = null;
+        }
+        // verify the process was blocked
+        String results = t.toString();
+        assertTrue(results.contains("sleeping\nsleeping\nsleeping\n"));
+        return results;
+      } finally {
+        if (ingest != null) {
+          ingest.destroy();
+          ingest.waitFor();
+        }
+        if (tserver != null) {
+          try {
+            if (expectTserverDied) {
+              try {
+                tserver.exitValue();
+              } catch (IllegalThreadStateException e) {
+                fail("Expected TServer to kill itself, but it is still running");
+              }
+            }
+          } finally {
+            tserver.destroy();
+            tserver.waitFor();
+            t.join();
+          }
         }
       }
     }

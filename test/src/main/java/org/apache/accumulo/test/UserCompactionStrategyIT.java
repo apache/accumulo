@@ -71,57 +71,62 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @After
   public void checkForDanglingFateLocks() {
-    FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
+    // create an accumulo client even though its not used inorder to enable static stuff
+    try (AccumuloClient c = getAccumuloClient()) {
+      FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
+    }
   }
 
   @Test
   public void testDropA() throws Exception {
-    AccumuloClient c = getAccumuloClient();
+    try (AccumuloClient c = getAccumuloClient()) {
 
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
 
-    writeFlush(c, tableName, "a");
-    writeFlush(c, tableName, "b");
-    // create a file that starts with A containing rows 'a' and 'b'
-    c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      writeFlush(c, tableName, "a");
+      writeFlush(c, tableName, "b");
+      // create a file that starts with A containing rows 'a' and 'b'
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
-    writeFlush(c, tableName, "c");
-    writeFlush(c, tableName, "d");
+      writeFlush(c, tableName, "c");
+      writeFlush(c, tableName, "d");
 
-    // drop files that start with A
-    CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-        TestCompactionStrategy.class.getName());
-    csConfig.setOptions(ImmutableMap.of("dropPrefix", "A", "inputPrefix", "F"));
-    c.tableOperations().compact(tableName,
-        new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
+      // drop files that start with A
+      CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
+          TestCompactionStrategy.class.getName());
+      csConfig.setOptions(ImmutableMap.of("dropPrefix", "A", "inputPrefix", "F"));
+      c.tableOperations().compact(tableName,
+          new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
-    assertEquals(ImmutableSet.of("c", "d"), getRows(c, tableName));
+      assertEquals(ImmutableSet.of("c", "d"), getRows(c, tableName));
 
-    // this compaction should not drop files starting with A
-    c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-    c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      // this compaction should not drop files starting with A
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
-    assertEquals(ImmutableSet.of("c", "d"), getRows(c, tableName));
+      assertEquals(ImmutableSet.of("c", "d"), getRows(c, tableName));
+    }
   }
 
   private void testDropNone(Map<String,String> options) throws Exception {
 
-    AccumuloClient c = getAccumuloClient();
+    try (AccumuloClient c = getAccumuloClient()) {
 
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
 
-    writeFlush(c, tableName, "a");
-    writeFlush(c, tableName, "b");
+      writeFlush(c, tableName, "a");
+      writeFlush(c, tableName, "b");
 
-    CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-        TestCompactionStrategy.class.getName());
-    csConfig.setOptions(options);
-    c.tableOperations().compact(tableName,
-        new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
+      CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
+          TestCompactionStrategy.class.getName());
+      csConfig.setOptions(options);
+      c.tableOperations().compact(tableName,
+          new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
-    assertEquals(ImmutableSet.of("a", "b"), getRows(c, tableName));
+      assertEquals(ImmutableSet.of("a", "b"), getRows(c, tableName));
+    }
   }
 
   @Test
@@ -148,38 +153,39 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
     // test per-table classpath + user specified compaction strategy
 
-    final AccumuloClient c = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    File target = new File(System.getProperty("user.dir"), "target");
-    assertTrue(target.mkdirs() || target.isDirectory());
-    File destFile = installJar(target, "/TestCompactionStrat.jar");
-    c.tableOperations().create(tableName);
-    c.instanceOperations().setProperty(
-        Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
-    c.tableOperations().setProperty(tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
+    try (AccumuloClient c = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      File target = new File(System.getProperty("user.dir"), "target");
+      assertTrue(target.mkdirs() || target.isDirectory());
+      File destFile = installJar(target, "/TestCompactionStrat.jar");
+      c.tableOperations().create(tableName);
+      c.instanceOperations().setProperty(
+          Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
+      c.tableOperations().setProperty(tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
 
-    c.tableOperations().addSplits(tableName, new TreeSet<>(Arrays.asList(new Text("efg"))));
+      c.tableOperations().addSplits(tableName, new TreeSet<>(Arrays.asList(new Text("efg"))));
 
-    writeFlush(c, tableName, "a");
-    writeFlush(c, tableName, "b");
+      writeFlush(c, tableName, "a");
+      writeFlush(c, tableName, "b");
 
-    writeFlush(c, tableName, "h");
-    writeFlush(c, tableName, "i");
+      writeFlush(c, tableName, "h");
+      writeFlush(c, tableName, "i");
 
-    assertEquals(4, FunctionalTestUtils.countRFiles(c, tableName));
+      assertEquals(4, FunctionalTestUtils.countRFiles(c, tableName));
 
-    // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are
-    // compacted.
-    CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-        "org.apache.accumulo.test.EfgCompactionStrat");
-    c.tableOperations().compact(tableName,
-        new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
+      // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are
+      // compacted.
+      CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
+          "org.apache.accumulo.test.EfgCompactionStrat");
+      c.tableOperations().compact(tableName,
+          new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
-    assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
+      assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
 
-    c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
-    assertEquals(2, FunctionalTestUtils.countRFiles(c, tableName));
+      assertEquals(2, FunctionalTestUtils.countRFiles(c, tableName));
+    }
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
@@ -194,77 +200,80 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   public void testIterators() throws Exception {
     // test compaction strategy + iterators
 
-    AccumuloClient c = getAccumuloClient();
+    try (AccumuloClient c = getAccumuloClient()) {
 
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
 
-    writeFlush(c, tableName, "a");
-    writeFlush(c, tableName, "b");
-    // create a file that starts with A containing rows 'a' and 'b'
-    c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      writeFlush(c, tableName, "a");
+      writeFlush(c, tableName, "b");
+      // create a file that starts with A containing rows 'a' and 'b'
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
-    writeFlush(c, tableName, "c");
-    writeFlush(c, tableName, "d");
+      writeFlush(c, tableName, "c");
+      writeFlush(c, tableName, "d");
 
-    assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
+      assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
 
-    // drop files that start with A
-    CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-        TestCompactionStrategy.class.getName());
-    csConfig.setOptions(ImmutableMap.of("inputPrefix", "F"));
+      // drop files that start with A
+      CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
+          TestCompactionStrategy.class.getName());
+      csConfig.setOptions(ImmutableMap.of("inputPrefix", "F"));
 
-    IteratorSetting iterConf = new IteratorSetting(21, "myregex", RegExFilter.class);
-    RegExFilter.setRegexs(iterConf, "a|c", null, null, null, false);
+      IteratorSetting iterConf = new IteratorSetting(21, "myregex", RegExFilter.class);
+      RegExFilter.setRegexs(iterConf, "a|c", null, null, null, false);
 
-    c.tableOperations().compact(tableName, new CompactionConfig().setWait(true)
-        .setCompactionStrategy(csConfig).setIterators(Arrays.asList(iterConf)));
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true)
+          .setCompactionStrategy(csConfig).setIterators(Arrays.asList(iterConf)));
 
-    // compaction strategy should only be applied to one file. If its applied to both, then row 'b'
-    // would be dropped by filter.
-    assertEquals(ImmutableSet.of("a", "b", "c"), getRows(c, tableName));
+      // compaction strategy should only be applied to one file. If its applied to both, then row
+      // 'b'
+      // would be dropped by filter.
+      assertEquals(ImmutableSet.of("a", "b", "c"), getRows(c, tableName));
 
-    assertEquals(2, FunctionalTestUtils.countRFiles(c, tableName));
+      assertEquals(2, FunctionalTestUtils.countRFiles(c, tableName));
 
-    c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
-    // ensure that iterator is not applied
-    assertEquals(ImmutableSet.of("a", "b", "c"), getRows(c, tableName));
+      // ensure that iterator is not applied
+      assertEquals(ImmutableSet.of("a", "b", "c"), getRows(c, tableName));
 
-    assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
+      assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
+    }
   }
 
   @Test
   public void testFileSize() throws Exception {
-    AccumuloClient c = getAccumuloClient();
+    try (AccumuloClient c = getAccumuloClient()) {
 
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
 
-    // write random data because its very unlikely it will compress
-    writeRandomValue(c, tableName, 1 << 16);
-    writeRandomValue(c, tableName, 1 << 16);
+      // write random data because its very unlikely it will compress
+      writeRandomValue(c, tableName, 1 << 16);
+      writeRandomValue(c, tableName, 1 << 16);
 
-    writeRandomValue(c, tableName, 1 << 9);
-    writeRandomValue(c, tableName, 1 << 7);
-    writeRandomValue(c, tableName, 1 << 6);
+      writeRandomValue(c, tableName, 1 << 9);
+      writeRandomValue(c, tableName, 1 << 7);
+      writeRandomValue(c, tableName, 1 << 6);
 
-    assertEquals(5, FunctionalTestUtils.countRFiles(c, tableName));
+      assertEquals(5, FunctionalTestUtils.countRFiles(c, tableName));
 
-    CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-        SizeCompactionStrategy.class.getName());
-    csConfig.setOptions(ImmutableMap.of("size", "" + (1 << 15)));
-    c.tableOperations().compact(tableName,
-        new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
+      CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
+          SizeCompactionStrategy.class.getName());
+      csConfig.setOptions(ImmutableMap.of("size", "" + (1 << 15)));
+      c.tableOperations().compact(tableName,
+          new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
-    assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
+      assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
 
-    csConfig = new CompactionStrategyConfig(SizeCompactionStrategy.class.getName());
-    csConfig.setOptions(ImmutableMap.of("size", "" + (1 << 17)));
-    c.tableOperations().compact(tableName,
-        new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
+      csConfig = new CompactionStrategyConfig(SizeCompactionStrategy.class.getName());
+      csConfig.setOptions(ImmutableMap.of("size", "" + (1 << 17)));
+      c.tableOperations().compact(tableName,
+          new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
-    assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
+      assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
+    }
 
   }
 
@@ -272,34 +281,35 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   public void testConcurrent() throws Exception {
     // two compactions without iterators or strategy should be able to run concurrently
 
-    AccumuloClient c = getAccumuloClient();
+    try (AccumuloClient c = getAccumuloClient()) {
 
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
 
-    // write random data because its very unlikely it will compress
-    writeRandomValue(c, tableName, 1 << 16);
-    writeRandomValue(c, tableName, 1 << 16);
+      // write random data because its very unlikely it will compress
+      writeRandomValue(c, tableName, 1 << 16);
+      writeRandomValue(c, tableName, 1 << 16);
 
-    c.tableOperations().compact(tableName, new CompactionConfig().setWait(false));
-    c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-
-    assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
-
-    writeRandomValue(c, tableName, 1 << 16);
-
-    IteratorSetting iterConfig = new IteratorSetting(30, SlowIterator.class);
-    SlowIterator.setSleepTime(iterConfig, 1000);
-
-    long t1 = System.currentTimeMillis();
-    c.tableOperations().compact(tableName,
-        new CompactionConfig().setWait(false).setIterators(Arrays.asList(iterConfig)));
-    try {
-      // this compaction should fail because previous one set iterators
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(false));
       c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-      if (System.currentTimeMillis() - t1 < 2000)
-        fail("Expected compaction to fail because another concurrent compaction set iterators");
-    } catch (AccumuloException e) {}
+
+      assertEquals(1, FunctionalTestUtils.countRFiles(c, tableName));
+
+      writeRandomValue(c, tableName, 1 << 16);
+
+      IteratorSetting iterConfig = new IteratorSetting(30, SlowIterator.class);
+      SlowIterator.setSleepTime(iterConfig, 1000);
+
+      long t1 = System.currentTimeMillis();
+      c.tableOperations().compact(tableName,
+          new CompactionConfig().setWait(false).setIterators(Arrays.asList(iterConfig)));
+      try {
+        // this compaction should fail because previous one set iterators
+        c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+        if (System.currentTimeMillis() - t1 < 2000)
+          fail("Expected compaction to fail because another concurrent compaction set iterators");
+      } catch (AccumuloException e) {}
+    }
   }
 
   void writeRandomValue(AccumuloClient c, String tableName, int size) throws Exception {

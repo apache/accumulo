@@ -56,19 +56,20 @@ public class CredentialsIT extends AccumuloClusterHarness {
 
   @Before
   public void createLocalUser() throws AccumuloException, AccumuloSecurityException {
-    AccumuloClient client = getAccumuloClient();
-    ClusterUser user = getUser(0);
-    username = user.getPrincipal();
-    saslEnabled = saslEnabled();
-    // Create the user if it doesn't exist
-    Set<String> users = client.securityOperations().listLocalUsers();
-    if (!users.contains(username)) {
-      PasswordToken passwdToken = null;
-      if (!saslEnabled) {
-        password = user.getPassword();
-        passwdToken = new PasswordToken(password);
+    try (AccumuloClient client = getAccumuloClient()) {
+      ClusterUser user = getUser(0);
+      username = user.getPrincipal();
+      saslEnabled = saslEnabled();
+      // Create the user if it doesn't exist
+      Set<String> users = client.securityOperations().listLocalUsers();
+      if (!users.contains(username)) {
+        PasswordToken passwdToken = null;
+        if (!saslEnabled) {
+          password = user.getPassword();
+          passwdToken = new PasswordToken(password);
+        }
+        client.securityOperations().createLocalUser(username, passwdToken);
       }
-      client.securityOperations().createLocalUser(username, passwdToken);
     }
   }
 
@@ -79,7 +80,9 @@ public class CredentialsIT extends AccumuloClusterHarness {
       UserGroupInformation.loginUserFromKeytab(root.getPrincipal(),
           root.getKeytab().getAbsolutePath());
     }
-    getAccumuloClient().securityOperations().dropLocalUser(username);
+    try (AccumuloClient client = getAccumuloClient()) {
+      client.securityOperations().dropLocalUser(username);
+    }
   }
 
   @Test
@@ -88,8 +91,8 @@ public class CredentialsIT extends AccumuloClusterHarness {
     assertFalse(token.isDestroyed());
     token.destroy();
     assertTrue(token.isDestroyed());
-    try {
-      getAccumuloClient().changeUser("non_existent_user", token);
+    try (AccumuloClient client = getAccumuloClient()) {
+      client.changeUser("non_existent_user", token);
       fail();
     } catch (AccumuloSecurityException e) {
       assertEquals(e.getSecurityErrorCode(), SecurityErrorCode.TOKEN_EXPIRED);
@@ -98,25 +101,26 @@ public class CredentialsIT extends AccumuloClusterHarness {
 
   @Test
   public void testDestroyTokenBeforeRPC() throws Exception {
-    AuthenticationToken token = getUser(0).getToken();
-    AccumuloClient userAccumuloClient = getAccumuloClient().changeUser(username, token);
-    try (Scanner scanner = userAccumuloClient.createScanner(MetadataTable.NAME,
-        Authorizations.EMPTY)) {
-      assertFalse(token.isDestroyed());
-      token.destroy();
-      assertTrue(token.isDestroyed());
-      try {
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        while (iter.hasNext())
+    try (AccumuloClient client = getAccumuloClient()) {
+      AuthenticationToken token = getUser(0).getToken();
+      try (AccumuloClient userAccumuloClient = client.changeUser(username, token);
+          Scanner scanner = userAccumuloClient.createScanner(MetadataTable.NAME,
+              Authorizations.EMPTY)) {
+        assertFalse(token.isDestroyed());
+        token.destroy();
+        assertTrue(token.isDestroyed());
+        try {
+          Iterator<Entry<Key,Value>> iter = scanner.iterator();
+          while (iter.hasNext())
+            fail();
           fail();
-        fail();
-      } catch (Exception e) {
-        assertTrue(e instanceof RuntimeException);
-        assertTrue(e.getCause() instanceof AccumuloSecurityException);
-        assertEquals(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode(),
-            SecurityErrorCode.TOKEN_EXPIRED);
+        } catch (Exception e) {
+          assertTrue(e instanceof RuntimeException);
+          assertTrue(e.getCause() instanceof AccumuloSecurityException);
+          assertEquals(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode(),
+              SecurityErrorCode.TOKEN_EXPIRED);
+        }
       }
     }
   }
-
 }

@@ -18,9 +18,6 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Durability;
@@ -37,15 +34,6 @@ public class ClientInfoFactory {
 
   public static Long getLong(ClientInfo info, ClientProperty property) {
     return property.getLong(info.getProperties());
-  }
-
-  public static AccumuloClient getClient(ClientInfo info)
-      throws AccumuloSecurityException, AccumuloException {
-    return new AccumuloClientImpl(new ClientContext(info));
-  }
-
-  public static Credentials getCredentials(ClientInfo info) {
-    return new Credentials(info.getPrincipal(), info.getAuthenticationToken());
   }
 
   public static BatchWriterConfig getBatchWriterConfig(ClientInfo info) {

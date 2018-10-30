@@ -68,22 +68,24 @@ public class CleanWalIT extends AccumuloClusterHarness {
 
   @Before
   public void offlineTraceTable() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String traceTable = client.instanceOperations().getSystemConfiguration()
-        .get(Property.TRACE_TABLE.getKey());
-    if (client.tableOperations().exists(traceTable)) {
-      client.tableOperations().offline(traceTable, true);
+    try (AccumuloClient client = getAccumuloClient()) {
+      String traceTable = client.instanceOperations().getSystemConfiguration()
+          .get(Property.TRACE_TABLE.getKey());
+      if (client.tableOperations().exists(traceTable)) {
+        client.tableOperations().offline(traceTable, true);
+      }
     }
   }
 
   @After
   public void onlineTraceTable() throws Exception {
     if (null != cluster) {
-      AccumuloClient client = getAccumuloClient();
-      String traceTable = client.instanceOperations().getSystemConfiguration()
-          .get(Property.TRACE_TABLE.getKey());
-      if (client.tableOperations().exists(traceTable)) {
-        client.tableOperations().online(traceTable, true);
+      try (AccumuloClient client = getAccumuloClient()) {
+        String traceTable = client.instanceOperations().getSystemConfiguration()
+            .get(Property.TRACE_TABLE.getKey());
+        if (client.tableOperations().exists(traceTable)) {
+          client.tableOperations().online(traceTable, true);
+        }
       }
     }
   }
@@ -91,44 +93,45 @@ public class CleanWalIT extends AccumuloClusterHarness {
   // test for ACCUMULO-1830
   @Test
   public void test() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
-    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m = new Mutation("row");
-    m.put("cf", "cq", "value");
-    bw.addMutation(m);
-    bw.close();
-    getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    // all 3 tables should do recovery, but the bug doesn't really remove the log file references
-
-    getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-
-    for (String table : new String[] {MetadataTable.NAME, RootTable.NAME})
-      client.tableOperations().flush(table, null, null, true);
-    log.debug("Checking entries for {}", tableName);
-    assertEquals(1, count(tableName, client));
-    for (String table : new String[] {MetadataTable.NAME, RootTable.NAME}) {
-      log.debug("Checking logs for {}", table);
-      assertEquals("Found logs for " + table, 0, countLogs(table, client));
-    }
-
-    bw = client.createBatchWriter(tableName, new BatchWriterConfig());
-    m = new Mutation("row");
-    m.putDelete("cf", "cq");
-    bw.addMutation(m);
-    bw.close();
-    assertEquals(0, count(tableName, client));
-    client.tableOperations().flush(tableName, null, null, true);
-    client.tableOperations().flush(MetadataTable.NAME, null, null, true);
-    client.tableOperations().flush(RootTable.NAME, null, null, true);
-    try {
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
+      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+      Mutation m = new Mutation("row");
+      m.put("cf", "cq", "value");
+      bw.addMutation(m);
+      bw.close();
       getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      sleepUninterruptibly(3, TimeUnit.SECONDS);
-    } finally {
+      // all 3 tables should do recovery, but the bug doesn't really remove the log file references
+
       getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+
+      for (String table : new String[] {MetadataTable.NAME, RootTable.NAME})
+        client.tableOperations().flush(table, null, null, true);
+      log.debug("Checking entries for {}", tableName);
+      assertEquals(1, count(tableName, client));
+      for (String table : new String[] {MetadataTable.NAME, RootTable.NAME}) {
+        log.debug("Checking logs for {}", table);
+        assertEquals("Found logs for " + table, 0, countLogs(table, client));
+      }
+
+      bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+      m = new Mutation("row");
+      m.putDelete("cf", "cq");
+      bw.addMutation(m);
+      bw.close();
+      assertEquals(0, count(tableName, client));
+      client.tableOperations().flush(tableName, null, null, true);
+      client.tableOperations().flush(MetadataTable.NAME, null, null, true);
+      client.tableOperations().flush(RootTable.NAME, null, null, true);
+      try {
+        getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+        sleepUninterruptibly(3, TimeUnit.SECONDS);
+      } finally {
+        getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      }
+      assertEquals(0, count(tableName, client));
     }
-    assertEquals(0, count(tableName, client));
   }
 
   private int countLogs(String tableName, AccumuloClient client) throws TableNotFoundException {

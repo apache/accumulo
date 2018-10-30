@@ -107,103 +107,105 @@ public class MergeStateIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    AccumuloClient accumuloClient = getClient();
-    EasyMock.expect(context.getClient()).andReturn(accumuloClient).anyTimes();
-    EasyMock.replay(context);
-    accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
-        MetadataTable.NAME, TablePermission.WRITE);
-    BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    try (AccumuloClient accumuloClient = getClient()) {
+      EasyMock.expect(context.getClient()).andReturn(accumuloClient).anyTimes();
+      EasyMock.replay(context);
+      accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
+          MetadataTable.NAME, TablePermission.WRITE);
+      BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME,
+          new BatchWriterConfig());
 
-    // Create a fake METADATA table with these splits
-    String splits[] = {"a", "e", "j", "o", "t", "z"};
-    // create metadata for a table "t" with the splits above
-    Table.ID tableId = Table.ID.of("t");
-    Text pr = null;
-    for (String s : splits) {
-      Text split = new Text(s);
-      Mutation prevRow = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, split, pr));
-      prevRow.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"),
+      // Create a fake METADATA table with these splits
+      String splits[] = {"a", "e", "j", "o", "t", "z"};
+      // create metadata for a table "t" with the splits above
+      Table.ID tableId = Table.ID.of("t");
+      Text pr = null;
+      for (String s : splits) {
+        Text split = new Text(s);
+        Mutation prevRow = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, split, pr));
+        prevRow.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"),
+            new Value("127.0.0.1:1234".getBytes()));
+        ChoppedColumnFamily.CHOPPED_COLUMN.put(prevRow, new Value("junk".getBytes()));
+        bw.addMutation(prevRow);
+        pr = split;
+      }
+      // Add the default tablet
+      Mutation defaultTablet = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, null, pr));
+      defaultTablet.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"),
           new Value("127.0.0.1:1234".getBytes()));
-      ChoppedColumnFamily.CHOPPED_COLUMN.put(prevRow, new Value("junk".getBytes()));
-      bw.addMutation(prevRow);
-      pr = split;
+      bw.addMutation(defaultTablet);
+      bw.close();
+
+      // Read out the TabletLocationStates
+      MockCurrentState state = new MockCurrentState(new MergeInfo(
+          new KeyExtent(tableId, new Text("p"), new Text("e")), MergeInfo.Operation.MERGE));
+
+      // Verify the tablet state: hosted, and count
+      MetaDataStateStore metaDataStateStore = new MetaDataStateStore(context, state);
+      int count = 0;
+      for (TabletLocationState tss : metaDataStateStore) {
+        if (tss != null)
+          count++;
+      }
+      assertEquals(0, count); // the normal case is to skip tablets in a good state
+
+      // Create the hole
+      // Split the tablet at one end of the range
+      Mutation m = new KeyExtent(tableId, new Text("t"), new Text("p")).getPrevRowUpdateMutation();
+      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
+      TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
+          KeyExtent.encodePrevEndRow(new Text("o")));
+      update(accumuloClient, m);
+
+      // do the state check
+      MergeStats stats = scan(state, metaDataStateStore);
+      MergeState newState = stats.nextMergeState(accumuloClient, state);
+      assertEquals(MergeState.WAITING_FOR_OFFLINE, newState);
+
+      // unassign the tablets
+      BatchDeleter deleter = accumuloClient.createBatchDeleter(MetadataTable.NAME,
+          Authorizations.EMPTY, 1000, new BatchWriterConfig());
+      deleter.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+      deleter.setRanges(Collections.singletonList(new Range()));
+      deleter.delete();
+
+      // now we should be ready to merge but, we have inconsistent metadata
+      stats = scan(state, metaDataStateStore);
+      assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(accumuloClient, state));
+
+      // finish the split
+      KeyExtent tablet = new KeyExtent(tableId, new Text("p"), new Text("o"));
+      m = tablet.getPrevRowUpdateMutation();
+      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
+      update(accumuloClient, m);
+      metaDataStateStore
+          .setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer)));
+
+      // onos... there's a new tablet online
+      stats = scan(state, metaDataStateStore);
+      assertEquals(MergeState.WAITING_FOR_CHOPPED, stats.nextMergeState(accumuloClient, state));
+
+      // chop it
+      m = tablet.getPrevRowUpdateMutation();
+      ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("junk".getBytes()));
+      update(accumuloClient, m);
+
+      stats = scan(state, metaDataStateStore);
+      assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(accumuloClient, state));
+
+      // take it offline
+      m = tablet.getPrevRowUpdateMutation();
+      Collection<Collection<String>> walogs = Collections.emptyList();
+      metaDataStateStore.unassign(
+          Collections.singletonList(
+              new TabletLocationState(tablet, null, state.someTServer, null, null, walogs, false)),
+          null);
+
+      // now we can split
+      stats = scan(state, metaDataStateStore);
+      assertEquals(MergeState.MERGING, stats.nextMergeState(accumuloClient, state));
+
     }
-    // Add the default tablet
-    Mutation defaultTablet = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, null, pr));
-    defaultTablet.put(TabletsSection.CurrentLocationColumnFamily.NAME, new Text("123456"),
-        new Value("127.0.0.1:1234".getBytes()));
-    bw.addMutation(defaultTablet);
-    bw.close();
-
-    // Read out the TabletLocationStates
-    MockCurrentState state = new MockCurrentState(new MergeInfo(
-        new KeyExtent(tableId, new Text("p"), new Text("e")), MergeInfo.Operation.MERGE));
-
-    // Verify the tablet state: hosted, and count
-    MetaDataStateStore metaDataStateStore = new MetaDataStateStore(context, state);
-    int count = 0;
-    for (TabletLocationState tss : metaDataStateStore) {
-      if (tss != null)
-        count++;
-    }
-    assertEquals(0, count); // the normal case is to skip tablets in a good state
-
-    // Create the hole
-    // Split the tablet at one end of the range
-    Mutation m = new KeyExtent(tableId, new Text("t"), new Text("p")).getPrevRowUpdateMutation();
-    TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
-    TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
-        KeyExtent.encodePrevEndRow(new Text("o")));
-    update(accumuloClient, m);
-
-    // do the state check
-    MergeStats stats = scan(state, metaDataStateStore);
-    MergeState newState = stats.nextMergeState(accumuloClient, state);
-    assertEquals(MergeState.WAITING_FOR_OFFLINE, newState);
-
-    // unassign the tablets
-    BatchDeleter deleter = accumuloClient.createBatchDeleter(MetadataTable.NAME,
-        Authorizations.EMPTY, 1000, new BatchWriterConfig());
-    deleter.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-    deleter.setRanges(Collections.singletonList(new Range()));
-    deleter.delete();
-
-    // now we should be ready to merge but, we have inconsistent metadata
-    stats = scan(state, metaDataStateStore);
-    assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(accumuloClient, state));
-
-    // finish the split
-    KeyExtent tablet = new KeyExtent(tableId, new Text("p"), new Text("o"));
-    m = tablet.getPrevRowUpdateMutation();
-    TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
-    update(accumuloClient, m);
-    metaDataStateStore
-        .setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer)));
-
-    // onos... there's a new tablet online
-    stats = scan(state, metaDataStateStore);
-    assertEquals(MergeState.WAITING_FOR_CHOPPED, stats.nextMergeState(accumuloClient, state));
-
-    // chop it
-    m = tablet.getPrevRowUpdateMutation();
-    ChoppedColumnFamily.CHOPPED_COLUMN.put(m, new Value("junk".getBytes()));
-    update(accumuloClient, m);
-
-    stats = scan(state, metaDataStateStore);
-    assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(accumuloClient, state));
-
-    // take it offline
-    m = tablet.getPrevRowUpdateMutation();
-    Collection<Collection<String>> walogs = Collections.emptyList();
-    metaDataStateStore.unassign(
-        Collections.singletonList(
-            new TabletLocationState(tablet, null, state.someTServer, null, null, walogs, false)),
-        null);
-
-    // now we can split
-    stats = scan(state, metaDataStateStore);
-    assertEquals(MergeState.MERGING, stats.nextMergeState(accumuloClient, state));
-
   }
 
   private MergeStats scan(MockCurrentState state, MetaDataStateStore metaDataStateStore) {

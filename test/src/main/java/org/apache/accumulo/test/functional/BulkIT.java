@@ -65,16 +65,20 @@ public class BulkIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    runTest(getAccumuloClient(), getClientInfo(), getCluster().getFileSystem(),
-        getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
-        testName.getMethodName(), false);
+    try (AccumuloClient client = getAccumuloClient()) {
+      runTest(client, getClientInfo(), getCluster().getFileSystem(),
+          getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
+          testName.getMethodName(), false);
+    }
   }
 
   @Test
   public void testOld() throws Exception {
-    runTest(getAccumuloClient(), getClientInfo(), getCluster().getFileSystem(),
-        getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
-        testName.getMethodName(), true);
+    try (AccumuloClient client = getAccumuloClient()) {
+      runTest(client, getClientInfo(), getCluster().getFileSystem(),
+          getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
+          testName.getMethodName(), true);
+    }
   }
 
   static void runTest(AccumuloClient c, ClientInfo info, FileSystem fs, Path basePath,

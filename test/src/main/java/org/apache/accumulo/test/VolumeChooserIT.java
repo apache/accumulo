@@ -259,28 +259,29 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     log.info("Starting twoTablesPreferredVolumeChooser");
 
     // Create namespace
-    AccumuloClient accumuloClient = getClient();
-    accumuloClient.namespaceOperations().create(namespace1);
+    try (AccumuloClient accumuloClient = getClient()) {
+      accumuloClient.namespaceOperations().create(namespace1);
 
-    // Set properties on the namespace
-    // namespace 1 -> v2
-    accumuloClient.namespaceOperations().setProperty(namespace1,
-        PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
-    accumuloClient.namespaceOperations().setProperty(namespace1,
-        PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, v2.toString());
+      // Set properties on the namespace
+      // namespace 1 -> v2
+      accumuloClient.namespaceOperations().setProperty(namespace1,
+          PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
+      accumuloClient.namespaceOperations().setProperty(namespace1,
+          PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, v2.toString());
 
-    // Create table1 on namespace1
-    verifyVolumesForWritesToNewTable(accumuloClient, namespace1, v2.toString());
+      // Create table1 on namespace1
+      verifyVolumesForWritesToNewTable(accumuloClient, namespace1, v2.toString());
 
-    accumuloClient.namespaceOperations().create(namespace2);
-    // Set properties on the namespace
-    accumuloClient.namespaceOperations().setProperty(namespace2,
-        PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
-    accumuloClient.namespaceOperations().setProperty(namespace2,
-        PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, v1.toString());
+      accumuloClient.namespaceOperations().create(namespace2);
+      // Set properties on the namespace
+      accumuloClient.namespaceOperations().setProperty(namespace2,
+          PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
+      accumuloClient.namespaceOperations().setProperty(namespace2,
+          PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, v1.toString());
 
-    // Create table2 on namespace2
-    verifyVolumesForWritesToNewTable(accumuloClient, namespace2, v1.toString());
+      // Create table2 on namespace2
+      verifyVolumesForWritesToNewTable(accumuloClient, namespace2, v1.toString());
+    }
   }
 
   // Test that uses two tables with 10 split points each. They each use the RandomVolumeChooser to
@@ -290,45 +291,47 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     log.info("Starting twoTablesRandomVolumeChooser()");
 
     // Create namespace
-    AccumuloClient accumuloClient = getClient();
-    accumuloClient.namespaceOperations().create(namespace1);
+    try (AccumuloClient accumuloClient = getClient()) {
+      accumuloClient.namespaceOperations().create(namespace1);
 
-    // Set properties on the namespace
-    accumuloClient.namespaceOperations().setProperty(namespace1,
-        PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
+      // Set properties on the namespace
+      accumuloClient.namespaceOperations().setProperty(namespace1,
+          PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
-    // Create table1 on namespace1
-    String tableName = namespace1 + ".1";
-    accumuloClient.tableOperations().create(tableName);
-    Table.ID tableID = Table.ID.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
+      // Create table1 on namespace1
+      String tableName = namespace1 + ".1";
+      accumuloClient.tableOperations().create(tableName);
+      Table.ID tableID = Table.ID.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
 
-    // Add 10 splits to the table
-    addSplits(accumuloClient, tableName);
-    // Write some data to the table
-    writeAndReadData(accumuloClient, tableName);
-    // Verify the new files are written to the Volumes specified
+      // Add 10 splits to the table
+      addSplits(accumuloClient, tableName);
+      // Write some data to the table
+      writeAndReadData(accumuloClient, tableName);
+      // Verify the new files are written to the Volumes specified
 
-    verifyVolumes(accumuloClient, tableName, TabletsSection.getRange(tableID),
-        v1 + "," + v2 + "," + v4);
+      verifyVolumes(accumuloClient, tableName, TabletsSection.getRange(tableID),
+          v1 + "," + v2 + "," + v4);
 
-    accumuloClient.namespaceOperations().create(namespace2);
+      accumuloClient.namespaceOperations().create(namespace2);
 
-    // Set properties on the namespace
-    accumuloClient.namespaceOperations().setProperty(namespace2,
-        PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
+      // Set properties on the namespace
+      accumuloClient.namespaceOperations().setProperty(namespace2,
+          PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
-    // Create table2 on namespace2
-    String tableName2 = namespace2 + ".1";
-    accumuloClient.tableOperations().create(tableName2);
-    Table.ID tableID2 = Table.ID.of(accumuloClient.tableOperations().tableIdMap().get(tableName2));
+      // Create table2 on namespace2
+      String tableName2 = namespace2 + ".1";
+      accumuloClient.tableOperations().create(tableName2);
+      Table.ID tableID2 = Table.ID
+          .of(accumuloClient.tableOperations().tableIdMap().get(tableName2));
 
-    // / Add 10 splits to the table
-    addSplits(accumuloClient, tableName2);
-    // Write some data to the table
-    writeAndReadData(accumuloClient, tableName2);
-    // Verify the new files are written to the Volumes specified
-    verifyVolumes(accumuloClient, tableName2, TabletsSection.getRange(tableID2),
-        v1 + "," + v2 + "," + v4);
+      // / Add 10 splits to the table
+      addSplits(accumuloClient, tableName2);
+      // Write some data to the table
+      writeAndReadData(accumuloClient, tableName2);
+      // Verify the new files are written to the Volumes specified
+      verifyVolumes(accumuloClient, tableName2, TabletsSection.getRange(tableID2),
+          v1 + "," + v2 + "," + v4);
+    }
   }
 
   // Test that uses two tables with 10 split points each. The first uses the RandomVolumeChooser and
@@ -339,49 +342,52 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     log.info("Starting twoTablesDiffChoosers");
 
     // Create namespace
-    AccumuloClient accumuloClient = getClient();
-    accumuloClient.namespaceOperations().create(namespace1);
+    try (AccumuloClient accumuloClient = getClient()) {
+      accumuloClient.namespaceOperations().create(namespace1);
 
-    // Set properties on the namespace
-    accumuloClient.namespaceOperations().setProperty(namespace1,
-        PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
+      // Set properties on the namespace
+      accumuloClient.namespaceOperations().setProperty(namespace1,
+          PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, RandomVolumeChooser.class.getName());
 
-    // Create table1 on namespace1
-    verifyVolumesForWritesToNewTable(accumuloClient, namespace1, v1 + "," + v2 + "," + v4);
-    accumuloClient.namespaceOperations().create(namespace2);
+      // Create table1 on namespace1
+      verifyVolumesForWritesToNewTable(accumuloClient, namespace1, v1 + "," + v2 + "," + v4);
+      accumuloClient.namespaceOperations().create(namespace2);
 
-    accumuloClient.namespaceOperations().setProperty(namespace2,
-        PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
-    accumuloClient.namespaceOperations().setProperty(namespace2,
-        PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, v1.toString());
+      accumuloClient.namespaceOperations().setProperty(namespace2,
+          PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
+      accumuloClient.namespaceOperations().setProperty(namespace2,
+          PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, v1.toString());
 
-    // Create table2 on namespace2
-    verifyVolumesForWritesToNewTable(accumuloClient, namespace2, v1.toString());
+      // Create table2 on namespace2
+      verifyVolumesForWritesToNewTable(accumuloClient, namespace2, v1.toString());
+    }
   }
 
   @Test
   public void includeSpecialVolumeForTable() throws Exception {
     log.info("Starting includeSpecialVolumeForTable");
-    AccumuloClient accumuloClient = getClient();
+    try (AccumuloClient accumuloClient = getClient()) {
 
-    // the following table will be configured to go to the excluded volume
-    String configuredVolumes = v4.toString();
-    configureNamespace(accumuloClient, PreferredVolumeChooser.class.getName(), configuredVolumes,
-        namespace2);
-    verifyVolumesForWritesToNewTable(accumuloClient, namespace2, configuredVolumes);
+      // the following table will be configured to go to the excluded volume
+      String configuredVolumes = v4.toString();
+      configureNamespace(accumuloClient, PreferredVolumeChooser.class.getName(), configuredVolumes,
+          namespace2);
+      verifyVolumesForWritesToNewTable(accumuloClient, namespace2, configuredVolumes);
+    }
   }
 
   @Test
   public void waLogsSentToConfiguredVolumes() throws Exception {
     log.info("Starting waLogsSentToConfiguredVolumes");
 
-    AccumuloClient accumuloClient = getClient();
-    String tableName = "anotherTable";
-    accumuloClient.tableOperations().create(tableName);
+    try (AccumuloClient accumuloClient = getClient()) {
+      String tableName = "anotherTable";
+      accumuloClient.tableOperations().create(tableName);
 
-    VolumeChooserIT.addSplits(accumuloClient, tableName);
-    VolumeChooserIT.writeDataToTable(accumuloClient, tableName);
-    // should only go to v2 as per configuration in configure()
-    VolumeChooserIT.verifyWaLogVolumes(accumuloClient, new Range(), v2.toString());
+      VolumeChooserIT.addSplits(accumuloClient, tableName);
+      VolumeChooserIT.writeDataToTable(accumuloClient, tableName);
+      // should only go to v2 as per configuration in configure()
+      VolumeChooserIT.verifyWaLogVolumes(accumuloClient, new Range(), v2.toString());
+    }
   }
 }

@@ -61,67 +61,70 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
 
   @Before
   public void updateMajcDelay() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    majcDelay = c.instanceOperations().getSystemConfiguration()
-        .get(Property.TSERV_MAJC_DELAY.getKey());
-    c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
-    if (getClusterType() == ClusterType.STANDALONE) {
-      Thread.sleep(ConfigurationTypeHelper.getTimeInMillis(majcDelay));
+    try (AccumuloClient c = getAccumuloClient()) {
+      majcDelay = c.instanceOperations().getSystemConfiguration()
+          .get(Property.TSERV_MAJC_DELAY.getKey());
+      c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
+      if (getClusterType() == ClusterType.STANDALONE) {
+        Thread.sleep(ConfigurationTypeHelper.getTimeInMillis(majcDelay));
+      }
     }
   }
 
   @After
   public void resetMajcDelay() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
+    }
   }
 
   @Test
   public void test() throws Exception {
     final String[] tables = getUniqueNames(15);
     String firstTable = tables[0];
-    AccumuloClient c = getAccumuloClient();
-    c.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "5");
-    TestIngest.Opts opts = new TestIngest.Opts();
-    opts.rows = 500 * 1000;
-    opts.createTable = true;
-    opts.setTableName(firstTable);
-    opts.setClientInfo(getClientInfo());
-    TestIngest.ingest(c, opts, new BatchWriterOpts());
-    c.tableOperations().flush(firstTable, null, null, true);
-    for (int i = 1; i < tables.length; i++)
-      c.tableOperations().clone(firstTable, tables[i], true, null, null);
-    sleepUninterruptibly(11, TimeUnit.SECONDS); // time between checks of the thread pool sizes
-    Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());
-    for (int i = 1; i < tables.length; i++)
-      c.tableOperations().compact(tables[i], null, null, true, false);
-    for (int i = 0; i < 30; i++) {
-      int count = 0;
-      MasterClientService.Iface client = null;
-      MasterMonitorInfo stats = null;
-      while (true) {
-        try {
-          client = MasterClient.getConnectionWithRetry(getClientContext());
-          stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstanceID()));
-          break;
-        } catch (ThriftNotActiveServiceException e) {
-          // Let it loop, fetching a new location
-          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-        } finally {
-          if (client != null)
-            MasterClient.close(client);
+    try (AccumuloClient c = getAccumuloClient()) {
+      c.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "5");
+      TestIngest.Opts opts = new TestIngest.Opts();
+      opts.rows = 500 * 1000;
+      opts.createTable = true;
+      opts.setTableName(firstTable);
+      opts.setClientInfo(getClientInfo());
+      TestIngest.ingest(c, opts, new BatchWriterOpts());
+      c.tableOperations().flush(firstTable, null, null, true);
+      for (int i = 1; i < tables.length; i++)
+        c.tableOperations().clone(firstTable, tables[i], true, null, null);
+      sleepUninterruptibly(11, TimeUnit.SECONDS); // time between checks of the thread pool sizes
+      Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());
+      for (int i = 1; i < tables.length; i++)
+        c.tableOperations().compact(tables[i], null, null, true, false);
+      for (int i = 0; i < 30; i++) {
+        int count = 0;
+        MasterClientService.Iface client = null;
+        MasterMonitorInfo stats = null;
+        while (true) {
+          try {
+            client = MasterClient.getConnectionWithRetry(getClientContext());
+            stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstanceID()));
+            break;
+          } catch (ThriftNotActiveServiceException e) {
+            // Let it loop, fetching a new location
+            sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+          } finally {
+            if (client != null)
+              MasterClient.close(client);
+          }
         }
-      }
-      for (TabletServerStatus server : stats.tServerInfo) {
-        for (TableInfo table : server.tableMap.values()) {
-          count += table.majors.running;
+        for (TabletServerStatus server : stats.tServerInfo) {
+          for (TableInfo table : server.tableMap.values()) {
+            count += table.majors.running;
+          }
         }
+        System.out.println("count " + count);
+        if (count > 3)
+          return;
+        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
       }
-      System.out.println("count " + count);
-      if (count > 3)
-        return;
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      fail("Could not observe higher number of threads after changing the config");
     }
-    fail("Could not observe higher number of threads after changing the config");
   }
 }

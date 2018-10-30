@@ -62,42 +62,43 @@ public class BulkFileIT extends AccumuloClusterHarness {
   @SuppressWarnings("deprecation")
   @Test
   public void testBulkFile() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    SortedSet<Text> splits = new TreeSet<>();
-    for (String split : "0333 0666 0999 1333 1666".split(" "))
-      splits.add(new Text(split));
-    c.tableOperations().addSplits(tableName, splits);
-    Configuration conf = new Configuration();
-    AccumuloConfiguration aconf = getCluster().getServerContext().getConfiguration();
-    FileSystem fs = getCluster().getFileSystem();
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      SortedSet<Text> splits = new TreeSet<>();
+      for (String split : "0333 0666 0999 1333 1666".split(" "))
+        splits.add(new Text(split));
+      c.tableOperations().addSplits(tableName, splits);
+      Configuration conf = new Configuration();
+      AccumuloConfiguration aconf = getCluster().getServerContext().getConfiguration();
+      FileSystem fs = getCluster().getFileSystem();
 
-    String rootPath = cluster.getTemporaryPath().toString();
+      String rootPath = cluster.getTemporaryPath().toString();
 
-    String dir = rootPath + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
+      String dir = rootPath + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
 
-    fs.delete(new Path(dir), true);
+      fs.delete(new Path(dir), true);
 
-    writeData(conf, aconf, fs, dir, "f1", 0, 333);
-    writeData(conf, aconf, fs, dir, "f2", 334, 999);
-    writeData(conf, aconf, fs, dir, "f3", 1000, 1999);
+      writeData(conf, aconf, fs, dir, "f1", 0, 333);
+      writeData(conf, aconf, fs, dir, "f2", 334, 999);
+      writeData(conf, aconf, fs, dir, "f3", 1000, 1999);
 
-    String failDir = dir + "_failures";
-    Path failPath = new Path(failDir);
-    fs.delete(failPath, true);
-    fs.mkdirs(failPath);
+      String failDir = dir + "_failures";
+      Path failPath = new Path(failDir);
+      fs.delete(failPath, true);
+      fs.mkdirs(failPath);
 
-    // Ensure server can read/modify files
-    c.tableOperations().importDirectory(tableName, dir, failDir, false);
+      // Ensure server can read/modify files
+      c.tableOperations().importDirectory(tableName, dir, failDir, false);
 
-    if (fs.listStatus(failPath).length > 0) {
-      throw new Exception("Some files failed to bulk import");
+      if (fs.listStatus(failPath).length > 0) {
+        throw new Exception("Some files failed to bulk import");
+      }
+
+      FunctionalTestUtils.checkRFiles(c, tableName, 6, 6, 1, 1);
+
+      verifyData(c, tableName, 0, 1999);
     }
-
-    FunctionalTestUtils.checkRFiles(c, tableName, 6, 6, 1, 1);
-
-    verifyData(tableName, 0, 1999);
 
   }
 
@@ -114,8 +115,8 @@ public class BulkFileIT extends AccumuloClusterHarness {
     writer1.close();
   }
 
-  private void verifyData(String table, int s, int e) throws Exception {
-    try (Scanner scanner = getAccumuloClient().createScanner(table, Authorizations.EMPTY)) {
+  private void verifyData(AccumuloClient client, String table, int s, int e) throws Exception {
+    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 

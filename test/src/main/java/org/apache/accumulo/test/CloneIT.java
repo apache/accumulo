@@ -46,183 +46,183 @@ public class CloneIT extends AccumuloClusterHarness {
 
   @Test
   public void testNoFiles() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
-    Mutation mut = ke.getPrevRowUpdateMutation();
+      KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
+      Mutation mut = ke.getPrevRowUpdateMutation();
 
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
-        new Value("/default_tablet".getBytes()));
+      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
+      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
+          new Value("/default_tablet".getBytes()));
 
-    BatchWriter bw1 = client.createBatchWriter(tableName, new BatchWriterConfig());
+      try (BatchWriter bw1 = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+        bw1.addMutation(mut);
+      }
 
-    bw1.addMutation(mut);
+      try (BatchWriter bw2 = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+        MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
+        int rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
+        assertEquals(0, rc);
+      }
 
-    bw1.close();
-
-    BatchWriter bw2 = client.createBatchWriter(tableName, new BatchWriterConfig());
-
-    MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client, bw2);
-
-    int rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
-        bw2);
-
-    assertEquals(0, rc);
-
-    // scan tables metadata entries and confirm the same
-
+      // scan tables metadata entries and confirm the same
+    }
   }
 
   @Test
   public void testFilesChange() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
-    Mutation mut = ke.getPrevRowUpdateMutation();
+      KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
+      Mutation mut = ke.getPrevRowUpdateMutation();
 
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
-        new Value("/default_tablet".getBytes()));
-    mut.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf",
-        new DataFileValue(1, 200).encodeAsString());
+      TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0".getBytes()));
+      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
+          new Value("/default_tablet".getBytes()));
+      mut.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf",
+          new DataFileValue(1, 200).encodeAsString());
 
-    BatchWriter bw1 = client.createBatchWriter(tableName, new BatchWriterConfig());
+      try (BatchWriter bw1 = client.createBatchWriter(tableName);
+          BatchWriter bw2 = client.createBatchWriter(tableName)) {
+        bw1.addMutation(mut);
 
-    bw1.addMutation(mut);
+        bw1.flush();
 
-    bw1.flush();
+        MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    BatchWriter bw2 = client.createBatchWriter(tableName, new BatchWriterConfig());
+        Mutation mut2 = new Mutation(ke.getMetadataEntry());
+        mut2.putDelete(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf");
+        mut2.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/1_0.rf",
+            new DataFileValue(2, 300).encodeAsString());
 
-    MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client, bw2);
+        bw1.addMutation(mut2);
+        bw1.flush();
 
-    Mutation mut2 = new Mutation(ke.getMetadataEntry());
-    mut2.putDelete(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf");
-    mut2.put(DataFileColumnFamily.NAME.toString(), "/default_tablet/1_0.rf",
-        new DataFileValue(2, 300).encodeAsString());
+        int rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    bw1.addMutation(mut2);
-    bw1.flush();
+        assertEquals(1, rc);
 
-    int rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
-        bw2);
+        rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    assertEquals(1, rc);
-
-    rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client, bw2);
-
-    assertEquals(0, rc);
-
-    HashSet<String> files = new HashSet<>();
-
-    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
-      for (Entry<Key,Value> entry : scanner) {
-        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME))
-          files.add(entry.getKey().getColumnQualifier().toString());
+        assertEquals(0, rc);
       }
+
+      HashSet<String> files = new HashSet<>();
+
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
+        for (Entry<Key,Value> entry : scanner) {
+          if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME))
+            files.add(entry.getKey().getColumnQualifier().toString());
+        }
+      }
+      assertEquals(1, files.size());
+      assertTrue(files.contains("../0/default_tablet/1_0.rf"));
     }
-    assertEquals(1, files.size());
-    assertTrue(files.contains("../0/default_tablet/1_0.rf"));
   }
 
   // test split where files of children are the same
   @Test
   public void testSplit1() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    BatchWriter bw1 = client.createBatchWriter(tableName, new BatchWriterConfig());
+      try (BatchWriter bw1 = client.createBatchWriter(tableName);
+          BatchWriter bw2 = client.createBatchWriter(tableName)) {
+        bw1.addMutation(createTablet("0", null, null, "/default_tablet", "/default_tablet/0_0.rf"));
 
-    bw1.addMutation(createTablet("0", null, null, "/default_tablet", "/default_tablet/0_0.rf"));
+        bw1.flush();
 
-    bw1.flush();
+        MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    BatchWriter bw2 = client.createBatchWriter(tableName, new BatchWriterConfig());
+        bw1.addMutation(createTablet("0", "m", null, "/default_tablet", "/default_tablet/0_0.rf"));
+        bw1.addMutation(createTablet("0", null, "m", "/t-1", "/default_tablet/0_0.rf"));
 
-    MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client, bw2);
+        bw1.flush();
 
-    bw1.addMutation(createTablet("0", "m", null, "/default_tablet", "/default_tablet/0_0.rf"));
-    bw1.addMutation(createTablet("0", null, "m", "/t-1", "/default_tablet/0_0.rf"));
+        int rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    bw1.flush();
+        assertEquals(0, rc);
+      }
+      HashSet<String> files = new HashSet<>();
+      int count = 0;
 
-    int rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
-        bw2);
-
-    assertEquals(0, rc);
-
-    HashSet<String> files = new HashSet<>();
-    int count = 0;
-
-    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
-      for (Entry<Key,Value> entry : scanner) {
-        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-          files.add(entry.getKey().getColumnQualifier().toString());
-          count++;
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
+        for (Entry<Key,Value> entry : scanner) {
+          if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+            files.add(entry.getKey().getColumnQualifier().toString());
+            count++;
+          }
         }
       }
+      assertEquals(1, count);
+      assertEquals(1, files.size());
+      assertTrue(files.contains("../0/default_tablet/0_0.rf"));
     }
-    assertEquals(1, count);
-    assertEquals(1, files.size());
-    assertTrue(files.contains("../0/default_tablet/0_0.rf"));
   }
 
   // test split where files of children differ... like majc and split occurred
   @Test
   public void testSplit2() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    BatchWriter bw1 = client.createBatchWriter(tableName, new BatchWriterConfig());
+      try (BatchWriter bw1 = client.createBatchWriter(tableName);
+          BatchWriter bw2 = client.createBatchWriter(tableName)) {
+        bw1.addMutation(createTablet("0", null, null, "/default_tablet", "/default_tablet/0_0.rf"));
 
-    bw1.addMutation(createTablet("0", null, null, "/default_tablet", "/default_tablet/0_0.rf"));
+        bw1.flush();
 
-    bw1.flush();
+        MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    BatchWriter bw2 = client.createBatchWriter(tableName, new BatchWriterConfig());
+        bw1.addMutation(createTablet("0", "m", null, "/default_tablet", "/default_tablet/1_0.rf"));
+        Mutation mut3 = createTablet("0", null, "m", "/t-1", "/default_tablet/1_0.rf");
+        mut3.putDelete(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf");
+        bw1.addMutation(mut3);
 
-    MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client, bw2);
+        bw1.flush();
 
-    bw1.addMutation(createTablet("0", "m", null, "/default_tablet", "/default_tablet/1_0.rf"));
-    Mutation mut3 = createTablet("0", null, "m", "/t-1", "/default_tablet/1_0.rf");
-    mut3.putDelete(DataFileColumnFamily.NAME.toString(), "/default_tablet/0_0.rf");
-    bw1.addMutation(mut3);
+        int rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    bw1.flush();
+        assertEquals(1, rc);
 
-    int rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
-        bw2);
+        rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    assertEquals(1, rc);
+        assertEquals(0, rc);
+      }
+      HashSet<String> files = new HashSet<>();
+      int count = 0;
 
-    rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client, bw2);
-
-    assertEquals(0, rc);
-
-    HashSet<String> files = new HashSet<>();
-    int count = 0;
-
-    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
-      for (Entry<Key,Value> entry : scanner) {
-        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-          files.add(entry.getKey().getColumnQualifier().toString());
-          count++;
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
+        for (Entry<Key,Value> entry : scanner) {
+          if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+            files.add(entry.getKey().getColumnQualifier().toString());
+            count++;
+          }
         }
       }
+      assertEquals(1, files.size());
+      assertEquals(2, count);
+      assertTrue(files.contains("../0/default_tablet/1_0.rf"));
     }
-    assertEquals(1, files.size());
-    assertEquals(2, count);
-    assertTrue(files.contains("../0/default_tablet/1_0.rf"));
   }
 
   private static Mutation deleteTablet(String tid, String endRow, String prevRow, String dir,
@@ -255,146 +255,149 @@ public class CloneIT extends AccumuloClusterHarness {
   // test two tablets splitting into four
   @Test
   public void testSplit3() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    BatchWriter bw1 = client.createBatchWriter(tableName, new BatchWriterConfig());
+      try (BatchWriter bw1 = client.createBatchWriter(tableName);
+          BatchWriter bw2 = client.createBatchWriter(tableName)) {
+        bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
+        bw1.addMutation(createTablet("0", null, "m", "/d2", "/d2/file2"));
 
-    bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
-    bw1.addMutation(createTablet("0", null, "m", "/d2", "/d2/file2"));
+        bw1.flush();
 
-    bw1.flush();
+        MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    BatchWriter bw2 = client.createBatchWriter(tableName, new BatchWriterConfig());
+        bw1.addMutation(createTablet("0", "f", null, "/d1", "/d1/file3"));
+        bw1.addMutation(createTablet("0", "m", "f", "/d3", "/d1/file1"));
+        bw1.addMutation(createTablet("0", "s", "m", "/d2", "/d2/file2"));
+        bw1.addMutation(createTablet("0", null, "s", "/d4", "/d2/file2"));
 
-    MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client, bw2);
+        bw1.flush();
 
-    bw1.addMutation(createTablet("0", "f", null, "/d1", "/d1/file3"));
-    bw1.addMutation(createTablet("0", "m", "f", "/d3", "/d1/file1"));
-    bw1.addMutation(createTablet("0", "s", "m", "/d2", "/d2/file2"));
-    bw1.addMutation(createTablet("0", null, "s", "/d4", "/d2/file2"));
+        int rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    bw1.flush();
+        assertEquals(0, rc);
+      }
 
-    int rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
-        bw2);
+      HashSet<String> files = new HashSet<>();
+      int count = 0;
 
-    assertEquals(0, rc);
-
-    HashSet<String> files = new HashSet<>();
-    int count = 0;
-
-    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
-      for (Entry<Key,Value> entry : scanner) {
-        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-          files.add(entry.getKey().getColumnQualifier().toString());
-          count++;
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
+        for (Entry<Key,Value> entry : scanner) {
+          if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+            files.add(entry.getKey().getColumnQualifier().toString());
+            count++;
+          }
         }
       }
+      assertEquals(2, count);
+      assertEquals(2, files.size());
+      assertTrue(files.contains("../0/d1/file1"));
+      assertTrue(files.contains("../0/d2/file2"));
     }
-    assertEquals(2, count);
-    assertEquals(2, files.size());
-    assertTrue(files.contains("../0/d1/file1"));
-    assertTrue(files.contains("../0/d2/file2"));
   }
 
   // test cloned marker
   @Test
   public void testClonedMarker() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    BatchWriter bw1 = client.createBatchWriter(tableName, new BatchWriterConfig());
+      try (BatchWriter bw1 = client.createBatchWriter(tableName);
+          BatchWriter bw2 = client.createBatchWriter(tableName)) {
+        bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
+        bw1.addMutation(createTablet("0", null, "m", "/d2", "/d2/file2"));
 
-    bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
-    bw1.addMutation(createTablet("0", null, "m", "/d2", "/d2/file2"));
+        bw1.flush();
 
-    bw1.flush();
+        MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    BatchWriter bw2 = client.createBatchWriter(tableName, new BatchWriterConfig());
+        bw1.addMutation(deleteTablet("0", "m", null, "/d1", "/d1/file1"));
+        bw1.addMutation(deleteTablet("0", null, "m", "/d2", "/d2/file2"));
 
-    MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client, bw2);
+        bw1.flush();
 
-    bw1.addMutation(deleteTablet("0", "m", null, "/d1", "/d1/file1"));
-    bw1.addMutation(deleteTablet("0", null, "m", "/d2", "/d2/file2"));
+        bw1.addMutation(createTablet("0", "f", null, "/d1", "/d1/file3"));
+        bw1.addMutation(createTablet("0", "m", "f", "/d3", "/d1/file1"));
+        bw1.addMutation(createTablet("0", "s", "m", "/d2", "/d2/file3"));
+        bw1.addMutation(createTablet("0", null, "s", "/d4", "/d4/file3"));
 
-    bw1.flush();
+        bw1.flush();
 
-    bw1.addMutation(createTablet("0", "f", null, "/d1", "/d1/file3"));
-    bw1.addMutation(createTablet("0", "m", "f", "/d3", "/d1/file1"));
-    bw1.addMutation(createTablet("0", "s", "m", "/d2", "/d2/file3"));
-    bw1.addMutation(createTablet("0", null, "s", "/d4", "/d4/file3"));
+        int rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    bw1.flush();
+        assertEquals(1, rc);
 
-    int rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
-        bw2);
+        bw1.addMutation(deleteTablet("0", "m", "f", "/d3", "/d1/file1"));
 
-    assertEquals(1, rc);
+        bw1.flush();
 
-    bw1.addMutation(deleteTablet("0", "m", "f", "/d3", "/d1/file1"));
+        bw1.addMutation(createTablet("0", "m", "f", "/d3", "/d1/file3"));
 
-    bw1.flush();
+        bw1.flush();
 
-    bw1.addMutation(createTablet("0", "m", "f", "/d3", "/d1/file3"));
+        rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    bw1.flush();
+        assertEquals(0, rc);
+      }
+      HashSet<String> files = new HashSet<>();
+      int count = 0;
 
-    rc = MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client, bw2);
-
-    assertEquals(0, rc);
-
-    HashSet<String> files = new HashSet<>();
-    int count = 0;
-
-    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
-      for (Entry<Key,Value> entry : scanner) {
-        if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-          files.add(entry.getKey().getColumnQualifier().toString());
-          count++;
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new KeyExtent(Table.ID.of("1"), null, null).toMetadataRange());
+        for (Entry<Key,Value> entry : scanner) {
+          if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+            files.add(entry.getKey().getColumnQualifier().toString());
+            count++;
+          }
         }
       }
+      assertEquals(3, count);
+      assertEquals(3, files.size());
+      assertTrue(files.contains("../0/d1/file1"));
+      assertTrue(files.contains("../0/d2/file3"));
+      assertTrue(files.contains("../0/d4/file3"));
     }
-    assertEquals(3, count);
-    assertEquals(3, files.size());
-    assertTrue(files.contains("../0/d1/file1"));
-    assertTrue(files.contains("../0/d2/file3"));
-    assertTrue(files.contains("../0/d4/file3"));
   }
 
   // test two tablets splitting into four
   @Test
   public void testMerge() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+    try (AccumuloClient client = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    BatchWriter bw1 = client.createBatchWriter(tableName, new BatchWriterConfig());
+      try (BatchWriter bw1 = client.createBatchWriter(tableName);
+          BatchWriter bw2 = client.createBatchWriter(tableName)) {
+        bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
+        bw1.addMutation(createTablet("0", null, "m", "/d2", "/d2/file2"));
 
-    bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
-    bw1.addMutation(createTablet("0", null, "m", "/d2", "/d2/file2"));
+        bw1.flush();
 
-    bw1.flush();
+        MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client,
+            bw2);
 
-    BatchWriter bw2 = client.createBatchWriter(tableName, new BatchWriterConfig());
+        bw1.addMutation(deleteTablet("0", "m", null, "/d1", "/d1/file1"));
+        Mutation mut = createTablet("0", null, null, "/d2", "/d2/file2");
+        mut.put(DataFileColumnFamily.NAME.toString(), "/d1/file1",
+            new DataFileValue(10, 200).encodeAsString());
+        bw1.addMutation(mut);
 
-    MetadataTableUtil.initializeClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client, bw2);
+        bw1.flush();
 
-    bw1.addMutation(deleteTablet("0", "m", null, "/d1", "/d1/file1"));
-    Mutation mut = createTablet("0", null, null, "/d2", "/d2/file2");
-    mut.put(DataFileColumnFamily.NAME.toString(), "/d1/file1",
-        new DataFileValue(10, 200).encodeAsString());
-    bw1.addMutation(mut);
-
-    bw1.flush();
-
-    try {
-      MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client, bw2);
-      fail();
-    } catch (TabletDeletedException tde) {}
+        try {
+          MetadataTableUtil.checkClone(tableName, Table.ID.of("0"), Table.ID.of("1"), client, bw2);
+          fail();
+        } catch (TabletDeletedException tde) {}
+      }
+    }
   }
 }

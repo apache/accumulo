@@ -43,20 +43,21 @@ public class RenameIT extends AccumuloClusterHarness {
     opts.setTableName(name1);
     opts.setClientInfo(cluster.getClientInfo());
 
-    AccumuloClient c = getAccumuloClient();
-    TestIngest.ingest(c, opts, bwOpts);
-    c.tableOperations().rename(name1, name2);
-    TestIngest.ingest(c, opts, bwOpts);
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    vopts.setClientInfo(cluster.getClientInfo());
-    vopts.setTableName(name2);
-    VerifyIngest.verifyIngest(c, vopts, scanOpts);
-    c.tableOperations().delete(name1);
-    c.tableOperations().rename(name2, name1);
-    vopts.setTableName(name1);
-    VerifyIngest.verifyIngest(c, vopts, scanOpts);
+    try (AccumuloClient c = getAccumuloClient()) {
+      TestIngest.ingest(c, opts, bwOpts);
+      c.tableOperations().rename(name1, name2);
+      TestIngest.ingest(c, opts, bwOpts);
+      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+      vopts.setClientInfo(cluster.getClientInfo());
+      vopts.setTableName(name2);
+      VerifyIngest.verifyIngest(c, vopts, scanOpts);
+      c.tableOperations().delete(name1);
+      c.tableOperations().rename(name2, name1);
+      vopts.setTableName(name1);
+      VerifyIngest.verifyIngest(c, vopts, scanOpts);
 
-    FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
+      FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
+    }
   }
 
 }

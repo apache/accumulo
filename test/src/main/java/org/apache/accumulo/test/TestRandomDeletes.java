@@ -82,8 +82,7 @@ public class TestRandomDeletes {
   private static TreeSet<RowColumn> scanAll(ClientOnDefaultTable opts, ScannerOpts scanOpts,
       String tableName) throws Exception {
     TreeSet<RowColumn> result = new TreeSet<>();
-    AccumuloClient client = opts.getClient();
-    try (Scanner scanner = client.createScanner(tableName, auths)) {
+    try (Scanner scanner = opts.getClient().createScanner(tableName, auths)) {
       scanner.setBatchSize(scanOpts.scanBatchSize);
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();

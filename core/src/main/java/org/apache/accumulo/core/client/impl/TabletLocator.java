@@ -35,7 +35,11 @@ import org.apache.accumulo.core.data.impl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Preconditions;
 
 public abstract class TabletLocator {
 
@@ -102,6 +106,7 @@ public abstract class TabletLocator {
   }
 
   private static HashMap<LocatorKey,TabletLocator> locators = new HashMap<>();
+  private static boolean enabled = true;
 
   public static synchronized void clearLocators() {
     for (TabletLocator locator : locators.values()) {
@@ -110,7 +115,23 @@ public abstract class TabletLocator {
     locators.clear();
   }
 
+  static synchronized boolean isEnabled() {
+    return enabled;
+  }
+
+  static synchronized void disable() {
+    clearLocators();
+    enabled = false;
+  }
+
+  static synchronized void enable() {
+    enabled = true;
+  }
+
   public static synchronized TabletLocator getLocator(ClientContext context, Table.ID tableId) {
+    Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
+        + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected"
+        + ".");
     LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
     TabletLocator tl = locators.get(key);
     if (tl == null) {
@@ -129,6 +150,26 @@ public abstract class TabletLocator {
     }
 
     return tl;
+  }
+
+  static {
+    SingletonManager.register(new SingletonService() {
+
+      @Override
+      public boolean isEnabled() {
+        return TabletLocator.isEnabled();
+      }
+
+      @Override
+      public void enable() {
+        TabletLocator.enable();
+      }
+
+      @Override
+      public void disable() {
+        TabletLocator.disable();
+      }
+    });
   }
 
   public static class TabletLocations {

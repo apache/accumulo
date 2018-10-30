@@ -81,23 +81,24 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient client = getClient();
-    String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
-    client.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
-        TestCompactionStrategy.class.getName());
-    writeFile(client, tableName);
-    writeFile(client, tableName);
-    writeFile(client, tableName);
-    writeFile(client, tableName);
-    UtilWaitThread.sleep(2 * 1000);
-    assertEquals(4, countFiles(client));
-    writeFile(client, tableName);
-    int count = countFiles(client);
-    assertTrue(count == 1 || count == 5);
-    while (count != 1) {
-      UtilWaitThread.sleep(250);
-      count = countFiles(client);
+    try (AccumuloClient client = getClient()) {
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
+      client.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
+          TestCompactionStrategy.class.getName());
+      writeFile(client, tableName);
+      writeFile(client, tableName);
+      writeFile(client, tableName);
+      writeFile(client, tableName);
+      UtilWaitThread.sleep(2 * 1000);
+      assertEquals(4, countFiles(client));
+      writeFile(client, tableName);
+      int count = countFiles(client);
+      assertTrue(count == 1 || count == 5);
+      while (count != 1) {
+        UtilWaitThread.sleep(250);
+        count = countFiles(client);
+      }
     }
   }
 

@@ -21,7 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
-import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
@@ -66,29 +66,30 @@ public class BulkImportVolumeIT extends AccumuloClusterHarness {
   @Test
   public void testBulkImportFailure() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    TableOperations to = getAccumuloClient().tableOperations();
-    to.create(tableName);
-    FileSystem fs = getFileSystem();
-    Path rootPath = new Path(cluster.getTemporaryPath(), getClass().getName());
-    Path bulk = new Path(rootPath, "bulk");
-    log.info("bulk: {}", bulk);
-    if (fs.exists(bulk)) {
-      fs.delete(bulk, true);
+    try (AccumuloClient client = getAccumuloClient()) {
+      client.tableOperations().create(tableName);
+      FileSystem fs = getFileSystem();
+      Path rootPath = new Path(cluster.getTemporaryPath(), getClass().getName());
+      Path bulk = new Path(rootPath, "bulk");
+      log.info("bulk: {}", bulk);
+      if (fs.exists(bulk)) {
+        fs.delete(bulk, true);
+      }
+      assertTrue(fs.mkdirs(bulk));
+      Path err = new Path(rootPath, "err");
+      log.info("err: {}", err);
+      if (fs.exists(err)) {
+        fs.delete(err, true);
+      }
+      assertTrue(fs.mkdirs(err));
+      Path bogus = new Path(bulk, "bogus.rf");
+      fs.create(bogus).close();
+      log.info("bogus: {}", bogus);
+      assertTrue(fs.exists(bogus));
+      log.info("Importing {} into {} with failures directory {}", bulk, tableName, err);
+      client.tableOperations().importDirectory(tableName, bulk.toString(), err.toString(), false);
+      assertEquals(1, fs.listStatus(err).length);
     }
-    assertTrue(fs.mkdirs(bulk));
-    Path err = new Path(rootPath, "err");
-    log.info("err: {}", err);
-    if (fs.exists(err)) {
-      fs.delete(err, true);
-    }
-    assertTrue(fs.mkdirs(err));
-    Path bogus = new Path(bulk, "bogus.rf");
-    fs.create(bogus).close();
-    log.info("bogus: {}", bogus);
-    assertTrue(fs.exists(bogus));
-    log.info("Importing {} into {} with failures directory {}", bulk, tableName, err);
-    to.importDirectory(tableName, bulk.toString(), err.toString(), false);
-    assertEquals(1, fs.listStatus(err).length);
   }
 
 }

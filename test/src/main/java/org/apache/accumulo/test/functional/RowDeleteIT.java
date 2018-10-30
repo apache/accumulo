@@ -59,53 +59,54 @@ public class RowDeleteIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    Map<String,Set<Text>> groups = new HashMap<>();
-    groups.put("lg1", Collections.singleton(new Text("foo")));
-    groups.put("dg", Collections.emptySet());
-    c.tableOperations().setLocalityGroups(tableName, groups);
-    IteratorSetting setting = new IteratorSetting(30, RowDeletingIterator.class);
-    c.tableOperations().attachIterator(tableName, setting, EnumSet.of(IteratorScope.majc));
-    c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100");
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      Map<String,Set<Text>> groups = new HashMap<>();
+      groups.put("lg1", Collections.singleton(new Text("foo")));
+      groups.put("dg", Collections.emptySet());
+      c.tableOperations().setLocalityGroups(tableName, groups);
+      IteratorSetting setting = new IteratorSetting(30, RowDeletingIterator.class);
+      c.tableOperations().attachIterator(tableName, setting, EnumSet.of(IteratorScope.majc));
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100");
 
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
 
-    bw.addMutation(nm("r1", "foo", "cf1", "v1"));
-    bw.addMutation(nm("r1", "bar", "cf1", "v2"));
-
-    bw.flush();
-    c.tableOperations().flush(tableName, null, null, true);
-
-    checkRFiles(c, tableName, 1, 1, 1, 1);
-
-    int count;
-    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-      count = Iterators.size(scanner.iterator());
-      assertEquals("count == " + count, 2, count);
-
-      bw.addMutation(nm("r1", "", "", RowDeletingIterator.DELETE_ROW_VALUE));
+      bw.addMutation(nm("r1", "foo", "cf1", "v1"));
+      bw.addMutation(nm("r1", "bar", "cf1", "v2"));
 
       bw.flush();
       c.tableOperations().flush(tableName, null, null, true);
 
-      checkRFiles(c, tableName, 1, 1, 2, 2);
-    }
+      checkRFiles(c, tableName, 1, 1, 1, 1);
 
-    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-      count = Iterators.size(scanner.iterator());
-      assertEquals("count == " + count, 3, count);
+      int count;
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        count = Iterators.size(scanner.iterator());
+        assertEquals("count == " + count, 2, count);
 
-      c.tableOperations().compact(tableName, null, null, false, true);
+        bw.addMutation(nm("r1", "", "", RowDeletingIterator.DELETE_ROW_VALUE));
 
-      checkRFiles(c, tableName, 1, 1, 0, 0);
-    }
+        bw.flush();
+        c.tableOperations().flush(tableName, null, null, true);
 
-    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-      count = Iterators.size(scanner.iterator());
-      assertEquals("count == " + count, 0, count);
-      bw.close();
+        checkRFiles(c, tableName, 1, 1, 2, 2);
+      }
+
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        count = Iterators.size(scanner.iterator());
+        assertEquals("count == " + count, 3, count);
+
+        c.tableOperations().compact(tableName, null, null, false, true);
+
+        checkRFiles(c, tableName, 1, 1, 0, 0);
+      }
+
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        count = Iterators.size(scanner.iterator());
+        assertEquals("count == " + count, 0, count);
+        bw.close();
+      }
     }
   }
 

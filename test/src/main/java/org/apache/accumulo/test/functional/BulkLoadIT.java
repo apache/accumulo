@@ -100,12 +100,13 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Before
   public void setupBulkTest() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    aconf = getCluster().getServerContext().getConfiguration();
-    fs = getCluster().getFileSystem();
-    rootPath = cluster.getTemporaryPath().toString();
+    try (AccumuloClient c = getAccumuloClient()) {
+      tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      aconf = getCluster().getServerContext().getConfiguration();
+      fs = getCluster().getFileSystem();
+      rootPath = cluster.getTemporaryPath().toString();
+    }
   }
 
   private String getDir(String testName) throws Exception {
@@ -114,9 +115,8 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     return dir;
   }
 
-  private void testSingleTabletSingleFile(boolean offline) throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    addSplits(tableName, "0333");
+  private void testSingleTabletSingleFile(AccumuloClient c, boolean offline) throws Exception {
+    addSplits(c, tableName, "0333");
 
     if (offline)
       c.tableOperations().offline(tableName);
@@ -130,24 +130,27 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     if (offline)
       c.tableOperations().online(tableName);
 
-    verifyData(tableName, 0, 332);
-    verifyMetadata(tableName,
+    verifyData(c, tableName, 0, 332);
+    verifyMetadata(c, tableName,
         ImmutableMap.of("0333", ImmutableSet.of(h1), "null", ImmutableSet.of()));
   }
 
   @Test
   public void testSingleTabletSingleFile() throws Exception {
-    testSingleTabletSingleFile(false);
+    try (AccumuloClient client = getAccumuloClient()) {
+      testSingleTabletSingleFile(client, false);
+    }
   }
 
   @Test
   public void testSingleTabletSingleFileOffline() throws Exception {
-    testSingleTabletSingleFile(true);
+    try (AccumuloClient client = getAccumuloClient()) {
+      testSingleTabletSingleFile(client, true);
+    }
   }
 
-  private void testSingleTabletSingleFileNoSplits(boolean offline) throws Exception {
-    AccumuloClient c = getAccumuloClient();
-
+  private void testSingleTabletSingleFileNoSplits(AccumuloClient c, boolean offline)
+      throws Exception {
     if (offline)
       c.tableOperations().offline(tableName);
 
@@ -160,103 +163,109 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     if (offline)
       c.tableOperations().online(tableName);
 
-    verifyData(tableName, 0, 333);
-    verifyMetadata(tableName, ImmutableMap.of("null", ImmutableSet.of(h1)));
+    verifyData(c, tableName, 0, 333);
+    verifyMetadata(c, tableName, ImmutableMap.of("null", ImmutableSet.of(h1)));
   }
 
   @Test
   public void testSingleTabletSingleFileNoSplits() throws Exception {
-    testSingleTabletSingleFileNoSplits(false);
+    try (AccumuloClient client = getAccumuloClient()) {
+      testSingleTabletSingleFileNoSplits(client, false);
+    }
   }
 
   @Test
   public void testSingleTabletSingleFileNoSplitsOffline() throws Exception {
-    testSingleTabletSingleFileNoSplits(true);
+    try (AccumuloClient client = getAccumuloClient()) {
+      testSingleTabletSingleFileNoSplits(client, true);
+    }
   }
 
   @Test
   public void testBadPermissions() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    addSplits(tableName, "0333");
+    try (AccumuloClient c = getAccumuloClient()) {
+      addSplits(c, tableName, "0333");
 
-    String dir = getDir("/testBadPermissions-");
+      String dir = getDir("/testBadPermissions-");
 
-    writeData(dir + "/f1.", aconf, 0, 333);
+      writeData(dir + "/f1.", aconf, 0, 333);
 
-    Path rFilePath = new Path(dir, "f1." + RFile.EXTENSION);
-    FsPermission originalPerms = fs.getFileStatus(rFilePath).getPermission();
-    fs.setPermission(rFilePath, FsPermission.valueOf("----------"));
-    try {
-      c.tableOperations().importDirectory(dir).to(tableName).load();
-    } catch (Exception e) {
-      Throwable cause = e.getCause();
-      if (!(cause instanceof FileNotFoundException)
-          && !(cause.getCause() instanceof FileNotFoundException))
-        fail("Expected FileNotFoundException but threw " + e.getCause());
-    } finally {
-      fs.setPermission(rFilePath, originalPerms);
-    }
+      Path rFilePath = new Path(dir, "f1." + RFile.EXTENSION);
+      FsPermission originalPerms = fs.getFileStatus(rFilePath).getPermission();
+      fs.setPermission(rFilePath, FsPermission.valueOf("----------"));
+      try {
+        c.tableOperations().importDirectory(dir).to(tableName).load();
+      } catch (Exception e) {
+        Throwable cause = e.getCause();
+        if (!(cause instanceof FileNotFoundException)
+            && !(cause.getCause() instanceof FileNotFoundException))
+          fail("Expected FileNotFoundException but threw " + e.getCause());
+      } finally {
+        fs.setPermission(rFilePath, originalPerms);
+      }
 
-    originalPerms = fs.getFileStatus(new Path(dir)).getPermission();
-    fs.setPermission(new Path(dir), FsPermission.valueOf("dr--r--r--"));
-    try {
-      c.tableOperations().importDirectory(dir).to(tableName).load();
-    } catch (AccumuloException ae) {
-      if (!(ae.getCause() instanceof FileNotFoundException))
-        fail("Expected FileNotFoundException but threw " + ae.getCause());
-    } finally {
-      fs.setPermission(new Path(dir), originalPerms);
+      originalPerms = fs.getFileStatus(new Path(dir)).getPermission();
+      fs.setPermission(new Path(dir), FsPermission.valueOf("dr--r--r--"));
+      try {
+        c.tableOperations().importDirectory(dir).to(tableName).load();
+      } catch (AccumuloException ae) {
+        if (!(ae.getCause() instanceof FileNotFoundException))
+          fail("Expected FileNotFoundException but threw " + ae.getCause());
+      } finally {
+        fs.setPermission(new Path(dir), originalPerms);
+      }
     }
   }
 
   private void testBulkFile(boolean offline, boolean usePlan) throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    addSplits(tableName, "0333 0666 0999 1333 1666");
+    try (AccumuloClient c = getAccumuloClient()) {
+      addSplits(c, tableName, "0333 0666 0999 1333 1666");
 
-    if (offline)
-      c.tableOperations().offline(tableName);
+      if (offline)
+        c.tableOperations().offline(tableName);
 
-    String dir = getDir("/testBulkFile-");
+      String dir = getDir("/testBulkFile-");
 
-    Map<String,Set<String>> hashes = new HashMap<>();
-    for (String endRow : Arrays.asList("0333 0666 0999 1333 1666 null".split(" "))) {
-      hashes.put(endRow, new HashSet<>());
+      Map<String,Set<String>> hashes = new HashMap<>();
+      for (String endRow : Arrays.asList("0333 0666 0999 1333 1666 null".split(" "))) {
+        hashes.put(endRow, new HashSet<>());
+      }
+
+      // 1 Tablet 0333-null
+      String h1 = writeData(dir + "/f1.", aconf, 0, 333);
+      hashes.get("0333").add(h1);
+
+      // 2 Tablets 0666-0334, 0999-0667
+      String h2 = writeData(dir + "/f2.", aconf, 334, 999);
+      hashes.get("0666").add(h2);
+      hashes.get("0999").add(h2);
+
+      // 2 Tablets 1333-1000, 1666-1334
+      String h3 = writeData(dir + "/f3.", aconf, 1000, 1499);
+      hashes.get("1333").add(h3);
+      hashes.get("1666").add(h3);
+
+      // 2 Tablets 1666-1334, >1666
+      String h4 = writeData(dir + "/f4.", aconf, 1500, 1999);
+      hashes.get("1666").add(h4);
+      hashes.get("null").add(h4);
+
+      if (usePlan) {
+        LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
+            .loadFileTo("f2.rf", RangeType.TABLE, row(333), row(999))
+            .loadFileTo("f3.rf", RangeType.FILE, row(1000), row(1499))
+            .loadFileTo("f4.rf", RangeType.FILE, row(1500), row(1999)).build();
+        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
+      } else {
+        c.tableOperations().importDirectory(dir).to(tableName).load();
+      }
+
+      if (offline)
+        c.tableOperations().online(tableName);
+
+      verifyData(c, tableName, 0, 1999);
+      verifyMetadata(c, tableName, hashes);
     }
-
-    // 1 Tablet 0333-null
-    String h1 = writeData(dir + "/f1.", aconf, 0, 333);
-    hashes.get("0333").add(h1);
-
-    // 2 Tablets 0666-0334, 0999-0667
-    String h2 = writeData(dir + "/f2.", aconf, 334, 999);
-    hashes.get("0666").add(h2);
-    hashes.get("0999").add(h2);
-
-    // 2 Tablets 1333-1000, 1666-1334
-    String h3 = writeData(dir + "/f3.", aconf, 1000, 1499);
-    hashes.get("1333").add(h3);
-    hashes.get("1666").add(h3);
-
-    // 2 Tablets 1666-1334, >1666
-    String h4 = writeData(dir + "/f4.", aconf, 1500, 1999);
-    hashes.get("1666").add(h4);
-    hashes.get("null").add(h4);
-
-    if (usePlan) {
-      LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
-          .loadFileTo("f2.rf", RangeType.TABLE, row(333), row(999))
-          .loadFileTo("f3.rf", RangeType.FILE, row(1000), row(1499))
-          .loadFileTo("f4.rf", RangeType.FILE, row(1500), row(1999)).build();
-      c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
-    } else {
-      c.tableOperations().importDirectory(dir).to(tableName).load();
-    }
-
-    if (offline)
-      c.tableOperations().online(tableName);
-
-    verifyData(tableName, 0, 1999);
-    verifyMetadata(tableName, hashes);
   }
 
   @Test
@@ -281,54 +290,56 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Test
   public void testBadLoadPlans() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    addSplits(tableName, "0333 0666 0999 1333 1666");
+    try (AccumuloClient c = getAccumuloClient()) {
+      addSplits(c, tableName, "0333 0666 0999 1333 1666");
 
-    String dir = getDir("/testBulkFile-");
+      String dir = getDir("/testBulkFile-");
 
-    writeData(dir + "/f1.", aconf, 0, 333);
-    writeData(dir + "/f2.", aconf, 0, 666);
+      writeData(dir + "/f1.", aconf, 0, 333);
+      writeData(dir + "/f2.", aconf, 0, 666);
 
-    // Create a plan with more files than exists in dir
-    LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
-        .loadFileTo("f2.rf", RangeType.TABLE, null, row(666))
-        .loadFileTo("f3.rf", RangeType.TABLE, null, row(666)).build();
-    try {
-      c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
-      fail();
-    } catch (IllegalArgumentException e) {
-      // ignore
-    }
+      // Create a plan with more files than exists in dir
+      LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
+          .loadFileTo("f2.rf", RangeType.TABLE, null, row(666))
+          .loadFileTo("f3.rf", RangeType.TABLE, null, row(666)).build();
+      try {
+        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
+        fail();
+      } catch (IllegalArgumentException e) {
+        // ignore
+      }
 
-    // Create a plan with less files than exists in dir
-    loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333)).build();
-    try {
-      c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
-      fail();
-    } catch (IllegalArgumentException e) {
-      // ignore
-    }
+      // Create a plan with less files than exists in dir
+      loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333)).build();
+      try {
+        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
+        fail();
+      } catch (IllegalArgumentException e) {
+        // ignore
+      }
 
-    // Create a plan with tablet boundary that does not exits
-    loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(555))
-        .loadFileTo("f2.rf", RangeType.TABLE, null, row(555)).build();
-    try {
-      c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
-      fail();
-    } catch (AccumuloException e) {
-      // ignore
+      // Create a plan with tablet boundary that does not exits
+      loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(555))
+          .loadFileTo("f2.rf", RangeType.TABLE, null, row(555)).build();
+      try {
+        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
+        fail();
+      } catch (AccumuloException e) {
+        // ignore
+      }
     }
   }
 
-  private void addSplits(String tableName, String splitString) throws Exception {
+  private void addSplits(AccumuloClient client, String tableName, String splitString)
+      throws Exception {
     SortedSet<Text> splits = new TreeSet<>();
     for (String split : splitString.split(" "))
       splits.add(new Text(split));
-    getAccumuloClient().tableOperations().addSplits(tableName, splits);
+    client.tableOperations().addSplits(tableName, splits);
   }
 
-  private void verifyData(String table, int s, int e) throws Exception {
-    try (Scanner scanner = getAccumuloClient().createScanner(table, Authorizations.EMPTY)) {
+  private void verifyData(AccumuloClient client, String table, int s, int e) throws Exception {
+    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
@@ -352,15 +363,14 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     }
   }
 
-  private void verifyMetadata(String tableName, Map<String,Set<String>> expectedHashes)
-      throws Exception {
+  private void verifyMetadata(AccumuloClient client, String tableName,
+      Map<String,Set<String>> expectedHashes) throws Exception {
 
     Set<String> endRowsSeen = new HashSet<>();
 
-    String id = getAccumuloClient().tableOperations().tableIdMap().get(tableName);
-    try (MetadataScanner scanner = MetadataScanner.builder().from(getAccumuloClient())
-        .scanMetadataTable().overRange(Table.ID.of(id)).fetchFiles().fetchLoaded().fetchPrev()
-        .build()) {
+    String id = client.tableOperations().tableIdMap().get(tableName);
+    try (MetadataScanner scanner = MetadataScanner.builder().from(client).scanMetadataTable()
+        .overRange(Table.ID.of(id)).fetchFiles().fetchLoaded().fetchPrev().build()) {
       for (TabletMetadata tablet : scanner) {
         assertTrue(tablet.getLoaded().isEmpty());
 

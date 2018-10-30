@@ -55,23 +55,25 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    majcDelay = client.instanceOperations().getSystemConfiguration()
-        .get(Property.TSERV_MAJC_DELAY.getKey());
-    if (!"1s".equals(majcDelay)) {
-      client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
-      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    try (AccumuloClient client = getAccumuloClient()) {
+      majcDelay = client.instanceOperations().getSystemConfiguration()
+          .get(Property.TSERV_MAJC_DELAY.getKey());
+      if (!"1s".equals(majcDelay)) {
+        client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
+        getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+        getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      }
     }
   }
 
   @After
   public void resetConfig() throws Exception {
     if (null != majcDelay) {
-      AccumuloClient client = getAccumuloClient();
-      client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
-      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      try (AccumuloClient client = getAccumuloClient()) {
+        client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
+        getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+        getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      }
     }
   }
 
@@ -80,48 +82,48 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
   @Test
   public void testBulkSplitOptimization() throws Exception {
-    final AccumuloClient c = getAccumuloClient();
-    final String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1000");
-    c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "1000");
-    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "1G");
-    FileSystem fs = cluster.getFileSystem();
-    Path testDir = new Path(getUsableDir(), "testmf");
-    FunctionalTestUtils.createRFiles(c, fs, testDir.toString(), ROWS, SPLITS, 8);
-    FileStatus[] stats = fs.listStatus(testDir);
+    try (AccumuloClient c = getAccumuloClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1000");
+      c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "1000");
+      c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "1G");
+      FileSystem fs = cluster.getFileSystem();
+      Path testDir = new Path(getUsableDir(), "testmf");
+      FunctionalTestUtils.createRFiles(c, fs, testDir.toString(), ROWS, SPLITS, 8);
+      FileStatus[] stats = fs.listStatus(testDir);
 
-    System.out.println("Number of generated files: " + stats.length);
-    c.tableOperations().importDirectory(testDir.toString()).to(tableName).load();
-    FunctionalTestUtils.checkSplits(c, tableName, 0, 0);
-    FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 100, 100);
+      System.out.println("Number of generated files: " + stats.length);
+      c.tableOperations().importDirectory(testDir.toString()).to(tableName).load();
+      FunctionalTestUtils.checkSplits(c, tableName, 0, 0);
+      FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 100, 100);
 
-    // initiate splits
-    getAccumuloClient().tableOperations().setProperty(tableName,
-        Property.TABLE_SPLIT_THRESHOLD.getKey(), "100K");
+      // initiate splits
+      c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "100K");
 
-    sleepUninterruptibly(2, TimeUnit.SECONDS);
+      sleepUninterruptibly(2, TimeUnit.SECONDS);
 
-    // wait until over split threshold -- should be 78 splits
-    while (getAccumuloClient().tableOperations().listSplits(tableName).size() < 75) {
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      // wait until over split threshold -- should be 78 splits
+      while (c.tableOperations().listSplits(tableName).size() < 75) {
+        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      }
+
+      FunctionalTestUtils.checkSplits(c, tableName, 50, 100);
+      VerifyIngest.Opts opts = new VerifyIngest.Opts();
+      opts.timestamp = 1;
+      opts.dataSize = 50;
+      opts.random = 56;
+      opts.rows = 100000;
+      opts.startRow = 0;
+      opts.cols = 1;
+      opts.setTableName(tableName);
+
+      opts.setClientInfo(getClientInfo());
+      VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
+
+      // ensure each tablet does not have all map files, should be ~2.5 files per tablet
+      FunctionalTestUtils.checkRFiles(c, tableName, 50, 100, 1, 4);
     }
-
-    FunctionalTestUtils.checkSplits(c, tableName, 50, 100);
-    VerifyIngest.Opts opts = new VerifyIngest.Opts();
-    opts.timestamp = 1;
-    opts.dataSize = 50;
-    opts.random = 56;
-    opts.rows = 100000;
-    opts.startRow = 0;
-    opts.cols = 1;
-    opts.setTableName(tableName);
-
-    opts.setClientInfo(getClientInfo());
-    VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
-
-    // ensure each tablet does not have all map files, should be ~2.5 files per tablet
-    FunctionalTestUtils.checkRFiles(c, tableName, 50, 100, 1, 4);
   }
 
 }

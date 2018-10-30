@@ -30,7 +30,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.CleanUp;
+import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -64,13 +64,23 @@ public class CleanUpIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void run() throws Exception {
 
-    String tableName = getUniqueNames(1)[0];
-    getClient().tableOperations().create(tableName);
+    // CleanUp for Connectors will not work if there are active AccumuloClients
+    assertEquals(0, SingletonManager.getReservationCount());
 
-    BatchWriter bw = getClient().createBatchWriter(tableName, new BatchWriterConfig());
+    // CleanUp was created to clean up after connectors. This test intentionally creates a connector
+    // instead of an AccumuloClient
+    org.apache.accumulo.core.client.Connector conn = new org.apache.accumulo.core.client.ZooKeeperInstance(
+        getCluster().getInstanceName(), getCluster().getZooKeepers()).getConnector(getPrincipal(),
+            getToken());
+
+    String tableName = getUniqueNames(1)[0];
+    conn.tableOperations().create(tableName);
+
+    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
 
     Mutation m1 = new Mutation("r1");
     m1.put("cf1", "cq1", 1, "5");
@@ -79,7 +89,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
 
     bw.flush();
 
-    try (Scanner scanner = getClient().createScanner(tableName, new Authorizations())) {
+    try (Scanner scanner = conn.createScanner(tableName, new Authorizations())) {
 
       int count = 0;
       for (Entry<Key,Value> entry : scanner) {
@@ -97,7 +107,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
         fail("Not seeing expected threads. Saw " + threadCount);
       }
 
-      CleanUp.shutdownNow();
+      org.apache.accumulo.core.util.CleanUp.shutdownNow();
 
       Mutation m2 = new Mutation("r2");
       m2.put("cf1", "cq1", 1, "6");

@@ -52,16 +52,17 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   @Before
   public void saveMetadataSplits() throws Exception {
     if (ClusterType.STANDALONE == getClusterType()) {
-      AccumuloClient client = getAccumuloClient();
-      Collection<Text> splits = client.tableOperations().listSplits(MetadataTable.NAME);
-      // We expect a single split
-      if (!splits.equals(Arrays.asList(new Text("~")))) {
-        log.info("Existing splits on metadata table. Saving them, and applying"
-            + " single original split of '~'");
-        metadataSplits = splits;
-        client.tableOperations().merge(MetadataTable.NAME, null, null);
-        client.tableOperations().addSplits(MetadataTable.NAME,
-            new TreeSet<>(Collections.singleton(new Text("~"))));
+      try (AccumuloClient client = getAccumuloClient()) {
+        Collection<Text> splits = client.tableOperations().listSplits(MetadataTable.NAME);
+        // We expect a single split
+        if (!splits.equals(Arrays.asList(new Text("~")))) {
+          log.info("Existing splits on metadata table. Saving them, and applying"
+              + " single original split of '~'");
+          metadataSplits = splits;
+          client.tableOperations().merge(MetadataTable.NAME, null, null);
+          client.tableOperations().addSplits(MetadataTable.NAME,
+              new TreeSet<>(Collections.singleton(new Text("~"))));
+        }
       }
     }
   }
@@ -70,24 +71,27 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   public void restoreMetadataSplits() throws Exception {
     if (null != metadataSplits) {
       log.info("Restoring split on metadata table");
-      AccumuloClient client = getAccumuloClient();
-      client.tableOperations().merge(MetadataTable.NAME, null, null);
-      client.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(metadataSplits));
+      try (AccumuloClient client = getAccumuloClient()) {
+        client.tableOperations().merge(MetadataTable.NAME, null, null);
+        client.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(metadataSplits));
+      }
     }
   }
 
   @Test(expected = AccumuloException.class)
   public void testRootTableSplit() throws Exception {
-    TableOperations opts = getAccumuloClient().tableOperations();
-    SortedSet<Text> splits = new TreeSet<>();
-    splits.add(new Text("5"));
-    opts.addSplits(RootTable.NAME, splits);
+    try (AccumuloClient client = getAccumuloClient()) {
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("5"));
+      client.tableOperations().addSplits(RootTable.NAME, splits);
+    }
   }
 
   @Test
   public void testRootTableMerge() throws Exception {
-    TableOperations opts = getAccumuloClient().tableOperations();
-    opts.merge(RootTable.NAME, null, null);
+    try (AccumuloClient client = getAccumuloClient()) {
+      client.tableOperations().merge(RootTable.NAME, null, null);
+    }
   }
 
   private void addSplits(TableOperations opts, String... points) throws Exception {
@@ -100,26 +104,28 @@ public class MetaSplitIT extends AccumuloClusterHarness {
 
   @Test
   public void testMetadataTableSplit() throws Exception {
-    TableOperations opts = getAccumuloClient().tableOperations();
-    for (int i = 1; i <= 10; i++) {
-      opts.create(Integer.toString(i));
-    }
-    try {
-      opts.merge(MetadataTable.NAME, new Text("01"), new Text("02"));
-      checkMetadataSplits(1, opts);
-      addSplits(opts, "4 5 6 7 8".split(" "));
-      checkMetadataSplits(6, opts);
-      opts.merge(MetadataTable.NAME, new Text("6"), new Text("9"));
-      checkMetadataSplits(4, opts);
-      addSplits(opts, "44 55 66 77 88".split(" "));
-      checkMetadataSplits(9, opts);
-      opts.merge(MetadataTable.NAME, new Text("5"), new Text("7"));
-      checkMetadataSplits(6, opts);
-      opts.merge(MetadataTable.NAME, null, null);
-      checkMetadataSplits(0, opts);
-    } finally {
+    try (AccumuloClient client = getAccumuloClient()) {
+      TableOperations opts = client.tableOperations();
       for (int i = 1; i <= 10; i++) {
-        opts.delete(Integer.toString(i));
+        opts.create(Integer.toString(i));
+      }
+      try {
+        opts.merge(MetadataTable.NAME, new Text("01"), new Text("02"));
+        checkMetadataSplits(1, opts);
+        addSplits(opts, "4 5 6 7 8".split(" "));
+        checkMetadataSplits(6, opts);
+        opts.merge(MetadataTable.NAME, new Text("6"), new Text("9"));
+        checkMetadataSplits(4, opts);
+        addSplits(opts, "44 55 66 77 88".split(" "));
+        checkMetadataSplits(9, opts);
+        opts.merge(MetadataTable.NAME, new Text("5"), new Text("7"));
+        checkMetadataSplits(6, opts);
+        opts.merge(MetadataTable.NAME, null, null);
+        checkMetadataSplits(0, opts);
+      } finally {
+        for (int i = 1; i <= 10; i++) {
+          opts.delete(Integer.toString(i));
+        }
       }
     }
   }

@@ -63,41 +63,42 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = this.getClient();
-    c.tableOperations().create("test");
-    Collection<ProcessReference> tservers = getCluster().getProcesses()
-        .get(ServerType.TABLET_SERVER);
-    ArrayList<Integer> tserverPids = new ArrayList<>(tservers.size());
-    for (ProcessReference tserver : tservers) {
-      Process p = tserver.getProcess();
-      if (!p.getClass().getName().equals("java.lang.UNIXProcess")) {
-        log.info("Found process that was not UNIXProcess, exiting test");
-        return;
+    try (AccumuloClient c = this.getClient()) {
+      c.tableOperations().create("test");
+      Collection<ProcessReference> tservers = getCluster().getProcesses()
+          .get(ServerType.TABLET_SERVER);
+      ArrayList<Integer> tserverPids = new ArrayList<>(tservers.size());
+      for (ProcessReference tserver : tservers) {
+        Process p = tserver.getProcess();
+        if (!p.getClass().getName().equals("java.lang.UNIXProcess")) {
+          log.info("Found process that was not UNIXProcess, exiting test");
+          return;
+        }
+
+        Field f = p.getClass().getDeclaredField("pid");
+        f.setAccessible(true);
+        tserverPids.add(f.getInt(p));
       }
 
-      Field f = p.getClass().getDeclaredField("pid");
-      f.setAccessible(true);
-      tserverPids.add(f.getInt(p));
+      for (int pid : tserverPids) {
+        assertEquals(0, Runtime.getRuntime()
+            .exec(new String[] {"kill", "-SIGSTOP", Integer.toString(pid)}).waitFor());
+      }
+      UtilWaitThread.sleep(20 * 1000);
+      for (int pid : tserverPids) {
+        assertEquals(0, Runtime.getRuntime()
+            .exec(new String[] {"kill", "-SIGCONT", Integer.toString(pid)}).waitFor());
+      }
+      SortedSet<Text> splits = new TreeSet<>();
+      for (String split : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
+        splits.add(new Text(split));
+      }
+      c.tableOperations().addSplits("test", splits);
+      // Ensure all of the tablets are actually assigned
+      assertEquals(0, Iterables.size(c.createScanner("test", Authorizations.EMPTY)));
+      UtilWaitThread.sleep(30 * 1000);
+      checkBalance(c);
     }
-
-    for (int pid : tserverPids) {
-      assertEquals(0, Runtime.getRuntime()
-          .exec(new String[] {"kill", "-SIGSTOP", Integer.toString(pid)}).waitFor());
-    }
-    UtilWaitThread.sleep(20 * 1000);
-    for (int pid : tserverPids) {
-      assertEquals(0, Runtime.getRuntime()
-          .exec(new String[] {"kill", "-SIGCONT", Integer.toString(pid)}).waitFor());
-    }
-    SortedSet<Text> splits = new TreeSet<>();
-    for (String split : "a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")) {
-      splits.add(new Text(split));
-    }
-    c.tableOperations().addSplits("test", splits);
-    // Ensure all of the tablets are actually assigned
-    assertEquals(0, Iterables.size(c.createScanner("test", Authorizations.EMPTY)));
-    UtilWaitThread.sleep(30 * 1000);
-    checkBalance(c);
   }
 
   private void checkBalance(AccumuloClient c) throws Exception {

@@ -91,40 +91,42 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    final AccumuloClient c = getClient();
-    final String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
-        SimpleCompactionStrategy.class.getName());
-    runTest(c, tableName, 3);
-    c.tableOperations().setProperty(tableName,
-        Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey() + "count", "" + 5);
-    runTest(c, tableName, 5);
+    try (AccumuloClient c = getClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
+          SimpleCompactionStrategy.class.getName());
+      runTest(c, tableName, 3);
+      c.tableOperations().setProperty(tableName,
+          Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey() + "count", "" + 5);
+      runTest(c, tableName, 5);
+    }
   }
 
   @Test
   public void testPerTableClasspath() throws Exception {
-    final AccumuloClient c = getClient();
-    final String tableName = getUniqueNames(1)[0];
-    File destFile = installJar(getCluster().getConfig().getAccumuloDir(),
-        "/TestCompactionStrat.jar");
-    c.tableOperations().create(tableName);
-    c.instanceOperations().setProperty(
-        Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
-    c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
-    c.tableOperations().setProperty(tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
-    // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are
-    // compacted.
-    c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
-        "org.apache.accumulo.test.EfgCompactionStrat");
+    try (AccumuloClient c = getClient()) {
+      final String tableName = getUniqueNames(1)[0];
+      File destFile = installJar(getCluster().getConfig().getAccumuloDir(),
+          "/TestCompactionStrat.jar");
+      c.tableOperations().create(tableName);
+      c.instanceOperations().setProperty(
+          Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
+      c.tableOperations().setProperty(tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
+      // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are
+      // compacted.
+      c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
+          "org.apache.accumulo.test.EfgCompactionStrat");
 
-    c.tableOperations().addSplits(tableName, new TreeSet<>(Arrays.asList(new Text("efg"))));
+      c.tableOperations().addSplits(tableName, new TreeSet<>(Arrays.asList(new Text("efg"))));
 
-    for (char ch = 'a'; ch < 'l'; ch++)
-      writeFlush(c, tableName, ch + "");
+      for (char ch = 'a'; ch < 'l'; ch++)
+        writeFlush(c, tableName, ch + "");
 
-    while (countFiles(c, tableName) != 7) {
-      UtilWaitThread.sleep(200);
+      while (countFiles(c, tableName) != 7) {
+        UtilWaitThread.sleep(200);
+      }
     }
   }
 

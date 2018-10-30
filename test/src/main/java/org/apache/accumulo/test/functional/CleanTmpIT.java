@@ -65,51 +65,52 @@ public class CleanTmpIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getClient();
-    // make a table
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    // write to it
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m = new Mutation("row");
-    m.put("cf", "cq", "value");
-    bw.addMutation(m);
-    bw.flush();
+    try (AccumuloClient c = getClient()) {
+      // make a table
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      // write to it
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      Mutation m = new Mutation("row");
+      m.put("cf", "cq", "value");
+      bw.addMutation(m);
+      bw.flush();
 
-    // Compact memory to make a file
-    c.tableOperations().compact(tableName, null, null, true, true);
+      // Compact memory to make a file
+      c.tableOperations().compact(tableName, null, null, true, true);
 
-    // Make sure that we'll have a WAL
-    m = new Mutation("row2");
-    m.put("cf", "cq", "value");
-    bw.addMutation(m);
-    bw.close();
+      // Make sure that we'll have a WAL
+      m = new Mutation("row2");
+      m.put("cf", "cq", "value");
+      bw.addMutation(m);
+      bw.close();
 
-    // create a fake _tmp file in its directory
-    String id = c.tableOperations().tableIdMap().get(tableName);
-    Path file;
-    try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.setRange(Range.prefix(id));
-      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-      Entry<Key,Value> entry = Iterables.getOnlyElement(s);
-      file = new Path(entry.getKey().getColumnQualifier().toString());
-    }
+      // create a fake _tmp file in its directory
+      String id = c.tableOperations().tableIdMap().get(tableName);
+      Path file;
+      try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        s.setRange(Range.prefix(id));
+        s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+        Entry<Key,Value> entry = Iterables.getOnlyElement(s);
+        file = new Path(entry.getKey().getColumnQualifier().toString());
+      }
 
-    FileSystem fs = getCluster().getFileSystem();
-    assertTrue("Could not find file: " + file, fs.exists(file));
-    Path tabletDir = file.getParent();
-    assertNotNull("Tablet dir should not be null", tabletDir);
-    Path tmp = new Path(tabletDir, "junk.rf_tmp");
-    // Make the file
-    fs.create(tmp).close();
-    log.info("Created tmp file {}", tmp);
-    getCluster().stop();
-    getCluster().start();
+      FileSystem fs = getCluster().getFileSystem();
+      assertTrue("Could not find file: " + file, fs.exists(file));
+      Path tabletDir = file.getParent();
+      assertNotNull("Tablet dir should not be null", tabletDir);
+      Path tmp = new Path(tabletDir, "junk.rf_tmp");
+      // Make the file
+      fs.create(tmp).close();
+      log.info("Created tmp file {}", tmp);
+      getCluster().stop();
+      getCluster().start();
 
-    try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
-      assertEquals(2, Iterators.size(scanner.iterator()));
-      // If we performed log recovery, we should have cleaned up any stray files
-      assertFalse("File still exists: " + tmp, fs.exists(tmp));
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+        assertEquals(2, Iterators.size(scanner.iterator()));
+        // If we performed log recovery, we should have cleaned up any stray files
+        assertFalse("File still exists: " + tmp, fs.exists(tmp));
+      }
     }
   }
 }

@@ -61,8 +61,7 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
     return 5 * 60;
   }
 
-  private long ingest() throws Exception {
-    final AccumuloClient c = getClient();
+  private long ingest(AccumuloClient c) throws Exception {
     final String tableName = getUniqueNames(1)[0];
 
     log.info("Creating the table");
@@ -95,31 +94,32 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
     return result;
   }
 
-  private long getAverage() throws Exception {
+  private long getAverage(AccumuloClient c) throws Exception {
     final int REPEAT = 3;
     long totalTime = 0;
     for (int i = 0; i < REPEAT; i++) {
-      totalTime += ingest();
+      totalTime += ingest(c);
     }
     return totalTime / REPEAT;
   }
 
   @Test
   public void testWalPerformanceOnce() throws Exception {
-    // get time with a small WAL, which will cause many WAL roll-overs
-    long avg1 = getAverage();
-    // use a bigger WAL max size to eliminate WAL roll-overs
-    AccumuloClient c = getClient();
-    c.instanceOperations().setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), "1G");
-    c.tableOperations().flush(MetadataTable.NAME, null, null, true);
-    c.tableOperations().flush(RootTable.NAME, null, null, true);
-    getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
-    getCluster().start();
-    long avg2 = getAverage();
-    log.info(String.format("Average run time with small WAL %,d with large WAL %,d", avg1, avg2));
-    assertTrue(avg1 > avg2);
-    double percent = (100. * avg1) / avg2;
-    log.info(String.format("Percent of large log: %.2f%%", percent));
+    try (AccumuloClient c = getClient()) {
+      // get time with a small WAL, which will cause many WAL roll-overs
+      long avg1 = getAverage(c);
+      // use a bigger WAL max size to eliminate WAL roll-overs
+      c.instanceOperations().setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), "1G");
+      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
+      c.tableOperations().flush(RootTable.NAME, null, null, true);
+      getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
+      getCluster().start();
+      long avg2 = getAverage(c);
+      log.info(String.format("Average run time with small WAL %,d with large WAL %,d", avg1, avg2));
+      assertTrue(avg1 > avg2);
+      double percent = (100. * avg1) / avg2;
+      log.info(String.format("Percent of large log: %.2f%%", percent));
+    }
   }
 
 }

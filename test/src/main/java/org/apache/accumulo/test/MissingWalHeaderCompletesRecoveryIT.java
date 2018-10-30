@@ -78,146 +78,150 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Before
   public void setupMetadataPermission() throws Exception {
-    AccumuloClient client = getClient();
-    rootHasWritePermission = client.securityOperations().hasTablePermission("root",
-        MetadataTable.NAME, TablePermission.WRITE);
-    if (!rootHasWritePermission) {
-      client.securityOperations().grantTablePermission("root", MetadataTable.NAME,
-          TablePermission.WRITE);
-      // Make sure it propagates through ZK
-      Thread.sleep(5000);
+    try (AccumuloClient client = getClient()) {
+      rootHasWritePermission = client.securityOperations().hasTablePermission("root",
+          MetadataTable.NAME, TablePermission.WRITE);
+      if (!rootHasWritePermission) {
+        client.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+            TablePermission.WRITE);
+        // Make sure it propagates through ZK
+        Thread.sleep(5000);
+      }
     }
   }
 
   @After
   public void resetMetadataPermission() throws Exception {
-    AccumuloClient client = getClient();
-    // Final state doesn't match the original
-    if (rootHasWritePermission != client.securityOperations().hasTablePermission("root",
-        MetadataTable.NAME, TablePermission.WRITE)) {
-      if (rootHasWritePermission) {
-        // root had write permission when starting, ensure root still does
-        client.securityOperations().grantTablePermission("root", MetadataTable.NAME,
-            TablePermission.WRITE);
-      } else {
-        // root did not have write permission when starting, ensure that it does not
-        client.securityOperations().revokeTablePermission("root", MetadataTable.NAME,
-            TablePermission.WRITE);
+    try (AccumuloClient client = getClient()) {
+      // Final state doesn't match the original
+      if (rootHasWritePermission != client.securityOperations().hasTablePermission("root",
+          MetadataTable.NAME, TablePermission.WRITE)) {
+        if (rootHasWritePermission) {
+          // root had write permission when starting, ensure root still does
+          client.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+              TablePermission.WRITE);
+        } else {
+          // root did not have write permission when starting, ensure that it does not
+          client.securityOperations().revokeTablePermission("root", MetadataTable.NAME,
+              TablePermission.WRITE);
+        }
       }
     }
   }
 
   @Test
   public void testEmptyWalRecoveryCompletes() throws Exception {
-    AccumuloClient client = getClient();
-    MiniAccumuloClusterImpl cluster = getCluster();
-    FileSystem fs = cluster.getFileSystem();
+    try (AccumuloClient client = getClient()) {
+      MiniAccumuloClusterImpl cluster = getCluster();
+      FileSystem fs = cluster.getFileSystem();
 
-    // Fake out something that looks like host:port, it's irrelevant
-    String fakeServer = "127.0.0.1:12345";
+      // Fake out something that looks like host:port, it's irrelevant
+      String fakeServer = "127.0.0.1:12345";
 
-    File walogs = new File(cluster.getConfig().getAccumuloDir(), ServerConstants.WAL_DIR);
-    File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
-    File emptyWalog = new File(walogServerDir, UUID.randomUUID().toString());
+      File walogs = new File(cluster.getConfig().getAccumuloDir(), ServerConstants.WAL_DIR);
+      File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
+      File emptyWalog = new File(walogServerDir, UUID.randomUUID().toString());
 
-    log.info("Created empty WAL at {}", emptyWalog.toURI());
+      log.info("Created empty WAL at {}", emptyWalog.toURI());
 
-    fs.create(new Path(emptyWalog.toURI())).close();
+      fs.create(new Path(emptyWalog.toURI())).close();
 
-    assertTrue("root user did not have write permission to metadata table",
-        client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
-            TablePermission.WRITE));
+      assertTrue("root user did not have write permission to metadata table",
+          client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
+              TablePermission.WRITE));
 
-    String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
-    assertNotNull("Table ID was null", tableId);
+      Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
+      assertNotNull("Table ID was null", tableId);
 
-    LogEntry logEntry = new LogEntry(new KeyExtent(tableId, null, null), 0, "127.0.0.1:12345",
-        emptyWalog.toURI().toString());
+      LogEntry logEntry = new LogEntry(new KeyExtent(tableId, null, null), 0, "127.0.0.1:12345",
+          emptyWalog.toURI().toString());
 
-    log.info("Taking {} offline", tableName);
-    client.tableOperations().offline(tableName, true);
+      log.info("Taking {} offline", tableName);
+      client.tableOperations().offline(tableName, true);
 
-    log.info("{} is offline", tableName);
+      log.info("{} is offline", tableName);
 
-    Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
-    Mutation m = new Mutation(row);
-    m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
+      Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
+      Mutation m = new Mutation(row);
+      m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 
-    BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    bw.addMutation(m);
-    bw.close();
+      BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      bw.addMutation(m);
+      bw.close();
 
-    log.info("Bringing {} online", tableName);
-    client.tableOperations().online(tableName, true);
+      log.info("Bringing {} online", tableName);
+      client.tableOperations().online(tableName, true);
 
-    log.info("{} is online", tableName);
+      log.info("{} is online", tableName);
 
-    // Reading the table implies that recovery completed successfully (the empty file was ignored)
-    // otherwise the tablet will never come online and we won't be able to read it.
-    try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
-      assertEquals(0, Iterables.size(s));
+      // Reading the table implies that recovery completed successfully (the empty file was ignored)
+      // otherwise the tablet will never come online and we won't be able to read it.
+      try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
+        assertEquals(0, Iterables.size(s));
+      }
     }
   }
 
   @Test
   public void testPartialHeaderWalRecoveryCompletes() throws Exception {
-    AccumuloClient client = getClient();
-    MiniAccumuloClusterImpl cluster = getCluster();
-    FileSystem fs = getCluster().getFileSystem();
+    try (AccumuloClient client = getClient()) {
+      MiniAccumuloClusterImpl cluster = getCluster();
+      FileSystem fs = getCluster().getFileSystem();
 
-    // Fake out something that looks like host:port, it's irrelevant
-    String fakeServer = "127.0.0.1:12345";
+      // Fake out something that looks like host:port, it's irrelevant
+      String fakeServer = "127.0.0.1:12345";
 
-    File walogs = new File(cluster.getConfig().getAccumuloDir(), ServerConstants.WAL_DIR);
-    File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
-    File partialHeaderWalog = new File(walogServerDir, UUID.randomUUID().toString());
+      File walogs = new File(cluster.getConfig().getAccumuloDir(), ServerConstants.WAL_DIR);
+      File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
+      File partialHeaderWalog = new File(walogServerDir, UUID.randomUUID().toString());
 
-    log.info("Created WAL with malformed header at {}", partialHeaderWalog.toURI());
+      log.info("Created WAL with malformed header at {}", partialHeaderWalog.toURI());
 
-    // Write half of the header
-    FSDataOutputStream wal = fs.create(new Path(partialHeaderWalog.toURI()));
-    wal.write(DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8), 0,
-        DfsLogger.LOG_FILE_HEADER_V4.length() / 2);
-    wal.close();
+      // Write half of the header
+      FSDataOutputStream wal = fs.create(new Path(partialHeaderWalog.toURI()));
+      wal.write(DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8), 0,
+          DfsLogger.LOG_FILE_HEADER_V4.length() / 2);
+      wal.close();
 
-    assertTrue("root user did not have write permission to metadata table",
-        client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
-            TablePermission.WRITE));
+      assertTrue("root user did not have write permission to metadata table",
+          client.securityOperations().hasTablePermission("root", MetadataTable.NAME,
+              TablePermission.WRITE));
 
-    String tableName = getUniqueNames(1)[0];
-    client.tableOperations().create(tableName);
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
 
-    Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
-    assertNotNull("Table ID was null", tableId);
+      Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
+      assertNotNull("Table ID was null", tableId);
 
-    LogEntry logEntry = new LogEntry(null, 0, "127.0.0.1:12345",
-        partialHeaderWalog.toURI().toString());
+      LogEntry logEntry = new LogEntry(null, 0, "127.0.0.1:12345",
+          partialHeaderWalog.toURI().toString());
 
-    log.info("Taking {} offline", tableName);
-    client.tableOperations().offline(tableName, true);
+      log.info("Taking {} offline", tableName);
+      client.tableOperations().offline(tableName, true);
 
-    log.info("{} is offline", tableName);
+      log.info("{} is offline", tableName);
 
-    Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
-    Mutation m = new Mutation(row);
-    m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
+      Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
+      Mutation m = new Mutation(row);
+      m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 
-    BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    bw.addMutation(m);
-    bw.close();
+      BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      bw.addMutation(m);
+      bw.close();
 
-    log.info("Bringing {} online", tableName);
-    client.tableOperations().online(tableName, true);
+      log.info("Bringing {} online", tableName);
+      client.tableOperations().online(tableName, true);
 
-    log.info("{} is online", tableName);
+      log.info("{} is online", tableName);
 
-    // Reading the table implies that recovery completed successfully (the empty file was ignored)
-    // otherwise the tablet will never come online and we won't be able to read it.
-    try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
-      assertEquals(0, Iterables.size(s));
+      // Reading the table implies that recovery completed successfully (the empty file was ignored)
+      // otherwise the tablet will never come online and we won't be able to read it.
+      try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
+        assertEquals(0, Iterables.size(s));
+      }
     }
   }
 

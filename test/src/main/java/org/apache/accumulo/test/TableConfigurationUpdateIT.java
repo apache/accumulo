@@ -52,46 +52,47 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient client = getAccumuloClient();
-    ServerContext context = getCluster().getServerContext();
+    try (AccumuloClient client = getAccumuloClient()) {
+      ServerContext context = getCluster().getServerContext();
 
-    String table = getUniqueNames(1)[0];
-    client.tableOperations().create(table);
+      String table = getUniqueNames(1)[0];
+      client.tableOperations().create(table);
 
-    final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT,
-        context, DefaultConfiguration.getInstance());
+      final NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT,
+          context, DefaultConfiguration.getInstance());
 
-    // Cache invalidates 25% of the time
-    int randomMax = 4;
-    // Number of threads
-    int numThreads = 2;
-    // Number of iterations per thread
-    int iterations = 100000;
-    AccumuloConfiguration tableConf = new TableConfiguration(context,
-        org.apache.accumulo.core.client.impl.Table.ID.of(table), defaultConf);
+      // Cache invalidates 25% of the time
+      int randomMax = 4;
+      // Number of threads
+      int numThreads = 2;
+      // Number of iterations per thread
+      int iterations = 100000;
+      AccumuloConfiguration tableConf = new TableConfiguration(context,
+          org.apache.accumulo.core.client.impl.Table.ID.of(table), defaultConf);
 
-    long start = System.currentTimeMillis();
-    ExecutorService svc = Executors.newFixedThreadPool(numThreads);
-    CountDownLatch countDown = new CountDownLatch(numThreads);
-    ArrayList<Future<Exception>> futures = new ArrayList<>(numThreads);
+      long start = System.currentTimeMillis();
+      ExecutorService svc = Executors.newFixedThreadPool(numThreads);
+      CountDownLatch countDown = new CountDownLatch(numThreads);
+      ArrayList<Future<Exception>> futures = new ArrayList<>(numThreads);
 
-    for (int i = 0; i < numThreads; i++) {
-      futures.add(svc.submit(new TableConfRunner(randomMax, iterations, tableConf, countDown)));
-    }
-
-    svc.shutdown();
-    assertTrue(svc.awaitTermination(60, TimeUnit.MINUTES));
-
-    for (Future<Exception> fut : futures) {
-      Exception e = fut.get();
-      if (null != e) {
-        fail("Thread failed with exception " + e);
+      for (int i = 0; i < numThreads; i++) {
+        futures.add(svc.submit(new TableConfRunner(randomMax, iterations, tableConf, countDown)));
       }
-    }
 
-    long end = System.currentTimeMillis();
-    log.debug("{} with {} iterations and {} threads and cache invalidates {}% took {} second(s)",
-        tableConf, iterations, numThreads, ((1. / randomMax) * 100.), (end - start) / 1000);
+      svc.shutdown();
+      assertTrue(svc.awaitTermination(60, TimeUnit.MINUTES));
+
+      for (Future<Exception> fut : futures) {
+        Exception e = fut.get();
+        if (null != e) {
+          fail("Thread failed with exception " + e);
+        }
+      }
+
+      long end = System.currentTimeMillis();
+      log.debug("{} with {} iterations and {} threads and cache invalidates {}% took {} second(s)",
+          tableConf, iterations, numThreads, ((1. / randomMax) * 100.), (end - start) / 1000);
+    }
   }
 
   public static class TableConfRunner implements Callable<Exception> {

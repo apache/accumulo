@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
@@ -71,7 +72,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
 
     while (true) {
       try {
-        MonitorUtil.getLocation(getClientContext());
+        MonitorUtil.getLocation(getServerContext());
         break;
       } catch (Exception e) {
         LOG.debug("Failed to find active monitor location, retrying", e);
@@ -131,61 +132,64 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   @Test
   public void testMasterService() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
-    final String instanceID = getAccumuloClient().getInstanceID();
+    try (AccumuloClient client = getAccumuloClient()) {
+      final String instanceID = client.getInstanceID();
 
-    // Wait for the Master to grab its lock
-    while (true) {
-      final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
-      try {
-        List<String> locks = reader
-            .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMASTER_LOCK);
-        if (locks.size() > 0) {
-          break;
-        }
-      } catch (Exception e) {
-        LOG.debug("Failed to find active master location, retrying", e);
-        Thread.sleep(1000);
-      }
-    }
-
-    LOG.debug("Found active master");
-
-    while (true) {
-      int freePort = PortUtils.getRandomFreePort();
-      Process master = null;
-      try {
-        LOG.debug("Starting standby master on {}", freePort);
-        master = startProcess(cluster, ServerType.MASTER, freePort);
-
-        while (true) {
-          Socket s = null;
-          try {
-            s = new Socket("localhost", freePort);
-            if (s.isConnected()) {
-              // Pass
-              return;
-            }
-          } catch (Exception e) {
-            LOG.debug("Caught exception trying to connect to Master", e);
-          } finally {
-            if (null != s) {
-              s.close();
-            }
+      // Wait for the Master to grab its lock
+      while (true) {
+        final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
+        try {
+          List<String> locks = reader
+              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMASTER_LOCK);
+          if (locks.size() > 0) {
+            break;
           }
-          // Wait before trying again
+        } catch (Exception e) {
+          LOG.debug("Failed to find active master location, retrying", e);
           Thread.sleep(1000);
-          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't actually
-          // free and the process
-          // died trying to bind it. Pick a new port and restart it in that case.
-          if (!master.isAlive()) {
-            freePort = PortUtils.getRandomFreePort();
-            LOG.debug("Master died, restarting it listening on {}", freePort);
-            master = startProcess(cluster, ServerType.MASTER, freePort);
-          }
         }
-      } finally {
-        if (null != master) {
-          master.destroyForcibly();
+      }
+
+      LOG.debug("Found active master");
+
+      while (true) {
+        int freePort = PortUtils.getRandomFreePort();
+        Process master = null;
+        try {
+          LOG.debug("Starting standby master on {}", freePort);
+          master = startProcess(cluster, ServerType.MASTER, freePort);
+
+          while (true) {
+            Socket s = null;
+            try {
+              s = new Socket("localhost", freePort);
+              if (s.isConnected()) {
+                // Pass
+                return;
+              }
+            } catch (Exception e) {
+              LOG.debug("Caught exception trying to connect to Master", e);
+            } finally {
+              if (null != s) {
+                s.close();
+              }
+            }
+            // Wait before trying again
+            Thread.sleep(1000);
+            // Make sure the process is still up. Possible the "randomFreePort" we got wasn't
+            // actually
+            // free and the process
+            // died trying to bind it. Pick a new port and restart it in that case.
+            if (!master.isAlive()) {
+              freePort = PortUtils.getRandomFreePort();
+              LOG.debug("Master died, restarting it listening on {}", freePort);
+              master = startProcess(cluster, ServerType.MASTER, freePort);
+            }
+          }
+        } finally {
+          if (null != master) {
+            master.destroyForcibly();
+          }
         }
       }
     }
@@ -196,61 +200,64 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   @Test
   public void testGarbageCollectorPorts() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
-    String instanceID = getAccumuloClient().getInstanceID();
+    try (AccumuloClient client = getAccumuloClient()) {
+      String instanceID = client.getInstanceID();
 
-    // Wait for the Master to grab its lock
-    while (true) {
-      final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
-      try {
-        List<String> locks = reader
-            .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
-        if (locks.size() > 0) {
-          break;
-        }
-      } catch (Exception e) {
-        LOG.debug("Failed to find active gc location, retrying", e);
-        Thread.sleep(1000);
-      }
-    }
-
-    LOG.debug("Found active gc");
-
-    while (true) {
-      int freePort = PortUtils.getRandomFreePort();
-      Process master = null;
-      try {
-        LOG.debug("Starting standby gc on {}", freePort);
-        master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
-
-        while (true) {
-          Socket s = null;
-          try {
-            s = new Socket("localhost", freePort);
-            if (s.isConnected()) {
-              // Pass
-              return;
-            }
-          } catch (Exception e) {
-            LOG.debug("Caught exception trying to connect to GC", e);
-          } finally {
-            if (null != s) {
-              s.close();
-            }
+      // Wait for the Master to grab its lock
+      while (true) {
+        final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
+        try {
+          List<String> locks = reader
+              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
+          if (locks.size() > 0) {
+            break;
           }
-          // Wait before trying again
+        } catch (Exception e) {
+          LOG.debug("Failed to find active gc location, retrying", e);
           Thread.sleep(1000);
-          // Make sure the process is still up. Possible the "randomFreePort" we got wasn't actually
-          // free and the process
-          // died trying to bind it. Pick a new port and restart it in that case.
-          if (!master.isAlive()) {
-            freePort = PortUtils.getRandomFreePort();
-            LOG.debug("GC died, restarting it listening on {}", freePort);
-            master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
-          }
         }
-      } finally {
-        if (null != master) {
-          master.destroyForcibly();
+      }
+
+      LOG.debug("Found active gc");
+
+      while (true) {
+        int freePort = PortUtils.getRandomFreePort();
+        Process master = null;
+        try {
+          LOG.debug("Starting standby gc on {}", freePort);
+          master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
+
+          while (true) {
+            Socket s = null;
+            try {
+              s = new Socket("localhost", freePort);
+              if (s.isConnected()) {
+                // Pass
+                return;
+              }
+            } catch (Exception e) {
+              LOG.debug("Caught exception trying to connect to GC", e);
+            } finally {
+              if (null != s) {
+                s.close();
+              }
+            }
+            // Wait before trying again
+            Thread.sleep(1000);
+            // Make sure the process is still up. Possible the "randomFreePort" we got wasn't
+            // actually
+            // free and the process
+            // died trying to bind it. Pick a new port and restart it in that case.
+            if (!master.isAlive()) {
+              freePort = PortUtils.getRandomFreePort();
+              LOG.debug("GC died, restarting it listening on {}", freePort);
+              master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
+            }
+          }
+        } finally {
+          if (null != master) {
+            master.destroyForcibly();
+          }
         }
       }
     }

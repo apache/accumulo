@@ -43,17 +43,18 @@ public class DeleteIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
-    AuthenticationToken token = getAdminToken();
-    if (token instanceof KerberosToken) {
-      deleteTest(c, getCluster(), getAdminPrincipal(), null, tableName,
-          getAdminUser().getKeytab().getAbsolutePath());
-    } else if (token instanceof PasswordToken) {
-      PasswordToken passwdToken = (PasswordToken) token;
-      deleteTest(c, getCluster(), getAdminPrincipal(), new String(passwdToken.getPassword(), UTF_8),
-          tableName, null);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      AuthenticationToken token = getAdminToken();
+      if (token instanceof KerberosToken) {
+        deleteTest(c, getCluster(), getAdminPrincipal(), null, tableName,
+            getAdminUser().getKeytab().getAbsolutePath());
+      } else if (token instanceof PasswordToken) {
+        PasswordToken passwdToken = (PasswordToken) token;
+        deleteTest(c, getCluster(), getAdminPrincipal(),
+            new String(passwdToken.getPassword(), UTF_8), tableName, null);
+      }
     }
   }
 

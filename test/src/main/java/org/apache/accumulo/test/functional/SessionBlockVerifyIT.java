@@ -82,97 +82,98 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
   @Test
   @Override
   public void run() throws Exception {
-    AccumuloClient c = getAccumuloClient();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
+    try (AccumuloClient c = getAccumuloClient()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
 
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
 
-    for (int i = 0; i < 1000; i++) {
-      Mutation m = new Mutation(new Text(String.format("%08d", i)));
-      for (int j = 0; j < 3; j++)
-        m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
+      for (int i = 0; i < 1000; i++) {
+        Mutation m = new Mutation(new Text(String.format("%08d", i)));
+        for (int j = 0; j < 3; j++)
+          m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
 
-      bw.addMutation(m);
-    }
+        bw.addMutation(m);
+      }
 
-    bw.close();
+      bw.close();
 
-    try (Scanner scanner = c.createScanner(tableName, new Authorizations())) {
-      scanner.setReadaheadThreshold(20000);
-      scanner.setRange(new Range(String.format("%08d", 0), String.format("%08d", 1000)));
+      try (Scanner scanner = c.createScanner(tableName, new Authorizations())) {
+        scanner.setReadaheadThreshold(20000);
+        scanner.setRange(new Range(String.format("%08d", 0), String.format("%08d", 1000)));
 
-      // test by making a slow iterator and then a couple of fast ones.
-      // when then checking we shouldn't have any running except the slow iterator
-      IteratorSetting setting = new IteratorSetting(21, SlowIterator.class);
-      SlowIterator.setSeekSleepTime(setting, Long.MAX_VALUE);
-      SlowIterator.setSleepTime(setting, Long.MAX_VALUE);
-      scanner.addScanIterator(setting);
+        // test by making a slow iterator and then a couple of fast ones.
+        // when then checking we shouldn't have any running except the slow iterator
+        IteratorSetting setting = new IteratorSetting(21, SlowIterator.class);
+        SlowIterator.setSeekSleepTime(setting, Long.MAX_VALUE);
+        SlowIterator.setSleepTime(setting, Long.MAX_VALUE);
+        scanner.addScanIterator(setting);
 
-      final Iterator<Entry<Key,Value>> slow = scanner.iterator();
+        final Iterator<Entry<Key,Value>> slow = scanner.iterator();
 
-      final List<Future<Boolean>> callables = new ArrayList<>();
-      final CountDownLatch latch = new CountDownLatch(10);
-      for (int i = 0; i < 10; i++) {
-        Future<Boolean> callable = service.submit(() -> {
-          latch.countDown();
-          while (slow.hasNext()) {
+        final List<Future<Boolean>> callables = new ArrayList<>();
+        final CountDownLatch latch = new CountDownLatch(10);
+        for (int i = 0; i < 10; i++) {
+          Future<Boolean> callable = service.submit(() -> {
+            latch.countDown();
+            while (slow.hasNext()) {
 
-            slow.next();
+              slow.next();
+            }
+            return slow.hasNext();
+          });
+          callables.add(callable);
+        }
+
+        latch.await();
+
+        log.info("Starting SessionBlockVerifyIT");
+
+        // let's add more for good measure.
+        for (int i = 0; i < 2; i++) {
+          try (Scanner scanner2 = c.createScanner(tableName, new Authorizations())) {
+            scanner2.setRange(new Range(String.format("%08d", 0), String.format("%08d", 1000)));
+            scanner2.setBatchSize(1);
+            Iterator<Entry<Key,Value>> iter = scanner2.iterator();
+            // call super's verify mechanism
+            verify(iter, 0, 1000);
           }
-          return slow.hasNext();
-        });
-        callables.add(callable);
-      }
-
-      latch.await();
-
-      log.info("Starting SessionBlockVerifyIT");
-
-      // let's add more for good measure.
-      for (int i = 0; i < 2; i++) {
-        try (Scanner scanner2 = c.createScanner(tableName, new Authorizations())) {
-          scanner2.setRange(new Range(String.format("%08d", 0), String.format("%08d", 1000)));
-          scanner2.setBatchSize(1);
-          Iterator<Entry<Key,Value>> iter = scanner2.iterator();
-          // call super's verify mechanism
-          verify(iter, 0, 1000);
-        }
-      }
-
-      int sessionsFound = 0;
-      // we have configured 1 tserver, so we can grab the one and only
-      String tserver = Iterables.getOnlyElement(c.instanceOperations().getTabletServers());
-
-      final List<ActiveScan> scans = c.instanceOperations().getActiveScans(tserver);
-
-      for (ActiveScan scan : scans) {
-        // only here to minimize chance of seeing meta extent scans
-
-        if (tableName.equals(scan.getTable()) && scan.getSsiList().size() > 0) {
-          assertEquals("Not the expected iterator", 1, scan.getSsiList().size());
-          assertTrue("Not the expected iterator",
-              scan.getSsiList().iterator().next().contains("SlowIterator"));
-          sessionsFound++;
         }
 
-      }
+        int sessionsFound = 0;
+        // we have configured 1 tserver, so we can grab the one and only
+        String tserver = Iterables.getOnlyElement(c.instanceOperations().getTabletServers());
 
-      /**
-       * The message below indicates the problem that we experience within ACCUMULO-3509. The issue
-       * manifests as a blockage in the Scanner synchronization that prevent us from making the
-       * close call against it. Since the close blocks until a read is finished, we ultimately have
-       * a block within the sweep of SessionManager. As a result never reap subsequent idle sessions
-       * AND we will orphan the sessionsToCleanup in the sweep, leading to an inaccurate count
-       * within sessionsFound.
-       */
-      assertEquals("Must have ten sessions. Failure indicates a synchronization"
-          + " block within the sweep mechanism", 10, sessionsFound);
-      for (Future<Boolean> callable : callables) {
-        callable.cancel(true);
+        final List<ActiveScan> scans = c.instanceOperations().getActiveScans(tserver);
+
+        for (ActiveScan scan : scans) {
+          // only here to minimize chance of seeing meta extent scans
+
+          if (tableName.equals(scan.getTable()) && scan.getSsiList().size() > 0) {
+            assertEquals("Not the expected iterator", 1, scan.getSsiList().size());
+            assertTrue("Not the expected iterator",
+                scan.getSsiList().iterator().next().contains("SlowIterator"));
+            sessionsFound++;
+          }
+
+        }
+
+        /**
+         * The message below indicates the problem that we experience within ACCUMULO-3509. The
+         * issue manifests as a blockage in the Scanner synchronization that prevent us from making
+         * the close call against it. Since the close blocks until a read is finished, we ultimately
+         * have a block within the sweep of SessionManager. As a result never reap subsequent idle
+         * sessions AND we will orphan the sessionsToCleanup in the sweep, leading to an inaccurate
+         * count within sessionsFound.
+         */
+        assertEquals("Must have ten sessions. Failure indicates a synchronization"
+            + " block within the sweep mechanism", 10, sessionsFound);
+        for (Future<Boolean> callable : callables) {
+          callable.cancel(true);
+        }
       }
+      service.shutdown();
     }
-    service.shutdown();
   }
 
 }

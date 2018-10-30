@@ -56,38 +56,39 @@ public class MetaRecoveryIT extends ConfigurableMacBase {
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
     String[] tables = getUniqueNames(10);
-    AccumuloClient c = getClient();
-    int i = 0;
-    for (String table : tables) {
-      log.info("Creating table {}", i);
-      c.tableOperations().create(table);
-      BatchWriter bw = c.createBatchWriter(table, null);
-      for (int j = 0; j < 1000; j++) {
-        Mutation m = new Mutation("" + j);
-        m.put("cf", "cq", "value");
-        bw.addMutation(m);
+    try (AccumuloClient c = getClient()) {
+      int i = 0;
+      for (String table : tables) {
+        log.info("Creating table {}", i);
+        c.tableOperations().create(table);
+        BatchWriter bw = c.createBatchWriter(table, null);
+        for (int j = 0; j < 1000; j++) {
+          Mutation m = new Mutation("" + j);
+          m.put("cf", "cq", "value");
+          bw.addMutation(m);
+        }
+        bw.close();
+        log.info("Data written to table {}", i);
+        i++;
       }
-      bw.close();
-      log.info("Data written to table {}", i);
-      i++;
-    }
-    c.tableOperations().flush(MetadataTable.NAME, null, null, true);
-    c.tableOperations().flush(RootTable.NAME, null, null, true);
-    SortedSet<Text> splits = new TreeSet<>();
-    for (i = 1; i < tables.length; i++) {
-      splits.add(new Text("" + i));
-    }
-    c.tableOperations().addSplits(MetadataTable.NAME, splits);
-    log.info("Added {} splits to {}", splits.size(), MetadataTable.NAME);
-    c.instanceOperations().waitForBalance();
-    log.info("Restarting");
-    getCluster().getClusterControl().kill(ServerType.TABLET_SERVER, "localhost");
-    getCluster().start();
-    log.info("Verifying");
-    for (String table : tables) {
-      try (BatchScanner scanner = c.createBatchScanner(table, Authorizations.EMPTY, 5)) {
-        scanner.setRanges(Collections.singletonList(new Range()));
-        assertEquals(1000, Iterators.size(scanner.iterator()));
+      c.tableOperations().flush(MetadataTable.NAME, null, null, true);
+      c.tableOperations().flush(RootTable.NAME, null, null, true);
+      SortedSet<Text> splits = new TreeSet<>();
+      for (i = 1; i < tables.length; i++) {
+        splits.add(new Text("" + i));
+      }
+      c.tableOperations().addSplits(MetadataTable.NAME, splits);
+      log.info("Added {} splits to {}", splits.size(), MetadataTable.NAME);
+      c.instanceOperations().waitForBalance();
+      log.info("Restarting");
+      getCluster().getClusterControl().kill(ServerType.TABLET_SERVER, "localhost");
+      getCluster().start();
+      log.info("Verifying");
+      for (String table : tables) {
+        try (BatchScanner scanner = c.createBatchScanner(table, Authorizations.EMPTY, 5)) {
+          scanner.setRanges(Collections.singletonList(new Range()));
+          assertEquals(1000, Iterators.size(scanner.iterator()));
+        }
       }
     }
   }
