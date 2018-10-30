@@ -29,5 +29,5 @@ import java.lang.annotation.RetentionPolicy;
 @Retention(RetentionPolicy.RUNTIME)
 @interface ReplacedBy {
 
-  Property replacedByProperty();
+  Property property();
 }
