@@ -55,7 +55,6 @@ public class AccumuloRowInputFormat
   @Override
   public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> getRecordReader(InputSplit split,
       JobConf job, Reporter reporter) throws IOException {
-    log.setLevel(getLogLevel(job));
     // @formatter:off
     RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>> recordReader =
       new RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {

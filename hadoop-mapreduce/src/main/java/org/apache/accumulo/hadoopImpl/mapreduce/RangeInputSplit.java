@@ -41,7 +41,6 @@ import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.log4j.Level;
 
 /**
  * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
@@ -54,7 +53,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
   private Set<Pair<Text,Text>> fetchedColumns;
   private List<IteratorSetting> iterators;
   private SamplerConfiguration samplerConfig;
-  private Level level;
   private Map<String,String> executionHints;
 
   public RangeInputSplit() {
@@ -166,10 +164,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     }
 
     if (in.readBoolean()) {
-      level = Level.toLevel(in.readInt());
-    }
-
-    if (in.readBoolean()) {
       samplerConfig = new SamplerConfigurationImpl(in).toSamplerConfiguration();
     }
 
@@ -221,11 +215,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
       for (IteratorSetting iterator : iterators) {
         iterator.write(out);
       }
-    }
-
-    out.writeBoolean(null != level);
-    if (null != level) {
-      out.writeInt(level.toInt());
     }
 
     out.writeBoolean(null != samplerConfig);
@@ -315,14 +304,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     this.iterators = iterators;
   }
 
-  public Level getLogLevel() {
-    return level;
-  }
-
-  public void setLogLevel(Level level) {
-    this.level = level;
-  }
-
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(256);
@@ -335,7 +316,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     sb.append(" localIterators: ").append(localIterators);
     sb.append(" fetchColumns: ").append(fetchedColumns);
     sb.append(" iterators: ").append(iterators);
-    sb.append(" logLevel: ").append(level);
     sb.append(" samplerConfig: ").append(samplerConfig);
     sb.append(" executionHints: ").append(executionHints);
     return sb.toString();

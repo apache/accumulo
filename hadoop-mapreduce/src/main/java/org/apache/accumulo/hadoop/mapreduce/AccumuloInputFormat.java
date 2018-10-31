@@ -27,13 +27,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase;
-import org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.log4j.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat}
@@ -48,23 +48,10 @@ import org.apache.log4j.Level;
  * For required parameters and all available options use {@link InputInfo#builder()}
  */
 public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
+  private static Logger log = LoggerFactory.getLogger(AccumuloInputFormat.class);
 
   @Override
-  public RecordReader<Key,Value> createRecordReader(InputSplit split, TaskAttemptContext context)
-      throws IOException, InterruptedException {
-    log.setLevel(getLogLevel(context));
-
-    // Override the log level from the configuration as if the InputSplit has one it's the more
-    // correct one to use.
-    if (split instanceof RangeInputSplit) {
-      RangeInputSplit accSplit = (RangeInputSplit) split;
-      Level level = accSplit.getLogLevel();
-      if (null != level) {
-        log.setLevel(level);
-      }
-    } else {
-      throw new IllegalArgumentException("No RecordReader for " + split.getClass());
-    }
+  public RecordReader<Key,Value> createRecordReader(InputSplit split, TaskAttemptContext context) {
 
     return new RecordReaderBase<Key,Value>() {
       @Override

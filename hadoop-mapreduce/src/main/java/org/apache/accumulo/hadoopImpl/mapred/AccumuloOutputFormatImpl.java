@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.hadoop.mapred.AccumuloOutputFormat;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.ConfiguratorBase;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.fs.FileSystem;
@@ -48,8 +49,8 @@ import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Progressable;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class allows MapReduce jobs to use Accumulo as the sink for data. This {@link OutputFormat}
@@ -66,8 +67,8 @@ import org.apache.log4j.Logger;
  */
 public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
 
-  private static final Class<?> CLASS = AccumuloOutputFormatImpl.class;
-  protected static final Logger log = Logger.getLogger(CLASS);
+  private static final Class<?> CLASS = AccumuloOutputFormat.class;
+  private static final Logger log = LoggerFactory.getLogger(CLASS);
 
   /**
    * Set the connection information needed to communicate with Accumulo in this job.
@@ -147,32 +148,6 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
   protected static AuthenticationToken getAuthenticationToken(JobConf job) {
     AuthenticationToken token = OutputConfigurator.getAuthenticationToken(CLASS, job);
     return ConfiguratorBase.unwrapAuthenticationToken(job, token);
-  }
-
-  /**
-   * Sets the log level for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param level
-   *          the logging level
-   * @since 1.5.0
-   */
-  protected static void setLogLevel(JobConf job, Level level) {
-    OutputConfigurator.setLogLevel(CLASS, job, level);
-  }
-
-  /**
-   * Gets the log level from this configuration.
-   *
-   * @param job
-   *          the Hadoop context for the configured job
-   * @return the log level
-   * @since 1.5.0
-   * @see #setLogLevel(JobConf, Level)
-   */
-  protected static Level getLogLevel(JobConf job) {
-    return OutputConfigurator.getLogLevel(CLASS, job);
   }
 
   /**
@@ -307,10 +282,7 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
     private AccumuloClient client;
 
     protected AccumuloRecordWriter(JobConf job)
-        throws AccumuloException, AccumuloSecurityException, IOException {
-      Level l = getLogLevel(job);
-      if (l != null)
-        log.setLevel(getLogLevel(job));
+        throws AccumuloException, AccumuloSecurityException {
       this.simulate = getSimulationMode(job);
       this.createTables = canCreateTables(job);
 

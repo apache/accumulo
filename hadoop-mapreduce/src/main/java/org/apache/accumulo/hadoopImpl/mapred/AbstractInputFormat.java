@@ -69,8 +69,8 @@ import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An abstract input format to provide shared methods common to all other input format classes. At
@@ -79,7 +79,7 @@ import org.apache.log4j.Logger;
  */
 public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   protected static final Class<?> CLASS = AccumuloInputFormat.class;
-  protected static final Logger log = Logger.getLogger(CLASS);
+  private static final Logger log = LoggerFactory.getLogger(CLASS);
 
   /**
    * Sets the name of the classloader context on this scanner
@@ -172,32 +172,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   protected static AuthenticationToken getAuthenticationToken(JobConf job) {
     AuthenticationToken token = InputConfigurator.getAuthenticationToken(CLASS, job);
     return ConfiguratorBase.unwrapAuthenticationToken(job, token);
-  }
-
-  /**
-   * Sets the log level for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param level
-   *          the logging level
-   * @since 1.5.0
-   */
-  protected static void setLogLevel(JobConf job, Level level) {
-    InputConfigurator.setLogLevel(CLASS, job, level);
-  }
-
-  /**
-   * Gets the log level from this configuration.
-   *
-   * @param job
-   *          the Hadoop context for the configured job
-   * @return the log level
-   * @since 1.5.0
-   * @see #setLogLevel(JobConf, Level)
-   */
-  protected static Level getLogLevel(JobConf job) {
-    return InputConfigurator.getLogLevel(CLASS, job);
   }
 
   /**
@@ -503,8 +477,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
-    Level logLevel = getLogLevel(job);
-    log.setLevel(logLevel);
     validateOptions(job);
 
     Random random = new SecureRandom();
@@ -601,7 +573,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
             BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges,
                 new String[] {location});
-            SplitUtils.updateSplit(split, tableConfig, logLevel);
+            SplitUtils.updateSplit(split, tableConfig);
 
             splits.add(split);
           } else {
@@ -611,7 +583,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
                 // divide ranges into smaller ranges, based on the tablets
                 RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
                     ke.clip(r), new String[] {location});
-                SplitUtils.updateSplit(split, tableConfig, logLevel);
+                SplitUtils.updateSplit(split, tableConfig);
                 split.setOffline(tableConfig.isOfflineScan());
                 split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
                 split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
@@ -634,7 +606,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
           RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
               entry.getKey(), entry.getValue().toArray(new String[0]));
-          SplitUtils.updateSplit(split, tableConfig, logLevel);
+          SplitUtils.updateSplit(split, tableConfig);
           split.setOffline(tableConfig.isOfflineScan());
           split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
           split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());

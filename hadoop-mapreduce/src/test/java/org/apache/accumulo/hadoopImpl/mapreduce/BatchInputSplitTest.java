@@ -40,7 +40,6 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
 import org.junit.Test;
 
 public class BatchInputSplitTest {
@@ -91,7 +90,6 @@ public class BatchInputSplitTest {
     split.setTableName("table");
     split.setFetchedColumns(fetchedColumns);
     split.setIterators(iterators);
-    split.setLogLevel(Level.WARN);
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
@@ -109,6 +107,5 @@ public class BatchInputSplitTest {
     assertEquals(split.getTableName(), newSplit.getTableName());
     assertEquals(split.getFetchedColumns(), newSplit.getFetchedColumns());
     assertEquals(split.getIterators(), newSplit.getIterators());
-    assertEquals(split.getLogLevel(), newSplit.getLogLevel());
   }
 }

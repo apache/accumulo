@@ -49,8 +49,8 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class allows MapReduce jobs to use Accumulo as the sink for data. This {@link OutputFormat}
@@ -68,7 +68,7 @@ import org.apache.log4j.Logger;
 public class AccumuloOutputFormatImpl extends OutputFormat<Text,Mutation> {
 
   private static final Class<?> CLASS = AccumuloOutputFormatImpl.class;
-  protected static final Logger log = Logger.getLogger(CLASS);
+  private static final Logger log = LoggerFactory.getLogger(CLASS);
 
   /**
    * Set the connection information needed to communicate with Accumulo in this job.
@@ -137,32 +137,6 @@ public class AccumuloOutputFormatImpl extends OutputFormat<Text,Mutation> {
     AuthenticationToken token = OutputConfigurator.getAuthenticationToken(CLASS,
         context.getConfiguration());
     return ConfiguratorBase.unwrapAuthenticationToken(context, token);
-  }
-
-  /**
-   * Sets the log level for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param level
-   *          the logging level
-   * @since 1.5.0
-   */
-  protected static void setLogLevel(Job job, Level level) {
-    OutputConfigurator.setLogLevel(CLASS, job.getConfiguration(), level);
-  }
-
-  /**
-   * Gets the log level from this configuration.
-   *
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return the log level
-   * @since 1.5.0
-   * @see #setLogLevel(Job, Level)
-   */
-  protected static Level getLogLevel(JobContext context) {
-    return OutputConfigurator.getLogLevel(CLASS, context.getConfiguration());
   }
 
   /**
@@ -297,10 +271,7 @@ public class AccumuloOutputFormatImpl extends OutputFormat<Text,Mutation> {
     private AccumuloClient client;
 
     protected AccumuloRecordWriter(TaskAttemptContext context)
-        throws AccumuloException, AccumuloSecurityException, IOException {
-      Level l = getLogLevel(context);
-      if (l != null)
-        log.setLevel(getLogLevel(context));
+        throws AccumuloException, AccumuloSecurityException {
       this.simulate = getSimulationMode(context);
       this.createTables = canCreateTables(context);
 

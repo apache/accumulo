@@ -23,7 +23,6 @@ import java.math.BigInteger;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
 
 public class SplitUtils {
 
@@ -31,11 +30,9 @@ public class SplitUtils {
    * Central place to set common split configuration not handled by split constructors. The
    * intention is to make it harder to miss optional setters in future refactor.
    */
-  public static void updateSplit(RangeInputSplit split, InputTableConfig tableConfig,
-      Level logLevel) {
+  public static void updateSplit(RangeInputSplit split, InputTableConfig tableConfig) {
     split.setFetchedColumns(tableConfig.getFetchedColumns());
     split.setIterators(tableConfig.getIterators());
-    split.setLogLevel(logLevel);
     split.setSamplerConfiguration(tableConfig.getSamplerConfiguration());
     split.setExecutionHints(tableConfig.getExecutionHints());
   }

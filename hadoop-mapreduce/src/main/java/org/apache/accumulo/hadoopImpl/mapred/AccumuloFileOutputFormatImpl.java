@@ -38,7 +38,6 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Progressable;
-import org.apache.log4j.Logger;
 
 /**
  * This class allows MapReduce jobs to write output in the Accumulo data file format.<br>
@@ -56,7 +55,6 @@ import org.apache.log4j.Logger;
 public class AccumuloFileOutputFormatImpl extends FileOutputFormat<Key,Value> {
 
   private static final Class<?> CLASS = AccumuloFileOutputFormat.class;
-  protected static final Logger log = Logger.getLogger(CLASS);
 
   /**
    * Sets the compression type to use for data blocks. Specifying a compression may require
