@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ZooConfiguration extends AccumuloConfiguration {
+
   private static final Logger log = LoggerFactory.getLogger(ZooConfiguration.class);
 
   private final ServerContext context;
@@ -118,7 +119,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
           return true;
         }
       } catch (KeeperException|InterruptedException e) {
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
     }
     return parent.isPropertySet(prop, cacheAndWatch);
