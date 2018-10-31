@@ -126,6 +126,13 @@ public class AccumuloClientImpl implements AccumuloClient {
   }
 
   @Override
+  public BatchScanner createBatchScanner(String tableName) throws TableNotFoundException,
+      AccumuloSecurityException, AccumuloException {
+    Authorizations auths = securityOperations().getUserAuthorizations(context.getPrincipal());
+    return createBatchScanner(tableName, auths);
+  }
+
+  @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
@@ -191,6 +198,13 @@ public class AccumuloClientImpl implements AccumuloClient {
       scanner.setBatchSize(batchSize);
     }
     return scanner;
+  }
+
+  @Override
+  public Scanner createScanner(String tableName) throws TableNotFoundException,
+      AccumuloSecurityException, AccumuloException {
+    Authorizations auths = securityOperations().getUserAuthorizations(context.getPrincipal());
+    return createScanner(tableName, auths);
   }
 
   @Override

@@ -31,8 +31,10 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
@@ -243,7 +245,24 @@ public class ClientContext {
   public BatchWriterConfig getBatchWriterConfig() {
     ensureOpen();
     if (batchWriterConfig == null) {
-      batchWriterConfig = ClientInfoFactory.getBatchWriterConfig(getClientInfo());
+      Properties props = info.getProperties();
+      batchWriterConfig = new BatchWriterConfig();
+      Long maxMemory = ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES.getLong(props);
+      if (maxMemory != null) {
+        batchWriterConfig.setMaxMemory(maxMemory);
+      }
+      Long maxLatency = ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC.getLong(props);
+      if (maxLatency != null) {
+        batchWriterConfig.setMaxLatency(maxLatency, TimeUnit.SECONDS);
+      }
+      Long timeout = ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC.getLong(props);
+      if (timeout != null) {
+        batchWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
+      }
+      String durability = ClientProperty.BATCH_WRITER_DURABILITY.getValue(props);
+      if (!durability.isEmpty()) {
+        batchWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
+      }
     }
     return batchWriterConfig;
   }
