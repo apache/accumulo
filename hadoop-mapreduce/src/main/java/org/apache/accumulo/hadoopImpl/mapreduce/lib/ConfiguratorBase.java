@@ -55,14 +55,15 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @since 1.6.0
  */
 public class ConfiguratorBase {
 
-  protected static final Logger log = Logger.getLogger(ConfiguratorBase.class);
+  private static final Logger log = LoggerFactory.getLogger(ConfiguratorBase.class);
 
   /**
    * Specifies that connection info was configured
@@ -390,7 +391,7 @@ public class ConfiguratorBase {
    */
   public static void setLogLevel(Class<?> implementingClass, Configuration conf, Level level) {
     checkArgument(level != null, "level is null");
-    Logger.getLogger(implementingClass).setLevel(level);
+    org.apache.log4j.Logger.getLogger(implementingClass).setLevel(level);
     conf.setInt(enumToConfKey(implementingClass, GeneralOpts.LOG_LEVEL), level.toInt());
   }
 

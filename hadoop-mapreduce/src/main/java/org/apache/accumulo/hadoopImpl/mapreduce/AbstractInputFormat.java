@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -45,11 +44,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
-import org.apache.accumulo.core.client.admin.SecurityOperations;
-import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Table;
@@ -57,9 +52,6 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.DelegationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -77,7 +69,6 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.security.token.Token;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -100,7 +91,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          name of the classloader context
    * @since 1.8.0
    */
-  public static void setClassLoaderContext(Job job, String context) {
+  protected static void setClassLoaderContext(Job job, String context) {
     InputConfigurator.setClassLoaderContext(CLASS, job.getConfiguration(), context);
   }
 
@@ -112,7 +103,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @return name of the current context
    * @since 1.8.0
    */
-  public static String getClassLoaderContext(JobContext job) {
+  protected static String getClassLoaderContext(JobContext job) {
     return InputConfigurator.getClassLoaderContext(CLASS, job.getConfiguration());
   }
 
@@ -125,7 +116,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          Connection information for Accumulo
    * @since 2.0.0
    */
-  public static void setClientInfo(Job job, ClientInfo info) {
+  protected static void setClientInfo(Job job, ClientInfo info) {
     ClientInfo inputInfo = InputConfigurator.updateToken(job.getCredentials(), info);
     InputConfigurator.setClientInfo(CLASS, job.getConfiguration(), inputInfo);
   }
@@ -139,7 +130,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          URL (hdfs:// or http://) to Accumulo client properties file
    * @since 2.0.0
    */
-  public static void setClientPropertiesFile(Job job, String clientPropsFile) {
+  protected static void setClientPropertiesFile(Job job, String clientPropsFile) {
     InputConfigurator.setClientPropertiesFile(CLASS, job.getConfiguration(), clientPropsFile);
   }
 
@@ -153,93 +144,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    */
   protected static ClientInfo getClientInfo(JobContext context) {
     return InputConfigurator.getClientInfo(CLASS, context.getConfiguration());
-  }
-
-  /**
-   * Sets the connector information needed to communicate with Accumulo in this job.
-   *
-   * <p>
-   * <b>WARNING:</b> Some tokens, when serialized, divulge sensitive information in the
-   * configuration as a means to pass the token to MapReduce tasks. This information is BASE64
-   * encoded to provide a charset safe conversion to a string, but this conversion is not intended
-   * to be secure. {@link PasswordToken} is one example that is insecure in this way; however
-   * {@link DelegationToken}s, acquired using
-   * {@link SecurityOperations#getDelegationToken(DelegationTokenConfig)}, is not subject to this
-   * concern.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param principal
-   *          a valid Accumulo user name (user must have Table.CREATE permission)
-   * @param token
-   *          the user's password
-   * @since 1.5.0
-   * @deprecated since 2.0.0; use {@link #setClientInfo(Job, ClientInfo)} instead.
-   */
-  @Deprecated
-  public static void setConnectorInfo(Job job, String principal, AuthenticationToken token)
-      throws AccumuloSecurityException {
-    if (token instanceof KerberosToken) {
-      log.info("Received KerberosToken, attempting to fetch DelegationToken");
-      try {
-        AccumuloClient client = Accumulo.newClient().usingClientInfo(getClientInfo(job))
-            .usingToken(principal, token).build();
-        token = client.securityOperations().getDelegationToken(new DelegationTokenConfig());
-      } catch (Exception e) {
-        log.warn("Failed to automatically obtain DelegationToken, "
-            + "Mappers/Reducers will likely fail to communicate with Accumulo", e);
-      }
-    }
-    // DelegationTokens can be passed securely from user to task without serializing insecurely in
-    // the configuration
-    if (token instanceof DelegationTokenImpl) {
-      DelegationTokenImpl delegationToken = (DelegationTokenImpl) token;
-
-      // Convert it into a Hadoop Token
-      AuthenticationTokenIdentifier identifier = delegationToken.getIdentifier();
-      Token<AuthenticationTokenIdentifier> hadoopToken = new Token<>(identifier.getBytes(),
-          delegationToken.getPassword(), identifier.getKind(), delegationToken.getServiceName());
-
-      // Add the Hadoop Token to the Job so it gets serialized and passed along.
-      job.getCredentials().addToken(hadoopToken.getService(), hadoopToken);
-    }
-
-    InputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), principal, token);
-  }
-
-  /**
-   * Sets the connector information needed to communicate with Accumulo in this job.
-   *
-   * <p>
-   * Stores the password in a file in HDFS and pulls that into the Distributed Cache in an attempt
-   * to be more secure than storing it in the Configuration.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param principal
-   *          a valid Accumulo user name (user must have Table.CREATE permission)
-   * @param tokenFile
-   *          the path to the token file
-   * @since 1.6.0
-   * @deprecated since 2.0.0, use {@link #setClientPropertiesFile(Job, String)}
-   */
-  @Deprecated
-  public static void setConnectorInfo(Job job, String principal, String tokenFile)
-      throws AccumuloSecurityException {
-    setClientPropertiesFile(job, tokenFile);
-  }
-
-  /**
-   * Determines if the connector has been configured.
-   *
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return true if the connector has been configured, false otherwise
-   * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, AuthenticationToken)
-   */
-  protected static Boolean isConnectorInfoSet(JobContext context) {
-    return InputConfigurator.isConnectorInfoSet(CLASS, context.getConfiguration());
   }
 
   /**
@@ -273,38 +177,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   }
 
   /**
-   * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   *
-   * @param clientConfig
-   *          client configuration containing connection options
-   * @since 1.6.0
-   * @deprecated since 2.0.0; Use {@link #setClientInfo(Job, ClientInfo)} instead.
-   */
-  @Deprecated
-  public static void setZooKeeperInstance(Job job,
-      org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
-    InputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), clientConfig);
-  }
-
-  /**
-   * Initializes an Accumulo {@link org.apache.accumulo.core.client.Instance} based on the
-   * configuration.
-   *
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return an Accumulo instance
-   * @since 1.5.0
-   * @deprecated since 2.0.0, use {@link #getClientInfo(JobContext)} instead
-   */
-  @Deprecated
-  protected static org.apache.accumulo.core.client.Instance getInstance(JobContext context) {
-    return InputConfigurator.getInstance(CLASS, context.getConfiguration());
-  }
-
-  /**
    * Sets the log level for this job.
    *
    * @param job
@@ -313,7 +185,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          the logging level
    * @since 1.5.0
    */
-  public static void setLogLevel(Job job, Level level) {
+  protected static void setLogLevel(Job job, Level level) {
     InputConfigurator.setLogLevel(CLASS, job.getConfiguration(), level);
   }
 
@@ -339,7 +211,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @param auths
    *          the user's authorizations
    */
-  public static void setScanAuthorizations(Job job, Authorizations auths) {
+  protected static void setScanAuthorizations(Job job, Authorizations auths) {
     InputConfigurator.setScanAuthorizations(CLASS, job.getConfiguration(), auths);
   }
 
@@ -399,21 +271,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   protected static void validateOptions(JobContext context) throws IOException {
     AccumuloClient client = InputConfigurator.getClient(CLASS, context.getConfiguration());
     InputConfigurator.validatePermissions(CLASS, context.getConfiguration(), client);
-  }
-
-  /**
-   * Construct the ClientConfiguration given the provided context.
-   *
-   * @param context
-   *          The Job
-   * @return The ClientConfiguration
-   * @since 1.7.0
-   * @deprecated since 2.0.0; use {@link #getClientInfo(JobContext)} instead
-   */
-  @Deprecated
-  protected static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
-      JobContext context) {
-    return InputConfigurator.getClientConfiguration(CLASS, context.getConfiguration());
   }
 
   /**

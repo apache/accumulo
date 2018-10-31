@@ -31,7 +31,9 @@ import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.hadoop.mapreduce.FileOutputInfo;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.FileOutputConfigurator;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Test;
 
@@ -55,13 +57,10 @@ public class AccumuloFileOutputFormatTest {
         .addOption(CountingSummarizer.MAX_COUNTERS_OPT, 256).build();
 
     JobConf job = new JobConf();
-    AccumuloFileOutputFormat.setReplication(job, a);
-    AccumuloFileOutputFormat.setFileBlockSize(job, b);
-    AccumuloFileOutputFormat.setDataBlockSize(job, c);
-    AccumuloFileOutputFormat.setIndexBlockSize(job, d);
-    AccumuloFileOutputFormat.setCompressionType(job, e);
-    AccumuloFileOutputFormat.setSampler(job, samplerConfig);
-    AccumuloFileOutputFormat.setSummarizers(job, sc1, sc2);
+    AccumuloFileOutputFormat.setInfo(job,
+        FileOutputInfo.builder().outputPath(new Path("somewhere")).replication(a).fileBlockSize(b)
+            .dataBlockSize(c).indexBlockSize(d).compressionType(e).sampler(samplerConfig)
+            .summarizers(sc1, sc2).build());
 
     AccumuloConfiguration acuconf = FileOutputConfigurator
         .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
@@ -90,12 +89,9 @@ public class AccumuloFileOutputFormatTest {
     samplerConfig.addOption("modulus", "100003");
 
     job = new JobConf();
-    AccumuloFileOutputFormat.setReplication(job, a);
-    AccumuloFileOutputFormat.setFileBlockSize(job, b);
-    AccumuloFileOutputFormat.setDataBlockSize(job, c);
-    AccumuloFileOutputFormat.setIndexBlockSize(job, d);
-    AccumuloFileOutputFormat.setCompressionType(job, e);
-    AccumuloFileOutputFormat.setSampler(job, samplerConfig);
+    AccumuloFileOutputFormat.setInfo(job,
+        FileOutputInfo.builder().outputPath(new Path("somewhere")).replication(a).fileBlockSize(b)
+            .dataBlockSize(c).indexBlockSize(d).compressionType(e).sampler(samplerConfig).build());
 
     acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
 

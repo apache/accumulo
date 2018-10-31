@@ -33,7 +33,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat;
-import org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -80,7 +79,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the table to use when the tablename is null in the write call
    * @since 1.5.0
    */
-  public static void setInputTableName(Job job, String tableName) {
+  protected static void setInputTableName(Job job, String tableName) {
     InputConfigurator.setInputTableName(CLASS, job.getConfiguration(), tableName);
   }
 
@@ -94,7 +93,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see TableOperations#splitRangeByTablets(String, Range, int)
    * @since 1.5.0
    */
-  public static void setRanges(Job job, Collection<Range> ranges) {
+  protected static void setRanges(Job job, Collection<Range> ranges) {
     InputConfigurator.setRanges(CLASS, job.getConfiguration(), ranges);
   }
 
@@ -122,7 +121,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the default and is equivalent to scanning the all columns.
    * @since 1.5.0
    */
-  public static void fetchColumns(Job job,
+  protected static void fetchColumns(Job job,
       Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
     InputConfigurator.fetchColumns(CLASS, job.getConfiguration(), columnFamilyColumnQualifierPairs);
   }
@@ -149,7 +148,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the configuration of the iterator
    * @since 1.5.0
    */
-  public static void addIterator(Job job, IteratorSetting cfg) {
+  protected static void addIterator(Job job, IteratorSetting cfg) {
     InputConfigurator.addIterator(CLASS, job.getConfiguration(), cfg);
   }
 
@@ -182,7 +181,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setRanges(Job, Collection)
    * @since 1.5.0
    */
-  public static void setAutoAdjustRanges(Job job, boolean enableFeature) {
+  protected static void setAutoAdjustRanges(Job job, boolean enableFeature) {
     InputConfigurator.setAutoAdjustRanges(CLASS, job.getConfiguration(), enableFeature);
   }
 
@@ -212,7 +211,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
-  public static void setScanIsolation(Job job, boolean enableFeature) {
+  protected static void setScanIsolation(Job job, boolean enableFeature) {
     InputConfigurator.setScanIsolation(CLASS, job.getConfiguration(), enableFeature);
   }
 
@@ -244,7 +243,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
-  public static void setLocalIterators(Job job, boolean enableFeature) {
+  protected static void setLocalIterators(Job job, boolean enableFeature) {
     InputConfigurator.setLocalIterators(CLASS, job.getConfiguration(), enableFeature);
   }
 
@@ -296,7 +295,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
-  public static void setOfflineTableScan(Job job, boolean enableFeature) {
+  protected static void setOfflineTableScan(Job job, boolean enableFeature) {
     InputConfigurator.setOfflineTableScan(CLASS, job.getConfiguration(), enableFeature);
   }
 
@@ -340,7 +339,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.7.0
    */
-  public static void setBatchScan(Job job, boolean enableFeature) {
+  protected static void setBatchScan(Job job, boolean enableFeature) {
     InputConfigurator.setBatchScan(CLASS, job.getConfiguration(), enableFeature);
   }
 
@@ -353,7 +352,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @since 1.7.0
    * @see #setBatchScan(Job, boolean)
    */
-  public static boolean isBatchScan(JobContext context) {
+  protected static boolean isBatchScan(JobContext context) {
     return InputConfigurator.isBatchScan(CLASS, context.getConfiguration());
   }
 
@@ -372,7 +371,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @since 1.8.0
    * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
    */
-  public static void setSamplerConfiguration(Job job, SamplerConfiguration samplerConfig) {
+  protected static void setSamplerConfiguration(Job job, SamplerConfiguration samplerConfig) {
     InputConfigurator.setSamplerConfiguration(CLASS, job.getConfiguration(), samplerConfig);
   }
 
@@ -382,7 +381,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *
    * @since 2.0.0
    */
-  public static void setExecutionHints(Job job, Map<String,String> hints) {
+  protected static void setExecutionHints(Job job, Map<String,String> hints) {
     InputConfigurator.setExecutionHints(CLASS, job.getConfiguration(), hints);
   }
 

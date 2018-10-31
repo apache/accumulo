@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.hadoopImpl.mapreduce.InputTableConfig;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;

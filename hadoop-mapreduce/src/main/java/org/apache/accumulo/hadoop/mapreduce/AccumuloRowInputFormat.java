@@ -17,13 +17,15 @@
 package org.apache.accumulo.hadoop.mapreduce;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.ClientInfo;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase;
 import org.apache.hadoop.io.Text;
@@ -39,15 +41,13 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * value, which in turn makes the {@link Key}/{@link Value} pairs for that row available to the Map
  * function.
  *
- * The user must specify the following via static configurator methods:
+ * The user must specify the following via static configurator method:
  *
  * <ul>
- * <li>{@link AccumuloRowInputFormat#setClientInfo(Job, ClientInfo)}
- * <li>{@link AccumuloRowInputFormat#setInputTableName(Job, String)}
- * <li>{@link AccumuloRowInputFormat#setScanAuthorizations(Job, Authorizations)}
+ * <li>{@link AccumuloRowInputFormat#setInfo(Job, InputInfo)}
  * </ul>
  *
- * Other static methods are optional.
+ * For required parameters and all available options use {@link InputInfo#builder()}
  */
 public class AccumuloRowInputFormat
     extends InputFormatBase<Text,PeekingIterator<Entry<Key,Value>>> {
@@ -77,5 +77,46 @@ public class AccumuloRowInputFormat
         return true;
       }
     };
+  }
+
+  /**
+   * Sets all the information required for this map reduce job.
+   */
+  public static void setInfo(Job job, InputInfo info) {
+    setClientInfo(job, info.getClientInfo());
+    setScanAuthorizations(job, info.getScanAuths());
+    setInputTableName(job, info.getTableName());
+
+    // all optional values
+    if (info.getContext().isPresent())
+      setClassLoaderContext(job, info.getContext().get());
+    if (info.getRanges().size() > 0)
+      setRanges(job, info.getRanges());
+    if (info.getIterators().size() > 0)
+      addAllIterators(job, info);
+    if (info.getFetchColumns().size() > 0)
+      convertFetchColumns(job, info.getFetchColumns());
+    if (info.getSamplerConfig().isPresent())
+      setSamplerConfiguration(job, info.getSamplerConfig().get());
+    if (info.getExecutionHints().size() > 0)
+      setExecutionHints(job, info.getExecutionHints());
+    setAutoAdjustRanges(job, info.isAutoAdjustRanges());
+    setScanIsolation(job, info.isScanIsolation());
+    setLocalIterators(job, info.isLocalIterators());
+    setOfflineTableScan(job, info.isOfflineScan());
+    setBatchScan(job, info.isBatchScan());
+  }
+
+  private static void convertFetchColumns(Job job, Collection<Pair<byte[],byte[]>> fetchColumns) {
+    InputFormatBase.fetchColumns(job, fetchColumns.stream().map(p -> {
+      Text cf = (p.getFirst() != null) ? new Text(p.getFirst()) : null;
+      Text cq = (p.getSecond() != null) ? new Text(p.getSecond()) : null;
+      return new Pair<>(cf, cq);
+    }).collect(Collectors.toList()));
+  }
+
+  private static void addAllIterators(Job job, InputInfo info) {
+    for (IteratorSetting cfg : info.getIterators())
+      InputFormatBase.addIterator(job, cfg);
   }
 }

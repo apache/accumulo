@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.hadoopImpl.mapred.RangeInputSplit;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.junit.Test;

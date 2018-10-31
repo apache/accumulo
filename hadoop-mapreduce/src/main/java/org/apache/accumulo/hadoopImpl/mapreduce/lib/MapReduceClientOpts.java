@@ -24,8 +24,6 @@ import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat;
-import org.apache.accumulo.hadoop.mapreduce.AccumuloOutputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
@@ -34,13 +32,10 @@ import org.slf4j.LoggerFactory;
 /**
  * Adds some MR awareness to the ClientOpts
  */
-public class MapReduceClientOpts extends ClientOpts {
+public abstract class MapReduceClientOpts extends ClientOpts {
   private static final Logger log = LoggerFactory.getLogger(MapReduceClientOpts.class);
 
-  public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
-    AccumuloInputFormat.setClientInfo(job, this.getClientInfo());
-    AccumuloOutputFormat.setClientInfo(job, this.getClientInfo());
-  }
+  public abstract void setAccumuloConfigs(Job job) throws AccumuloSecurityException;
 
   @Override
   public AuthenticationToken getToken() {

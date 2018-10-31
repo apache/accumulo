@@ -17,15 +17,19 @@
 package org.apache.accumulo.hadoop.mapred;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.ClientInfo;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
+import org.apache.accumulo.hadoop.mapreduce.InputInfo;
+import org.apache.accumulo.hadoopImpl.mapred.InputFormatBase;
 import org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit;
-import org.apache.hadoop.mapred.InputFormat;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
@@ -36,15 +40,13 @@ import org.apache.log4j.Level;
  * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat}
  * provides keys and values of type {@link Key} and {@link Value} to the Map function.
  *
- * The user must specify the following via static configurator methods:
+ * The user must specify the following via static configurator method:
  *
  * <ul>
- * <li>{@link AccumuloInputFormat#setClientInfo(JobConf, ClientInfo)}
- * <li>{@link AccumuloInputFormat#setInputTableName(JobConf, String)}</li>
- * <li>{@link AccumuloInputFormat#setScanAuthorizations(JobConf, Authorizations)}
+ * <li>{@link AccumuloInputFormat#setInfo(JobConf, InputInfo)}
  * </ul>
  *
- * Other static methods are optional.
+ * For required parameters and all available options use {@link InputInfo#builder()}
  */
 public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
 
@@ -94,5 +96,44 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
     };
     recordReader.initialize(split, job);
     return recordReader;
+  }
+
+  public static void setInfo(JobConf job, InputInfo info) {
+    setClientInfo(job, info.getClientInfo());
+    setScanAuthorizations(job, info.getScanAuths());
+    setInputTableName(job, info.getTableName());
+
+    // all optional values
+    if (info.getContext().isPresent())
+      setClassLoaderContext(job, info.getContext().get());
+    if (info.getRanges().size() > 0)
+      setRanges(job, info.getRanges());
+    if (info.getIterators().size() > 0)
+      addAllIteratorsMapRed(job, info);
+    if (info.getFetchColumns().size() > 0)
+      convertFetchColumnsMapRed(job, info.getFetchColumns());
+    if (info.getSamplerConfig().isPresent())
+      setSamplerConfiguration(job, info.getSamplerConfig().get());
+    if (info.getExecutionHints().size() > 0)
+      setExecutionHints(job, info.getExecutionHints());
+    setAutoAdjustRanges(job, info.isAutoAdjustRanges());
+    setScanIsolation(job, info.isScanIsolation());
+    setLocalIterators(job, info.isLocalIterators());
+    setOfflineTableScan(job, info.isOfflineScan());
+    setBatchScan(job, info.isBatchScan());
+  }
+
+  private static void convertFetchColumnsMapRed(JobConf job,
+      Collection<Pair<byte[],byte[]>> fetchColumns) {
+    fetchColumns(job, fetchColumns.stream().map(p -> {
+      Text cf = (p.getFirst() != null) ? new Text(p.getFirst()) : null;
+      Text cq = (p.getSecond() != null) ? new Text(p.getSecond()) : null;
+      return new Pair<>(cf, cq);
+    }).collect(Collectors.toList()));
+  }
+
+  private static void addAllIteratorsMapRed(JobConf job, InputInfo info) {
+    for (IteratorSetting cfg : info.getIterators())
+      addIterator(job, cfg);
   }
 }
