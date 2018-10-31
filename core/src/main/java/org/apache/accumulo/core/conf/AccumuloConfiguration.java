@@ -386,7 +386,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
   }
 
-  public boolean isPropertySet(Property prop) {
+  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
     throw new UnsupportedOperationException();
   }
 
@@ -409,14 +409,14 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       return null;
     }
 
-    if (!isPropertySet(prop) && isPropertySet(deprecatedProp)) {
+    if (!isPropertySet(prop, true) && isPropertySet(deprecatedProp, true)) {
       if (!depPropWarned) {
         depPropWarned = true;
         log.warn("Property {} is deprecated, use {} instead.", deprecatedProp.getKey(),
             prop.getKey());
       }
       return Integer.valueOf(get(deprecatedProp));
-    } else if (isPropertySet(prop) && isPropertySet(deprecatedProp) && !depPropWarned) {
+    } else if (isPropertySet(prop, true) && isPropertySet(deprecatedProp, true) && !depPropWarned) {
       depPropWarned = true;
       log.warn("Deprecated property {} ignored because {} is set", deprecatedProp.getKey(),
           prop.getKey());

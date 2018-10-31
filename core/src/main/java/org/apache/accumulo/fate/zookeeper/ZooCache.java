@@ -239,7 +239,7 @@ public class ZooCache {
     this.externalWatcher = watcher;
   }
 
-  private abstract class ZooRunnable<T> {
+  public abstract class ZooRunnable<T> {
     /**
      * Runs an operation against ZooKeeper. Retries are performed by the retry method when
      * KeeperExceptions occur.
@@ -252,7 +252,7 @@ public class ZooCache {
      *
      * @return T the result of the runnable
      */
-    abstract T run() throws KeeperException, InterruptedException;
+    protected abstract T run() throws KeeperException, InterruptedException;
 
     /**
      * Retry will attempt to call the run method. Run should make a call to {@link #getZooKeeper()}
