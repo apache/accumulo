@@ -52,6 +52,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 
 import com.google.common.base.Preconditions;
+import com.google.common.cache.Cache;
 
 /**
  * Information that can be used to determine how a tablet is to be major compacted, if needed.
@@ -65,10 +66,11 @@ public class MajorCompactionRequest implements Cloneable {
   private final BlockCache summaryCache;
   private Map<FileRef,DataFileValue> files;
   private final ServerContext context;
+  private final Cache<String,Long> fileLenCache;
 
   public MajorCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
       VolumeManager manager, AccumuloConfiguration tabletConfig, BlockCache summaryCache,
-      BlockCache indexCache, ServerContext context) {
+      BlockCache indexCache, Cache<String,Long> fileLenCache, ServerContext context) {
     this.extent = extent;
     this.reason = reason;
     this.volumeManager = manager;
@@ -76,17 +78,18 @@ public class MajorCompactionRequest implements Cloneable {
     this.files = Collections.emptyMap();
     this.summaryCache = summaryCache;
     this.indexCache = indexCache;
+    this.fileLenCache = fileLenCache;
     this.context = context;
   }
 
   public MajorCompactionRequest(KeyExtent extent, MajorCompactionReason reason,
       AccumuloConfiguration tabletConfig, ServerContext context) {
-    this(extent, reason, null, tabletConfig, null, null, context);
+    this(extent, reason, null, tabletConfig, null, null, null, context);
   }
 
   public MajorCompactionRequest(MajorCompactionRequest mcr) {
     this(mcr.extent, mcr.reason, mcr.volumeManager, mcr.tableConfig, mcr.summaryCache,
-        mcr.indexCache, mcr.context);
+        mcr.indexCache, mcr.fileLenCache, mcr.context);
     // know this is already unmodifiable, no need to wrap again
     this.files = mcr.files;
   }
@@ -155,7 +158,7 @@ public class MajorCompactionRequest implements Cloneable {
       Configuration conf = CachedConfiguration.getInstance();
       SummaryCollection fsc = SummaryReader
           .load(fs, conf, tableConfig, factory, file.path(), summarySelector, summaryCache,
-              indexCache, context.getCryptoService())
+              indexCache, fileLenCache, context.getCryptoService())
           .getSummaries(Collections.singletonList(new Gatherer.RowRange(extent)));
       sc.merge(fsc, factory);
     }

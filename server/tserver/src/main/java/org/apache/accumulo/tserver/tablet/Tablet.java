@@ -1823,8 +1823,10 @@ public class Tablet implements TabletCommitter {
     if (strategy != null) {
       BlockCache sc = tabletResources.getTabletServerResourceManager().getSummaryCache();
       BlockCache ic = tabletResources.getTabletServerResourceManager().getIndexCache();
+      Cache<String,Long> fileLenCache = tabletResources.getTabletServerResourceManager()
+          .getFileLenCache();
       MajorCompactionRequest request = new MajorCompactionRequest(extent, reason,
-          getTabletServer().getFileSystem(), tableConfiguration, sc, ic, context);
+          getTabletServer().getFileSystem(), tableConfiguration, sc, ic, fileLenCache, context);
       request.setFiles(getDatafileManager().getDatafileSizes());
       strategy.gatherInformation(request);
     }

@@ -45,6 +45,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.WritableUtils;
 
+import com.google.common.cache.Cache;
+
 public class SummaryReader {
 
   private interface BlockReader {
@@ -185,15 +187,16 @@ public class SummaryReader {
 
   public static SummaryReader load(FileSystem fs, Configuration conf, AccumuloConfiguration aConf,
       SummarizerFactory factory, Path file, Predicate<SummarizerConfiguration> summarySelector,
-      BlockCache summaryCache, BlockCache indexCache, CryptoService cryptoService) {
+      BlockCache summaryCache, BlockCache indexCache, Cache<String,Long> fileLenCache,
+      CryptoService cryptoService) {
     CachableBlockFile.Reader bcReader = null;
 
     try {
       // the reason BCFile is used instead of RFile is to avoid reading in the RFile meta block when
       // only summary data is wanted.
       CompositeCache compositeCache = new CompositeCache(summaryCache, indexCache);
-      bcReader = new CachableBlockFile.Reader(fs, file, conf, null, compositeCache, aConf,
-          cryptoService);
+      bcReader = new CachableBlockFile.Reader(fs, file, conf, fileLenCache, null, compositeCache,
+          null, aConf, cryptoService);
       return load(bcReader, summarySelector, factory);
     } catch (FileNotFoundException fne) {
       SummaryReader sr = new SummaryReader();
