@@ -98,7 +98,7 @@ import com.google.common.hash.Hashing;
  * execute {@link #processPartition(ExecutorService, int, int)}
  * <li>{@link #processPartition(ExecutorService, int, int)} will make RPC calls to multiple tserver
  * to remotely execute
- * <li>{@link #processFiles(FileSystemResolver, Map, BlockCache, BlockCache, ExecutorService)}
+ * <li>{@link #processFiles(FileSystemResolver, Map, BlockCache, BlockCache, Cache, ExecutorService)}
  * </ol>
  */
 public class Gatherer {
