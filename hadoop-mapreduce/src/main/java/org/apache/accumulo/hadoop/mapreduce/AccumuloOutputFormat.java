@@ -52,6 +52,8 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
  * <ul>
  * <li>{@link AccumuloOutputFormat#setInfo(Job, OutputInfo)}
  * </ul>
+ *
+ * @since 2.0
  */
 public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
 

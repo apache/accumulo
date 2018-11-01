@@ -58,6 +58,8 @@ import org.apache.hadoop.util.Progressable;
  * Methods inherited from {@link FileOutputFormat} are not supported and may be ignored or cause
  * failures. Using other Hadoop configuration options that affect the behavior of the underlying
  * files directly in the Job's configuration may work, but are not directly supported at this time.
+ *
+ * @since 2.0
  */
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 

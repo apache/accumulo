@@ -51,6 +51,8 @@ import org.apache.hadoop.util.Progressable;
  * <ul>
  * <li>{@link AccumuloOutputFormat#setInfo(JobConf, OutputInfo)}
  * </ul>
+ *
+ * @since 2.0
  */
 public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 

@@ -63,6 +63,8 @@ import org.slf4j.LoggerFactory;
  * </ul>
  *
  * For required parameters and all available options use {@link InputInfo#builder()}
+ *
+ * @since 2.0
  */
 public class AccumuloInputFormat extends InputFormat<Key,Value> {
   private static Logger log = LoggerFactory.getLogger(AccumuloInputFormat.class);

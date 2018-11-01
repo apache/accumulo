@@ -63,6 +63,8 @@ import org.apache.hadoop.mapred.Reporter;
  * </ul>
  *
  * For required parameters and all available options use {@link InputInfo#builder()}
+ *
+ * @since 2.0
  */
 public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<Entry<Key,Value>>> {
 
