@@ -16,6 +16,19 @@
  */
 package org.apache.accumulo.hadoop.mapred;
 
+import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClassLoaderContext;
+import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClientInfo;
+import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setScanAuthorizations;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setAutoAdjustRanges;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setBatchScan;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setExecutionHints;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setInputTableName;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setLocalIterators;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setOfflineTableScan;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setRanges;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setSamplerConfiguration;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setScanIsolation;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map.Entry;
@@ -28,6 +41,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.hadoop.mapreduce.InputInfo;
+import org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat;
 import org.apache.accumulo.hadoopImpl.mapred.InputFormatBase;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.InputFormat;
@@ -50,14 +64,28 @@ import org.apache.hadoop.mapred.Reporter;
  *
  * For required parameters and all available options use {@link InputInfo#builder()}
  */
-public class AccumuloRowInputFormat
-    extends InputFormatBase<Text,PeekingIterator<Entry<Key,Value>>> {
+public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<Entry<Key,Value>>> {
+
+  /**
+   * Gets the splits of the tables that have been set on the job by reading the metadata table for
+   * the specified ranges.
+   *
+   * @return the splits from the tables based on the ranges.
+   * @throws java.io.IOException
+   *           if a table set on the job doesn't exist or an error occurs initializing the tablet
+   *           locator
+   */
+  @Override
+  public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
+    return AbstractInputFormat.getSplits(job, numSplits);
+  }
+
   @Override
   public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> getRecordReader(InputSplit split,
       JobConf job, Reporter reporter) throws IOException {
     // @formatter:off
-    RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>> recordReader =
-      new RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {
+    InputFormatBase.RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>> recordReader =
+      new InputFormatBase.RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {
     // @formatter:on
           RowIterator rowIterator;
 

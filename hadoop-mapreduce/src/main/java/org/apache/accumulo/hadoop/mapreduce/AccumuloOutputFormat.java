@@ -16,11 +16,31 @@
  */
 package org.apache.accumulo.hadoop.mapreduce;
 
+import static org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat.getClientInfo;
+import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setBatchWriterOptions;
+import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setClientInfo;
+import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setCreateTables;
+import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setDefaultTableName;
+import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setSimulationMode;
+
+import java.io.IOException;
+
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientInfo;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 
 /**
  * This class allows MapReduce jobs to use Accumulo as the sink for data. This {@link OutputFormat}
@@ -33,7 +53,38 @@ import org.apache.hadoop.mapreduce.OutputFormat;
  * <li>{@link AccumuloOutputFormat#setInfo(Job, OutputInfo)}
  * </ul>
  */
-public class AccumuloOutputFormat extends AccumuloOutputFormatImpl {
+public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
+
+  @Override
+  public void checkOutputSpecs(JobContext job) throws IOException {
+    try {
+      // if the instance isn't configured, it will complain here
+      ClientInfo clientInfo = getClientInfo(job);
+      String principal = clientInfo.getPrincipal();
+      AuthenticationToken token = clientInfo.getAuthenticationToken();
+      AccumuloClient c = Accumulo.newClient().usingClientInfo(clientInfo).build();
+
+      if (!c.securityOperations().authenticateUser(principal, token))
+        throw new IOException("Unable to authenticate user");
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new IOException(e);
+    }
+  }
+
+  @Override
+  public OutputCommitter getOutputCommitter(TaskAttemptContext context) {
+    return new NullOutputFormat<Text,Mutation>().getOutputCommitter(context);
+  }
+
+  @Override
+  public RecordWriter<Text,Mutation> getRecordWriter(TaskAttemptContext attempt)
+      throws IOException {
+    try {
+      return new AccumuloOutputFormatImpl.AccumuloRecordWriter(attempt);
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+  }
 
   public static void setInfo(Job job, OutputInfo info) {
     setClientInfo(job, info.getClientInfo());

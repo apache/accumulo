@@ -69,7 +69,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
     this.setTableId(split.getTableId());
   }
 
-  protected RangeInputSplit(String table, String tableId, Range range, String[] locations) {
+  public RangeInputSplit(String table, String tableId, Range range, String[] locations) {
     this.range = range;
     setLocations(locations);
     this.tableName = table;

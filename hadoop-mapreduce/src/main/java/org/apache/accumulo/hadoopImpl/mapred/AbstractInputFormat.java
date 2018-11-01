@@ -75,7 +75,7 @@ import org.slf4j.LoggerFactory;
  * the very least, any classes inheriting from this class will need to define their own
  * {@link RecordReader}.
  */
-public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
+public abstract class AbstractInputFormat {
   protected static final Class<?> CLASS = AccumuloInputFormat.class;
   private static final Logger log = LoggerFactory.getLogger(CLASS);
 
@@ -88,7 +88,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          name of the classloader context
    * @since 1.8.0
    */
-  protected static void setClassLoaderContext(JobConf job, String context) {
+  public static void setClassLoaderContext(JobConf job, String context) {
     InputConfigurator.setClassLoaderContext(CLASS, job, context);
   }
 
@@ -113,7 +113,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          Connection information for Accumulo
    * @since 2.0.0
    */
-  protected static void setClientInfo(JobConf job, ClientInfo info) {
+  public static void setClientInfo(JobConf job, ClientInfo info) {
     ClientInfo inputInfo = InputConfigurator.updateToken(job.getCredentials(), info);
     InputConfigurator.setClientInfo(CLASS, job, inputInfo);
   }
@@ -153,7 +153,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          the user's authorizations
    * @since 1.5.0
    */
-  protected static void setScanAuthorizations(JobConf job, Authorizations auths) {
+  public static void setScanAuthorizations(JobConf job, Authorizations auths) {
     InputConfigurator.setScanAuthorizations(CLASS, job, auths);
   }
 
@@ -228,7 +228,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * <li>int {@link #numKeysRead} (used for progress reporting)</li>
    * </ul>
    */
-  protected abstract static class AbstractRecordReader<K,V> implements RecordReader<K,V> {
+  public abstract static class AbstractRecordReader<K,V> implements RecordReader<K,V> {
     protected long numKeysRead;
     protected Iterator<Map.Entry<Key,Value>> scannerIterator;
     protected RangeInputSplit split;
@@ -428,8 +428,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
   }
 
-  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job, Table.ID tableId,
-      List<Range> ranges)
+  public static Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job,
+      Table.ID tableId, List<Range> ranges)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     ClientContext context = new ClientContext(getClientInfo(job));
     return InputConfigurator.binOffline(tableId, ranges, context);
@@ -444,8 +444,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *           if a table set on the job doesn't exist or an error occurs initializing the tablet
    *           locator
    */
-  @Override
-  public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
+  public static InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
     validateOptions(job);
 
     Random random = new SecureRandom();

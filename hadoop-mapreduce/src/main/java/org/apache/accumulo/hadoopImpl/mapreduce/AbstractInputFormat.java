@@ -61,7 +61,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -75,7 +74,7 @@ import org.slf4j.LoggerFactory;
  * the very least, any classes inheriting from this class will need to define their own
  * {@link RecordReader}.
  */
-public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
+public abstract class AbstractInputFormat {
 
   protected static final Class<?> CLASS = AccumuloInputFormat.class;
   private static final Logger log = LoggerFactory.getLogger(CLASS);
@@ -89,7 +88,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          name of the classloader context
    * @since 1.8.0
    */
-  protected static void setClassLoaderContext(Job job, String context) {
+  public static void setClassLoaderContext(Job job, String context) {
     InputConfigurator.setClassLoaderContext(CLASS, job.getConfiguration(), context);
   }
 
@@ -114,7 +113,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          Connection information for Accumulo
    * @since 2.0.0
    */
-  protected static void setClientInfo(Job job, ClientInfo info) {
+  public static void setClientInfo(Job job, ClientInfo info) {
     ClientInfo inputInfo = InputConfigurator.updateToken(job.getCredentials(), info);
     InputConfigurator.setClientInfo(CLASS, job.getConfiguration(), inputInfo);
   }
@@ -140,7 +139,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @return ClientInfo
    * @since 2.0.0
    */
-  protected static ClientInfo getClientInfo(JobContext context) {
+  public static ClientInfo getClientInfo(JobContext context) {
     return InputConfigurator.getClientInfo(CLASS, context.getConfiguration());
   }
 
@@ -153,7 +152,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @param auths
    *          the user's authorizations
    */
-  protected static void setScanAuthorizations(Job job, Authorizations auths) {
+  public static void setScanAuthorizations(Job job, Authorizations auths) {
     InputConfigurator.setScanAuthorizations(CLASS, job.getConfiguration(), auths);
   }
 
@@ -178,7 +177,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @return the {@link InputTableConfig} objects for the job
    * @since 1.6.0
    */
-  protected static Map<String,InputTableConfig> getInputTableConfigs(JobContext context) {
+  public static Map<String,InputTableConfig> getInputTableConfigs(JobContext context) {
     return InputConfigurator.getInputTableConfigs(CLASS, context.getConfiguration());
   }
 
@@ -210,7 +209,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *           if the context is improperly configured
    * @since 1.5.0
    */
-  protected static void validateOptions(JobContext context) throws IOException {
+  public static void validateOptions(JobContext context) throws IOException {
     AccumuloClient client = InputConfigurator.getClient(CLASS, context.getConfiguration());
     InputConfigurator.validatePermissions(CLASS, context.getConfiguration(), client);
   }
@@ -451,24 +450,14 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     }
   }
 
-  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobContext context, Table.ID tableId,
-      List<Range> ranges)
+  public static Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobContext context,
+      Table.ID tableId, List<Range> ranges)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     ClientContext clientContext = new ClientContext(getClientInfo(context));
     return InputConfigurator.binOffline(tableId, ranges, clientContext);
   }
 
-  /**
-   * Gets the splits of the tables that have been set on the job by reading the metadata table for
-   * the specified ranges.
-   *
-   * @return the splits from the tables based on the ranges.
-   * @throws java.io.IOException
-   *           if a table set on the job doesn't exist or an error occurs initializing the tablet
-   *           locator
-   */
-  @Override
-  public List<InputSplit> getSplits(JobContext context) throws IOException {
+  public static List<InputSplit> getSplits(JobContext context) throws IOException {
     validateOptions(context);
     Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();

@@ -16,6 +16,21 @@
  */
 package org.apache.accumulo.hadoop.mapred;
 
+import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClassLoaderContext;
+import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClientInfo;
+import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setScanAuthorizations;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.addIterator;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.fetchColumns;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setAutoAdjustRanges;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setBatchScan;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setExecutionHints;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setInputTableName;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setLocalIterators;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setOfflineTableScan;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setRanges;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setSamplerConfiguration;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setScanIsolation;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map.Entry;
@@ -27,8 +42,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.hadoop.mapreduce.InputInfo;
-import org.apache.accumulo.hadoopImpl.mapred.InputFormatBase;
+import org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat;
+import org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.RecordReaderBase;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
@@ -49,8 +66,22 @@ import org.slf4j.LoggerFactory;
  *
  * For required parameters and all available options use {@link InputInfo#builder()}
  */
-public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
+public class AccumuloInputFormat implements InputFormat<Key,Value> {
   private static Logger log = LoggerFactory.getLogger(AccumuloInputFormat.class);
+
+  /**
+   * Gets the splits of the tables that have been set on the job by reading the metadata table for
+   * the specified ranges.
+   *
+   * @return the splits from the tables based on the ranges.
+   * @throws java.io.IOException
+   *           if a table set on the job doesn't exist or an error occurs initializing the tablet
+   *           locator
+   */
+  @Override
+  public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
+    return AbstractInputFormat.getSplits(job, numSplits);
+  }
 
   @Override
   public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter)

@@ -16,8 +16,22 @@
  */
 package org.apache.accumulo.hadoop.mapreduce;
 
+import static org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat.setClassLoaderContext;
+import static org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat.setClientInfo;
+import static org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat.setScanAuthorizations;
+import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setAutoAdjustRanges;
+import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setBatchScan;
+import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setExecutionHints;
+import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setInputTableName;
+import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setLocalIterators;
+import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setOfflineTableScan;
+import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setRanges;
+import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setSamplerConfiguration;
+import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setScanIsolation;
+
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
@@ -27,11 +41,13 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PeekingIterator;
+import org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
@@ -49,12 +65,11 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  *
  * For required parameters and all available options use {@link InputInfo#builder()}
  */
-public class AccumuloRowInputFormat
-    extends InputFormatBase<Text,PeekingIterator<Entry<Key,Value>>> {
+public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Entry<Key,Value>>> {
   @Override
   public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> createRecordReader(InputSplit split,
       TaskAttemptContext context) throws IOException, InterruptedException {
-    return new RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {
+    return new InputFormatBase.RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {
       RowIterator rowIterator;
 
       @Override
@@ -76,6 +91,20 @@ public class AccumuloRowInputFormat
         return true;
       }
     };
+  }
+
+  /**
+   * Gets the splits of the tables that have been set on the job by reading the metadata table for
+   * the specified ranges.
+   *
+   * @return the splits from the tables based on the ranges.
+   * @throws java.io.IOException
+   *           if a table set on the job doesn't exist or an error occurs initializing the tablet
+   *           locator
+   */
+  @Override
+  public List<InputSplit> getSplits(JobContext context) throws IOException {
+    return AbstractInputFormat.getSplits(context);
   }
 
   /**

@@ -16,43 +16,14 @@
  */
 package org.apache.accumulo.hadoopImpl.mapred;
 
-import java.io.IOException;
-
-import org.apache.accumulo.core.client.rfile.RFile;
-import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.hadoop.mapred.AccumuloFileOutputFormat;
-import org.apache.accumulo.hadoopImpl.mapreduce.lib.ConfiguratorBase;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.FileOutputConfigurator;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.RecordWriter;
-import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.util.Progressable;
 
-/**
- * This class allows MapReduce jobs to write output in the Accumulo data file format.<br>
- * Care should be taken to write only sorted data (sorted by {@link Key}), as this is an important
- * requirement of Accumulo data files.
- *
- * <p>
- * The output path to be created must be specified via
- * {@link AccumuloFileOutputFormatImpl#setOutputPath(JobConf, Path)}. This is inherited from
- * {@link FileOutputFormat#setOutputPath(JobConf, Path)}. Other methods from
- * {@link FileOutputFormat} are not supported and may be ignored or cause failures. Using other
- * Hadoop configuration options that affect the behavior of the underlying files directly in the
- * Job's configuration may work, but are not directly supported at this time.
- */
-public class AccumuloFileOutputFormatImpl extends FileOutputFormat<Key,Value> {
+public class AccumuloFileOutputFormatImpl {
 
   private static final Class<?> CLASS = AccumuloFileOutputFormat.class;
 
@@ -66,7 +37,7 @@ public class AccumuloFileOutputFormatImpl extends FileOutputFormat<Key,Value> {
    *          one of "none", "gz", "lzo", or "snappy"
    * @since 1.5.0
    */
-  protected static void setCompressionType(JobConf job, String compressionType) {
+  public static void setCompressionType(JobConf job, String compressionType) {
     FileOutputConfigurator.setCompressionType(CLASS, job, compressionType);
   }
 
@@ -85,7 +56,7 @@ public class AccumuloFileOutputFormatImpl extends FileOutputFormat<Key,Value> {
    *          the block size, in bytes
    * @since 1.5.0
    */
-  protected static void setDataBlockSize(JobConf job, long dataBlockSize) {
+  public static void setDataBlockSize(JobConf job, long dataBlockSize) {
     FileOutputConfigurator.setDataBlockSize(CLASS, job, dataBlockSize);
   }
 
@@ -99,7 +70,7 @@ public class AccumuloFileOutputFormatImpl extends FileOutputFormat<Key,Value> {
    *          the block size, in bytes
    * @since 1.5.0
    */
-  protected static void setFileBlockSize(JobConf job, long fileBlockSize) {
+  public static void setFileBlockSize(JobConf job, long fileBlockSize) {
     FileOutputConfigurator.setFileBlockSize(CLASS, job, fileBlockSize);
   }
 
@@ -114,7 +85,7 @@ public class AccumuloFileOutputFormatImpl extends FileOutputFormat<Key,Value> {
    *          the block size, in bytes
    * @since 1.5.0
    */
-  protected static void setIndexBlockSize(JobConf job, long indexBlockSize) {
+  public static void setIndexBlockSize(JobConf job, long indexBlockSize) {
     FileOutputConfigurator.setIndexBlockSize(CLASS, job, indexBlockSize);
   }
 
@@ -128,7 +99,7 @@ public class AccumuloFileOutputFormatImpl extends FileOutputFormat<Key,Value> {
    *          the number of replicas for produced files
    * @since 1.5.0
    */
-  protected static void setReplication(JobConf job, int replication) {
+  public static void setReplication(JobConf job, int replication) {
     FileOutputConfigurator.setReplication(CLASS, job, replication);
   }
 
@@ -143,7 +114,7 @@ public class AccumuloFileOutputFormatImpl extends FileOutputFormat<Key,Value> {
    * @since 1.8.0
    */
 
-  protected static void setSampler(JobConf job, SamplerConfiguration samplerConfig) {
+  public static void setSampler(JobConf job, SamplerConfiguration samplerConfig) {
     FileOutputConfigurator.setSampler(CLASS, job, samplerConfig);
   }
 
@@ -157,42 +128,8 @@ public class AccumuloFileOutputFormatImpl extends FileOutputFormat<Key,Value> {
    *          summarizer configurations
    * @since 2.0.0
    */
-  protected static void setSummarizers(JobConf job, SummarizerConfiguration... summarizerConfigs) {
+  public static void setSummarizers(JobConf job, SummarizerConfiguration... summarizerConfigs) {
     FileOutputConfigurator.setSummarizers(CLASS, job, summarizerConfigs);
-  }
-
-  @Override
-  public RecordWriter<Key,Value> getRecordWriter(FileSystem ignored, JobConf job, String name,
-      Progressable progress) throws IOException {
-    // get the path of the temporary output file
-    final Configuration conf = job;
-    final AccumuloConfiguration acuConf = FileOutputConfigurator.getAccumuloConfiguration(CLASS,
-        job);
-
-    final String extension = acuConf.get(Property.TABLE_FILE_TYPE);
-    final Path file = new Path(getWorkOutputPath(job),
-        getUniqueName(job, "part") + "." + extension);
-    final int visCacheSize = ConfiguratorBase.getVisibilityCacheSize(conf);
-
-    return new RecordWriter<Key,Value>() {
-      RFileWriter out = null;
-
-      @Override
-      public void close(Reporter reporter) throws IOException {
-        if (out != null)
-          out.close();
-      }
-
-      @Override
-      public void write(Key key, Value value) throws IOException {
-        if (out == null) {
-          out = RFile.newWriter().to(file.toString()).withFileSystem(file.getFileSystem(conf))
-              .withTableProperties(acuConf).withVisibilityCacheSize(visCacheSize).build();
-          out.startDefaultLocalityGroup();
-        }
-        out.append(key, value);
-      }
-    };
   }
 
 }

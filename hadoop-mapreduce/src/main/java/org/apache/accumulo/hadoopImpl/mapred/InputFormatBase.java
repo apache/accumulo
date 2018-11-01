@@ -28,33 +28,13 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.hadoop.mapred.AccumuloInputFormat;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.InputFormat;
-import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.RecordReader;
-import org.apache.hadoop.mapred.Reporter;
 
-/**
- * This abstract {@link InputFormat} class allows MapReduce jobs to use Accumulo as the source of
- * K,V pairs.
- * <p>
- * Subclasses must implement a {@link #getRecordReader(InputSplit, JobConf, Reporter)} to provide a
- * {@link RecordReader} for K,V.
- * <p>
- * A static base class, RecordReaderBase, is provided to retrieve Accumulo {@link Key}/{@link Value}
- * pairs, but one must implement its {@link RecordReaderBase#next(Object, Object)} to transform them
- * to the desired generic types K,V.
- * <p>
- * See {@link AccumuloInputFormat} for an example implementation.
- */
-public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
+public abstract class InputFormatBase extends AbstractInputFormat {
 
   /**
    * Sets the name of the input table, over which this job will scan.
@@ -65,7 +45,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the table to use when the tablename is null in the write call
    * @since 1.5.0
    */
-  protected static void setInputTableName(JobConf job, String tableName) {
+  public static void setInputTableName(JobConf job, String tableName) {
     InputConfigurator.setInputTableName(CLASS, job, tableName);
   }
 
@@ -92,7 +72,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see TableOperations#splitRangeByTablets(String, Range, int)
    * @since 1.5.0
    */
-  protected static void setRanges(JobConf job, Collection<Range> ranges) {
+  public static void setRanges(JobConf job, Collection<Range> ranges) {
     InputConfigurator.setRanges(CLASS, job, ranges);
   }
 
@@ -122,7 +102,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the default and is equivalent to scanning the all columns.
    * @since 1.5.0
    */
-  protected static void fetchColumns(JobConf job,
+  public static void fetchColumns(JobConf job,
       Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
     InputConfigurator.fetchColumns(CLASS, job, columnFamilyColumnQualifierPairs);
   }
@@ -149,7 +129,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the configuration of the iterator
    * @since 1.5.0
    */
-  protected static void addIterator(JobConf job, IteratorSetting cfg) {
+  public static void addIterator(JobConf job, IteratorSetting cfg) {
     InputConfigurator.addIterator(CLASS, job, cfg);
   }
 
@@ -182,7 +162,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setRanges(JobConf, Collection)
    * @since 1.5.0
    */
-  protected static void setAutoAdjustRanges(JobConf job, boolean enableFeature) {
+  public static void setAutoAdjustRanges(JobConf job, boolean enableFeature) {
     InputConfigurator.setAutoAdjustRanges(CLASS, job, enableFeature);
   }
 
@@ -212,7 +192,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
-  protected static void setScanIsolation(JobConf job, boolean enableFeature) {
+  public static void setScanIsolation(JobConf job, boolean enableFeature) {
     InputConfigurator.setScanIsolation(CLASS, job, enableFeature);
   }
 
@@ -244,7 +224,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
-  protected static void setLocalIterators(JobConf job, boolean enableFeature) {
+  public static void setLocalIterators(JobConf job, boolean enableFeature) {
     InputConfigurator.setLocalIterators(CLASS, job, enableFeature);
   }
 
@@ -296,7 +276,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
-  protected static void setOfflineTableScan(JobConf job, boolean enableFeature) {
+  public static void setOfflineTableScan(JobConf job, boolean enableFeature) {
     InputConfigurator.setOfflineTableScan(CLASS, job, enableFeature);
   }
 
@@ -340,7 +320,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.7.0
    */
-  protected static void setBatchScan(JobConf job, boolean enableFeature) {
+  public static void setBatchScan(JobConf job, boolean enableFeature) {
     InputConfigurator.setBatchScan(CLASS, job, enableFeature);
   }
 
@@ -372,7 +352,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @since 1.8.0
    * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
    */
-  protected static void setSamplerConfiguration(JobConf job, SamplerConfiguration samplerConfig) {
+  public static void setSamplerConfiguration(JobConf job, SamplerConfiguration samplerConfig) {
     InputConfigurator.setSamplerConfiguration(CLASS, job, samplerConfig);
   }
 
@@ -382,11 +362,11 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *
    * @since 2.0.0
    */
-  protected static void setExecutionHints(JobConf job, Map<String,String> hints) {
+  public static void setExecutionHints(JobConf job, Map<String,String> hints) {
     InputConfigurator.setExecutionHints(CLASS, job, hints);
   }
 
-  protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
+  public abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
     protected List<IteratorSetting> jobIterators(JobConf job, String tableName) {

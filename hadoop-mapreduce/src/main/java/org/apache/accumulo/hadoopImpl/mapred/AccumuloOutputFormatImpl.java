@@ -34,20 +34,17 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.hadoop.mapred.AccumuloOutputFormat;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.util.Progressable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +61,7 @@ import org.slf4j.LoggerFactory;
  *
  * Other static methods are optional.
  */
-public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
+public class AccumuloOutputFormatImpl {
 
   private static final Class<?> CLASS = AccumuloOutputFormat.class;
   private static final Logger log = LoggerFactory.getLogger(CLASS);
@@ -78,7 +75,7 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
    *          Accumulo connection information
    * @since 2.0.0
    */
-  protected static void setClientInfo(JobConf job, ClientInfo info) {
+  public static void setClientInfo(JobConf job, ClientInfo info) {
     ClientInfo outInfo = OutputConfigurator.updateToken(job.getCredentials(), info);
     OutputConfigurator.setClientInfo(CLASS, job, outInfo);
   }
@@ -90,7 +87,7 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
    *          Hadoop job to be configured
    * @since 2.0.0
    */
-  protected static ClientInfo getClientInfo(JobConf job) {
+  public static ClientInfo getClientInfo(JobConf job) {
     return OutputConfigurator.getClientInfo(CLASS, job);
   }
 
@@ -117,7 +114,7 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
    *          the table to use when the tablename is null in the write call
    * @since 1.5.0
    */
-  protected static void setDefaultTableName(JobConf job, String tableName) {
+  public static void setDefaultTableName(JobConf job, String tableName) {
     OutputConfigurator.setDefaultTableName(CLASS, job, tableName);
   }
 
@@ -145,7 +142,7 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
    *          the configuration for the {@link BatchWriter}
    * @since 1.5.0
    */
-  protected static void setBatchWriterOptions(JobConf job, BatchWriterConfig bwConfig) {
+  public static void setBatchWriterOptions(JobConf job, BatchWriterConfig bwConfig) {
     OutputConfigurator.setBatchWriterOptions(CLASS, job, bwConfig);
   }
 
@@ -158,7 +155,7 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
    * @since 1.5.0
    * @see #setBatchWriterOptions(JobConf, BatchWriterConfig)
    */
-  protected static BatchWriterConfig getBatchWriterOptions(JobConf job) {
+  public static BatchWriterConfig getBatchWriterOptions(JobConf job) {
     return OutputConfigurator.getBatchWriterOptions(CLASS, job);
   }
 
@@ -175,7 +172,7 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
-  protected static void setCreateTables(JobConf job, boolean enableFeature) {
+  public static void setCreateTables(JobConf job, boolean enableFeature) {
     OutputConfigurator.setCreateTables(CLASS, job, enableFeature);
   }
 
@@ -205,7 +202,7 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
-  protected static void setSimulationMode(JobConf job, boolean enableFeature) {
+  public static void setSimulationMode(JobConf job, boolean enableFeature) {
     OutputConfigurator.setSimulationMode(CLASS, job, enableFeature);
   }
 
@@ -225,7 +222,7 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
   /**
    * A base class to be used to create {@link RecordWriter} instances that write to Accumulo.
    */
-  protected static class AccumuloRecordWriter implements RecordWriter<Text,Mutation> {
+  public static class AccumuloRecordWriter implements RecordWriter<Text,Mutation> {
     private MultiTableBatchWriter mtbw = null;
     private HashMap<Text,BatchWriter> bws = null;
     private Text defaultTableName = null;
@@ -238,8 +235,7 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
 
     private AccumuloClient client;
 
-    protected AccumuloRecordWriter(JobConf job)
-        throws AccumuloException, AccumuloSecurityException {
+    public AccumuloRecordWriter(JobConf job) throws AccumuloException, AccumuloSecurityException {
       this.simulate = getSimulationMode(job);
       this.createTables = canCreateTables(job);
 
@@ -380,31 +376,6 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
         }
         throw new IOException(e);
       }
-    }
-  }
-
-  @Override
-  public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
-    try {
-      // if the instance isn't configured, it will complain here
-      ClientInfo clientInfo = getClientInfo(job);
-      String principal = clientInfo.getPrincipal();
-      AuthenticationToken token = clientInfo.getAuthenticationToken();
-      AccumuloClient c = Accumulo.newClient().usingClientInfo(clientInfo).build();
-      if (!c.securityOperations().authenticateUser(principal, token))
-        throw new IOException("Unable to authenticate user");
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new IOException(e);
-    }
-  }
-
-  @Override
-  public RecordWriter<Text,Mutation> getRecordWriter(FileSystem ignored, JobConf job, String name,
-      Progressable progress) throws IOException {
-    try {
-      return new AccumuloRecordWriter(job);
-    } catch (Exception e) {
-      throw new IOException(e);
     }
   }
 

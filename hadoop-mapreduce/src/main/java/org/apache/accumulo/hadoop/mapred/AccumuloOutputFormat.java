@@ -16,12 +16,30 @@
  */
 package org.apache.accumulo.hadoop.mapred;
 
+import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.getClientInfo;
+import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setBatchWriterOptions;
+import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setClientInfo;
+import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setCreateTables;
+import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setDefaultTableName;
+import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setSimulationMode;
+
+import java.io.IOException;
+
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientInfo;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.hadoop.mapreduce.OutputInfo;
 import org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
+import org.apache.hadoop.mapred.RecordWriter;
+import org.apache.hadoop.util.Progressable;
 
 /**
  * This class allows MapReduce jobs to use Accumulo as the sink for data. This {@link OutputFormat}
@@ -34,7 +52,32 @@ import org.apache.hadoop.mapred.OutputFormat;
  * <li>{@link AccumuloOutputFormat#setInfo(JobConf, OutputInfo)}
  * </ul>
  */
-public class AccumuloOutputFormat extends AccumuloOutputFormatImpl {
+public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
+
+  @Override
+  public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
+    try {
+      // if the instance isn't configured, it will complain here
+      ClientInfo clientInfo = getClientInfo(job);
+      String principal = clientInfo.getPrincipal();
+      AuthenticationToken token = clientInfo.getAuthenticationToken();
+      AccumuloClient c = Accumulo.newClient().usingClientInfo(clientInfo).build();
+      if (!c.securityOperations().authenticateUser(principal, token))
+        throw new IOException("Unable to authenticate user");
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new IOException(e);
+    }
+  }
+
+  @Override
+  public RecordWriter<Text,Mutation> getRecordWriter(FileSystem ignored, JobConf job, String name,
+      Progressable progress) throws IOException {
+    try {
+      return new AccumuloOutputFormatImpl.AccumuloRecordWriter(job);
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+  }
 
   public static void setInfo(JobConf job, OutputInfo info) {
     setClientInfo(job, info.getClientInfo());
