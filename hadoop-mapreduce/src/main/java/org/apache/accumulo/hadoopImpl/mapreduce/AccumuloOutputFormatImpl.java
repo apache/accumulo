@@ -39,7 +39,6 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.hadoopImpl.mapreduce.lib.ConfiguratorBase;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -107,36 +106,6 @@ public class AccumuloOutputFormatImpl extends OutputFormat<Text,Mutation> {
    */
   protected static void setClientPropertiesFile(Job job, String clientPropsFile) {
     OutputConfigurator.setClientPropertiesFile(CLASS, job.getConfiguration(), clientPropsFile);
-  }
-
-  /**
-   * Gets the user name from the configuration.
-   *
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return the user name
-   * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, AuthenticationToken)
-   */
-  protected static String getPrincipal(JobContext context) {
-    return OutputConfigurator.getPrincipal(CLASS, context.getConfiguration());
-  }
-
-  /**
-   * Gets the authenticated token from either the specified token file or directly from the
-   * configuration, whichever was used when the job was configured.
-   *
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return the principal's authentication token
-   * @since 1.6.0
-   * @see #setConnectorInfo(Job, String, AuthenticationToken)
-   * @see #setConnectorInfo(Job, String, String)
-   */
-  protected static AuthenticationToken getAuthenticationToken(JobContext context) {
-    AuthenticationToken token = OutputConfigurator.getAuthenticationToken(CLASS,
-        context.getConfiguration());
-    return ConfiguratorBase.unwrapAuthenticationToken(context, token);
   }
 
   /**
@@ -419,9 +388,11 @@ public class AccumuloOutputFormatImpl extends OutputFormat<Text,Mutation> {
   public void checkOutputSpecs(JobContext job) throws IOException {
     try {
       // if the instance isn't configured, it will complain here
-      String principal = getPrincipal(job);
-      AuthenticationToken token = getAuthenticationToken(job);
-      AccumuloClient c = Accumulo.newClient().usingClientInfo(getClientInfo(job)).build();
+      ClientInfo clientInfo = getClientInfo(job);
+      String principal = clientInfo.getPrincipal();
+      AuthenticationToken token = clientInfo.getAuthenticationToken();
+      AccumuloClient c = Accumulo.newClient().usingClientInfo(clientInfo).build();
+
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException | AccumuloSecurityException e) {

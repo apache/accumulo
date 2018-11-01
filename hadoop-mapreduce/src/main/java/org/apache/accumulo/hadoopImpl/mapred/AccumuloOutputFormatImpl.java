@@ -40,7 +40,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.hadoop.mapred.AccumuloOutputFormat;
-import org.apache.accumulo.hadoopImpl.mapreduce.lib.ConfiguratorBase;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -106,48 +105,6 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
    */
   protected static void setClientPropertiesFile(JobConf job, String clientPropsFile) {
     OutputConfigurator.setClientPropertiesFile(CLASS, job, clientPropsFile);
-  }
-
-  /**
-   * Determines if the connector has been configured.
-   *
-   * @param job
-   *          the Hadoop context for the configured job
-   * @return true if the connector has been configured, false otherwise
-   * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
-   */
-  protected static Boolean isConnectorInfoSet(JobConf job) {
-    return OutputConfigurator.isConnectorInfoSet(CLASS, job);
-  }
-
-  /**
-   * Gets the principal from the configuration.
-   *
-   * @param job
-   *          the Hadoop context for the configured job
-   * @return the user name
-   * @since 1.5.0
-   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
-   */
-  protected static String getPrincipal(JobConf job) {
-    return OutputConfigurator.getPrincipal(CLASS, job);
-  }
-
-  /**
-   * Gets the authenticated token from either the specified token file or directly from the
-   * configuration, whichever was used when the job was configured.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @return the principal's authentication token
-   * @since 1.6.0
-   * @see #setConnectorInfo(JobConf, String, AuthenticationToken)
-   * @see #setConnectorInfo(JobConf, String, String)
-   */
-  protected static AuthenticationToken getAuthenticationToken(JobConf job) {
-    AuthenticationToken token = OutputConfigurator.getAuthenticationToken(CLASS, job);
-    return ConfiguratorBase.unwrapAuthenticationToken(job, token);
   }
 
   /**
@@ -428,13 +385,12 @@ public class AccumuloOutputFormatImpl implements OutputFormat<Text,Mutation> {
 
   @Override
   public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
-    if (!isConnectorInfoSet(job))
-      throw new IOException("Connector info has not been set.");
     try {
       // if the instance isn't configured, it will complain here
-      AccumuloClient c = Accumulo.newClient().usingClientInfo(getClientInfo(job)).build();
-      String principal = getPrincipal(job);
-      AuthenticationToken token = getAuthenticationToken(job);
+      ClientInfo clientInfo = getClientInfo(job);
+      String principal = clientInfo.getPrincipal();
+      AuthenticationToken token = clientInfo.getAuthenticationToken();
+      AccumuloClient c = Accumulo.newClient().usingClientInfo(clientInfo).build();
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException | AccumuloSecurityException e) {

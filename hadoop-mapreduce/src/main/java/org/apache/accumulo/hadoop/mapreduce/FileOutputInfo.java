@@ -160,7 +160,8 @@ public interface FileOutputInfo {
 
       /**
        * Specifies a list of summarizer configurations to create summary data in the output file.
-       * Each Key Value written will be passed to the configured {@link Summarizer}'s.
+       * Each Key Value written will be passed to the configured
+       * {@link org.apache.accumulo.core.client.summary.Summarizer}'s.
        *
        * @param summarizerConfigs
        *          summarizer configurations

@@ -37,8 +37,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat}
- * provides keys and values of type {@link Key} and {@link Value} to the Map function.
+ * This class allows MapReduce jobs to use Accumulo as the source of data. This
+ * {@link org.apache.hadoop.mapred.InputFormat} provides keys and values of type {@link Key} and
+ * {@link Value} to the Map function.
  *
  * The user must specify the following via static configurator method:
  *

@@ -37,7 +37,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
-import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.impl.ClientInfoImpl;
 import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -54,7 +53,6 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.log4j.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -299,50 +297,6 @@ public class ConfiguratorBase {
   }
 
   /**
-   * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param clientConfig
-   *          client configuration for specifying connection timeouts, SSL connection options, etc.
-   * @since 1.6.0
-   * @deprecated since 2.0.0; use {@link #setClientInfo(Class, Configuration, ClientInfo)} instead
-   */
-  @Deprecated
-  public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf,
-      org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
-    Properties props = getClientProperties(implementingClass, conf);
-    Properties newProps = ClientConfConverter.toProperties(clientConfig);
-    for (Object keyObj : newProps.keySet()) {
-      String propKey = (String) keyObj;
-      String val = newProps.getProperty(propKey);
-      props.setProperty(propKey, val);
-    }
-    setClientProperties(implementingClass, conf, props);
-  }
-
-  /**
-   * Initializes an Accumulo {@link org.apache.accumulo.core.client.Instance} based on the
-   * configuration.
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @return an Accumulo instance
-   * @since 1.6.0
-   * @deprecated since 2.0.0, replaced by {@link #getClientInfo(Class, Configuration)}
-   */
-  @Deprecated
-  public static org.apache.accumulo.core.client.Instance getInstance(Class<?> implementingClass,
-      Configuration conf) {
-    return org.apache.accumulo.core.client.Connector.from(getClient(implementingClass, conf))
-        .getInstance();
-  }
-
-  /**
    * Creates an Accumulo {@link AccumuloClient} based on the configuration
    *
    * @param implementingClass
@@ -358,57 +312,6 @@ public class ConfiguratorBase {
     } catch (AccumuloException | AccumuloSecurityException e) {
       throw new IllegalStateException(e);
     }
-  }
-
-  /**
-   * Obtain a ClientConfiguration based on the configuration.
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   *
-   * @return A ClientConfiguration
-   * @since 1.7.0
-   * @deprecated since 2.0.0; use {@link #getClientInfo(Class, Configuration)} instead
-   */
-  @Deprecated
-  public static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
-      Class<?> implementingClass, Configuration conf) {
-    return ClientConfConverter.toClientConf(getClientInfo(implementingClass, conf).getProperties());
-  }
-
-  /**
-   * Sets the log level for this job.
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param level
-   *          the logging level
-   * @since 1.6.0
-   */
-  public static void setLogLevel(Class<?> implementingClass, Configuration conf, Level level) {
-    checkArgument(level != null, "level is null");
-    org.apache.log4j.Logger.getLogger(implementingClass).setLevel(level);
-    conf.setInt(enumToConfKey(implementingClass, GeneralOpts.LOG_LEVEL), level.toInt());
-  }
-
-  /**
-   * Gets the log level from this configuration.
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @return the log level
-   * @since 1.6.0
-   * @see #setLogLevel(Class, Configuration, Level)
-   */
-  public static Level getLogLevel(Class<?> implementingClass, Configuration conf) {
-    return Level.toLevel(
-        conf.getInt(enumToConfKey(implementingClass, GeneralOpts.LOG_LEVEL), Level.INFO.toInt()));
   }
 
   /**

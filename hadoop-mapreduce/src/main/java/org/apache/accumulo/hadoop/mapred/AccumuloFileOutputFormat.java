@@ -29,8 +29,8 @@ import org.apache.hadoop.mapred.JobConf;
  * requirement of Accumulo data files.
  *
  * <p>
- * The output path to be created must be specified via {@link #setInfo(Job, FileOutputInfo)} using
- * {@link FileOutputInfo#builder()}.outputPath(path). For all available options see
+ * The output path to be created must be specified via {@link #setInfo(JobConf, FileOutputInfo)}
+ * using {@link FileOutputInfo#builder()}.outputPath(path). For all available options see
  * {@link FileOutputInfo#builder()}
  * <p>
  * Methods inherited from {@link FileOutputFormat} are not supported and may be ignored or cause
