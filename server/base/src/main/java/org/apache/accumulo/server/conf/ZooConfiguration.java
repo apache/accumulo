@@ -115,7 +115,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
       ZooReader zr = context.getZooReaderWriter();
       String zPath = propPathPrefix + "/" + prop.getKey();
       try {
-        if (zr.exists(zPath) && zr.getData(zPath, null) != null) {
+        if (zr.exists(zPath)) {
           return true;
         }
       } catch (KeeperException|InterruptedException e) {
