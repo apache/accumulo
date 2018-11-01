@@ -1111,9 +1111,13 @@ public enum Property {
   private <T extends Annotation> T getAnnotation(Class<T> annotationType) {
     Logger log = LoggerFactory.getLogger(getClass());
     try {
-      for (Annotation a : getClass().getField(name()).getAnnotations())
-        if (annotationType.isInstance(a))
-          return (T) a;
+      for (Annotation a : getClass().getField(name()).getAnnotations()) {
+        if (annotationType.isInstance(a)) {
+          @SuppressWarnings("unchecked")
+          T uncheckedA = (T) a;
+          return uncheckedA;
+        }
+      }
     } catch (SecurityException | NoSuchFieldException e) {
       log.error("{}", e.getMessage(), e);
     }

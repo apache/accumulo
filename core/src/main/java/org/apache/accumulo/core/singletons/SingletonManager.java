@@ -41,9 +41,7 @@ import com.google.common.base.Preconditions;
  * AccumuloClient is not closable, then its hard to remove the static state. This class enables
  * making AccumuloClient closable at inception so that static state can be removed later.
  *
- * @see org.apache.accumulo.core.util.CleanUp
  */
-
 public class SingletonManager {
 
   private static final Logger log = LoggerFactory.getLogger(SingletonManager.class);
