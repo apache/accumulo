@@ -52,6 +52,7 @@ public class ZooConfigurationFactoryTest {
 
   @Test
   public void testGetInstance() {
+    expect(context.getZooKeeperRoot()).andReturn("zkroot").anyTimes();
     expect(context.getInstanceID()).andReturn("iid").anyTimes();
     expect(context.getZooKeepers()).andReturn("localhost").anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(120000).anyTimes();

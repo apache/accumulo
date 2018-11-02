@@ -54,7 +54,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
   }
 
   @Override
-  public boolean isPropertySet(Property prop) {
+  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
     return false;
   }
 }

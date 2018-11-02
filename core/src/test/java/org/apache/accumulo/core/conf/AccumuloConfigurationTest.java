@@ -151,7 +151,7 @@ public class AccumuloConfigurationTest {
     }
 
     @Override
-    public boolean isPropertySet(Property prop) {
+    public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
       return props.containsKey(prop.getKey());
     }
 

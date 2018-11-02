@@ -221,7 +221,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
   }
 
   @Override
-  public boolean isPropertySet(Property prop) {
+  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
     if (prop.isSensitive()) {
       String hadoopVal = getSensitiveFromHadoop(prop);
       if (hadoopVal != null) {
@@ -229,7 +229,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
       }
     }
     return overrides.containsKey(prop.getKey()) || staticConfigs.containsKey(prop.getKey())
-        || getConfiguration().containsKey(prop.getKey()) || parent.isPropertySet(prop);
+        || getConfiguration().containsKey(prop.getKey()) || parent.isPropertySet(prop, cacheAndWatch);
   }
 
   @Override

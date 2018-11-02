@@ -61,7 +61,7 @@ class ZooConfigurationFactory {
         };
         propCache = zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),
             watcher);
-        config = new ZooConfiguration(context.getInstanceID(), propCache, parent);
+        config = new ZooConfiguration(context, propCache, parent);
         instances.put(context.getInstanceID(), config);
       }
     }

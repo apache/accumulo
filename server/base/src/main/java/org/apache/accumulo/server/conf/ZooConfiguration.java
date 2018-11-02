@@ -28,22 +28,27 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ZooConfiguration extends AccumuloConfiguration {
+
   private static final Logger log = LoggerFactory.getLogger(ZooConfiguration.class);
 
+  private final ServerContext context;
   private final ZooCache propCache;
   private final AccumuloConfiguration parent;
   private final Map<String,String> fixedProps = Collections.synchronizedMap(new HashMap<>());
   private final String propPathPrefix;
 
-  protected ZooConfiguration(String instanceId, ZooCache propCache, AccumuloConfiguration parent) {
+  protected ZooConfiguration(ServerContext context, ZooCache propCache, AccumuloConfiguration parent) {
+    this.context = context;
     this.propCache = propCache;
     this.parent = parent;
-    this.propPathPrefix = ZooUtil.getRoot(instanceId) + Constants.ZCONFIG;
+    this.propPathPrefix = context.getZooKeeperRoot() + Constants.ZCONFIG;
   }
 
   @Override
@@ -98,9 +103,26 @@ public class ZooConfiguration extends AccumuloConfiguration {
   }
 
   @Override
-  public boolean isPropertySet(Property prop) {
-    return fixedProps.containsKey(prop.getKey()) || getRaw(prop.getKey()) != null
-        || parent.isPropertySet(prop);
+  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
+    if (fixedProps.containsKey(prop.getKey())) {
+      return true;
+    }
+    if (cacheAndWatch) {
+      if (getRaw(prop.getKey()) != null) {
+        return true;
+      }
+    } else {
+      ZooReader zr = context.getZooReaderWriter();
+      String zPath = propPathPrefix + "/" + prop.getKey();
+      try {
+        if (zr.exists(zPath)) {
+          return true;
+        }
+      } catch (KeeperException|InterruptedException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+    return parent.isPropertySet(prop, cacheAndWatch);
   }
 
   private String getRaw(String key) {
