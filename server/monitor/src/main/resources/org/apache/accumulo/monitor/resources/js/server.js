@@ -21,17 +21,12 @@ var tabletResults;
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshServer() {
-  $.ajaxSetup({
-    async: false
+  getTServer(serv).then(function() {;
+    refreshDetailTable();
+    refreshHistoryTable();
+    refreshCurrentTable();
+    refreshResultsTable();
   });
-  getTServer(serv);
-  $.ajaxSetup({
-    async: true
-  });
-  refreshDetailTable();
-  refreshHistoryTable();
-  refreshCurrentTable();
-  refreshResultsTable();
 }
 
 /**

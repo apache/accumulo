@@ -19,14 +19,9 @@ var id;
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshTraceShow() {
-  $.ajaxSetup({
-    async: false
+  getTraceShow(id).then(function() {
+    refreshTraceShowTable();
   });
-  getTraceShow(id);
-  $.ajaxSetup({
-    async: true
-  });
-  refreshTraceShowTable();
 }
 
 /**

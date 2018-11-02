@@ -26,14 +26,9 @@ $(document).ready(function() {
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshReplication() {
-  $.ajaxSetup({
-    async: false
+  getReplication().then(function() {
+    refreshReplicationsTable();
   });
-  getReplication();
-  $.ajaxSetup({
-    async: true
-  });
-  refreshReplicationsTable();
 }
 
 /**

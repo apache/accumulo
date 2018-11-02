@@ -26,16 +26,12 @@ $(document).ready(function() {
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshMaster() {
-  $.ajaxSetup({
-    async: false
+  getMaster().then(function() {
+    refreshMasterTable();
   });
-  getMaster();
-  getRecoveryList();
-  $.ajaxSetup({
-    async: true
+  getRecoveryList().then(function() {
+    recoveryList();
   });
-  refreshMasterTable();
-  recoveryList();
 }
 
 

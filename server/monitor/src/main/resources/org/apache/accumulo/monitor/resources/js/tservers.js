@@ -76,16 +76,11 @@ $(document).ready(function() {
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshTServers() {
-  $.ajaxSetup({
-    async: false
+  getTServers().then(function() {
+    refreshBadTServersTable();
+    refreshDeadTServersTable();
+    refreshTServersTable();
   });
-  getTServers();
-  $.ajaxSetup({
-    async: true
-  });
-  refreshBadTServersTable();
-  refreshDeadTServersTable();
-  refreshTServersTable();
 }
 
 /**

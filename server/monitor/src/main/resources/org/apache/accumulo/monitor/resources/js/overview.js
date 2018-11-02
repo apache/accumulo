@@ -26,27 +26,27 @@ $(document).ready(function() {
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshOverview() {
-  $.ajaxSetup({
-    async: false
+  getMaster().then(function() {
+    refreshMasterTable();
   });
-  getMaster();
-  getZK();
-  getIngestRate();
-  getScanEntries();
-  getIngestByteRate();
-  getQueryByteRate();
-  getLoadAverage();
-  getLookups();
-  getMinorCompactions();
-  getMajorCompactions();
-  getIndexCacheHitRate();
-  getDataCacheHitRate();
-  $.ajaxSetup({
-    async: true
+  getZK().then(function() {
+    refreshZKTable();
   });
-  refreshMasterTable();
-  refreshZKTable();
-  makePlots();
+  var requests = [
+    getIngestRate(),
+    getScanEntries(),
+    getIngestByteRate(),
+    getQueryByteRate(),
+    getLoadAverage(),
+    getLookups(),
+    getMinorCompactions(),
+    getMajorCompactions(),
+    getIndexCacheHitRate(),
+    getDataCacheHitRate()
+  ];
+  $.when(...requests).always(function() {
+    makePlots();
+  });
 }
 
 /**

@@ -41,22 +41,16 @@
          * Creates initial visualization table, passes the shape, size, motion, and color from the template
          */
         $(document).ready(function() {
-          $.ajaxSetup({
-            async: false
-          });
-          getServerStats();
-          $.ajaxSetup({
-            async: true
-          });
+          getServerStats().then(function() {
+            setStats();
+            setOptions('${shape}', '${size}', '${motion}', '${color}');
+            setState();
 
-          setStats();
-          setOptions('${shape}', '${size}', '${motion}', '${color}');
-          setState();
-
-          drawGrid();
-          getXML();
-          refresh();
-          drawDots();
+            drawGrid();
+            getXML();
+            refresh();
+            drawDots();
+          });
         });
         // Populates variables to be used in the visualization
         var numCores = 8;

@@ -20,14 +20,9 @@ var tableID;
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshTable() {
-  $.ajaxSetup({
-    async: false
+  getTableServers(tableID).then(function() {
+    refreshTableServersTable();
   });
-  getTableServers(tableID);
-  $.ajaxSetup({
-    async: true
-  });
-  refreshTableServersTable();
 }
 
 /**

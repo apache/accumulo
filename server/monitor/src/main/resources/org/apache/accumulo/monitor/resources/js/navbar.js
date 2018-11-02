@@ -26,14 +26,9 @@ $(document).ready(function() {
  * Makes the REST calls, generates the sidebar with the new information
  */
 function refreshSidebar() {
-  $.ajaxSetup({
-    async: false
+  getStatus().then(function() {
+    refreshSideBarNotifications();
   });
-  getStatus();
-  $.ajaxSetup({
-    async: true
-  });
-  refreshSideBarNotifications();
 }
 
 /**

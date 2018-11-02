@@ -26,14 +26,9 @@ $(document).ready(function() {
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshScans() {
-  $.ajaxSetup({
-    async: false
+  getScans().then(function() {
+    refreshScansTable();
   });
-  getScans();
-  $.ajaxSetup({
-    async: true
-  });
-  refreshScansTable();
 }
 
 /**
