@@ -84,15 +84,7 @@ public class OutputInfoImpl implements OutputInfo {
 
     @Override
     public OutputOptions clientInfo(ClientInfo clientInfo) {
-      Objects.requireNonNull(clientInfo, "ClientInfo must not be null");
-      this.clientInfo = clientInfo;
-      return this;
-    }
-
-    @Override
-    public OutputOptions clientProperties(Properties clientProps) {
-      Objects.requireNonNull(clientProps, "Properties must not be null");
-      this.clientInfo = ClientInfo.from(clientProps);
+      this.clientInfo = Objects.requireNonNull(clientInfo, "ClientInfo must not be null");
       return this;
     }
 

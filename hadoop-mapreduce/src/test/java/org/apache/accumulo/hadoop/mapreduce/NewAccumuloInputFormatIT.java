@@ -46,8 +46,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat;
-import org.apache.accumulo.hadoop.mapreduce.InputInfo;
 import org.apache.accumulo.hadoopImpl.mapreduce.BatchInputSplit;
 import org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -287,7 +285,7 @@ public class NewAccumuloInputFormatIT extends AccumuloClusterHarness {
       InputInfo.InputInfoBuilder.InputFormatOptions opts = InputInfo.builder()
           .clientInfo(getClientInfo()).table(table).scanAuths(Authorizations.EMPTY);
       if (sample)
-        opts = opts.setSamplerConfiguration(SAMPLER_CONFIG);
+        opts = opts.samplerConfiguration(SAMPLER_CONFIG);
       if (batchScan)
         AccumuloInputFormat.setInfo(job, opts.batchScan().build());
       else

@@ -42,7 +42,7 @@ public interface OutputInfo {
   ClientInfo getClientInfo();
 
   /**
-   * @return the client properties set using OutputInfo.builder().clientProperties(props)
+   * @return the client properties set using OutputInfo.builder().clientInfo(info)
    */
   Properties getClientProperties();
 
@@ -73,25 +73,35 @@ public interface OutputInfo {
     return new OutputInfoImpl.OutputInfoBuilderImpl();
   }
 
+  /**
+   * Fluent API builder for OutputInfo
+   *
+   * @since 2.0
+   */
   interface OutputInfoBuilder {
+
+    /**
+     * Required params for client
+     *
+     * @since 2.0
+     */
     interface ClientParams {
       /**
-       * Set the connection information needed to communicate with Accumulo in this job.
+       * Set the connection information needed to communicate with Accumulo in this job. ClientInfo
+       * param can be created using {@link ClientInfo#from(String)} or
+       * {@link ClientInfo#from(Properties)}
        *
        * @param clientInfo
        *          Accumulo connection information
        */
       OutputOptions clientInfo(ClientInfo clientInfo);
-
-      /**
-       * Set the connection information needed to communicate with Accumulo in this job.
-       *
-       * @param clientProps
-       *          Accumulo connection information
-       */
-      OutputOptions clientProperties(Properties clientProps);
     }
 
+    /**
+     * Builder options
+     *
+     * @since 2.0
+     */
     interface OutputOptions {
       /**
        * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new

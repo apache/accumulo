@@ -88,8 +88,18 @@ public interface FileOutputInfo {
     return new FileOutputInfoImpl.FileOutputInfoBuilderImpl();
   }
 
+  /**
+   * Fluent API builder for FileOutputInfo
+   *
+   * @since 2.0
+   */
   interface FileOutputInfoBuilder {
 
+    /**
+     * Required params for builder
+     *
+     * @since 2.0
+     */
     interface PathParams {
       /**
        * Set the Path of the output directory for the map-reduce job.
@@ -97,6 +107,11 @@ public interface FileOutputInfo {
       OutputOptions outputPath(Path path);
     }
 
+    /**
+     * Options for builder
+     *
+     * @since 2.0
+     */
     interface OutputOptions {
       /**
        * Sets the compression type to use for data blocks, overriding the default. Specifying a

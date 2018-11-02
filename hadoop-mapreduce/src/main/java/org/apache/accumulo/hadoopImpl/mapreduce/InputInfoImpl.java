@@ -16,15 +16,13 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -33,6 +31,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.hadoop.mapreduce.InputInfo;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class InputInfoImpl implements InputInfo {
   String tableName;
@@ -100,7 +101,7 @@ public class InputInfoImpl implements InputInfo {
 
   @Override
   public Collection<IteratorSetting> getIterators() {
-    return iterators.entrySet().stream().map(Map.Entry::getValue).collect(Collectors.toSet());
+    return iterators.values();
   }
 
   @Override
@@ -149,45 +150,35 @@ public class InputInfoImpl implements InputInfo {
   public static class InputInfoBuilderImpl
       implements InputInfoBuilder, InputInfoBuilder.ClientParams, InputInfoBuilder.TableParams,
       InputInfoBuilder.AuthsParams, InputInfoBuilder.InputFormatOptions,
-      InputInfoBuilder.NonBatchScanOptions, InputInfoBuilder.BatchScanOptions {
+      InputInfoBuilder.ScanOptions, InputInfoBuilder.BatchScanOptions {
 
     String tableName;
     ClientInfo clientInfo;
     Authorizations scanAuths;
 
     Optional<String> context = Optional.empty();
-    Collection<Range> ranges = new ArrayList<>();
-    Collection<Pair<byte[],byte[]>> cfcqPairs = new ArrayList<>();
-    Map<String,IteratorSetting> iterators = new LinkedHashMap<>();
+    Collection<Range> ranges = Collections.emptyList();
+    Collection<Pair<byte[],byte[]>> cfcqPairs = Collections.emptyList();
+    Map<String,IteratorSetting> iterators = Collections.emptyMap();
     Optional<SamplerConfiguration> samplerConfig = Optional.empty();
-    Map<String,String> hints = new HashMap<>();
+    Map<String,String> hints = Collections.emptyMap();
     InputInfoBooleans bools = new InputInfoBooleans();
 
     @Override
     public InputInfoBuilder.TableParams clientInfo(ClientInfo clientInfo) {
-      Objects.requireNonNull(clientInfo, "ClientInfo must not be null");
-      this.clientInfo = clientInfo;
-      return this;
-    }
-
-    @Override
-    public InputInfoBuilder.TableParams clientProperties(Properties clientProps) {
-      Objects.requireNonNull(clientProps, "Properties must not be null");
-      this.clientInfo = ClientInfo.from(clientProps);
+      this.clientInfo = Objects.requireNonNull(clientInfo, "ClientInfo must not be null");;
       return this;
     }
 
     @Override
     public InputInfoBuilder.AuthsParams table(String tableName) {
-      Objects.requireNonNull(tableName, "Table name must not be null");
-      this.tableName = tableName;
+      this.tableName = Objects.requireNonNull(tableName, "Table name must not be null");;
       return this;
     }
 
     @Override
     public InputInfoBuilder.InputFormatOptions scanAuths(Authorizations auths) {
-      Objects.requireNonNull(auths, "Authorizations must not be null");
-      this.scanAuths = auths;
+      this.scanAuths = Objects.requireNonNull(auths, "Authorizations must not be null");;
       return this;
     }
 
@@ -199,7 +190,9 @@ public class InputInfoImpl implements InputInfo {
 
     @Override
     public InputInfoBuilder.InputFormatOptions ranges(Collection<Range> ranges) {
-      this.ranges = ranges;
+      this.ranges = ImmutableList.copyOf(Objects.requireNonNull(ranges, "Collection of ranges is null"));
+      if (ranges.size() == 0)
+        throw new IllegalArgumentException("Specified collection of ranges is empty.");
       return this;
     }
 
@@ -213,18 +206,23 @@ public class InputInfoImpl implements InputInfo {
     @Override
     public InputInfoBuilder.InputFormatOptions addIterator(IteratorSetting cfg) {
       // store iterators by name to prevent duplicates
+      Objects.requireNonNull(cfg, "IteratorSetting must not be null.");
+      if (this.iterators.size() == 0)
+        this.iterators = new LinkedHashMap<>();
       this.iterators.put(cfg.getName(), cfg);
       return this;
     }
 
     @Override
-    public InputInfoBuilder.InputFormatOptions setExecutionHints(Map<String,String> hints) {
-      this.hints = hints;
+    public InputInfoBuilder.InputFormatOptions executionHints(Map<String,String> hints) {
+      this.hints = ImmutableMap.copyOf(Objects.requireNonNull(hints, "Map of execution hints must not be null."));
+      if (hints.size() == 0)
+        throw new IllegalArgumentException("Specified map of execution hints is empty.");
       return this;
     }
 
     @Override
-    public InputInfoBuilder.InputFormatOptions setSamplerConfiguration(
+    public InputInfoBuilder.InputFormatOptions samplerConfiguration(
         SamplerConfiguration samplerConfig) {
       this.samplerConfig = Optional.of(samplerConfig);
       return this;
@@ -237,19 +235,19 @@ public class InputInfoImpl implements InputInfo {
     }
 
     @Override
-    public NonBatchScanOptions scanIsolation() {
+    public ScanOptions scanIsolation() {
       bools.scanIsolation = true;
       return this;
     }
 
     @Override
-    public NonBatchScanOptions localIterators() {
+    public ScanOptions localIterators() {
       bools.localIters = true;
       return this;
     }
 
     @Override
-    public NonBatchScanOptions offlineScan() {
+    public ScanOptions offlineScan() {
       bools.offlineScan = true;
       return this;
     }

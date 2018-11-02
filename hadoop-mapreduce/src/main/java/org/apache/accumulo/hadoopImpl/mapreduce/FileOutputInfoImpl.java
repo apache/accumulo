@@ -103,8 +103,7 @@ public class FileOutputInfoImpl implements FileOutputInfo {
 
     @Override
     public OutputOptions outputPath(Path path) {
-      Objects.requireNonNull(path);
-      this.outputPath = path;
+      this.outputPath = Objects.requireNonNull(path);;
       return this;
     }
 
@@ -146,8 +145,7 @@ public class FileOutputInfoImpl implements FileOutputInfo {
 
     @Override
     public OutputOptions summarizers(SummarizerConfiguration... summarizerConfigs) {
-      Objects.requireNonNull(summarizerConfigs);
-      this.summarizers = Arrays.asList(summarizerConfigs);
+      this.summarizers = Arrays.asList(Objects.requireNonNull(summarizerConfigs));
       return this;
     }
 

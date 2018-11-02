@@ -43,7 +43,7 @@ import org.apache.hadoop.mapreduce.Job;
  * InputInfo.builder().clientInfo(info).table(name).scanAuths(auths).build();
  *
  * InputInfo.builder().clientProperties(props).table(name).scanAuths(auths).addIterator(cfg)
- *     .setExecutionHints(hints).build();
+ *     .executionHints(hints).build();
  * </pre>
  *
  * @since 2.0
@@ -60,7 +60,7 @@ public interface InputInfo {
   ClientInfo getClientInfo();
 
   /**
-   * @return the client properties set using InputInfo.builder().clientProperties(props)
+   * @return the client properties set using InputInfo.builder().clientInfo(info)
    */
   Properties getClientProperties();
 
@@ -91,12 +91,12 @@ public interface InputInfo {
   Collection<IteratorSetting> getIterators();
 
   /**
-   * @return the SamplerConfiguration set using InputInfo.builder()...setSamplerConfiguration(cfg)
+   * @return the SamplerConfiguration set using InputInfo.builder()...samplerConfiguration(cfg)
    */
   Optional<SamplerConfiguration> getSamplerConfig();
 
   /**
-   * @return the Execution Hints set using InputInfo.builder()...setExecutionHints(hints)
+   * @return the Execution Hints set using InputInfo.builder()...executionHints(hints)
    */
   Map<String,String> getExecutionHints();
 
@@ -134,26 +134,32 @@ public interface InputInfo {
 
   /**
    * Required build values to be set.
+   *
+   * @since 2.0
    */
   interface InputInfoBuilder {
+    /**
+     * Required params for builder
+     *
+     * @since 2.0
+     */
     interface ClientParams {
       /**
-       * Set the connection information needed to communicate with Accumulo in this job.
+       * Set the connection information needed to communicate with Accumulo in this job. ClientInfo
+       * param can be created using {@link ClientInfo#from(String)} or
+       * {@link ClientInfo#from(Properties)}
        *
        * @param clientInfo
        *          Accumulo connection information
        */
       TableParams clientInfo(ClientInfo clientInfo);
-
-      /**
-       * Set the connection information needed to communicate with Accumulo in this job.
-       *
-       * @param clientProps
-       *          Accumulo connection information
-       */
-      TableParams clientProperties(Properties clientProps);
     }
 
+    /**
+     * Required params for builder
+     *
+     * @since 2.0
+     */
     interface TableParams {
       /**
        * Sets the name of the input table, over which this job will scan.
@@ -164,6 +170,11 @@ public interface InputInfo {
       AuthsParams table(String tableName);
     }
 
+    /**
+     * Required params for builder
+     *
+     * @since 2.0
+     */
     interface AuthsParams {
       /**
        * Sets the {@link Authorizations} used to scan. Must be a subset of the user's
@@ -175,6 +186,11 @@ public interface InputInfo {
       InputFormatOptions scanAuths(Authorizations auths);
     }
 
+    /**
+     * Options for batch scan
+     *
+     * @since 2.0
+     */
     interface BatchScanOptions {
       /**
        * @return newly created {@link InputInfo}
@@ -182,31 +198,32 @@ public interface InputInfo {
       InputInfo build();
     }
 
-    interface NonBatchScanOptions {
+    /**
+     * Options for scan
+     *
+     * @since 2.0
+     */
+    interface ScanOptions  extends BatchScanOptions {
       /**
        * @see InputFormatOptions#scanIsolation()
        */
-      NonBatchScanOptions scanIsolation();
+      ScanOptions scanIsolation();
 
       /**
        * @see InputFormatOptions#localIterators()
        */
-      NonBatchScanOptions localIterators();
+      ScanOptions localIterators();
 
       /**
        * @see InputFormatOptions#offlineScan()
        */
-      NonBatchScanOptions offlineScan();
-
-      /**
-       * @return newly created {@link InputInfo}
-       */
-      InputInfo build();
-
+      ScanOptions offlineScan();
     }
 
     /**
      * Optional values to set using fluent API
+     *
+     * @since 2.0
      */
     interface InputFormatOptions {
       /**
@@ -249,7 +266,7 @@ public interface InputInfo {
        * Set these execution hints on scanners created for input splits. See
        * {@link ScannerBase#setExecutionHints(java.util.Map)}
        */
-      InputFormatOptions setExecutionHints(Map<String,String> hints);
+      InputFormatOptions executionHints(Map<String,String> hints);
 
       /**
        * Causes input format to read sample data. If sample data was created using a different
@@ -262,7 +279,7 @@ public interface InputInfo {
        *
        * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
        */
-      InputFormatOptions setSamplerConfiguration(SamplerConfiguration samplerConfig);
+      InputFormatOptions samplerConfiguration(SamplerConfiguration samplerConfig);
 
       /**
        * Disables the automatic adjustment of ranges for this job. This feature merges overlapping
@@ -281,7 +298,7 @@ public interface InputInfo {
        * <p>
        * By default, this feature is <b>disabled</b>.
        */
-      NonBatchScanOptions scanIsolation();
+      ScanOptions scanIsolation();
 
       /**
        * Enables the use of the {@link ClientSideIteratorScanner} in this job. This feature will
@@ -291,7 +308,7 @@ public interface InputInfo {
        * <p>
        * By default, this feature is <b>disabled</b>.
        */
-      NonBatchScanOptions localIterators();
+      ScanOptions localIterators();
 
       /**
        * Enable reading offline tables. By default, this feature is disabled and only online tables
@@ -318,7 +335,7 @@ public interface InputInfo {
        * <p>
        * By default, this feature is <b>disabled</b>.
        */
-      NonBatchScanOptions offlineScan();
+      ScanOptions offlineScan();
 
       /**
        * Enables the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job.
