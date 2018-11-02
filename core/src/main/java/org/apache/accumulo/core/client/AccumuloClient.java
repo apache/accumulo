@@ -100,6 +100,20 @@ public interface AccumuloClient extends AutoCloseable {
       throws TableNotFoundException;
 
   /**
+   * Factory method to create a BatchScanner with all of user's authorizations and the number of
+   * query threads configured when AccumuloClient was created. If no query threads were configured,
+   * defaults will be used.
+   *
+   * @param tableName
+   *          the name of the table to query
+   *
+   * @return BatchScanner object for configuring and querying
+   * @throws TableNotFoundException
+   *           when the specified table doesn't exist
+   */
+  BatchScanner createBatchScanner(String tableName) throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
+
+  /**
    * Factory method to create BatchDeleter
    *
    * @param tableName
@@ -210,6 +224,20 @@ public interface AccumuloClient extends AutoCloseable {
    */
   Scanner createScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException;
+
+  /**
+   * Factory method to create a Scanner with all of the user's authorizations.
+   *
+   * @param tableName
+   *          the name of the table to query data from
+   *
+   * @return Scanner object for configuring and querying data with
+   * @throws TableNotFoundException
+   *           when the specified table doesn't exist
+   *
+   * @see IsolatedScanner
+   */
+  Scanner createScanner(String tableName) throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
 
   /**
    * Factory method to create a ConditionalWriter connected to Accumulo.

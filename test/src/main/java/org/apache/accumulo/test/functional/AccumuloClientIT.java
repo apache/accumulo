@@ -45,7 +45,7 @@ import com.google.common.collect.Iterables;
 
 public class AccumuloClientIT extends AccumuloClusterHarness {
 
-  private static interface CloseCheck {
+  private interface CloseCheck {
     void check() throws Exception;
   }
 
@@ -69,11 +69,11 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     // this should cause the connector to stop functioning
     client.close();
 
-    expectClosed(() -> c.tableOperations());
+    expectClosed(c::tableOperations);
   }
 
   @Test
-  public void testclientectorBuilder() throws Exception {
+  public void testAccumuloClientBuilder() throws Exception {
     AccumuloClient c = getAccumuloClient();
     String instanceName = c.info().getInstanceName();
     String zookeepers = c.info().getZooKeepers();

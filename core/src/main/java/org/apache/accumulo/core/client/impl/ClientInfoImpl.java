@@ -70,9 +70,7 @@ public class ClientInfoImpl implements ClientInfo {
   @Override
   public Properties getProperties() {
     Properties result = new Properties();
-    properties.forEach((key, value) -> {
-      result.setProperty((String) key, (String) value);
-    });
+    properties.forEach((key, value) -> result.setProperty((String) key, (String) value));
     return result;
   }
 
