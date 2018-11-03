@@ -60,10 +60,6 @@ html,body {
 }
 
 #headertitle {
-  /*position: absolute;
-  top: -1.0em;
-  left: 0.5em;
-  right: 1.0em;*/
   font-size: 20pt;
 }
 
@@ -433,7 +429,7 @@ pre.logevent {
 }
 
 #accumulo-avatar {
-  margin: 8px;
+  margin: -5px 10px 0 0;
   border-radius: 5px;
   width: 32px;
   height: 32px;
