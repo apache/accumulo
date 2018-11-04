@@ -359,6 +359,12 @@ pre.logevent {
   text-align: center;
   font-size: 1.5em;
 }
+
+.plot {
+  width: 100%;
+  height: 200px;
+}
+
 .nowrap {
   white-space:nowrap;
 }

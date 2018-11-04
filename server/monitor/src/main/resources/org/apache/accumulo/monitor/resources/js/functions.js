@@ -253,63 +253,6 @@ function createTableCell(index, sortValue, showValue) {
       '">' + showValue + '</td>';
 }
 
-/**
- * Creates a plot on the selected id, with the data
- * The type of the plot depends on the type:
- * type = 0 -> Single lines plot
- * type = 1 -> Single points plot
- * type = 2 -> Double lines plot
- *
- * @param {string} id Canvas ID
- * @param {object|array} inData Data to plot
- * @param {number} type Type of plot
- */
-function makePlot(id, inData, type) {
-  var d = new Date();
-  var n = d.getTimezoneOffset() * 60000; // Converts offset to milliseconds
-  var tz = new Date().toLocaleTimeString('en-us',
-      {timeZoneName: 'short'}).split(' ')[2]; // Short version of timezone
-  var tzFormat = '%H:%M<br>' + tz;
-
-  var dataInfo = [];
-
-  // Select the type of plot
-  switch (type) {
-    // Single lines plot
-    case 0:
-      dataInfo.push({ data: inData,
-          lines: { show: true },
-          color: '#d9534f' });
-      break;
-    // Single points plot
-    case 1:
-      dataInfo.push({ data: inData,
-          points: { show: true, radius: 1 },
-          color: '#d9534f' });
-      break;
-    // Double lines plot
-    case 2:
-      dataInfo.push({ label: 'Read',
-          data: inData.Read,
-          lines: { show: true },
-          color: '#d9534f' })
-      dataInfo.push({ label: 'Returned',
-          data: inData.Returned,
-          lines: { show: true },
-          color: '#337ab7' });
-      break;
-    default:
-      dataInfo = [];
-  }
-
-  // Format the plot axis
-  var plotInfo = {yaxis: {}, xaxis: {mode: 'time', minTickSize: [1, 'minute'],
-  timeFormat: tzFormat, ticks: 3}};
-
-  // Plot the data
-  $.plot($('#' + id), dataInfo, plotInfo);
-}
-
 ///// REST Calls /////////////
 
 /**
