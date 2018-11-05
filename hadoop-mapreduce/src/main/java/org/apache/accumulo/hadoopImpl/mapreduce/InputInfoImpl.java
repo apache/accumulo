@@ -192,7 +192,7 @@ public class InputInfoImpl implements InputInfo {
     public InputInfoBuilder.InputFormatOptions ranges(Collection<Range> ranges) {
       this.ranges = ImmutableList
           .copyOf(Objects.requireNonNull(ranges, "Collection of ranges is null"));
-      if (ranges.size() == 0)
+      if (this.ranges.size() == 0)
         throw new IllegalArgumentException("Specified collection of ranges is empty.");
       return this;
     }
@@ -202,7 +202,7 @@ public class InputInfoImpl implements InputInfo {
         Collection<IteratorSetting.Column> fetchColumns) {
       this.fetchColumns = ImmutableList
           .copyOf(Objects.requireNonNull(fetchColumns, "Collection of fetch columns is null"));
-      if (ranges.size() == 0)
+      if (this.fetchColumns.size() == 0)
         throw new IllegalArgumentException("Specified collection of fetch columns is empty.");
       return this;
     }

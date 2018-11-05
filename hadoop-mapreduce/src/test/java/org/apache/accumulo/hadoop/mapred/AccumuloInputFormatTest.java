@@ -137,25 +137,26 @@ public class AccumuloInputFormatTest {
    * expected.
    */
   @Test
-  public void testIteratorOptionEncoding() {
+  public void testIteratorOptionEncoding() throws Throwable {
     String key = "colon:delimited:key";
     String value = "comma,delimited,value";
-    IteratorSetting someSetting = new IteratorSetting(1, "iterator", WholeRowIterator.class);
-    someSetting.addOption(key, value);
+    IteratorSetting iter1 = new IteratorSetting(1, "iter1", WholeRowIterator.class);
+    iter1.addOption(key, value);
     // also test if reusing options will create duplicate iterators
     InputInfo.InputInfoBuilder.InputFormatOptions opts = InputInfo.builder().clientInfo(clientInfo)
         .table("test").scanAuths(Authorizations.EMPTY);
-    AccumuloInputFormat.setInfo(job, opts.addIterator(someSetting).build());
+    AccumuloInputFormat.setInfo(job, opts.addIterator(iter1).build());
 
-    List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class, job);
+    List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class,
+        job);
     assertEquals(1, list.size());
     assertEquals(1, list.get(0).getOptions().size());
     assertEquals(list.get(0).getOptions().get(key), value);
 
-    someSetting.addOption(key + "2", value);
-    someSetting.setPriority(2);
-    someSetting.setName("it2");
-    AccumuloInputFormat.setInfo(job, opts.addIterator(someSetting).build());
+    IteratorSetting iter2 = new IteratorSetting(1, "iter2", WholeRowIterator.class);
+    iter2.addOption(key, value);
+    iter2.addOption(key + "2", value);
+    AccumuloInputFormat.setInfo(job, opts.addIterator(iter1).addIterator(iter2).build());
     list = InputConfigurator.getIterators(AccumuloInputFormat.class, job);
     assertEquals(2, list.size());
     assertEquals(1, list.get(0).getOptions().size());
