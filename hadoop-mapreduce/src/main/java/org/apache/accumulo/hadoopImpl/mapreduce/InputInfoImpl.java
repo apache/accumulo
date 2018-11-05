@@ -200,7 +200,10 @@ public class InputInfoImpl implements InputInfo {
     @Override
     public InputInfoBuilder.InputFormatOptions fetchColumns(
         Collection<IteratorSetting.Column> fetchColumns) {
-      this.fetchColumns = fetchColumns;
+      this.fetchColumns = ImmutableList
+          .copyOf(Objects.requireNonNull(fetchColumns, "Collection of fetch columns is null"));
+      if (ranges.size() == 0)
+        throw new IllegalArgumentException("Specified collection of fetch columns is empty.");
       return this;
     }
 
