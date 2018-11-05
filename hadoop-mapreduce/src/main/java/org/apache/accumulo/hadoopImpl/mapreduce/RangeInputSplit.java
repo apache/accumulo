@@ -36,9 +36,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
 
@@ -50,7 +48,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   private String[] locations;
   private String tableId, tableName;
   private Boolean offline, isolatedScan, localIterators;
-  private Set<Pair<Text,Text>> fetchedColumns;
+  private Set<IteratorSetting.Column> fetchedColumns;
   private List<IteratorSetting> iterators;
   private SamplerConfiguration samplerConfig;
   private Map<String,String> executionHints;
@@ -281,18 +279,18 @@ public class RangeInputSplit extends InputSplit implements Writable {
     this.localIterators = localIterators;
   }
 
-  public Set<Pair<Text,Text>> getFetchedColumns() {
+  public Set<IteratorSetting.Column> getFetchedColumns() {
     return fetchedColumns;
   }
 
-  public void setFetchedColumns(Collection<Pair<Text,Text>> fetchedColumns) {
+  public void setFetchedColumns(Collection<IteratorSetting.Column> fetchedColumns) {
     this.fetchedColumns = new HashSet<>();
-    for (Pair<Text,Text> columns : fetchedColumns) {
+    for (IteratorSetting.Column columns : fetchedColumns) {
       this.fetchedColumns.add(columns);
     }
   }
 
-  public void setFetchedColumns(Set<Pair<Text,Text>> fetchedColumns) {
+  public void setFetchedColumns(Set<IteratorSetting.Column> fetchedColumns) {
     this.fetchedColumns = fetchedColumns;
   }
 

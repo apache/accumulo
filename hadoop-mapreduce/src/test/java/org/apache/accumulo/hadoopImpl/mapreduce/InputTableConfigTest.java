@@ -31,7 +31,6 @@ import java.util.Set;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,9 +81,9 @@ public class InputTableConfigTest {
 
   @Test
   public void testSerialization_columns() throws IOException {
-    Set<Pair<Text,Text>> columns = new HashSet<>();
-    columns.add(new Pair<>(new Text("cf1"), new Text("cq1")));
-    columns.add(new Pair<>(new Text("cf2"), null));
+    Set<IteratorSetting.Column> columns = new HashSet<>();
+    columns.add(new IteratorSetting.Column(new Text("cf1"), new Text("cq1")));
+    columns.add(new IteratorSetting.Column(new Text("cf2"), null));
     tableQueryConfig.fetchColumns(columns);
 
     byte[] serialized = serialize(tableQueryConfig);

@@ -38,7 +38,6 @@ import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -131,13 +130,13 @@ public class AccumuloInputFormatTest {
   public void testIteratorOptionEncoding() throws Throwable {
     String key = "colon:delimited:key";
     String value = "comma,delimited,value";
-    IteratorSetting someSetting = new IteratorSetting(1, "iterator", WholeRowIterator.class);
-    someSetting.addOption(key, value);
+    IteratorSetting iter1 = new IteratorSetting(1, "iter1", WholeRowIterator.class);
+    iter1.addOption(key, value);
     Job job = Job.getInstance();
     // also test if reusing options will create duplicate iterators
     InputInfo.InputInfoBuilder.InputFormatOptions opts = InputInfo.builder().clientInfo(clientInfo)
         .table("test").scanAuths(Authorizations.EMPTY);
-    AccumuloInputFormat.setInfo(job, opts.addIterator(someSetting).build());
+    AccumuloInputFormat.setInfo(job, opts.addIterator(iter1).build());
 
     List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class,
         job.getConfiguration());
@@ -145,10 +144,10 @@ public class AccumuloInputFormatTest {
     assertEquals(1, list.get(0).getOptions().size());
     assertEquals(list.get(0).getOptions().get(key), value);
 
-    someSetting.addOption(key + "2", value);
-    someSetting.setPriority(2);
-    someSetting.setName("it2");
-    AccumuloInputFormat.setInfo(job, opts.addIterator(someSetting).build());
+    IteratorSetting iter2 = new IteratorSetting(1, "iter2", WholeRowIterator.class);
+    iter2.addOption(key, value);
+    iter2.addOption(key + "2", value);
+    AccumuloInputFormat.setInfo(job, opts.addIterator(iter1).addIterator(iter2).build());
     list = InputConfigurator.getIterators(AccumuloInputFormat.class, job.getConfiguration());
     assertEquals(2, list.size());
     assertEquals(1, list.get(0).getOptions().size());
@@ -214,24 +213,16 @@ public class AccumuloInputFormatTest {
   @Test
   public void testEmptyColumnFamily() throws IOException {
     Job job = Job.getInstance();
-    byte[] emptyBytes = "".getBytes();
-    Set<Pair<byte[],byte[]>> cols = new HashSet<>();
-    Set<Pair<Text,Text>> textCols = new HashSet<>();
-    cols.add(new Pair<>(emptyBytes, null));
-    textCols.add(new Pair<>(new Text(""), null));
-    cols.add(new Pair<>("foo".getBytes(), "bar".getBytes()));
-    textCols.add(new Pair<>(new Text("foo"), new Text("bar")));
-    cols.add(new Pair<>(emptyBytes, "bar".getBytes()));
-    textCols.add(new Pair<>(new Text(""), new Text("bar")));
-    cols.add(new Pair<>(emptyBytes, emptyBytes));
-    textCols.add(new Pair<>(new Text(""), new Text("")));
-    cols.add(new Pair<>("foo".getBytes(), emptyBytes));
-    textCols.add(new Pair<>(new Text("foo"), new Text("")));
+    Set<IteratorSetting.Column> cols = new HashSet<>();
+    cols.add(new IteratorSetting.Column(new Text(""), null));
+    cols.add(new IteratorSetting.Column(new Text("foo"), new Text("bar")));
+    cols.add(new IteratorSetting.Column(new Text(""), new Text("bar")));
+    cols.add(new IteratorSetting.Column(new Text(""), new Text("")));
+    cols.add(new IteratorSetting.Column(new Text("foo"), new Text("")));
     AccumuloInputFormat.setInfo(job, InputInfo.builder().clientInfo(clientInfo).table("test")
         .scanAuths(Authorizations.EMPTY).fetchColumns(cols).build());
 
-    Set<Pair<Text,Text>> setCols = InputConfigurator.getFetchedColumns(AccumuloInputFormat.class,
-        job.getConfiguration());
-    assertEquals(textCols, setCols);
+    assertEquals(cols,
+        InputConfigurator.getFetchedColumns(AccumuloInputFormat.class, job.getConfiguration()));
   }
 }

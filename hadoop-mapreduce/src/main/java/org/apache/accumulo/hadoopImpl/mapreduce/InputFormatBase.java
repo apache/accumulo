@@ -29,9 +29,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -92,56 +90,8 @@ public abstract class InputFormatBase extends AbstractInputFormat {
   }
 
   /**
-   * Restricts the columns that will be mapped over for this job for the default input table.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param columnFamilyColumnQualifierPairs
-   *          a pair of {@link Text} objects corresponding to column family and column qualifier. If
-   *          the column qualifier is null, the entire column family is selected. An empty set is
-   *          the default and is equivalent to scanning the all columns.
-   * @since 1.5.0
-   */
-  public static void fetchColumns(Job job,
-      Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
-    InputConfigurator.fetchColumns(CLASS, job.getConfiguration(), columnFamilyColumnQualifierPairs);
-  }
-
-  /**
-   * Gets the columns to be mapped over from this job.
-   *
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return a set of columns
-   * @since 1.5.0
-   * @see #fetchColumns(Job, Collection)
-   */
-  protected static Set<Pair<Text,Text>> getFetchedColumns(JobContext context) {
-    return InputConfigurator.getFetchedColumns(CLASS, context.getConfiguration());
-  }
-
-  /**
-   * Encode an iterator on the single input table for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param cfg
-   *          the configuration of the iterator
-   * @since 1.5.0
-   */
-  public static void addIterator(Job job, IteratorSetting cfg) {
-    InputConfigurator.addIterator(CLASS, job.getConfiguration(), cfg);
-  }
-
-  /**
    * Gets a list of the iterator settings (for iterators to apply to a scanner) from this
    * configuration.
-   *
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return a list of iterators
-   * @since 1.5.0
-   * @see #addIterator(Job, IteratorSetting)
    */
   protected static List<IteratorSetting> getIterators(JobContext context) {
     return InputConfigurator.getIterators(CLASS, context.getConfiguration());

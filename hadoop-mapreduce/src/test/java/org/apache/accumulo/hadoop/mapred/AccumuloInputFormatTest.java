@@ -38,7 +38,6 @@ import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.hadoop.mapreduce.InputInfo;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.io.Text;
@@ -215,25 +214,16 @@ public class AccumuloInputFormatTest {
   }
 
   @Test
-  public void testEmptyColumnFamily() {
-    byte[] emptyBytes = "".getBytes();
-    Set<Pair<byte[],byte[]>> cols = new HashSet<>();
-    Set<Pair<Text,Text>> textCols = new HashSet<>();
-    cols.add(new Pair<>(emptyBytes, null));
-    textCols.add(new Pair<>(new Text(""), null));
-    cols.add(new Pair<>("foo".getBytes(), "bar".getBytes()));
-    textCols.add(new Pair<>(new Text("foo"), new Text("bar")));
-    cols.add(new Pair<>(emptyBytes, "bar".getBytes()));
-    textCols.add(new Pair<>(new Text(""), new Text("bar")));
-    cols.add(new Pair<>(emptyBytes, emptyBytes));
-    textCols.add(new Pair<>(new Text(""), new Text("")));
-    cols.add(new Pair<>("foo".getBytes(), emptyBytes));
-    textCols.add(new Pair<>(new Text("foo"), new Text("")));
+  public void testEmptyColumnFamily() throws IOException {
+    Set<IteratorSetting.Column> cols = new HashSet<>();
+    cols.add(new IteratorSetting.Column(new Text(""), null));
+    cols.add(new IteratorSetting.Column(new Text("foo"), new Text("bar")));
+    cols.add(new IteratorSetting.Column(new Text(""), new Text("bar")));
+    cols.add(new IteratorSetting.Column(new Text(""), new Text("")));
+    cols.add(new IteratorSetting.Column(new Text("foo"), new Text("")));
     AccumuloInputFormat.setInfo(job, InputInfo.builder().clientInfo(clientInfo).table("test")
         .scanAuths(Authorizations.EMPTY).fetchColumns(cols).build());
 
-    Set<Pair<Text,Text>> setCols = InputConfigurator.getFetchedColumns(AccumuloInputFormat.class,
-        job);
-    assertEquals(textCols, setCols);
+    assertEquals(cols, InputConfigurator.getFetchedColumns(AccumuloInputFormat.class, job));
   }
 }

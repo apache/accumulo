@@ -103,7 +103,8 @@ public class FileOutputInfoImpl implements FileOutputInfo {
 
     @Override
     public OutputOptions outputPath(Path path) {
-      this.outputPath = Objects.requireNonNull(path);;
+      this.outputPath = Objects.requireNonNull(path);
+      ;
       return this;
     }
 

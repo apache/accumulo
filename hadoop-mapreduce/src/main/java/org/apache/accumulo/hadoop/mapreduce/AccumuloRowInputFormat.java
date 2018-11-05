@@ -30,19 +30,16 @@ import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setSample
 import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setScanIsolation;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase;
+import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -68,6 +65,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * @since 2.0
  */
 public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Entry<Key,Value>>> {
+  private static Class CLASS = AccumuloRowInputFormat.class;
+
   @Override
   public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> createRecordReader(InputSplit split,
       TaskAttemptContext context) throws IOException, InterruptedException {
@@ -123,9 +122,9 @@ public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Ent
     if (info.getRanges().size() > 0)
       setRanges(job, info.getRanges());
     if (info.getIterators().size() > 0)
-      addAllIterators(job, info);
+      InputConfigurator.writeIteratorsToConf(CLASS, job.getConfiguration(), info.getIterators());
     if (info.getFetchColumns().size() > 0)
-      convertFetchColumns(job, info.getFetchColumns());
+      InputConfigurator.fetchColumns(CLASS, job.getConfiguration(), info.getFetchColumns());
     if (info.getSamplerConfig().isPresent())
       setSamplerConfiguration(job, info.getSamplerConfig().get());
     if (info.getExecutionHints().size() > 0)
@@ -135,18 +134,5 @@ public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Ent
     setLocalIterators(job, info.isLocalIterators());
     setOfflineTableScan(job, info.isOfflineScan());
     setBatchScan(job, info.isBatchScan());
-  }
-
-  private static void convertFetchColumns(Job job, Collection<Pair<byte[],byte[]>> fetchColumns) {
-    InputFormatBase.fetchColumns(job, fetchColumns.stream().map(p -> {
-      Text cf = (p.getFirst() != null) ? new Text(p.getFirst()) : null;
-      Text cq = (p.getSecond() != null) ? new Text(p.getSecond()) : null;
-      return new Pair<>(cf, cq);
-    }).collect(Collectors.toList()));
-  }
-
-  private static void addAllIterators(Job job, InputInfo info) {
-    for (IteratorSetting cfg : info.getIterators())
-      InputFormatBase.addIterator(job, cfg);
   }
 }

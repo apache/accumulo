@@ -19,7 +19,6 @@ package org.apache.accumulo.hadoop.mapred;
 import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClassLoaderContext;
 import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClientInfo;
 import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setScanAuthorizations;
-import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.addIterator;
 import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.fetchColumns;
 import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setAutoAdjustRanges;
 import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setBatchScan;
@@ -32,19 +31,15 @@ import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setSamplerCo
 import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setScanIsolation;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.hadoop.mapreduce.InputInfo;
 import org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat;
 import org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.RecordReaderBase;
-import org.apache.hadoop.io.Text;
+import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
@@ -69,7 +64,8 @@ import org.slf4j.LoggerFactory;
  * @since 2.0
  */
 public class AccumuloInputFormat implements InputFormat<Key,Value> {
-  private static Logger log = LoggerFactory.getLogger(AccumuloInputFormat.class);
+  private static Class CLASS = AccumuloInputFormat.class;
+  private static Logger log = LoggerFactory.getLogger(CLASS);
 
   /**
    * Gets the splits of the tables that have been set on the job by reading the metadata table for
@@ -131,9 +127,9 @@ public class AccumuloInputFormat implements InputFormat<Key,Value> {
     if (info.getRanges().size() > 0)
       setRanges(job, info.getRanges());
     if (info.getIterators().size() > 0)
-      addAllIteratorsMapRed(job, info);
+      InputConfigurator.writeIteratorsToConf(CLASS, job, info.getIterators());
     if (info.getFetchColumns().size() > 0)
-      convertFetchColumnsMapRed(job, info.getFetchColumns());
+      InputConfigurator.fetchColumns(CLASS, job, info.getFetchColumns());
     if (info.getSamplerConfig().isPresent())
       setSamplerConfiguration(job, info.getSamplerConfig().get());
     if (info.getExecutionHints().size() > 0)
@@ -143,19 +139,5 @@ public class AccumuloInputFormat implements InputFormat<Key,Value> {
     setLocalIterators(job, info.isLocalIterators());
     setOfflineTableScan(job, info.isOfflineScan());
     setBatchScan(job, info.isBatchScan());
-  }
-
-  private static void convertFetchColumnsMapRed(JobConf job,
-      Collection<Pair<byte[],byte[]>> fetchColumns) {
-    fetchColumns(job, fetchColumns.stream().map(p -> {
-      Text cf = (p.getFirst() != null) ? new Text(p.getFirst()) : null;
-      Text cq = (p.getSecond() != null) ? new Text(p.getSecond()) : null;
-      return new Pair<>(cf, cq);
-    }).collect(Collectors.toList()));
-  }
-
-  private static void addAllIteratorsMapRed(JobConf job, InputInfo info) {
-    for (IteratorSetting cfg : info.getIterators())
-      addIterator(job, cfg);
   }
 }

@@ -367,7 +367,7 @@ public abstract class AbstractInputFormat {
         throw new IllegalArgumentException("Can not initialize from " + baseSplit.getClass());
       }
 
-      Collection<Pair<Text,Text>> columns = baseSplit.getFetchedColumns();
+      Collection<IteratorSetting.Column> columns = baseSplit.getFetchedColumns();
       if (null == columns) {
         columns = tableConfig.getFetchedColumns();
       }

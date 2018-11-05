@@ -30,7 +30,6 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputInfoImpl;
 import org.apache.hadoop.mapreduce.Job;
 
@@ -83,7 +82,7 @@ public interface InputInfo {
    * @return the ColumnFamily,ColumnQualifier Pairs set using
    *         InputInfo.builder()...fetchColumns(cfcqPairs)
    */
-  Collection<Pair<byte[],byte[]>> getFetchColumns();
+  Collection<IteratorSetting.Column> getFetchColumns();
 
   /**
    * @return the collection of IteratorSettings set using InputInfo.builder()...addIterator(cfg)
@@ -203,7 +202,7 @@ public interface InputInfo {
      *
      * @since 2.0
      */
-    interface ScanOptions  extends BatchScanOptions {
+    interface ScanOptions extends BatchScanOptions {
       /**
        * @see InputFormatOptions#scanIsolation()
        */
@@ -246,12 +245,12 @@ public interface InputInfo {
       /**
        * Restricts the columns that will be mapped over for this job for the default input table.
        *
-       * @param cfcqPairs
-       *          a pair of byte[] objects corresponding to column family and column qualifier. If
-       *          the column qualifier is null, the entire column family is selected. An empty set
-       *          is the default and is equivalent to scanning the all columns.
+       * @param fetchColumns
+       *          a collection of IteratorSetting.Column objects corresponding to column family and
+       *          column qualifier. If the column qualifier is null, the entire column family is
+       *          selected. An empty set is the default and is equivalent to scanning all columns.
        */
-      InputFormatOptions fetchColumns(Collection<Pair<byte[],byte[]>> cfcqPairs);
+      InputFormatOptions fetchColumns(Collection<IteratorSetting.Column> fetchColumns);
 
       /**
        * Encode an iterator on the single input table for this job. It is safe to call this method

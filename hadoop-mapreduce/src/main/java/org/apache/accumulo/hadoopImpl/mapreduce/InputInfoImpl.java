@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.hadoop.mapreduce.InputInfo;
 
 import com.google.common.collect.ImmutableList;
@@ -43,22 +42,23 @@ public class InputInfoImpl implements InputInfo {
   // optional values
   Optional<String> context;
   Collection<Range> ranges;
-  Collection<Pair<byte[],byte[]>> cfcqPairs;
+  Collection<IteratorSetting.Column> fetchColumns;
   Map<String,IteratorSetting> iterators;
   Optional<SamplerConfiguration> samplerConfig;
   Map<String,String> hints;
   InputInfoBooleans bools;
 
   public InputInfoImpl(String tableName, ClientInfo clientInfo, Authorizations scanAuths,
-      Optional<String> context, Collection<Range> ranges, Collection<Pair<byte[],byte[]>> cfcqPairs,
-      Map<String,IteratorSetting> iterators, Optional<SamplerConfiguration> samplerConfig,
-      Map<String,String> hints, InputInfoBooleans bools) {
+      Optional<String> context, Collection<Range> ranges,
+      Collection<IteratorSetting.Column> fetchColumns, Map<String,IteratorSetting> iterators,
+      Optional<SamplerConfiguration> samplerConfig, Map<String,String> hints,
+      InputInfoBooleans bools) {
     this.tableName = tableName;
     this.clientInfo = clientInfo;
     this.scanAuths = scanAuths;
     this.context = context;
     this.ranges = ranges;
-    this.cfcqPairs = cfcqPairs;
+    this.fetchColumns = fetchColumns;
     this.iterators = iterators;
     this.samplerConfig = samplerConfig;
     this.hints = hints;
@@ -95,8 +95,8 @@ public class InputInfoImpl implements InputInfo {
   }
 
   @Override
-  public Collection<Pair<byte[],byte[]>> getFetchColumns() {
-    return cfcqPairs;
+  public Collection<IteratorSetting.Column> getFetchColumns() {
+    return fetchColumns;
   }
 
   @Override
@@ -158,7 +158,7 @@ public class InputInfoImpl implements InputInfo {
 
     Optional<String> context = Optional.empty();
     Collection<Range> ranges = Collections.emptyList();
-    Collection<Pair<byte[],byte[]>> cfcqPairs = Collections.emptyList();
+    Collection<IteratorSetting.Column> fetchColumns = Collections.emptyList();
     Map<String,IteratorSetting> iterators = Collections.emptyMap();
     Optional<SamplerConfiguration> samplerConfig = Optional.empty();
     Map<String,String> hints = Collections.emptyMap();
@@ -166,19 +166,19 @@ public class InputInfoImpl implements InputInfo {
 
     @Override
     public InputInfoBuilder.TableParams clientInfo(ClientInfo clientInfo) {
-      this.clientInfo = Objects.requireNonNull(clientInfo, "ClientInfo must not be null");;
+      this.clientInfo = Objects.requireNonNull(clientInfo, "ClientInfo must not be null");
       return this;
     }
 
     @Override
     public InputInfoBuilder.AuthsParams table(String tableName) {
-      this.tableName = Objects.requireNonNull(tableName, "Table name must not be null");;
+      this.tableName = Objects.requireNonNull(tableName, "Table name must not be null");
       return this;
     }
 
     @Override
     public InputInfoBuilder.InputFormatOptions scanAuths(Authorizations auths) {
-      this.scanAuths = Objects.requireNonNull(auths, "Authorizations must not be null");;
+      this.scanAuths = Objects.requireNonNull(auths, "Authorizations must not be null");
       return this;
     }
 
@@ -190,7 +190,8 @@ public class InputInfoImpl implements InputInfo {
 
     @Override
     public InputInfoBuilder.InputFormatOptions ranges(Collection<Range> ranges) {
-      this.ranges = ImmutableList.copyOf(Objects.requireNonNull(ranges, "Collection of ranges is null"));
+      this.ranges = ImmutableList
+          .copyOf(Objects.requireNonNull(ranges, "Collection of ranges is null"));
       if (ranges.size() == 0)
         throw new IllegalArgumentException("Specified collection of ranges is empty.");
       return this;
@@ -198,8 +199,8 @@ public class InputInfoImpl implements InputInfo {
 
     @Override
     public InputInfoBuilder.InputFormatOptions fetchColumns(
-        Collection<Pair<byte[],byte[]>> cfcqPairs) {
-      this.cfcqPairs = cfcqPairs;
+        Collection<IteratorSetting.Column> fetchColumns) {
+      this.fetchColumns = fetchColumns;
       return this;
     }
 
@@ -215,7 +216,8 @@ public class InputInfoImpl implements InputInfo {
 
     @Override
     public InputInfoBuilder.InputFormatOptions executionHints(Map<String,String> hints) {
-      this.hints = ImmutableMap.copyOf(Objects.requireNonNull(hints, "Map of execution hints must not be null."));
+      this.hints = ImmutableMap
+          .copyOf(Objects.requireNonNull(hints, "Map of execution hints must not be null."));
       if (hints.size() == 0)
         throw new IllegalArgumentException("Specified map of execution hints is empty.");
       return this;
@@ -261,7 +263,7 @@ public class InputInfoImpl implements InputInfo {
 
     @Override
     public InputInfo build() {
-      return new InputInfoImpl(tableName, clientInfo, scanAuths, context, ranges, cfcqPairs,
+      return new InputInfoImpl(tableName, clientInfo, scanAuths, context, ranges, fetchColumns,
           iterators, samplerConfig, hints, bools);
     }
   }

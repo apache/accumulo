@@ -371,7 +371,7 @@ public abstract class AbstractInputFormat {
 
       }
 
-      Collection<Pair<Text,Text>> columns = split.getFetchedColumns();
+      Collection<IteratorSetting.Column> columns = split.getFetchedColumns();
       if (null == columns) {
         columns = tableConfig.getFetchedColumns();
       }

@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.sample.RowSampler;
@@ -394,8 +395,8 @@ public class NewAccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<Pair<byte[],byte[]>> fetchColumns = Collections
-        .singleton(new Pair<>(new Text("foo").getBytes(), new Text("bar").getBytes()));
+    Collection<IteratorSetting.Column> fetchColumns = Collections
+        .singleton(new IteratorSetting.Column(new Text("foo"), new Text("bar")));
     Collection<Pair<Text,Text>> fetchColumnsText = Collections
         .singleton(new Pair<>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
