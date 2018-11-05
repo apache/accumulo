@@ -147,8 +147,7 @@ public class AccumuloInputFormatTest {
         .table("test").scanAuths(Authorizations.EMPTY);
     AccumuloInputFormat.setInfo(job, opts.addIterator(iter1).build());
 
-    List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class,
-        job);
+    List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class, job);
     assertEquals(1, list.size());
     assertEquals(1, list.get(0).getOptions().size());
     assertEquals(list.get(0).getOptions().get(key), value);

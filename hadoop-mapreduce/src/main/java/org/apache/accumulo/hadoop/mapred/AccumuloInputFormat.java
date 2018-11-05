@@ -19,7 +19,6 @@ package org.apache.accumulo.hadoop.mapred;
 import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClassLoaderContext;
 import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClientInfo;
 import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setScanAuthorizations;
-import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.fetchColumns;
 import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setAutoAdjustRanges;
 import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setBatchScan;
 import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setExecutionHints;

@@ -330,7 +330,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Gets the columns to be mapped over from this job.
-   * 
+   *
    * @see #fetchColumns(Class, Configuration, Collection)
    */
   public static Set<IteratorSetting.Column> getFetchedColumns(Class<?> implementingClass,
