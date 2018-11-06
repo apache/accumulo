@@ -165,6 +165,6 @@ public class MiniAccumuloCluster {
   public static ClientInfo getClientInfo(File directory) {
     File clientProps = new File(new File(directory, "conf"), "accumulo-client.properties");
     Preconditions.checkArgument(clientProps.exists());
-    return Accumulo.newClient().usingProperties(clientProps.getAbsolutePath()).info();
+    return Accumulo.newClient().from(clientProps.getAbsolutePath()).info();
   }
 }

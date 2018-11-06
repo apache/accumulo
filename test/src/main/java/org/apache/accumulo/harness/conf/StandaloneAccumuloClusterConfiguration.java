@@ -104,8 +104,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
     this.conf = getConfiguration(type);
     this.clientPropsFile = clientPropsFile;
-    clientInfo = Accumulo.newClient().forInstance(getInstanceName(), getZooKeepers())
-        .usingToken(getAdminPrincipal(), getAdminToken()).info();
+    clientInfo = Accumulo.newClient().to(getInstanceName(), getZooKeepers())
+        .as(getAdminPrincipal(), getAdminToken()).info();
 
     // The user Accumulo is running as
     serverUser = conf.get(ACCUMULO_STANDALONE_SERVER_USER);

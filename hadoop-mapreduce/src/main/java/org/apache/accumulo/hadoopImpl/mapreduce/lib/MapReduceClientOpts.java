@@ -56,8 +56,8 @@ public abstract class MapReduceClientOpts extends ClientOpts {
         log.info("Obtaining delegation token for {}", newPrincipal);
 
         setPrincipal(newPrincipal);
-        AccumuloClient client = Accumulo.newClient().usingClientInfo(getClientInfo())
-            .usingToken(newPrincipal, krbToken).build();
+        AccumuloClient client = Accumulo.newClient().from(getClientInfo())
+            .as(newPrincipal, krbToken).build();
 
         // Do the explicit check to see if the user has the permission to get a delegation token
         if (!client.securityOperations().hasSystemPermission(client.whoami(),

@@ -127,8 +127,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   @Test(expected = RuntimeException.class)
   public void invalidInstanceName() throws Exception {
-    Accumulo.newClient().forInstance("fake_instance_name", cluster.getZooKeepers())
-        .usingToken(getAdminPrincipal(), getAdminToken()).build();
+    Accumulo.newClient().to("fake_instance_name", cluster.getZooKeepers())
+        .as(getAdminPrincipal(), getAdminToken()).build();
   }
 
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "URLCONNECTION_SSRF_FD"},

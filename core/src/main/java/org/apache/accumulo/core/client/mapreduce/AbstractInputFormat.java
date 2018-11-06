@@ -183,8 +183,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        AccumuloClient client = Accumulo.newClient().usingClientInfo(getClientInfo(job))
-            .usingToken(principal, token).build();
+        AccumuloClient client = Accumulo.newClient().from(getClientInfo(job))
+            .as(principal, token).build();
         token = client.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, "

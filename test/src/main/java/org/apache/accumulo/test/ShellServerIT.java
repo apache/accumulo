@@ -176,7 +176,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile)
         throws IOException {
-      ClientInfo info = Accumulo.newClient().usingProperties(configFile.getAbsolutePath()).info();
+      ClientInfo info = Accumulo.newClient().from(configFile.getAbsolutePath()).info();
       // start the shell
       output = new TestOutputStream();
       input = new StringInputStream();

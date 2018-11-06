@@ -64,7 +64,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       ClientInfo clientInfo = getClientInfo(job);
       String principal = clientInfo.getPrincipal();
       AuthenticationToken token = clientInfo.getAuthenticationToken();
-      AccumuloClient c = Accumulo.newClient().usingClientInfo(clientInfo).build();
+      AccumuloClient c = Accumulo.newClient().from(clientInfo).build();
 
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");

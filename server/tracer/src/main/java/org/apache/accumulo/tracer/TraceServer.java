@@ -273,8 +273,8 @@ public class TraceServer implements Watcher {
           at = token;
         }
 
-        accumuloClient = Accumulo.newClient().usingClientInfo(context.getClientInfo())
-            .usingToken(principal, at).build();
+        accumuloClient = Accumulo.newClient().from(context.getClientInfo())
+            .as(principal, at).build();
         if (!accumuloClient.tableOperations().exists(tableName)) {
           accumuloClient.tableOperations().create(tableName);
           IteratorSetting setting = new IteratorSetting(10, "ageoff", AgeOffFilter.class.getName());

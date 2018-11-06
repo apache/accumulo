@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -269,7 +270,7 @@ public class AccumuloClientImpl implements AccumuloClient {
   public AccumuloClient changeUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException, AccumuloException {
     ensureOpen();
-    return Accumulo.newClient().usingClientInfo(info()).usingToken(principal, token).build();
+    return Accumulo.newClient().from(info()).as(principal, token).build();
   }
 
   @Override
@@ -313,20 +314,20 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
 
     @Override
-    public AuthenticationArgs forInstance(String instanceName, String zookeepers) {
+    public AuthenticationArgs to(CharSequence instanceName, CharSequence zookeepers) {
       setProperty(ClientProperty.INSTANCE_NAME, instanceName);
       setProperty(ClientProperty.INSTANCE_ZOOKEEPERS, zookeepers);
       return this;
     }
 
     @Override
-    public SslOptions withTruststore(String path) {
+    public SslOptions truststore(CharSequence path) {
       setProperty(ClientProperty.SSL_TRUSTSTORE_PATH, path);
       return this;
     }
 
     @Override
-    public SslOptions withTruststore(String path, String password, String type) {
+    public SslOptions truststore(CharSequence path, CharSequence password, CharSequence type) {
       setProperty(ClientProperty.SSL_TRUSTSTORE_PATH, path);
       setProperty(ClientProperty.SSL_TRUSTSTORE_PASSWORD, password);
       setProperty(ClientProperty.SSL_TRUSTSTORE_TYPE, type);
@@ -334,13 +335,13 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
 
     @Override
-    public SslOptions withKeystore(String path) {
+    public SslOptions keystore(CharSequence path) {
       setProperty(ClientProperty.SSL_KEYSTORE_PATH, path);
       return this;
     }
 
     @Override
-    public SslOptions withKeystore(String path, String password, String type) {
+    public SslOptions keystore(CharSequence path, CharSequence password, CharSequence type) {
       setProperty(ClientProperty.SSL_KEYSTORE_PATH, path);
       setProperty(ClientProperty.SSL_KEYSTORE_PASSWORD, password);
       setProperty(ClientProperty.SSL_KEYSTORE_TYPE, type);
@@ -354,25 +355,25 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
 
     @Override
-    public ConnectionOptions withZkTimeout(int timeout) {
+    public ConnectionOptions zkTimeout(int timeout) {
       setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, Integer.toString(timeout) + "ms");
       return this;
     }
 
     @Override
-    public SslOptions withSsl() {
+    public SslOptions useSsl() {
       setProperty(ClientProperty.SSL_ENABLED, "true");
       return this;
     }
 
     @Override
-    public SaslOptions withSasl() {
+    public SaslOptions useSasl() {
       setProperty(ClientProperty.SASL_ENABLED, "true");
       return this;
     }
 
     @Override
-    public ConnectionOptions withBatchWriterConfig(BatchWriterConfig batchWriterConfig) {
+    public ConnectionOptions batchWriterConfig(BatchWriterConfig batchWriterConfig) {
       setProperty(ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES, batchWriterConfig.getMaxMemory());
       setProperty(ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC,
           batchWriterConfig.getMaxLatency(TimeUnit.SECONDS));
@@ -386,69 +387,69 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
 
     @Override
-    public ConnectionOptions withBatchScannerQueryThreads(int numQueryThreads) {
+    public ConnectionOptions batchScannerQueryThreads(int numQueryThreads) {
       setProperty(ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS, numQueryThreads);
       return this;
     }
 
     @Override
-    public ConnectionOptions withScannerBatchSize(int batchSize) {
+    public ConnectionOptions scannerBatchSize(int batchSize) {
       setProperty(ClientProperty.SCANNER_BATCH_SIZE, batchSize);
       return this;
     }
 
     @Override
-    public SaslOptions withPrimary(String kerberosServerPrimary) {
+    public SaslOptions primary(CharSequence kerberosServerPrimary) {
       setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY, kerberosServerPrimary);
       return this;
     }
 
     @Override
-    public SaslOptions withQop(String qualityOfProtection) {
+    public SaslOptions qop(CharSequence qualityOfProtection) {
       setProperty(ClientProperty.SASL_QOP, qualityOfProtection);
       return this;
     }
 
     @Override
-    public AccumuloClientFactory usingProperties(String configFile) {
-      return usingProperties(ClientInfoImpl.toProperties(configFile));
+    public AccumuloClientFactory from(CharSequence configFile) {
+      return from(ClientInfoImpl.toProperties(configFile.toString()));
     }
 
     @Override
-    public AccumuloClientFactory usingProperties(Properties properties) {
+    public AccumuloClientFactory from(Properties properties) {
       this.properties = properties;
       return this;
     }
 
     @Override
-    public ConnectionOptions usingPassword(String principal, CharSequence password) {
-      setProperty(ClientProperty.AUTH_PRINCIPAL, principal);
-      ClientProperty.setPassword(properties, password.toString());
+    public ConnectionOptions as(CharSequence username, CharSequence password) {
+      setProperty(ClientProperty.AUTH_PRINCIPAL, username);
+      ClientProperty.setPassword(properties, password);
       return this;
     }
 
     @Override
-    public ConnectionOptions usingKerberos(String principal, String keyTabFile) {
+    public ConnectionOptions as(CharSequence principal, Path keyTabFile) {
       setProperty(ClientProperty.AUTH_PRINCIPAL, principal);
-      ClientProperty.setKerberosKeytab(properties, keyTabFile);
+      ClientProperty.setKerberosKeytab(properties, keyTabFile.toString());
       return this;
     }
 
     @Override
-    public ConnectionOptions usingToken(String principal, AuthenticationToken token) {
-      setProperty(ClientProperty.AUTH_PRINCIPAL, principal);
+    public ConnectionOptions as(CharSequence principal, AuthenticationToken token) {
+      setProperty(ClientProperty.AUTH_PRINCIPAL, principal.toString());
       this.token = token;
       return this;
     }
 
     @Override
-    public FromOptions usingClientInfo(ClientInfo clientInfo) {
+    public FromOptions from(ClientInfo clientInfo) {
       this.properties = clientInfo.getProperties();
       return this;
     }
 
-    public void setProperty(ClientProperty property, String value) {
-      properties.setProperty(property.getKey(), value);
+    public void setProperty(ClientProperty property, CharSequence value) {
+      properties.setProperty(property.getKey(), value.toString());
     }
 
     public void setProperty(ClientProperty property, Long value) {

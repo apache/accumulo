@@ -427,7 +427,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
 
       if (!simulate) {
-        this.client = Accumulo.newClient().usingClientInfo(getClientInfo(job)).build();
+        this.client = Accumulo.newClient().from(getClientInfo(job)).build();
         mtbw = client.createMultiTableBatchWriter(getBatchWriterOptions(job));
       }
     }
@@ -564,7 +564,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       throw new IOException("Connector info has not been set.");
     try {
       // if the instance isn't configured, it will complain here
-      AccumuloClient c = Accumulo.newClient().usingClientInfo(getClientInfo(job)).build();
+      AccumuloClient c = Accumulo.newClient().from(getClientInfo(job)).build();
       String principal = getPrincipal(job);
       AuthenticationToken token = getAuthenticationToken(job);
       if (!c.securityOperations().authenticateUser(principal, token))

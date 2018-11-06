@@ -430,7 +430,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
 
       if (!simulate) {
-        this.client = Accumulo.newClient().usingClientInfo(getClientInfo(context)).build();
+        this.client = Accumulo.newClient().from(getClientInfo(context)).build();
         mtbw = client.createMultiTableBatchWriter(getBatchWriterOptions(context));
       }
     }
@@ -569,7 +569,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       // if the instance isn't configured, it will complain here
       String principal = getPrincipal(job);
       AuthenticationToken token = getAuthenticationToken(job);
-      AccumuloClient c = Accumulo.newClient().usingClientInfo(getClientInfo(job)).build();
+      AccumuloClient c = Accumulo.newClient().from(getClientInfo(job)).build();
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException | AccumuloSecurityException e) {

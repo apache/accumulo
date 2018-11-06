@@ -169,8 +169,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      ClientInfo info = Accumulo.newClient().forInstance(instanceName, zooKeepers)
-          .usingPassword(user, pass).info();
+      ClientInfo info = Accumulo.newClient().to(instanceName, zooKeepers).as(user, pass).info();
 
       AccumuloInputFormat.setClientInfo(job, info);
       AccumuloInputFormat.setInputTableName(job, table1);

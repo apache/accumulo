@@ -119,10 +119,10 @@ public class ConfiguratorBase {
     if (info.getAuthenticationToken() instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        AccumuloClient client = Accumulo.newClient().usingClientInfo(info).build();
+        AccumuloClient client = Accumulo.newClient().from(info).build();
         AuthenticationToken token = client.securityOperations()
             .getDelegationToken(new DelegationTokenConfig());
-        result = Accumulo.newClient().usingClientInfo(info).usingToken(info.getPrincipal(), token)
+        result = Accumulo.newClient().from(info).as(info.getPrincipal(), token)
             .info();
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, "
@@ -353,7 +353,7 @@ public class ConfiguratorBase {
    */
   public static AccumuloClient getClient(Class<?> implementingClass, Configuration conf) {
     try {
-      return Accumulo.newClient().usingClientInfo(getClientInfo(implementingClass, conf)).build();
+      return Accumulo.newClient().from(getClientInfo(implementingClass, conf)).build();
     } catch (AccumuloException | AccumuloSecurityException e) {
       throw new IllegalStateException(e);
     }

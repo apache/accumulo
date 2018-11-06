@@ -222,9 +222,9 @@ public enum ClientProperty {
         Base64.getDecoder().decode(tokenString));
   }
 
-  public static void setPassword(Properties properties, String password) {
+  public static void setPassword(Properties properties, CharSequence password) {
     properties.setProperty(ClientProperty.AUTH_TYPE.getKey(), "password");
-    properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), password);
+    properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), password.toString());
   }
 
   public static void setKerberosKeytab(Properties properties, String keytabPath) {
