@@ -42,11 +42,6 @@ public interface OutputInfo {
   ClientInfo getClientInfo();
 
   /**
-   * @return the client properties set using OutputInfo.builder().clientInfo(info)
-   */
-  Properties getClientProperties();
-
-  /**
    * @return the BatchWriterConfig set using OutputInfo.builder()...batchWriterOptions(conf)
    */
   Optional<BatchWriterConfig> getBatchWriterOptions();

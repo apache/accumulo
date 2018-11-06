@@ -22,7 +22,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Properties;
 
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -73,11 +72,6 @@ public class InputInfoImpl implements InputInfo {
   @Override
   public ClientInfo getClientInfo() {
     return clientInfo;
-  }
-
-  @Override
-  public Properties getClientProperties() {
-    return clientInfo.getProperties();
   }
 
   public Authorizations getScanAuths() {

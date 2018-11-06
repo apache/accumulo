@@ -59,11 +59,6 @@ public interface InputInfo {
   ClientInfo getClientInfo();
 
   /**
-   * @return the client properties set using InputInfo.builder().clientInfo(info)
-   */
-  Properties getClientProperties();
-
-  /**
    * @return the scan authorizations set using InputInfo.builder()...scanAuths(auths)
    */
   Authorizations getScanAuths();

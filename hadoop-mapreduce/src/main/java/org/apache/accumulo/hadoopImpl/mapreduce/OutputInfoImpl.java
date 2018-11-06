@@ -18,7 +18,6 @@ package org.apache.accumulo.hadoopImpl.mapreduce;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Properties;
 
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
@@ -45,11 +44,6 @@ public class OutputInfoImpl implements OutputInfo {
   @Override
   public ClientInfo getClientInfo() {
     return clientInfo;
-  }
-
-  @Override
-  public Properties getClientProperties() {
-    return clientInfo.getProperties();
   }
 
   @Override
