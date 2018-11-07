@@ -229,7 +229,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
       }
     }
     return overrides.containsKey(prop.getKey()) || staticConfigs.containsKey(prop.getKey())
-        || getConfiguration().containsKey(prop.getKey()) || parent.isPropertySet(prop, cacheAndWatch);
+        || getConfiguration().containsKey(prop.getKey())
+        || parent.isPropertySet(prop, cacheAndWatch);
   }
 
   @Override

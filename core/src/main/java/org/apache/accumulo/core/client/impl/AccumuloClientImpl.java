@@ -126,8 +126,8 @@ public class AccumuloClientImpl implements AccumuloClient {
   }
 
   @Override
-  public BatchScanner createBatchScanner(String tableName) throws TableNotFoundException,
-      AccumuloSecurityException, AccumuloException {
+  public BatchScanner createBatchScanner(String tableName)
+      throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     Authorizations auths = securityOperations().getUserAuthorizations(context.getPrincipal());
     return createBatchScanner(tableName, auths);
   }
@@ -201,8 +201,8 @@ public class AccumuloClientImpl implements AccumuloClient {
   }
 
   @Override
-  public Scanner createScanner(String tableName) throws TableNotFoundException,
-      AccumuloSecurityException, AccumuloException {
+  public Scanner createScanner(String tableName)
+      throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     Authorizations auths = securityOperations().getUserAuthorizations(context.getPrincipal());
     return createScanner(tableName, auths);
   }

@@ -44,7 +44,8 @@ public class ZooConfiguration extends AccumuloConfiguration {
   private final Map<String,String> fixedProps = Collections.synchronizedMap(new HashMap<>());
   private final String propPathPrefix;
 
-  protected ZooConfiguration(ServerContext context, ZooCache propCache, AccumuloConfiguration parent) {
+  protected ZooConfiguration(ServerContext context, ZooCache propCache,
+      AccumuloConfiguration parent) {
     this.context = context;
     this.propCache = propCache;
     this.parent = parent;
@@ -118,7 +119,7 @@ public class ZooConfiguration extends AccumuloConfiguration {
         if (zr.exists(zPath)) {
           return true;
         }
-      } catch (KeeperException|InterruptedException e) {
+      } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException(e);
       }
     }
