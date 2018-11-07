@@ -21,18 +21,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Properties;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.junit.Test;
 
 public class ConfiguratorBaseTest {
@@ -87,45 +82,6 @@ public class ConfiguratorBaseTest {
     assertEquals("myzookeepers", info2.getZooKeepers());
     assertEquals("user", info2.getPrincipal());
     assertTrue(info2.getAuthenticationToken() instanceof PasswordToken);
-  }
-
-  @SuppressWarnings("deprecation")
-  @Test
-  public void testSetZooKeeperInstance() {
-    Configuration conf = new Configuration();
-    ConfiguratorBase.setZooKeeperInstance(this.getClass(), conf,
-        org.apache.accumulo.core.client.ClientConfiguration.create()
-            .withInstance("testInstanceName").withZkHosts("testZooKeepers").withSsl(true)
-            .withZkTimeout(15000));
-
-    org.apache.accumulo.core.client.ClientConfiguration clientConf = ConfiguratorBase
-        .getClientConfiguration(this.getClass(), conf);
-    assertEquals("testInstanceName", clientConf
-        .get(org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME));
-
-    Properties props = ConfiguratorBase.getClientInfo(this.getClass(), conf).getProperties();
-    assertEquals("testInstanceName", props.getProperty(ClientProperty.INSTANCE_NAME.getKey()));
-    assertEquals("testZooKeepers", props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey()));
-    assertEquals("true", props.getProperty(ClientProperty.SSL_ENABLED.getKey()));
-    assertEquals("15000", props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey()));
-  }
-
-  @Test
-  public void testSetLogLevel() {
-    Configuration conf = new Configuration();
-    Level currentLevel = Logger.getLogger(this.getClass()).getLevel();
-
-    ConfiguratorBase.setLogLevel(this.getClass(), conf, Level.DEBUG);
-    Logger.getLogger(this.getClass()).setLevel(currentLevel);
-    assertEquals(Level.DEBUG, ConfiguratorBase.getLogLevel(this.getClass(), conf));
-
-    ConfiguratorBase.setLogLevel(this.getClass(), conf, Level.INFO);
-    Logger.getLogger(this.getClass()).setLevel(currentLevel);
-    assertEquals(Level.INFO, ConfiguratorBase.getLogLevel(this.getClass(), conf));
-
-    ConfiguratorBase.setLogLevel(this.getClass(), conf, Level.FATAL);
-    Logger.getLogger(this.getClass()).setLevel(currentLevel);
-    assertEquals(Level.FATAL, ConfiguratorBase.getLogLevel(this.getClass(), conf));
   }
 
   @Test

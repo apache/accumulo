@@ -29,11 +29,15 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.conf.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @since 1.6.0
  */
 public class FileOutputConfigurator extends ConfiguratorBase {
+
+  private static final Logger log = LoggerFactory.getLogger(FileOutputConfigurator.class);
 
   /**
    * Configuration keys for {@link AccumuloConfiguration}.
@@ -85,11 +89,12 @@ public class FileOutputConfigurator extends ConfiguratorBase {
       Property property, T value) {
     if (isSupportedAccumuloProperty(property)) {
       String val = String.valueOf(value);
-      if (property.getType().isValidFormat(val))
-        conf.set(
-            enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + "." + property.getKey(),
-            val);
-      else
+      if (property.getType().isValidFormat(val)) {
+        String key = enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + "."
+            + property.getKey();
+        log.debug("Setting accumulo property {} = {} ", key, val);
+        conf.set(key, val);
+      } else
         throw new IllegalArgumentException(
             "Value is not appropriate for property type '" + property.getType() + "'");
     } else

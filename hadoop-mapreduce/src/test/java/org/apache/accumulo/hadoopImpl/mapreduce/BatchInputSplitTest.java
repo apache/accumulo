@@ -38,9 +38,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
 import org.junit.Test;
 
 public class BatchInputSplitTest {
@@ -73,10 +71,10 @@ public class BatchInputSplitTest {
     BatchInputSplit split = new BatchInputSplit("table", Table.ID.of("1"), ranges,
         new String[] {"localhost"});
 
-    Set<Pair<Text,Text>> fetchedColumns = new HashSet<>();
+    Set<IteratorSetting.Column> fetchedColumns = new HashSet<>();
 
-    fetchedColumns.add(new Pair<>(new Text("colf1"), new Text("colq1")));
-    fetchedColumns.add(new Pair<>(new Text("colf2"), new Text("colq2")));
+    fetchedColumns.add(new IteratorSetting.Column(new Text("colf1"), new Text("colq1")));
+    fetchedColumns.add(new IteratorSetting.Column(new Text("colf2"), new Text("colq2")));
 
     // Fake some iterators
     ArrayList<IteratorSetting> iterators = new ArrayList<>();
@@ -91,7 +89,6 @@ public class BatchInputSplitTest {
     split.setTableName("table");
     split.setFetchedColumns(fetchedColumns);
     split.setIterators(iterators);
-    split.setLogLevel(Level.WARN);
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
@@ -109,6 +106,5 @@ public class BatchInputSplitTest {
     assertEquals(split.getTableName(), newSplit.getTableName());
     assertEquals(split.getFetchedColumns(), newSplit.getFetchedColumns());
     assertEquals(split.getIterators(), newSplit.getIterators());
-    assertEquals(split.getLogLevel(), newSplit.getLogLevel());
   }
 }

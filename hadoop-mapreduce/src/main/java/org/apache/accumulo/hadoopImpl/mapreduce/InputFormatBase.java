@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.hadoop.mapred;
+package org.apache.accumulo.hadoopImpl.mapreduce;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -28,32 +27,26 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.InputFormat;
-import org.apache.hadoop.mapred.InputSplit;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.RecordReader;
-import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-/**
- * This abstract {@link InputFormat} class allows MapReduce jobs to use Accumulo as the source of
- * K,V pairs.
- * <p>
- * Subclasses must implement a {@link #getRecordReader(InputSplit, JobConf, Reporter)} to provide a
- * {@link RecordReader} for K,V.
- * <p>
- * A static base class, RecordReaderBase, is provided to retrieve Accumulo {@link Key}/{@link Value}
- * pairs, but one must implement its {@link RecordReaderBase#next(Object, Object)} to transform them
- * to the desired generic types K,V.
- * <p>
- * See {@link AccumuloInputFormat} for an example implementation.
- */
-public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
+public abstract class InputFormatBase extends AbstractInputFormat {
+
+  /**
+   * Gets the table name from the configuration.
+   *
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return the table name
+   * @since 1.5.0
+   * @see #setInputTableName(Job, String)
+   */
+  protected static String getInputTableName(JobContext context) {
+    return InputConfigurator.getInputTableName(CLASS, context.getConfiguration());
+  }
 
   /**
    * Sets the name of the input table, over which this job will scan.
@@ -64,25 +57,12 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the table to use when the tablename is null in the write call
    * @since 1.5.0
    */
-  public static void setInputTableName(JobConf job, String tableName) {
-    InputConfigurator.setInputTableName(CLASS, job, tableName);
+  public static void setInputTableName(Job job, String tableName) {
+    InputConfigurator.setInputTableName(CLASS, job.getConfiguration(), tableName);
   }
 
   /**
-   * Gets the table name from the configuration.
-   *
-   * @param job
-   *          the Hadoop context for the configured job
-   * @return the table name
-   * @since 1.5.0
-   * @see #setInputTableName(JobConf, String)
-   */
-  protected static String getInputTableName(JobConf job) {
-    return InputConfigurator.getInputTableName(CLASS, job);
-  }
-
-  /**
-   * Sets the input ranges to scan for this job. If not set, the entire table will be scanned.
+   * Sets the input ranges to scan for the single input table associated with this job.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -91,79 +71,29 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see TableOperations#splitRangeByTablets(String, Range, int)
    * @since 1.5.0
    */
-  public static void setRanges(JobConf job, Collection<Range> ranges) {
-    InputConfigurator.setRanges(CLASS, job, ranges);
+  public static void setRanges(Job job, Collection<Range> ranges) {
+    InputConfigurator.setRanges(CLASS, job.getConfiguration(), ranges);
   }
 
   /**
    * Gets the ranges to scan over from a job.
    *
-   * @param job
+   * @param context
    *          the Hadoop context for the configured job
    * @return the ranges
-   * @throws IOException
-   *           if the ranges have been encoded improperly
    * @since 1.5.0
-   * @see #setRanges(JobConf, Collection)
+   * @see #setRanges(Job, Collection)
    */
-  protected static List<Range> getRanges(JobConf job) throws IOException {
-    return InputConfigurator.getRanges(CLASS, job);
-  }
-
-  /**
-   * Restricts the columns that will be mapped over for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param columnFamilyColumnQualifierPairs
-   *          a pair of {@link Text} objects corresponding to column family and column qualifier. If
-   *          the column qualifier is null, the entire column family is selected. An empty set is
-   *          the default and is equivalent to scanning the all columns.
-   * @since 1.5.0
-   */
-  public static void fetchColumns(JobConf job,
-      Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
-    InputConfigurator.fetchColumns(CLASS, job, columnFamilyColumnQualifierPairs);
-  }
-
-  /**
-   * Gets the columns to be mapped over from this job.
-   *
-   * @param job
-   *          the Hadoop context for the configured job
-   * @return a set of columns
-   * @since 1.5.0
-   * @see #fetchColumns(JobConf, Collection)
-   */
-  protected static Set<Pair<Text,Text>> getFetchedColumns(JobConf job) {
-    return InputConfigurator.getFetchedColumns(CLASS, job);
-  }
-
-  /**
-   * Encode an iterator on the input for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param cfg
-   *          the configuration of the iterator
-   * @since 1.5.0
-   */
-  public static void addIterator(JobConf job, IteratorSetting cfg) {
-    InputConfigurator.addIterator(CLASS, job, cfg);
+  protected static List<Range> getRanges(JobContext context) throws IOException {
+    return InputConfigurator.getRanges(CLASS, context.getConfiguration());
   }
 
   /**
    * Gets a list of the iterator settings (for iterators to apply to a scanner) from this
    * configuration.
-   *
-   * @param job
-   *          the Hadoop context for the configured job
-   * @return a list of iterators
-   * @since 1.5.0
-   * @see #addIterator(JobConf, IteratorSetting)
    */
-  protected static List<IteratorSetting> getIterators(JobConf job) {
-    return InputConfigurator.getIterators(CLASS, job);
+  protected static List<IteratorSetting> getIterators(JobContext context) {
+    return InputConfigurator.getIterators(CLASS, context.getConfiguration());
   }
 
   /**
@@ -178,25 +108,25 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the Hadoop job instance to be configured
    * @param enableFeature
    *          the feature is enabled if true, disabled otherwise
-   * @see #setRanges(JobConf, Collection)
+   * @see #setRanges(Job, Collection)
    * @since 1.5.0
    */
-  public static void setAutoAdjustRanges(JobConf job, boolean enableFeature) {
-    InputConfigurator.setAutoAdjustRanges(CLASS, job, enableFeature);
+  public static void setAutoAdjustRanges(Job job, boolean enableFeature) {
+    InputConfigurator.setAutoAdjustRanges(CLASS, job.getConfiguration(), enableFeature);
   }
 
   /**
    * Determines whether a configuration has auto-adjust ranges enabled. Must be enabled when
-   * {@link #setBatchScan(JobConf, boolean)} is true.
+   * {@link #setBatchScan(Job, boolean)} is true.
    *
-   * @param job
+   * @param context
    *          the Hadoop context for the configured job
    * @return false if the feature is disabled, true otherwise
    * @since 1.5.0
-   * @see #setAutoAdjustRanges(JobConf, boolean)
+   * @see #setAutoAdjustRanges(Job, boolean)
    */
-  protected static boolean getAutoAdjustRanges(JobConf job) {
-    return InputConfigurator.getAutoAdjustRanges(CLASS, job);
+  protected static boolean getAutoAdjustRanges(JobContext context) {
+    return InputConfigurator.getAutoAdjustRanges(CLASS, context.getConfiguration());
   }
 
   /**
@@ -211,21 +141,21 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
-  public static void setScanIsolation(JobConf job, boolean enableFeature) {
-    InputConfigurator.setScanIsolation(CLASS, job, enableFeature);
+  public static void setScanIsolation(Job job, boolean enableFeature) {
+    InputConfigurator.setScanIsolation(CLASS, job.getConfiguration(), enableFeature);
   }
 
   /**
    * Determines whether a configuration has isolation enabled.
    *
-   * @param job
+   * @param context
    *          the Hadoop context for the configured job
    * @return true if the feature is enabled, false otherwise
    * @since 1.5.0
-   * @see #setScanIsolation(JobConf, boolean)
+   * @see #setScanIsolation(Job, boolean)
    */
-  protected static boolean isIsolated(JobConf job) {
-    return InputConfigurator.isIsolated(CLASS, job);
+  protected static boolean isIsolated(JobContext context) {
+    return InputConfigurator.isIsolated(CLASS, context.getConfiguration());
   }
 
   /**
@@ -243,21 +173,21 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
-  public static void setLocalIterators(JobConf job, boolean enableFeature) {
-    InputConfigurator.setLocalIterators(CLASS, job, enableFeature);
+  public static void setLocalIterators(Job job, boolean enableFeature) {
+    InputConfigurator.setLocalIterators(CLASS, job.getConfiguration(), enableFeature);
   }
 
   /**
    * Determines whether a configuration uses local iterators.
    *
-   * @param job
+   * @param context
    *          the Hadoop context for the configured job
    * @return true if the feature is enabled, false otherwise
    * @since 1.5.0
-   * @see #setLocalIterators(JobConf, boolean)
+   * @see #setLocalIterators(Job, boolean)
    */
-  protected static boolean usesLocalIterators(JobConf job) {
-    return InputConfigurator.usesLocalIterators(CLASS, job);
+  protected static boolean usesLocalIterators(JobContext context) {
+    return InputConfigurator.usesLocalIterators(CLASS, context.getConfiguration());
   }
 
   /**
@@ -295,21 +225,21 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
-  public static void setOfflineTableScan(JobConf job, boolean enableFeature) {
-    InputConfigurator.setOfflineTableScan(CLASS, job, enableFeature);
+  public static void setOfflineTableScan(Job job, boolean enableFeature) {
+    InputConfigurator.setOfflineTableScan(CLASS, job.getConfiguration(), enableFeature);
   }
 
   /**
    * Determines whether a configuration has the offline table scan feature enabled.
    *
-   * @param job
+   * @param context
    *          the Hadoop context for the configured job
    * @return true if the feature is enabled, false otherwise
    * @since 1.5.0
-   * @see #setOfflineTableScan(JobConf, boolean)
+   * @see #setOfflineTableScan(Job, boolean)
    */
-  protected static boolean isOfflineScan(JobConf job) {
-    return InputConfigurator.isOfflineScan(CLASS, job);
+  protected static boolean isOfflineScan(JobContext context) {
+    return InputConfigurator.isOfflineScan(CLASS, context.getConfiguration());
   }
 
   /**
@@ -321,14 +251,14 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * In order to achieve good locality of InputSplits this option always clips the input Ranges to
    * tablet boundaries. This may result in one input Range contributing to several InputSplits.
    * <p>
-   * Note: that the value of {@link #setAutoAdjustRanges(JobConf, boolean)} is ignored and is
-   * assumed to be true when BatchScan option is enabled.
+   * Note: that the value of {@link #setAutoAdjustRanges(Job, boolean)} is ignored and is assumed to
+   * be true when BatchScan option is enabled.
    * <p>
    * This configuration is incompatible with:
    * <ul>
-   * <li>{@link #setOfflineTableScan(JobConf, boolean)}</li>
-   * <li>{@link #setLocalIterators(JobConf, boolean)}</li>
-   * <li>{@link #setScanIsolation(JobConf, boolean)}</li>
+   * <li>{@link #setOfflineTableScan(org.apache.hadoop.mapreduce.Job, boolean)}</li>
+   * <li>{@link #setLocalIterators(org.apache.hadoop.mapreduce.Job, boolean)}</li>
+   * <li>{@link #setScanIsolation(org.apache.hadoop.mapreduce.Job, boolean)}</li>
    * </ul>
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -339,21 +269,21 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.7.0
    */
-  public static void setBatchScan(JobConf job, boolean enableFeature) {
-    InputConfigurator.setBatchScan(CLASS, job, enableFeature);
+  public static void setBatchScan(Job job, boolean enableFeature) {
+    InputConfigurator.setBatchScan(CLASS, job.getConfiguration(), enableFeature);
   }
 
   /**
    * Determines whether a configuration has the {@link org.apache.accumulo.core.client.BatchScanner}
    * feature enabled.
    *
-   * @param job
+   * @param context
    *          the Hadoop context for the configured job
    * @since 1.7.0
-   * @see #setBatchScan(JobConf, boolean)
+   * @see #setBatchScan(Job, boolean)
    */
-  public static boolean isBatchScan(JobConf job) {
-    return InputConfigurator.isBatchScan(CLASS, job);
+  protected static boolean isBatchScan(JobContext context) {
+    return InputConfigurator.isBatchScan(CLASS, context.getConfiguration());
   }
 
   /**
@@ -371,8 +301,8 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @since 1.8.0
    * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
    */
-  public static void setSamplerConfiguration(JobConf job, SamplerConfiguration samplerConfig) {
-    InputConfigurator.setSamplerConfiguration(CLASS, job, samplerConfig);
+  public static void setSamplerConfiguration(Job job, SamplerConfiguration samplerConfig) {
+    InputConfigurator.setSamplerConfiguration(CLASS, job.getConfiguration(), samplerConfig);
   }
 
   /**
@@ -381,15 +311,15 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *
    * @since 2.0.0
    */
-  public static void setExecutionHints(JobConf job, Map<String,String> hints) {
-    InputConfigurator.setExecutionHints(CLASS, job, hints);
+  public static void setExecutionHints(Job job, Map<String,String> hints) {
+    InputConfigurator.setExecutionHints(CLASS, job.getConfiguration(), hints);
   }
 
-  protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
+  public abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
-    protected List<IteratorSetting> jobIterators(JobConf job, String tableName) {
-      return getIterators(job);
+    protected List<IteratorSetting> contextIterators(TaskAttemptContext context, String tableName) {
+      return getIterators(context);
     }
   }
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.hadoop.mapreduce;
+package org.apache.accumulo.hadoopImpl.mapreduce;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -45,7 +45,7 @@ public class InputTableConfig implements Writable {
 
   private List<IteratorSetting> iterators;
   private List<Range> ranges;
-  private Collection<Pair<Text,Text>> columns;
+  private Collection<IteratorSetting.Column> columns;
 
   private boolean autoAdjustRanges = true;
   private boolean useLocalIterators = false;
@@ -95,7 +95,7 @@ public class InputTableConfig implements Writable {
    *          the default and is equivalent to scanning the all columns.
    * @since 1.6.0
    */
-  public InputTableConfig fetchColumns(Collection<Pair<Text,Text>> columns) {
+  public InputTableConfig fetchColumns(Collection<IteratorSetting.Column> columns) {
     this.columns = columns;
     return this;
   }
@@ -103,7 +103,7 @@ public class InputTableConfig implements Writable {
   /**
    * Returns the columns to be fetched for this configuration
    */
-  public Collection<Pair<Text,Text>> getFetchedColumns() {
+  public Collection<IteratorSetting.Column> getFetchedColumns() {
     return columns != null ? columns : new HashSet<>();
   }
 
@@ -377,11 +377,11 @@ public class InputTableConfig implements Writable {
       Text colFam = new Text();
       colFam.readFields(dataInput);
       if (numPairs == 1) {
-        columns.add(new Pair<>(colFam, null));
+        columns.add(new IteratorSetting.Column(colFam, null));
       } else if (numPairs == 2) {
         Text colQual = new Text();
         colQual.readFields(dataInput);
-        columns.add(new Pair<>(colFam, colQual));
+        columns.add(new IteratorSetting.Column(colFam, colQual));
       }
     }
     autoAdjustRanges = dataInput.readBoolean();

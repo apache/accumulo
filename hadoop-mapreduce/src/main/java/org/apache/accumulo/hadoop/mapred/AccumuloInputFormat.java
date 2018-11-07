@@ -16,54 +16,73 @@
  */
 package org.apache.accumulo.hadoop.mapred;
 
+import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClassLoaderContext;
+import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClientInfo;
+import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setScanAuthorizations;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setAutoAdjustRanges;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setBatchScan;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setExecutionHints;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setInputTableName;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setLocalIterators;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setOfflineTableScan;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setRanges;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setSamplerConfiguration;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setScanIsolation;
+
 import java.io.IOException;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
-import org.apache.accumulo.hadoop.mapreduce.RangeInputSplit;
+import org.apache.accumulo.hadoop.mapreduce.InputInfo;
+import org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat;
+import org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.RecordReaderBase;
+import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
-import org.apache.log4j.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat}
- * provides keys and values of type {@link Key} and {@link Value} to the Map function.
+ * This class allows MapReduce jobs to use Accumulo as the source of data. This
+ * {@link org.apache.hadoop.mapred.InputFormat} provides keys and values of type {@link Key} and
+ * {@link Value} to the Map function.
  *
- * The user must specify the following via static configurator methods:
+ * The user must specify the following via static configurator method:
  *
  * <ul>
- * <li>{@link AccumuloInputFormat#setClientInfo(JobConf, ClientInfo)}
- * <li>{@link AccumuloInputFormat#setInputTableName(JobConf, String)}</li>
- * <li>{@link AccumuloInputFormat#setScanAuthorizations(JobConf, Authorizations)}
+ * <li>{@link AccumuloInputFormat#setInfo(JobConf, InputInfo)}
  * </ul>
  *
- * Other static methods are optional.
+ * For required parameters and all available options use {@link InputInfo#builder()}
+ *
+ * @since 2.0
  */
-public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
+public class AccumuloInputFormat implements InputFormat<Key,Value> {
+  private static Class CLASS = AccumuloInputFormat.class;
+  private static Logger log = LoggerFactory.getLogger(CLASS);
+
+  /**
+   * Gets the splits of the tables that have been set on the job by reading the metadata table for
+   * the specified ranges.
+   *
+   * @return the splits from the tables based on the ranges.
+   * @throws java.io.IOException
+   *           if a table set on the job doesn't exist or an error occurs initializing the tablet
+   *           locator
+   */
+  @Override
+  public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
+    return AbstractInputFormat.getSplits(job, numSplits);
+  }
 
   @Override
   public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter)
       throws IOException {
-    log.setLevel(getLogLevel(job));
-
-    // Override the log level from the configuration as if the RangeInputSplit has one it's the more
-    // correct one to use.
-    if (split instanceof RangeInputSplit) {
-      RangeInputSplit accSplit = (RangeInputSplit) split;
-      Level level = accSplit.getLogLevel();
-      if (null != level) {
-        log.setLevel(level);
-      }
-    } else {
-      throw new IllegalArgumentException("No RecordReader for " + split.getClass());
-    }
 
     RecordReaderBase<Key,Value> recordReader = new RecordReaderBase<Key,Value>() {
 
@@ -94,5 +113,30 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
     };
     recordReader.initialize(split, job);
     return recordReader;
+  }
+
+  public static void setInfo(JobConf job, InputInfo info) {
+    setClientInfo(job, info.getClientInfo());
+    setScanAuthorizations(job, info.getScanAuths());
+    setInputTableName(job, info.getTableName());
+
+    // all optional values
+    if (info.getContext().isPresent())
+      setClassLoaderContext(job, info.getContext().get());
+    if (info.getRanges().size() > 0)
+      setRanges(job, info.getRanges());
+    if (info.getIterators().size() > 0)
+      InputConfigurator.writeIteratorsToConf(CLASS, job, info.getIterators());
+    if (info.getFetchColumns().size() > 0)
+      InputConfigurator.fetchColumns(CLASS, job, info.getFetchColumns());
+    if (info.getSamplerConfig().isPresent())
+      setSamplerConfiguration(job, info.getSamplerConfig().get());
+    if (info.getExecutionHints().size() > 0)
+      setExecutionHints(job, info.getExecutionHints());
+    setAutoAdjustRanges(job, info.isAutoAdjustRanges());
+    setScanIsolation(job, info.isScanIsolation());
+    setLocalIterators(job, info.isLocalIterators());
+    setOfflineTableScan(job, info.isOfflineScan());
+    setBatchScan(job, info.isBatchScan());
   }
 }

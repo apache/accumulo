@@ -16,15 +16,31 @@
  */
 package org.apache.accumulo.hadoop.mapred;
 
+import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClassLoaderContext;
+import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClientInfo;
+import static org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setScanAuthorizations;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.fetchColumns;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setAutoAdjustRanges;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setBatchScan;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setExecutionHints;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setInputTableName;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setLocalIterators;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setOfflineTableScan;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setRanges;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setSamplerConfiguration;
+import static org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setScanIsolation;
+
 import java.io.IOException;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.PeekingIterator;
+import org.apache.accumulo.hadoop.mapreduce.InputInfo;
+import org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat;
+import org.apache.accumulo.hadoopImpl.mapred.InputFormatBase;
+import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
@@ -38,25 +54,38 @@ import org.apache.hadoop.mapred.Reporter;
  * value, which in turn makes the {@link Key}/{@link Value} pairs for that row available to the Map
  * function.
  *
- * The user must specify the following via static configurator methods:
+ * The user must specify the following via static configurator method:
  *
  * <ul>
- * <li>{@link AccumuloRowInputFormat#setClientInfo(JobConf, ClientInfo)}
- * <li>{@link AccumuloRowInputFormat#setInputTableName(JobConf, String)}
- * <li>{@link AccumuloRowInputFormat#setScanAuthorizations(JobConf, Authorizations)}
+ * <li>{@link AccumuloRowInputFormat#setInfo(JobConf, InputInfo)}
  * </ul>
  *
- * Other static methods are optional.
+ * For required parameters and all available options use {@link InputInfo#builder()}
+ *
+ * @since 2.0
  */
-public class AccumuloRowInputFormat
-    extends InputFormatBase<Text,PeekingIterator<Entry<Key,Value>>> {
+public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<Entry<Key,Value>>> {
+
+  /**
+   * Gets the splits of the tables that have been set on the job by reading the metadata table for
+   * the specified ranges.
+   *
+   * @return the splits from the tables based on the ranges.
+   * @throws java.io.IOException
+   *           if a table set on the job doesn't exist or an error occurs initializing the tablet
+   *           locator
+   */
+  @Override
+  public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
+    return AbstractInputFormat.getSplits(job, numSplits);
+  }
+
   @Override
   public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> getRecordReader(InputSplit split,
       JobConf job, Reporter reporter) throws IOException {
-    log.setLevel(getLogLevel(job));
     // @formatter:off
-    RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>> recordReader =
-      new RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {
+    InputFormatBase.RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>> recordReader =
+      new InputFormatBase.RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {
     // @formatter:on
           RowIterator rowIterator;
 
@@ -89,5 +118,34 @@ public class AccumuloRowInputFormat
         };
     recordReader.initialize(split, job);
     return recordReader;
+  }
+
+  /**
+   * Sets all the information required for this map reduce job.
+   */
+  public static void setInfo(JobConf job, InputInfo info) {
+    setClientInfo(job, info.getClientInfo());
+    setScanAuthorizations(job, info.getScanAuths());
+    setInputTableName(job, info.getTableName());
+
+    // all optional values
+    if (info.getContext().isPresent())
+      setClassLoaderContext(job, info.getContext().get());
+    if (info.getRanges().size() > 0)
+      setRanges(job, info.getRanges());
+    if (info.getIterators().size() > 0)
+      InputConfigurator.writeIteratorsToConf(AccumuloRowInputFormat.class, job,
+          info.getIterators());
+    if (info.getFetchColumns().size() > 0)
+      fetchColumns(job, info.getFetchColumns());
+    if (info.getSamplerConfig().isPresent())
+      setSamplerConfiguration(job, info.getSamplerConfig().get());
+    if (info.getExecutionHints().size() > 0)
+      setExecutionHints(job, info.getExecutionHints());
+    setAutoAdjustRanges(job, info.isAutoAdjustRanges());
+    setScanIsolation(job, info.isScanIsolation());
+    setLocalIterators(job, info.isLocalIterators());
+    setOfflineTableScan(job, info.isOfflineScan());
+    setBatchScan(job, info.isBatchScan());
   }
 }

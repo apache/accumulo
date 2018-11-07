@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.hadoop.mapreduce;
+package org.apache.accumulo.hadoopImpl.mapreduce;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -36,13 +36,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.hadoopImpl.mapreduce.SplitUtils;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.log4j.Level;
 
 /**
  * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
@@ -52,10 +48,9 @@ public class RangeInputSplit extends InputSplit implements Writable {
   private String[] locations;
   private String tableId, tableName;
   private Boolean offline, isolatedScan, localIterators;
-  private Set<Pair<Text,Text>> fetchedColumns;
+  private Set<IteratorSetting.Column> fetchedColumns;
   private List<IteratorSetting> iterators;
   private SamplerConfiguration samplerConfig;
-  private Level level;
   private Map<String,String> executionHints;
 
   public RangeInputSplit() {
@@ -72,7 +67,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
     this.setTableId(split.getTableId());
   }
 
-  protected RangeInputSplit(String table, String tableId, Range range, String[] locations) {
+  public RangeInputSplit(String table, String tableId, Range range, String[] locations) {
     this.range = range;
     setLocations(locations);
     this.tableName = table;
@@ -167,10 +162,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     }
 
     if (in.readBoolean()) {
-      level = Level.toLevel(in.readInt());
-    }
-
-    if (in.readBoolean()) {
       samplerConfig = new SamplerConfigurationImpl(in).toSamplerConfiguration();
     }
 
@@ -222,11 +213,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
       for (IteratorSetting iterator : iterators) {
         iterator.write(out);
       }
-    }
-
-    out.writeBoolean(null != level);
-    if (null != level) {
-      out.writeInt(level.toInt());
     }
 
     out.writeBoolean(null != samplerConfig);
@@ -293,18 +279,18 @@ public class RangeInputSplit extends InputSplit implements Writable {
     this.localIterators = localIterators;
   }
 
-  public Set<Pair<Text,Text>> getFetchedColumns() {
+  public Set<IteratorSetting.Column> getFetchedColumns() {
     return fetchedColumns;
   }
 
-  public void setFetchedColumns(Collection<Pair<Text,Text>> fetchedColumns) {
+  public void setFetchedColumns(Collection<IteratorSetting.Column> fetchedColumns) {
     this.fetchedColumns = new HashSet<>();
-    for (Pair<Text,Text> columns : fetchedColumns) {
+    for (IteratorSetting.Column columns : fetchedColumns) {
       this.fetchedColumns.add(columns);
     }
   }
 
-  public void setFetchedColumns(Set<Pair<Text,Text>> fetchedColumns) {
+  public void setFetchedColumns(Set<IteratorSetting.Column> fetchedColumns) {
     this.fetchedColumns = fetchedColumns;
   }
 
@@ -314,14 +300,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   public void setIterators(List<IteratorSetting> iterators) {
     this.iterators = iterators;
-  }
-
-  public Level getLogLevel() {
-    return level;
-  }
-
-  public void setLogLevel(Level level) {
-    this.level = level;
   }
 
   @Override
@@ -336,7 +314,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     sb.append(" localIterators: ").append(localIterators);
     sb.append(" fetchColumns: ").append(fetchedColumns);
     sb.append(" iterators: ").append(iterators);
-    sb.append(" logLevel: ").append(level);
     sb.append(" samplerConfig: ").append(samplerConfig);
     sb.append(" executionHints: ").append(executionHints);
     return sb.toString();

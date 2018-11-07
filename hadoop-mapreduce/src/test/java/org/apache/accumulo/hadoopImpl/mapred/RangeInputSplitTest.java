@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.hadoop.mapreduce;
+package org.apache.accumulo.hadoopImpl.mapred;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -35,9 +35,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -59,8 +57,6 @@ public class RangeInputSplitTest {
     DataInputStream dis = new DataInputStream(bais);
     newSplit.readFields(dis);
 
-    assertEquals(split.getTableName(), newSplit.getTableName());
-    assertEquals(split.getTableId(), newSplit.getTableId());
     assertEquals(split.getRange(), newSplit.getRange());
     assertTrue(Arrays.equals(split.getLocations(), newSplit.getLocations()));
   }
@@ -70,10 +66,10 @@ public class RangeInputSplitTest {
     RangeInputSplit split = new RangeInputSplit("table", "1", new Range(new Key("a"), new Key("b")),
         new String[] {"localhost"});
 
-    Set<Pair<Text,Text>> fetchedColumns = new HashSet<>();
+    Set<IteratorSetting.Column> fetchedColumns = new HashSet<>();
 
-    fetchedColumns.add(new Pair<>(new Text("colf1"), new Text("colq1")));
-    fetchedColumns.add(new Pair<>(new Text("colf2"), new Text("colq2")));
+    fetchedColumns.add(new IteratorSetting.Column(new Text("colf1"), new Text("colq1")));
+    fetchedColumns.add(new IteratorSetting.Column(new Text("colf2"), new Text("colq2")));
 
     // Fake some iterators
     ArrayList<IteratorSetting> iterators = new ArrayList<>();
@@ -85,13 +81,11 @@ public class RangeInputSplitTest {
     setting.addOption("bar", "foo");
     iterators.add(setting);
 
-    split.setTableName("table");
     split.setOffline(true);
     split.setIsolatedScan(true);
     split.setUsesLocalIterators(true);
     split.setFetchedColumns(fetchedColumns);
     split.setIterators(iterators);
-    split.setLogLevel(Level.WARN);
     split.setExecutionHints(ImmutableMap.of("priority", "9"));
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -107,13 +101,11 @@ public class RangeInputSplitTest {
     assertEquals(split.getRange(), newSplit.getRange());
     assertArrayEquals(split.getLocations(), newSplit.getLocations());
 
-    assertEquals(split.getTableName(), newSplit.getTableName());
     assertEquals(split.isOffline(), newSplit.isOffline());
     assertEquals(split.isIsolatedScan(), newSplit.isOffline());
     assertEquals(split.usesLocalIterators(), newSplit.usesLocalIterators());
     assertEquals(split.getFetchedColumns(), newSplit.getFetchedColumns());
     assertEquals(split.getIterators(), newSplit.getIterators());
-    assertEquals(split.getLogLevel(), newSplit.getLogLevel());
     assertEquals(split.getExecutionHints(), newSplit.getExecutionHints());
   }
 

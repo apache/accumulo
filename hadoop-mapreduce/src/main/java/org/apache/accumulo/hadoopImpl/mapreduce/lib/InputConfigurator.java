@@ -67,7 +67,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.hadoop.mapreduce.InputTableConfig;
+import org.apache.accumulo.hadoopImpl.mapreduce.InputTableConfig;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
@@ -273,13 +273,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * Gets a list of the iterator settings (for iterators to apply to a scanner) from this
    * configuration.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @return a list of iterators
-   * @since 1.6.0
-   * @see #addIterator(Class, Configuration, IteratorSetting)
+   * @see #writeIteratorsToConf(Class, Configuration, Collection)
    */
   public static List<IteratorSetting> getIterators(Class<?> implementingClass, Configuration conf) {
     String iterators = conf.get(enumToConfKey(implementingClass, ScanOpts.ITERATORS));
@@ -306,21 +300,9 @@ public class InputConfigurator extends ConfiguratorBase {
 
   /**
    * Restricts the columns that will be mapped over for the single input table on this job.
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param columnFamilyColumnQualifierPairs
-   *          a pair of {@link Text} objects corresponding to column family and column qualifier. If
-   *          the column qualifier is null, the entire column family is selected. An empty set is
-   *          the default and is equivalent to scanning the all columns.
-   * @throws IllegalArgumentException
-   *           if the column family is null
-   * @since 1.6.0
    */
   public static void fetchColumns(Class<?> implementingClass, Configuration conf,
-      Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
+      Collection<IteratorSetting.Column> columnFamilyColumnQualifierPairs) {
     checkArgument(columnFamilyColumnQualifierPairs != null,
         "columnFamilyColumnQualifierPairs is null");
     String[] columnStrings = serializeColumns(columnFamilyColumnQualifierPairs);
@@ -328,7 +310,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   public static String[] serializeColumns(
-      Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
+      Collection<IteratorSetting.Column> columnFamilyColumnQualifierPairs) {
     checkArgument(columnFamilyColumnQualifierPairs != null,
         "columnFamilyColumnQualifierPairs is null");
     ArrayList<String> columnStrings = new ArrayList<>(columnFamilyColumnQualifierPairs.size());
@@ -349,15 +331,9 @@ public class InputConfigurator extends ConfiguratorBase {
   /**
    * Gets the columns to be mapped over from this job.
    *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @return a set of columns
-   * @since 1.6.0
    * @see #fetchColumns(Class, Configuration, Collection)
    */
-  public static Set<Pair<Text,Text>> getFetchedColumns(Class<?> implementingClass,
+  public static Set<IteratorSetting.Column> getFetchedColumns(Class<?> implementingClass,
       Configuration conf) {
     checkArgument(conf != null, "conf is null");
     String confValue = conf.get(enumToConfKey(implementingClass, ScanOpts.COLUMNS));
@@ -371,8 +347,9 @@ public class InputConfigurator extends ConfiguratorBase {
     return deserializeFetchedColumns(serialized);
   }
 
-  public static Set<Pair<Text,Text>> deserializeFetchedColumns(Collection<String> serialized) {
-    Set<Pair<Text,Text>> columns = new HashSet<>();
+  public static Set<IteratorSetting.Column> deserializeFetchedColumns(
+      Collection<String> serialized) {
+    Set<IteratorSetting.Column> columns = new HashSet<>();
 
     if (null == serialized) {
       return columns;
@@ -383,47 +360,40 @@ public class InputConfigurator extends ConfiguratorBase {
       Text cf = new Text(idx < 0 ? Base64.getDecoder().decode(col)
           : Base64.getDecoder().decode(col.substring(0, idx)));
       Text cq = idx < 0 ? null : new Text(Base64.getDecoder().decode(col.substring(idx + 1)));
-      columns.add(new Pair<>(cf, cq));
+      columns.add(new IteratorSetting.Column(cf, cq));
     }
     return columns;
   }
 
   /**
-   * Encode an iterator on the input for the single input table associated with this job.
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param cfg
-   *          the configuration of the iterator
-   * @throws IllegalArgumentException
-   *           if the iterator can't be serialized into the configuration
-   * @since 1.6.0
+   * Serialize the iterators to the hadoop configuration under one key.
    */
-  public static void addIterator(Class<?> implementingClass, Configuration conf,
-      IteratorSetting cfg) {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    String newIter;
-    try {
-      cfg.write(new DataOutputStream(baos));
-      newIter = Base64.getEncoder().encodeToString(baos.toByteArray());
-      baos.close();
-    } catch (IOException e) {
-      throw new IllegalArgumentException("unable to serialize IteratorSetting");
-    }
-
+  public static void writeIteratorsToConf(Class<?> implementingClass, Configuration conf,
+      Collection<IteratorSetting> iterators) {
     String confKey = enumToConfKey(implementingClass, ScanOpts.ITERATORS);
-    String iterators = conf.get(confKey);
-    // No iterators specified yet, create a new string
-    if (iterators == null || iterators.isEmpty()) {
-      iterators = newIter;
-    } else {
-      // append the next iterator & reset
-      iterators = iterators.concat(StringUtils.COMMA_STR + newIter);
+    StringBuilder iterBuilder = new StringBuilder();
+    int count = 0;
+    for (IteratorSetting cfg : iterators) {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      String newIter;
+      try {
+        cfg.write(new DataOutputStream(baos));
+        newIter = Base64.getEncoder().encodeToString(baos.toByteArray());
+        baos.close();
+      } catch (IOException e) {
+        throw new IllegalArgumentException("unable to serialize IteratorSetting");
+      }
+
+      if (count == 0) {
+        iterBuilder.append(newIter);
+      } else {
+        // append the next iterator & reset
+        iterBuilder.append(StringUtils.COMMA_STR + newIter);
+      }
+      count++;
     }
     // Store the iterators w/ the job
-    conf.set(confKey, iterators);
+    conf.set(confKey, iterBuilder.toString());
   }
 
   /**
@@ -812,7 +782,7 @@ public class InputConfigurator extends ConfiguratorBase {
       List<IteratorSetting> itrs = getIterators(implementingClass, conf);
       if (itrs != null)
         queryConfig.setIterators(itrs);
-      Set<Pair<Text,Text>> columns = getFetchedColumns(implementingClass, conf);
+      Set<IteratorSetting.Column> columns = getFetchedColumns(implementingClass, conf);
       if (columns != null)
         queryConfig.fetchColumns(columns);
       List<Range> ranges = null;
