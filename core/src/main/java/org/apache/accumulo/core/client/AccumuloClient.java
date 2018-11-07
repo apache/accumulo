@@ -380,12 +380,11 @@ public interface AccumuloClient extends AutoCloseable {
      *          Path to properties file
      * @return this builder
      */
-    AccumuloClientFactory from(CharSequence propertiesFile);
+    AccumuloClientFactory from(Path propertiesFile);
 
     /**
      * Build using Java properties object. A list of available properties can be found in the
-     * documentation on the project website (http://accumulo.apache.org) under 'Development' -&gt;
-     * 'Client Properties'
+     * documentation at https://accumulo.apache.org/docs/2.x/configuration/client-properties
      *
      * @param properties
      *          Properties object

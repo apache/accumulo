@@ -19,6 +19,7 @@ package org.apache.accumulo.core.cli;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
@@ -201,7 +202,7 @@ public class ClientOpts extends Help {
     if (cachedProps == null) {
       cachedProps = new Properties();
       if (getClientConfigFile() != null) {
-        cachedProps = ClientInfoImpl.toProperties(getClientConfigFile());
+        cachedProps = ClientInfoImpl.toProperties(Paths.get(getClientConfigFile()));
       }
       if (saslEnabled) {
         cachedProps.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");

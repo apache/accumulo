@@ -411,8 +411,8 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
 
     @Override
-    public AccumuloClientFactory from(CharSequence configFile) {
-      return from(ClientInfoImpl.toProperties(configFile.toString()));
+    public AccumuloClientFactory from(Path propertiesFile) {
+      return from(ClientInfoImpl.toProperties(propertiesFile));
     }
 
     @Override

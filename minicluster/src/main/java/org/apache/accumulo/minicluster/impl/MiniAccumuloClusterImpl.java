@@ -796,7 +796,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public ClientInfo getClientInfo() {
     if (clientInfo == null) {
-      clientInfo = Accumulo.newClient().from(config.getClientPropsFile().getAbsolutePath()).info();
+      clientInfo = ClientInfo.from(config.getClientPropsFile().toPath());
     }
     return clientInfo;
   }

@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.impl;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.ClientInfo;
@@ -33,8 +34,8 @@ public class ClientInfoImpl implements ClientInfo {
   private Properties properties;
   private AuthenticationToken token;
 
-  public ClientInfoImpl(String configFile) {
-    this(ClientInfoImpl.toProperties(configFile));
+  public ClientInfoImpl(Path propertiesFile) {
+    this(ClientInfoImpl.toProperties(propertiesFile));
   }
 
   public ClientInfoImpl(Properties properties) {
@@ -93,12 +94,12 @@ public class ClientInfoImpl implements ClientInfo {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided configFile")
-  public static Properties toProperties(String configFile) {
+  public static Properties toProperties(Path propertiesFile) {
     Properties properties = new Properties();
-    try (InputStream is = new FileInputStream(configFile)) {
+    try (InputStream is = new FileInputStream(propertiesFile.toFile())) {
       properties.load(is);
     } catch (IOException e) {
-      throw new IllegalArgumentException("Failed to load properties from " + configFile, e);
+      throw new IllegalArgumentException("Failed to load properties from " + propertiesFile, e);
     }
     return properties;
   }
