@@ -62,6 +62,7 @@ import org.apache.accumulo.core.security.crypto.streams.NoFlushOutputStream;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -87,17 +88,20 @@ public class CryptoTest {
   public static final String CRYPTO_OFF_CONF = "OFF";
   public static final String keyPath = System.getProperty("user.dir")
       + "/target/CryptoTest-testkeyfile";
+  public static final String emptyKeyPath = System.getProperty("user.dir")
+      + "/target/CryptoTest-emptykeyfile";
 
   @Rule
   public ExpectedException exception = ExpectedException.none();
 
   @BeforeClass
-  public static void setupKeyFile() throws Exception {
+  public static void setupKeyFiles() throws Exception {
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
     Path aesPath = new Path(keyPath);
     try (FSDataOutputStream out = fs.create(aesPath)) {
       out.writeUTF("sixteenbytekey"); // 14 + 2 from writeUTF
     }
+    FSDataOutputStream out = fs.create(new Path(emptyKeyPath));
   }
 
   @Test
@@ -278,8 +282,8 @@ public class CryptoTest {
 
   @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is being tested")
   @Test
-  public void testKeyManagerGeneratesKey() throws NoSuchAlgorithmException, NoSuchProviderException,
-      NoSuchPaddingException, InvalidKeyException {
+  public void testAESKeyUtilsGeneratesKey() throws NoSuchAlgorithmException,
+      NoSuchProviderException, NoSuchPaddingException, InvalidKeyException {
     SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
     java.security.Key key;
     key = AESKeyUtils.generateKey(sr, 16);
@@ -294,7 +298,7 @@ public class CryptoTest {
   }
 
   @Test
-  public void testKeyManagerWrapAndUnwrap()
+  public void testAESKeyUtilsWrapAndUnwrap()
       throws NoSuchAlgorithmException, NoSuchProviderException {
     SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
     java.security.Key kek = AESKeyUtils.generateKey(sr, 16);
@@ -306,13 +310,42 @@ public class CryptoTest {
   }
 
   @Test
-  public void testKeyManagerLoadKekFromUri() throws IOException {
+  public void testAESKeyUtilsFailUnwrapWithWrongKEK()
+      throws NoSuchAlgorithmException, NoSuchProviderException {
+    SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
+    java.security.Key kek = AESKeyUtils.generateKey(sr, 16);
+    java.security.Key fek = AESKeyUtils.generateKey(sr, 16);
+    byte[] wrongBytes = kek.getEncoded();
+    wrongBytes[0]++;
+    java.security.Key wrongKek = new SecretKeySpec(wrongBytes, "AES");
+
+    byte[] wrapped = AESKeyUtils.wrapKey(fek, kek);
+    exception.expect(CryptoException.class);
+    java.security.Key unwrapped = AESKeyUtils.unwrapKey(wrapped, wrongKek);
+  }
+
+  @Test
+  public void testAESKeyUtilsLoadKekFromUri() throws IOException {
     SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri(keyPath);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     dos.writeUTF("sixteenbytekey");
     SecretKeySpec handKey = new SecretKeySpec(baos.toByteArray(), "AES");
     assertEquals(fileKey, handKey);
+  }
+
+  @Test
+  public void testAESKeyUtilsLoadKekFromUriInvalidUri() {
+    exception.expect(CryptoException.class);
+    SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri(
+        System.getProperty("user.dir") + "/target/CryptoTest-testkeyfile-doesnt-exist");
+  }
+
+  @Test
+  public void testAESKeyUtilsLoadKekFromEmptyFile() {
+    exception.expect(CryptoException.class);
+    SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri(emptyKeyPath);
+
   }
 
   private ArrayList<Key> testData() {
