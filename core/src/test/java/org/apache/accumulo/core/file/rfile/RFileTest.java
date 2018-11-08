@@ -128,7 +128,7 @@ public class RFileTest {
 
   @BeforeClass
   public static void setupCryptoKeyFile() throws Exception {
-    CryptoTest.setupKeyFile();
+    CryptoTest.setupKeyFiles();
   }
 
   static class SeekableByteArrayInputStream extends ByteArrayInputStream

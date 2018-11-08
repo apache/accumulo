@@ -83,7 +83,7 @@ public class AESKeyUtils {
     try {
       uri = new URI(keyId);
       key = new SecretKeySpec(Files.readAllBytes(Paths.get(uri.getPath())), "AES");
-    } catch (URISyntaxException | IOException e) {
+    } catch (URISyntaxException | IOException | IllegalArgumentException e) {
       throw new CryptoException("Unable to load key encryption key.", e);
     }
 
