@@ -93,6 +93,8 @@ public class ClientInfoImpl implements ClientInfo {
     return property.getValue(properties);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided propertiesFilePath")
   public static Properties toProperties(String propertiesFilePath) {
     return toProperties(Paths.get(propertiesFilePath));
   }
