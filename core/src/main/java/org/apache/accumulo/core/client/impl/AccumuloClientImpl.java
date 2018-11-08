@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.impl;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -408,6 +409,11 @@ public class AccumuloClientImpl implements AccumuloClient {
     public SaslOptions qop(CharSequence qualityOfProtection) {
       setProperty(ClientProperty.SASL_QOP, qualityOfProtection);
       return this;
+    }
+
+    @Override
+    public AccumuloClientFactory from(String propertiesFilePath) {
+      return from(Paths.get(propertiesFilePath));
     }
 
     @Override

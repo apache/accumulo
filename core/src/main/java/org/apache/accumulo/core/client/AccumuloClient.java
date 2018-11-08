@@ -376,6 +376,16 @@ public interface AccumuloClient extends AutoCloseable {
      * Build using properties file. An example properties file can be found at
      * conf/accumulo-client.properties in the Accumulo tarball distribution.
      *
+     * @param propertiesFilePath
+     *          Path to properties file
+     * @return this builder
+     */
+    AccumuloClientFactory from(String propertiesFilePath);
+
+    /**
+     * Build using properties file. An example properties file can be found at
+     * conf/accumulo-client.properties in the Accumulo tarball distribution.
+     *
      * @param propertiesFile
      *          Path to properties file
      * @return this builder
