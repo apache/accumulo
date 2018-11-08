@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.hadoop.mapreduce;
 
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -140,7 +141,7 @@ public interface InputInfo {
     interface ClientParams {
       /**
        * Set the connection information needed to communicate with Accumulo in this job. ClientInfo
-       * param can be created using {@link ClientInfo#from(String)} or
+       * param can be created using {@link ClientInfo#from(Path)} or
        * {@link ClientInfo#from(Properties)}
        *
        * @param clientInfo
