@@ -341,8 +341,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       try {
         DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", properties);
         this.setTableName("");
-        accumuloClient = Accumulo.newClient().from(info).as(principal, token)
-            .build();
+        accumuloClient = Accumulo.newClient().from(info).as(principal, token).build();
         context = new ClientContext(accumuloClient.info());
       } catch (Exception e) {
         printException(e);

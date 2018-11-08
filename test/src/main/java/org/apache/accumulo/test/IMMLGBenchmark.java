@@ -51,8 +51,8 @@ import com.google.common.collect.Iterators;
 public class IMMLGBenchmark {
   public static void main(String[] args) throws Exception {
 
-    AccumuloClient client = Accumulo.newClient().to("test16", "localhost")
-        .as("root", "secret").build();
+    AccumuloClient client = Accumulo.newClient().to("test16", "localhost").as("root", "secret")
+        .build();
 
     int numlg = Integer.parseInt(args[0]);
 

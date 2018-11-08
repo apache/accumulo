@@ -20,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.ClientInfo;
@@ -92,8 +93,12 @@ public class ClientInfoImpl implements ClientInfo {
     return property.getValue(properties);
   }
 
+  public static Properties toProperties(String propertiesFilePath) {
+    return toProperties(Paths.get(propertiesFilePath));
+  }
+
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "code runs in same security context as user who provided configFile")
+      justification = "code runs in same security context as user who provided propertiesFile")
   public static Properties toProperties(Path propertiesFile) {
     Properties properties = new Properties();
     try (InputStream is = new FileInputStream(propertiesFile.toFile())) {

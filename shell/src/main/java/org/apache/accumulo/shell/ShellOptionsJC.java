@@ -18,7 +18,6 @@ package org.apache.accumulo.shell;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -280,7 +279,7 @@ public class ShellOptionsJC {
   public Properties getClientProperties() {
     Properties props = new Properties();
     if (getClientPropertiesFile() != null) {
-      props = ClientInfoImpl.toProperties(Paths.get(getClientPropertiesFile()));
+      props = ClientInfoImpl.toProperties(getClientPropertiesFile());
     }
     for (Map.Entry<String,String> entry : commandLineProperties.entrySet()) {
       props.setProperty(entry.getKey(), entry.getValue());

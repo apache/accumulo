@@ -122,8 +122,7 @@ public class ConfiguratorBase {
         AccumuloClient client = Accumulo.newClient().from(info).build();
         AuthenticationToken token = client.securityOperations()
             .getDelegationToken(new DelegationTokenConfig());
-        result = Accumulo.newClient().from(info).as(info.getPrincipal(), token)
-            .info();
+        result = Accumulo.newClient().from(info).as(info.getPrincipal(), token).info();
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, "
             + "Mappers/Reducers will likely fail to communicate with Accumulo", e);

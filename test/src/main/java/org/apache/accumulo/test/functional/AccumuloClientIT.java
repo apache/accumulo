@@ -81,8 +81,8 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     final String password = "testpassword";
     c.securityOperations().createLocalUser(user, new PasswordToken(password));
 
-    AccumuloClient client = Accumulo.newClient().to(instanceName, zookeepers)
-        .as(user, password).zkTimeout(1234).build();
+    AccumuloClient client = Accumulo.newClient().to(instanceName, zookeepers).as(user, password)
+        .zkTimeout(1234).build();
 
     assertEquals(instanceName, client.info().getInstanceName());
     assertEquals(zookeepers, client.info().getZooKeepers());
