@@ -1032,6 +1032,8 @@
                 <unusedDeclaredDependency>javax.el:javax.el-api:jar:${javax.el.version}</unusedDeclaredDependency>
                 <!-- spotbugs annotations may or may not be used in each module -->
                 <unusedDeclaredDependency>com.github.spotbugs:spotbugs-annotations:jar:${spotbugs.version}</unusedDeclaredDependency>
+                <!-- ignore unused native; analysis isn't possible with tar.gz dependency -->
+                <unusedDeclaredDependency>org.apache.accumulo:accumulo-native:tar.gz:${project.version}</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
