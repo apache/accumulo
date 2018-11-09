@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.hadoop.mapreduce.OutputInfo;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Test;
@@ -58,8 +57,7 @@ public class AccumuloOutputFormatTest {
     bwConfig.setTimeout(9898989L, TimeUnit.MILLISECONDS);
     bwConfig.setMaxWriteThreads(42);
     bwConfig.setMaxMemory(1123581321L);
-    AccumuloOutputFormat.setInfo(job,
-        OutputInfo.builder().clientInfo(clientInfo).batchWriterOptions(bwConfig).build());
+    AccumuloOutputFormat.configure().clientInfo(clientInfo).batchWriterOptions(bwConfig).store(job);
 
     AccumuloOutputFormat myAOF = new AccumuloOutputFormat() {
       @Override

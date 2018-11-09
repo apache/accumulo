@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.hadoop.mapreduce.FileOutputInfo;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.FileOutputConfigurator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
@@ -57,10 +56,9 @@ public class AccumuloFileOutputFormatTest {
         .addOption(CountingSummarizer.MAX_COUNTERS_OPT, 256).build();
 
     JobConf job = new JobConf();
-    AccumuloFileOutputFormat.setInfo(job,
-        FileOutputInfo.builder().outputPath(new Path("somewhere")).replication(a).fileBlockSize(b)
-            .dataBlockSize(c).indexBlockSize(d).compressionType(e).sampler(samplerConfig)
-            .summarizers(sc1, sc2).build());
+    AccumuloFileOutputFormat.configure().outputPath(new Path("somewhere")).replication(a)
+        .fileBlockSize(b).dataBlockSize(c).indexBlockSize(d).compressionType(e)
+        .sampler(samplerConfig).summarizers(sc1, sc2).store(job);
 
     AccumuloConfiguration acuconf = FileOutputConfigurator
         .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
@@ -89,9 +87,9 @@ public class AccumuloFileOutputFormatTest {
     samplerConfig.addOption("modulus", "100003");
 
     job = new JobConf();
-    AccumuloFileOutputFormat.setInfo(job,
-        FileOutputInfo.builder().outputPath(new Path("somewhere")).replication(a).fileBlockSize(b)
-            .dataBlockSize(c).indexBlockSize(d).compressionType(e).sampler(samplerConfig).build());
+    AccumuloFileOutputFormat.configure().outputPath(new Path("somewhere")).replication(a)
+        .fileBlockSize(b).dataBlockSize(c).indexBlockSize(d).compressionType(e)
+        .sampler(samplerConfig).store(job);
 
     acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
 

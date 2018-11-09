@@ -39,7 +39,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.hadoop.mapred.AccumuloRowInputFormat;
-import org.apache.accumulo.hadoop.mapreduce.InputInfo;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -166,8 +165,8 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormat(AccumuloRowInputFormat.class);
 
-      AccumuloRowInputFormat.setInfo(job, InputInfo.builder().clientInfo(getClientInfo())
-          .table(table).scanAuths(Authorizations.EMPTY).build());
+      AccumuloRowInputFormat.configure().clientInfo(getClientInfo()).table(table)
+          .scanAuths(Authorizations.EMPTY).store(job);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);

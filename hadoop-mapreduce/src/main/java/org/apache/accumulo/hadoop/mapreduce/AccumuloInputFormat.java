@@ -16,19 +16,6 @@
  */
 package org.apache.accumulo.hadoop.mapreduce;
 
-import static org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat.setClassLoaderContext;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat.setClientInfo;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat.setScanAuthorizations;
-import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setAutoAdjustRanges;
-import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setBatchScan;
-import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setExecutionHints;
-import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setInputTableName;
-import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setLocalIterators;
-import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setOfflineTableScan;
-import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setRanges;
-import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setSamplerConfiguration;
-import static org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase.setScanIsolation;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map.Entry;
@@ -38,10 +25,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase;
-import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
+import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBuilderImpl;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -50,15 +36,20 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat}
- * provides keys and values of type {@link Key} and {@link Value} to the Map function.
+ * provides keys and values of type {@link Key} and {@link Value} to the Map function. Configure the
+ * job using the {@link #configure()} method, which provides a fluent API. For Example:
  *
- * The user must specify the following via static configurator method:
+ * <pre>
+ * AccumuloInputFormat.configure().clientInfo(info).table(name).scanAuths(auths) // required
+ *     .addIterator(iter1).ranges(ranges).fetchColumns(columns).executionHints(hints)
+ *     .samplerConfiguration(sampleConf).disableAutoAdjustRanges() // enabled by default
+ *     .scanIsolation() // not available with batchScan()
+ *     .offlineScan() // not available with batchScan()
+ *     .store(job);
+ * </pre>
  *
- * <ul>
- * <li>{@link AccumuloInputFormat#setInfo(Job, InputInfo)}
- * </ul>
- *
- * For required parameters and all available options use {@link InputInfo#builder()}
+ * For descriptions of all options see
+ * {@link org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder.InputFormatOptions}
  *
  * @since 2.0
  */
@@ -103,28 +94,7 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
   /**
    * Sets all the information required for this map reduce job.
    */
-  public static void setInfo(Job job, InputInfo info) {
-    setClientInfo(job, info.getClientInfo());
-    setScanAuthorizations(job, info.getScanAuths());
-    setInputTableName(job, info.getTableName());
-
-    // all optional values
-    if (info.getContext().isPresent())
-      setClassLoaderContext(job, info.getContext().get());
-    if (info.getRanges().size() > 0)
-      setRanges(job, info.getRanges());
-    if (info.getIterators().size() > 0)
-      InputConfigurator.writeIteratorsToConf(CLASS, job.getConfiguration(), info.getIterators());
-    if (info.getFetchColumns().size() > 0)
-      InputConfigurator.fetchColumns(CLASS, job.getConfiguration(), info.getFetchColumns());
-    if (info.getSamplerConfig().isPresent())
-      setSamplerConfiguration(job, info.getSamplerConfig().get());
-    if (info.getExecutionHints().size() > 0)
-      setExecutionHints(job, info.getExecutionHints());
-    setAutoAdjustRanges(job, info.isAutoAdjustRanges());
-    setScanIsolation(job, info.isScanIsolation());
-    setLocalIterators(job, info.isLocalIterators());
-    setOfflineTableScan(job, info.isOfflineScan());
-    setBatchScan(job, info.isBatchScan());
+  public static InputFormatBuilder.ClientParams configure() {
+    return new InputFormatBuilderImpl<>(CLASS);
   }
 }

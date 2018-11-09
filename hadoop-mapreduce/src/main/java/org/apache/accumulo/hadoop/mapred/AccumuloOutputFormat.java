@@ -17,11 +17,6 @@
 package org.apache.accumulo.hadoop.mapred;
 
 import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.getClientInfo;
-import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setBatchWriterOptions;
-import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setClientInfo;
-import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setCreateTables;
-import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setDefaultTableName;
-import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setSimulationMode;
 
 import java.io.IOException;
 
@@ -32,8 +27,9 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.hadoop.mapreduce.OutputInfo;
+import org.apache.accumulo.hadoop.mapreduce.OutputFormatBuilder;
 import org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl;
+import org.apache.accumulo.hadoopImpl.mapreduce.OutputFormatBuilderImpl;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -42,15 +38,7 @@ import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.util.Progressable;
 
 /**
- * This class allows MapReduce jobs to use Accumulo as the sink for data. This {@link OutputFormat}
- * accepts keys and values of type {@link Text} (for a table name) and {@link Mutation} from the Map
- * and Reduce functions.
- *
- * The user must specify the following via static configurator method:
- *
- * <ul>
- * <li>{@link AccumuloOutputFormat#setInfo(JobConf, OutputInfo)}
- * </ul>
+ * @see org.apache.accumulo.hadoop.mapreduce.AccumuloOutputFormat
  *
  * @since 2.0
  */
@@ -81,14 +69,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
     }
   }
 
-  public static void setInfo(JobConf job, OutputInfo info) {
-    setClientInfo(job, info.getClientInfo());
-    if (info.getBatchWriterOptions().isPresent())
-      setBatchWriterOptions(job, info.getBatchWriterOptions().get());
-    if (info.getDefaultTableName().isPresent())
-      setDefaultTableName(job, info.getDefaultTableName().get());
-    setCreateTables(job, info.isCreateTables());
-    setSimulationMode(job, info.isSimulationMode());
+  public static OutputFormatBuilder.ClientParams configure() {
+    return new OutputFormatBuilderImpl();
   }
-
 }

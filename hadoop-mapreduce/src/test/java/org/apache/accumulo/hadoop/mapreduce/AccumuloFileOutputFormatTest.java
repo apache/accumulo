@@ -56,10 +56,9 @@ public class AccumuloFileOutputFormatTest {
         .addOption(CountingSummarizer.MAX_COUNTERS_OPT, 256).build();
 
     Job job1 = Job.getInstance();
-    AccumuloFileOutputFormat.setInfo(job1,
-        FileOutputInfo.builder().outputPath(new Path("somewhere")).replication(a).fileBlockSize(b)
-            .dataBlockSize(c).indexBlockSize(d).compressionType(e).sampler(samplerConfig)
-            .summarizers(sc1, sc2).build());
+    AccumuloFileOutputFormat.configure().outputPath(new Path("somewhere")).replication(a)
+        .fileBlockSize(b).dataBlockSize(c).indexBlockSize(d).compressionType(e)
+        .sampler(samplerConfig).summarizers(sc1, sc2).store(job1);
 
     AccumuloConfiguration acuconf = FileOutputConfigurator
         .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job1.getConfiguration());
@@ -88,9 +87,9 @@ public class AccumuloFileOutputFormatTest {
     samplerConfig.addOption("modulus", "100003");
 
     Job job2 = Job.getInstance();
-    AccumuloFileOutputFormat.setInfo(job2,
-        FileOutputInfo.builder().outputPath(new Path("somewhere")).replication(a).fileBlockSize(b)
-            .dataBlockSize(c).indexBlockSize(d).compressionType(e).sampler(samplerConfig).build());
+    AccumuloFileOutputFormat.configure().outputPath(new Path("somewhere")).replication(a)
+        .fileBlockSize(b).dataBlockSize(c).indexBlockSize(d).compressionType(e)
+        .sampler(samplerConfig).store(job2);
 
     acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class,
         job2.getConfiguration());

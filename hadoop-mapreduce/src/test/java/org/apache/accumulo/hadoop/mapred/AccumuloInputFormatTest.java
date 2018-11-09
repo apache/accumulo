@@ -38,7 +38,7 @@ import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.hadoop.mapreduce.InputInfo;
+import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -72,16 +72,23 @@ public class AccumuloInputFormatTest {
     replay(clientInfo);
   }
 
+  // TODO remove - temp only for compilation
+  private static class InputInfo {
+    interface InputInfoBuilder {
+      interface InputFormatOptions {}
+    }
+  }
+
   /**
    * Check that the iterator configuration is getting stored in the Job conf correctly.
    */
   @Test
   public void testSetIterator() throws IOException {
-    InputInfo.InputInfoBuilder.InputFormatOptions opts = InputInfo.builder().clientInfo(clientInfo)
-        .table("test").scanAuths(Authorizations.EMPTY);
+    InputFormatBuilder.InputFormatOptions opts = AccumuloInputFormat.configure()
+        .clientInfo(clientInfo).table("test").scanAuths(Authorizations.EMPTY);
 
     IteratorSetting is = new IteratorSetting(1, "WholeRow", WholeRowIterator.class);
-    AccumuloInputFormat.setInfo(job, opts.addIterator(is).build());
+    opts.addIterator(is).store(job);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     is.write(new DataOutputStream(baos));
     String iterators = job.get("AccumuloInputFormat.ScanOpts.Iterators");
@@ -90,16 +97,15 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testAddIterator() {
-    InputInfo.InputInfoBuilder.InputFormatOptions opts = InputInfo.builder().clientInfo(clientInfo)
-        .table("test").scanAuths(Authorizations.EMPTY);
+    InputFormatBuilder.InputFormatOptions opts = AccumuloInputFormat.configure()
+        .clientInfo(clientInfo).table("test").scanAuths(Authorizations.EMPTY);
 
     IteratorSetting iter1 = new IteratorSetting(1, "WholeRow", WholeRowIterator.class);
     IteratorSetting iter2 = new IteratorSetting(2, "Versions", VersioningIterator.class);
     IteratorSetting iter3 = new IteratorSetting(3, "Count", CountingIterator.class);
     iter3.addOption("v1", "1");
     iter3.addOption("junk", "\0omg:!\\xyzzy");
-    AccumuloInputFormat.setInfo(job,
-        opts.addIterator(iter1).addIterator(iter2).addIterator(iter3).build());
+    opts.addIterator(iter1).addIterator(iter2).addIterator(iter3).store(job);
 
     List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class, job);
 
@@ -143,9 +149,9 @@ public class AccumuloInputFormatTest {
     IteratorSetting iter1 = new IteratorSetting(1, "iter1", WholeRowIterator.class);
     iter1.addOption(key, value);
     // also test if reusing options will create duplicate iterators
-    InputInfo.InputInfoBuilder.InputFormatOptions opts = InputInfo.builder().clientInfo(clientInfo)
-        .table("test").scanAuths(Authorizations.EMPTY);
-    AccumuloInputFormat.setInfo(job, opts.addIterator(iter1).build());
+    InputFormatBuilder.InputFormatOptions opts = AccumuloInputFormat.configure()
+        .clientInfo(clientInfo).table("test").scanAuths(Authorizations.EMPTY);
+    opts.addIterator(iter1).store(job);
 
     List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class, job);
     assertEquals(1, list.size());
@@ -155,7 +161,7 @@ public class AccumuloInputFormatTest {
     IteratorSetting iter2 = new IteratorSetting(1, "iter2", WholeRowIterator.class);
     iter2.addOption(key, value);
     iter2.addOption(key + "2", value);
-    AccumuloInputFormat.setInfo(job, opts.addIterator(iter1).addIterator(iter2).build());
+    opts.addIterator(iter1).addIterator(iter2).store(job);
     list = InputConfigurator.getIterators(AccumuloInputFormat.class, job);
     assertEquals(2, list.size());
     assertEquals(1, list.get(0).getOptions().size());
@@ -173,9 +179,9 @@ public class AccumuloInputFormatTest {
     IteratorSetting iter1 = new IteratorSetting(1, "WholeRow", WholeRowIterator.class.getName());
     IteratorSetting iter2 = new IteratorSetting(2, "Versions", VersioningIterator.class.getName());
     IteratorSetting iter3 = new IteratorSetting(3, "Count", CountingIterator.class.getName());
-    AccumuloInputFormat.setInfo(job,
-        InputInfo.builder().clientInfo(clientInfo).table("test").scanAuths(Authorizations.EMPTY)
-            .addIterator(iter1).addIterator(iter2).addIterator(iter3).build());
+    AccumuloInputFormat.configure().clientInfo(clientInfo).table("test")
+        .scanAuths(Authorizations.EMPTY).addIterator(iter1).addIterator(iter2).addIterator(iter3)
+        .store(job);
 
     List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class, job);
 
@@ -206,8 +212,8 @@ public class AccumuloInputFormatTest {
 
     IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
-    AccumuloInputFormat.setInfo(job, InputInfo.builder().clientInfo(clientInfo).table("test")
-        .scanAuths(Authorizations.EMPTY).addIterator(is).build());
+    AccumuloInputFormat.configure().clientInfo(clientInfo).table("test")
+        .scanAuths(Authorizations.EMPTY).addIterator(is).store(job);
 
     assertEquals(regex,
         InputConfigurator.getIterators(AccumuloInputFormat.class, job).get(0).getName());
@@ -221,8 +227,8 @@ public class AccumuloInputFormatTest {
     cols.add(new IteratorSetting.Column(new Text(""), new Text("bar")));
     cols.add(new IteratorSetting.Column(new Text(""), new Text("")));
     cols.add(new IteratorSetting.Column(new Text("foo"), new Text("")));
-    AccumuloInputFormat.setInfo(job, InputInfo.builder().clientInfo(clientInfo).table("test")
-        .scanAuths(Authorizations.EMPTY).fetchColumns(cols).build());
+    AccumuloInputFormat.configure().clientInfo(clientInfo).table("test")
+        .scanAuths(Authorizations.EMPTY).fetchColumns(cols).store(job);
 
     assertEquals(cols, InputConfigurator.getFetchedColumns(AccumuloInputFormat.class, job));
   }

@@ -58,8 +58,7 @@ public class AccumuloOutputFormatTest {
     bwConfig.setTimeout(9898989L, TimeUnit.MILLISECONDS);
     bwConfig.setMaxWriteThreads(42);
     bwConfig.setMaxMemory(1123581321L);
-    AccumuloOutputFormat.setInfo(job,
-        OutputInfo.builder().clientInfo(clientInfo).batchWriterOptions(bwConfig).build());
+    AccumuloOutputFormat.configure().clientInfo(clientInfo).batchWriterOptions(bwConfig).store(job);
 
     AccumuloOutputFormat myAOF = new AccumuloOutputFormat() {
       @Override

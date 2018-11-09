@@ -17,11 +17,6 @@
 package org.apache.accumulo.hadoop.mapreduce;
 
 import static org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat.getClientInfo;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setBatchWriterOptions;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setClientInfo;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setCreateTables;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setDefaultTableName;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setSimulationMode;
 
 import java.io.IOException;
 
@@ -33,8 +28,8 @@ import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl;
+import org.apache.accumulo.hadoopImpl.mapreduce.OutputFormatBuilderImpl;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -45,13 +40,15 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 /**
  * This class allows MapReduce jobs to use Accumulo as the sink for data. This {@link OutputFormat}
  * accepts keys and values of type {@link Text} (for a table name) and {@link Mutation} from the Map
- * and Reduce functions.
+ * and Reduce functions. Configured with fluent API using {@link AccumuloOutputFormat#configure()}.
+ * Here is an example with all possible options:
  *
- * The user must specify the following via static configurator method:
- *
- * <ul>
- * <li>{@link AccumuloOutputFormat#setInfo(Job, OutputInfo)}
- * </ul>
+ * <pre>
+ * AccumuloOutputFormat.configure().clientInfo(clientInfo).batchWriterOptions(bwConfig)
+ *     .defaultTableName(name).enableCreateTables() // disabled by default
+ *     .enableSimulationMode() // disabled by default
+ *     .store(job);
+ * </pre>
  *
  * @since 2.0
  */
@@ -88,14 +85,11 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     }
   }
 
-  public static void setInfo(Job job, OutputInfo info) {
-    setClientInfo(job, info.getClientInfo());
-    if (info.getBatchWriterOptions().isPresent())
-      setBatchWriterOptions(job, info.getBatchWriterOptions().get());
-    if (info.getDefaultTableName().isPresent())
-      setDefaultTableName(job, info.getDefaultTableName().get());
-    setCreateTables(job, info.isCreateTables());
-    setSimulationMode(job, info.isSimulationMode());
+  /**
+   * Sets all the information required for this map reduce job.
+   */
+  public static OutputFormatBuilder.ClientParams configure() {
+    return new OutputFormatBuilderImpl();
   }
 
 }

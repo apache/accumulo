@@ -16,28 +16,19 @@
  */
 package org.apache.accumulo.hadoop.mapreduce;
 
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setCompressionType;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setDataBlockSize;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setFileBlockSize;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setIndexBlockSize;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setReplication;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setSampler;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setSummarizers;
-
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
-import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.hadoopImpl.mapreduce.FileOutputFormatBuilderImpl;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.ConfiguratorBase;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.FileOutputConfigurator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -45,16 +36,21 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 /**
  * This class allows MapReduce jobs to write output in the Accumulo data file format.<br>
  * Care should be taken to write only sorted data (sorted by {@link Key}), as this is an important
- * requirement of Accumulo data files.
+ * requirement of Accumulo data files. The output path to be created must be specified via
+ * {@link #configure()}, which uses a fluent API. For Example:
  *
- * <p>
- * The output path to be created must be specified via {@link #setInfo(Job, FileOutputInfo)} using
- * {@link FileOutputInfo#builder()}.outputPath(path). For all available options see
- * {@link FileOutputInfo#builder()}
- * <p>
- * Methods inherited from {@link FileOutputFormat} are not supported and may be ignored or cause
- * failures. Using other Hadoop configuration options that affect the behavior of the underlying
- * files directly in the Job's configuration may work, but are not directly supported at this time.
+ * <pre>
+ * AccumuloFileOutputFormat.configure()
+ *      .outputPath(path)
+ *      .fileBlockSize(b)
+ *      .compressionType(type)
+ *      .summarizers(sc1, sc2).store(job));
+ * </pre>
+ *
+ * For all available options see {@link FileOutputFormatBuilder}. Methods inherited from
+ * {@link FileOutputFormat} are not supported and may be ignored or cause failures. Using other
+ * Hadoop configuration options that affect the behavior of the underlying files directly in the
+ * Job's configuration may work, but are not directly supported at this time.
  *
  * @since 2.0
  */
@@ -95,22 +91,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   /**
    * Sets all the information required for this map reduce job.
    */
-  public static void setInfo(Job job, FileOutputInfo info) {
-    setOutputPath(job, info.getOutputPath());
-    if (info.getCompressionType().isPresent())
-      setCompressionType(job, info.getCompressionType().get());
-    if (info.getDataBlockSize().isPresent())
-      setDataBlockSize(job, info.getDataBlockSize().get());
-    if (info.getFileBlockSize().isPresent())
-      setFileBlockSize(job, info.getFileBlockSize().get());
-    if (info.getIndexBlockSize().isPresent())
-      setIndexBlockSize(job, info.getIndexBlockSize().get());
-    if (info.getReplication().isPresent())
-      setReplication(job, info.getReplication().get());
-    if (info.getSampler().isPresent())
-      setSampler(job, info.getSampler().get());
-    if (info.getSummarizers().size() > 0)
-      setSummarizers(job, info.getSummarizers().toArray(new SummarizerConfiguration[0]));
+  public static FileOutputFormatBuilder.PathParams configure() {
+    return new FileOutputFormatBuilderImpl();
   }
 
 }
