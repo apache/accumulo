@@ -18,6 +18,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -71,8 +72,9 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @After
   public void checkForDanglingFateLocks() {
-    // create an accumulo client even though its not used inorder to enable static stuff
+    // create an accumulo client even though it's not used in order to enable static stuff
     try (AccumuloClient c = getAccumuloClient()) {
+      assertNotNull(c);
       FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
     }
   }

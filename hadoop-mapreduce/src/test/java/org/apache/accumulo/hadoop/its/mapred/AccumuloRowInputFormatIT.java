@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.hadoop.mapreduce;
+package org.apache.accumulo.hadoop.its.mapred;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -38,13 +38,18 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.PeekingIterator;
+import org.apache.accumulo.hadoop.mapred.AccumuloRowInputFormat;
+import org.apache.accumulo.hadoop.mapreduce.InputInfo;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.Mapper;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.lib.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.BeforeClass;
@@ -103,13 +108,13 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
   }
 
   private static class MRTester extends Configured implements Tool {
-    private static class TestMapper
-        extends Mapper<Text,PeekingIterator<Entry<Key,Value>>,Key,Value> {
+    public static class TestMapper
+        implements Mapper<Text,PeekingIterator<Entry<Key,Value>>,Key,Value> {
       int count = 0;
 
       @Override
-      protected void map(Text k, PeekingIterator<Entry<Key,Value>> v, Context context)
-          throws IOException, InterruptedException {
+      public void map(Text k, PeekingIterator<Entry<Key,Value>> v,
+          OutputCollector<Key,Value> output, Reporter reporter) throws IOException {
         try {
           switch (count) {
             case 0:
@@ -134,13 +139,17 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
       }
 
       @Override
-      protected void cleanup(Context context) throws IOException, InterruptedException {
+      public void configure(JobConf job) {}
+
+      @Override
+      public void close() throws IOException {
         try {
           assertEquals(3, count);
         } catch (AssertionError e) {
           e2 = e;
         }
       }
+
     }
 
     @Override
@@ -152,11 +161,10 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
 
       String table = args[0];
 
-      Job job = Job.getInstance(getConf(),
-          this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
 
-      job.setInputFormatClass(AccumuloRowInputFormat.class);
+      job.setInputFormat(AccumuloRowInputFormat.class);
 
       AccumuloRowInputFormat.setInfo(job, InputInfo.builder().clientInfo(getClientInfo())
           .table(table).scanAuths(Authorizations.EMPTY).build());
@@ -164,13 +172,11 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
-      job.setOutputFormatClass(NullOutputFormat.class);
+      job.setOutputFormat(NullOutputFormat.class);
 
       job.setNumReduceTasks(0);
 
-      job.waitForCompletion(true);
-
-      return job.isSuccessful() ? 0 : 1;
+      return JobClient.runJob(job).isSuccessful() ? 0 : 1;
     }
 
     public static void main(String[] args) throws Exception {
