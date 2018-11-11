@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -44,7 +43,7 @@ import org.apache.accumulo.core.singletons.SingletonManager.Mode;
  * copied over to that.
  */
 @Deprecated
-public class ConnectorImpl extends Connector {
+public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
 
   private final AccumuloClientImpl impl;
 

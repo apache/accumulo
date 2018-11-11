@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -101,7 +102,10 @@ public class CryptoTest {
     try (FSDataOutputStream out = fs.create(aesPath)) {
       out.writeUTF("sixteenbytekey"); // 14 + 2 from writeUTF
     }
-    FSDataOutputStream out = fs.create(new Path(emptyKeyPath));
+    try (FSDataOutputStream out = fs.create(new Path(emptyKeyPath))) {
+      // auto close after creating
+      assertNotNull(out);
+    }
   }
 
   @Test
@@ -322,6 +326,7 @@ public class CryptoTest {
     byte[] wrapped = AESKeyUtils.wrapKey(fek, kek);
     exception.expect(CryptoException.class);
     java.security.Key unwrapped = AESKeyUtils.unwrapKey(wrapped, wrongKek);
+    fail("creation of " + unwrapped + " should fail");
   }
 
   @Test
@@ -339,13 +344,14 @@ public class CryptoTest {
     exception.expect(CryptoException.class);
     SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri(
         System.getProperty("user.dir") + "/target/CryptoTest-testkeyfile-doesnt-exist");
+    fail("creation of " + fileKey + " should fail");
   }
 
   @Test
   public void testAESKeyUtilsLoadKekFromEmptyFile() {
     exception.expect(CryptoException.class);
     SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri(emptyKeyPath);
-
+    fail("creation of " + fileKey + " should fail");
   }
 
   private ArrayList<Key> testData() {

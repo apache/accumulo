@@ -63,8 +63,8 @@ import org.slf4j.LoggerFactory;
  * @since 2.0
  */
 public class AccumuloInputFormat implements InputFormat<Key,Value> {
-  private static Class CLASS = AccumuloInputFormat.class;
-  private static Logger log = LoggerFactory.getLogger(CLASS);
+  private static final Class<AccumuloInputFormat> CLASS = AccumuloInputFormat.class;
+  private static final Logger log = LoggerFactory.getLogger(CLASS);
 
   /**
    * Gets the splits of the tables that have been set on the job by reading the metadata table for

@@ -1137,6 +1137,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
+  @Deprecated
   public void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
     checkArgument(tableName != null, "tableName is null");

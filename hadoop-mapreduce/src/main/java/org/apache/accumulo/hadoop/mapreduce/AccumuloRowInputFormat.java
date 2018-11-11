@@ -65,7 +65,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * @since 2.0
  */
 public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Entry<Key,Value>>> {
-  private static Class CLASS = AccumuloRowInputFormat.class;
+  private static final Class<AccumuloRowInputFormat> CLASS = AccumuloRowInputFormat.class;
 
   @Override
   public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> createRecordReader(InputSplit split,
