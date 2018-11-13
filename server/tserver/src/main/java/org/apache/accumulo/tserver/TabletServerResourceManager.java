@@ -135,6 +135,8 @@ public class TabletServerResourceManager {
   private final ServerConfigurationFactory conf;
   private final ServerContext context;
 
+  private Cache<String,Long> fileLenCache;
+
   private ExecutorService addEs(String name, ExecutorService tp) {
     if (threadPools.containsKey(name)) {
       throw new IllegalArgumentException(
@@ -408,8 +410,8 @@ public class TabletServerResourceManager {
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
-    Cache<String,Long> fileLenCache = CacheBuilder.newBuilder()
-        .maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
+    fileLenCache = CacheBuilder.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000))
+        .build();
 
     fileManager = new FileManager(tserver.getContext(), fs, maxOpenFiles, fileLenCache, _dCache,
         _iCache);
@@ -1004,6 +1006,10 @@ public class TabletServerResourceManager {
 
   public BlockCache getSummaryCache() {
     return _sCache;
+  }
+
+  public Cache<String,Long> getFileLenCache() {
+    return fileLenCache;
   }
 
   public ExecutorService getSummaryRetrievalExecutor() {

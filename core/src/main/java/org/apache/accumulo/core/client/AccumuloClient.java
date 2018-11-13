@@ -35,8 +35,6 @@ import org.apache.accumulo.core.security.Authorizations;
  * Supports fluent API for creation. Various options can be provided to {@link Accumulo#newClient()}
  * and when finished a call to build() will return the AccumuloClient object. For example:
  *
- * <p>
- *
  * <pre>
  * <code>
  * try (AccumuloClient client = Accumulo.newClient()

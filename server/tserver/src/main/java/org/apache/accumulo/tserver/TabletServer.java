@@ -275,6 +275,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.Cache;
 
 public class TabletServer implements Runnable {
 
@@ -2118,9 +2119,11 @@ public class TabletServer implements Runnable {
           .getTableConfiguration(Table.ID.of(request.getTableId()));
       BlockCache summaryCache = resourceManager.getSummaryCache();
       BlockCache indexCache = resourceManager.getIndexCache();
+      Cache<String,Long> fileLenCache = resourceManager.getFileLenCache();
       FileSystemResolver volMgr = p -> fs.getVolumeByPath(p).getFileSystem();
       Future<SummaryCollection> future = new Gatherer(context, request, tableCfg,
-          context.getCryptoService()).processFiles(volMgr, files, summaryCache, indexCache, srp);
+          context.getCryptoService()).processFiles(volMgr, files, summaryCache, indexCache,
+              fileLenCache, srp);
 
       return startSummaryOperation(credentials, future);
     }

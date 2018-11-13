@@ -82,6 +82,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.cache.Cache;
 import com.google.common.collect.Lists;
 import com.google.common.hash.Hashing;
 
@@ -97,7 +98,7 @@ import com.google.common.hash.Hashing;
  * execute {@link #processPartition(ExecutorService, int, int)}
  * <li>{@link #processPartition(ExecutorService, int, int)} will make RPC calls to multiple tserver
  * to remotely execute
- * <li>{@link #processFiles(FileSystemResolver, Map, BlockCache, BlockCache, ExecutorService)}
+ * <li>{@link #processFiles(FileSystemResolver, Map, BlockCache, BlockCache, Cache, ExecutorService)}
  * </ol>
  */
 public class Gatherer {
@@ -508,12 +509,12 @@ public class Gatherer {
    */
   public Future<SummaryCollection> processFiles(FileSystemResolver volMgr,
       Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
-      ExecutorService srp) {
+      Cache<String,Long> fileLenCache, ExecutorService srp) {
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
       futures.add(CompletableFuture.supplyAsync(() -> {
         List<RowRange> rrl = Lists.transform(entry.getValue(), RowRange::new);
-        return getSummaries(volMgr, entry.getKey(), rrl, summaryCache, indexCache);
+        return getSummaries(volMgr, entry.getKey(), rrl, summaryCache, indexCache, fileLenCache);
       }, srp));
     }
 
@@ -664,10 +665,12 @@ public class Gatherer {
   }
 
   private SummaryCollection getSummaries(FileSystemResolver volMgr, String file,
-      List<RowRange> ranges, BlockCache summaryCache, BlockCache indexCache) {
+      List<RowRange> ranges, BlockCache summaryCache, BlockCache indexCache,
+      Cache<String,Long> fileLenCache) {
     Path path = new Path(file);
     Configuration conf = CachedConfiguration.getInstance();
     return SummaryReader.load(volMgr.get(path), conf, ctx.getConfiguration(), factory, path,
-        summarySelector, summaryCache, indexCache, cryptoService).getSummaries(ranges);
+        summarySelector, summaryCache, indexCache, fileLenCache, cryptoService)
+        .getSummaries(ranges);
   }
 }
