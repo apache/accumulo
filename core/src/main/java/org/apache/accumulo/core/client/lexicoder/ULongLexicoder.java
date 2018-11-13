@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 
 /**
  * Unsigned long lexicoder. The lexicographic encoding sorts first 0l and -1l last. This encoding

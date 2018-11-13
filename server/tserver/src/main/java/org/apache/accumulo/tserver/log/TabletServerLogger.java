@@ -37,7 +37,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.util.SimpleThreadPool;

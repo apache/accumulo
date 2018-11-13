@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.impl.DurabilityImpl;
+import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringUtils;

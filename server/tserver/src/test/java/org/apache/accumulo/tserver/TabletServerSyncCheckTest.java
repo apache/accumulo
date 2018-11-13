@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.volume.Volume;

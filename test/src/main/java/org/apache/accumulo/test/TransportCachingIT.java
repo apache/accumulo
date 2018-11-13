@@ -25,9 +25,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.ThriftTransportKey;
-import org.apache.accumulo.core.client.impl.ThriftTransportPool;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ThriftTransportKey;
+import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ServerServices;

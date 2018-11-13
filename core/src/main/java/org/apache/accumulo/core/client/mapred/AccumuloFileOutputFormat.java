@@ -18,13 +18,13 @@ package org.apache.accumulo.core.client.mapred;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
-import org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase;
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.FileOutputConfigurator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;

@@ -27,7 +27,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.sasl.AuthorizeCallback;
 import javax.security.sasl.RealmCallback;
 
-import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.rpc.SaslDigestCallbackHandler;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.hadoop.security.UserGroupInformation;

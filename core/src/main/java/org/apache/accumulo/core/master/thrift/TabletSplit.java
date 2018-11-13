@@ -33,8 +33,8 @@ public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletS
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TabletSplitStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TabletSplitTupleSchemeFactory();
 
-  public org.apache.accumulo.core.data.thrift.TKeyExtent oldTablet; // required
-  public java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> newTablets; // required
+  public org.apache.accumulo.core.dataImpl.thrift.TKeyExtent oldTablet; // required
+  public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> newTablets; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -102,10 +102,10 @@ public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletS
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.OLD_TABLET, new org.apache.thrift.meta_data.FieldMetaData("oldTablet", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class)));
     tmpMap.put(_Fields.NEW_TABLETS, new org.apache.thrift.meta_data.FieldMetaData("newTablets", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class))));
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class))));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TabletSplit.class, metaDataMap);
   }
@@ -114,8 +114,8 @@ public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletS
   }
 
   public TabletSplit(
-    org.apache.accumulo.core.data.thrift.TKeyExtent oldTablet,
-    java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> newTablets)
+    org.apache.accumulo.core.dataImpl.thrift.TKeyExtent oldTablet,
+    java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> newTablets)
   {
     this();
     this.oldTablet = oldTablet;
@@ -127,12 +127,12 @@ public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletS
    */
   public TabletSplit(TabletSplit other) {
     if (other.isSetOldTablet()) {
-      this.oldTablet = new org.apache.accumulo.core.data.thrift.TKeyExtent(other.oldTablet);
+      this.oldTablet = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other.oldTablet);
     }
     if (other.isSetNewTablets()) {
-      java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> __this__newTablets = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>(other.newTablets.size());
-      for (org.apache.accumulo.core.data.thrift.TKeyExtent other_element : other.newTablets) {
-        __this__newTablets.add(new org.apache.accumulo.core.data.thrift.TKeyExtent(other_element));
+      java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> __this__newTablets = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(other.newTablets.size());
+      for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent other_element : other.newTablets) {
+        __this__newTablets.add(new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other_element));
       }
       this.newTablets = __this__newTablets;
     }
@@ -148,11 +148,11 @@ public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletS
     this.newTablets = null;
   }
 
-  public org.apache.accumulo.core.data.thrift.TKeyExtent getOldTablet() {
+  public org.apache.accumulo.core.dataImpl.thrift.TKeyExtent getOldTablet() {
     return this.oldTablet;
   }
 
-  public TabletSplit setOldTablet(org.apache.accumulo.core.data.thrift.TKeyExtent oldTablet) {
+  public TabletSplit setOldTablet(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent oldTablet) {
     this.oldTablet = oldTablet;
     return this;
   }
@@ -176,22 +176,22 @@ public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletS
     return (this.newTablets == null) ? 0 : this.newTablets.size();
   }
 
-  public java.util.Iterator<org.apache.accumulo.core.data.thrift.TKeyExtent> getNewTabletsIterator() {
+  public java.util.Iterator<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> getNewTabletsIterator() {
     return (this.newTablets == null) ? null : this.newTablets.iterator();
   }
 
-  public void addToNewTablets(org.apache.accumulo.core.data.thrift.TKeyExtent elem) {
+  public void addToNewTablets(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent elem) {
     if (this.newTablets == null) {
-      this.newTablets = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>();
+      this.newTablets = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>();
     }
     this.newTablets.add(elem);
   }
 
-  public java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> getNewTablets() {
+  public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> getNewTablets() {
     return this.newTablets;
   }
 
-  public TabletSplit setNewTablets(java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> newTablets) {
+  public TabletSplit setNewTablets(java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent> newTablets) {
     this.newTablets = newTablets;
     return this;
   }
@@ -217,7 +217,7 @@ public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletS
       if (value == null) {
         unsetOldTablet();
       } else {
-        setOldTablet((org.apache.accumulo.core.data.thrift.TKeyExtent)value);
+        setOldTablet((org.apache.accumulo.core.dataImpl.thrift.TKeyExtent)value);
       }
       break;
 
@@ -225,7 +225,7 @@ public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletS
       if (value == null) {
         unsetNewTablets();
       } else {
-        setNewTablets((java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent>)value);
+        setNewTablets((java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>)value);
       }
       break;
 
@@ -421,7 +421,7 @@ public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletS
         switch (schemeField.id) {
           case 1: // OLD_TABLET
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.oldTablet = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+              struct.oldTablet = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
               struct.oldTablet.read(iprot);
               struct.setOldTabletIsSet(true);
             } else { 
@@ -432,11 +432,11 @@ public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
                 org.apache.thrift.protocol.TList _list78 = iprot.readListBegin();
-                struct.newTablets = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>(_list78.size);
-                org.apache.accumulo.core.data.thrift.TKeyExtent _elem79;
+                struct.newTablets = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list78.size);
+                org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem79;
                 for (int _i80 = 0; _i80 < _list78.size; ++_i80)
                 {
-                  _elem79 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+                  _elem79 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
                   _elem79.read(iprot);
                   struct.newTablets.add(_elem79);
                 }
@@ -471,7 +471,7 @@ public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletS
         oprot.writeFieldBegin(NEW_TABLETS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.newTablets.size()));
-          for (org.apache.accumulo.core.data.thrift.TKeyExtent _iter81 : struct.newTablets)
+          for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter81 : struct.newTablets)
           {
             _iter81.write(oprot);
           }
@@ -510,7 +510,7 @@ public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletS
       if (struct.isSetNewTablets()) {
         {
           oprot.writeI32(struct.newTablets.size());
-          for (org.apache.accumulo.core.data.thrift.TKeyExtent _iter82 : struct.newTablets)
+          for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter82 : struct.newTablets)
           {
             _iter82.write(oprot);
           }
@@ -523,18 +523,18 @@ public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletS
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
-        struct.oldTablet = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+        struct.oldTablet = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
         struct.oldTablet.read(iprot);
         struct.setOldTabletIsSet(true);
       }
       if (incoming.get(1)) {
         {
           org.apache.thrift.protocol.TList _list83 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.newTablets = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>(_list83.size);
-          org.apache.accumulo.core.data.thrift.TKeyExtent _elem84;
+          struct.newTablets = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list83.size);
+          org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem84;
           for (int _i85 = 0; _i85 < _list83.size; ++_i85)
           {
-            _elem84 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+            _elem84 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
             _elem84.read(iprot);
             struct.newTablets.add(_elem84);
           }

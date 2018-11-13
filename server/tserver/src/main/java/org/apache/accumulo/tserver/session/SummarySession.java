@@ -19,7 +19,7 @@ package org.apache.accumulo.tserver.session;
 
 import java.util.concurrent.Future;
 
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.summary.SummaryCollection;
 
 public class SummarySession extends Session {

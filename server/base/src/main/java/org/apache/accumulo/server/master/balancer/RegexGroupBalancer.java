@@ -22,10 +22,10 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
 
 /**

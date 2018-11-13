@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.tserver.mastermessage;
 
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Iface;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.thrift.TException;
 

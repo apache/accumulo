@@ -23,7 +23,7 @@ import java.util.Collections;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.tserver.TabletServer;

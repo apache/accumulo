@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.easymock.EasyMock;

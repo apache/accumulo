@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.client.impl.thrift.TableOperation;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;

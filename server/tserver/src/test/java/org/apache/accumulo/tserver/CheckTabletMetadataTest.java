@@ -22,10 +22,10 @@ import static org.junit.Assert.assertNull;
 
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.master.state.TServerInstance;

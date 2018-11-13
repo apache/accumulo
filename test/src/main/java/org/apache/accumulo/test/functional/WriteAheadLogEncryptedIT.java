@@ -25,7 +25,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
@@ -46,7 +46,7 @@ public class WriteAheadLogEncryptedIT extends AccumuloClusterHarness {
     String keyPath = System.getProperty("user.dir")
         + "/target/mini-tests/WriteAheadLogEncryptedIT-testkeyfile";
     cfg.setProperty(Property.INSTANCE_CRYPTO_SERVICE,
-        "org.apache.accumulo.core.security.crypto.impl.AESCryptoService");
+        "org.apache.accumulo.core.cryptoImpl.AESCryptoService");
     cfg.setProperty(INSTANCE_CRYPTO_PREFIX.getKey() + "key.uri", keyPath);
 
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "2M");

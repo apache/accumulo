@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Level;

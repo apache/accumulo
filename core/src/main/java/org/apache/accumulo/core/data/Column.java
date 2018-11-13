@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Comparator;
 
-import org.apache.accumulo.core.data.thrift.TColumn;
+import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 

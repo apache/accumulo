@@ -19,7 +19,7 @@ package org.apache.accumulo.server.fs;
 import java.io.IOException;
 import java.util.Collection;
 
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerConstants;

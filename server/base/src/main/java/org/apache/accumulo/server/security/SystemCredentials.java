@@ -27,12 +27,12 @@ import java.util.Base64;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.io.Writable;
 

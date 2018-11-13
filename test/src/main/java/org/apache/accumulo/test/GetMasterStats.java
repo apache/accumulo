@@ -23,8 +23,8 @@ import java.util.Date;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.impl.MasterClient;
-import org.apache.accumulo.core.client.impl.thrift.ThriftNotActiveServiceException;
+import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.BulkImportStatus;
 import org.apache.accumulo.core.master.thrift.DeadServer;

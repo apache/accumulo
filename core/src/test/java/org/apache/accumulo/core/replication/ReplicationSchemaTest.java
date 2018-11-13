@@ -18,7 +18,7 @@ package org.apache.accumulo.core.replication;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;

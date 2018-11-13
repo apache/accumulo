@@ -38,10 +38,10 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;

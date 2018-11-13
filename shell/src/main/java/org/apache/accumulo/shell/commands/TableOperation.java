@@ -22,10 +22,10 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Namespaces;
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.Namespaces;
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellOptions;

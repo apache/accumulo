@@ -169,7 +169,7 @@ public enum Property {
       "Sensitive properties related to on-disk file encryption."),
   @Experimental
   INSTANCE_CRYPTO_SERVICE("instance.crypto.service",
-      "org.apache.accumulo.core.security.crypto.impl.NoCryptoService", PropertyType.CLASSNAME,
+      "org.apache.accumulo.core.cryptoImpl.NoCryptoService", PropertyType.CLASSNAME,
       "The class which executes on-disk file encryption. The default does nothing. To enable "
           + "encryption, replace this classname with an implementation of the"
           + "org.apache.accumulo.core.spi.crypto.CryptoService interface."),

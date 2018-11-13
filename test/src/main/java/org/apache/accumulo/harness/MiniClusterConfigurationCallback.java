@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.harness;
 
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 
 /**

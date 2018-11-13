@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.core.client;
 
-import org.apache.accumulo.core.client.impl.AccumuloClientImpl;
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.rfile.RFile;
+import org.apache.accumulo.core.clientImpl.AccumuloClientImpl;
 
 /**
  * This class contains all API entry points created in 2.0.0 or later. The majority of the API is

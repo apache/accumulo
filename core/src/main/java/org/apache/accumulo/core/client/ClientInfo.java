@@ -18,8 +18,8 @@ package org.apache.accumulo.core.client;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.impl.ClientInfoImpl;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 
 /**
  * Accumulo client information. Can be built using {@link Accumulo#newClient()}

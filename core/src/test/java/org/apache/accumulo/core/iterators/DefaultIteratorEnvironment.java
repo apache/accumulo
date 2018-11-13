@@ -18,7 +18,7 @@ package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
+import org.apache.accumulo.core.clientImpl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Key;

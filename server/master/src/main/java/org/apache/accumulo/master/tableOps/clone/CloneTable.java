@@ -19,9 +19,9 @@ package org.apache.accumulo.master.tableOps.clone;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.client.impl.thrift.TableOperation;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;

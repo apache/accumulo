@@ -23,8 +23,8 @@ import java.util.Set;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
-import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;

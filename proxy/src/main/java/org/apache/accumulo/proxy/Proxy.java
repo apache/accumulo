@@ -24,9 +24,9 @@ import java.nio.file.Files;
 import java.util.Properties;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;

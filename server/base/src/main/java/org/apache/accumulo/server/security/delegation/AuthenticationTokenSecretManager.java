@@ -31,8 +31,8 @@ import javax.crypto.SecretKey;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
-import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
-import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
+import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.SecretManager;
 import org.apache.hadoop.security.token.Token;

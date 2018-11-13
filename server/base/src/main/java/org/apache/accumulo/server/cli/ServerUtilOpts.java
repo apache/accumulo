@@ -17,7 +17,7 @@
 package org.apache.accumulo.server.cli;
 
 import org.apache.accumulo.core.cli.ClientOpts;
-import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
 

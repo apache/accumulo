@@ -32,7 +32,7 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TooManyFilesExceptionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TooManyFilesExceptionTupleSchemeFactory();
 
-  public org.apache.accumulo.core.data.thrift.TKeyExtent extent; // required
+  public org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -97,7 +97,7 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TooManyFilesException.class, metaDataMap);
   }
@@ -106,7 +106,7 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
   }
 
   public TooManyFilesException(
-    org.apache.accumulo.core.data.thrift.TKeyExtent extent)
+    org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent)
   {
     this();
     this.extent = extent;
@@ -117,7 +117,7 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
    */
   public TooManyFilesException(TooManyFilesException other) {
     if (other.isSetExtent()) {
-      this.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent(other.extent);
+      this.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other.extent);
     }
   }
 
@@ -130,11 +130,11 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
     this.extent = null;
   }
 
-  public org.apache.accumulo.core.data.thrift.TKeyExtent getExtent() {
+  public org.apache.accumulo.core.dataImpl.thrift.TKeyExtent getExtent() {
     return this.extent;
   }
 
-  public TooManyFilesException setExtent(org.apache.accumulo.core.data.thrift.TKeyExtent extent) {
+  public TooManyFilesException setExtent(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) {
     this.extent = extent;
     return this;
   }
@@ -160,7 +160,7 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
       if (value == null) {
         unsetExtent();
       } else {
-        setExtent((org.apache.accumulo.core.data.thrift.TKeyExtent)value);
+        setExtent((org.apache.accumulo.core.dataImpl.thrift.TKeyExtent)value);
       }
       break;
 
@@ -320,7 +320,7 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
         switch (schemeField.id) {
           case 1: // EXTENT
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+              struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
               struct.extent.read(iprot);
               struct.setExtentIsSet(true);
             } else { 
@@ -379,7 +379,7 @@ public class TooManyFilesException extends org.apache.thrift.TException implemen
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
-        struct.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+        struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
         struct.extent.read(iprot);
         struct.setExtentIsSet(true);
       }

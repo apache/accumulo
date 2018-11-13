@@ -33,7 +33,7 @@ import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.constraints.Constraint.Environment;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.BinaryComparable;
 import org.junit.Before;
 import org.junit.Test;

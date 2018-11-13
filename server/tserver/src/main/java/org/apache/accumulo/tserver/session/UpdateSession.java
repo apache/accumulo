@@ -21,11 +21,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Durability;
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.tserver.TservConstraintEnv;

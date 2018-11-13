@@ -29,8 +29,8 @@ import java.util.Properties;
 
 import javax.security.sasl.Sasl;
 
-import org.apache.accumulo.core.client.impl.ClientConfConverter;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;

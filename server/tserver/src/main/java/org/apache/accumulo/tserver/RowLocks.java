@@ -25,7 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.tserver.ConditionalMutationSet.DeferFilter;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 

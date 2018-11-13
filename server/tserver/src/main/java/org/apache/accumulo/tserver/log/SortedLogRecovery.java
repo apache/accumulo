@@ -32,7 +32,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.logger.LogEvents;

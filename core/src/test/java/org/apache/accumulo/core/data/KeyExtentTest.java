@@ -30,8 +30,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;

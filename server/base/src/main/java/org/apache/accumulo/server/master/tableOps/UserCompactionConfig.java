@@ -25,7 +25,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionStrategyConfig;
-import org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil;
+import org.apache.accumulo.core.clientImpl.CompactionStrategyConfigUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 

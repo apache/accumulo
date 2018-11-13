@@ -21,14 +21,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
+import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.accumulo.server.security.UserImpersonation;
 import org.apache.accumulo.server.security.UserImpersonation.UsersWithHosts;

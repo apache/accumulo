@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 
 /**
  * A lexicoder for signed integers. The encoding sorts Integer.MIN_VALUE first and Integer.MAX_VALUE

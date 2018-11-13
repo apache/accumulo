@@ -24,7 +24,7 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;

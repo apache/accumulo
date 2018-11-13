@@ -18,9 +18,9 @@ package org.apache.accumulo.tserver.data;
 
 import java.util.List;
 
-import org.apache.accumulo.core.client.impl.Translator;
-import org.apache.accumulo.core.data.thrift.TCondition;
-import org.apache.accumulo.core.data.thrift.TConditionalMutation;
+import org.apache.accumulo.core.clientImpl.Translator;
+import org.apache.accumulo.core.dataImpl.thrift.TCondition;
+import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
 import org.apache.accumulo.server.data.ServerMutation;
 
 /**

@@ -14,8 +14,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-namespace java org.apache.accumulo.core.security.thrift
-namespace cpp org.apache.accumulo.core.security.thrift
+namespace java org.apache.accumulo.core.securityImpl.thrift
+namespace cpp org.apache.accumulo.core.securityImpl.thrift
 
 struct TCredentials {
     1:string principal,

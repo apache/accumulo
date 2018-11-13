@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;

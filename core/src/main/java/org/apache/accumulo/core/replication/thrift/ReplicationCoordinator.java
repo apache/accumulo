@@ -28,13 +28,13 @@ public class ReplicationCoordinator {
 
   public interface Iface {
 
-    public java.lang.String getServicerAddress(java.lang.String remoteTableId, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws ReplicationCoordinatorException, org.apache.thrift.TException;
+    public java.lang.String getServicerAddress(java.lang.String remoteTableId, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws ReplicationCoordinatorException, org.apache.thrift.TException;
 
   }
 
   public interface AsyncIface {
 
-    public void getServicerAddress(java.lang.String remoteTableId, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException;
+    public void getServicerAddress(java.lang.String remoteTableId, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -58,13 +58,13 @@ public class ReplicationCoordinator {
       super(iprot, oprot);
     }
 
-    public java.lang.String getServicerAddress(java.lang.String remoteTableId, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws ReplicationCoordinatorException, org.apache.thrift.TException
+    public java.lang.String getServicerAddress(java.lang.String remoteTableId, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws ReplicationCoordinatorException, org.apache.thrift.TException
     {
       send_getServicerAddress(remoteTableId, credentials);
       return recv_getServicerAddress();
     }
 
-    public void send_getServicerAddress(java.lang.String remoteTableId, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    public void send_getServicerAddress(java.lang.String remoteTableId, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
     {
       getServicerAddress_args args = new getServicerAddress_args();
       args.setRemoteTableId(remoteTableId);
@@ -103,7 +103,7 @@ public class ReplicationCoordinator {
       super(protocolFactory, clientManager, transport);
     }
 
-    public void getServicerAddress(java.lang.String remoteTableId, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException {
+    public void getServicerAddress(java.lang.String remoteTableId, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       getServicerAddress_call method_call = new getServicerAddress_call(remoteTableId, credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -112,8 +112,8 @@ public class ReplicationCoordinator {
 
     public static class getServicerAddress_call extends org.apache.thrift.async.TAsyncMethodCall<java.lang.String> {
       private java.lang.String remoteTableId;
-      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
-      public getServicerAddress_call(java.lang.String remoteTableId, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
+      public getServicerAddress_call(java.lang.String remoteTableId, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.remoteTableId = remoteTableId;
         this.credentials = credentials;
@@ -278,7 +278,7 @@ public class ReplicationCoordinator {
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getServicerAddress_argsTupleSchemeFactory();
 
     public java.lang.String remoteTableId; // required
-    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
+    public org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -348,7 +348,7 @@ public class ReplicationCoordinator {
       tmpMap.put(_Fields.REMOTE_TABLE_ID, new org.apache.thrift.meta_data.FieldMetaData("remoteTableId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getServicerAddress_args.class, metaDataMap);
     }
@@ -358,7 +358,7 @@ public class ReplicationCoordinator {
 
     public getServicerAddress_args(
       java.lang.String remoteTableId,
-      org.apache.accumulo.core.security.thrift.TCredentials credentials)
+      org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials)
     {
       this();
       this.remoteTableId = remoteTableId;
@@ -373,7 +373,7 @@ public class ReplicationCoordinator {
         this.remoteTableId = other.remoteTableId;
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
+        this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
     }
 
@@ -411,11 +411,11 @@ public class ReplicationCoordinator {
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+    public org.apache.accumulo.core.securityImpl.thrift.TCredentials getCredentials() {
       return this.credentials;
     }
 
-    public getServicerAddress_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+    public getServicerAddress_args setCredentials(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -449,7 +449,7 @@ public class ReplicationCoordinator {
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
+          setCredentials((org.apache.accumulo.core.securityImpl.thrift.TCredentials)value);
         }
         break;
 
@@ -653,7 +653,7 @@ public class ReplicationCoordinator {
               break;
             case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -727,7 +727,7 @@ public class ReplicationCoordinator {
           struct.setRemoteTableIdIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }

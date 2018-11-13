@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
 import org.junit.Test;
 
 public class BytesLexicoderTest extends AbstractLexicoderTest {

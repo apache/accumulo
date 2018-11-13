@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 import org.apache.hadoop.io.WritableComparator;
 

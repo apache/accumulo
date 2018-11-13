@@ -27,7 +27,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.categories.PerformanceTests;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;

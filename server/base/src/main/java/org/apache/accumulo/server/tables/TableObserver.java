@@ -18,7 +18,7 @@ package org.apache.accumulo.server.tables;
 
 import java.util.Map;
 
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.master.state.tables.TableState;
 
 public interface TableObserver {

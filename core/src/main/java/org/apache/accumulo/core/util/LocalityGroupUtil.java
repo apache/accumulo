@@ -38,7 +38,7 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.thrift.TMutation;
+import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.commons.lang.mutable.MutableLong;

@@ -32,7 +32,7 @@ public class ConstraintViolationException extends org.apache.thrift.TException i
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ConstraintViolationExceptionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ConstraintViolationExceptionTupleSchemeFactory();
 
-  public java.util.List<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary> violationSummaries; // required
+  public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary> violationSummaries; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -98,7 +98,7 @@ public class ConstraintViolationException extends org.apache.thrift.TException i
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.VIOLATION_SUMMARIES, new org.apache.thrift.meta_data.FieldMetaData("violationSummaries", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.data.thrift.TConstraintViolationSummary.class))));
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary.class))));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ConstraintViolationException.class, metaDataMap);
   }
@@ -107,7 +107,7 @@ public class ConstraintViolationException extends org.apache.thrift.TException i
   }
 
   public ConstraintViolationException(
-    java.util.List<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary> violationSummaries)
+    java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary> violationSummaries)
   {
     this();
     this.violationSummaries = violationSummaries;
@@ -118,9 +118,9 @@ public class ConstraintViolationException extends org.apache.thrift.TException i
    */
   public ConstraintViolationException(ConstraintViolationException other) {
     if (other.isSetViolationSummaries()) {
-      java.util.List<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary> __this__violationSummaries = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary>(other.violationSummaries.size());
-      for (org.apache.accumulo.core.data.thrift.TConstraintViolationSummary other_element : other.violationSummaries) {
-        __this__violationSummaries.add(new org.apache.accumulo.core.data.thrift.TConstraintViolationSummary(other_element));
+      java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary> __this__violationSummaries = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary>(other.violationSummaries.size());
+      for (org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary other_element : other.violationSummaries) {
+        __this__violationSummaries.add(new org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary(other_element));
       }
       this.violationSummaries = __this__violationSummaries;
     }
@@ -139,22 +139,22 @@ public class ConstraintViolationException extends org.apache.thrift.TException i
     return (this.violationSummaries == null) ? 0 : this.violationSummaries.size();
   }
 
-  public java.util.Iterator<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary> getViolationSummariesIterator() {
+  public java.util.Iterator<org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary> getViolationSummariesIterator() {
     return (this.violationSummaries == null) ? null : this.violationSummaries.iterator();
   }
 
-  public void addToViolationSummaries(org.apache.accumulo.core.data.thrift.TConstraintViolationSummary elem) {
+  public void addToViolationSummaries(org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary elem) {
     if (this.violationSummaries == null) {
-      this.violationSummaries = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary>();
+      this.violationSummaries = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary>();
     }
     this.violationSummaries.add(elem);
   }
 
-  public java.util.List<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary> getViolationSummaries() {
+  public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary> getViolationSummaries() {
     return this.violationSummaries;
   }
 
-  public ConstraintViolationException setViolationSummaries(java.util.List<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary> violationSummaries) {
+  public ConstraintViolationException setViolationSummaries(java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary> violationSummaries) {
     this.violationSummaries = violationSummaries;
     return this;
   }
@@ -180,7 +180,7 @@ public class ConstraintViolationException extends org.apache.thrift.TException i
       if (value == null) {
         unsetViolationSummaries();
       } else {
-        setViolationSummaries((java.util.List<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary>)value);
+        setViolationSummaries((java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary>)value);
       }
       break;
 
@@ -339,11 +339,11 @@ public class ConstraintViolationException extends org.apache.thrift.TException i
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
                 org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
-                struct.violationSummaries = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary>(_list0.size);
-                org.apache.accumulo.core.data.thrift.TConstraintViolationSummary _elem1;
+                struct.violationSummaries = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary>(_list0.size);
+                org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary _elem1;
                 for (int _i2 = 0; _i2 < _list0.size; ++_i2)
                 {
-                  _elem1 = new org.apache.accumulo.core.data.thrift.TConstraintViolationSummary();
+                  _elem1 = new org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary();
                   _elem1.read(iprot);
                   struct.violationSummaries.add(_elem1);
                 }
@@ -373,7 +373,7 @@ public class ConstraintViolationException extends org.apache.thrift.TException i
         oprot.writeFieldBegin(VIOLATION_SUMMARIES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.violationSummaries.size()));
-          for (org.apache.accumulo.core.data.thrift.TConstraintViolationSummary _iter3 : struct.violationSummaries)
+          for (org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary _iter3 : struct.violationSummaries)
           {
             _iter3.write(oprot);
           }
@@ -406,7 +406,7 @@ public class ConstraintViolationException extends org.apache.thrift.TException i
       if (struct.isSetViolationSummaries()) {
         {
           oprot.writeI32(struct.violationSummaries.size());
-          for (org.apache.accumulo.core.data.thrift.TConstraintViolationSummary _iter4 : struct.violationSummaries)
+          for (org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary _iter4 : struct.violationSummaries)
           {
             _iter4.write(oprot);
           }
@@ -421,11 +421,11 @@ public class ConstraintViolationException extends org.apache.thrift.TException i
       if (incoming.get(0)) {
         {
           org.apache.thrift.protocol.TList _list5 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.violationSummaries = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary>(_list5.size);
-          org.apache.accumulo.core.data.thrift.TConstraintViolationSummary _elem6;
+          struct.violationSummaries = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary>(_list5.size);
+          org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary _elem6;
           for (int _i7 = 0; _i7 < _list5.size; ++_i7)
           {
-            _elem6 = new org.apache.accumulo.core.data.thrift.TConstraintViolationSummary();
+            _elem6 = new org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary();
             _elem6.read(iprot);
             struct.violationSummaries.add(_elem6);
           }

@@ -22,7 +22,7 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.thrift.TMutation;
+import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.util.UnsynchronizedBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableUtils;

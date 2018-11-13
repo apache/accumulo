@@ -18,7 +18,7 @@
 package org.apache.accumulo.core.client.admin;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.accumulo.core.client.impl.CompactionStrategyConfigUtil.DEFAULT_STRATEGY;
+import static org.apache.accumulo.core.clientImpl.CompactionStrategyConfigUtil.DEFAULT_STRATEGY;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.AdminUtil;

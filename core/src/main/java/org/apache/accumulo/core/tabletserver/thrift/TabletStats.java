@@ -39,7 +39,7 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TabletStatsStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TabletStatsTupleSchemeFactory();
 
-  public org.apache.accumulo.core.data.thrift.TKeyExtent extent; // required
+  public org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
   public ActionStats majors; // required
   public ActionStats minors; // required
   public ActionStats splits; // required
@@ -137,7 +137,7 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class)));
     tmpMap.put(_Fields.MAJORS, new org.apache.thrift.meta_data.FieldMetaData("majors", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ActionStats.class)));
     tmpMap.put(_Fields.MINORS, new org.apache.thrift.meta_data.FieldMetaData("minors", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -160,7 +160,7 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
   }
 
   public TabletStats(
-    org.apache.accumulo.core.data.thrift.TKeyExtent extent,
+    org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent,
     ActionStats majors,
     ActionStats minors,
     ActionStats splits,
@@ -190,7 +190,7 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
   public TabletStats(TabletStats other) {
     __isset_bitfield = other.__isset_bitfield;
     if (other.isSetExtent()) {
-      this.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent(other.extent);
+      this.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other.extent);
     }
     if (other.isSetMajors()) {
       this.majors = new ActionStats(other.majors);
@@ -227,11 +227,11 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
     this.splitCreationTime = 0;
   }
 
-  public org.apache.accumulo.core.data.thrift.TKeyExtent getExtent() {
+  public org.apache.accumulo.core.dataImpl.thrift.TKeyExtent getExtent() {
     return this.extent;
   }
 
-  public TabletStats setExtent(org.apache.accumulo.core.data.thrift.TKeyExtent extent) {
+  public TabletStats setExtent(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) {
     this.extent = extent;
     return this;
   }
@@ -421,7 +421,7 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
       if (value == null) {
         unsetExtent();
       } else {
-        setExtent((org.apache.accumulo.core.data.thrift.TKeyExtent)value);
+        setExtent((org.apache.accumulo.core.dataImpl.thrift.TKeyExtent)value);
       }
       break;
 
@@ -876,7 +876,7 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
         switch (schemeField.id) {
           case 1: // EXTENT
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+              struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
               struct.extent.read(iprot);
               struct.setExtentIsSet(true);
             } else { 
@@ -1063,7 +1063,7 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet incoming = iprot.readBitSet(8);
       if (incoming.get(0)) {
-        struct.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+        struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
         struct.extent.read(iprot);
         struct.setExtentIsSet(true);
       }

@@ -14,8 +14,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-namespace java org.apache.accumulo.core.data.thrift
-namespace cpp org.apache.accumulo.core.data.thrift
+namespace java org.apache.accumulo.core.dataImpl.thrift
+namespace cpp org.apache.accumulo.core.dataImpl.thrift
 
 include "security.thrift"
 include "client.thrift"

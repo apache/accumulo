@@ -23,9 +23,9 @@ import java.util.SortedMap;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 
 /**
  * Provides a consolidated API for handling table metadata

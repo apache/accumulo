@@ -32,7 +32,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.accumulo.core.data.thrift.TMutation;
+import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;

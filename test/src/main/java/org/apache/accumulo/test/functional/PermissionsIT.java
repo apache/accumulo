@@ -654,7 +654,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
           } catch (MutationsRejectedException e1) {
             if (e1.getSecurityErrorCodes().size() > 0)
               throw new AccumuloSecurityException(test_user_client.whoami(),
-                  org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.PERMISSION_DENIED,
+                  org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode.PERMISSION_DENIED,
                   e1);
           }
           throw new IllegalStateException("Should NOT be able to write to a table");

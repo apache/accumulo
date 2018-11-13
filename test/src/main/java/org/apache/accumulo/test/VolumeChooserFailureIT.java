@@ -27,7 +27,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.fs.PerTableVolumeChooser;
 import org.apache.accumulo.server.fs.PreferredVolumeChooser;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;

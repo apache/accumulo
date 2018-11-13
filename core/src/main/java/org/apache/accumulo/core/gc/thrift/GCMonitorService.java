@@ -28,13 +28,13 @@ public class GCMonitorService {
 
   public interface Iface {
 
-    public GCStatus getStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public GCStatus getStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
   }
 
   public interface AsyncIface {
 
-    public void getStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<GCStatus> resultHandler) throws org.apache.thrift.TException;
+    public void getStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<GCStatus> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -58,13 +58,13 @@ public class GCMonitorService {
       super(iprot, oprot);
     }
 
-    public GCStatus getStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public GCStatus getStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_getStatus(tinfo, credentials);
       return recv_getStatus();
     }
 
-    public void send_getStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    public void send_getStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
     {
       getStatus_args args = new getStatus_args();
       args.setTinfo(tinfo);
@@ -72,7 +72,7 @@ public class GCMonitorService {
       sendBase("getStatus", args);
     }
 
-    public GCStatus recv_getStatus() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public GCStatus recv_getStatus() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       getStatus_result result = new getStatus_result();
       receiveBase(result, "getStatus");
@@ -103,7 +103,7 @@ public class GCMonitorService {
       super(protocolFactory, clientManager, transport);
     }
 
-    public void getStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<GCStatus> resultHandler) throws org.apache.thrift.TException {
+    public void getStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<GCStatus> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       getStatus_call method_call = new getStatus_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -112,8 +112,8 @@ public class GCMonitorService {
 
     public static class getStatus_call extends org.apache.thrift.async.TAsyncMethodCall<GCStatus> {
       private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.security.thrift.TCredentials credentials;
-      public getStatus_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<GCStatus> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
+      public getStatus_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<GCStatus> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -128,7 +128,7 @@ public class GCMonitorService {
         prot.writeMessageEnd();
       }
 
-      public GCStatus getResult() throws org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException, org.apache.thrift.TException {
+      public GCStatus getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -177,7 +177,7 @@ public class GCMonitorService {
         getStatus_result result = new getStatus_result();
         try {
           result.success = iface.getStatus(args.tinfo, args.credentials);
-        } catch (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
+        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
         return result;
@@ -230,8 +230,8 @@ public class GCMonitorService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             getStatus_result result = new getStatus_result();
-            if (e instanceof org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException) {
-              result.sec = (org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException) e;
+            if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
+              result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
               msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
@@ -278,7 +278,7 @@ public class GCMonitorService {
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getStatus_argsTupleSchemeFactory();
 
     public org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
-    public org.apache.accumulo.core.security.thrift.TCredentials credentials; // required
+    public org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -348,7 +348,7 @@ public class GCMonitorService {
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.TCredentials.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getStatus_args.class, metaDataMap);
     }
@@ -358,7 +358,7 @@ public class GCMonitorService {
 
     public getStatus_args(
       org.apache.accumulo.core.trace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.TCredentials credentials)
+      org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials)
     {
       this();
       this.tinfo = tinfo;
@@ -373,7 +373,7 @@ public class GCMonitorService {
         this.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.security.thrift.TCredentials(other.credentials);
+        this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
     }
 
@@ -411,11 +411,11 @@ public class GCMonitorService {
       }
     }
 
-    public org.apache.accumulo.core.security.thrift.TCredentials getCredentials() {
+    public org.apache.accumulo.core.securityImpl.thrift.TCredentials getCredentials() {
       return this.credentials;
     }
 
-    public getStatus_args setCredentials(org.apache.accumulo.core.security.thrift.TCredentials credentials) {
+    public getStatus_args setCredentials(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
       this.credentials = credentials;
       return this;
     }
@@ -449,7 +449,7 @@ public class GCMonitorService {
         if (value == null) {
           unsetCredentials();
         } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.TCredentials)value);
+          setCredentials((org.apache.accumulo.core.securityImpl.thrift.TCredentials)value);
         }
         break;
 
@@ -657,7 +657,7 @@ public class GCMonitorService {
               break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+                struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
                 struct.setCredentialsIsSet(true);
               } else { 
@@ -732,7 +732,7 @@ public class GCMonitorService {
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.security.thrift.TCredentials();
+          struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
@@ -754,7 +754,7 @@ public class GCMonitorService {
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getStatus_resultTupleSchemeFactory();
 
     public GCStatus success; // required
-    public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec; // required
+    public org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -824,7 +824,7 @@ public class GCMonitorService {
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, GCStatus.class)));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getStatus_result.class, metaDataMap);
     }
@@ -834,7 +834,7 @@ public class GCMonitorService {
 
     public getStatus_result(
       GCStatus success,
-      org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
       this.success = success;
@@ -849,7 +849,7 @@ public class GCMonitorService {
         this.success = new GCStatus(other.success);
       }
       if (other.isSetSec()) {
-        this.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException(other.sec);
+        this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
       }
     }
 
@@ -887,11 +887,11 @@ public class GCMonitorService {
       }
     }
 
-    public org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException getSec() {
+    public org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException getSec() {
       return this.sec;
     }
 
-    public getStatus_result setSec(org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException sec) {
+    public getStatus_result setSec(org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
@@ -925,7 +925,7 @@ public class GCMonitorService {
         if (value == null) {
           unsetSec();
         } else {
-          setSec((org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException)value);
+          setSec((org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException)value);
         }
         break;
 
@@ -1130,7 +1130,7 @@ public class GCMonitorService {
               break;
             case 1: // SEC
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException();
+                struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
                 struct.sec.read(iprot);
                 struct.setSecIsSet(true);
               } else { 
@@ -1205,7 +1205,7 @@ public class GCMonitorService {
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.sec = new org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException();
+          struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
         }

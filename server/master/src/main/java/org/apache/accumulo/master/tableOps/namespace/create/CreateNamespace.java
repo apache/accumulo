@@ -18,7 +18,7 @@ package org.apache.accumulo.master.tableOps.namespace.create;
 
 import java.util.Map;
 
-import org.apache.accumulo.core.client.impl.Namespace;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;

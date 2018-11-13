@@ -19,7 +19,7 @@ package org.apache.accumulo.master.tableOps.namespace.create;
 import java.io.Serializable;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.impl.Namespace;
+import org.apache.accumulo.core.clientImpl.Namespace;
 
 class NamespaceInfo implements Serializable {
 

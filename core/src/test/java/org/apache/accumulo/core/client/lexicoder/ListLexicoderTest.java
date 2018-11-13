@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;

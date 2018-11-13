@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.data;
 
-import org.apache.accumulo.core.data.thrift.TConstraintViolationSummary;
+import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
 
 /**
  * A summary of constraint violations across some number of mutations.

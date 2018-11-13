@@ -26,7 +26,7 @@ import java.util.Properties;
 import java.util.Scanner;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.impl.ClientInfoImpl;
+import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.security.UserGroupInformation;
 

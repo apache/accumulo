@@ -20,8 +20,8 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.Table;
 
 class CloneInfo implements Serializable {
 

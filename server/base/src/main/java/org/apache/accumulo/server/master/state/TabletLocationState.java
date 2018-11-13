@@ -20,7 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
 
 /**

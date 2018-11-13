@@ -22,7 +22,7 @@ import java.net.Socket;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 import org.slf4j.Logger;

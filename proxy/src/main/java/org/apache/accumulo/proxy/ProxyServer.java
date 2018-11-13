@@ -61,14 +61,15 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.client.impl.ClientConfConverter;
-import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientConfConverter;
+import org.apache.accumulo.core.clientImpl.ConnectorImpl;
+import org.apache.accumulo.core.clientImpl.Credentials;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Key;
@@ -225,11 +226,11 @@ public class ProxyServer implements AccumuloProxy.Iface {
     String[] pair = ByteBufferUtil.toString(login).split(",", 2);
     if (instance.getInstanceID().equals(pair[0])) {
       Credentials creds = Credentials.deserialize(pair[1]);
-      return ((org.apache.accumulo.core.client.impl.ConnectorImpl) instance
-          .getConnector(creds.getPrincipal(), creds.getToken())).getAccumuloClient();
+      return ((ConnectorImpl) instance.getConnector(creds.getPrincipal(), creds.getToken()))
+          .getAccumuloClient();
     } else {
       throw new org.apache.accumulo.core.client.AccumuloSecurityException(pair[0],
-          org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode.INVALID_INSTANCEID);
+          org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode.INVALID_INSTANCEID);
     }
   }
 
