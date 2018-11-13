@@ -27,12 +27,12 @@ import static org.junit.Assert.fail;
 import javax.security.auth.DestroyFailedException;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.clientImpl.Credentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;

@@ -34,8 +34,8 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.MessageBodyWriter;
 
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.view.WebViews;

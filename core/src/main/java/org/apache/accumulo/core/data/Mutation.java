@@ -29,7 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.data.thrift.TMutation;
+import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.UnsynchronizedBuffer;
@@ -1691,7 +1691,7 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Creates a {@link org.apache.accumulo.core.data.thrift.TMutation} object containing this
+   * Creates a {@link org.apache.accumulo.core.dataImpl.thrift.TMutation} object containing this
    * Mutation's data.
    *
    * Note that this method will move the Mutation into a "serialized" state that will prevent users

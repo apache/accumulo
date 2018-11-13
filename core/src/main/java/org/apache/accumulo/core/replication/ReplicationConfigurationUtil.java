@@ -18,7 +18,7 @@ package org.apache.accumulo.core.replication;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 
 /**
  * Encapsulates configuration semantics around replication

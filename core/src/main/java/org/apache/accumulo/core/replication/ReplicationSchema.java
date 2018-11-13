@@ -23,8 +23,8 @@ import static java.util.Objects.requireNonNull;
 import java.nio.charset.CharacterCodingException;
 
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.impl.Table;
 import org.apache.accumulo.core.client.lexicoder.ULongLexicoder;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;

@@ -42,7 +42,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ActiveCompactionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ActiveCompactionTupleSchemeFactory();
 
-  public org.apache.accumulo.core.data.thrift.TKeyExtent extent; // required
+  public org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
   public long age; // required
   public java.util.List<java.lang.String> inputFiles; // required
   public java.lang.String outputFile; // required
@@ -59,7 +59,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
   public java.lang.String localityGroup; // required
   public long entriesRead; // required
   public long entriesWritten; // required
-  public java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList; // required
+  public java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList; // required
   public java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -167,7 +167,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class)));
     tmpMap.put(_Fields.AGE, new org.apache.thrift.meta_data.FieldMetaData("age", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.INPUT_FILES, new org.apache.thrift.meta_data.FieldMetaData("inputFiles", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -187,7 +187,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.SSI_LIST, new org.apache.thrift.meta_data.FieldMetaData("ssiList", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.data.thrift.IterInfo.class))));
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.IterInfo.class))));
     tmpMap.put(_Fields.SSIO, new org.apache.thrift.meta_data.FieldMetaData("ssio", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
@@ -202,7 +202,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
   }
 
   public ActiveCompaction(
-    org.apache.accumulo.core.data.thrift.TKeyExtent extent,
+    org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent,
     long age,
     java.util.List<java.lang.String> inputFiles,
     java.lang.String outputFile,
@@ -211,7 +211,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     java.lang.String localityGroup,
     long entriesRead,
     long entriesWritten,
-    java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList,
+    java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList,
     java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio)
   {
     this();
@@ -237,7 +237,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
   public ActiveCompaction(ActiveCompaction other) {
     __isset_bitfield = other.__isset_bitfield;
     if (other.isSetExtent()) {
-      this.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent(other.extent);
+      this.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other.extent);
     }
     this.age = other.age;
     if (other.isSetInputFiles()) {
@@ -259,9 +259,9 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     this.entriesRead = other.entriesRead;
     this.entriesWritten = other.entriesWritten;
     if (other.isSetSsiList()) {
-      java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> __this__ssiList = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>(other.ssiList.size());
-      for (org.apache.accumulo.core.data.thrift.IterInfo other_element : other.ssiList) {
-        __this__ssiList.add(new org.apache.accumulo.core.data.thrift.IterInfo(other_element));
+      java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> __this__ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(other.ssiList.size());
+      for (org.apache.accumulo.core.dataImpl.thrift.IterInfo other_element : other.ssiList) {
+        __this__ssiList.add(new org.apache.accumulo.core.dataImpl.thrift.IterInfo(other_element));
       }
       this.ssiList = __this__ssiList;
     }
@@ -304,11 +304,11 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     this.ssio = null;
   }
 
-  public org.apache.accumulo.core.data.thrift.TKeyExtent getExtent() {
+  public org.apache.accumulo.core.dataImpl.thrift.TKeyExtent getExtent() {
     return this.extent;
   }
 
-  public ActiveCompaction setExtent(org.apache.accumulo.core.data.thrift.TKeyExtent extent) {
+  public ActiveCompaction setExtent(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) {
     this.extent = extent;
     return this;
   }
@@ -552,22 +552,22 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     return (this.ssiList == null) ? 0 : this.ssiList.size();
   }
 
-  public java.util.Iterator<org.apache.accumulo.core.data.thrift.IterInfo> getSsiListIterator() {
+  public java.util.Iterator<org.apache.accumulo.core.dataImpl.thrift.IterInfo> getSsiListIterator() {
     return (this.ssiList == null) ? null : this.ssiList.iterator();
   }
 
-  public void addToSsiList(org.apache.accumulo.core.data.thrift.IterInfo elem) {
+  public void addToSsiList(org.apache.accumulo.core.dataImpl.thrift.IterInfo elem) {
     if (this.ssiList == null) {
-      this.ssiList = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>();
+      this.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>();
     }
     this.ssiList.add(elem);
   }
 
-  public java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> getSsiList() {
+  public java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> getSsiList() {
     return this.ssiList;
   }
 
-  public ActiveCompaction setSsiList(java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList) {
+  public ActiveCompaction setSsiList(java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList) {
     this.ssiList = ssiList;
     return this;
   }
@@ -628,7 +628,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       if (value == null) {
         unsetExtent();
       } else {
-        setExtent((org.apache.accumulo.core.data.thrift.TKeyExtent)value);
+        setExtent((org.apache.accumulo.core.dataImpl.thrift.TKeyExtent)value);
       }
       break;
 
@@ -700,7 +700,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       if (value == null) {
         unsetSsiList();
       } else {
-        setSsiList((java.util.List<org.apache.accumulo.core.data.thrift.IterInfo>)value);
+        setSsiList((java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo>)value);
       }
       break;
 
@@ -1212,7 +1212,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
         switch (schemeField.id) {
           case 1: // EXTENT
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+              struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
               struct.extent.read(iprot);
               struct.setExtentIsSet(true);
             } else { 
@@ -1297,11 +1297,11 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
                 org.apache.thrift.protocol.TList _list55 = iprot.readListBegin();
-                struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>(_list55.size);
-                org.apache.accumulo.core.data.thrift.IterInfo _elem56;
+                struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list55.size);
+                org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem56;
                 for (int _i57 = 0; _i57 < _list55.size; ++_i57)
                 {
-                  _elem56 = new org.apache.accumulo.core.data.thrift.IterInfo();
+                  _elem56 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
                   _elem56.read(iprot);
                   struct.ssiList.add(_elem56);
                 }
@@ -1409,7 +1409,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
         oprot.writeFieldBegin(SSI_LIST_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.ssiList.size()));
-          for (org.apache.accumulo.core.data.thrift.IterInfo _iter67 : struct.ssiList)
+          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter67 : struct.ssiList)
           {
             _iter67.write(oprot);
           }
@@ -1526,7 +1526,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       if (struct.isSetSsiList()) {
         {
           oprot.writeI32(struct.ssiList.size());
-          for (org.apache.accumulo.core.data.thrift.IterInfo _iter71 : struct.ssiList)
+          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter71 : struct.ssiList)
           {
             _iter71.write(oprot);
           }
@@ -1556,7 +1556,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet incoming = iprot.readBitSet(11);
       if (incoming.get(0)) {
-        struct.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+        struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
         struct.extent.read(iprot);
         struct.setExtentIsSet(true);
       }
@@ -1604,11 +1604,11 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       if (incoming.get(9)) {
         {
           org.apache.thrift.protocol.TList _list77 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>(_list77.size);
-          org.apache.accumulo.core.data.thrift.IterInfo _elem78;
+          struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list77.size);
+          org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem78;
           for (int _i79 = 0; _i79 < _list77.size; ++_i79)
           {
-            _elem78 = new org.apache.accumulo.core.data.thrift.IterInfo();
+            _elem78 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
             _elem78.read(iprot);
             struct.ssiList.add(_elem78);
           }

@@ -22,12 +22,12 @@
   <Match>
     <!-- ignore thrift-generated files -->
     <Or>
-      <Package name="org.apache.accumulo.core.client.impl.thrift" />
-      <Package name="org.apache.accumulo.core.data.thrift" />
+      <Package name="org.apache.accumulo.core.clientImpl.thrift" />
+      <Package name="org.apache.accumulo.core.dataImpl.thrift" />
       <Package name="org.apache.accumulo.core.gc.thrift" />
       <Package name="org.apache.accumulo.core.master.thrift" />
       <Package name="org.apache.accumulo.core.replication.thrift" />
-      <Package name="org.apache.accumulo.core.security.thrift" />
+      <Package name="org.apache.accumulo.core.securityImpl.thrift" />
       <Package name="org.apache.accumulo.core.tabletserver.thrift" />
       <Package name="org.apache.accumulo.core.trace.thrift" />
     </Or>

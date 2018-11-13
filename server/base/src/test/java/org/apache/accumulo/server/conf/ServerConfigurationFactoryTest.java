@@ -30,7 +30,7 @@ import static org.junit.Assert.assertSame;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.impl.Namespace;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;

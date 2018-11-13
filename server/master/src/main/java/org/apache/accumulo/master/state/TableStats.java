@@ -19,7 +19,7 @@ package org.apache.accumulo.master.state;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.server.master.state.TabletState;
 

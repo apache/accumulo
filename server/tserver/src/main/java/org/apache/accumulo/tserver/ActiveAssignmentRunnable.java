@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

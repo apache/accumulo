@@ -28,7 +28,7 @@ import org.apache.accumulo.core.constraints.Constraint.Environment;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.impl.ComparableBytes;
+import org.apache.accumulo.core.dataImpl.ComparableBytes;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;

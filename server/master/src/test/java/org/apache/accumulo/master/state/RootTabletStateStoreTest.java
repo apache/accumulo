@@ -27,8 +27,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.master.state.Assignment;

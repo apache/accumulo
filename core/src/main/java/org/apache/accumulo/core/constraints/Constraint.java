@@ -19,7 +19,7 @@ package org.apache.accumulo.core.constraints;
 import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.security.AuthorizationContainer;
 
 /**

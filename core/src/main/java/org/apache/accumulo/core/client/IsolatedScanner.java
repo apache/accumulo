@@ -23,8 +23,8 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.impl.IsolationException;
-import org.apache.accumulo.core.client.impl.ScannerOptions;
+import org.apache.accumulo.core.clientImpl.IsolationException;
+import org.apache.accumulo.core.clientImpl.ScannerOptions;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;

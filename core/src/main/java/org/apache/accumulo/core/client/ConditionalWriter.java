@@ -19,7 +19,7 @@ package org.apache.accumulo.core.client;
 
 import java.util.Iterator;
 
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.data.ConditionalMutation;
 
 /**

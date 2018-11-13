@@ -28,7 +28,7 @@ import java.util.Objects;
 
 import javax.crypto.SecretKey;
 
-import org.apache.accumulo.core.security.thrift.TAuthenticationKey;
+import org.apache.accumulo.core.securityImpl.thrift.TAuthenticationKey;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.ThriftMessageUtil;
 import org.apache.commons.lang.builder.HashCodeBuilder;

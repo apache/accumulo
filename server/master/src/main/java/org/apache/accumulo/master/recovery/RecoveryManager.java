@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.master.Master;

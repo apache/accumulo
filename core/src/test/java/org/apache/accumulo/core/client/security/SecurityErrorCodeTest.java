@@ -33,8 +33,8 @@ public class SecurityErrorCodeTest {
       secNames1.add(sec.name());
 
     // @formatter:off
-    for (org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode sec :
-        org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode
+    for (org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode sec :
+        org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode
         .values())
       secNames2.add(sec.name());
     // @formatter:on

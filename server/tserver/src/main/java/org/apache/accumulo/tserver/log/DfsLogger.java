@@ -17,7 +17,7 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl.Scope;
+import static org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl.Scope;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
@@ -42,13 +42,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoUtils;
+import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
+import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
+import org.apache.accumulo.core.cryptoImpl.NoCryptoService;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.security.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.security.crypto.CryptoUtils;
-import org.apache.accumulo.core.security.crypto.impl.CryptoEnvironmentImpl;
-import org.apache.accumulo.core.security.crypto.impl.NoCryptoService;
-import org.apache.accumulo.core.security.crypto.streams.NoFlushOutputStream;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;

@@ -27,9 +27,9 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
-import org.apache.accumulo.core.data.thrift.TSummaries;
-import org.apache.accumulo.core.data.thrift.TSummarizerConfiguration;
-import org.apache.accumulo.core.data.thrift.TSummary;
+import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
+import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
+import org.apache.accumulo.core.dataImpl.thrift.TSummary;
 
 import com.google.common.base.Preconditions;
 

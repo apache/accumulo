@@ -52,7 +52,7 @@ import org.apache.accumulo.hadoop.mapreduce.InputInfo;
 import org.apache.accumulo.hadoopImpl.mapreduce.BatchInputSplit;
 import org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;

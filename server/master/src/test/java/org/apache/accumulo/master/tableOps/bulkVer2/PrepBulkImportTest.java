@@ -28,9 +28,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.master.tableOps.bulkVer2.PrepBulkImport.TabletIterFactory;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;

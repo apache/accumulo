@@ -19,11 +19,11 @@ package org.apache.accumulo.tserver;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.security.AuthorizationContainer;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.SystemEnvironment;
 import org.apache.accumulo.server.security.SecurityOperation;

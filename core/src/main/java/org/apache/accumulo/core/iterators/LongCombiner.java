@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.WritableUtils;

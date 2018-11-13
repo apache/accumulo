@@ -31,9 +31,9 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.data.thrift.TRange;
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 

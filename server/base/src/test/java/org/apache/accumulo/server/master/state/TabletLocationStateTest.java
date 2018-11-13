@@ -28,7 +28,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collection;
 import java.util.Set;
 
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.BeforeClass;

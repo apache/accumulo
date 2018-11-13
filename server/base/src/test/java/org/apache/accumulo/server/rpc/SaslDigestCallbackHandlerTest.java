@@ -29,7 +29,7 @@ import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
-import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.rpc.SaslDigestCallbackHandler;
 import org.apache.accumulo.server.security.delegation.AuthenticationKey;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;

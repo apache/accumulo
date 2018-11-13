@@ -22,7 +22,7 @@ import java.util.Collections;
 
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
-import org.apache.accumulo.core.client.mapreduce.lib.impl.MapReduceClientOnRequiredTable;
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.MapReduceClientOnRequiredTable;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;

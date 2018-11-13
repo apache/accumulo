@@ -19,7 +19,7 @@ package org.apache.accumulo.server.fs;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;

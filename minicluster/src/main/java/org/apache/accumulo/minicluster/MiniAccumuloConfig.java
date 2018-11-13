@@ -19,7 +19,7 @@ package org.apache.accumulo.minicluster;
 import java.io.File;
 import java.util.Map;
 
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 
 /**
  * Holds configuration for {@link MiniAccumuloCluster}. Required configurations must be passed to

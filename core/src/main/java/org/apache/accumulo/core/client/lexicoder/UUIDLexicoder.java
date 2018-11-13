@@ -22,8 +22,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
-import org.apache.accumulo.core.client.lexicoder.impl.FixedByteArrayOutputStream;
+import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
+import org.apache.accumulo.core.clientImpl.lexicoder.FixedByteArrayOutputStream;
 import org.apache.accumulo.core.iterators.ValueFormatException;
 
 /**

@@ -21,7 +21,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.apache.accumulo.core.security.thrift.TAuthenticationTokenIdentifier;
+import org.apache.accumulo.core.securityImpl.thrift.TAuthenticationTokenIdentifier;
 import org.junit.Before;
 import org.junit.Test;
 

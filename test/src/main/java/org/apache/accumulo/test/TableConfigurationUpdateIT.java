@@ -30,7 +30,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.impl.Namespace;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -67,8 +68,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
       int numThreads = 2;
       // Number of iterations per thread
       int iterations = 100000;
-      AccumuloConfiguration tableConf = new TableConfiguration(context,
-          org.apache.accumulo.core.client.impl.Table.ID.of(table), defaultConf);
+      AccumuloConfiguration tableConf = new TableConfiguration(context, Table.ID.of(table),
+          defaultConf);
 
       long start = System.currentTimeMillis();
       ExecutorService svc = Executors.newFixedThreadPool(numThreads);

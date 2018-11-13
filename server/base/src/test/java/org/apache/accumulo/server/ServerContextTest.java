@@ -25,9 +25,9 @@ import java.io.DataOutputStream;
 import java.security.PrivilegedExceptionAction;
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.impl.ClientConfConverter;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientConfConverter;
+import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;

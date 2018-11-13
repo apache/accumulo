@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Table;
 
 /**
  * A metadata servicer for user tables.<br>

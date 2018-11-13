@@ -23,9 +23,9 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.client.impl.thrift.TableOperation;
-import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;

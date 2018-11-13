@@ -18,7 +18,7 @@ package org.apache.accumulo.server.tabletserver;
 
 import java.util.List;
 
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 
 public class MemoryManagementActions {
   public List<KeyExtent> tabletsToMinorCompact;

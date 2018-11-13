@@ -24,12 +24,12 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorErrorCode;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorException;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;

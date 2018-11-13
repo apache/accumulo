@@ -27,7 +27,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-import org.apache.accumulo.core.data.thrift.TColumn;
+import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

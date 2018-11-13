@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.master.tableOps.namespace.create;
 
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;

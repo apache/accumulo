@@ -24,8 +24,8 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.accumulo.core.client.impl.TabletType;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.clientImpl.TabletType;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

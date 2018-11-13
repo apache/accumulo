@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.tserver.session;
 
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.rpc.TServerUtils;
 
 public class Session {

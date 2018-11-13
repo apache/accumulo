@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
 import org.junit.Test;
 
 public class UUIDLexicoderTest extends AbstractLexicoderTest {

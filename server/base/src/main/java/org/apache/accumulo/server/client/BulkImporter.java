@@ -36,22 +36,22 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.ServerClient;
-import org.apache.accumulo.core.client.impl.Table;
-import org.apache.accumulo.core.client.impl.TabletLocator;
-import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
-import org.apache.accumulo.core.client.impl.Translator;
-import org.apache.accumulo.core.client.impl.Translators;
-import org.apache.accumulo.core.client.impl.thrift.ClientService;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ServerClient;
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.clientImpl.Translator;
+import org.apache.accumulo.core.clientImpl.Translators;
+import org.apache.accumulo.core.clientImpl.thrift.ClientService;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.data.thrift.TKeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -620,15 +620,15 @@ public class BulkImporter {
       TabletClientService.Iface client = ThriftUtil.getTServerClient(location, context,
           timeInMillis);
       try {
-        HashMap<KeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files = new HashMap<>();
+        HashMap<KeyExtent,Map<String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files = new HashMap<>();
         for (Entry<KeyExtent,List<PathSize>> entry : assignmentsPerTablet.entrySet()) {
-          HashMap<String,org.apache.accumulo.core.data.thrift.MapFileInfo> tabletFiles = new HashMap<>();
+          HashMap<String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo> tabletFiles = new HashMap<>();
           files.put(entry.getKey(), tabletFiles);
 
           for (PathSize pathSize : entry.getValue()) {
             // @formatter:off
-            org.apache.accumulo.core.data.thrift.MapFileInfo mfi =
-              new org.apache.accumulo.core.data.thrift.MapFileInfo(pathSize.estSize);
+            org.apache.accumulo.core.dataImpl.thrift.MapFileInfo mfi =
+              new org.apache.accumulo.core.dataImpl.thrift.MapFileInfo(pathSize.estSize);
             // @formatter:on
             tabletFiles.put(pathSize.path.toString(), mfi);
           }

@@ -25,9 +25,9 @@ import java.util.OptionalLong;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Column;
-import org.apache.accumulo.core.data.thrift.IterInfo;
+import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.common.IteratorConfiguration;
 import org.apache.accumulo.core.spi.common.Stats;
 import org.apache.accumulo.core.spi.scan.ScanInfo;

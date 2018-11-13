@@ -18,8 +18,8 @@ package org.apache.accumulo.master.tableOps.tableExport;
 
 import java.io.Serializable;
 
-import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.Table;
 
 class ExportInfo implements Serializable {
 

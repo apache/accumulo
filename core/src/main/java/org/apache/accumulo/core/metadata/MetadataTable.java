@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import org.apache.accumulo.core.client.impl.Namespace;
-import org.apache.accumulo.core.client.impl.Table;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.Table;
 
 public class MetadataTable {
 

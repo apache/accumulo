@@ -32,7 +32,7 @@ public class KeyValues implements org.apache.thrift.TBase<KeyValues, KeyValues._
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new KeyValuesStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new KeyValuesTupleSchemeFactory();
 
-  public java.util.List<org.apache.accumulo.core.data.thrift.TKeyValue> keyValues; // required
+  public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyValue> keyValues; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -98,7 +98,7 @@ public class KeyValues implements org.apache.thrift.TBase<KeyValues, KeyValues._
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.KEY_VALUES, new org.apache.thrift.meta_data.FieldMetaData("keyValues", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyValue.class))));
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyValue.class))));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(KeyValues.class, metaDataMap);
   }
@@ -107,7 +107,7 @@ public class KeyValues implements org.apache.thrift.TBase<KeyValues, KeyValues._
   }
 
   public KeyValues(
-    java.util.List<org.apache.accumulo.core.data.thrift.TKeyValue> keyValues)
+    java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyValue> keyValues)
   {
     this();
     this.keyValues = keyValues;
@@ -118,9 +118,9 @@ public class KeyValues implements org.apache.thrift.TBase<KeyValues, KeyValues._
    */
   public KeyValues(KeyValues other) {
     if (other.isSetKeyValues()) {
-      java.util.List<org.apache.accumulo.core.data.thrift.TKeyValue> __this__keyValues = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TKeyValue>(other.keyValues.size());
-      for (org.apache.accumulo.core.data.thrift.TKeyValue other_element : other.keyValues) {
-        __this__keyValues.add(new org.apache.accumulo.core.data.thrift.TKeyValue(other_element));
+      java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyValue> __this__keyValues = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyValue>(other.keyValues.size());
+      for (org.apache.accumulo.core.dataImpl.thrift.TKeyValue other_element : other.keyValues) {
+        __this__keyValues.add(new org.apache.accumulo.core.dataImpl.thrift.TKeyValue(other_element));
       }
       this.keyValues = __this__keyValues;
     }
@@ -139,22 +139,22 @@ public class KeyValues implements org.apache.thrift.TBase<KeyValues, KeyValues._
     return (this.keyValues == null) ? 0 : this.keyValues.size();
   }
 
-  public java.util.Iterator<org.apache.accumulo.core.data.thrift.TKeyValue> getKeyValuesIterator() {
+  public java.util.Iterator<org.apache.accumulo.core.dataImpl.thrift.TKeyValue> getKeyValuesIterator() {
     return (this.keyValues == null) ? null : this.keyValues.iterator();
   }
 
-  public void addToKeyValues(org.apache.accumulo.core.data.thrift.TKeyValue elem) {
+  public void addToKeyValues(org.apache.accumulo.core.dataImpl.thrift.TKeyValue elem) {
     if (this.keyValues == null) {
-      this.keyValues = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TKeyValue>();
+      this.keyValues = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyValue>();
     }
     this.keyValues.add(elem);
   }
 
-  public java.util.List<org.apache.accumulo.core.data.thrift.TKeyValue> getKeyValues() {
+  public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyValue> getKeyValues() {
     return this.keyValues;
   }
 
-  public KeyValues setKeyValues(java.util.List<org.apache.accumulo.core.data.thrift.TKeyValue> keyValues) {
+  public KeyValues setKeyValues(java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyValue> keyValues) {
     this.keyValues = keyValues;
     return this;
   }
@@ -180,7 +180,7 @@ public class KeyValues implements org.apache.thrift.TBase<KeyValues, KeyValues._
       if (value == null) {
         unsetKeyValues();
       } else {
-        setKeyValues((java.util.List<org.apache.accumulo.core.data.thrift.TKeyValue>)value);
+        setKeyValues((java.util.List<org.apache.accumulo.core.dataImpl.thrift.TKeyValue>)value);
       }
       break;
 
@@ -339,11 +339,11 @@ public class KeyValues implements org.apache.thrift.TBase<KeyValues, KeyValues._
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
                 org.apache.thrift.protocol.TList _list8 = iprot.readListBegin();
-                struct.keyValues = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TKeyValue>(_list8.size);
-                org.apache.accumulo.core.data.thrift.TKeyValue _elem9;
+                struct.keyValues = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyValue>(_list8.size);
+                org.apache.accumulo.core.dataImpl.thrift.TKeyValue _elem9;
                 for (int _i10 = 0; _i10 < _list8.size; ++_i10)
                 {
-                  _elem9 = new org.apache.accumulo.core.data.thrift.TKeyValue();
+                  _elem9 = new org.apache.accumulo.core.dataImpl.thrift.TKeyValue();
                   _elem9.read(iprot);
                   struct.keyValues.add(_elem9);
                 }
@@ -373,7 +373,7 @@ public class KeyValues implements org.apache.thrift.TBase<KeyValues, KeyValues._
         oprot.writeFieldBegin(KEY_VALUES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.keyValues.size()));
-          for (org.apache.accumulo.core.data.thrift.TKeyValue _iter11 : struct.keyValues)
+          for (org.apache.accumulo.core.dataImpl.thrift.TKeyValue _iter11 : struct.keyValues)
           {
             _iter11.write(oprot);
           }
@@ -406,7 +406,7 @@ public class KeyValues implements org.apache.thrift.TBase<KeyValues, KeyValues._
       if (struct.isSetKeyValues()) {
         {
           oprot.writeI32(struct.keyValues.size());
-          for (org.apache.accumulo.core.data.thrift.TKeyValue _iter12 : struct.keyValues)
+          for (org.apache.accumulo.core.dataImpl.thrift.TKeyValue _iter12 : struct.keyValues)
           {
             _iter12.write(oprot);
           }
@@ -421,11 +421,11 @@ public class KeyValues implements org.apache.thrift.TBase<KeyValues, KeyValues._
       if (incoming.get(0)) {
         {
           org.apache.thrift.protocol.TList _list13 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.keyValues = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TKeyValue>(_list13.size);
-          org.apache.accumulo.core.data.thrift.TKeyValue _elem14;
+          struct.keyValues = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyValue>(_list13.size);
+          org.apache.accumulo.core.dataImpl.thrift.TKeyValue _elem14;
           for (int _i15 = 0; _i15 < _list13.size; ++_i15)
           {
-            _elem14 = new org.apache.accumulo.core.data.thrift.TKeyValue();
+            _elem14 = new org.apache.accumulo.core.dataImpl.thrift.TKeyValue();
             _elem14.read(iprot);
             struct.keyValues.add(_elem14);
           }

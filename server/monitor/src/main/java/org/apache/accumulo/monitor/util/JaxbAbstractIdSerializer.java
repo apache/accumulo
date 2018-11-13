@@ -18,7 +18,7 @@ package org.apache.accumulo.monitor.util;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 
-import org.apache.accumulo.core.client.impl.AbstractId;
+import org.apache.accumulo.core.clientImpl.AbstractId;
 
 /**
  * A class for marshaling {@link AbstractId} into its canonical form for REST endpoints

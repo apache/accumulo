@@ -19,7 +19,7 @@ package org.apache.accumulo.tserver;
 import static org.easymock.EasyMock.createMock;
 import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.junit.Before;

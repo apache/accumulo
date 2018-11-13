@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.core.client;
 
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.commons.lang.StringUtils;
 
 /**

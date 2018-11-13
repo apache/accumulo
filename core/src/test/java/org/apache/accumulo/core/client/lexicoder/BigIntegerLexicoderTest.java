@@ -19,7 +19,7 @@ package org.apache.accumulo.core.client.lexicoder;
 import java.math.BigInteger;
 import java.util.Arrays;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoderTest;
+import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
 import org.junit.Test;
 
 public class BigIntegerLexicoderTest extends AbstractLexicoderTest {

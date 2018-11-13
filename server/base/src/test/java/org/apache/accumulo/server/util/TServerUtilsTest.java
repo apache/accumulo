@@ -32,8 +32,8 @@ import java.net.UnknownHostException;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.accumulo.core.client.impl.thrift.ClientService.Iface;
-import org.apache.accumulo.core.client.impl.thrift.ClientService.Processor;
+import org.apache.accumulo.core.clientImpl.thrift.ClientService.Iface;
+import org.apache.accumulo.core.clientImpl.thrift.ClientService.Processor;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;

@@ -43,7 +43,7 @@ import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.MasterExecutable;
 import org.apache.accumulo.minicluster.MiniAccumuloRunner;
-import org.apache.accumulo.minicluster.impl.MiniClusterExecutable;
+import org.apache.accumulo.miniclusterImpl.MiniClusterExecutable;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.MonitorExecutable;
 import org.apache.accumulo.proxy.Proxy;

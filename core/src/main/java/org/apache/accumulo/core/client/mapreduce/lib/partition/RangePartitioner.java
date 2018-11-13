@@ -29,7 +29,7 @@ import java.util.Base64;
 import java.util.Scanner;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.mapreduce.lib.impl.DistributedCacheHelper;
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.DistributedCacheHelper;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;

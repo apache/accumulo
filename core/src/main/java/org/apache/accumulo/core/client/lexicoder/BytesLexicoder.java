@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import org.apache.accumulo.core.client.lexicoder.impl.AbstractLexicoder;
+import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 
 /**
  * For each of the methods, this lexicoder just passes the input through untouched. It is meant to

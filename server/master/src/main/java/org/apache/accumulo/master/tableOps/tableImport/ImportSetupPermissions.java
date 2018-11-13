@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.master.tableOps.tableImport;
 
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;

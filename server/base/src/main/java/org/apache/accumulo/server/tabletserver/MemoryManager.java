@@ -18,7 +18,7 @@ package org.apache.accumulo.server.tabletserver;
 
 import java.util.List;
 
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 
 /**
