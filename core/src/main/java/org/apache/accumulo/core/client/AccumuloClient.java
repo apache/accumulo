@@ -335,6 +335,8 @@ public interface AccumuloClient extends AutoCloseable {
 
   /**
    * Builds ClientInfo after all options have been specified
+   *
+   * @since 2.0.0
    */
   interface ClientInfoFactory {
 
@@ -348,6 +350,8 @@ public interface AccumuloClient extends AutoCloseable {
 
   /**
    * Builds AccumuloClient
+   *
+   * @since 2.0.0
    */
   interface AccumuloClientFactory extends ClientInfoFactory {
 
@@ -362,6 +366,8 @@ public interface AccumuloClient extends AutoCloseable {
 
   /**
    * Builder method for setting Accumulo instance and zookeepers
+   *
+   * @since 2.0.0
    */
   interface InstanceArgs {
     AuthenticationArgs to(CharSequence instanceName, CharSequence zookeepers);
@@ -369,6 +375,8 @@ public interface AccumuloClient extends AutoCloseable {
 
   /**
    * Builder methods for creating AccumuloClient using properties
+   *
+   * @since 2.0.0
    */
   interface PropertyOptions extends InstanceArgs {
 
@@ -403,6 +411,9 @@ public interface AccumuloClient extends AutoCloseable {
     AccumuloClientFactory from(Properties properties);
   }
 
+  /**
+   * @since 2.0.0
+   */
   interface ClientInfoOptions extends PropertyOptions {
 
     /**
@@ -416,7 +427,9 @@ public interface AccumuloClient extends AutoCloseable {
   }
 
   /**
-   * Build methods for authentication
+   * Builder methods for authentication
+   *
+   * @since 2.0.0
    */
   interface AuthenticationArgs {
 
@@ -456,6 +469,8 @@ public interface AccumuloClient extends AutoCloseable {
 
   /**
    * Build methods for SSL/TLS
+   *
+   * @since 2.0.0
    */
   interface SslOptions extends AccumuloClientFactory {
 
@@ -513,6 +528,8 @@ public interface AccumuloClient extends AutoCloseable {
 
   /**
    * Build methods for SASL
+   *
+   * @since 2.0.0
    */
   interface SaslOptions extends AccumuloClientFactory {
 
@@ -537,6 +554,8 @@ public interface AccumuloClient extends AutoCloseable {
 
   /**
    * Build methods for connection options
+   *
+   * @since 2.0.0
    */
   interface ConnectionOptions extends AccumuloClientFactory {
 
@@ -584,6 +603,9 @@ public interface AccumuloClient extends AutoCloseable {
     ConnectionOptions scannerBatchSize(int batchSize);
   }
 
+  /**
+   * @since 2.0.0
+   */
   interface FromOptions extends ConnectionOptions, PropertyOptions, AuthenticationArgs {
 
   }
