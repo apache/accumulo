@@ -55,7 +55,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -176,7 +175,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile)
         throws IOException {
-      ClientInfo info = Accumulo.newClient().usingProperties(configFile.getAbsolutePath()).info();
+      ClientInfo info = ClientInfo.from(configFile.toPath());
       // start the shell
       output = new TestOutputStream();
       input = new StringInputStream();

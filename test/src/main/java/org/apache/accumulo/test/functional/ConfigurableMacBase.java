@@ -201,9 +201,8 @@ public class ConfigurableMacBase extends AccumuloITBase {
   }
 
   protected ClientInfo getClientInfo() {
-    return Accumulo.newClient()
-        .forInstance(getCluster().getInstanceName(), getCluster().getZooKeepers())
-        .usingPassword("root", ROOT_PASSWORD).info();
+    return Accumulo.newClient().to(getCluster().getInstanceName(), getCluster().getZooKeepers())
+        .as("root", ROOT_PASSWORD).info();
   }
 
   protected ServerContext getServerContext() {

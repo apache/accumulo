@@ -142,8 +142,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @Override
   public AccumuloClient getAccumuloClient(String user, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
-    return Accumulo.newClient().forInstance(getInstanceName(), getZooKeepers())
-        .usingToken(user, token).build();
+    return Accumulo.newClient().to(getInstanceName(), getZooKeepers()).as(user, token).build();
   }
 
   @Override

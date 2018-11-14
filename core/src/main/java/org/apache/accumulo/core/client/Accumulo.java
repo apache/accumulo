@@ -52,8 +52,8 @@ public final class Accumulo {
    * <pre>
    * <code>
    * try (AccumuloClient client = Accumulo.newClient()
-   *        .forInstance(instanceName, zookeepers)
-   *        .usingPassword(user, password).build())
+   *        .to(instanceName, zookeepers)
+   *        .as(user, password).build())
    * {
    *   // use the client
    * }

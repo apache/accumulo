@@ -167,8 +167,8 @@ public class BatchWriterIterator extends WrappingIterator {
 
   private void initBatchWriter() {
     try {
-      accumuloClient = Accumulo.newClient().forInstance(instanceName, zookeeperHost)
-          .usingToken(username, auth).withZkTimeout(zookeeperTimeout).build();
+      accumuloClient = Accumulo.newClient().to(instanceName, zookeeperHost).as(username, auth)
+          .zkTimeout(zookeeperTimeout).build();
     } catch (Exception e) {
       log.error("failed to connect to Accumulo instance " + instanceName, e);
       throw new RuntimeException(e);

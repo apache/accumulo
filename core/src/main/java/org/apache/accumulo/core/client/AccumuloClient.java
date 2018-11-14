@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import java.nio.file.Path;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -38,8 +39,8 @@ import org.apache.accumulo.core.security.Authorizations;
  * <pre>
  * <code>
  * try (AccumuloClient client = Accumulo.newClient()
- *        .forInstance(instanceName, zookeepers)
- *        .usingPassword(user, password).build())
+ *        .to(instanceName, zookeepers)
+ *        .as(user, password).build())
  * {
  *   // use the client
  * }
@@ -328,10 +329,12 @@ public interface AccumuloClient extends AutoCloseable {
    * using this client will likely fail after close is called.
    */
   @Override
-  public void close();
+  void close();
 
   /**
    * Builds ClientInfo after all options have been specified
+   *
+   * @since 2.0.0
    */
   interface ClientInfoFactory {
 
@@ -345,6 +348,8 @@ public interface AccumuloClient extends AutoCloseable {
 
   /**
    * Builds AccumuloClient
+   *
+   * @since 2.0.0
    */
   interface AccumuloClientFactory extends ClientInfoFactory {
 
@@ -359,15 +364,29 @@ public interface AccumuloClient extends AutoCloseable {
 
   /**
    * Builder method for setting Accumulo instance and zookeepers
+   *
+   * @since 2.0.0
    */
   interface InstanceArgs {
-    AuthenticationArgs forInstance(String instanceName, String zookeepers);
+    AuthenticationArgs to(CharSequence instanceName, CharSequence zookeepers);
   }
 
   /**
    * Builder methods for creating AccumuloClient using properties
+   *
+   * @since 2.0.0
    */
   interface PropertyOptions extends InstanceArgs {
+
+    /**
+     * Build using properties file. An example properties file can be found at
+     * conf/accumulo-client.properties in the Accumulo tarball distribution.
+     *
+     * @param propertiesFilePath
+     *          Path to properties file
+     * @return this builder
+     */
+    AccumuloClientFactory from(String propertiesFilePath);
 
     /**
      * Build using properties file. An example properties file can be found at
@@ -377,20 +396,22 @@ public interface AccumuloClient extends AutoCloseable {
      *          Path to properties file
      * @return this builder
      */
-    AccumuloClientFactory usingProperties(String propertiesFile);
+    AccumuloClientFactory from(Path propertiesFile);
 
     /**
      * Build using Java properties object. A list of available properties can be found in the
-     * documentation on the project website (http://accumulo.apache.org) under 'Development' -&gt;
-     * 'Client Properties'
+     * documentation at https://accumulo.apache.org/docs/2.x/configuration/client-properties
      *
      * @param properties
      *          Properties object
      * @return this builder
      */
-    AccumuloClientFactory usingProperties(Properties properties);
+    AccumuloClientFactory from(Properties properties);
   }
 
+  /**
+   * @since 2.0.0
+   */
   interface ClientInfoOptions extends PropertyOptions {
 
     /**
@@ -400,11 +421,13 @@ public interface AccumuloClient extends AutoCloseable {
      *          ClientInfo object
      * @return this builder
      */
-    FromOptions usingClientInfo(ClientInfo clientInfo);
+    FromOptions from(ClientInfo clientInfo);
   }
 
   /**
-   * Build methods for authentication
+   * Builder methods for authentication
+   *
+   * @since 2.0.0
    */
   interface AuthenticationArgs {
 
@@ -417,7 +440,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Password
      * @return this builder
      */
-    ConnectionOptions usingPassword(String username, CharSequence password);
+    ConnectionOptions as(CharSequence username, CharSequence password);
 
     /**
      * Build using Kerberos credentials
@@ -428,7 +451,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Path to keytab file
      * @return this builder
      */
-    ConnectionOptions usingKerberos(String principal, String keyTabFile);
+    ConnectionOptions as(CharSequence principal, Path keyTabFile);
 
     /**
      * Build using specified credentials
@@ -439,11 +462,13 @@ public interface AccumuloClient extends AutoCloseable {
      *          Authentication token
      * @return this builder
      */
-    ConnectionOptions usingToken(String principal, AuthenticationToken token);
+    ConnectionOptions as(CharSequence principal, AuthenticationToken token);
   }
 
   /**
    * Build methods for SSL/TLS
+   *
+   * @since 2.0.0
    */
   interface SslOptions extends AccumuloClientFactory {
 
@@ -454,7 +479,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Path to trust store
      * @return this builder
      */
-    SslOptions withTruststore(String path);
+    SslOptions truststore(CharSequence path);
 
     /**
      * Build with SSL trust store
@@ -467,7 +492,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Trust store type
      * @return this builder
      */
-    SslOptions withTruststore(String path, String password, String type);
+    SslOptions truststore(CharSequence path, CharSequence password, CharSequence type);
 
     /**
      * Build with SSL key store
@@ -476,7 +501,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Path to SSL key store
      * @return this builder
      */
-    SslOptions withKeystore(String path);
+    SslOptions keystore(CharSequence path);
 
     /**
      * Build with SSL key store
@@ -489,7 +514,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Key store type
      * @return this builder
      */
-    SslOptions withKeystore(String path, String password, String type);
+    SslOptions keystore(CharSequence path, CharSequence password, CharSequence type);
 
     /**
      * Use JSSE system properties to configure SSL
@@ -501,6 +526,8 @@ public interface AccumuloClient extends AutoCloseable {
 
   /**
    * Build methods for SASL
+   *
+   * @since 2.0.0
    */
   interface SaslOptions extends AccumuloClientFactory {
 
@@ -511,7 +538,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Kerberos server primary
      * @return this builder
      */
-    SaslOptions withPrimary(String kerberosServerPrimary);
+    SaslOptions primary(CharSequence kerberosServerPrimary);
 
     /**
      * Build with SASL quality of protection
@@ -520,11 +547,13 @@ public interface AccumuloClient extends AutoCloseable {
      *          Quality of protection
      * @return this builder
      */
-    SaslOptions withQop(String qualityOfProtection);
+    SaslOptions qop(CharSequence qualityOfProtection);
   }
 
   /**
    * Build methods for connection options
+   *
+   * @since 2.0.0
    */
   interface ConnectionOptions extends AccumuloClientFactory {
 
@@ -535,21 +564,21 @@ public interface AccumuloClient extends AutoCloseable {
      *          Zookeeper timeout (in milliseconds)
      * @return this builder
      */
-    ConnectionOptions withZkTimeout(int timeout);
+    ConnectionOptions zkTimeout(int timeout);
 
     /**
      * Build with SSL/TLS options
      *
      * @return this builder
      */
-    SslOptions withSsl();
+    SslOptions useSsl();
 
     /**
      * Build with SASL options
      *
      * @return this builder
      */
-    SaslOptions withSasl();
+    SaslOptions useSasl();
 
     /**
      * Build with BatchWriterConfig defaults for BatchWriter, MultiTableBatchWriter &amp;
@@ -559,19 +588,22 @@ public interface AccumuloClient extends AutoCloseable {
      *          BatchWriterConfig
      * @return this builder
      */
-    ConnectionOptions withBatchWriterConfig(BatchWriterConfig batchWriterConfig);
+    ConnectionOptions batchWriterConfig(BatchWriterConfig batchWriterConfig);
 
     /**
      * Build with default number of query threads for BatchScanner
      */
-    ConnectionOptions withBatchScannerQueryThreads(int numQueryThreads);
+    ConnectionOptions batchScannerQueryThreads(int numQueryThreads);
 
     /**
      * Build with default batch size for Scanner
      */
-    ConnectionOptions withScannerBatchSize(int batchSize);
+    ConnectionOptions scannerBatchSize(int batchSize);
   }
 
+  /**
+   * @since 2.0.0
+   */
   interface FromOptions extends ConnectionOptions, PropertyOptions, AuthenticationArgs {
 
   }

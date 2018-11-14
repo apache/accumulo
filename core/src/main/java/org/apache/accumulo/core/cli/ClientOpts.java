@@ -174,14 +174,14 @@ public class ClientOpts extends Help {
 
   public ClientInfo getClientInfo() {
     if (cachedInfo == null) {
-      cachedInfo = Accumulo.newClient().usingProperties(getClientProperties()).info();
+      cachedInfo = Accumulo.newClient().from(getClientProperties()).info();
     }
     return cachedInfo;
   }
 
   public AccumuloClient getClient() throws AccumuloException, AccumuloSecurityException {
     if (cachedAccumuloClient == null) {
-      cachedAccumuloClient = Accumulo.newClient().usingClientInfo(getClientInfo()).build();
+      cachedAccumuloClient = Accumulo.newClient().from(getClientInfo()).build();
     }
     return cachedAccumuloClient;
   }

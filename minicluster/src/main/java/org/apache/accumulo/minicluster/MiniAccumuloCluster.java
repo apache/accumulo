@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -165,6 +164,6 @@ public class MiniAccumuloCluster {
   public static ClientInfo getClientInfo(File directory) {
     File clientProps = new File(new File(directory, "conf"), "accumulo-client.properties");
     Preconditions.checkArgument(clientProps.exists());
-    return Accumulo.newClient().usingProperties(clientProps.getAbsolutePath()).info();
+    return ClientInfo.from(clientProps.toPath());
   }
 }

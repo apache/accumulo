@@ -256,7 +256,7 @@ public class ShellOptionsJC {
     return unrecognizedOptions;
   }
 
-  public String getClientConfigFile() {
+  public String getClientPropertiesFile() {
     if (clientConfigFile == null) {
       List<String> searchPaths = new LinkedList<>();
       searchPaths.add(System.getProperty("user.home") + "/.accumulo/accumulo-client.properties");
@@ -278,8 +278,8 @@ public class ShellOptionsJC {
 
   public Properties getClientProperties() {
     Properties props = new Properties();
-    if (getClientConfigFile() != null) {
-      props = ClientInfoImpl.toProperties(getClientConfigFile());
+    if (getClientPropertiesFile() != null) {
+      props = ClientInfoImpl.toProperties(getClientPropertiesFile());
     }
     for (Map.Entry<String,String> entry : commandLineProperties.entrySet()) {
       props.setProperty(entry.getKey(), entry.getValue());

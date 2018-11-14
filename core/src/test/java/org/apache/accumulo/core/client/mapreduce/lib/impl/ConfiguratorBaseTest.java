@@ -79,8 +79,8 @@ public class ConfiguratorBaseTest {
   @Test
   public void testSetClientInfo() {
     Configuration conf = new Configuration();
-    ClientInfo info = Accumulo.newClient().forInstance("myinstance", "myzookeepers")
-        .usingPassword("user", "pass").info();
+    ClientInfo info = Accumulo.newClient().to("myinstance", "myzookeepers").as("user", "pass")
+        .info();
     ConfiguratorBase.setClientInfo(this.getClass(), conf, info);
     ClientInfo info2 = ConfiguratorBase.getClientInfo(this.getClass(), conf);
     assertEquals("myinstance", info2.getInstanceName());
