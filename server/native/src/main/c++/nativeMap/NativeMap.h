@@ -130,21 +130,23 @@ struct NativeMap : public NativeMapData {
 	}
 
 	ColumnMap *startUpdate(const char *r){
-
 		Field row(lba, r);	
 		return startUpdate(row);
 	}
 
 	ColumnMap *startUpdate(Field &row){
-		//cout << "Starting update "<<row.toString()<<endl;
-
-		pair<RowMap::iterator, bool> insertResult = rowmap.insert(pair<Field, ColumnMap>(row, ColumnMap(std::less<SubKey>(), BlockAllocator<std::pair<SubKey, Field> >(lba))));
-
-		if(!insertResult.second)
+		// This method is structured to avoid allocating the column map in the case
+		// where it already exists in the map.  This is done so the row key memory can
+		// be easily deallocated.
+		RowMap::iterator lbi = rowmap.lower_bound(row);
+		if(lbi == rowmap.end() || row < lbi->first) {
+			RowMap::iterator iter = rowmap.insert(lbi, pair<Field, ColumnMap>(row, ColumnMap(std::less<SubKey>(), BlockAllocator<std::pair<SubKey, Field> >(lba))));
+			return &(iter->second);
+		} else {
+			// Return row memory because an insert was not done.
 			row.clear(lba);
-
-		return &(insertResult.first->second);
-
+			return &(lbi->second);
+		}
 	}
 
 	void update(ColumnMap *cm, JNIEnv *env, jbyteArray cf, jbyteArray cq, jbyteArray cv, jlong ts, jboolean del, jbyteArray val, jint mutationCount){
