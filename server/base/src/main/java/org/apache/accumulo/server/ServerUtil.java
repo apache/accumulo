@@ -272,8 +272,8 @@ public class ServerUtil {
             + " outstanding FATE transactions from a previous Accumulo version."
             + " You can start the tservers and then use the shell to delete completed "
             + " transactions. If there are uncomplete transactions, you will need to roll"
-            + " back and fix those issues. Please see the Accumulo User manual, "
-            + " Troubleshooting, Upgrade Issues for more information. ");
+            + " back and fix those issues. Please see the following page for more information: "
+            + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
       }
     } catch (Exception exception) {
       log.error("Problem verifying Fate readiness", exception);
