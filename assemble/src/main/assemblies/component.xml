@@ -36,6 +36,7 @@
         <include>com.google.protobuf:protobuf-java</include>
         <include>javax.servlet:javax.servlet-api</include>
         <include>jline:jline</include>
+        <include>commons-configuration:commons-configuration</include>
         <include>org.apache.commons:commons-math3</include>
         <include>org.apache.commons:commons-vfs2</include>
         <include>org.apache.thrift:libthrift</include>
