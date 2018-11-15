@@ -34,11 +34,12 @@
         <include>com.google.code.gson:gson</include>
         <include>com.google.guava:guava</include>
         <include>com.google.protobuf:protobuf-java</include>
+        <include>commons-configuration:commons-configuration</include>
         <include>javax.servlet:javax.servlet-api</include>
         <include>jline:jline</include>
-        <include>commons-configuration:commons-configuration</include>
         <include>org.apache.commons:commons-math3</include>
         <include>org.apache.commons:commons-vfs2</include>
+        <include>org.apache.htrace:htrace-core</include>
         <include>org.apache.thrift:libthrift</include>
         <include>org.eclipse.jetty:jetty-http</include>
         <include>org.eclipse.jetty:jetty-io</include>
@@ -46,7 +47,6 @@
         <include>org.eclipse.jetty:jetty-server</include>
         <include>org.eclipse.jetty:jetty-servlet</include>
         <include>org.eclipse.jetty:jetty-util</include>
-        <include>org.apache.htrace:htrace-core</include>
         <include>org.slf4j:slf4j-api</include>
         <include>org.slf4j:slf4j-log4j12</include>
       </includes>
