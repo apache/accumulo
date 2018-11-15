@@ -26,162 +26,161 @@ using namespace std;
 
 class SubKey {
 
-public:
+  public:
 
-	int32_t colQualifierOffset;
-	int32_t colVisibilityOffset;
-	int32_t totalLen;
-	uint8_t *keyData;	
-	int64_t timestamp;
-	int32_t mutationCount;
-	bool deleted;
+    int32_t colQualifierOffset;
+    int32_t colVisibilityOffset;
+    int32_t totalLen;
+    uint8_t *keyData;
+    int64_t timestamp;
+    int32_t mutationCount;
+    bool deleted;
 
-	int compare(const uint8_t *d1, int len1, const uint8_t *d2, int len2) const{
-		int result = memcmp(d1, d2, len1 < len2 ? len1 : len2);
-		
-		if(result != 0)
-			return result;
-		if(len1 == len2)
-			return 0;
-		if(len1 < len2)
-			return -1;
+    int compare(const uint8_t *d1, int len1, const uint8_t *d2, int len2) const{
+      int result = memcmp(d1, d2, len1 < len2 ? len1 : len2);
 
-		return 1;
-	}
+      if(result != 0)
+        return result;
+      if(len1 == len2)
+        return 0;
+      if(len1 < len2)
+        return -1;
 
-	/**
-	 * Constructor for testing purposes
-	 */
-	SubKey(LinkedBlockAllocator *lba, const string &cf, const string &cq, const string &cv, int64_t ts, bool del, int32_t mc){
+      return 1;
+    }
 
-		colQualifierOffset = cf.length();
-		colVisibilityOffset = colQualifierOffset + cq.length();
-		totalLen = colVisibilityOffset + cv.length();
+    /**
+     * Constructor for testing purposes
+     */
+    SubKey(LinkedBlockAllocator *lba, const string &cf, const string &cq, const string &cv, int64_t ts, bool del, int32_t mc){
 
-		keyData = (uint8_t *)lba->allocate(totalLen);
+      colQualifierOffset = cf.length();
+      colVisibilityOffset = colQualifierOffset + cq.length();
+      totalLen = colVisibilityOffset + cv.length();
 
-		copy(cf.begin(), cf.end(), keyData);
-		copy(cq.begin(), cq.end(), keyData+colQualifierOffset);
-		copy(cv.begin(), cv.end(), keyData+colVisibilityOffset);
+      keyData = (uint8_t *)lba->allocate(totalLen);
 
-		timestamp = ts;
-		deleted = del;
+      copy(cf.begin(), cf.end(), keyData);
+      copy(cq.begin(), cq.end(), keyData+colQualifierOffset);
+      copy(cv.begin(), cv.end(), keyData+colVisibilityOffset);
 
-		mutationCount = mc;
-	}
+      timestamp = ts;
+      deleted = del;
 
-	SubKey(LinkedBlockAllocator *lba, JNIEnv *env, jbyteArray cf, jbyteArray cq, jbyteArray cv, jlong ts, jboolean del, int32_t mc){
+      mutationCount = mc;
+    }
 
-		int cfLen = env->GetArrayLength(cf);
-		int cqLen = env->GetArrayLength(cq);
-		int cvLen = env->GetArrayLength(cv);
+    SubKey(LinkedBlockAllocator *lba, JNIEnv *env, jbyteArray cf, jbyteArray cq, jbyteArray cv, jlong ts, jboolean del, int32_t mc){
 
-		colQualifierOffset = cfLen;
-		colVisibilityOffset = colQualifierOffset + cqLen;
-		totalLen = colVisibilityOffset + cvLen;
+      int cfLen = env->GetArrayLength(cf);
+      int cqLen = env->GetArrayLength(cq);
+      int cvLen = env->GetArrayLength(cv);
 
-		if(lba == NULL)
-			keyData = new uint8_t[totalLen];
-		else
-			keyData = (uint8_t *)lba->allocate(totalLen);
+      colQualifierOffset = cfLen;
+      colVisibilityOffset = colQualifierOffset + cqLen;
+      totalLen = colVisibilityOffset + cvLen;
 
-
-		env->GetByteArrayRegion(cf, 0, cfLen, (jbyte *)keyData);
-		env->GetByteArrayRegion(cq, 0, cqLen, (jbyte *)(keyData+colQualifierOffset));
-		env->GetByteArrayRegion(cv, 0, cvLen, (jbyte *)(keyData+colVisibilityOffset));
-
-		timestamp = ts;
-		deleted = del;
-
-		mutationCount = mc;
-	}
+      if(lba == NULL)
+        keyData = new uint8_t[totalLen];
+      else
+        keyData = (uint8_t *)lba->allocate(totalLen);
 
 
-	bool operator<(const SubKey &key) const{
+      env->GetByteArrayRegion(cf, 0, cfLen, (jbyte *)keyData);
+      env->GetByteArrayRegion(cq, 0, cqLen, (jbyte *)(keyData+colQualifierOffset));
+      env->GetByteArrayRegion(cv, 0, cvLen, (jbyte *)(keyData+colVisibilityOffset));
 
-		int result = compare(keyData, colQualifierOffset, key.keyData, key.colQualifierOffset);
-		if(result != 0) return result < 0;
+      timestamp = ts;
+      deleted = del;
 
-		result = compare(keyData + colQualifierOffset, colVisibilityOffset - colQualifierOffset, key.keyData + key.colQualifierOffset, key.colVisibilityOffset - key.colQualifierOffset);
-		if(result != 0) return result < 0;
+      mutationCount = mc;
+    }
 
-		result = compare(keyData + colVisibilityOffset, totalLen - colVisibilityOffset, key.keyData + key.colVisibilityOffset, key.totalLen - key.colVisibilityOffset);
-		if(result != 0) return result < 0;
 
-		if(timestamp < key.timestamp){
-			return false;
-		}else if(timestamp > key.timestamp){
-			return true;
-		}
+    bool operator<(const SubKey &key) const{
 
-		if(deleted != key.deleted)
-			return deleted && !key.deleted;
-	
-		return mutationCount > key.mutationCount;
-	}
+      int result = compare(keyData, colQualifierOffset, key.keyData, key.colQualifierOffset);
+      if(result != 0) return result < 0;
 
-	void clear(){
-		//delete(keyData);
-	}
+      result = compare(keyData + colQualifierOffset, colVisibilityOffset - colQualifierOffset, key.keyData + key.colQualifierOffset, key.colVisibilityOffset - key.colQualifierOffset);
+      if(result != 0) return result < 0;
 
-	void clear(LinkedBlockAllocator *lba){
-		lba->deleteLast(keyData);
-	}
+      result = compare(keyData + colVisibilityOffset, totalLen - colVisibilityOffset, key.keyData + key.colVisibilityOffset, key.totalLen - key.colVisibilityOffset);
+      if(result != 0) return result < 0;
 
-	int64_t bytesUsed() const{
-		return totalLen + 9;
-	}
+      if(timestamp < key.timestamp){
+        return false;
+      }else if(timestamp > key.timestamp){
+        return true;
+      }
 
-	bool isDeleted() const{
-		return deleted;
-	}
+      if(deleted != key.deleted)
+        return deleted && !key.deleted;
 
-	int32_t getCFLen() const{
-		return colQualifierOffset;
-	}
-	
-	int32_t getCQLen() const {
-		return colVisibilityOffset - colQualifierOffset;
-	}
+      return mutationCount > key.mutationCount;
+    }
 
-	int32_t getCVLen() const {
-		return totalLen - colVisibilityOffset;
-	}
+    void clear(){
+      //delete(keyData);
+    }
 
-	const Field getCF() const{
-		return Field(keyData, getCFLen());
-	}
+    void clear(LinkedBlockAllocator *lba){
+      lba->deleteLast(keyData);
+    }
 
-	const Field getCQ() const{
-		return Field(keyData + colQualifierOffset, getCQLen());
-	}
+    int64_t bytesUsed() const{
+      return totalLen + 9;
+    }
 
-	const Field getCV() const{
-		return Field(keyData + colVisibilityOffset, getCVLen());
-	}
+    bool isDeleted() const{
+      return deleted;
+    }
 
-	string toString() const{
-		return getCF().toString()+":"+getCQ().toString()+":"+getCV().toString();
-	}
+    int32_t getCFLen() const{
+      return colQualifierOffset;
+    }
 
-	int64_t getTimestamp() const{
-		return timestamp;
-	}
+    int32_t getCQLen() const {
+      return colVisibilityOffset - colQualifierOffset;
+    }
 
-	int32_t getMC() const{
-		return mutationCount;
-	}
+    int32_t getCVLen() const {
+      return totalLen - colVisibilityOffset;
+    }
+
+    const Field getCF() const{
+      return Field(keyData, getCFLen());
+    }
+
+    const Field getCQ() const{
+      return Field(keyData + colQualifierOffset, getCQLen());
+    }
+
+    const Field getCV() const{
+      return Field(keyData + colVisibilityOffset, getCVLen());
+    }
+
+    string toString() const{
+      return getCF().toString()+":"+getCQ().toString()+":"+getCV().toString();
+    }
+
+    int64_t getTimestamp() const{
+      return timestamp;
+    }
+
+    int32_t getMC() const{
+      return mutationCount;
+    }
 
 };
 
 struct LocalSubKey : public SubKey {
-	
-	LocalSubKey(JNIEnv *env, jbyteArray cf, jbyteArray cq, jbyteArray cv, jlong ts, jboolean del):SubKey(NULL, env, cf, cq, cv, ts, del, INT_MAX){}
 
-	~LocalSubKey(){
-		delete(keyData);
-	}
+  LocalSubKey(JNIEnv *env, jbyteArray cf, jbyteArray cq, jbyteArray cv, jlong ts, jboolean del):SubKey(NULL, env, cf, cq, cv, ts, del, INT_MAX){}
+
+  ~LocalSubKey(){
+    delete(keyData);
+  }
 };
 
 #endif
- 
