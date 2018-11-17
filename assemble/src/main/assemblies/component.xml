@@ -165,7 +165,6 @@
       <fileMode>0644</fileMode>
       <includes>
         <include>README.md</include>
-        <include>INSTALL.md</include>
         <include>BUILD.md</include>
       </includes>
     </fileSet>
