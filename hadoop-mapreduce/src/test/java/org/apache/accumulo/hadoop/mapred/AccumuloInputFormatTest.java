@@ -72,13 +72,6 @@ public class AccumuloInputFormatTest {
     replay(clientInfo);
   }
 
-  // TODO remove - temp only for compilation
-  private static class InputInfo {
-    interface InputInfoBuilder {
-      interface InputFormatOptions {}
-    }
-  }
-
   /**
    * Check that the iterator configuration is getting stored in the Job conf correctly.
    */

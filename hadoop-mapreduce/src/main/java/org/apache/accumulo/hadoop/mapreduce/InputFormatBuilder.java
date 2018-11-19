@@ -47,8 +47,7 @@ public interface InputFormatBuilder {
   interface ClientParams {
     /**
      * Set the connection information needed to communicate with Accumulo in this job. ClientInfo
-     * param can be created using {@link ClientInfo#from(String)} or
-     * {@link ClientInfo#from(Properties)}
+     * param can be created using {@link ClientInfo#from(Properties)}
      *
      * @param clientInfo
      *          Accumulo connection information
