@@ -27,7 +27,7 @@ news and general information.
 
 ## Getting Started
 
-* Follow the [quickstart] to install and run Accumulo
+* Follow the [quick start] to install and run Accumulo
 * Read the [Accumulo documentation][docs]
 * Run the [Accumulo examples][examples] to learn how to write Accumulo clients
 * View the [Javadocs][javadocs] to learn the [Accumulo API][api]
@@ -75,7 +75,7 @@ more details on bouncycastle's cryptography features.
 [api]: https://accumulo.apache.org/api
 [accumulo]: https://accumulo.apache.org
 [logo]: contrib/accumulo-logo.png
-[quickstart]: https://accumulo.apache.org/docs/2.x/getting-started/quickstart
+[quick start]: https://accumulo.apache.org/docs/2.x/getting-started/quickstart
 [test]: TESTING.md
 [Apache Hadoop]: https://hadoop.apache.org
 [Apache Zookeeper]: https://zookeeper.apache.org
