@@ -129,14 +129,31 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
     return (T) index;
   }
 
+  private synchronized long _recordSize(AtomicLong totalSize) {
+    long indexSize = (index == null) ? 0 : index.weight();
+    long newSize = ClassSize.align(blockName.length()) + ClassSize.align(buffer.length)
+        + PER_BLOCK_OVERHEAD + indexSize;
+    long delta = newSize - recordedSize;
+    recordedSize = newSize;
+    return totalSize.addAndGet(delta);
+  }
+
+  /**
+   * Attempt to record size if not evicted.
+   *
+   * @return -1 if evicted
+   */
+  synchronized long tryRecordSize(AtomicLong totalSize) {
+    if (recordedSize >= 0) {
+      return _recordSize(totalSize);
+    }
+
+    return -1;
+  }
+
   public synchronized long recordSize(AtomicLong totalSize) {
     if (recordedSize >= 0) {
-      long indexSize = (index == null) ? 0 : index.weight();
-      long newSize = ClassSize.align(blockName.length()) + ClassSize.align(buffer.length)
-          + PER_BLOCK_OVERHEAD + indexSize;
-      long delta = newSize - recordedSize;
-      recordedSize = newSize;
-      return totalSize.addAndGet(delta);
+      return _recordSize(totalSize);
     }
 
     throw new IllegalStateException("Block was evicted");
