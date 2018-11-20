@@ -233,7 +233,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
       }
 
       // Add a junk file, should be ignored
-      FSDataOutputStream out = fs.create(new Path(dir + "/junk"));
+      FSDataOutputStream out = fs.create(new Path(dir, "junk"));
       out.writeChars("ABCDEFG\n");
       out.close();
 
