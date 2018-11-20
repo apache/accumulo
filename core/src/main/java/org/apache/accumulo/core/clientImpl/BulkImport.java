@@ -312,7 +312,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     }
   }
 
-  private static Map<String,Long> getFileLenMap(FileStatus[] statuses) {
+  private static Map<String,Long> getFileLenMap(List<FileStatus> statuses) {
     HashMap<String,Long> fileLens = new HashMap<>();
     for (FileStatus status : statuses) {
       fileLens.put(status.getPath().getName(), status.getLen());
@@ -322,7 +322,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     return fileLens;
   }
 
-  private static Cache<String,Long> getPopulatedFileLenCache(Path dir, FileStatus[] statuses) {
+  private static Cache<String,Long> getPopulatedFileLenCache(Path dir, List<FileStatus> statuses) {
     Map<String,Long> fileLens = getFileLenMap(statuses);
 
     Map<String,Long> absFileLens = new HashMap<>();
@@ -343,8 +343,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     Map<String,List<Destination>> fileDestinations = plan.getDestinations().stream()
         .collect(groupingBy(Destination::getFileName));
 
-    FileStatus[] statuses = fs.listStatus(srcPath,
-        p -> !p.getName().equals(Constants.BULK_LOAD_MAPPING));
+    List<FileStatus> statuses = filterInvalid(
+        fs.listStatus(srcPath, p -> !p.getName().equals(Constants.BULK_LOAD_MAPPING)));
 
     Map<String,Long> fileLens = getFileLenMap(statuses);
 
@@ -447,13 +447,47 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   }
 
+  private static List<FileStatus> filterInvalid(FileStatus[] files) {
+    ArrayList<FileStatus> fileList = new ArrayList<>(files.length);
+
+    for (FileStatus fileStatus : files) {
+
+      String fname = fileStatus.getPath().getName();
+
+      if (fname.equals("_SUCCESS") || fname.equals("_logs")) {
+        log.debug("Ignoring file likely created by map reduce : {}", fileStatus.getPath());
+        continue;
+      }
+
+      if (fileStatus.isDirectory()) {
+        log.warn("{} is a directory, ignoring.", fileStatus.getPath());
+        continue;
+      }
+
+      String sa[] = fname.split("\\.");
+      String extension = "";
+      if (sa.length > 1) {
+        extension = sa[sa.length - 1];
+      }
+
+      if (!FileOperations.getValidExtensions().contains(extension)) {
+        log.warn("{} does not have a valid extension, ignoring", fileStatus.getPath());
+        continue;
+      }
+
+      fileList.add(fileStatus);
+    }
+
+    return fileList;
+  }
+
   public static SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(FileSystem fs,
       Table.ID tableId, Path dirPath, Executor executor, ClientContext context) throws IOException {
 
     KeyExtentCache extentCache = new ConcurrentKeyExtentCache(tableId, context);
 
-    FileStatus[] files = fs.listStatus(dirPath,
-        p -> !p.getName().equals(Constants.BULK_LOAD_MAPPING));
+    List<FileStatus> files = filterInvalid(
+        fs.listStatus(dirPath, p -> !p.getName().equals(Constants.BULK_LOAD_MAPPING)));
 
     // we know all of the file lens, so construct a cache and populate it in order to avoid later
     // trips to the namenode

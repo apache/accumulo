@@ -59,6 +59,7 @@ import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -230,6 +231,11 @@ public class BulkLoadIT extends AccumuloClusterHarness {
       for (String endRow : Arrays.asList("0333 0666 0999 1333 1666 null".split(" "))) {
         hashes.put(endRow, new HashSet<>());
       }
+
+      // Add a junk file, should be ignored
+      FSDataOutputStream out = fs.create(new Path(dir, "junk"));
+      out.writeChars("ABCDEFG\n");
+      out.close();
 
       // 1 Tablet 0333-null
       String h1 = writeData(dir + "/f1.", aconf, 0, 333);
