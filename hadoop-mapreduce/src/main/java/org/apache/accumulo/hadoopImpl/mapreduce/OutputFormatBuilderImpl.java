@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setBatchWriterOptions;
 import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setClientInfo;
 import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setCreateTables;
 import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setDefaultTableName;
@@ -25,7 +24,6 @@ import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.
 import java.util.Objects;
 import java.util.Optional;
 
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.hadoop.mapreduce.OutputFormatBuilder;
 import org.apache.hadoop.mapred.JobConf;
@@ -37,19 +35,12 @@ public class OutputFormatBuilderImpl implements OutputFormatBuilder,
 
   // optional values
   Optional<String> defaultTableName = Optional.empty();
-  Optional<BatchWriterConfig> bwConfig = Optional.empty();
   boolean createTables = false;
   boolean simulationMode = false;
 
   @Override
   public OutputOptions clientInfo(ClientInfo clientInfo) {
     this.clientInfo = Objects.requireNonNull(clientInfo, "ClientInfo must not be null");
-    return this;
-  }
-
-  @Override
-  public OutputOptions batchWriterOptions(BatchWriterConfig bwConfig) {
-    this.bwConfig = Optional.of(bwConfig);
     return this;
   }
 
@@ -74,8 +65,6 @@ public class OutputFormatBuilderImpl implements OutputFormatBuilder,
   @Override
   public void store(Job job) {
     setClientInfo(job, clientInfo);
-    if (bwConfig.isPresent())
-      setBatchWriterOptions(job, bwConfig.get());
     if (defaultTableName.isPresent())
       setDefaultTableName(job, defaultTableName.get());
     setCreateTables(job, createTables);
@@ -86,9 +75,6 @@ public class OutputFormatBuilderImpl implements OutputFormatBuilder,
   public void store(JobConf jobConf) {
     org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setClientInfo(jobConf,
         clientInfo);
-    if (bwConfig.isPresent())
-      org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setBatchWriterOptions(jobConf,
-          bwConfig.get());
     if (defaultTableName.isPresent())
       org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setDefaultTableName(jobConf,
           defaultTableName.get());

@@ -132,21 +132,6 @@ public class AccumuloOutputFormatImpl {
   }
 
   /**
-   * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new
-   * {@link BatchWriterConfig}, with sensible built-in defaults is used. Setting the configuration
-   * multiple times overwrites any previous configuration.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param bwConfig
-   *          the configuration for the {@link BatchWriter}
-   * @since 1.5.0
-   */
-  public static void setBatchWriterOptions(JobConf job, BatchWriterConfig bwConfig) {
-    OutputConfigurator.setBatchWriterOptions(CLASS, job, bwConfig);
-  }
-
-  /**
    * Gets the {@link BatchWriterConfig} settings.
    *
    * @param job
@@ -249,7 +234,7 @@ public class AccumuloOutputFormatImpl {
 
       if (!simulate) {
         this.client = Accumulo.newClient().from(getClientInfo(job)).build();
-        mtbw = client.createMultiTableBatchWriter(getBatchWriterOptions(job));
+        mtbw = client.createMultiTableBatchWriter();
       }
     }
 

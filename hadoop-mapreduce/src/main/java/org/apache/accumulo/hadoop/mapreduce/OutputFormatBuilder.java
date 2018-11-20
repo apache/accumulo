@@ -18,8 +18,6 @@ package org.apache.accumulo.hadoop.mapreduce;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
@@ -54,16 +52,6 @@ public interface OutputFormatBuilder {
    * @since 2.0
    */
   interface OutputOptions {
-    /**
-     * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new
-     * {@link BatchWriterConfig}, with sensible built-in defaults is used. Setting the configuration
-     * multiple times overwrites any previous configuration.
-     *
-     * @param bwConfig
-     *          the configuration for the {@link BatchWriter}
-     */
-    OutputOptions batchWriterOptions(BatchWriterConfig bwConfig);
-
     /**
      * Sets the default table name to use if one emits a null in place of a table name for a given
      * mutation. Table names can only be alpha-numeric and underscores.

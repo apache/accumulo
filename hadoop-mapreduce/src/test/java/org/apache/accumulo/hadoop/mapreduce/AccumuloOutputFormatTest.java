@@ -26,6 +26,8 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -45,6 +47,8 @@ public class AccumuloOutputFormatTest {
     expect(clientInfo.getProperties()).andReturn(props).anyTimes();
     replay(clientInfo);
     Job job = Job.getInstance();
+    AccumuloClient.ConnectionOptions opts = Accumulo.newClient().to("test", "zk").as("blah",
+        "blah");
 
     // make sure we aren't testing defaults
     final BatchWriterConfig bwDefaults = new BatchWriterConfig();
@@ -58,7 +62,7 @@ public class AccumuloOutputFormatTest {
     bwConfig.setTimeout(9898989L, TimeUnit.MILLISECONDS);
     bwConfig.setMaxWriteThreads(42);
     bwConfig.setMaxMemory(1123581321L);
-    AccumuloOutputFormat.configure().clientInfo(clientInfo).batchWriterOptions(bwConfig).store(job);
+    AccumuloOutputFormat.configure().clientInfo(clientInfo).store(job);
 
     AccumuloOutputFormat myAOF = new AccumuloOutputFormat() {
       @Override
