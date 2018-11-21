@@ -38,6 +38,7 @@ import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder.InputFormatOptions;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -132,8 +133,8 @@ public class AccumuloInputFormatTest {
     iter1.addOption(key, value);
     Job job = Job.getInstance();
     // also test if reusing options will create duplicate iterators
-    InputFormatBuilder.InputFormatOptions opts = AccumuloInputFormat.configure()
-        .clientInfo(clientInfo).table("test").scanAuths(Authorizations.EMPTY);
+    InputFormatOptions<Job> opts = AccumuloInputFormat.configure().clientInfo(clientInfo)
+        .table("test").scanAuths(Authorizations.EMPTY);
     opts.addIterator(iter1).store(job);
 
     List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class,

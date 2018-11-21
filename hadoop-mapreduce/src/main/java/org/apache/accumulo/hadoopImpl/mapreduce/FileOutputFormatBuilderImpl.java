@@ -38,8 +38,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 
-public class FileOutputFormatBuilderImpl implements FileOutputFormatBuilder,
-    FileOutputFormatBuilder.PathParams, FileOutputFormatBuilder.OutputOptions {
+public class FileOutputFormatBuilderImpl<T> implements FileOutputFormatBuilder,
+    FileOutputFormatBuilder.PathParams<T>, FileOutputFormatBuilder.OutputOptions<T> {
 
   Path outputPath;
   Optional<String> comp = Optional.empty();
@@ -51,55 +51,65 @@ public class FileOutputFormatBuilderImpl implements FileOutputFormatBuilder,
   Collection<SummarizerConfiguration> summarizers = Collections.emptySet();
 
   @Override
-  public OutputOptions outputPath(Path path) {
+  public OutputOptions<T> outputPath(Path path) {
     this.outputPath = Objects.requireNonNull(path);
     return this;
   }
 
   @Override
-  public OutputOptions compressionType(String compressionType) {
+  public OutputOptions<T> compressionType(String compressionType) {
     this.comp = Optional.of(compressionType);
     return this;
   }
 
   @Override
-  public OutputOptions dataBlockSize(long dataBlockSize) {
+  public OutputOptions<T> dataBlockSize(long dataBlockSize) {
     this.dataBlockSize = Optional.of(dataBlockSize);
     return this;
   }
 
   @Override
-  public OutputOptions fileBlockSize(long fileBlockSize) {
+  public OutputOptions<T> fileBlockSize(long fileBlockSize) {
     this.fileBlockSize = Optional.of(fileBlockSize);
     return this;
   }
 
   @Override
-  public OutputOptions indexBlockSize(long indexBlockSize) {
+  public OutputOptions<T> indexBlockSize(long indexBlockSize) {
     this.indexBlockSize = Optional.of(indexBlockSize);
     return this;
   }
 
   @Override
-  public OutputOptions replication(int replication) {
+  public OutputOptions<T> replication(int replication) {
     this.replication = Optional.of(replication);
     return this;
   }
 
   @Override
-  public OutputOptions sampler(SamplerConfiguration samplerConfig) {
+  public OutputOptions<T> sampler(SamplerConfiguration samplerConfig) {
     this.sampler = Optional.of(samplerConfig);
     return this;
   }
 
   @Override
-  public OutputOptions summarizers(SummarizerConfiguration... summarizerConfigs) {
+  public OutputOptions<T> summarizers(SummarizerConfiguration... summarizerConfigs) {
     this.summarizers = Arrays.asList(Objects.requireNonNull(summarizerConfigs));
     return this;
   }
 
   @Override
-  public void store(Job job) {
+  public void store(T j) {
+    if (j instanceof Job) {
+      store((Job) j);
+    } else if (j instanceof JobConf) {
+      store((JobConf) j);
+    } else {
+      throw new IllegalArgumentException("Unexpected type " + j.getClass().getName());
+    }
+  }
+
+  private void store(Job job) {
     setOutputPath(job, outputPath);
     if (comp.isPresent())
       setCompressionType(job, comp.get());
@@ -117,8 +127,7 @@ public class FileOutputFormatBuilderImpl implements FileOutputFormatBuilder,
       setSummarizers(job, summarizers.toArray(new SummarizerConfiguration[0]));
   }
 
-  @Override
-  public void store(JobConf job) {
+  private void store(JobConf job) {
     org.apache.hadoop.mapred.FileOutputFormat.setOutputPath(job, outputPath);
     if (comp.isPresent())
       org.apache.accumulo.hadoopImpl.mapred.AccumuloFileOutputFormatImpl.setCompressionType(job,

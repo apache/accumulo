@@ -95,7 +95,7 @@ public class AccumuloInputFormat implements InputFormat<Key,Value> {
   /**
    * Sets all the information required for this map reduce job.
    */
-  public static InputFormatBuilder.ClientParams configure() {
-    return new InputFormatBuilderImpl<>(CLASS);
+  public static InputFormatBuilder.ClientParams<JobConf> configure() {
+    return new InputFormatBuilderImpl<JobConf>(CLASS);
   }
 }

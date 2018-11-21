@@ -69,7 +69,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
     }
   }
 
-  public static OutputFormatBuilder.ClientParams configure() {
-    return new OutputFormatBuilderImpl();
+  public static OutputFormatBuilder.ClientParams<JobConf> configure() {
+    return new OutputFormatBuilderImpl<JobConf>();
   }
 }

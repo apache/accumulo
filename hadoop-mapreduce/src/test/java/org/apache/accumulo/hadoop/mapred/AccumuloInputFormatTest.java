@@ -38,7 +38,7 @@ import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
+import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder.InputFormatOptions;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -77,8 +77,8 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testSetIterator() throws IOException {
-    InputFormatBuilder.InputFormatOptions opts = AccumuloInputFormat.configure()
-        .clientInfo(clientInfo).table("test").scanAuths(Authorizations.EMPTY);
+    InputFormatOptions<JobConf> opts = AccumuloInputFormat.configure().clientInfo(clientInfo)
+        .table("test").scanAuths(Authorizations.EMPTY);
 
     IteratorSetting is = new IteratorSetting(1, "WholeRow", WholeRowIterator.class);
     opts.addIterator(is).store(job);
@@ -90,8 +90,8 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testAddIterator() {
-    InputFormatBuilder.InputFormatOptions opts = AccumuloInputFormat.configure()
-        .clientInfo(clientInfo).table("test").scanAuths(Authorizations.EMPTY);
+    InputFormatOptions<JobConf> opts = AccumuloInputFormat.configure().clientInfo(clientInfo)
+        .table("test").scanAuths(Authorizations.EMPTY);
 
     IteratorSetting iter1 = new IteratorSetting(1, "WholeRow", WholeRowIterator.class);
     IteratorSetting iter2 = new IteratorSetting(2, "Versions", VersioningIterator.class);
@@ -142,8 +142,8 @@ public class AccumuloInputFormatTest {
     IteratorSetting iter1 = new IteratorSetting(1, "iter1", WholeRowIterator.class);
     iter1.addOption(key, value);
     // also test if reusing options will create duplicate iterators
-    InputFormatBuilder.InputFormatOptions opts = AccumuloInputFormat.configure()
-        .clientInfo(clientInfo).table("test").scanAuths(Authorizations.EMPTY);
+    InputFormatOptions<JobConf> opts = AccumuloInputFormat.configure().clientInfo(clientInfo)
+        .table("test").scanAuths(Authorizations.EMPTY);
     opts.addIterator(iter1).store(job);
 
     List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class, job);

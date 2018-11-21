@@ -30,6 +30,7 @@ import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBuilderImpl;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -102,7 +103,7 @@ public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Ent
   /**
    * Sets all the information required for this map reduce job.
    */
-  public static InputFormatBuilder.ClientParams configure() {
-    return new InputFormatBuilderImpl<>(CLASS);
+  public static InputFormatBuilder.ClientParams<Job> configure() {
+    return new InputFormatBuilderImpl<Job>(CLASS);
   }
 }

@@ -29,8 +29,6 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapreduce.Job;
 
 /**
  * Builder for all the information needed for the Map Reduce job. Fluent API used by
@@ -44,7 +42,7 @@ public interface InputFormatBuilder {
    *
    * @since 2.0
    */
-  interface ClientParams {
+  interface ClientParams<T> {
     /**
      * Set the connection information needed to communicate with Accumulo in this job. ClientInfo
      * param can be created using {@link ClientInfo#from(Properties)}
@@ -52,7 +50,7 @@ public interface InputFormatBuilder {
      * @param clientInfo
      *          Accumulo connection information
      */
-    TableParams clientInfo(ClientInfo clientInfo);
+    TableParams<T> clientInfo(ClientInfo clientInfo);
   }
 
   /**
@@ -60,14 +58,14 @@ public interface InputFormatBuilder {
    *
    * @since 2.0
    */
-  interface TableParams {
+  interface TableParams<T> {
     /**
      * Sets the name of the input table, over which this job will scan.
      *
      * @param tableName
      *          the table to use when the tablename is null in the write call
      */
-    AuthsParams table(String tableName);
+    AuthsParams<T> table(String tableName);
   }
 
   /**
@@ -75,7 +73,7 @@ public interface InputFormatBuilder {
    *
    * @since 2.0
    */
-  interface AuthsParams {
+  interface AuthsParams<T> {
     /**
      * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorizations.
      * If none present use {@link Authorizations#EMPTY}
@@ -83,7 +81,7 @@ public interface InputFormatBuilder {
      * @param auths
      *          the user's authorizations
      */
-    InputFormatOptions scanAuths(Authorizations auths);
+    InputFormatOptions<T> scanAuths(Authorizations auths);
   }
 
   /**
@@ -91,16 +89,11 @@ public interface InputFormatBuilder {
    *
    * @since 2.0
    */
-  interface BatchScanOptions {
+  interface BatchScanOptions<T> {
     /**
-     * Finish configuring, verify and store options into the JobConf
+     * Finish configuring, verify and store options into the JobConf or Job
      */
-    void store(JobConf jobConf);
-
-    /**
-     * Finish configuring, verify and store options into the Job
-     */
-    void store(Job job);
+    void store(T t);
   }
 
   /**
@@ -108,21 +101,21 @@ public interface InputFormatBuilder {
    *
    * @since 2.0
    */
-  interface ScanOptions extends BatchScanOptions {
+  interface ScanOptions<T> extends BatchScanOptions<T> {
     /**
      * @see InputFormatOptions#scanIsolation()
      */
-    ScanOptions scanIsolation();
+    ScanOptions<T> scanIsolation();
 
     /**
      * @see InputFormatOptions#localIterators()
      */
-    ScanOptions localIterators();
+    ScanOptions<T> localIterators();
 
     /**
      * @see InputFormatOptions#offlineScan()
      */
-    ScanOptions offlineScan();
+    ScanOptions<T> offlineScan();
   }
 
   /**
@@ -130,14 +123,14 @@ public interface InputFormatBuilder {
    *
    * @since 2.0
    */
-  interface InputFormatOptions {
+  interface InputFormatOptions<T> {
     /**
      * Sets the name of the classloader context on this scanner
      *
      * @param context
      *          name of the classloader context
      */
-    InputFormatOptions classLoaderContext(String context);
+    InputFormatOptions<T> classLoaderContext(String context);
 
     /**
      * Sets the input ranges to scan for the single input table associated with this job.
@@ -146,7 +139,7 @@ public interface InputFormatBuilder {
      *          the ranges that will be mapped over
      * @see TableOperations#splitRangeByTablets(String, Range, int)
      */
-    InputFormatOptions ranges(Collection<Range> ranges);
+    InputFormatOptions<T> ranges(Collection<Range> ranges);
 
     /**
      * Restricts the columns that will be mapped over for this job for the default input table.
@@ -156,7 +149,7 @@ public interface InputFormatBuilder {
      *          column qualifier. If the column qualifier is null, the entire column family is
      *          selected. An empty set is the default and is equivalent to scanning all columns.
      */
-    InputFormatOptions fetchColumns(Collection<IteratorSetting.Column> fetchColumns);
+    InputFormatOptions<T> fetchColumns(Collection<IteratorSetting.Column> fetchColumns);
 
     /**
      * Encode an iterator on the single input table for this job. It is safe to call this method
@@ -165,13 +158,13 @@ public interface InputFormatBuilder {
      * @param cfg
      *          the configuration of the iterator
      */
-    InputFormatOptions addIterator(IteratorSetting cfg);
+    InputFormatOptions<T> addIterator(IteratorSetting cfg);
 
     /**
      * Set these execution hints on scanners created for input splits. See
      * {@link ScannerBase#setExecutionHints(java.util.Map)}
      */
-    InputFormatOptions executionHints(Map<String,String> hints);
+    InputFormatOptions<T> executionHints(Map<String,String> hints);
 
     /**
      * Causes input format to read sample data. If sample data was created using a different
@@ -184,7 +177,7 @@ public interface InputFormatBuilder {
      *
      * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
      */
-    InputFormatOptions samplerConfiguration(SamplerConfiguration samplerConfig);
+    InputFormatOptions<T> samplerConfiguration(SamplerConfiguration samplerConfig);
 
     /**
      * Disables the automatic adjustment of ranges for this job. This feature merges overlapping
@@ -196,14 +189,14 @@ public interface InputFormatBuilder {
      *
      * @see #ranges(Collection)
      */
-    InputFormatOptions disableAutoAdjustRanges();
+    InputFormatOptions<T> disableAutoAdjustRanges();
 
     /**
      * Enables the use of the {@link IsolatedScanner} in this job.
      * <p>
      * By default, this feature is <b>disabled</b>.
      */
-    ScanOptions scanIsolation();
+    ScanOptions<T> scanIsolation();
 
     /**
      * Enables the use of the {@link ClientSideIteratorScanner} in this job. This feature will cause
@@ -213,7 +206,7 @@ public interface InputFormatBuilder {
      * <p>
      * By default, this feature is <b>disabled</b>.
      */
-    ScanOptions localIterators();
+    ScanOptions<T> localIterators();
 
     /**
      * Enable reading offline tables. By default, this feature is disabled and only online tables
@@ -240,7 +233,7 @@ public interface InputFormatBuilder {
      * <p>
      * By default, this feature is <b>disabled</b>.
      */
-    ScanOptions offlineScan();
+    ScanOptions<T> offlineScan();
 
     /**
      * Enables the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job.
@@ -262,16 +255,11 @@ public interface InputFormatBuilder {
      * <p>
      * By default, this feature is <b>disabled</b>.
      */
-    BatchScanOptions batchScan();
+    BatchScanOptions<T> batchScan();
 
     /**
-     * Finish configuring, verify and serialize options into the JobConf
+     * Finish configuring, verify and serialize options into the JobConf or Job
      */
-    void store(JobConf jobConf);
-
-    /**
-     * Finish configuring, verify and serialize options into the Job
-     */
-    void store(Job job);
+    void store(T j);
   }
 }

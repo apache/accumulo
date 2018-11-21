@@ -19,8 +19,6 @@ package org.apache.accumulo.hadoop.mapreduce;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapreduce.Job;
 
 /**
  * Builder for all the information needed for the Map Reduce job. Fluent API used by
@@ -34,11 +32,11 @@ public interface FileOutputFormatBuilder {
    *
    * @since 2.0
    */
-  interface PathParams {
+  interface PathParams<T> {
     /**
      * Set the Path of the output directory for the map-reduce job.
      */
-    OutputOptions outputPath(Path path);
+    OutputOptions<T> outputPath(Path path);
   }
 
   /**
@@ -46,7 +44,7 @@ public interface FileOutputFormatBuilder {
    *
    * @since 2.0
    */
-  interface OutputOptions {
+  interface OutputOptions<T> {
     /**
      * Sets the compression type to use for data blocks, overriding the default. Specifying a
      * compression may require additional libraries to be available to your Job.
@@ -54,7 +52,7 @@ public interface FileOutputFormatBuilder {
      * @param compressionType
      *          one of "none", "gz", "lzo", or "snappy"
      */
-    OutputOptions compressionType(String compressionType);
+    OutputOptions<T> compressionType(String compressionType);
 
     /**
      * Sets the size for data blocks within each file.<br>
@@ -68,7 +66,7 @@ public interface FileOutputFormatBuilder {
      * @param dataBlockSize
      *          the block size, in bytes
      */
-    OutputOptions dataBlockSize(long dataBlockSize);
+    OutputOptions<T> dataBlockSize(long dataBlockSize);
 
     /**
      * Sets the size for file blocks in the file system; file blocks are managed, and replicated, by
@@ -77,7 +75,7 @@ public interface FileOutputFormatBuilder {
      * @param fileBlockSize
      *          the block size, in bytes
      */
-    OutputOptions fileBlockSize(long fileBlockSize);
+    OutputOptions<T> fileBlockSize(long fileBlockSize);
 
     /**
      * Sets the size for index blocks within each file; smaller blocks means a deeper index
@@ -87,7 +85,7 @@ public interface FileOutputFormatBuilder {
      * @param indexBlockSize
      *          the block size, in bytes
      */
-    OutputOptions indexBlockSize(long indexBlockSize);
+    OutputOptions<T> indexBlockSize(long indexBlockSize);
 
     /**
      * Sets the file system replication factor for the resulting file, overriding the file system
@@ -96,7 +94,7 @@ public interface FileOutputFormatBuilder {
      * @param replication
      *          the number of replicas for produced files
      */
-    OutputOptions replication(int replication);
+    OutputOptions<T> replication(int replication);
 
     /**
      * Specify a sampler to be used when writing out data. This will result in the output file
@@ -105,7 +103,7 @@ public interface FileOutputFormatBuilder {
      * @param samplerConfig
      *          The configuration for creating sample data in the output file.
      */
-    OutputOptions sampler(SamplerConfiguration samplerConfig);
+    OutputOptions<T> sampler(SamplerConfiguration samplerConfig);
 
     /**
      * Specifies a list of summarizer configurations to create summary data in the output file. Each
@@ -115,17 +113,12 @@ public interface FileOutputFormatBuilder {
      * @param summarizerConfigs
      *          summarizer configurations
      */
-    OutputOptions summarizers(SummarizerConfiguration... summarizerConfigs);
+    OutputOptions<T> summarizers(SummarizerConfiguration... summarizerConfigs);
 
     /**
-     * Finish configuring, verify and serialize options into the Job
+     * Finish configuring, verify and serialize options into the Job or JobConf
      */
-    void store(Job job);
-
-    /**
-     * Finish configuring, verify and serialize options into the JobConf
-     */
-    void store(JobConf job);
+    void store(T job);
   }
 
 }

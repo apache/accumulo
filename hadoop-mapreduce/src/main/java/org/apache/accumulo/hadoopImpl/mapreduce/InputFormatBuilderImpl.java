@@ -36,12 +36,12 @@ import org.apache.hadoop.mapreduce.Job;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-public class InputFormatBuilderImpl<T>
-    implements InputFormatBuilder, InputFormatBuilder.ClientParams, InputFormatBuilder.TableParams,
-    InputFormatBuilder.AuthsParams, InputFormatBuilder.InputFormatOptions,
-    InputFormatBuilder.ScanOptions, InputFormatBuilder.BatchScanOptions {
+public class InputFormatBuilderImpl<T> implements InputFormatBuilder,
+    InputFormatBuilder.ClientParams<T>, InputFormatBuilder.TableParams<T>,
+    InputFormatBuilder.AuthsParams<T>, InputFormatBuilder.InputFormatOptions<T>,
+    InputFormatBuilder.ScanOptions<T>, InputFormatBuilder.BatchScanOptions<T> {
 
-  Class<T> callingClass;
+  Class<?> callingClass;
   String tableName;
   ClientInfo clientInfo;
   Authorizations scanAuths;
@@ -54,36 +54,36 @@ public class InputFormatBuilderImpl<T>
   Map<String,String> hints = Collections.emptyMap();
   BuilderBooleans bools = new BuilderBooleans();
 
-  public InputFormatBuilderImpl(Class<T> callingClass) {
+  public InputFormatBuilderImpl(Class<?> callingClass) {
     this.callingClass = callingClass;
   }
 
   @Override
-  public InputFormatBuilder.TableParams clientInfo(ClientInfo clientInfo) {
+  public InputFormatBuilder.TableParams<T> clientInfo(ClientInfo clientInfo) {
     this.clientInfo = Objects.requireNonNull(clientInfo, "ClientInfo must not be null");
     return this;
   }
 
   @Override
-  public InputFormatBuilder.AuthsParams table(String tableName) {
+  public InputFormatBuilder.AuthsParams<T> table(String tableName) {
     this.tableName = Objects.requireNonNull(tableName, "Table name must not be null");
     return this;
   }
 
   @Override
-  public InputFormatBuilder.InputFormatOptions scanAuths(Authorizations auths) {
+  public InputFormatBuilder.InputFormatOptions<T> scanAuths(Authorizations auths) {
     this.scanAuths = Objects.requireNonNull(auths, "Authorizations must not be null");
     return this;
   }
 
   @Override
-  public InputFormatBuilder.InputFormatOptions classLoaderContext(String context) {
+  public InputFormatBuilder.InputFormatOptions<T> classLoaderContext(String context) {
     this.context = Optional.of(context);
     return this;
   }
 
   @Override
-  public InputFormatBuilder.InputFormatOptions ranges(Collection<Range> ranges) {
+  public InputFormatBuilder.InputFormatOptions<T> ranges(Collection<Range> ranges) {
     this.ranges = ImmutableList
         .copyOf(Objects.requireNonNull(ranges, "Collection of ranges is null"));
     if (this.ranges.size() == 0)
@@ -92,7 +92,7 @@ public class InputFormatBuilderImpl<T>
   }
 
   @Override
-  public InputFormatBuilder.InputFormatOptions fetchColumns(
+  public InputFormatBuilder.InputFormatOptions<T> fetchColumns(
       Collection<IteratorSetting.Column> fetchColumns) {
     this.fetchColumns = ImmutableList
         .copyOf(Objects.requireNonNull(fetchColumns, "Collection of fetch columns is null"));
@@ -102,7 +102,7 @@ public class InputFormatBuilderImpl<T>
   }
 
   @Override
-  public InputFormatBuilder.InputFormatOptions addIterator(IteratorSetting cfg) {
+  public InputFormatBuilder.InputFormatOptions<T> addIterator(IteratorSetting cfg) {
     // store iterators by name to prevent duplicates
     Objects.requireNonNull(cfg, "IteratorSetting must not be null.");
     if (this.iterators.size() == 0)
@@ -112,7 +112,7 @@ public class InputFormatBuilderImpl<T>
   }
 
   @Override
-  public InputFormatBuilder.InputFormatOptions executionHints(Map<String,String> hints) {
+  public InputFormatBuilder.InputFormatOptions<T> executionHints(Map<String,String> hints) {
     this.hints = ImmutableMap
         .copyOf(Objects.requireNonNull(hints, "Map of execution hints must not be null."));
     if (hints.size() == 0)
@@ -121,48 +121,58 @@ public class InputFormatBuilderImpl<T>
   }
 
   @Override
-  public InputFormatBuilder.InputFormatOptions samplerConfiguration(
+  public InputFormatBuilder.InputFormatOptions<T> samplerConfiguration(
       SamplerConfiguration samplerConfig) {
     this.samplerConfig = Optional.of(samplerConfig);
     return this;
   }
 
   @Override
-  public InputFormatOptions disableAutoAdjustRanges() {
+  public InputFormatOptions<T> disableAutoAdjustRanges() {
     bools.autoAdjustRanges = false;
     return this;
   }
 
   @Override
-  public ScanOptions scanIsolation() {
+  public ScanOptions<T> scanIsolation() {
     bools.scanIsolation = true;
     return this;
   }
 
   @Override
-  public ScanOptions localIterators() {
+  public ScanOptions<T> localIterators() {
     bools.localIters = true;
     return this;
   }
 
   @Override
-  public ScanOptions offlineScan() {
+  public ScanOptions<T> offlineScan() {
     bools.offlineScan = true;
     return this;
   }
 
   @Override
-  public BatchScanOptions batchScan() {
+  public BatchScanOptions<T> batchScan() {
     bools.batchScan = true;
     bools.autoAdjustRanges = true;
     return this;
   }
 
+  @Override
+  public void store(T j) {
+    if (j instanceof Job) {
+      store((Job) j);
+    } else if (j instanceof JobConf) {
+      store((JobConf) j);
+    } else {
+      throw new IllegalArgumentException("Unexpected type " + j.getClass().getName());
+    }
+  }
+
   /**
    * Final builder method for mapreduce configuration
    */
-  @Override
-  public void store(Job job) {
+  private void store(Job job) {
     // TODO validate params are set correctly, possibly call/modify
     // AbstractInputFormat.validateOptions()
     AbstractInputFormat.setClientInfo(job, clientInfo);
@@ -193,8 +203,7 @@ public class InputFormatBuilderImpl<T>
   /**
    * Final builder method for legacy mapred configuration
    */
-  @Override
-  public void store(JobConf jobConf) {
+  private void store(JobConf jobConf) {
     // TODO validate params are set correctly, possibly call/modify
     // AbstractInputFormat.validateOptions()
     org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClientInfo(jobConf, clientInfo);

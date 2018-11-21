@@ -19,8 +19,6 @@ package org.apache.accumulo.hadoop.mapreduce;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapreduce.Job;
 
 /**
  * Builder for all the information needed for the Map Reduce job. Fluent API used by
@@ -35,7 +33,7 @@ public interface OutputFormatBuilder {
    *
    * @since 2.0
    */
-  interface ClientParams {
+  interface ClientParams<T> {
     /**
      * Set the connection information needed to communicate with Accumulo in this job. ClientInfo
      * param can be created using {@link ClientInfo#from(Properties)}
@@ -43,7 +41,7 @@ public interface OutputFormatBuilder {
      * @param clientInfo
      *          Accumulo connection information
      */
-    OutputOptions clientInfo(ClientInfo clientInfo);
+    OutputOptions<T> clientInfo(ClientInfo clientInfo);
   }
 
   /**
@@ -51,7 +49,7 @@ public interface OutputFormatBuilder {
    *
    * @since 2.0
    */
-  interface OutputOptions {
+  interface OutputOptions<T> {
     /**
      * Sets the default table name to use if one emits a null in place of a table name for a given
      * mutation. Table names can only be alpha-numeric and underscores.
@@ -59,7 +57,7 @@ public interface OutputFormatBuilder {
      * @param tableName
      *          the table to use when the tablename is null in the write call
      */
-    OutputOptions defaultTableName(String tableName);
+    OutputOptions<T> defaultTableName(String tableName);
 
     /**
      * Enables the directive to create new tables, as necessary. Table names can only be
@@ -67,7 +65,7 @@ public interface OutputFormatBuilder {
      * <p>
      * By default, this feature is <b>disabled</b>.
      */
-    OutputOptions enableCreateTables();
+    OutputOptions<T> enableCreateTables();
 
     /**
      * Enables the directive to use simulation mode for this job. In simulation mode, no output is
@@ -75,17 +73,12 @@ public interface OutputFormatBuilder {
      * <p>
      * By default, this feature is <b>disabled</b>.
      */
-    OutputOptions enableSimulationMode();
+    OutputOptions<T> enableSimulationMode();
 
     /**
-     * Finish configuring, verify and serialize options into the Job
+     * Finish configuring, verify and serialize options into the Job or JobConf
      */
-    void store(Job job);
-
-    /**
-     * Finish configuring, verify and serialize options into the JobConf
-     */
-    void store(JobConf jobConf);
+    void store(T j);
   }
 
 }

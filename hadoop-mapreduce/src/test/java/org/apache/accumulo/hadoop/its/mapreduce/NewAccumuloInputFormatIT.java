@@ -48,7 +48,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat;
-import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
+import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder.InputFormatOptions;
 import org.apache.accumulo.hadoopImpl.mapreduce.BatchInputSplit;
 import org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -285,8 +285,8 @@ public class NewAccumuloInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(inputFormatClass);
 
-      InputFormatBuilder.InputFormatOptions opts = AccumuloInputFormat.configure()
-          .clientInfo(getClientInfo()).table(table).scanAuths(Authorizations.EMPTY);
+      InputFormatOptions<Job> opts = AccumuloInputFormat.configure().clientInfo(getClientInfo())
+          .table(table).scanAuths(Authorizations.EMPTY);
       if (sample)
         opts = opts.samplerConfiguration(SAMPLER_CONFIG);
       if (batchScan)
@@ -406,8 +406,8 @@ public class NewAccumuloInputFormatIT extends AccumuloClusterHarness {
     AccumuloClient accumuloClient = getAccumuloClient();
     accumuloClient.tableOperations().create(table);
 
-    InputFormatBuilder.InputFormatOptions opts = AccumuloInputFormat.configure()
-        .clientInfo(getClientInfo()).table(table).scanAuths(auths);
+    InputFormatOptions<Job> opts = AccumuloInputFormat.configure().clientInfo(getClientInfo())
+        .table(table).scanAuths(auths);
     opts.fetchColumns(fetchColumns).scanIsolation().localIterators().store(job);
 
     AccumuloInputFormat aif = new AccumuloInputFormat();

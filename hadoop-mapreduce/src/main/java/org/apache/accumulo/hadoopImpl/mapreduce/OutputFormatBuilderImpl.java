@@ -29,8 +29,8 @@ import org.apache.accumulo.hadoop.mapreduce.OutputFormatBuilder;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 
-public class OutputFormatBuilderImpl implements OutputFormatBuilder,
-    OutputFormatBuilder.ClientParams, OutputFormatBuilder.OutputOptions {
+public class OutputFormatBuilderImpl<T>
+    implements OutputFormatBuilder.ClientParams<T>, OutputFormatBuilder.OutputOptions<T> {
   ClientInfo clientInfo;
 
   // optional values
@@ -39,31 +39,41 @@ public class OutputFormatBuilderImpl implements OutputFormatBuilder,
   boolean simulationMode = false;
 
   @Override
-  public OutputOptions clientInfo(ClientInfo clientInfo) {
+  public OutputFormatBuilder.OutputOptions<T> clientInfo(ClientInfo clientInfo) {
     this.clientInfo = Objects.requireNonNull(clientInfo, "ClientInfo must not be null");
     return this;
   }
 
   @Override
-  public OutputOptions defaultTableName(String tableName) {
+  public OutputFormatBuilder.OutputOptions<T> defaultTableName(String tableName) {
     this.defaultTableName = Optional.of(tableName);
     return this;
   }
 
   @Override
-  public OutputOptions enableCreateTables() {
+  public OutputFormatBuilder.OutputOptions<T> enableCreateTables() {
     this.createTables = true;
     return this;
   }
 
   @Override
-  public OutputOptions enableSimulationMode() {
+  public OutputFormatBuilder.OutputOptions<T> enableSimulationMode() {
     this.simulationMode = true;
     return this;
   }
 
   @Override
-  public void store(Job job) {
+  public void store(T j) {
+    if (j instanceof Job) {
+      store((Job) j);
+    } else if (j instanceof JobConf) {
+      store((JobConf) j);
+    } else {
+      throw new IllegalArgumentException("Unexpected type " + j.getClass().getName());
+    }
+  }
+
+  private void store(Job job) {
     setClientInfo(job, clientInfo);
     if (defaultTableName.isPresent())
       setDefaultTableName(job, defaultTableName.get());
@@ -71,8 +81,7 @@ public class OutputFormatBuilderImpl implements OutputFormatBuilder,
     setSimulationMode(job, simulationMode);
   }
 
-  @Override
-  public void store(JobConf jobConf) {
+  private void store(JobConf jobConf) {
     org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setClientInfo(jobConf,
         clientInfo);
     if (defaultTableName.isPresent())

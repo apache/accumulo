@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl;
 import org.apache.accumulo.hadoopImpl.mapreduce.OutputFormatBuilderImpl;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -88,8 +89,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * Sets all the information required for this map reduce job.
    */
-  public static OutputFormatBuilder.ClientParams configure() {
-    return new OutputFormatBuilderImpl();
+  public static OutputFormatBuilder.ClientParams<Job> configure() {
+    return new OutputFormatBuilderImpl<Job>();
   }
 
 }

@@ -29,6 +29,7 @@ import org.apache.accumulo.hadoopImpl.mapreduce.lib.ConfiguratorBase;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.FileOutputConfigurator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -91,8 +92,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   /**
    * Sets all the information required for this map reduce job.
    */
-  public static FileOutputFormatBuilder.PathParams configure() {
-    return new FileOutputFormatBuilderImpl();
+  public static FileOutputFormatBuilder.PathParams<Job> configure() {
+    return new FileOutputFormatBuilderImpl<Job>();
   }
 
 }

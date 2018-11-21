@@ -24,7 +24,6 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.hadoop.conf.Configuration;
 
 /**
@@ -88,8 +87,6 @@ public class OutputConfigurator extends ConfiguratorBase {
    */
   public static BatchWriterConfig getBatchWriterOptions(Class<?> implementingClass,
       Configuration conf) {
-    ClientInfo info = getClientInfo(implementingClass, conf);
-
     String serialized = conf.get(enumToConfKey(implementingClass, WriteOpts.BATCH_WRITER_CONFIG));
     BatchWriterConfig bwConfig = new BatchWriterConfig();
     if (serialized == null || serialized.isEmpty()) {
