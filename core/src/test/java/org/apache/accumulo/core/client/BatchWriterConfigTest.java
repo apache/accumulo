@@ -152,7 +152,7 @@ public class BatchWriterConfigTest {
     bwConfig = new BatchWriterConfig();
     bwConfig.setMaxWriteThreads(42);
     bytes = createBytes(bwConfig);
-    assertEquals("     x#batch.writer.max.write.threads=42", new String(bytes, UTF_8));
+    assertEquals("     i#maxWriteThreads=42", new String(bytes, UTF_8));
     checkBytes(bwConfig, bytes);
 
     // test human-readable with 2 fields
@@ -160,15 +160,14 @@ public class BatchWriterConfigTest {
     bwConfig.setMaxWriteThreads(24);
     bwConfig.setTimeout(3, TimeUnit.SECONDS);
     bytes = createBytes(bwConfig);
-    assertEquals("    1v#batch.writer.max.write.threads=24,batch.writer.max.timeout.sec=3000",
-        new String(bytes, UTF_8));
+    assertEquals("     v#maxWriteThreads=24,timeout=3000", new String(bytes, UTF_8));
     checkBytes(bwConfig, bytes);
 
     // test human-readable durability
     bwConfig = new BatchWriterConfig();
     bwConfig.setDurability(Durability.LOG);
     bytes = createBytes(bwConfig);
-    assertEquals("     r#batch.writer.durability=LOG", new String(bytes, UTF_8));
+    assertEquals("     e#durability=LOG", new String(bytes, UTF_8));
   }
 
   @Test
