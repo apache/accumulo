@@ -25,8 +25,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.junit.Test;
 
 public class BatchWriterConfigTest {
@@ -150,7 +152,7 @@ public class BatchWriterConfigTest {
     bwConfig = new BatchWriterConfig();
     bwConfig.setMaxWriteThreads(42);
     bytes = createBytes(bwConfig);
-    assertEquals("     i#maxWriteThreads=42", new String(bytes, UTF_8));
+    assertEquals("     x#batch.writer.max.write.threads=42", new String(bytes, UTF_8));
     checkBytes(bwConfig, bytes);
 
     // test human-readable with 2 fields
@@ -158,14 +160,15 @@ public class BatchWriterConfigTest {
     bwConfig.setMaxWriteThreads(24);
     bwConfig.setTimeout(3, TimeUnit.SECONDS);
     bytes = createBytes(bwConfig);
-    assertEquals("     v#maxWriteThreads=24,timeout=3000", new String(bytes, UTF_8));
+    assertEquals("    1v#batch.writer.max.write.threads=24,batch.writer.max.timeout.sec=3000",
+        new String(bytes, UTF_8));
     checkBytes(bwConfig, bytes);
 
     // test human-readable durability
     bwConfig = new BatchWriterConfig();
     bwConfig.setDurability(Durability.LOG);
     bytes = createBytes(bwConfig);
-    assertEquals("     e#durability=LOG", new String(bytes, UTF_8));
+    assertEquals("     r#batch.writer.durability=LOG", new String(bytes, UTF_8));
   }
 
   @Test
@@ -233,6 +236,14 @@ public class BatchWriterConfigTest {
     assertEquals(bwConfig.getTimeout(TimeUnit.MILLISECONDS),
         createdConfig.getTimeout(TimeUnit.MILLISECONDS));
     assertEquals(bwConfig.getMaxWriteThreads(), createdConfig.getMaxWriteThreads());
+  }
+
+  @Test
+  public void countClientProps() {
+    // count the number in case one gets added to in one place but not the other
+    ClientProperty[] bwProps = Arrays.stream(ClientProperty.values())
+        .filter(c -> c.name().startsWith("BATCH_WRITER")).toArray(ClientProperty[]::new);
+    assertEquals(5, bwProps.length);
   }
 
 }

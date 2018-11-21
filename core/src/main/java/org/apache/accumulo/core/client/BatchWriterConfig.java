@@ -17,6 +17,11 @@
 package org.apache.accumulo.core.client;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_DURABILITY;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_WRITE_THREADS;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -26,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringUtils;
@@ -37,20 +43,36 @@ import org.apache.hadoop.util.StringUtils;
  */
 public class BatchWriterConfig implements Writable {
 
-  private static final Long DEFAULT_MAX_MEMORY = 50 * 1024 * 1024L;
+  private static final Long DEFAULT_MAX_MEMORY = Long
+      .parseLong(BATCH_WRITER_MAX_MEMORY_BYTES.getDefaultValue());
+  private static final ClientProperty MAX_MEM = BATCH_WRITER_MAX_MEMORY_BYTES;
   private Long maxMemory = null;
 
-  private static final Long DEFAULT_MAX_LATENCY = 2 * 60 * 1000L;
+  private static final Long DEFAULT_MAX_LATENCY = TimeUnit.MILLISECONDS
+      .convert(Long.parseLong(BATCH_WRITER_MAX_LATENCY_SEC.getDefaultValue()), TimeUnit.SECONDS);
+  private static final ClientProperty MAX_LATENCY = BATCH_WRITER_MAX_LATENCY_SEC;
   private Long maxLatency = null;
 
-  private static final Long DEFAULT_TIMEOUT = Long.MAX_VALUE;
+  private static final Long DEFAULT_TIMEOUT = getDefaultTimeout();
+  private static final ClientProperty MAX_TIMEOUT = BATCH_WRITER_MAX_TIMEOUT_SEC;
   private Long timeout = null;
 
-  private static final Integer DEFAULT_MAX_WRITE_THREADS = 3;
+  private static final Integer DEFAULT_MAX_WRITE_THREADS = Integer
+      .parseInt(BATCH_WRITER_MAX_WRITE_THREADS.getDefaultValue());
+  private static final ClientProperty MAX_WRITE_THREADS = BATCH_WRITER_MAX_WRITE_THREADS;
   private Integer maxWriteThreads = null;
 
   private Durability durability = Durability.DEFAULT;
+  private static final ClientProperty DURABILITY = BATCH_WRITER_DURABILITY;
   private boolean isDurabilitySet = false;
+
+  private static Long getDefaultTimeout() {
+    Long def = Long.parseLong(BATCH_WRITER_MAX_TIMEOUT_SEC.getDefaultValue());
+    if (def.equals(0L))
+      return Long.MAX_VALUE;
+    else
+      return TimeUnit.MILLISECONDS.convert(def, TimeUnit.SECONDS);
+  }
 
   /**
    * Sets the maximum memory to batch before writing. The smaller this value, the more frequently
@@ -209,15 +231,15 @@ public class BatchWriterConfig implements Writable {
     // write this out in a human-readable way
     ArrayList<String> fields = new ArrayList<>();
     if (maxMemory != null)
-      addField(fields, "maxMemory", maxMemory);
+      addField(fields, MAX_MEM.getKey(), maxMemory);
     if (maxLatency != null)
-      addField(fields, "maxLatency", maxLatency);
+      addField(fields, MAX_LATENCY.getKey(), maxLatency);
     if (maxWriteThreads != null)
-      addField(fields, "maxWriteThreads", maxWriteThreads);
+      addField(fields, MAX_WRITE_THREADS.getKey(), maxWriteThreads);
     if (timeout != null)
-      addField(fields, "timeout", timeout);
+      addField(fields, MAX_TIMEOUT.getKey(), timeout);
     if (durability != Durability.DEFAULT)
-      addField(fields, "durability", durability);
+      addField(fields, DURABILITY.getKey(), durability);
     String output = StringUtils.join(",", fields);
 
     byte[] bytes = output.getBytes(UTF_8);
@@ -251,15 +273,15 @@ public class BatchWriterConfig implements Writable {
       String[] keyValue = StringUtils.split(field, '\\', '=');
       String key = keyValue[0];
       String value = keyValue[1];
-      if ("maxMemory".equals(key)) {
+      if (MAX_MEM.getKey().equals(key)) {
         maxMemory = Long.valueOf(value);
-      } else if ("maxLatency".equals(key)) {
+      } else if (MAX_LATENCY.getKey().equals(key)) {
         maxLatency = Long.valueOf(value);
-      } else if ("maxWriteThreads".equals(key)) {
+      } else if (MAX_WRITE_THREADS.getKey().equals(key)) {
         maxWriteThreads = Integer.valueOf(value);
-      } else if ("timeout".equals(key)) {
+      } else if (MAX_TIMEOUT.getKey().equals(key)) {
         timeout = Long.valueOf(value);
-      } else if ("durability".equals(key)) {
+      } else if (DURABILITY.getKey().equals(key)) {
         durability = DurabilityImpl.fromString(value);
       } else {
         /* ignore any other properties */
