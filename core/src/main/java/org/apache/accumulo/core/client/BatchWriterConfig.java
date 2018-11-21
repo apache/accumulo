@@ -45,25 +45,20 @@ public class BatchWriterConfig implements Writable {
 
   private static final Long DEFAULT_MAX_MEMORY = Long
       .parseLong(BATCH_WRITER_MAX_MEMORY_BYTES.getDefaultValue());
-  private static final ClientProperty MAX_MEM = BATCH_WRITER_MAX_MEMORY_BYTES;
   private Long maxMemory = null;
 
   private static final Long DEFAULT_MAX_LATENCY = TimeUnit.MILLISECONDS
       .convert(Long.parseLong(BATCH_WRITER_MAX_LATENCY_SEC.getDefaultValue()), TimeUnit.SECONDS);
-  private static final ClientProperty MAX_LATENCY = BATCH_WRITER_MAX_LATENCY_SEC;
   private Long maxLatency = null;
 
   private static final Long DEFAULT_TIMEOUT = getDefaultTimeout();
-  private static final ClientProperty MAX_TIMEOUT = BATCH_WRITER_MAX_TIMEOUT_SEC;
   private Long timeout = null;
 
   private static final Integer DEFAULT_MAX_WRITE_THREADS = Integer
       .parseInt(BATCH_WRITER_MAX_WRITE_THREADS.getDefaultValue());
-  private static final ClientProperty MAX_WRITE_THREADS = BATCH_WRITER_MAX_WRITE_THREADS;
   private Integer maxWriteThreads = null;
 
   private Durability durability = Durability.DEFAULT;
-  private static final ClientProperty DURABILITY = BATCH_WRITER_DURABILITY;
   private boolean isDurabilitySet = false;
 
   private static Long getDefaultTimeout() {
