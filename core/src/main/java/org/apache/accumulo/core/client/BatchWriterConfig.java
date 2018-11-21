@@ -231,15 +231,15 @@ public class BatchWriterConfig implements Writable {
     // write this out in a human-readable way
     ArrayList<String> fields = new ArrayList<>();
     if (maxMemory != null)
-      addField(fields, MAX_MEM.getKey(), maxMemory);
+      addField(fields, "maxMemory", maxMemory);
     if (maxLatency != null)
-      addField(fields, MAX_LATENCY.getKey(), maxLatency);
+      addField(fields, "maxLatency", maxLatency);
     if (maxWriteThreads != null)
-      addField(fields, MAX_WRITE_THREADS.getKey(), maxWriteThreads);
+      addField(fields, "maxWriteThreads", maxWriteThreads);
     if (timeout != null)
-      addField(fields, MAX_TIMEOUT.getKey(), timeout);
+      addField(fields, "timeout", timeout);
     if (durability != Durability.DEFAULT)
-      addField(fields, DURABILITY.getKey(), durability);
+      addField(fields, "durability", durability);
     String output = StringUtils.join(",", fields);
 
     byte[] bytes = output.getBytes(UTF_8);
@@ -273,15 +273,15 @@ public class BatchWriterConfig implements Writable {
       String[] keyValue = StringUtils.split(field, '\\', '=');
       String key = keyValue[0];
       String value = keyValue[1];
-      if (MAX_MEM.getKey().equals(key)) {
+      if ("maxMemory".equals(key)) {
         maxMemory = Long.valueOf(value);
-      } else if (MAX_LATENCY.getKey().equals(key)) {
+      } else if ("maxLatency".equals(key)) {
         maxLatency = Long.valueOf(value);
-      } else if (MAX_WRITE_THREADS.getKey().equals(key)) {
+      } else if ("maxWriteThreads".equals(key)) {
         maxWriteThreads = Integer.valueOf(value);
-      } else if (MAX_TIMEOUT.getKey().equals(key)) {
+      } else if ("timeout".equals(key)) {
         timeout = Long.valueOf(value);
-      } else if (DURABILITY.getKey().equals(key)) {
+      } else if ("durability".equals(key)) {
         durability = DurabilityImpl.fromString(value);
       } else {
         /* ignore any other properties */
