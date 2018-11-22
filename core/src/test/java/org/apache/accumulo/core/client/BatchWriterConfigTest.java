@@ -25,8 +25,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.junit.Test;
 
 public class BatchWriterConfigTest {
@@ -233,6 +235,14 @@ public class BatchWriterConfigTest {
     assertEquals(bwConfig.getTimeout(TimeUnit.MILLISECONDS),
         createdConfig.getTimeout(TimeUnit.MILLISECONDS));
     assertEquals(bwConfig.getMaxWriteThreads(), createdConfig.getMaxWriteThreads());
+  }
+
+  @Test
+  public void countClientProps() {
+    // count the number in case one gets added to in one place but not the other
+    ClientProperty[] bwProps = Arrays.stream(ClientProperty.values())
+        .filter(c -> c.name().startsWith("BATCH_WRITER")).toArray(ClientProperty[]::new);
+    assertEquals(5, bwProps.length);
   }
 
 }

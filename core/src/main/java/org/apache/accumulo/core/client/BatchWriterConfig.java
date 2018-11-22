@@ -17,6 +17,11 @@
 package org.apache.accumulo.core.client;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_DURABILITY;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_WRITE_THREADS;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -26,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringUtils;
@@ -37,20 +43,31 @@ import org.apache.hadoop.util.StringUtils;
  */
 public class BatchWriterConfig implements Writable {
 
-  private static final Long DEFAULT_MAX_MEMORY = 50 * 1024 * 1024L;
+  private static final Long DEFAULT_MAX_MEMORY = Long
+      .parseLong(BATCH_WRITER_MAX_MEMORY_BYTES.getDefaultValue());
   private Long maxMemory = null;
 
-  private static final Long DEFAULT_MAX_LATENCY = 2 * 60 * 1000L;
+  private static final Long DEFAULT_MAX_LATENCY = TimeUnit.MILLISECONDS
+      .convert(Long.parseLong(BATCH_WRITER_MAX_LATENCY_SEC.getDefaultValue()), TimeUnit.SECONDS);
   private Long maxLatency = null;
 
-  private static final Long DEFAULT_TIMEOUT = Long.MAX_VALUE;
+  private static final Long DEFAULT_TIMEOUT = getDefaultTimeout();
   private Long timeout = null;
 
-  private static final Integer DEFAULT_MAX_WRITE_THREADS = 3;
+  private static final Integer DEFAULT_MAX_WRITE_THREADS = Integer
+      .parseInt(BATCH_WRITER_MAX_WRITE_THREADS.getDefaultValue());
   private Integer maxWriteThreads = null;
 
   private Durability durability = Durability.DEFAULT;
   private boolean isDurabilitySet = false;
+
+  private static Long getDefaultTimeout() {
+    Long def = Long.parseLong(BATCH_WRITER_MAX_TIMEOUT_SEC.getDefaultValue());
+    if (def.equals(0L))
+      return Long.MAX_VALUE;
+    else
+      return TimeUnit.MILLISECONDS.convert(def, TimeUnit.SECONDS);
+  }
 
   /**
    * Sets the maximum memory to batch before writing. The smaller this value, the more frequently
