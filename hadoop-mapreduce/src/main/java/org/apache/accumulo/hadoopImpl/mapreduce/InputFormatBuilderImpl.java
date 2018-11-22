@@ -71,7 +71,7 @@ public class InputFormatBuilderImpl<T> implements InputFormatBuilder,
   }
 
   @Override
-  public InputFormatBuilder.InputFormatOptions<T> scanAuths(Authorizations auths) {
+  public InputFormatBuilder.InputFormatOptions<T> auths(Authorizations auths) {
     this.scanAuths = Objects.requireNonNull(auths, "Authorizations must not be null");
     return this;
   }

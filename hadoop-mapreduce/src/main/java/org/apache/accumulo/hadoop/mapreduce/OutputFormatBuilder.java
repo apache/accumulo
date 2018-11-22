@@ -57,7 +57,7 @@ public interface OutputFormatBuilder {
      * @param tableName
      *          the table to use when the tablename is null in the write call
      */
-    OutputOptions<T> defaultTableName(String tableName);
+    OutputOptions<T> defaultTable(String tableName);
 
     /**
      * Enables the directive to create new tables, as necessary. Table names can only be
@@ -65,7 +65,7 @@ public interface OutputFormatBuilder {
      * <p>
      * By default, this feature is <b>disabled</b>.
      */
-    OutputOptions<T> enableCreateTables();
+    OutputOptions<T> createTables();
 
     /**
      * Enables the directive to use simulation mode for this job. In simulation mode, no output is
@@ -73,7 +73,7 @@ public interface OutputFormatBuilder {
      * <p>
      * By default, this feature is <b>disabled</b>.
      */
-    OutputOptions<T> enableSimulationMode();
+    OutputOptions<T> simulationMode();
 
     /**
      * Finish configuring, verify and serialize options into the Job or JobConf

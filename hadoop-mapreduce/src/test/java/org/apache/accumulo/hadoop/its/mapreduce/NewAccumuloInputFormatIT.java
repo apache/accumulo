@@ -107,7 +107,7 @@ public class NewAccumuloInputFormatIT extends AccumuloClusterHarness {
 
     Job job = Job.getInstance();
     AccumuloInputFormat.configure().clientInfo(getClientInfo()).table(table)
-        .scanAuths(Authorizations.EMPTY).scanIsolation().store(job);
+        .auths(Authorizations.EMPTY).scanIsolation().store(job);
 
     // split table
     TreeSet<Text> splitsToAdd = new TreeSet<>();
@@ -127,13 +127,13 @@ public class NewAccumuloInputFormatIT extends AccumuloClusterHarness {
     for (Text text : actualSplits)
       ranges.add(new Range(text));
     AccumuloInputFormat.configure().clientInfo(getClientInfo()).table(table)
-        .scanAuths(Authorizations.EMPTY).ranges(ranges).store(job);
+        .auths(Authorizations.EMPTY).ranges(ranges).store(job);
     splits = inputFormat.getSplits(job);
     assertEquals(actualSplits.size(), splits.size());
 
     // offline mode
     AccumuloInputFormat.configure().clientInfo(getClientInfo()).table(table)
-        .scanAuths(Authorizations.EMPTY).offlineScan().store(job);
+        .auths(Authorizations.EMPTY).offlineScan().store(job);
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
@@ -149,18 +149,18 @@ public class NewAccumuloInputFormatIT extends AccumuloClusterHarness {
       // overlapping ranges
       ranges.add(new Range(String.format("%09d", i), String.format("%09d", i + 2)));
     AccumuloInputFormat.configure().clientInfo(getClientInfo()).table(table)
-        .scanAuths(Authorizations.EMPTY).ranges(ranges).offlineScan().store(job);
+        .auths(Authorizations.EMPTY).ranges(ranges).offlineScan().store(job);
     splits = inputFormat.getSplits(job);
     assertEquals(2, splits.size());
 
     AccumuloInputFormat.configure().clientInfo(getClientInfo()).table(table)
-        .scanAuths(Authorizations.EMPTY).disableAutoAdjustRanges().offlineScan().store(job);
+        .auths(Authorizations.EMPTY).disableAutoAdjustRanges().offlineScan().store(job);
     splits = inputFormat.getSplits(job);
     assertEquals(ranges.size(), splits.size());
 
     // BatchScan not available for offline scans
     AccumuloInputFormat.configure().clientInfo(getClientInfo()).table(table)
-        .scanAuths(Authorizations.EMPTY).batchScan().store(job);
+        .auths(Authorizations.EMPTY).batchScan().store(job);
     try {
       inputFormat.getSplits(job);
       fail("An exception should have been thrown");
@@ -169,27 +169,27 @@ public class NewAccumuloInputFormatIT extends AccumuloClusterHarness {
     // table online tests
     client.tableOperations().online(table, true);
     AccumuloInputFormat.configure().clientInfo(getClientInfo()).table(table)
-        .scanAuths(Authorizations.EMPTY).store(job);
+        .auths(Authorizations.EMPTY).store(job);
     // test for resumption of success
     splits = inputFormat.getSplits(job);
     assertEquals(2, splits.size());
 
     // BatchScan not available with isolated iterators
     AccumuloInputFormat.configure().clientInfo(getClientInfo()).table(table)
-        .scanAuths(Authorizations.EMPTY).scanIsolation().store(job);
+        .auths(Authorizations.EMPTY).scanIsolation().store(job);
 
     splits = inputFormat.getSplits(job);
     assertEquals(2, splits.size());
 
     // BatchScan not available with local iterators
     AccumuloInputFormat.configure().clientInfo(getClientInfo()).table(table)
-        .scanAuths(Authorizations.EMPTY).localIterators().store(job);
+        .auths(Authorizations.EMPTY).localIterators().store(job);
 
     splits = inputFormat.getSplits(job);
     assertEquals(2, splits.size());
 
     AccumuloInputFormat.configure().clientInfo(getClientInfo()).table(table)
-        .scanAuths(Authorizations.EMPTY).batchScan().store(job);
+        .auths(Authorizations.EMPTY).batchScan().store(job);
 
     // Check we are getting back correct type pf split
     splits = inputFormat.getSplits(job);
@@ -286,7 +286,7 @@ public class NewAccumuloInputFormatIT extends AccumuloClusterHarness {
       job.setInputFormatClass(inputFormatClass);
 
       InputFormatOptions<Job> opts = AccumuloInputFormat.configure().clientInfo(getClientInfo())
-          .table(table).scanAuths(Authorizations.EMPTY);
+          .table(table).auths(Authorizations.EMPTY);
       if (sample)
         opts = opts.samplerConfiguration(SAMPLER_CONFIG);
       if (batchScan)
@@ -407,7 +407,7 @@ public class NewAccumuloInputFormatIT extends AccumuloClusterHarness {
     accumuloClient.tableOperations().create(table);
 
     InputFormatOptions<Job> opts = AccumuloInputFormat.configure().clientInfo(getClientInfo())
-        .table(table).scanAuths(auths);
+        .table(table).auths(auths);
     opts.fetchColumns(fetchColumns).scanIsolation().localIterators().store(job);
 
     AccumuloInputFormat aif = new AccumuloInputFormat();

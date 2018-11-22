@@ -52,7 +52,7 @@ public interface FileOutputFormatBuilder {
      * @param compressionType
      *          one of "none", "gz", "lzo", or "snappy"
      */
-    OutputOptions<T> compressionType(String compressionType);
+    OutputOptions<T> compression(String compressionType);
 
     /**
      * Sets the size for data blocks within each file.<br>

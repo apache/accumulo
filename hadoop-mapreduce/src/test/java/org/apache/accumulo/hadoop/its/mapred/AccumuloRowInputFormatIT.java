@@ -166,7 +166,7 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
       job.setInputFormat(AccumuloRowInputFormat.class);
 
       AccumuloRowInputFormat.configure().clientInfo(getClientInfo()).table(table)
-          .scanAuths(Authorizations.EMPTY).store(job);
+          .auths(Authorizations.EMPTY).store(job);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);

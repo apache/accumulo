@@ -45,19 +45,19 @@ public class OutputFormatBuilderImpl<T>
   }
 
   @Override
-  public OutputFormatBuilder.OutputOptions<T> defaultTableName(String tableName) {
+  public OutputFormatBuilder.OutputOptions<T> defaultTable(String tableName) {
     this.defaultTableName = Optional.of(tableName);
     return this;
   }
 
   @Override
-  public OutputFormatBuilder.OutputOptions<T> enableCreateTables() {
+  public OutputFormatBuilder.OutputOptions<T> createTables() {
     this.createTables = true;
     return this;
   }
 
   @Override
-  public OutputFormatBuilder.OutputOptions<T> enableSimulationMode() {
+  public OutputFormatBuilder.OutputOptions<T> simulationMode() {
     this.simulationMode = true;
     return this;
   }

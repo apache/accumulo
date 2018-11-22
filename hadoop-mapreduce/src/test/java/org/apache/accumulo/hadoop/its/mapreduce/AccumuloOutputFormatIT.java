@@ -94,7 +94,7 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       job.setInputFormatClass(AccumuloInputFormat.class);
 
       AccumuloInputFormat.configure().clientInfo(getClientInfo()).table(table1)
-          .scanAuths(Authorizations.EMPTY).store(job);
+          .auths(Authorizations.EMPTY).store(job);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -103,7 +103,7 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.configure().clientInfo(getClientInfo()).defaultTableName(table2)
+      AccumuloOutputFormat.configure().clientInfo(getClientInfo()).defaultTable(table2)
           .store(job);
 
       job.setNumReduceTasks(0);

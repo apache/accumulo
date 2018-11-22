@@ -39,9 +39,9 @@ public class MapReduceClientOnDefaultTable extends MapReduceClientOpts {
   public void setAccumuloConfigs(Job job) {
     final String tableName = getTableName();
     final ClientInfo info = getClientInfo();
-    AccumuloInputFormat.configure().clientInfo(info).table(tableName).scanAuths(auths).store(job);
-    AccumuloOutputFormat.configure().clientInfo(info).defaultTableName(tableName)
-        .enableCreateTables().store(job);
+    AccumuloInputFormat.configure().clientInfo(info).table(tableName).auths(auths).store(job);
+    AccumuloOutputFormat.configure().clientInfo(info).defaultTable(tableName)
+        .createTables().store(job);
   }
 
 }

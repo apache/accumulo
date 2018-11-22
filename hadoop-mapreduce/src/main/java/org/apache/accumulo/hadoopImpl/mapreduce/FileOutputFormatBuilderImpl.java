@@ -57,7 +57,7 @@ public class FileOutputFormatBuilderImpl<T> implements FileOutputFormatBuilder,
   }
 
   @Override
-  public OutputOptions<T> compressionType(String compressionType) {
+  public OutputOptions<T> compression(String compressionType) {
     this.comp = Optional.of(compressionType);
     return this;
   }

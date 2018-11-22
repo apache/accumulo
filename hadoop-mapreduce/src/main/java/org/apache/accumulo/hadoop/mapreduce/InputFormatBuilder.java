@@ -81,7 +81,7 @@ public interface InputFormatBuilder {
      * @param auths
      *          the user's authorizations
      */
-    InputFormatOptions<T> scanAuths(Authorizations auths);
+    InputFormatOptions<T> auths(Authorizations auths);
   }
 
   /**

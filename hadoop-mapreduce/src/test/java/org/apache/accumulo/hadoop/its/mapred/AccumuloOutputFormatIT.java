@@ -170,7 +170,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
       ClientInfo info = Accumulo.newClient().to(instanceName, zooKeepers).as(user, pass).info();
 
-      AccumuloInputFormat.configure().clientInfo(info).table(table1).scanAuths(Authorizations.EMPTY)
+      AccumuloInputFormat.configure().clientInfo(info).table(table1).auths(Authorizations.EMPTY)
           .store(job);
 
       job.setMapperClass(TestMapper.class);
@@ -180,7 +180,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.configure().clientInfo(info).defaultTableName(table2).store(job);
+      AccumuloOutputFormat.configure().clientInfo(info).defaultTable(table2).store(job);
 
       job.setNumReduceTasks(0);
 

@@ -44,7 +44,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
  * AccumuloFileOutputFormat.configure()
  *      .outputPath(path)
  *      .fileBlockSize(b)
- *      .compressionType(type)
+ *      .compression(type)
  *      .summarizers(sc1, sc2).store(job));
  * </pre>
  *
