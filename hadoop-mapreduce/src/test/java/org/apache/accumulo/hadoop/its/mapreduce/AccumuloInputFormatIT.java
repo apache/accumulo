@@ -75,7 +75,7 @@ import com.google.common.collect.Multimap;
  *
  * @since 2.0
  */
-public class NewAccumuloInputFormatIT extends AccumuloClusterHarness {
+public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
   AccumuloInputFormat inputFormat;
 

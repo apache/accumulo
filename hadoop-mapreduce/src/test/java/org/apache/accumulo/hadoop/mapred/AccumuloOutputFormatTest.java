@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.hadoop.mapred;
 
-import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.getBatchWriterOptions;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -32,6 +31,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Test;
@@ -68,7 +68,8 @@ public class AccumuloOutputFormatTest {
     AccumuloOutputFormat myAOF = new AccumuloOutputFormat() {
       @Override
       public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
-        BatchWriterConfig bwOpts = getBatchWriterOptions(job);
+        BatchWriterConfig bwOpts = OutputConfigurator
+            .getBatchWriterOptions(AccumuloOutputFormat.class, job);
 
         // passive check
         assertEquals(bwConfig.getMaxLatency(TimeUnit.MILLISECONDS),

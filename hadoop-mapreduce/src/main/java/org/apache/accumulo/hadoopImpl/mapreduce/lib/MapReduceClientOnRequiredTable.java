@@ -32,9 +32,10 @@ public class MapReduceClientOnRequiredTable extends MapReduceClientOpts {
   public void setAccumuloConfigs(Job job) {
     final String tableName = getTableName();
     final ClientInfo info = getClientInfo();
+    System.out.println("MIKE here is dahhhhhhhhhhhhhhhhhhh PRINCIPAL= " + info.getPrincipal());
     AccumuloInputFormat.configure().clientInfo(info).table(tableName).auths(auths).store(job);
-    AccumuloOutputFormat.configure().clientInfo(info).defaultTable(tableName)
-        .createTables().store(job);
+    AccumuloOutputFormat.configure().clientInfo(info).defaultTable(tableName).createTables()
+        .store(job);
   }
 
   public String getTableName() {

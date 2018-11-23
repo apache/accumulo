@@ -40,8 +40,8 @@ public class MapReduceClientOnDefaultTable extends MapReduceClientOpts {
     final String tableName = getTableName();
     final ClientInfo info = getClientInfo();
     AccumuloInputFormat.configure().clientInfo(info).table(tableName).auths(auths).store(job);
-    AccumuloOutputFormat.configure().clientInfo(info).defaultTable(tableName)
-        .createTables().store(job);
+    AccumuloOutputFormat.configure().clientInfo(info).defaultTable(tableName).createTables()
+        .store(job);
   }
 
 }

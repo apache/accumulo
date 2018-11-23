@@ -16,14 +16,19 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_DURABILITY;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_WRITE_THREADS;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.IOException;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientInfo;
+import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.hadoop.conf.Configuration;
 
 /**
@@ -87,21 +92,26 @@ public class OutputConfigurator extends ConfiguratorBase {
    */
   public static BatchWriterConfig getBatchWriterOptions(Class<?> implementingClass,
       Configuration conf) {
-    String serialized = conf.get(enumToConfKey(implementingClass, WriteOpts.BATCH_WRITER_CONFIG));
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    if (serialized == null || serialized.isEmpty()) {
-      return bwConfig;
-    } else {
-      try {
-        ByteArrayInputStream bais = new ByteArrayInputStream(serialized.getBytes(UTF_8));
-        bwConfig.readFields(new DataInputStream(bais));
-        bais.close();
-        return bwConfig;
-      } catch (IOException e) {
-        throw new IllegalArgumentException(
-            "unable to serialize " + BatchWriterConfig.class.getName());
-      }
-    }
+    ClientInfo info = getClientInfo(implementingClass, conf);
+    Properties props = info.getProperties();
+    String property = props.getProperty(BATCH_WRITER_DURABILITY.getKey());
+    if (property != null)
+      bwConfig.setDurability(DurabilityImpl.fromString(property));
+    property = props.getProperty(BATCH_WRITER_MAX_LATENCY_SEC.getKey());
+    if (property != null)
+      bwConfig.setMaxLatency(Long.parseLong(property), TimeUnit.MILLISECONDS);
+    property = props.getProperty(BATCH_WRITER_MAX_MEMORY_BYTES.getKey());
+    if (property != null)
+      bwConfig.setMaxMemory(Long.parseLong(property));
+    property = props.getProperty(BATCH_WRITER_MAX_TIMEOUT_SEC.getKey());
+    if (property != null)
+      bwConfig.setTimeout(Long.parseLong(property), TimeUnit.MILLISECONDS);
+    property = props.getProperty(BATCH_WRITER_MAX_WRITE_THREADS.getKey());
+    if (property != null)
+      bwConfig.setMaxWriteThreads(Integer.parseInt(property));
+
+    return bwConfig;
   }
 
   /**

@@ -57,8 +57,8 @@ public class AccumuloFileOutputFormatTest {
 
     Job job1 = Job.getInstance();
     AccumuloFileOutputFormat.configure().outputPath(new Path("somewhere")).replication(a)
-        .fileBlockSize(b).dataBlockSize(c).indexBlockSize(d).compression(e)
-        .sampler(samplerConfig).summarizers(sc1, sc2).store(job1);
+        .fileBlockSize(b).dataBlockSize(c).indexBlockSize(d).compression(e).sampler(samplerConfig)
+        .summarizers(sc1, sc2).store(job1);
 
     AccumuloConfiguration acuconf = FileOutputConfigurator
         .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job1.getConfiguration());
@@ -88,8 +88,8 @@ public class AccumuloFileOutputFormatTest {
 
     Job job2 = Job.getInstance();
     AccumuloFileOutputFormat.configure().outputPath(new Path("somewhere")).replication(a)
-        .fileBlockSize(b).dataBlockSize(c).indexBlockSize(d).compression(e)
-        .sampler(samplerConfig).store(job2);
+        .fileBlockSize(b).dataBlockSize(c).indexBlockSize(d).compression(e).sampler(samplerConfig)
+        .store(job2);
 
     acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class,
         job2.getConfiguration());

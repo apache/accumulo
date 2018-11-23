@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.hadoop.its.mapreduce;
+package org.apache.accumulo.hadoop.its.mapred;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -23,39 +23,53 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat;
-import org.apache.accumulo.hadoop.mapreduce.AccumuloOutputFormat;
+import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.hadoop.mapred.AccumuloInputFormat;
+import org.apache.accumulo.hadoop.mapred.AccumuloOutputFormat;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.Mapper;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
-public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+public class TokenFileIT extends AccumuloClusterHarness {
   private static AssertionError e1 = null;
 
-  private static class MRTester extends Configured implements Tool {
-    private static class TestMapper extends Mapper<Key,Value,Text,Mutation> {
+  private static class MRTokenFileTester extends Configured implements Tool {
+    private static class TestMapper implements Mapper<Key,Value,Text,Mutation> {
       Key key = null;
       int count = 0;
+      OutputCollector<Text,Mutation> finalOutput;
 
       @Override
-      protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
+      public void map(Key k, Value v, OutputCollector<Text,Mutation> output, Reporter reporter)
+          throws IOException {
+        finalOutput = output;
         try {
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
@@ -69,57 +83,67 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       }
 
       @Override
-      protected void cleanup(Context context) throws IOException, InterruptedException {
+      public void configure(JobConf job) {}
+
+      @Override
+      public void close() throws IOException {
         Mutation m = new Mutation("total");
         m.put("", "", Integer.toString(count));
-        context.write(new Text(), m);
+        finalOutput.collect(new Text(), m);
       }
+
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public int run(String[] args) throws Exception {
 
-      if (args.length != 2) {
-        throw new IllegalArgumentException(
-            "Usage : " + MRTester.class.getName() + " <inputtable> <outputtable>");
+      if (args.length != 3) {
+        throw new IllegalArgumentException("Usage : " + MRTokenFileTester.class.getName()
+            + " <token file> <inputtable> <outputtable>");
       }
 
-      String table1 = args[0];
-      String table2 = args[1];
+      String tokenFile = args[0];
+      ClientInfo ci = ClientInfo.from(Paths.get(tokenFile));
+      String table1 = args[1];
+      String table2 = args[2];
 
-      Job job = Job.getInstance(getConf(),
-          this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+      JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
 
-      job.setInputFormatClass(AccumuloInputFormat.class);
+      job.setInputFormat(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.configure().clientInfo(getClientInfo()).table(table1)
-          .auths(Authorizations.EMPTY).store(job);
+      AccumuloInputFormat.configure().clientInfo(ci).table(table1).auths(Authorizations.EMPTY)
+          .store(job);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
-      job.setOutputFormatClass(AccumuloOutputFormat.class);
+      job.setOutputFormat(AccumuloOutputFormat.class);
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.configure().clientInfo(getClientInfo()).defaultTable(table2).store(job);
+      AccumuloOutputFormat.configure().clientInfo(ci).defaultTable(table2).store(job);
 
       job.setNumReduceTasks(0);
 
-      job.waitForCompletion(true);
-
-      return job.isSuccessful() ? 0 : 1;
+      return JobClient.runJob(job).isSuccessful() ? 0 : 1;
     }
 
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
     public static void main(String[] args) throws Exception {
-      Configuration conf = new Configuration();
+      Configuration conf = CachedConfiguration.getInstance();
+      conf.set("hadoop.tmp.dir", new File(args[0]).getParent());
       conf.set("mapreduce.framework.name", "local");
       conf.set("mapreduce.cluster.local.dir",
           new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
-      assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
+      assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(), args));
     }
   }
+
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder(
+      new File(System.getProperty("user.dir") + "/target"));
 
   @Test
   public void testMR() throws Exception {
@@ -137,7 +161,12 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       }
       bw.close();
 
-      MRTester.main(new String[] {table1, table2});
+      File tf = folder.newFile("client.properties");
+      try (PrintStream out = new PrintStream(tf)) {
+        getClientInfo().getProperties().store(out, "Credentials for " + getClass().getName());
+      }
+
+      MRTokenFileTester.main(new String[] {tf.getAbsolutePath(), table1, table2});
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
