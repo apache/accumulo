@@ -16,19 +16,15 @@
  */
 package org.apache.accumulo.hadoop.mapreduce;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import java.io.IOException;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -38,13 +34,10 @@ public class AccumuloOutputFormatTest {
 
   @Test
   public void testBWSettings() throws IOException {
-    ClientInfo clientInfo = createMock(ClientInfo.class);
-    AuthenticationToken token = createMock(AuthenticationToken.class);
-    Properties props = createMock(Properties.class);
-    expect(clientInfo.getAuthenticationToken()).andReturn(token).anyTimes();
-    expect(clientInfo.getProperties()).andReturn(props).anyTimes();
-    replay(clientInfo);
     Job job = Job.getInstance();
+
+    AccumuloClient.ConnectionOptions opts = Accumulo.newClient().to("test", "zk").as("blah",
+        "blah");
 
     // make sure we aren't testing defaults
     final BatchWriterConfig bwDefaults = new BatchWriterConfig();
@@ -58,7 +51,8 @@ public class AccumuloOutputFormatTest {
     bwConfig.setTimeout(9898989L, TimeUnit.MILLISECONDS);
     bwConfig.setMaxWriteThreads(42);
     bwConfig.setMaxMemory(1123581321L);
-    AccumuloOutputFormat.configure().clientInfo(clientInfo).store(job);
+    opts.batchWriterConfig(bwConfig);
+    AccumuloOutputFormat.configure().clientInfo(opts.info()).store(job);
 
     AccumuloOutputFormat myAOF = new AccumuloOutputFormat() {
       @Override

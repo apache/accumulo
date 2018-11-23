@@ -16,21 +16,15 @@
  */
 package org.apache.accumulo.hadoop.mapred;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import java.io.IOException;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientInfo;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapred.JobConf;
@@ -39,12 +33,6 @@ import org.junit.Test;
 public class AccumuloOutputFormatTest {
   @Test
   public void testBWSettings() throws IOException {
-    ClientInfo clientInfo = createMock(ClientInfo.class);
-    AuthenticationToken token = createMock(AuthenticationToken.class);
-    Properties props = createMock(Properties.class);
-    expect(clientInfo.getAuthenticationToken()).andReturn(token).anyTimes();
-    expect(clientInfo.getProperties()).andReturn(props).anyTimes();
-    replay(clientInfo);
     JobConf job = new JobConf();
 
     AccumuloClient.ConnectionOptions opts = Accumulo.newClient().to("test", "zk").as("blah",
