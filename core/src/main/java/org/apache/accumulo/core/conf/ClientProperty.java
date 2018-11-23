@@ -53,10 +53,10 @@ public enum ClientProperty {
   // BatchWriter
   BATCH_WRITER_MAX_MEMORY_BYTES("batch.writer.max.memory.bytes", "52428800",
       "Max memory (in bytes) to batch before writing"),
-  BATCH_WRITER_MAX_LATENCY_SEC("batch.writer.max.latency.sec", "120",
-      "Max amount of time (in seconds) to hold data in memory before flushing it"),
-  BATCH_WRITER_MAX_TIMEOUT_SEC("batch.writer.max.timeout.sec", "0",
-      "Max amount of time (in seconds) an unresponsive server will be re-tried. An"
+  BATCH_WRITER_MAX_LATENCY_SEC("batch.writer.max.latency.millis", "120000",
+      "Max amount of time (in milliseconds) to hold data in memory before flushing it"),
+  BATCH_WRITER_MAX_TIMEOUT_SEC("batch.writer.max.timeout.millis", "0",
+      "Max amount of time (in milliseconds) an unresponsive server will be re-tried. An"
           + " exception is thrown when this timeout is exceeded. Set to zero for no timeout."),
   BATCH_WRITER_MAX_WRITE_THREADS("batch.writer.max.write.threads", "3",
       "Maximum number of threads to use for writing data to tablet servers."),

@@ -45,8 +45,8 @@ public class BatchWriterConfig implements Writable {
       .parseLong(BATCH_WRITER_MAX_MEMORY_BYTES.getDefaultValue());
   private Long maxMemory = null;
 
-  private static final Long DEFAULT_MAX_LATENCY = TimeUnit.MILLISECONDS
-      .convert(Long.parseLong(BATCH_WRITER_MAX_LATENCY_SEC.getDefaultValue()), TimeUnit.SECONDS);
+  private static final Long DEFAULT_MAX_LATENCY = Long
+      .parseLong(BATCH_WRITER_MAX_LATENCY_SEC.getDefaultValue());
   private Long maxLatency = null;
 
   private static final Long DEFAULT_TIMEOUT = getDefaultTimeout();
@@ -64,7 +64,7 @@ public class BatchWriterConfig implements Writable {
     if (def.equals(0L))
       return Long.MAX_VALUE;
     else
-      return TimeUnit.MILLISECONDS.convert(def, TimeUnit.SECONDS);
+      return def;
   }
 
   /**
