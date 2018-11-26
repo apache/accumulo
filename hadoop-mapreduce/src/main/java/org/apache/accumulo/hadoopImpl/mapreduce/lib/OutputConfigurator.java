@@ -16,16 +16,19 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_DURABILITY;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_WRITE_THREADS;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientInfo;
+import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.hadoop.conf.Configuration;
 
 /**
@@ -85,61 +88,30 @@ public class OutputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new
-   * {@link BatchWriterConfig}, with sensible built-in defaults is used. Setting the configuration
-   * multiple times overwrites any previous configuration.
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @param bwConfig
-   *          the configuration for the {@link BatchWriter}
-   * @since 1.6.0
-   */
-  public static void setBatchWriterOptions(Class<?> implementingClass, Configuration conf,
-      BatchWriterConfig bwConfig) {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    String serialized;
-    try {
-      bwConfig.write(new DataOutputStream(baos));
-      serialized = new String(baos.toByteArray(), UTF_8);
-      baos.close();
-    } catch (IOException e) {
-      throw new IllegalArgumentException(
-          "unable to serialize " + BatchWriterConfig.class.getName());
-    }
-    conf.set(enumToConfKey(implementingClass, WriteOpts.BATCH_WRITER_CONFIG), serialized);
-  }
-
-  /**
-   * Gets the {@link BatchWriterConfig} settings.
-   *
-   * @param implementingClass
-   *          the class whose name will be used as a prefix for the property configuration key
-   * @param conf
-   *          the Hadoop configuration object to configure
-   * @return the configuration object
-   * @since 1.6.0
-   * @see #setBatchWriterOptions(Class, Configuration, BatchWriterConfig)
+   * Gets the {@link BatchWriterConfig} settings that were stored with ClientInfo
    */
   public static BatchWriterConfig getBatchWriterOptions(Class<?> implementingClass,
       Configuration conf) {
-    String serialized = conf.get(enumToConfKey(implementingClass, WriteOpts.BATCH_WRITER_CONFIG));
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    if (serialized == null || serialized.isEmpty()) {
-      return bwConfig;
-    } else {
-      try {
-        ByteArrayInputStream bais = new ByteArrayInputStream(serialized.getBytes(UTF_8));
-        bwConfig.readFields(new DataInputStream(bais));
-        bais.close();
-        return bwConfig;
-      } catch (IOException e) {
-        throw new IllegalArgumentException(
-            "unable to serialize " + BatchWriterConfig.class.getName());
-      }
-    }
+    ClientInfo info = getClientInfo(implementingClass, conf);
+    Properties props = info.getProperties();
+    String property = props.getProperty(BATCH_WRITER_DURABILITY.getKey());
+    if (property != null)
+      bwConfig.setDurability(DurabilityImpl.fromString(property));
+    property = props.getProperty(BATCH_WRITER_MAX_LATENCY_SEC.getKey());
+    if (property != null)
+      bwConfig.setMaxLatency(Long.parseLong(property), TimeUnit.MILLISECONDS);
+    property = props.getProperty(BATCH_WRITER_MAX_MEMORY_BYTES.getKey());
+    if (property != null)
+      bwConfig.setMaxMemory(Long.parseLong(property));
+    property = props.getProperty(BATCH_WRITER_MAX_TIMEOUT_SEC.getKey());
+    if (property != null)
+      bwConfig.setTimeout(Long.parseLong(property), TimeUnit.MILLISECONDS);
+    property = props.getProperty(BATCH_WRITER_MAX_WRITE_THREADS.getKey());
+    if (property != null)
+      bwConfig.setMaxWriteThreads(Integer.parseInt(property));
+
+    return bwConfig;
   }
 
   /**

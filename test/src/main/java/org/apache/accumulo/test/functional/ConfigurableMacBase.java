@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -203,6 +204,11 @@ public class ConfigurableMacBase extends AccumuloITBase {
   protected ClientInfo getClientInfo() {
     return Accumulo.newClient().to(getCluster().getInstanceName(), getCluster().getZooKeepers())
         .as("root", ROOT_PASSWORD).info();
+  }
+
+  protected ClientInfo getClientInfo(BatchWriterConfig bwConfig) {
+    return Accumulo.newClient().to(getCluster().getInstanceName(), getCluster().getZooKeepers())
+        .as("root", ROOT_PASSWORD).batchWriterConfig(bwConfig).info();
   }
 
   protected ServerContext getServerContext() {
