@@ -37,55 +37,63 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public enum ClientProperty {
 
   // Instance
-  INSTANCE_NAME("instance.name", "", "Name of Accumulo instance to connect to", "", true),
-  INSTANCE_ZOOKEEPERS("instance.zookeepers", "localhost:2181",
-      "Zookeeper connection information for Accumulo instance", "", true),
-  INSTANCE_ZOOKEEPERS_TIMEOUT("instance.zookeepers.timeout", "30s", "Zookeeper session timeout"),
+  INSTANCE_NAME("instance.name", "", PropertyType.STRING,
+      "Name of Accumulo instance to " + "connect to", "2.0.0", true),
+  INSTANCE_ZOOKEEPERS("instance.zookeepers", "localhost:2181", PropertyType.HOSTLIST,
+      "Zookeeper connection information for Accumulo instance", "2.0.0", true),
+  INSTANCE_ZOOKEEPERS_TIMEOUT("instance.zookeepers.timeout", "30s", PropertyType.TIMEDURATION,
+      "Zookeeper session timeout", "2.0.0", false),
 
   // Authentication
-  AUTH_TYPE("auth.type", "password",
-      "Authentication method (i.e password, kerberos, PasswordToken, KerberosToken, etc)", "",
+  AUTH_TYPE("auth.type", "password", PropertyType.STRING,
+      "Authentication method (i.e password, kerberos, PasswordToken, KerberosToken, etc)", "2.0.0",
       true),
-  AUTH_PRINCIPAL("auth.principal", "",
-      "Accumulo principal/username for chosen authentication method", "", true),
-  AUTH_TOKEN("auth.token", "", "Authentication token (ex. mypassword, /path/to/keytab)", "", true),
+  AUTH_PRINCIPAL("auth.principal", "", PropertyType.STRING,
+      "Accumulo principal/username for chosen authentication method", "2.0.0", true),
+  AUTH_TOKEN("auth.token", "", PropertyType.STRING,
+      "Authentication token (ex. mypassword, /path/to/keytab)", "2.0.0", true),
 
   // BatchWriter
-  BATCH_WRITER_MAX_MEMORY_BYTES("batch.writer.max.memory.bytes", "52428800",
-      "Max memory (in bytes) to batch before writing"),
-  BATCH_WRITER_MAX_LATENCY_SEC("batch.writer.max.latency.millis", "120000",
-      "Max amount of time (in milliseconds) to hold data in memory before flushing it"),
-  BATCH_WRITER_MAX_TIMEOUT_SEC("batch.writer.max.timeout.millis", "0",
-      "Max amount of time (in milliseconds) an unresponsive server will be re-tried. An"
-          + " exception is thrown when this timeout is exceeded. Set to zero for no timeout."),
-  BATCH_WRITER_MAX_WRITE_THREADS("batch.writer.max.write.threads", "3",
-      "Maximum number of threads to use for writing data to tablet servers."),
-  BATCH_WRITER_DURABILITY("batch.writer.durability", "default", Property.TABLE_DURABILITY
-      .getDescription() + " Setting this property will "
-      + "change the durability for the BatchWriter session. A value of \"default\" will use the "
-      + "table's durability setting. "),
+  BATCH_WRITER_MAX_MEMORY_BYTES("batch.writer.max.memory.bytes", "50M", PropertyType.BYTES,
+      "Max memory (in bytes) to batch before writing", "2.0.0", false),
+  BATCH_WRITER_MAX_LATENCY_SEC("batch.writer.max.latency.sec", "120s", PropertyType.TIMEDURATION,
+      "Max amount of time (in seconds) to hold data in memory before flushing it", "2.0.0", false),
+  BATCH_WRITER_MAX_TIMEOUT_SEC("batch.writer.max.timeout.sec", "0", PropertyType.TIMEDURATION,
+      "Max amount of time (in seconds) an unresponsive server will be re-tried. An"
+          + " exception is thrown when this timeout is exceeded. Set to zero for no timeout.",
+      "2.0.0", false),
+  BATCH_WRITER_MAX_WRITE_THREADS("batch.writer.max.write.threads", "3", PropertyType.COUNT,
+      "Maximum number of threads to use for writing data to tablet servers.", "2.0.0", false),
+  BATCH_WRITER_DURABILITY("batch.writer.durability", "default", PropertyType.DURABILITY,
+      Property.TABLE_DURABILITY.getDescription() + " Setting this property will "
+          + "change the durability for the BatchWriter session. A value of \"default\" will"
+          + " use the table's durability setting. ",
+      "2.0.0", false),
 
   // Scanner
-  SCANNER_BATCH_SIZE("scanner.batch.size", "1000",
-      "Number of key/value pairs that will be fetched at time from tablet server"),
+  SCANNER_BATCH_SIZE("scanner.batch.size", "1000", PropertyType.COUNT,
+      "Number of key/value pairs that will be fetched at time from tablet server", "2.0.0", false),
 
   // BatchScanner
-  BATCH_SCANNER_NUM_QUERY_THREADS("batch.scanner.num.query.threads", "3",
-      "Number of concurrent query threads to spawn for querying"),
+  BATCH_SCANNER_NUM_QUERY_THREADS("batch.scanner.num.query.threads", "3", PropertyType.COUNT,
+      "Number of concurrent query threads to spawn for querying", "2.0.0", false),
 
   // Bulk load
-  BULK_LOAD_THREADS("bulk.threads", ImportMappingOptions.BULK_LOAD_THREADS_DEFAULT,
+  BULK_LOAD_THREADS("bulk.threads", ImportMappingOptions.BULK_LOAD_THREADS_DEFAULT, PropertyType.COUNT,
       "The number of threads used to inspect bulk load files to determine where files go.  "
           + "If the value ends with C, then it will be multiplied by the number of cores on the "
-          + "system. This property is only used by the bulk import API introduced in 2.0.0."),
+          + "system. This property is only used by the bulk import API introduced in 2.0.0.",
+      "2.0.0", false),
 
   // SSL
   SSL_ENABLED("ssl.enabled", "false", "Enable SSL for client RPC"),
   SSL_KEYSTORE_PASSWORD("ssl.keystore.password", "", "Password used to encrypt keystore"),
-  SSL_KEYSTORE_PATH("ssl.keystore.path", "", "Path to SSL keystore file"),
+  SSL_KEYSTORE_PATH("ssl.keystore.path", "", PropertyType.PATH, "Path to SSL keystore file",
+      "2.0.0", false),
   SSL_KEYSTORE_TYPE("ssl.keystore.type", "jks", "Type of SSL keystore"),
   SSL_TRUSTSTORE_PASSWORD("ssl.truststore.password", "", "Password used to encrypt truststore"),
-  SSL_TRUSTSTORE_PATH("ssl.truststore.path", "", "Path to SSL truststore file"),
+  SSL_TRUSTSTORE_PATH("ssl.truststore.path", "", PropertyType.PATH, "Path to SSL truststore file",
+      "2.0.0", false),
   SSL_TRUSTSTORE_TYPE("ssl.truststore.type", "jks", "Type of SSL truststore"),
   SSL_USE_JSSE("ssl.use.jsse", "false", "Use JSSE system properties to configure SSL"),
 
@@ -99,36 +107,30 @@ public enum ClientProperty {
   // Trace
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient",
       "A list of span receiver classes to send trace spans"),
-  TRACE_ZOOKEEPER_PATH("trace.zookeeper.path", Constants.ZTRACERS,
-      "The zookeeper node where tracers are registered");
+  TRACE_ZOOKEEPER_PATH("trace.zookeeper.path", Constants.ZTRACERS, PropertyType.PATH,
+      "The zookeeper node where tracers are registered", "2.0.0", false);
 
   public static final String TRACE_SPAN_RECEIVER_PREFIX = "trace.span.receiver";
 
   private String key;
   private String defaultValue;
+  private PropertyType type;
   private String description;
   private String since;
   private boolean required;
 
-  ClientProperty(String key, String defaultValue, String description, String since,
-      boolean required) {
-    Objects.requireNonNull(key);
-    Objects.requireNonNull(defaultValue);
-    Objects.requireNonNull(description);
-    Objects.requireNonNull(since);
-    this.key = key;
-    this.defaultValue = defaultValue;
-    this.description = description;
-    this.since = since;
+  ClientProperty(String key, String defaultValue, PropertyType type, String description,
+      String since, boolean required) {
+    this.key = Objects.requireNonNull(key);
+    this.defaultValue = Objects.requireNonNull(defaultValue);
+    this.type = Objects.requireNonNull(type);
+    this.description = Objects.requireNonNull(description);
+    this.since = Objects.requireNonNull(since);
     this.required = required;
   }
 
-  ClientProperty(String key, String defaultValue, String description, String since) {
-    this(key, defaultValue, description, since, false);
-  }
-
   ClientProperty(String key, String defaultValue, String description) {
-    this(key, defaultValue, description, "");
+    this(key, defaultValue, PropertyType.STRING, description, "", false);
   }
 
   public String getKey() {
@@ -137,6 +139,10 @@ public enum ClientProperty {
 
   public String getDefaultValue() {
     return defaultValue;
+  }
+
+  public PropertyType getType() {
+    return type;
   }
 
   public String getDescription() {
@@ -161,6 +167,10 @@ public enum ClientProperty {
     if (isRequired() && value.isEmpty()) {
       throw new IllegalArgumentException(getKey() + " must be set!");
     }
+    if (!type.isValidFormat(value)) {
+      throw new IllegalArgumentException(
+          "Invalid format for type \"" + type + "\" for provided value: " + value);
+    }
     return value;
   }
 
@@ -170,12 +180,25 @@ public enum ClientProperty {
     return (value == null || value.isEmpty());
   }
 
+  /**
+   * Return a long value for this ClientProperty. Bytes for properties with
+   * type of {@link PropertyType.BYTES} and milliseconds for properties of type
+   * {@link PropertyType.TIMEDURATION}
+   */
   public Long getLong(Properties properties) {
     String value = getValue(properties);
+    Long longValue;
     if (value.isEmpty()) {
       return null;
     }
-    return Long.parseLong(value);
+    if (type.equals(PropertyType.BYTES)) {
+      longValue = ConfigurationTypeHelper.getMemoryAsBytes(value);
+    } else if (type.equals(PropertyType.TIMEDURATION)) {
+      longValue = ConfigurationTypeHelper.getTimeInMillis(value);
+    } else {
+      longValue = Long.parseLong(value);
+    }
+    return longValue;
   }
 
   public Integer getInteger(Properties properties) {

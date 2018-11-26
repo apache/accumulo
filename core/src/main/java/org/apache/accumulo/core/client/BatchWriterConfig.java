@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringUtils;
@@ -41,12 +42,12 @@ import org.apache.hadoop.util.StringUtils;
  */
 public class BatchWriterConfig implements Writable {
 
-  private static final Long DEFAULT_MAX_MEMORY = Long
-      .parseLong(BATCH_WRITER_MAX_MEMORY_BYTES.getDefaultValue());
+  private static final Long DEFAULT_MAX_MEMORY = ConfigurationTypeHelper
+      .getMemoryAsBytes(BATCH_WRITER_MAX_MEMORY_BYTES.getDefaultValue());
   private Long maxMemory = null;
 
-  private static final Long DEFAULT_MAX_LATENCY = Long
-      .parseLong(BATCH_WRITER_MAX_LATENCY_SEC.getDefaultValue());
+  private static final Long DEFAULT_MAX_LATENCY = ConfigurationTypeHelper
+      .getTimeInMillis(BATCH_WRITER_MAX_LATENCY_SEC.getDefaultValue());
   private Long maxLatency = null;
 
   private static final Long DEFAULT_TIMEOUT = getDefaultTimeout();
@@ -60,7 +61,8 @@ public class BatchWriterConfig implements Writable {
   private boolean isDurabilitySet = false;
 
   private static Long getDefaultTimeout() {
-    Long def = Long.parseLong(BATCH_WRITER_MAX_TIMEOUT_SEC.getDefaultValue());
+    Long def = ConfigurationTypeHelper
+        .getTimeInMillis(BATCH_WRITER_MAX_TIMEOUT_SEC.getDefaultValue());
     if (def.equals(0L))
       return Long.MAX_VALUE;
     else
