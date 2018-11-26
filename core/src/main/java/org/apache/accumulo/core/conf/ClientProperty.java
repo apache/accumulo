@@ -54,15 +54,15 @@ public enum ClientProperty {
       "Authentication token (ex. mypassword, /path/to/keytab)", "2.0.0", true),
 
   // BatchWriter
-  BATCH_WRITER_MAX_MEMORY_BYTES("batch.writer.max.memory.bytes", "50M", PropertyType.BYTES,
+  BATCH_WRITER_MAX_MEMORY_BYTES("batch.writer.memory.max", "50M", PropertyType.BYTES,
       "Max memory (in bytes) to batch before writing", "2.0.0", false),
-  BATCH_WRITER_MAX_LATENCY_SEC("batch.writer.max.latency.sec", "120s", PropertyType.TIMEDURATION,
+  BATCH_WRITER_MAX_LATENCY_SEC("batch.writer.latency.max", "120s", PropertyType.TIMEDURATION,
       "Max amount of time (in seconds) to hold data in memory before flushing it", "2.0.0", false),
-  BATCH_WRITER_MAX_TIMEOUT_SEC("batch.writer.max.timeout.sec", "0", PropertyType.TIMEDURATION,
+  BATCH_WRITER_MAX_TIMEOUT_SEC("batch.writer.timeout.max", "0", PropertyType.TIMEDURATION,
       "Max amount of time (in seconds) an unresponsive server will be re-tried. An"
           + " exception is thrown when this timeout is exceeded. Set to zero for no timeout.",
       "2.0.0", false),
-  BATCH_WRITER_MAX_WRITE_THREADS("batch.writer.max.write.threads", "3", PropertyType.COUNT,
+  BATCH_WRITER_MAX_WRITE_THREADS("batch.writer.threads.max", "3", PropertyType.COUNT,
       "Maximum number of threads to use for writing data to tablet servers.", "2.0.0", false),
   BATCH_WRITER_DURABILITY("batch.writer.durability", "default", PropertyType.DURABILITY,
       Property.TABLE_DURABILITY.getDescription() + " Setting this property will "
