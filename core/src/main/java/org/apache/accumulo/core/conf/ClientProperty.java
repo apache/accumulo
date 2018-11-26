@@ -79,7 +79,8 @@ public enum ClientProperty {
       "Number of concurrent query threads to spawn for querying", "2.0.0", false),
 
   // Bulk load
-  BULK_LOAD_THREADS("bulk.threads", ImportMappingOptions.BULK_LOAD_THREADS_DEFAULT, PropertyType.COUNT,
+  BULK_LOAD_THREADS("bulk.threads", ImportMappingOptions.BULK_LOAD_THREADS_DEFAULT,
+      PropertyType.COUNT,
       "The number of threads used to inspect bulk load files to determine where files go.  "
           + "If the value ends with C, then it will be multiplied by the number of cores on the "
           + "system. This property is only used by the bulk import API introduced in 2.0.0.",
@@ -181,9 +182,9 @@ public enum ClientProperty {
   }
 
   /**
-   * Return a long value for this ClientProperty. Bytes for properties with
-   * type of {@link PropertyType.BYTES} and milliseconds for properties of type
-   * {@link PropertyType.TIMEDURATION}
+   * Return a long value for this ClientProperty. The value will be in bytes for properties with
+   * type of {@link PropertyType#BYTES} and milliseconds for properties of type
+   * {@link PropertyType#TIMEDURATION}
    */
   public Long getLong(Properties properties) {
     String value = getValue(properties);
