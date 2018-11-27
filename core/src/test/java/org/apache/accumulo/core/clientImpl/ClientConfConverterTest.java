@@ -37,7 +37,7 @@ public class ClientConfConverterTest {
     before.setProperty(ClientProperty.SSL_TRUSTSTORE_PATH.getKey(), "trust_path");
     before.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
     before.setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY.getKey(), "primary");
-    before.setProperty(ClientProperty.BATCH_WRITER_MAX_WRITE_THREADS.getKey(), "5");
+    before.setProperty(ClientProperty.BATCH_WRITER_THREADS_MAX.getKey(), "5");
 
     Properties after = ClientConfConverter.toProperties(ClientConfConverter.toClientConf(before));
     assertEquals(before, after);

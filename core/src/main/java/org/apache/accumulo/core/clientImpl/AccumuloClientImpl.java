@@ -356,7 +356,7 @@ public class AccumuloClientImpl implements AccumuloClient {
 
     @Override
     public ConnectionOptions zkTimeout(int timeout) {
-      setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, Integer.toString(timeout) + "ms");
+      ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.setTime(properties, (long) timeout);
       return this;
     }
 
@@ -374,13 +374,12 @@ public class AccumuloClientImpl implements AccumuloClient {
 
     @Override
     public ConnectionOptions batchWriterConfig(BatchWriterConfig batchWriterConfig) {
-      setProperty(ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES, batchWriterConfig.getMaxMemory());
-      setProperty(ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC,
-          batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS) + "ms");
-      setProperty(ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC,
-          batchWriterConfig.getTimeout(TimeUnit.MILLISECONDS) + "ms");
-      setProperty(ClientProperty.BATCH_WRITER_MAX_WRITE_THREADS,
-          batchWriterConfig.getMaxWriteThreads());
+      ClientProperty.BATCH_WRITER_MEMORY_MAX.setBytes(properties, batchWriterConfig.getMaxMemory());
+      ClientProperty.BATCH_WRITER_LATENCY_MAX.setTime(properties,
+          batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+      ClientProperty.BATCH_WRITER_TIMEOUT_MAX.setTime(properties,
+          batchWriterConfig.getTimeout(TimeUnit.MILLISECONDS));
+      setProperty(ClientProperty.BATCH_WRITER_THREADS_MAX, batchWriterConfig.getMaxWriteThreads());
       setProperty(ClientProperty.BATCH_WRITER_DURABILITY,
           batchWriterConfig.getDurability().toString());
       return this;

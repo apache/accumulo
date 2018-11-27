@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Base64;
@@ -54,15 +56,15 @@ public enum ClientProperty {
       "Authentication token (ex. mypassword, /path/to/keytab)", "2.0.0", true),
 
   // BatchWriter
-  BATCH_WRITER_MAX_MEMORY_BYTES("batch.writer.memory.max", "50M", PropertyType.BYTES,
+  BATCH_WRITER_MEMORY_MAX("batch.writer.memory.max", "50M", PropertyType.BYTES,
       "Max memory (in bytes) to batch before writing", "2.0.0", false),
-  BATCH_WRITER_MAX_LATENCY_SEC("batch.writer.latency.max", "120s", PropertyType.TIMEDURATION,
+  BATCH_WRITER_LATENCY_MAX("batch.writer.latency.max", "120s", PropertyType.TIMEDURATION,
       "Max amount of time (in seconds) to hold data in memory before flushing it", "2.0.0", false),
-  BATCH_WRITER_MAX_TIMEOUT_SEC("batch.writer.timeout.max", "0", PropertyType.TIMEDURATION,
+  BATCH_WRITER_TIMEOUT_MAX("batch.writer.timeout.max", "0", PropertyType.TIMEDURATION,
       "Max amount of time (in seconds) an unresponsive server will be re-tried. An"
           + " exception is thrown when this timeout is exceeded. Set to zero for no timeout.",
       "2.0.0", false),
-  BATCH_WRITER_MAX_WRITE_THREADS("batch.writer.threads.max", "3", PropertyType.COUNT,
+  BATCH_WRITER_THREADS_MAX("batch.writer.threads.max", "3", PropertyType.COUNT,
       "Maximum number of threads to use for writing data to tablet servers.", "2.0.0", false),
   BATCH_WRITER_DURABILITY("batch.writer.durability", "default", PropertyType.DURABILITY,
       Property.TABLE_DURABILITY.getDescription() + " Setting this property will "
@@ -181,19 +183,13 @@ public enum ClientProperty {
     return (value == null || value.isEmpty());
   }
 
-  public Long getLong(Properties properties) {
-    String value = getValue(properties);
-    if (value.isEmpty()) {
-      return null;
-    }
-    return Long.parseLong(value);
-  }
-
   public Long getBytes(Properties properties) {
     String value = getValue(properties);
     if (value.isEmpty()) {
       return null;
     }
+    checkState(getType() == PropertyType.BYTES,
+        "Invalid type getting bytes. Type must be " + PropertyType.BYTES + ", not " + getType());
     return ConfigurationTypeHelper.getMemoryAsBytes(value);
   }
 
@@ -202,6 +198,8 @@ public enum ClientProperty {
     if (value.isEmpty()) {
       return null;
     }
+    checkState(getType() == PropertyType.TIMEDURATION, "Invalid type getting time. Type must be "
+        + PropertyType.TIMEDURATION + ", not " + getType());
     return ConfigurationTypeHelper.getTimeInMillis(value);
   }
 
@@ -219,6 +217,18 @@ public enum ClientProperty {
       return false;
     }
     return Boolean.valueOf(value);
+  }
+
+  public void setBytes(Properties properties, Long bytes) {
+    checkState(PropertyType.BYTES == getType(), "Invalid type setting " + "bytes. Type must be "
+        + PropertyType.BYTES + ", not " + getType());
+    properties.setProperty(getKey(), bytes.toString());
+  }
+
+  public void setTime(Properties properties, Long milliseconds) {
+    checkState(PropertyType.TIMEDURATION == getType(), "Invalid type setting "
+        + "time. Type must be " + PropertyType.TIMEDURATION + ", not " + getType());
+    properties.setProperty(getKey(), milliseconds + "ms");
   }
 
   public static Properties getPrefix(Properties properties, String prefix) {

@@ -17,10 +17,10 @@
 package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
 import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_DURABILITY;
-import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC;
-import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES;
-import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC;
-import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MAX_WRITE_THREADS;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_LATENCY_MAX;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MEMORY_MAX;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_THREADS_MAX;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_TIMEOUT_MAX;
 
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -98,16 +98,16 @@ public class OutputConfigurator extends ConfiguratorBase {
     String property = props.getProperty(BATCH_WRITER_DURABILITY.getKey());
     if (property != null)
       bwConfig.setDurability(DurabilityImpl.fromString(property));
-    Long value = BATCH_WRITER_MAX_LATENCY_SEC.getTimeInMillis(props);
+    Long value = BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
     if (value != null)
       bwConfig.setMaxLatency(value, TimeUnit.MILLISECONDS);
-    value = BATCH_WRITER_MAX_MEMORY_BYTES.getBytes(props);
+    value = BATCH_WRITER_MEMORY_MAX.getBytes(props);
     if (value != null)
       bwConfig.setMaxMemory(value);
-    value = BATCH_WRITER_MAX_TIMEOUT_SEC.getTimeInMillis(props);
+    value = BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
     if (value != null)
       bwConfig.setTimeout(value, TimeUnit.MILLISECONDS);
-    Integer intValue = BATCH_WRITER_MAX_WRITE_THREADS.getInteger(props);
+    Integer intValue = BATCH_WRITER_THREADS_MAX.getInteger(props);
     if (intValue != null)
       bwConfig.setMaxWriteThreads(intValue);
 
