@@ -14,6 +14,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+if [ -z "$JAVA_HOME" ]; then
+   echo "JAVA_HOME is not set. Java is required to proceed"
+   exit 1
+fi
 
 for x in A B C
 do

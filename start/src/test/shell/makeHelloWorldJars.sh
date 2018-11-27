@@ -15,6 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if [ -z "$JAVA_HOME" ]; then
+   echo "JAVA_HOME is not set. Java is required to proceed"
+   exit 1
+fi
 mkdir -p target/generated-sources/HelloWorld/test
 sed "s/%%/Hello World\!/" < src/test/java/test/HelloWorldTemplate > target/generated-sources/HelloWorld/test/HelloWorld.java
 $JAVA_HOME/bin/javac target/generated-sources/HelloWorld/test/HelloWorld.java -d target/generated-sources/HelloWorld
