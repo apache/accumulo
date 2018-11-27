@@ -186,8 +186,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
 
     @Override
     public void indexWeightChanged() {
-      long newSize = block.recordSize(size);
-      if (newSize > acceptableSize() && !evictionInProgress) {
+      long newSize = block.tryRecordSize(size);
+      if (newSize >= 0 && newSize > acceptableSize() && !evictionInProgress) {
         runEviction();
       }
     }
