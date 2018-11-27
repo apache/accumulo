@@ -112,7 +112,7 @@ public class RFileOperations extends FileOperations {
     Configuration conf = options.getConfiguration();
 
     if (outputStream == null) {
-      int hrep = conf.getInt("dfs.replication", -1);
+      int hrep = conf.getInt("dfs.replication", 3);
       int trep = acuconf.getCount(Property.TABLE_FILE_REPLICATION);
       int rep = hrep;
       if (trep > 0 && trep != hrep) {
