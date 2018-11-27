@@ -283,8 +283,7 @@ public class LiveTServerSet implements Watcher {
       }
 
       // log.debug("Current: " + current.keySet());
-      if (!doomed.isEmpty() || !updates.isEmpty())
-        this.cback.update(this, doomed, updates);
+      this.cback.update(this, doomed, updates);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
     }
@@ -372,8 +371,7 @@ public class LiveTServerSet implements Watcher {
 
           try {
             checkServer(updates, doomed, path, server);
-            if (!doomed.isEmpty() || !updates.isEmpty())
-              this.cback.update(this, doomed, updates);
+            this.cback.update(this, doomed, updates);
           } catch (Exception ex) {
             log.error("Exception", ex);
           }
