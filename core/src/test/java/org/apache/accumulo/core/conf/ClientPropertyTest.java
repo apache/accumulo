@@ -23,7 +23,9 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class ClientPropertyTest {
 
@@ -53,5 +55,26 @@ public class ClientPropertyTest {
 
     ClientProperty.setKerberosKeytab(props, "/path/to/keytab");
     assertEquals("/path/to/keytab", ClientProperty.AUTH_TOKEN.getValue(props));
+  }
+
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
+
+  @Test
+  public void testTypes(){
+    Properties props = new Properties();
+    props.setProperty(ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC.getKey(), "10s");
+    Long value = ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC.getTimeInMillis(props);
+    assertEquals(10000L, value.longValue());
+
+    props.setProperty(ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES.getKey(), "555M");
+    exception.expect(NumberFormatException.class);
+    value = ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES.getBytes(props);
+    assertEquals(581959680L, value.longValue());
+    props.setProperty(ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES.getKey(), "555M");
+
+    exception.expect(NumberFormatException.class);
+    value = ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES.getTimeInMillis(props);
+    assertEquals(581959680L, value.longValue());
   }
 }

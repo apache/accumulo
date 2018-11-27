@@ -247,15 +247,15 @@ public class ClientContext {
     if (batchWriterConfig == null) {
       Properties props = info.getProperties();
       batchWriterConfig = new BatchWriterConfig();
-      Long maxMemory = ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES.getLong(props);
+      Long maxMemory = ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES.getBytes(props);
       if (maxMemory != null) {
         batchWriterConfig.setMaxMemory(maxMemory);
       }
-      Long maxLatency = ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC.getLong(props);
+      Long maxLatency = ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC.getTimeInMillis(props);
       if (maxLatency != null) {
         batchWriterConfig.setMaxLatency(maxLatency, TimeUnit.SECONDS);
       }
-      Long timeout = ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC.getLong(props);
+      Long timeout = ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC.getTimeInMillis(props);
       if (timeout != null) {
         batchWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
       }

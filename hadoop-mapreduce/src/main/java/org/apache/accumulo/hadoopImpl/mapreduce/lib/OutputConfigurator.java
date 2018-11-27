@@ -98,18 +98,18 @@ public class OutputConfigurator extends ConfiguratorBase {
     String property = props.getProperty(BATCH_WRITER_DURABILITY.getKey());
     if (property != null)
       bwConfig.setDurability(DurabilityImpl.fromString(property));
-    property = props.getProperty(BATCH_WRITER_MAX_LATENCY_SEC.getKey());
-    if (property != null)
-      bwConfig.setMaxLatency(Long.parseLong(property), TimeUnit.MILLISECONDS);
-    property = props.getProperty(BATCH_WRITER_MAX_MEMORY_BYTES.getKey());
-    if (property != null)
-      bwConfig.setMaxMemory(Long.parseLong(property));
-    property = props.getProperty(BATCH_WRITER_MAX_TIMEOUT_SEC.getKey());
-    if (property != null)
-      bwConfig.setTimeout(Long.parseLong(property), TimeUnit.MILLISECONDS);
-    property = props.getProperty(BATCH_WRITER_MAX_WRITE_THREADS.getKey());
-    if (property != null)
-      bwConfig.setMaxWriteThreads(Integer.parseInt(property));
+    Long value = BATCH_WRITER_MAX_LATENCY_SEC.getTimeInMillis(props);
+    if (value != null)
+      bwConfig.setMaxLatency(value, TimeUnit.MILLISECONDS);
+    value = BATCH_WRITER_MAX_MEMORY_BYTES.getBytes(props);
+    if (value != null)
+      bwConfig.setMaxMemory(value);
+    value = BATCH_WRITER_MAX_TIMEOUT_SEC.getTimeInMillis(props);
+    if (value != null)
+      bwConfig.setTimeout(value, TimeUnit.MILLISECONDS);
+    Integer intValue = BATCH_WRITER_MAX_WRITE_THREADS.getInteger(props);
+    if (intValue != null)
+      bwConfig.setMaxWriteThreads(intValue);
 
     return bwConfig;
   }

@@ -181,25 +181,28 @@ public enum ClientProperty {
     return (value == null || value.isEmpty());
   }
 
-  /**
-   * Return a long value for this ClientProperty. The value will be in bytes for properties with
-   * type of {@link PropertyType#BYTES} and milliseconds for properties of type
-   * {@link PropertyType#TIMEDURATION}
-   */
   public Long getLong(Properties properties) {
     String value = getValue(properties);
-    Long longValue;
     if (value.isEmpty()) {
       return null;
     }
-    if (type.equals(PropertyType.BYTES)) {
-      longValue = ConfigurationTypeHelper.getMemoryAsBytes(value);
-    } else if (type.equals(PropertyType.TIMEDURATION)) {
-      longValue = ConfigurationTypeHelper.getTimeInMillis(value);
-    } else {
-      longValue = Long.parseLong(value);
+    return Long.parseLong(value);
+  }
+
+  public Long getBytes(Properties properties) {
+    String value = getValue(properties);
+    if (value.isEmpty()) {
+      return null;
     }
-    return longValue;
+    return ConfigurationTypeHelper.getMemoryAsBytes(value);
+  }
+
+  public Long getTimeInMillis(Properties properties) {
+    String value = getValue(properties);
+    if (value.isEmpty()) {
+      return null;
+    }
+    return ConfigurationTypeHelper.getTimeInMillis(value);
   }
 
   public Integer getInteger(Properties properties) {

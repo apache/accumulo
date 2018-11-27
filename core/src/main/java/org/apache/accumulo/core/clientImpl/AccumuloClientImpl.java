@@ -376,9 +376,9 @@ public class AccumuloClientImpl implements AccumuloClient {
     public ConnectionOptions batchWriterConfig(BatchWriterConfig batchWriterConfig) {
       setProperty(ClientProperty.BATCH_WRITER_MAX_MEMORY_BYTES, batchWriterConfig.getMaxMemory());
       setProperty(ClientProperty.BATCH_WRITER_MAX_LATENCY_SEC,
-          batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+          batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS) + "ms");
       setProperty(ClientProperty.BATCH_WRITER_MAX_TIMEOUT_SEC,
-          batchWriterConfig.getTimeout(TimeUnit.MILLISECONDS));
+          batchWriterConfig.getTimeout(TimeUnit.MILLISECONDS) + "ms");
       setProperty(ClientProperty.BATCH_WRITER_MAX_WRITE_THREADS,
           batchWriterConfig.getMaxWriteThreads());
       setProperty(ClientProperty.BATCH_WRITER_DURABILITY,
