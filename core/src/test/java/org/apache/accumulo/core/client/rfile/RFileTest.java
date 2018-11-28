@@ -51,7 +51,7 @@ import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.cryptoImpl.NoCryptoService;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -816,9 +816,8 @@ public class RFileTest {
 
   private Reader getReader(LocalFileSystem localFs, String testFile) throws IOException {
     return (Reader) FileOperations.getInstance().newReaderBuilder()
-        .forFile(testFile, localFs, localFs.getConf())
-        .withTableConfiguration(DefaultConfiguration.getInstance())
-        .withCryptoService(new NoCryptoService()).build();
+        .forFile(testFile, localFs, localFs.getConf(), CryptoServiceFactory.newDefaultInstance())
+        .withTableConfiguration(DefaultConfiguration.getInstance()).build();
   }
 
   @Test

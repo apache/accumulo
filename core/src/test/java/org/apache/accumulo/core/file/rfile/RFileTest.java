@@ -242,7 +242,7 @@ public class RFileTest {
       baos = new ByteArrayOutputStream();
       dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
       BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, accumuloConfiguration,
-          CryptoServiceFactory.newInstance(accumuloConfiguration));
+          CryptoServiceFactory.newInstance(accumuloConfiguration, false));
 
       SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
           .newSamplerConfig(accumuloConfiguration);
@@ -305,7 +305,7 @@ public class RFileTest {
 
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader("source-1", in, fileLength, conf,
           dataCache, indexCache, accumuloConfiguration,
-          CryptoServiceFactory.newInstance(accumuloConfiguration));
+          CryptoServiceFactory.newInstance(accumuloConfiguration, false));
       reader = new RFile.Reader(_cbr);
       if (cfsi)
         iter = new ColumnFamilySkippingIterator(reader);
@@ -1735,7 +1735,7 @@ public class RFileTest {
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in2 = new FSDataInputStream(bais);
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in2, data.length,
-        CachedConfiguration.getInstance(), aconf, CryptoServiceFactory.newInstance(aconf));
+        CachedConfiguration.getInstance(), aconf, CryptoServiceFactory.newInstance(aconf, false));
     Reader reader = new RFile.Reader(_cbr);
     checkIndex(reader);
 

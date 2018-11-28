@@ -117,7 +117,7 @@ public class ServerContext extends ClientContext {
           + " already exists and cannot be setup again");
 
     AccumuloConfiguration acuConf = getConfiguration();
-    cryptoService = CryptoServiceFactory.newInstance(acuConf);
+    cryptoService = CryptoServiceFactory.newInstance(acuConf, true);
   }
 
   public void teardownServer() {

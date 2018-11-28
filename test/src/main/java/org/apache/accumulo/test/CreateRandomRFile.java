@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Random;
 
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVWriter;
@@ -71,7 +72,8 @@ public class CreateRandomRFile {
     FileSKVWriter mfw;
     try {
       FileSystem fs = FileSystem.get(conf);
-      mfw = new RFileOperations().newWriterBuilder().forFile(file, fs, conf)
+      mfw = new RFileOperations().newWriterBuilder()
+          .forFile(file, fs, conf, CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
     } catch (IOException e) {
       throw new RuntimeException(e);

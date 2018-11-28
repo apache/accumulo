@@ -34,6 +34,7 @@ import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -42,6 +43,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.commons.lang.NotImplementedException;
@@ -114,14 +116,17 @@ public class BulkImporterTest {
   public void testFindOverlappingTablets() throws Exception {
     MockTabletLocator locator = new MockTabletLocator();
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
-    ClientContext context = EasyMock.createMock(ClientContext.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
     EasyMock.expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance())
+        .anyTimes();
+    EasyMock.expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
         .anyTimes();
     EasyMock.replay(context);
     String file = "target/testFile.rf";
     fs.delete(new Path(file), true);
     FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(file, fs, fs.getConf()).withTableConfiguration(context.getConfiguration()).build();
+        .forFile(file, fs, fs.getConf(), CryptoServiceFactory.newDefaultInstance())
+        .withTableConfiguration(context.getConfiguration()).build();
     writer.startDefaultLocalityGroup();
     Value empty = new Value(new byte[] {});
     writer.append(new Key("a", "cf", "cq"), empty);

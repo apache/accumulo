@@ -57,7 +57,6 @@ import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
 import org.apache.accumulo.core.cryptoImpl.AESCryptoService;
 import org.apache.accumulo.core.cryptoImpl.AESKeyUtils;
 import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
-import org.apache.accumulo.core.cryptoImpl.NoCryptoService;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
@@ -177,7 +176,7 @@ public class CryptoTest {
 
   @Test
   public void testNoEncryptionWAL() throws Exception {
-    NoCryptoService cs = new NoCryptoService();
+    CryptoService cs = CryptoServiceFactory.newDefaultInstance();
     byte[] encryptedBytes = encrypt(cs, Scope.WAL, CRYPTO_OFF_CONF);
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
@@ -191,7 +190,7 @@ public class CryptoTest {
 
   @Test
   public void testNoEncryptionRFILE() throws Exception {
-    NoCryptoService cs = new NoCryptoService();
+    CryptoService cs = CryptoServiceFactory.newDefaultInstance();
     byte[] encryptedBytes = encrypt(cs, Scope.RFILE, CRYPTO_OFF_CONF);
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
@@ -393,7 +392,7 @@ public class CryptoTest {
       byte[] params = CryptoUtils.readParams(dataIn);
 
       AccumuloConfiguration conf = getAccumuloConfig(configFile);
-      CryptoService cryptoService = CryptoServiceFactory.newInstance(conf);
+      CryptoService cryptoService = CryptoServiceFactory.newInstance(conf, false);
       CryptoEnvironment env = new CryptoEnvironmentImpl(scope, params);
 
       FileDecrypter decrypter = cryptoService.getFileDecrypter(env);

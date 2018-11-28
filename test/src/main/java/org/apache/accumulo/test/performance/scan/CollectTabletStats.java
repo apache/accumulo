@@ -41,6 +41,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
@@ -467,7 +468,9 @@ public class CollectTabletStats {
     for (FileRef file : files) {
       FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.path().toString(), ns, ns.getConf()).withTableConfiguration(aconf).build();
+          .forFile(file.path().toString(), ns, ns.getConf(),
+              CryptoServiceFactory.newDefaultInstance())
+          .withTableConfiguration(aconf).build();
       Range range = new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true);
       reader.seek(range, columnSet, columnSet.size() != 0);
       while (reader.hasTop() && !range.afterEndKey(reader.getTopKey())) {
@@ -499,7 +502,8 @@ public class CollectTabletStats {
     for (FileRef file : files) {
       FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
       readers.add(FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.path().toString(), ns, ns.getConf())
+          .forFile(file.path().toString(), ns, ns.getConf(),
+              CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(aconf.getSystemConfiguration()).build());
     }
 

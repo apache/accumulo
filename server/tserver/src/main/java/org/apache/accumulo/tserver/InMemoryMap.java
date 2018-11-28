@@ -641,9 +641,9 @@ public class InMemoryMap {
         Configuration conf = CachedConfiguration.getInstance();
         FileSystem fs = FileSystem.getLocal(conf);
 
-        reader = new RFileOperations().newReaderBuilder().forFile(memDumpFile, fs, conf)
-            .withTableConfiguration(context.getConfiguration())
-            .withCryptoService(context.getCryptoService()).seekToBeginning().build();
+        reader = new RFileOperations().newReaderBuilder()
+            .forFile(memDumpFile, fs, conf, context.getCryptoService())
+            .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
         if (iflag != null)
           reader.setInterruptFlag(iflag);
 
@@ -813,8 +813,9 @@ public class InMemoryMap {
           aconf = createSampleConfig(aconf);
         }
 
-        FileSKVWriter out = new RFileOperations().newWriterBuilder().forFile(tmpFile, fs, newConf)
-            .withTableConfiguration(aconf).withCryptoService(context.getCryptoService()).build();
+        FileSKVWriter out = new RFileOperations().newWriterBuilder()
+            .forFile(tmpFile, fs, newConf, context.getCryptoService()).withTableConfiguration(aconf)
+            .build();
 
         InterruptibleIterator iter = map.skvIterator(null);
 

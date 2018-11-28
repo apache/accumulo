@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.PartialKey;
@@ -362,7 +363,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     for (String file : absFiles) {
       FileSystem fs = VolumeConfiguration.getVolume(file, conf, config).getFileSystem();
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file, fs, conf).withTableConfiguration(acuTableConf).build();
+          .forFile(file, fs, conf, CryptoServiceFactory.newDefaultInstance())
+          .withTableConfiguration(acuTableConf).build();
       if (scannerSamplerConfigImpl != null) {
         reader = reader.getSample(scannerSamplerConfigImpl);
         if (reader == null)

@@ -217,7 +217,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
     if (null == this.dataCache) {
       this.dataCache = new NoopCache();
     }
-    this.cryptoService = CryptoServiceFactory.newInstance(tableConf);
+    this.cryptoService = CryptoServiceFactory.newInstance(tableConf, false);
   }
 
   @Override

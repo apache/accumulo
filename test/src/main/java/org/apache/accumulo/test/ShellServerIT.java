@@ -73,6 +73,7 @@ import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
@@ -1398,9 +1399,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     fs.mkdirs(new Path(errorsDir.toString()));
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(even, fs, conf).withTableConfiguration(aconf).build();
+        .forFile(even, fs, conf, CryptoServiceFactory.newDefaultInstance())
+        .withTableConfiguration(aconf).build();
     evenWriter.startDefaultLocalityGroup();
-    FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder().forFile(odd, fs, conf)
+    FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder()
+        .forFile(odd, fs, conf, CryptoServiceFactory.newDefaultInstance())
         .withTableConfiguration(aconf).build();
     oddWriter.startDefaultLocalityGroup();
     long timestamp = System.currentTimeMillis();

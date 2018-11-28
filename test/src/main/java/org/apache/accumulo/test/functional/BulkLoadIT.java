@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.LoadPlan.RangeType;
@@ -415,7 +416,8 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     FileSystem fs = getCluster().getFileSystem();
     String filename = file + RFile.EXTENSION;
     try (FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(filename, fs, fs.getConf()).withTableConfiguration(aconf).build()) {
+        .forFile(filename, fs, fs.getConf(), CryptoServiceFactory.newDefaultInstance())
+        .withTableConfiguration(aconf).build()) {
       writer.startDefaultLocalityGroup();
       for (int i = s; i <= e; i++) {
         writer.append(new Key(new Text(row(i))), new Value(Integer.toString(i).getBytes(UTF_8)));

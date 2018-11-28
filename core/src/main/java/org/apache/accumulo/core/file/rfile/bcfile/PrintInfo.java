@@ -39,7 +39,7 @@ public class PrintInfo {
     BCFile.Reader bcfr = null;
     try {
       bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, siteConfig,
-          CryptoServiceFactory.newInstance(siteConfig));
+          CryptoServiceFactory.newInstance(siteConfig, false));
 
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
 

@@ -17,7 +17,6 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl.Scope;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
@@ -50,6 +49,7 @@ import org.apache.accumulo.core.cryptoImpl.NoCryptoService;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
@@ -370,7 +370,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic)) {
         byte[] params = CryptoUtils.readParams(input);
-        CryptoService cryptoService = CryptoServiceFactory.newInstance(conf);
+        CryptoService cryptoService = CryptoServiceFactory.newInstance(conf, true);
         CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, params);
 
         FileDecrypter decrypter = cryptoService.getFileDecrypter(env);

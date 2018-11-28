@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -316,7 +317,7 @@ public class CachableBlockFile {
       this.readLimiter = readLimiter;
       this.conf = conf;
       this.accumuloConfiguration = accumuloConfiguration;
-      this.cryptoService = cryptoService;
+      this.cryptoService = Objects.requireNonNull(cryptoService);
     }
 
     public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data,

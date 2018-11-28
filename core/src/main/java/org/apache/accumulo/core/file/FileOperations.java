@@ -188,7 +188,7 @@ public abstract class FileOperations {
       this.indexCache = indexCache;
       this.fileLenCache = fileLenCache;
       this.seekToBeginning = seekToBeginning;
-      this.cryptoService = cryptoService;
+      this.cryptoService = Objects.requireNonNull(cryptoService);
       this.range = range;
       this.columnFamilies = columnFamilies;
       this.inclusive = inclusive;
@@ -263,34 +263,30 @@ public abstract class FileOperations {
    * Helper class extended by both writers and readers.
    */
   public class FileHelper {
-    protected AccumuloConfiguration tableConfiguration;
-    protected String filename;
-    protected FileSystem fs;
-    protected Configuration fsConf;
-    protected RateLimiter rateLimiter;
-    protected CryptoService cryptoService;
+    private AccumuloConfiguration tableConfiguration;
+    private String filename;
+    private FileSystem fs;
+    private Configuration fsConf;
+    private RateLimiter rateLimiter;
+    private CryptoService cryptoService;
 
     protected FileHelper fs(FileSystem fs) {
-      Objects.requireNonNull(fs);
-      this.fs = fs;
+      this.fs = Objects.requireNonNull(fs);
       return this;
     }
 
     protected FileHelper fsConf(Configuration fsConf) {
-      Objects.requireNonNull(fsConf);
-      this.fsConf = fsConf;
+      this.fsConf = Objects.requireNonNull(fsConf);
       return this;
     }
 
     protected FileHelper filename(String filename) {
-      Objects.requireNonNull(filename);
-      this.filename = filename;
+      this.filename = Objects.requireNonNull(filename);
       return this;
     }
 
     protected FileHelper tableConfiguration(AccumuloConfiguration tableConfiguration) {
-      Objects.requireNonNull(tableConfiguration);
-      this.tableConfiguration = tableConfiguration;
+      this.tableConfiguration = Objects.requireNonNull(tableConfiguration);
       return this;
     }
 
@@ -300,7 +296,7 @@ public abstract class FileOperations {
     }
 
     protected FileHelper cryptoService(CryptoService cs) {
-      this.cryptoService = cs;
+      this.cryptoService = Objects.requireNonNull(cs);
       return this;
     }
 
@@ -327,6 +323,10 @@ public abstract class FileOperations {
       return new FileOptions(tableConfiguration, filename, fs, fsConf, rateLimiter, null, null,
           false, null, null, null, false, cryptoService, range, columnFamilies, inclusive);
     }
+
+    protected AccumuloConfiguration getTableConfiguration() {
+      return tableConfiguration;
+    }
   }
 
   /**
@@ -338,14 +338,15 @@ public abstract class FileOperations {
     private boolean enableAccumuloStart = true;
 
     public WriterTableConfiguration forOutputStream(String extension,
-        FSDataOutputStream outputStream, Configuration fsConf) {
+        FSDataOutputStream outputStream, Configuration fsConf, CryptoService cs) {
       this.outputStream = outputStream;
-      filename("foo" + extension).fsConf(fsConf);
+      filename("foo" + extension).fsConf(fsConf).cryptoService(cs);
       return this;
     }
 
-    public WriterTableConfiguration forFile(String filename, FileSystem fs, Configuration fsConf) {
-      filename(filename).fs(fs).fsConf(fsConf);
+    public WriterTableConfiguration forFile(String filename, FileSystem fs, Configuration fsConf,
+        CryptoService cs) {
+      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
     }
 
@@ -370,11 +371,6 @@ public abstract class FileOperations {
       return this;
     }
 
-    public WriterBuilder withCryptoService(CryptoService cs) {
-      cryptoService(cs);
-      return this;
-    }
-
     public FileSKVWriter build() throws IOException {
       return openWriter(toWriterBuilderOptions(compression, outputStream, enableAccumuloStart));
     }
@@ -393,8 +389,9 @@ public abstract class FileOperations {
     private Cache<String,Long> fileLenCache;
     private boolean seekToBeginning = false;
 
-    public ReaderTableConfiguration forFile(String filename, FileSystem fs, Configuration fsConf) {
-      filename(filename).fs(fs).fsConf(fsConf);
+    public ReaderTableConfiguration forFile(String filename, FileSystem fs, Configuration fsConf,
+        CryptoService cs) {
+      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
     }
 
@@ -433,11 +430,6 @@ public abstract class FileOperations {
       return this;
     }
 
-    public ReaderBuilder withCryptoService(CryptoService cs) {
-      cryptoService(cs);
-      return this;
-    }
-
     public ReaderBuilder withRateLimiter(RateLimiter rateLimiter) {
       rateLimiter(rateLimiter);
       return this;
@@ -464,10 +456,10 @@ public abstract class FileOperations {
        * If the table configuration disallows caching, rewrite the options object to not pass the
        * caches.
        */
-      if (!tableConfiguration.getBoolean(Property.TABLE_INDEXCACHE_ENABLED)) {
+      if (!getTableConfiguration().getBoolean(Property.TABLE_INDEXCACHE_ENABLED)) {
         withIndexCache(null);
       }
-      if (!tableConfiguration.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) {
+      if (!getTableConfiguration().getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) {
         withDataCache(null);
       }
       return openReader(
@@ -487,8 +479,8 @@ public abstract class FileOperations {
     private Cache<String,Long> fileLenCache = null;
 
     public IndexReaderTableConfiguration forFile(String filename, FileSystem fs,
-        Configuration fsConf) {
-      filename(filename).fs(fs).fsConf(fsConf);
+        Configuration fsConf, CryptoService cs) {
+      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
     }
 
@@ -519,8 +511,8 @@ public abstract class FileOperations {
     private boolean inclusive;
 
     public ScanReaderTableConfiguration forFile(String filename, FileSystem fs,
-        Configuration fsConf) {
-      filename(filename).fs(fs).fsConf(fsConf);
+        Configuration fsConf, CryptoService cs) {
+      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
     }
 
