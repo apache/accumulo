@@ -356,7 +356,7 @@ public class AccumuloClientImpl implements AccumuloClient {
 
     @Override
     public ConnectionOptions zkTimeout(int timeout) {
-      ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.setTime(properties, (long) timeout);
+      ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.setTimeInMillis(properties, (long) timeout);
       return this;
     }
 
@@ -375,9 +375,9 @@ public class AccumuloClientImpl implements AccumuloClient {
     @Override
     public ConnectionOptions batchWriterConfig(BatchWriterConfig batchWriterConfig) {
       ClientProperty.BATCH_WRITER_MEMORY_MAX.setBytes(properties, batchWriterConfig.getMaxMemory());
-      ClientProperty.BATCH_WRITER_LATENCY_MAX.setTime(properties,
+      ClientProperty.BATCH_WRITER_LATENCY_MAX.setTimeInMillis(properties,
           batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
-      ClientProperty.BATCH_WRITER_TIMEOUT_MAX.setTime(properties,
+      ClientProperty.BATCH_WRITER_TIMEOUT_MAX.setTimeInMillis(properties,
           batchWriterConfig.getTimeout(TimeUnit.MILLISECONDS));
       setProperty(ClientProperty.BATCH_WRITER_THREADS_MAX, batchWriterConfig.getMaxWriteThreads());
       setProperty(ClientProperty.BATCH_WRITER_DURABILITY,

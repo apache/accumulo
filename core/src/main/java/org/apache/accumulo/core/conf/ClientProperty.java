@@ -225,7 +225,7 @@ public enum ClientProperty {
     properties.setProperty(getKey(), bytes.toString());
   }
 
-  public void setTime(Properties properties, Long milliseconds) {
+  public void setTimeInMillis(Properties properties, Long milliseconds) {
     checkState(PropertyType.TIMEDURATION == getType(), "Invalid type setting "
         + "time. Type must be " + PropertyType.TIMEDURATION + ", not " + getType());
     properties.setProperty(getKey(), milliseconds + "ms");

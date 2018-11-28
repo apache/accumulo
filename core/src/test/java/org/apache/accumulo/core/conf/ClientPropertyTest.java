@@ -75,7 +75,7 @@ public class ClientPropertyTest {
     value = ClientProperty.BATCH_WRITER_MEMORY_MAX.getBytes(props);
     assertEquals(5819L, value.longValue());
 
-    ClientProperty.BATCH_WRITER_LATENCY_MAX.setTime(props, 1234L);
+    ClientProperty.BATCH_WRITER_LATENCY_MAX.setTimeInMillis(props, 1234L);
     value = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
     assertEquals(1234L, value.longValue());
 
