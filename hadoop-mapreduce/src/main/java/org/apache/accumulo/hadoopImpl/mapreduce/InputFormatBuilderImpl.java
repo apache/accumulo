@@ -36,9 +36,9 @@ import org.apache.hadoop.mapreduce.Job;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-public class InputFormatBuilderImpl<T> implements InputFormatBuilder,
-    InputFormatBuilder.ClientParams<T>, InputFormatBuilder.TableParams<T>,
-    InputFormatBuilder.AuthsParams<T>, InputFormatBuilder.InputFormatOptions<T>,
+public class InputFormatBuilderImpl<T>
+    implements InputFormatBuilder, InputFormatBuilder.ClientParams<T>,
+    InputFormatBuilder.TableParams<T>, InputFormatBuilder.InputFormatOptions<T>,
     InputFormatBuilder.ScanOptions<T>, InputFormatBuilder.BatchScanOptions<T> {
 
   Class<?> callingClass;
@@ -65,7 +65,7 @@ public class InputFormatBuilderImpl<T> implements InputFormatBuilder,
   }
 
   @Override
-  public InputFormatBuilder.AuthsParams<T> table(String tableName) {
+  public InputFormatBuilder.InputFormatOptions<T> table(String tableName) {
     this.tableName = Objects.requireNonNull(tableName, "Table name must not be null");
     return this;
   }

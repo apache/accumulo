@@ -65,23 +65,7 @@ public interface InputFormatBuilder {
      * @param tableName
      *          the table to use when the tablename is null in the write call
      */
-    AuthsParams<T> table(String tableName);
-  }
-
-  /**
-   * Required params for builder
-   *
-   * @since 2.0
-   */
-  interface AuthsParams<T> {
-    /**
-     * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorizations.
-     * If none present use {@link Authorizations#EMPTY}
-     *
-     * @param auths
-     *          the user's authorizations
-     */
-    InputFormatOptions<T> auths(Authorizations auths);
+    InputFormatOptions<T> table(String tableName);
   }
 
   /**
@@ -124,6 +108,15 @@ public interface InputFormatBuilder {
    * @since 2.0
    */
   interface InputFormatOptions<T> {
+    /**
+     * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorizations.
+     * By Default, auths are set to {@link Authorizations#EMPTY}
+     *
+     * @param auths
+     *          the user's authorizations
+     */
+    InputFormatOptions<T> auths(Authorizations auths);
+
     /**
      * Sets the name of the classloader context on this scanner
      *
