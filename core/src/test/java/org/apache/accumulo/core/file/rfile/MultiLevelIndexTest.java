@@ -27,6 +27,7 @@ import java.util.Random;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.BufferedWriter;
@@ -61,7 +62,7 @@ public class MultiLevelIndexTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
     BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", CachedConfiguration.getInstance(),
-        aconf, CryptoServiceFactory.newInstance(aconf, false));
+        aconf, CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
 
     BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
 
@@ -82,7 +83,8 @@ public class MultiLevelIndexTest {
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in = new FSDataInputStream(bais);
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, data.length,
-        CachedConfiguration.getInstance(), aconf, CryptoServiceFactory.newInstance(aconf, false));
+        CachedConfiguration.getInstance(), aconf,
+        CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
 
     Reader reader = new Reader(_cbr, RFile.RINDEX_VER_8);
     CachableBlockFile.CachedBlockRead rootIn = _cbr.getMetaBlock("root");

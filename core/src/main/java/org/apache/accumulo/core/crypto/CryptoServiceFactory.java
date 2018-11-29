@@ -24,22 +24,21 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 
 public class CryptoServiceFactory {
 
-  /**
-   * Create a new crypto service configured in {@link Property#INSTANCE_CRYPTO_SERVICE}.
-   *
-   * @param useAccumuloClassloader
-   *          Determine if Accumulo class loader is used. When calling from accumulo server code,
-   *          pass true. When calling from Accumulo client code, pass false.
-   */
-  public static CryptoService newInstance(AccumuloConfiguration conf,
-      boolean useAccumuloClassloader) {
+  public enum ClassloaderType {
+    // Use the Accumulo custom classloader. Should only be used by Accumulo server side code.
+    ACCUMULO,
+    // Use basic Java classloading mechanism. Should be use by Accumulo client code.
+    JAVA
+  }
+
+  public static CryptoService newInstance(AccumuloConfiguration conf, ClassloaderType ct) {
 
     CryptoService newCryptoService;
 
-    if (useAccumuloClassloader) {
+    if (ct == ClassloaderType.ACCUMULO) {
       newCryptoService = Property.createInstanceFromPropertyName(conf,
           Property.INSTANCE_CRYPTO_SERVICE, CryptoService.class, new NoCryptoService());
-    } else {
+    } else if (ct == ClassloaderType.JAVA) {
       String clazzName = conf.get(Property.INSTANCE_CRYPTO_SERVICE);
       if (clazzName == null || clazzName.trim().isEmpty()) {
         newCryptoService = new NoCryptoService();
@@ -51,6 +50,8 @@ public class CryptoServiceFactory {
           throw new RuntimeException(e);
         }
       }
+    } else {
+      throw new IllegalArgumentException();
     }
 
     newCryptoService.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
@@ -58,6 +59,6 @@ public class CryptoServiceFactory {
   }
 
   public static CryptoService newDefaultInstance() {
-    return newInstance(DefaultConfiguration.getInstance(), false);
+    return newInstance(DefaultConfiguration.getInstance(), ClassloaderType.JAVA);
   }
 }

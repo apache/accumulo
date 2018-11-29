@@ -53,6 +53,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
 import org.apache.accumulo.core.cryptoImpl.AESCryptoService;
 import org.apache.accumulo.core.cryptoImpl.AESKeyUtils;
@@ -392,7 +393,7 @@ public class CryptoTest {
       byte[] params = CryptoUtils.readParams(dataIn);
 
       AccumuloConfiguration conf = getAccumuloConfig(configFile);
-      CryptoService cryptoService = CryptoServiceFactory.newInstance(conf, false);
+      CryptoService cryptoService = CryptoServiceFactory.newInstance(conf, ClassloaderType.JAVA);
       CryptoEnvironment env = new CryptoEnvironmentImpl(scope, params);
 
       FileDecrypter decrypter = cryptoService.getFileDecrypter(env);

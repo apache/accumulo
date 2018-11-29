@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -39,7 +40,7 @@ public class PrintInfo {
     BCFile.Reader bcfr = null;
     try {
       bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, siteConfig,
-          CryptoServiceFactory.newInstance(siteConfig, false));
+          CryptoServiceFactory.newInstance(siteConfig, ClassloaderType.ACCUMULO));
 
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
 

@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -152,7 +153,7 @@ public class MultiThreadedRFileTest {
       Path path = new Path("file://" + rfile);
       dos = fs.create(path, true);
       BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, accumuloConfiguration,
-          CryptoServiceFactory.newInstance(accumuloConfiguration, false));
+          CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
       SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
           .newSamplerConfig(accumuloConfiguration);
       Sampler sampler = null;
@@ -186,7 +187,7 @@ public class MultiThreadedRFileTest {
 
       // the caches used to obfuscate the multithreaded issues
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, null, null,
-          defaultConf, CryptoServiceFactory.newInstance(defaultConf, false));
+          defaultConf, CryptoServiceFactory.newInstance(defaultConf, ClassloaderType.JAVA));
       reader = new RFile.Reader(_cbr);
       iter = new ColumnFamilySkippingIterator(reader);
 

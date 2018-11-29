@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
@@ -90,7 +91,7 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
     RFileSource[] sources = in.getSources();
     try {
       SummaryCollection all = new SummaryCollection();
-      CryptoService cservice = CryptoServiceFactory.newInstance(acuconf, false);
+      CryptoService cservice = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA);
       for (RFileSource source : sources) {
         SummaryReader fileSummary = SummaryReader.load(in.getFileSystem().getConf(), acuconf,
             source.getInputStream(), source.getLength(), summarySelector, factory, cservice);

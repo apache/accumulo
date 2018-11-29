@@ -42,6 +42,7 @@ import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
 import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
@@ -370,7 +371,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic)) {
         byte[] params = CryptoUtils.readParams(input);
-        CryptoService cryptoService = CryptoServiceFactory.newInstance(conf, true);
+        CryptoService cryptoService = CryptoServiceFactory.newInstance(conf,
+            ClassloaderType.ACCUMULO);
         CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, params);
 
         FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
