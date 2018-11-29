@@ -51,6 +51,7 @@ import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -593,7 +594,8 @@ public class SummaryIT extends AccumuloClusterHarness {
       PasswordToken passTok = new PasswordToken("letmesee");
       c.securityOperations().createLocalUser("user1", passTok);
 
-      try (AccumuloClient c2 = c.changeUser("user1", passTok)) {
+      try (AccumuloClient c2 = Accumulo.newClient().from(c.properties()).as("user1", passTok)
+          .build()) {
         try {
           c2.tableOperations().summaries(table).retrieve();
           fail("Expected operation to fail because user does not have permssion to get summaries");

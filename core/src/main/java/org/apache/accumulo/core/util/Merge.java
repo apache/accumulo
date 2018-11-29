@@ -221,7 +221,7 @@ public class Merge {
     Table.ID tableId;
     Scanner scanner;
     try {
-      ClientContext context = new ClientContext(client.info());
+      ClientContext context = new ClientContext(client);
       tableId = Tables.getTableId(context, tablename);
       scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     } catch (Exception e) {

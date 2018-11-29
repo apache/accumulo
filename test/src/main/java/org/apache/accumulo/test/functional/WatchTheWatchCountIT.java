@@ -53,7 +53,7 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
         c.tableOperations().create(tableName);
       }
       c.tableOperations().list();
-      String zooKeepers = c.info().getZooKeepers();
+      String zooKeepers = getClientInfo().getZooKeepers();
       final long MIN = 475L;
       final long MAX = 700L;
       long total = 0;

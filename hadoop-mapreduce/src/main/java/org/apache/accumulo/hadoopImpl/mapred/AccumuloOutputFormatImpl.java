@@ -219,7 +219,7 @@ public class AccumuloOutputFormatImpl {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
 
       if (!simulate) {
-        this.client = Accumulo.newClient().from(getClientInfo(job)).build();
+        this.client = Accumulo.newClient().from(getClientInfo(job).getProperties()).build();
         mtbw = client.createMultiTableBatchWriter();
       }
     }

@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -100,10 +101,10 @@ public class BatchWriterIterator extends WrappingIterator {
       long batchWriterTimeout, long batchWriterMaxMemory, int numEntriesToWrite, String tableName,
       AccumuloClient accumuloClient, AuthenticationToken token, boolean clearCacheAfterFirstWrite,
       boolean splitAfterFirstWrite) {
+    ClientInfo info = ClientInfo.from(accumuloClient.properties());
     return iteratorSetting(priority, sleepAfterFirstWrite, batchWriterTimeout, batchWriterMaxMemory,
-        numEntriesToWrite, tableName, accumuloClient.info().getZooKeepers(),
-        accumuloClient.info().getInstanceName(),
-        accumuloClient.info().getZooKeepersSessionTimeOut(), accumuloClient.whoami(), token,
+        numEntriesToWrite, tableName, info.getZooKeepers(), info.getInstanceName(),
+        info.getZooKeepersSessionTimeOut(), accumuloClient.whoami(), token,
         clearCacheAfterFirstWrite, splitAfterFirstWrite);
   }
 

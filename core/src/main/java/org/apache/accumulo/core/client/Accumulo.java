@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client;
 
+import java.util.Properties;
+
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.clientImpl.AccumuloClientImpl;
@@ -62,7 +64,24 @@ public final class Accumulo {
    *
    * @return a builder object for Accumulo clients
    */
-  public static AccumuloClient.ClientInfoOptions newClient() {
-    return new AccumuloClientImpl.AccumuloClientBuilderImpl();
+  public static AccumuloClient.PropertyOptions<AccumuloClient> newClient() {
+    return AccumuloClientImpl.ClientBuilderImpl.newClientBuilder();
+  }
+
+  /**
+   * Fluent entry point for creating client {@link Properties}. For example:
+   *
+   * <pre>
+   * <code>
+   * Properties clientProperties = Accumulo.newClientProperties()
+   *              .to(instanceName, zookeepers)
+   *              .as(user, password).build())
+   * </code>
+   * </pre>
+   *
+   * @return a builder object for client Properties
+   */
+  public static AccumuloClient.PropertyOptions<Properties> newClientProperties() {
+    return AccumuloClientImpl.ClientBuilderImpl.newPropertiesBuilder();
   }
 }

@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -92,6 +93,10 @@ public class ClientContext {
     return () -> Suppliers.memoizeWithExpiration(s::get, 100, TimeUnit.MILLISECONDS).get();
   }
 
+  public ClientContext(AccumuloClient client) {
+    this(ClientInfo.from(client.properties(), ((AccumuloClientImpl) client).token()));
+  }
+
   public ClientContext(ClientInfo info) {
     this(info, ClientConfConverter.toAccumuloConf(info.getProperties()));
   }
@@ -150,8 +155,9 @@ public class ClientContext {
       @Override
       public org.apache.accumulo.core.client.Connector getConnector(String principal,
           AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-        return org.apache.accumulo.core.client.Connector
-            .from(context.getClient().changeUser(principal, token));
+        AccumuloClient client = Accumulo.newClient().from(context.getProperties())
+            .as(principal, token).build();
+        return org.apache.accumulo.core.client.Connector.from(client);
       }
     };
   }

@@ -337,12 +337,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           token = new PasswordToken(password);
         }
       }
-      ClientInfo info = ClientInfo.from(props);
       try {
         DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", properties);
         this.setTableName("");
-        accumuloClient = Accumulo.newClient().from(info).as(principal, token).build();
-        context = new ClientContext(accumuloClient.info());
+        accumuloClient = Accumulo.newClient().from(props).as(principal, token).build();
+        context = new ClientContext(accumuloClient);
       } catch (Exception e) {
         printException(e);
         exitCode = 1;
@@ -614,8 +613,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public void printInfo() throws IOException {
+    ClientInfo info = ClientInfo.from(accumuloClient.properties());
     reader.print("\n" + SHELL_DESCRIPTION + "\n" + "- \n" + "- version: " + Constants.VERSION + "\n"
-        + "- instance name: " + accumuloClient.info().getInstanceName() + "\n" + "- instance id: "
+        + "- instance name: " + info.getInstanceName() + "\n" + "- instance id: "
         + accumuloClient.getInstanceID() + "\n" + "- \n"
         + "- type 'help' for a list of available commands\n" + "- \n");
     reader.flush();
@@ -654,8 +654,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public String getDefaultPrompt() {
     Objects.nonNull(accumuloClient);
-    Objects.nonNull(accumuloClient.info());
-    return accumuloClient.whoami() + "@" + accumuloClient.info().getInstanceName()
+    ClientInfo info = ClientInfo.from(accumuloClient.properties());
+    return accumuloClient.whoami() + "@" + info.getInstanceName()
         + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
   }
 
@@ -1169,8 +1169,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void updateUser(String principal, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
-    accumuloClient = accumuloClient.changeUser(principal, token);
-    context = new ClientContext(accumuloClient.info());
+    accumuloClient = Accumulo.newClient().from(accumuloClient.properties()).as(principal, token)
+        .build();
+    context = new ClientContext(accumuloClient);
   }
 
   public ClientContext getContext() {

@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -80,7 +81,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
   @Before
   public void setup() {
     accumuloClient = getAccumuloClient();
-    context = new ClientContext(accumuloClient.info());
+    context = new ClientContext(accumuloClient);
   }
 
   @After
@@ -241,9 +242,9 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
       log.trace("tid: {}", tableId);
 
       String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
-      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
-          accumuloClient.info().getZooKeepers(),
-          accumuloClient.info().getZooKeepersSessionTimeOut(), secret);
+      ClientInfo info = ClientInfo.from(accumuloClient.properties());
+      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(info.getZooKeepers(),
+          info.getZooKeepersSessionTimeOut(), secret);
       ZooStore<String> zs = new ZooStore<>(
           ZooUtil.getRoot(accumuloClient.getInstanceID()) + Constants.ZFATE, zk);
       AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk,

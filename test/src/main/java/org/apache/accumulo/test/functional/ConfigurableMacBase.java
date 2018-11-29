@@ -193,7 +193,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     return cluster;
   }
 
-  protected AccumuloClient getClient() throws AccumuloException, AccumuloSecurityException {
+  protected AccumuloClient getClient() {
     return getCluster().getAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
   }
 
@@ -202,13 +202,15 @@ public class ConfigurableMacBase extends AccumuloITBase {
   }
 
   protected ClientInfo getClientInfo() {
-    return Accumulo.newClient().to(getCluster().getInstanceName(), getCluster().getZooKeepers())
-        .as("root", ROOT_PASSWORD).info();
+    return ClientInfo.from(Accumulo.newClientProperties()
+        .to(getCluster().getInstanceName(), getCluster().getZooKeepers()).as("root", ROOT_PASSWORD)
+        .build());
   }
 
   protected ClientInfo getClientInfo(BatchWriterConfig bwConfig) {
-    return Accumulo.newClient().to(getCluster().getInstanceName(), getCluster().getZooKeepers())
-        .as("root", ROOT_PASSWORD).batchWriterConfig(bwConfig).info();
+    return ClientInfo.from(Accumulo.newClientProperties()
+        .to(getCluster().getInstanceName(), getCluster().getZooKeepers()).as("root", ROOT_PASSWORD)
+        .batchWriterConfig(bwConfig).build());
   }
 
   protected ServerContext getServerContext() {

@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -242,8 +243,9 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
         try {
           String zPath = ZooUtil.getRoot(client.getInstanceID()) + Constants.ZTSERVERS + "/"
               + tserver;
-          long sessionId = ZooLock.getSessionId(new ZooCache(getCluster().getZooKeepers(),
-              client.info().getZooKeepersSessionTimeOut()), zPath);
+          ClientInfo info = getClientInfo();
+          long sessionId = ZooLock.getSessionId(
+              new ZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut()), zPath);
           tservers.add(new TServerInstance(tserver, sessionId));
         } catch (Exception e) {
           throw new RuntimeException(e);

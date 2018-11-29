@@ -24,8 +24,6 @@ import java.util.Properties;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
@@ -174,14 +172,14 @@ public class ClientOpts extends Help {
 
   public ClientInfo getClientInfo() {
     if (cachedInfo == null) {
-      cachedInfo = Accumulo.newClient().from(getClientProperties()).info();
+      cachedInfo = ClientInfo.from(getClientProperties());
     }
     return cachedInfo;
   }
 
-  public AccumuloClient getClient() throws AccumuloException, AccumuloSecurityException {
+  public AccumuloClient getClient() {
     if (cachedAccumuloClient == null) {
-      cachedAccumuloClient = Accumulo.newClient().from(getClientInfo()).build();
+      cachedAccumuloClient = Accumulo.newClient().from(getClientProperties()).build();
     }
     return cachedAccumuloClient;
   }

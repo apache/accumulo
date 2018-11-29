@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -75,8 +76,8 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
   @Test
   public void testAccumuloClientBuilder() throws Exception {
     AccumuloClient c = getAccumuloClient();
-    String instanceName = c.info().getInstanceName();
-    String zookeepers = c.info().getZooKeepers();
+    String instanceName = getClientInfo().getInstanceName();
+    String zookeepers = getClientInfo().getZooKeepers();
     final String user = "testuser";
     final String password = "testpassword";
     c.securityOperations().createLocalUser(user, new PasswordToken(password));
@@ -84,18 +85,26 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     AccumuloClient client = Accumulo.newClient().to(instanceName, zookeepers).as(user, password)
         .zkTimeout(1234).build();
 
-    assertEquals(instanceName, client.info().getInstanceName());
-    assertEquals(zookeepers, client.info().getZooKeepers());
+    Properties props = client.properties();
+    assertFalse(props.containsKey(ClientProperty.AUTH_TOKEN.getKey()));
+    ClientInfo info = ClientInfo.from(client.properties());
+    assertEquals(instanceName, info.getInstanceName());
+    assertEquals(zookeepers, info.getZooKeepers());
     assertEquals(user, client.whoami());
-    assertEquals(1234, client.info().getZooKeepersSessionTimeOut());
+    assertEquals(1234, info.getZooKeepersSessionTimeOut());
 
-    ClientInfo info = Accumulo.newClient().to(instanceName, zookeepers).as(user, password).info();
+    props = Accumulo.newClientProperties().to(instanceName, zookeepers).as(user, password).build();
+    assertTrue(props.containsKey(ClientProperty.AUTH_TOKEN.getKey()));
+    assertEquals(password, props.get(ClientProperty.AUTH_TOKEN.getKey()));
+    assertEquals("password", props.get(ClientProperty.AUTH_TYPE.getKey()));
+    assertEquals(instanceName, props.getProperty(ClientProperty.INSTANCE_NAME.getKey()));
+    info = ClientInfo.from(props);
     assertEquals(instanceName, info.getInstanceName());
     assertEquals(zookeepers, info.getZooKeepers());
     assertEquals(user, info.getPrincipal());
     assertTrue(info.getAuthenticationToken() instanceof PasswordToken);
 
-    Properties props = new Properties();
+    props = new Properties();
     props.put(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
     props.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zookeepers);
     props.put(ClientProperty.AUTH_PRINCIPAL.getKey(), user);
@@ -104,42 +113,27 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     client.close();
     client = Accumulo.newClient().from(props).build();
 
-    assertEquals(instanceName, client.info().getInstanceName());
-    assertEquals(zookeepers, client.info().getZooKeepers());
+    info = ClientInfo.from(client.properties());
+    assertEquals(instanceName, info.getInstanceName());
+    assertEquals(zookeepers, info.getZooKeepers());
     assertEquals(user, client.whoami());
-    assertEquals(22000, client.info().getZooKeepersSessionTimeOut());
+    assertEquals(22000, info.getZooKeepersSessionTimeOut());
 
     final String user2 = "testuser2";
     final String password2 = "testpassword2";
     c.securityOperations().createLocalUser(user2, new PasswordToken(password2));
 
-    AccumuloClient client2 = Accumulo.newClient().from(client.info())
+    AccumuloClient client2 = Accumulo.newClient().from(client.properties())
         .as(user2, new PasswordToken(password2)).build();
-    assertEquals(instanceName, client2.info().getInstanceName());
-    assertEquals(zookeepers, client2.info().getZooKeepers());
+    info = ClientInfo.from(client2.properties());
+    assertEquals(instanceName, info.getInstanceName());
+    assertEquals(zookeepers, info.getZooKeepers());
     assertEquals(user2, client2.whoami());
-    info = client2.info();
-    assertEquals(instanceName, info.getInstanceName());
-    assertEquals(zookeepers, info.getZooKeepers());
     assertEquals(user2, info.getPrincipal());
-
-    final String user3 = "testuser3";
-    final String password3 = "testpassword3";
-    c.securityOperations().createLocalUser(user3, new PasswordToken(password3));
-
-    AccumuloClient client3 = client.changeUser(user3, new PasswordToken(password3));
-    assertEquals(instanceName, client3.info().getInstanceName());
-    assertEquals(zookeepers, client3.info().getZooKeepers());
-    assertEquals(user3, client3.whoami());
-    info = client3.info();
-    assertEquals(instanceName, info.getInstanceName());
-    assertEquals(zookeepers, info.getZooKeepers());
-    assertEquals(user3, info.getPrincipal());
 
     c.close();
     client.close();
     client2.close();
-    client3.close();
   }
 
   @Test
@@ -151,7 +145,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     assertEquals(0, SingletonManager.getReservationCount());
     assertEquals(Mode.CLIENT, SingletonManager.getMode());
 
-    try (AccumuloClient c = Accumulo.newClient().from(getClientInfo()).build()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientInfo().getProperties()).build()) {
       assertEquals(1, SingletonManager.getReservationCount());
 
       c.tableOperations().create(tableName);
@@ -170,7 +164,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
 
     assertEquals(0, SingletonManager.getReservationCount());
 
-    AccumuloClient c = Accumulo.newClient().from(getClientInfo()).build();
+    AccumuloClient c = Accumulo.newClient().from(getClientInfo().getProperties()).build();
     assertEquals(1, SingletonManager.getReservationCount());
 
     // ensure client created after everything was closed works
@@ -195,9 +189,8 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     expectClosed(() -> c.instanceOperations());
     expectClosed(() -> c.securityOperations());
     expectClosed(() -> c.namespaceOperations());
-    expectClosed(() -> c.info());
+    expectClosed(() -> c.properties());
     expectClosed(() -> c.getInstanceID());
-    expectClosed(() -> c.changeUser("root", new PasswordToken("secret")));
 
     // check a few table ops to ensure they fail
     expectClosed(() -> tops.create("expectFail"));

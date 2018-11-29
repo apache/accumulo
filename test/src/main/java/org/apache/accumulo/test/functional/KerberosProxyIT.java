@@ -597,7 +597,9 @@ public class KerberosProxyIT extends AccumuloITBase {
     // Has read permission but is not allowed to be proxied
     proxyUser3.doAs((PrivilegedExceptionAction<Void>) () -> {
       try {
-        mac.getAccumuloClient(userWithoutCredentials3, new KerberosToken(userWithoutCredentials3));
+        AccumuloClient client = mac.getAccumuloClient(userWithoutCredentials3,
+            new KerberosToken(userWithoutCredentials3));
+        client.authenticate();
         fail("Should not be able to create a Connector as this user cannot be proxied");
       } catch (org.apache.accumulo.core.client.AccumuloSecurityException e) {
         // Expected, this user cannot be proxied

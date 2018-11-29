@@ -216,7 +216,7 @@ public class TableDiskUsage {
       }
     }
 
-    ClientContext context = new ClientContext(client.info());
+    ClientContext context = new ClientContext(client);
     Map<Table.ID,String> reverseTableIdMap = Tables.getIdToNameMap(context);
 
     TreeMap<TreeSet<String>,Long> usage = new TreeMap<>((o1, o2) -> {
@@ -271,7 +271,7 @@ public class TableDiskUsage {
       throws TableNotFoundException, IOException {
 
     HashSet<Table.ID> tableIds = new HashSet<>();
-    ClientContext context = new ClientContext(client.info());
+    ClientContext context = new ClientContext(client);
 
     // Get table IDs for all tables requested to be 'du'
     for (String tableName : tableNames) {
