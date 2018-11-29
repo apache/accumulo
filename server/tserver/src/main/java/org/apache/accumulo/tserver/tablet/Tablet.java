@@ -1640,8 +1640,7 @@ public class Tablet implements TabletCommitter {
 
       Text lastRow;
       if (extent.getEndRow() == null) {
-        Key lastKey = (Key) FileUtil.findLastKey(context, getTabletServer().getConfiguration(),
-            files);
+        Key lastKey = (Key) FileUtil.findLastKey(context, files);
         lastRow = lastKey.getRow();
       } else {
         lastRow = extent.getEndRow();
