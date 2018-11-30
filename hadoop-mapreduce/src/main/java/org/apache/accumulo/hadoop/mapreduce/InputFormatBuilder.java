@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -77,7 +79,7 @@ public interface InputFormatBuilder {
     /**
      * Finish configuring, verify and store options into the JobConf or Job
      */
-    void store(T t);
+    void store(T t) throws AccumuloException, AccumuloSecurityException;
   }
 
   /**
@@ -110,7 +112,7 @@ public interface InputFormatBuilder {
   interface InputFormatOptions<T> {
     /**
      * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorizations.
-     * By Default, auths are set to {@link Authorizations#EMPTY}
+     * By Default, all of the users auths are set.
      *
      * @param auths
      *          the user's authorizations
@@ -253,6 +255,6 @@ public interface InputFormatBuilder {
     /**
      * Finish configuring, verify and serialize options into the JobConf or Job
      */
-    void store(T j);
+    void store(T j) throws AccumuloException, AccumuloSecurityException;
   }
 }

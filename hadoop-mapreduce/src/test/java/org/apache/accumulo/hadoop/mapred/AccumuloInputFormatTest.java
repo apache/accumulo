@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
@@ -76,7 +75,7 @@ public class AccumuloInputFormatTest {
    * Check that the iterator configuration is getting stored in the Job conf correctly.
    */
   @Test
-  public void testSetIterator() throws IOException {
+  public void testSetIterator() throws Exception {
     InputFormatOptions<JobConf> opts = AccumuloInputFormat.configure().clientInfo(clientInfo)
         .table("test").auths(Authorizations.EMPTY);
 
@@ -89,7 +88,7 @@ public class AccumuloInputFormatTest {
   }
 
   @Test
-  public void testAddIterator() {
+  public void testAddIterator() throws Exception {
     InputFormatOptions<JobConf> opts = AccumuloInputFormat.configure().clientInfo(clientInfo)
         .table("test").auths(Authorizations.EMPTY);
 
@@ -168,7 +167,7 @@ public class AccumuloInputFormatTest {
    * Test getting iterator settings for multiple iterators set
    */
   @Test
-  public void testGetIteratorSettings() {
+  public void testGetIteratorSettings() throws Exception {
     IteratorSetting iter1 = new IteratorSetting(1, "WholeRow", WholeRowIterator.class.getName());
     IteratorSetting iter2 = new IteratorSetting(2, "Versions", VersioningIterator.class.getName());
     IteratorSetting iter3 = new IteratorSetting(3, "Count", CountingIterator.class.getName());
@@ -199,7 +198,7 @@ public class AccumuloInputFormatTest {
   }
 
   @Test
-  public void testSetRegex() {
+  public void testSetRegex() throws Exception {
     String regex = ">\"*%<>\'\\";
 
     IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);
@@ -212,7 +211,7 @@ public class AccumuloInputFormatTest {
   }
 
   @Test
-  public void testEmptyColumnFamily() throws IOException {
+  public void testEmptyColumnFamily() throws Exception {
     Set<IteratorSetting.Column> cols = new HashSet<>();
     cols.add(new IteratorSetting.Column(new Text(""), null));
     cols.add(new IteratorSetting.Column(new Text("foo"), new Text("bar")));

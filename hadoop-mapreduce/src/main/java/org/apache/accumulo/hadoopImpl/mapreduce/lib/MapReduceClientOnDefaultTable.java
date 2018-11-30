@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
+import java.io.IOException;
+
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloOutputFormat;
@@ -36,7 +40,8 @@ public class MapReduceClientOnDefaultTable extends MapReduceClientOpts {
   }
 
   @Override
-  public void setAccumuloConfigs(Job job) {
+  public void setAccumuloConfigs(Job job)
+      throws IOException, AccumuloException, AccumuloSecurityException {
     final String tableName = getTableName();
     final ClientInfo info = getClientInfo();
     AccumuloInputFormat.configure().clientInfo(info).table(tableName).auths(auths).store(job);

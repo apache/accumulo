@@ -23,6 +23,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -159,7 +163,7 @@ public class InputFormatBuilderImpl<T>
   }
 
   @Override
-  public void store(T j) {
+  public void store(T j) throws AccumuloException, AccumuloSecurityException {
     if (j instanceof Job) {
       store((Job) j);
     } else if (j instanceof JobConf) {
@@ -172,12 +176,12 @@ public class InputFormatBuilderImpl<T>
   /**
    * Final builder method for mapreduce configuration
    */
-  private void store(Job job) {
-    // TODO validate params are set correctly, possibly call/modify
-    // AbstractInputFormat.validateOptions()
+  private void store(Job job) throws AccumuloException, AccumuloSecurityException {
     AbstractInputFormat.setClientInfo(job, clientInfo);
-    AbstractInputFormat.setScanAuthorizations(job, scanAuths);
     InputFormatBase.setInputTableName(job, tableName);
+
+    scanAuths = getUserAuths(scanAuths, clientInfo);
+    AbstractInputFormat.setScanAuthorizations(job, scanAuths);
 
     // all optional values
     if (context.isPresent())
@@ -203,13 +207,13 @@ public class InputFormatBuilderImpl<T>
   /**
    * Final builder method for legacy mapred configuration
    */
-  private void store(JobConf jobConf) {
-    // TODO validate params are set correctly, possibly call/modify
-    // AbstractInputFormat.validateOptions()
+  private void store(JobConf jobConf) throws AccumuloException, AccumuloSecurityException {
     org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClientInfo(jobConf, clientInfo);
+    org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setInputTableName(jobConf, tableName);
+
+    scanAuths = getUserAuths(scanAuths, clientInfo);
     org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setScanAuthorizations(jobConf,
         scanAuths);
-    org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setInputTableName(jobConf, tableName);
 
     // all optional values
     if (context.isPresent())
@@ -235,6 +239,14 @@ public class InputFormatBuilderImpl<T>
     org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setOfflineTableScan(jobConf,
         bools.offlineScan);
     org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setBatchScan(jobConf, bools.batchScan);
+  }
+
+  private Authorizations getUserAuths(Authorizations scanAuths, ClientInfo clientInfo)
+      throws AccumuloSecurityException, AccumuloException {
+    if (scanAuths != null)
+      return scanAuths;
+    AccumuloClient c = Accumulo.newClient().from(clientInfo).build();
+    return c.securityOperations().getUserAuthorizations(clientInfo.getPrincipal());
   }
 
   private static class BuilderBooleans {

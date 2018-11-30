@@ -181,7 +181,7 @@ public abstract class AbstractInputFormat {
    *           if the context is improperly configured
    * @since 1.5.0
    */
-  protected static void validateOptions(JobConf job) throws IOException {
+  public static void validateOptions(JobConf job) throws IOException {
     AccumuloClient client = InputConfigurator.getClient(CLASS, job);
     InputConfigurator.validatePermissions(CLASS, job, client);
   }
