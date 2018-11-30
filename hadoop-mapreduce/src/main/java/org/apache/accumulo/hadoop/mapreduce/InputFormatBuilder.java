@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -65,23 +67,7 @@ public interface InputFormatBuilder {
      * @param tableName
      *          the table to use when the tablename is null in the write call
      */
-    AuthsParams<T> table(String tableName);
-  }
-
-  /**
-   * Required params for builder
-   *
-   * @since 2.0
-   */
-  interface AuthsParams<T> {
-    /**
-     * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorizations.
-     * If none present use {@link Authorizations#EMPTY}
-     *
-     * @param auths
-     *          the user's authorizations
-     */
-    InputFormatOptions<T> auths(Authorizations auths);
+    InputFormatOptions<T> table(String tableName);
   }
 
   /**
@@ -93,7 +79,7 @@ public interface InputFormatBuilder {
     /**
      * Finish configuring, verify and store options into the JobConf or Job
      */
-    void store(T t);
+    void store(T t) throws AccumuloException, AccumuloSecurityException;
   }
 
   /**
@@ -124,6 +110,15 @@ public interface InputFormatBuilder {
    * @since 2.0
    */
   interface InputFormatOptions<T> {
+    /**
+     * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorizations.
+     * By Default, all of the users auths are set.
+     *
+     * @param auths
+     *          the user's authorizations
+     */
+    InputFormatOptions<T> auths(Authorizations auths);
+
     /**
      * Sets the name of the classloader context on this scanner
      *
@@ -260,6 +255,6 @@ public interface InputFormatBuilder {
     /**
      * Finish configuring, verify and serialize options into the JobConf or Job
      */
-    void store(T j);
+    void store(T j) throws AccumuloException, AccumuloSecurityException;
   }
 }

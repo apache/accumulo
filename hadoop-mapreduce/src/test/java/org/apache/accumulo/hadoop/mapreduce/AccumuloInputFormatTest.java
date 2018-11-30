@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
@@ -63,7 +62,7 @@ public class AccumuloInputFormatTest {
    * Check that the iterator configuration is getting stored in the Job conf correctly.
    */
   @Test
-  public void testSetIterator() throws IOException {
+  public void testSetIterator() throws Exception {
     Job job = Job.getInstance();
 
     IteratorSetting is = new IteratorSetting(1, "WholeRow", WholeRowIterator.class);
@@ -77,7 +76,7 @@ public class AccumuloInputFormatTest {
   }
 
   @Test
-  public void testAddIterator() throws IOException {
+  public void testAddIterator() throws Exception {
     Job job = Job.getInstance();
 
     IteratorSetting iter1 = new IteratorSetting(1, "WholeRow", WholeRowIterator.class);
@@ -159,7 +158,7 @@ public class AccumuloInputFormatTest {
    * Test getting iterator settings for multiple iterators set
    */
   @Test
-  public void testGetIteratorSettings() throws IOException {
+  public void testGetIteratorSettings() throws Exception {
     Job job = Job.getInstance();
 
     IteratorSetting iter1 = new IteratorSetting(1, "WholeRow", WholeRowIterator.class.getName());
@@ -193,7 +192,7 @@ public class AccumuloInputFormatTest {
   }
 
   @Test
-  public void testSetRegex() throws IOException {
+  public void testSetRegex() throws Exception {
     Job job = Job.getInstance();
 
     String regex = ">\"*%<>\'\\";
@@ -208,7 +207,7 @@ public class AccumuloInputFormatTest {
   }
 
   @Test
-  public void testEmptyColumnFamily() throws IOException {
+  public void testEmptyColumnFamily() throws Exception {
     Job job = Job.getInstance();
     Set<IteratorSetting.Column> cols = new HashSet<>();
     cols.add(new IteratorSetting.Column(new Text(""), null));

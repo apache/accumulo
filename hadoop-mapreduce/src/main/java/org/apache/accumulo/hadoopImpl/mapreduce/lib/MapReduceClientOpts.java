@@ -16,9 +16,12 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
+import java.io.IOException;
+
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -35,7 +38,8 @@ import org.slf4j.LoggerFactory;
 public abstract class MapReduceClientOpts extends ClientOpts {
   private static final Logger log = LoggerFactory.getLogger(MapReduceClientOpts.class);
 
-  public abstract void setAccumuloConfigs(Job job) throws AccumuloSecurityException;
+  public abstract void setAccumuloConfigs(Job job)
+      throws IOException, AccumuloException, AccumuloSecurityException;
 
   @Override
   public AuthenticationToken getToken() {
