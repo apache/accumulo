@@ -119,96 +119,135 @@ function refreshZKTable() {
 function makePlots() {
   var d = new Date();
   var n = d.getTimezoneOffset() * 60000; // Converts offset to milliseconds
+  var tz = d.toLocaleTimeString('en-us',
+      {timeZoneName: 'short'}).split(' ')[2]; // Short version of timezone
+  var tzFormat = '%H:%M<br>' + tz;
+
+  var plotOptions = {
+    colors: ['#d9534f', '#337ab7'],
+    grid: {
+      backgroundColor: {colors: ['#fff', '#eee']},
+    },
+    lines: {
+      show: true
+    },
+    points: {
+      show: false,
+      radius: 1
+    },
+    xaxis: {
+      mode: 'time',
+      minTickSize: [1, 'minute'],
+      timeformat: tzFormat,
+      ticks: 3
+    },
+    yaxis: {
+      min: 0
+    }
+  };
+
+  var cachePlotOptions = $.extend(true, {}, plotOptions, {
+    lines: { show: false },
+    points: { show: true },
+    yaxis: {
+      max: 1.1,
+      ticks: [0, 0.25, 0.5, 0.75, 1.0]
+    }
+  });
 
   // Create Ingest Rate plot
-  var ingestRate = [];
+  var ingestRate = [{data:[]}];
   var data = sessionStorage.ingestRate === undefined ?
       [] : JSON.parse(sessionStorage.ingestRate);
   $.each(data, function(key, val) {
-    ingestRate.push([val.first - n, val.second]);
+    ingestRate[0].data.push([val.first - n, val.second]);
   });
-  makePlot('ingest_entries', ingestRate, 0);
+  $.plot('#ingest_entries', ingestRate, plotOptions);
 
   // Create Scan Entries plot
-  var scanEntries = {'Read': [], 'Returned': []};
+  var scanEntries = [
+    {label: 'Read', data: []},
+    {label: 'Returned', data: []}
+  ];
   var data = sessionStorage.scanEntries === undefined ?
       [] : JSON.parse(sessionStorage.scanEntries);
-  $.each(data, function(key, val) {
-    $.each(val.second, function(key2, val2) {
-      scanEntries[val.first].push([val2.first - n, val2.second]);
-    });
+  $.each(data[0].second, function(key, val) {
+    scanEntries[0].data.push([val.first - n, val.second]);
   });
-  makePlot('scan_entries', scanEntries, 2);
+  $.each(data[1].second, function(key, val) {
+    scanEntries[1].data.push([val.first - n, val.second]);
+  });
+  $.plot('#scan_entries', scanEntries, plotOptions);
 
   // Create Ingest MB plot
-  var ingestMB = [];
+  var ingestMB = [{data:[]}];
   var data = sessionStorage.ingestMB === undefined ?
       [] : JSON.parse(sessionStorage.ingestMB);
   $.each(data, function(key, val) {
-    ingestMB.push([val.first - n, val.second]);
+    ingestMB[0].data.push([val.first - n, val.second]);
   });
-  makePlot('ingest_mb', ingestMB, 0);
+  $.plot('#ingest_mb', ingestMB, plotOptions);
 
   // Create Query MB plot
-  var queryMB = [];
+  var queryMB = [{data:[]}];
   var data = sessionStorage.queryMB === undefined ?
       [] : JSON.parse(sessionStorage.queryMB);
   $.each(data, function(key, val) {
-  queryMB.push([val.first - n, val.second]);
+    queryMB[0].data.push([val.first - n, val.second]);
   });
-  makePlot('scan_mb', queryMB, 0);
+  $.plot('#scan_mb', queryMB, plotOptions);
 
   // Create Load Average plot
-  var loadAvg = [];
+  var loadAvg = [{data:[]}];
   var data = sessionStorage.loadAvg === undefined ?
       [] : JSON.parse(sessionStorage.loadAvg);
   $.each(data, function(key, val) {
-    loadAvg.push([val.first - n, val.second]);
+    loadAvg[0].data.push([val.first - n, val.second]);
   });
-  makePlot('load_avg', loadAvg, 0);
+  $.plot('#load_avg', loadAvg, plotOptions);
 
   // Create Seeks plot
-  var lookups = [];
+  var lookups = [{data:[]}];
   var data = sessionStorage.lookups === undefined ?
       [] : JSON.parse(sessionStorage.lookups);
   $.each(data, function(key, val) {
-    lookups.push([val.first - n, val.second]);
+    lookups[0].data.push([val.first - n, val.second]);
   });
-  makePlot('seeks', lookups, 0);
+  $.plot('#seeks', lookups, plotOptions);
 
   // Create Minor Compactions plot
-  var minor = [];
+  var minor = [{data:[]}];
   var data = sessionStorage.minorCompactions === undefined ?
       [] : JSON.parse(sessionStorage.minorCompactions);
   $.each(data, function(key, val) {
-    minor.push([val.first - n, val.second]);
+    minor[0].data.push([val.first - n, val.second]);
   });
-  makePlot('minor', minor, 0);
+  $.plot('#minor', minor, plotOptions);
 
   // Create Major Compaction plot
-  var major = [];
+  var major = [{data:[]}];
   var data = sessionStorage.majorCompactions === undefined ?
       [] : JSON.parse(sessionStorage.majorCompactions);
   $.each(data, function(key, val) {
-    major.push([val.first - n, val.second]);
+    major[0].data.push([val.first - n, val.second]);
   });
-  makePlot('major', major, 0);
+  $.plot('#major', major, plotOptions);
 
   // Create Index Cache plot
-  var indexCache = [];
+  var indexCache = [{data:[]}];
   var data = sessionStorage.indexCache === undefined ?
       [] : JSON.parse(sessionStorage.indexCache);
   $.each(data, function(key, val) {
-    indexCache.push([val.first - n, val.second]);
+    indexCache[0].data.push([val.first - n, val.second]);
   });
-  makePlot('index_cache', indexCache, 1);
+  $.plot('#index_cache', indexCache, cachePlotOptions);
 
   // Create Data Cache plot
-  var dataCache = [];
+  var dataCache = [{data:[]}];
   var data = sessionStorage.dataCache === undefined ?
       [] : JSON.parse(sessionStorage.dataCache);
   $.each(data, function(key, val) {
-    dataCache.push([val.first - n, val.second]);
+    dataCache[0].data.push([val.first - n, val.second]);
   });
-  makePlot('data_cache', dataCache, 1);
+  $.plot('#data_cache', dataCache, cachePlotOptions);
 }

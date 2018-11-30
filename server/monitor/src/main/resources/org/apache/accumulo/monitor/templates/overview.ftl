@@ -52,60 +52,60 @@
             <div class="col-md-6">
               <br>
               <div class="plotHeading">Ingest (Entries/s)</div>
-              <div id="ingest_entries" style="width:100%;height:200px;"></div>
+              <div id="ingest_entries" class="plot"></div>
             </div>
             <div class="col-md-6">
               <br>
               <div class="plotHeading">Scan (Entries/s)</div>
-              <div id="scan_entries" style="width:100%;height:200px;"></div>
+              <div id="scan_entries" class="plot"></div>
             </div>
           </div>
           <div class="row">
             <div class="col-md-6">
               <br>
               <div class="plotHeading">Ingest (MB/s)</div>
-              <div id="ingest_mb" style="width:100%;height:200px;"></div>
+              <div id="ingest_mb" class="plot"></div>
             </div>
             <div class="col-md-6">
               <br>
               <div class="plotHeading">Scan (MB/s)</div>
-              <div id="scan_mb" style="width:100%;height:200px;"></div>
+              <div id="scan_mb" class="plot"></div>
             </div>
           </div>
           <div class="row">
             <div class="col-md-6">
               <br>
               <div class="plotHeading">Load Average</div>
-              <div id="load_avg" style="width:100%;height:200px;"></div>
+              <div id="load_avg" class="plot"></div>
             </div>
             <div class="col-md-6">
               <br>
               <div class="plotHeading">Seeks</div>
-              <div id="seeks" style="width:100%;height:200px;"></div>
+              <div id="seeks" class="plot"></div>
             </div>
           </div>
           <div class="row">
             <div class="col-md-6">
               <br>
               <div class="plotHeading">Minor Compactions</div>
-              <div id="minor" style="width:100%;height:200px;"></div>
+              <div id="minor" class="plot"></div>
             </div>
             <div class="col-md-6">
               <br>
               <div class="plotHeading">Major Compactions</div>
-              <div id="major" style="width:100%;height:200px;"></div>
+              <div id="major" class="plot"></div>
             </div>
           </div>
           <div class="row">
             <div class="col-md-6">
               <br>
               <div class="plotHeading">Index Cache Hit Rate</div>
-              <div id="index_cache" style="width:100%;height:200px;"></div>
+              <div id="index_cache" class="plot"></div>
             </div>
             <div class="col-md-6">
               <br>
               <div class="plotHeading">Data Cache Hit Rate</div>
-              <div id="data_cache" style="width:100%;height:200px;"></div>
+              <div id="data_cache" class="plot"></div>
             </div>
           </div>
         </div>
