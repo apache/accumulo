@@ -44,7 +44,7 @@ import org.apache.accumulo.core.clientImpl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.cryptoImpl.NoCryptoService;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -110,7 +110,8 @@ public class InMemoryMapTest {
 
   public static ServerContext getServerContext() {
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getCryptoService()).andReturn(new NoCryptoService()).anyTimes();
+    EasyMock.expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
+        .anyTimes();
     EasyMock.expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance())
         .anyTimes();
     EasyMock.replay(context);

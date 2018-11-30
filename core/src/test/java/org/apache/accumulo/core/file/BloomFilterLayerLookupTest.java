@@ -29,6 +29,7 @@ import java.util.Random;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -85,7 +86,8 @@ public class BloomFilterLayerLookupTest {
     // get output file name
     String suffix = FileOperations.getNewFileExtension(acuconf);
     String fname = new File(tempDir.getRoot(), testName + "." + suffix).getAbsolutePath();
-    FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder().forFile(fname, fs, conf)
+    FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
+        .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
         .withTableConfiguration(acuconf).build();
 
     // write data to file
@@ -102,7 +104,8 @@ public class BloomFilterLayerLookupTest {
     bmfw.close();
 
     t1 = System.currentTimeMillis();
-    FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder().forFile(fname, fs, conf)
+    FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder()
+        .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
         .withTableConfiguration(acuconf).build();
     t2 = System.currentTimeMillis();
     log.debug("Opened {} in {}", fname, (t2 - t1));

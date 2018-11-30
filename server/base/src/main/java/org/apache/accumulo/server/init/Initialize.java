@@ -47,6 +47,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -72,6 +74,7 @@ import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -541,8 +544,11 @@ public class Initialize implements KeywordExecutable {
       createEntriesForTablet(sorted, tablet);
     }
     FileSystem fs = volmanager.getVolumeByPath(new Path(fileName)).getFileSystem();
+
+    CryptoService cs = CryptoServiceFactory.newInstance(conf, ClassloaderType.ACCUMULO);
+
     FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fileName, fs, fs.getConf()).withTableConfiguration(conf).build();
+        .forFile(fileName, fs, fs.getConf(), cs).withTableConfiguration(conf).build();
     tabletWriter.startDefaultLocalityGroup();
 
     for (Entry<Key,Value> entry : sorted.entrySet()) {

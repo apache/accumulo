@@ -23,7 +23,6 @@ import java.util.Collections;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -34,7 +33,6 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
-import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -131,15 +129,8 @@ public class RFileOperations extends FileOperations {
       outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
     }
 
-    // calls to openWriter from the tserver will already have a crypto service initialized
-    // calls from clients will require a new crypto service
-    CryptoService cryptoService = options.cryptoService;
-    if (cryptoService == null) {
-      cryptoService = CryptoServiceFactory.newInstance(acuconf);
-    }
-
     BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
-        conf, acuconf, cryptoService);
+        conf, acuconf, options.cryptoService);
 
     return new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
   }

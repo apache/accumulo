@@ -56,6 +56,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.crypto.CryptoTest;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -242,7 +243,7 @@ public class RFileTest {
       baos = new ByteArrayOutputStream();
       dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
       BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, accumuloConfiguration,
-          CryptoServiceFactory.newInstance(accumuloConfiguration));
+          CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
 
       SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
           .newSamplerConfig(accumuloConfiguration);
@@ -305,7 +306,7 @@ public class RFileTest {
 
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader("source-1", in, fileLength, conf,
           dataCache, indexCache, accumuloConfiguration,
-          CryptoServiceFactory.newInstance(accumuloConfiguration));
+          CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
       reader = new RFile.Reader(_cbr);
       if (cfsi)
         iter = new ColumnFamilySkippingIterator(reader);
@@ -1735,7 +1736,8 @@ public class RFileTest {
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in2 = new FSDataInputStream(bais);
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in2, data.length,
-        CachedConfiguration.getInstance(), aconf, CryptoServiceFactory.newInstance(aconf));
+        CachedConfiguration.getInstance(), aconf,
+        CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
     Reader reader = new RFile.Reader(_cbr);
     checkIndex(reader);
 

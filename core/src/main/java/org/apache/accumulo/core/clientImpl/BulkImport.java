@@ -59,6 +59,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.LoadPlan;
@@ -70,6 +71,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.master.thrift.FateOperation;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.fs.FileStatus;
@@ -206,8 +208,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   public static Map<KeyExtent,Long> estimateSizes(AccumuloConfiguration acuConf, Path mapFile,
-      long fileSize, Collection<KeyExtent> extents, FileSystem ns, Cache<String,Long> fileLenCache)
-      throws IOException {
+      long fileSize, Collection<KeyExtent> extents, FileSystem ns, Cache<String,Long> fileLenCache,
+      CryptoService cs) throws IOException {
 
     if (extents.size() == 1) {
       return Collections.singletonMap(extents.iterator().next(), fileSize);
@@ -221,7 +223,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     Text row = new Text();
 
     FileSKVIterator index = FileOperations.getInstance().newIndexReaderBuilder()
-        .forFile(mapFile.toString(), ns, ns.getConf()).withTableConfiguration(acuConf)
+        .forFile(mapFile.toString(), ns, ns.getConf(), cs).withTableConfiguration(acuConf)
         .withFileLenCache(fileLenCache).build();
 
     try {
@@ -302,10 +304,11 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   public static List<KeyExtent> findOverlappingTablets(ClientContext context,
-      KeyExtentCache extentCache, Path file, FileSystem fs, Cache<String,Long> fileLenCache)
+      KeyExtentCache extentCache, Path file, FileSystem fs, Cache<String,Long> fileLenCache,
+      CryptoService cs)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-        .forFile(file.toString(), fs, fs.getConf())
+        .forFile(file.toString(), fs, fs.getConf(), cs)
         .withTableConfiguration(context.getConfiguration()).withFileLenCache(fileLenCache)
         .seekToBeginning().build()) {
       return findOverlappingTablets(context, extentCache, reader);
@@ -495,14 +498,16 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     List<CompletableFuture<Map<KeyExtent,Bulk.FileInfo>>> futures = new ArrayList<>();
 
+    CryptoService cs = CryptoServiceFactory.newDefaultInstance();
+
     for (FileStatus fileStatus : files) {
       CompletableFuture<Map<KeyExtent,Bulk.FileInfo>> future = CompletableFuture.supplyAsync(() -> {
         try {
           long t1 = System.currentTimeMillis();
           List<KeyExtent> extents = findOverlappingTablets(context, extentCache,
-              fileStatus.getPath(), fs, fileLensCache);
+              fileStatus.getPath(), fs, fileLensCache, cs);
           Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(),
-              fileStatus.getPath(), fileStatus.getLen(), extents, fs, fileLensCache);
+              fileStatus.getPath(), fileStatus.getLen(), extents, fs, fileLensCache, cs);
           Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>();
           for (KeyExtent ke : extents) {
             pathLocations.put(ke,

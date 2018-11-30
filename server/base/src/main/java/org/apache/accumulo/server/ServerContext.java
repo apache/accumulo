@@ -34,6 +34,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
@@ -117,7 +118,7 @@ public class ServerContext extends ClientContext {
           + " already exists and cannot be setup again");
 
     AccumuloConfiguration acuConf = getConfiguration();
-    cryptoService = CryptoServiceFactory.newInstance(acuConf);
+    cryptoService = CryptoServiceFactory.newInstance(acuConf, ClassloaderType.ACCUMULO);
   }
 
   public void teardownServer() {

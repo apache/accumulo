@@ -34,8 +34,11 @@ import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -97,6 +100,8 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
       acuconf = new ConfigurationCopy(Iterables.concat(acuconf, userProps.entrySet()));
     }
 
+    CryptoService cs = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA);
+
     if (out.getOutputStream() != null) {
       FSDataOutputStream fsdo;
       if (out.getOutputStream() instanceof FSDataOutputStream) {
@@ -104,11 +109,13 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
       } else {
         fsdo = new FSDataOutputStream(out.getOutputStream(), new FileSystem.Statistics("foo"));
       }
-      return new RFileWriter(fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf())
-          .withTableConfiguration(acuconf).withStartDisabled().build(), visCacheSize);
+      return new RFileWriter(
+          fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf(), cs)
+              .withTableConfiguration(acuconf).withStartDisabled().build(),
+          visCacheSize);
     } else {
       return new RFileWriter(fileops.newWriterBuilder()
-          .forFile(out.path.toString(), out.getFileSystem(), out.getConf())
+          .forFile(out.path.toString(), out.getFileSystem(), out.getConf(), cs)
           .withTableConfiguration(acuconf).withStartDisabled().build(), visCacheSize);
     }
   }

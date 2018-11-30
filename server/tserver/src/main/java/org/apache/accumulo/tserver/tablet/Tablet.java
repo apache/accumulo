@@ -1628,9 +1628,8 @@ public class Tablet implements TabletCommitter {
 
     try {
       // we should make .25 below configurable
-      keys = FileUtil.findMidPoint(getTabletServer().getFileSystem(), tabletDirectory,
-          getTabletServer().getConfiguration(), extent.getPrevEndRow(), extent.getEndRow(),
-          FileUtil.toPathStrings(files), .25);
+      keys = FileUtil.findMidPoint(context, tabletDirectory, extent.getPrevEndRow(),
+          extent.getEndRow(), FileUtil.toPathStrings(files), .25);
     } catch (IOException e) {
       log.error("Failed to find midpoint {}", e.getMessage());
       return null;
@@ -1641,8 +1640,7 @@ public class Tablet implements TabletCommitter {
 
       Text lastRow;
       if (extent.getEndRow() == null) {
-        Key lastKey = (Key) FileUtil.findLastKey(getTabletServer().getFileSystem(),
-            getTabletServer().getConfiguration(), files);
+        Key lastKey = (Key) FileUtil.findLastKey(context, files);
         lastRow = lastKey.getRow();
       } else {
         lastRow = extent.getEndRow();
@@ -1736,7 +1734,7 @@ public class Tablet implements TabletCommitter {
       FileRef file = entry.getKey();
       FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
       try (FileSKVIterator openReader = fileFactory.newReaderBuilder()
-          .forFile(file.path().toString(), ns, ns.getConf())
+          .forFile(file.path().toString(), ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(this.getTableConfiguration()).seekToBeginning().build()) {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();
@@ -2265,8 +2263,7 @@ public class Tablet implements TabletCommitter {
     // this info is used for optimization... it is ok if map files are missing
     // from the set... can still query and insert into the tablet while this
     // map file operation is happening
-    Map<FileRef,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(
-        getTabletServer().getFileSystem(), getTabletServer().getConfiguration(),
+    Map<FileRef,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(context,
         getDatafileManager().getFiles());
 
     synchronized (this) {
@@ -2281,9 +2278,8 @@ public class Tablet implements TabletCommitter {
       else {
         Text tsp = new Text(sp);
         splitPoint = new SplitRowSpec(
-            FileUtil.estimatePercentageLTE(getTabletServer().getFileSystem(), tabletDirectory,
-                getTabletServer().getConfiguration(), extent.getPrevEndRow(), extent.getEndRow(),
-                FileUtil.toPathStrings(getDatafileManager().getFiles()), tsp),
+            FileUtil.estimatePercentageLTE(context, tabletDirectory, extent.getPrevEndRow(),
+                extent.getEndRow(), FileUtil.toPathStrings(getDatafileManager().getFiles()), tsp),
             tsp);
       }
 

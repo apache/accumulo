@@ -63,6 +63,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.StopWatch;
 import org.apache.accumulo.fate.util.LoggingRunnable;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.util.FileUtil;
@@ -79,7 +80,7 @@ public class BulkImporter {
 
   private static final Logger log = LoggerFactory.getLogger(BulkImporter.class);
 
-  public static List<String> bulkLoad(ClientContext context, long tid, String tableId,
+  public static List<String> bulkLoad(ServerContext context, long tid, String tableId,
       List<String> files, String errorDir, boolean setTime) throws IOException, AccumuloException,
       AccumuloSecurityException, ThriftTableOperationException {
     AssignmentStats stats = new BulkImporter(context, tid, tableId, setTime).importFiles(files,
@@ -97,12 +98,12 @@ public class BulkImporter {
     EXAMINE_MAP_FILES, QUERY_METADATA, IMPORT_MAP_FILES, SLEEP, TOTAL
   }
 
-  private final ClientContext context;
+  private final ServerContext context;
   private String tableId;
   private long tid;
   private boolean setTime;
 
-  public BulkImporter(ClientContext context, long tid, String tableId, boolean setTime) {
+  public BulkImporter(ServerContext context, long tid, String tableId, boolean setTime) {
     this.context = context;
     this.tid = tid;
     this.tableId = tableId;
@@ -388,8 +389,8 @@ public class BulkImporter {
           Map<KeyExtent,Long> estimatedSizes = null;
 
           try {
-            estimatedSizes = FileUtil.estimateSizes(acuConf, entry.getKey(),
-                mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()), conf, vm);
+            estimatedSizes = FileUtil.estimateSizes(context, entry.getKey(),
+                mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()), conf);
           } catch (IOException e) {
             log.warn("Failed to estimate map file sizes {}", e.getMessage());
           }
@@ -650,12 +651,12 @@ public class BulkImporter {
     }
   }
 
-  public static List<TabletLocation> findOverlappingTablets(ClientContext context, VolumeManager fs,
+  public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager fs,
       TabletLocator locator, Path file) throws Exception {
     return findOverlappingTablets(context, fs, locator, file, null, null);
   }
 
-  public static List<TabletLocation> findOverlappingTablets(ClientContext context, VolumeManager fs,
+  public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager fs,
       TabletLocator locator, Path file, KeyExtent failed) throws Exception {
     locator.invalidateCache(failed);
     Text start = getStartRowForExtent(failed);
@@ -675,7 +676,7 @@ public class BulkImporter {
 
   static final byte[] byte0 = {0};
 
-  public static List<TabletLocation> findOverlappingTablets(ClientContext context, VolumeManager vm,
+  public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager vm,
       TabletLocator locator, Path file, Text startRow, Text endRow) throws Exception {
     List<TabletLocation> result = new ArrayList<>();
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
@@ -683,8 +684,8 @@ public class BulkImporter {
     // log.debug(filename + " finding overlapping tablets " + startRow + " -> " + endRow);
     FileSystem fs = vm.getVolumeByPath(file).getFileSystem();
     try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-        .forFile(filename, fs, fs.getConf()).withTableConfiguration(context.getConfiguration())
-        .seekToBeginning().build()) {
+        .forFile(filename, fs, fs.getConf(), context.getCryptoService())
+        .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {
       Text row = startRow;
       if (row == null)
         row = new Text();

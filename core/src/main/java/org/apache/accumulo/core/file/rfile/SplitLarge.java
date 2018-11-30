@@ -24,7 +24,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.cryptoImpl.NoCryptoService;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -64,7 +64,7 @@ public class SplitLarge {
     for (String file : opts.files) {
       AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
       CryptoService cryptoService = ConfigurationTypeHelper.getClassInstance(null, opts.cryptoClass,
-          CryptoService.class, new NoCryptoService());
+          CryptoService.class, CryptoServiceFactory.newDefaultInstance());
       Path path = new Path(file);
       CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf,
           cryptoService);

@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.cryptoImpl.NoFileEncrypter;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -178,7 +179,7 @@ public class PrintInfo implements KeywordExecutable {
       printCryptoParams(path, fs);
 
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
-          siteConfig, CryptoServiceFactory.newInstance(siteConfig));
+          siteConfig, CryptoServiceFactory.newInstance(siteConfig, ClassloaderType.ACCUMULO));
       Reader iter = new RFile.Reader(_rdr);
       MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 

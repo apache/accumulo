@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.cryptoImpl.NoFileDecrypter;
@@ -642,9 +641,6 @@ public final class BCFile {
       metaIndex = new MetaIndex(this.in);
 
       CryptoEnvironment cryptoEnvironment = null;
-      if (cryptoService == null) {
-        cryptoService = CryptoServiceFactory.newInstance(aconf);
-      }
 
       // backwards compatibility
       if (version.equals(API_VERSION_1)) {
@@ -680,9 +676,6 @@ public final class BCFile {
 
       decryptionParams = CryptoUtils.readParams(dis);
       CryptoEnvironmentImpl env = new CryptoEnvironmentImpl(Scope.RFILE, decryptionParams);
-      if (cryptoService == null) {
-        cryptoService = CryptoServiceFactory.newInstance(aconf);
-      }
       this.decrypter = cryptoService.getFileDecrypter(env);
     }
 

@@ -52,6 +52,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
@@ -2165,7 +2166,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     // Write an RFile
     String filename = dir + "/bulk/import/rfile.rf";
     FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(filename, fs, fs.getConf())
+        .forFile(filename, fs, fs.getConf(), CryptoServiceFactory.newDefaultInstance())
         .withTableConfiguration(DefaultConfiguration.getInstance()).build();
     writer.startDefaultLocalityGroup();
     writer.append(

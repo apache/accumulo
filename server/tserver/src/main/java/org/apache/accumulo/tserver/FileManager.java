@@ -323,11 +323,10 @@ public class FileManager {
         FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
         // log.debug("Opening "+file + " path " + path);
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf())
+            .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
             .withTableConfiguration(
                 context.getServerConfFactory().getTableConfiguration(tablet.getTableId()))
-            .withBlockCache(dataCache, indexCache).withFileLenCache(fileLenCache)
-            .withCryptoService(context.getCryptoService()).build();
+            .withBlockCache(dataCache, indexCache).withFileLenCache(fileLenCache).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
 
