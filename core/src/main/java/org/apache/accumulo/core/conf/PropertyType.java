@@ -116,7 +116,7 @@ public enum PropertyType {
       "A list of fully qualified java class names representing classes on the classpath.\n"
           + "An example is 'java.lang.String', rather than 'String'"),
 
-  DURABILITY("durability", in(true, null, "default", "none", "log", "flush", "sync"),
+  DURABILITY("durability", in(false, null, "default", "none", "log", "flush", "sync"),
       "One of 'none', 'log', 'flush' or 'sync'."),
 
   STRING("string", x -> true,
