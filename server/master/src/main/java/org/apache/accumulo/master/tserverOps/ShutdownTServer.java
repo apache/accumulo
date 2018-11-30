@@ -37,7 +37,7 @@ public class ShutdownTServer extends MasterRepo {
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);
   private TServerInstance server;
-  private boolean force, requestedShutdown;
+  private boolean force;
 
   public ShutdownTServer(TServerInstance server, boolean force) {
     this.server = server;
@@ -52,12 +52,7 @@ public class ShutdownTServer extends MasterRepo {
     }
 
     // Inform the master that we want this server to shutdown
-    // We don't want to spam the master with shutdown requests, so
-    // only send this request once
-    if (!requestedShutdown) {
-      master.shutdownTServer(server);
-      requestedShutdown = true;
-    }
+    master.shutdownTServer(server);
 
     if (master.onlineTabletServers().contains(server)) {
       TServerConnection connection = master.getConnection(server);

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
@@ -23,6 +24,7 @@ import java.util.HashMap;
 
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
@@ -65,16 +67,25 @@ public class ShutdownTServerTest {
     // Reset the mocks
     EasyMock.reset(tserver, tserverCnxn, master);
 
-    // The same as above, but should not expect call shutdownTServer on master again
+    // reset the table map to the empty set to simulate all tablets unloaded
+    status.tableMap = new HashMap<>();
+    master.shutdownTServer(tserver);
+    EasyMock.expectLastCall().once();
     EasyMock.expect(master.onlineTabletServers()).andReturn(Collections.singleton(tserver));
     EasyMock.expect(master.getConnection(tserver)).andReturn(tserverCnxn);
     EasyMock.expect(tserverCnxn.getTableMap(false)).andReturn(status);
+    EasyMock.expect(master.getMasterLock()).andReturn(null);
+    tserverCnxn.halt(null);
+    EasyMock.expectLastCall().once();
 
     EasyMock.replay(tserver, tserverCnxn, master);
 
     // FATE op is not ready
     wait = op.isReady(tid, master);
-    assertTrue("Expected wait to be greater than 0", wait > 0);
+    assertTrue("Expected wait to be 0", wait == 0);
+
+    Repo<Master> op2 = op.call(tid, master);
+    assertNull("Expected no follow on step", op2);
 
     EasyMock.verify(tserver, tserverCnxn, master);
   }

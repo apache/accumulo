@@ -1575,48 +1575,57 @@ public class Master
   @Override
   public void update(LiveTServerSet current, Set<TServerInstance> deleted,
       Set<TServerInstance> added) {
-    DeadServerList obit = new DeadServerList(context, getZooKeeperRoot() + Constants.ZDEADTSERVERS);
-    if (added.size() > 0) {
-      log.info("New servers: {}", added);
-      for (TServerInstance up : added)
-        obit.delete(up.hostPort());
-    }
-    for (TServerInstance dead : deleted) {
-      String cause = "unexpected failure";
-      if (serversToShutdown.contains(dead))
-        cause = "clean shutdown"; // maybe an incorrect assumption
-      if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP))
-        obit.post(dead.hostPort(), cause);
-    }
-
-    Set<TServerInstance> unexpected = new HashSet<>(deleted);
-    unexpected.removeAll(this.serversToShutdown);
-    if (unexpected.size() > 0) {
-      if (stillMaster() && !getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
-        log.warn("Lost servers {}", unexpected);
+    // if we have deleted or added tservers, then adjust our dead server list
+    if (!deleted.isEmpty() || !added.isEmpty()) {
+      DeadServerList obit = new DeadServerList(context,
+          getZooKeeperRoot() + Constants.ZDEADTSERVERS);
+      if (added.size() > 0) {
+        log.info("New servers: {}", added);
+        for (TServerInstance up : added)
+          obit.delete(up.hostPort());
       }
-    }
-    serversToShutdown.removeAll(deleted);
-    badServers.keySet().removeAll(deleted);
-    // clear out any bad server with the same host/port as a new server
-    synchronized (badServers) {
-      cleanListByHostAndPort(badServers.keySet(), deleted, added);
-    }
-    synchronized (serversToShutdown) {
-      cleanListByHostAndPort(serversToShutdown, deleted, added);
-    }
+      for (TServerInstance dead : deleted) {
+        String cause = "unexpected failure";
+        if (serversToShutdown.contains(dead))
+          cause = "clean shutdown"; // maybe an incorrect assumption
+        if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP))
+          obit.post(dead.hostPort(), cause);
+      }
 
-    synchronized (migrations) {
-      Iterator<Entry<KeyExtent,TServerInstance>> iter = migrations.entrySet().iterator();
-      while (iter.hasNext()) {
-        Entry<KeyExtent,TServerInstance> entry = iter.next();
-        if (deleted.contains(entry.getValue())) {
-          log.info("Canceling migration of {} to {}", entry.getKey(), entry.getValue());
-          iter.remove();
+      Set<TServerInstance> unexpected = new HashSet<>(deleted);
+      unexpected.removeAll(this.serversToShutdown);
+      if (unexpected.size() > 0) {
+        if (stillMaster() && !getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
+          log.warn("Lost servers {}", unexpected);
         }
       }
+      serversToShutdown.removeAll(deleted);
+      badServers.keySet().removeAll(deleted);
+      // clear out any bad server with the same host/port as a new server
+      synchronized (badServers) {
+        cleanListByHostAndPort(badServers.keySet(), deleted, added);
+      }
+      synchronized (serversToShutdown) {
+        cleanListByHostAndPort(serversToShutdown, deleted, added);
+      }
+
+      synchronized (migrations) {
+        Iterator<Entry<KeyExtent,TServerInstance>> iter = migrations.entrySet().iterator();
+        while (iter.hasNext()) {
+          Entry<KeyExtent,TServerInstance> entry = iter.next();
+          if (deleted.contains(entry.getValue())) {
+            log.info("Canceling migration of {} to {}", entry.getKey(), entry.getValue());
+            iter.remove();
+          }
+        }
+      }
+      nextEvent.event("There are now %d tablet servers", current.size());
     }
-    nextEvent.event("There are now %d tablet servers", current.size());
+
+    // clear out any servers that are no longer current
+    // this is needed when we are using a fate operation to shutdown a tserver as it
+    // will continue to add the server to the serversToShutdown (ACCUMULO-4410)
+    serversToShutdown.retainAll(current.getCurrentServers());
   }
 
   private static void cleanListByHostAndPort(Collection<TServerInstance> badServers,
