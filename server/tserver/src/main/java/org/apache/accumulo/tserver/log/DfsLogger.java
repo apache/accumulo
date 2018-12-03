@@ -31,6 +31,7 @@ import java.lang.reflect.Method;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -597,7 +598,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return new LoggerOperation(work);
   }
 
-  public LoggerOperation logManyTablets(List<TabletMutations> mutations) throws IOException {
+  public LoggerOperation logManyTablets(Collection<TabletMutations> mutations) throws IOException {
     Durability durability = Durability.NONE;
     List<Pair<LogFileKey,LogFileValue>> data = new ArrayList<>();
     for (TabletMutations tabletMutations : mutations) {
@@ -615,7 +616,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return logFileData(data, chooseDurabilityForGroupCommit(mutations));
   }
 
-  static Durability chooseDurabilityForGroupCommit(List<TabletMutations> mutations) {
+  static Durability chooseDurabilityForGroupCommit(Collection<TabletMutations> mutations) {
     Durability result = Durability.NONE;
     for (TabletMutations tabletMutations : mutations) {
       if (tabletMutations.getDurability().ordinal() > result.ordinal()) {

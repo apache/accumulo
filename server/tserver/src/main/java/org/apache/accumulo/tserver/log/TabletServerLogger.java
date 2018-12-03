@@ -18,13 +18,10 @@ package org.apache.accumulo.tserver.log;
 
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -44,13 +41,11 @@ import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
-import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
-import org.apache.accumulo.tserver.Mutations;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
@@ -320,15 +315,6 @@ public class TabletServerLogger {
     }));
   }
 
-  public void resetLoggers() throws IOException {
-    logIdLock.writeLock().lock();
-    try {
-      close();
-    } finally {
-      logIdLock.writeLock().unlock();
-    }
-  }
-
   private synchronized void close() throws IOException {
     if (!logIdLock.isWriteLockedByCurrentThread()) {
       throw new IllegalStateException("close should be called with write lock held!");
@@ -354,22 +340,6 @@ public class TabletServerLogger {
 
   interface Writer {
     LoggerOperation write(DfsLogger logger) throws Exception;
-  }
-
-  private void write(CommitSession commitSession, boolean mincFinish, Writer writer)
-      throws IOException {
-    write(commitSession, mincFinish, writer, writeRetryFactory.createRetry());
-  }
-
-  private void write(CommitSession commitSession, boolean mincFinish, Writer writer,
-      Retry writeRetry) throws IOException {
-    List<CommitSession> sessions = Collections.singletonList(commitSession);
-    write(sessions, mincFinish, writer, writeRetry);
-  }
-
-  private void write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer)
-      throws IOException {
-    write(sessions, mincFinish, writer, writeRetryFactory.createRetry());
   }
 
   private void write(final Collection<CommitSession> sessions, boolean mincFinish, Writer writer,
@@ -454,7 +424,6 @@ public class TabletServerLogger {
           @Override
           void withWriteLock() throws IOException {
             close();
-            closeForReplication(sessions);
           }
         });
       }
@@ -471,25 +440,17 @@ public class TabletServerLogger {
       @Override
       void withWriteLock() throws IOException {
         close();
-        closeForReplication(sessions);
       }
     });
-  }
-
-  protected void closeForReplication(Collection<CommitSession> sessions) {
-    // TODO We can close the WAL here for replication purposes
   }
 
   public void defineTablet(final CommitSession commitSession, final Retry writeRetry)
       throws IOException {
     // scribble this into the metadata tablet, too.
-    write(commitSession, false, new Writer() {
-      @Override
-      public LoggerOperation write(DfsLogger logger) throws Exception {
-        logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(),
-            commitSession.getExtent());
-        return DfsLogger.NO_WAIT_LOGGER_OP;
-      }
+    write(Collections.singletonList(commitSession), false, logger -> {
+      logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(),
+          commitSession.getExtent());
+      return DfsLogger.NO_WAIT_LOGGER_OP;
     }, writeRetry);
   }
 
@@ -501,40 +462,22 @@ public class TabletServerLogger {
     if (durability == Durability.DEFAULT) {
       throw new IllegalArgumentException("Unexpected durability " + durability);
     }
-    write(commitSession, false, new Writer() {
-      @Override
-      public LoggerOperation write(DfsLogger logger) throws Exception {
-        return logger.log(tabletSeq, commitSession.getLogId(), m, durability);
-      }
-    });
+    write(Collections.singletonList(commitSession), false,
+        logger -> logger.log(tabletSeq, commitSession.getLogId(), m, durability),
+        writeRetryFactory.createRetry());
     logSizeEstimate.addAndGet(m.numBytes());
   }
 
-  public void logManyTablets(Map<CommitSession,Mutations> mutations) throws IOException {
-
-    final Map<CommitSession,Mutations> loggables = new HashMap<>(mutations);
-    for (Entry<CommitSession,Mutations> entry : mutations.entrySet()) {
-      if (entry.getValue().getDurability() == Durability.NONE) {
-        loggables.remove(entry.getKey());
-      }
-    }
+  /**
+   * Log mutations. This method expects mutations that have a durability other than NONE.
+   */
+  public void logManyTablets(Map<CommitSession,TabletMutations> loggables) throws IOException {
     if (loggables.size() == 0)
       return;
 
-    write(loggables.keySet(), false, new Writer() {
-      @Override
-      public LoggerOperation write(DfsLogger logger) throws Exception {
-        List<TabletMutations> copy = new ArrayList<>(loggables.size());
-        for (Entry<CommitSession,Mutations> entry : loggables.entrySet()) {
-          CommitSession cs = entry.getKey();
-          Durability durability = entry.getValue().getDurability();
-          copy.add(new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
-              entry.getValue().getMutations(), durability));
-        }
-        return logger.logManyTablets(copy);
-      }
-    });
-    for (Mutations entry : loggables.values()) {
+    write(loggables.keySet(), false, (logger -> logger.logManyTablets(loggables.values())),
+        writeRetryFactory.createRetry());
+    for (TabletMutations entry : loggables.values()) {
       if (entry.getMutations().size() < 1) {
         throw new IllegalArgumentException("logManyTablets: logging empty mutation list");
       }
@@ -550,13 +493,10 @@ public class TabletServerLogger {
 
     long t1 = System.currentTimeMillis();
 
-    write(commitSession, true, new Writer() {
-      @Override
-      public LoggerOperation write(DfsLogger logger) throws Exception {
-        return logger.minorCompactionFinished(walogSeq, commitSession.getLogId(),
-            fullyQualifiedFileName, durability);
-      }
-    });
+    write(Collections.singletonList(commitSession), true,
+        logger -> logger.minorCompactionFinished(walogSeq, commitSession.getLogId(),
+            fullyQualifiedFileName, durability),
+        writeRetryFactory.createRetry());
 
     long t2 = System.currentTimeMillis();
 
@@ -565,18 +505,14 @@ public class TabletServerLogger {
 
   public long minorCompactionStarted(final CommitSession commitSession, final long seq,
       final String fullyQualifiedFileName, final Durability durability) throws IOException {
-    write(commitSession, false, new Writer() {
-      @Override
-      public LoggerOperation write(DfsLogger logger) throws Exception {
-        return logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName,
-            durability);
-      }
-    });
+    write(Collections.singletonList(commitSession), false, logger -> logger
+        .minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName, durability),
+        writeRetryFactory.createRetry());
     return seq;
   }
 
-  public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf, List<Path> logs,
-      Set<String> tabletFiles, MutationReceiver mr) throws IOException {
+  public void recover(VolumeManager fs, KeyExtent extent, List<Path> logs, Set<String> tabletFiles,
+      MutationReceiver mr) throws IOException {
     try {
       SortedLogRecovery recovery = new SortedLogRecovery(fs);
       recovery.recover(extent, logs, tabletFiles, mr);
