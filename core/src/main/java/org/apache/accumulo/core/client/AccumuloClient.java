@@ -59,14 +59,6 @@ import org.apache.accumulo.core.security.Authorizations;
 public interface AccumuloClient extends AutoCloseable {
 
   /**
-   * Verifies credentials of client. Calling this method is optional.
-   *
-   * @throws AccumuloSecurityException
-   *           if authentication token has expired or access is denied
-   */
-  void authenticate() throws AccumuloSecurityException, AccumuloException;
-
-  /**
    * Factory method to create a BatchScanner connected to Accumulo.
    *
    * @param tableName

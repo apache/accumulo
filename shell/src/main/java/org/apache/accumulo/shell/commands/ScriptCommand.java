@@ -39,6 +39,8 @@ import javax.script.ScriptException;
 import javax.script.SimpleScriptContext;
 
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -182,7 +184,11 @@ public class ScriptCommand extends Command {
 
   @SuppressWarnings("deprecation")
   private void putConnector(Bindings b, AccumuloClient client) {
-    b.put("connection", org.apache.accumulo.core.client.Connector.from(client));
+    try {
+      b.put("connection", org.apache.accumulo.core.client.Connector.from(client));
+    } catch (AccumuloSecurityException|AccumuloException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

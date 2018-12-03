@@ -92,12 +92,11 @@ public class CredentialsIT extends AccumuloClusterHarness {
     assertFalse(token.isDestroyed());
     token.destroy();
     assertTrue(token.isDestroyed());
-    try (AccumuloClient client = Accumulo.newClient().from(getClientInfo().getProperties())
+    try (AccumuloClient ignored = Accumulo.newClient().from(getClientInfo().getProperties())
         .as("non_existent_user", token).build()) {
-      client.authenticate();
       fail();
-    } catch (AccumuloSecurityException e) {
-      assertEquals(e.getSecurityErrorCode(), SecurityErrorCode.TOKEN_EXPIRED);
+    } catch (IllegalArgumentException e) {
+      assertEquals(e.getMessage(), "AuthenticationToken has been destroyed");
     }
   }
 

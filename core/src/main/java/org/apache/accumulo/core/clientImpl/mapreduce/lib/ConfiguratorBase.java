@@ -32,6 +32,8 @@ import java.util.Scanner;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -335,8 +337,12 @@ public class ConfiguratorBase {
   @Deprecated
   public static org.apache.accumulo.core.client.Instance getInstance(Class<?> implementingClass,
       Configuration conf) {
-    return org.apache.accumulo.core.client.Connector.from(getClient(implementingClass, conf))
-        .getInstance();
+    try {
+      return org.apache.accumulo.core.client.Connector.from(getClient(implementingClass, conf))
+          .getInstance();
+    } catch (AccumuloSecurityException|AccumuloException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**

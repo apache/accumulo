@@ -89,8 +89,8 @@ public class AccumuloClientImpl implements AccumuloClient {
     return tableId;
   }
 
-  @Override
-  public void authenticate() throws AccumuloSecurityException, AccumuloException {
+
+  void authenticate() throws AccumuloSecurityException, AccumuloException {
     if (context.getCredentials().getToken().isDestroyed())
       throw new AccumuloSecurityException(context.getCredentials().getPrincipal(),
           SecurityErrorCode.TOKEN_EXPIRED);
@@ -465,6 +465,9 @@ public class AccumuloClientImpl implements AccumuloClient {
 
     @Override
     public ConnectionOptions<T> as(CharSequence principal, AuthenticationToken token) {
+      if (token.isDestroyed()) {
+        throw new IllegalArgumentException("AuthenticationToken has been destroyed");
+      }
       setProperty(ClientProperty.AUTH_PRINCIPAL, principal.toString());
       ClientProperty.setAuthenticationToken(properties, token);
       this.token = token;

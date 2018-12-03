@@ -20,6 +20,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -47,9 +49,10 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
 
   private final AccumuloClientImpl impl;
 
-  public ConnectorImpl(AccumuloClientImpl impl) {
+  public ConnectorImpl(AccumuloClientImpl impl) throws AccumuloSecurityException, AccumuloException {
     this.impl = impl;
     SingletonManager.setMode(Mode.CONNECTOR);
+    impl.authenticate();
   }
 
   public AccumuloClientImpl getAccumuloClient() {
