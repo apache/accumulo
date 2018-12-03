@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -293,13 +294,9 @@ public class AccumuloClientImpl implements AccumuloClient {
 
     private Properties properties = new Properties();
     private AuthenticationToken token = null;
-    private BuildFunction<T> builderFunction;
+    private Function<ClientBuilderImpl, T> builderFunction;
 
-    private interface BuildFunction<T2> {
-      T2 build(ClientBuilderImpl cbi);
-    }
-
-    ClientBuilderImpl(BuildFunction<T> builderFunction) {
+    public ClientBuilderImpl(Function<ClientBuilderImpl, T> builderFunction) {
       this.builderFunction = builderFunction;
     }
 
@@ -312,20 +309,13 @@ public class AccumuloClientImpl implements AccumuloClient {
 
     @Override
     public T build() {
-      return builderFunction.build(this);
+      return builderFunction.apply(this);
     }
 
-    public static ClientBuilderImpl<AccumuloClient> newClientBuilder() {
-      return new ClientBuilderImpl<>(ClientBuilderImpl::buildClient);
-    }
-
-    public static ClientBuilderImpl<Properties> newPropertiesBuilder() {
-      return new ClientBuilderImpl<>(ClientBuilderImpl::buildProps);
-    }
-
-    private static AccumuloClient buildClient(ClientBuilderImpl<AccumuloClient> cbi) {
+    public static AccumuloClient buildClient(ClientBuilderImpl<AccumuloClient> cbi) {
       SingletonReservation reservation = SingletonManager.getClientReservation();
       try {
+        // AccumuloClientImpl closes reservation unless a RuntimeException is thrown
         return new AccumuloClientImpl(reservation, new ClientContext(cbi.getClientInfo()));
       } catch (RuntimeException e) {
         reservation.close();
@@ -333,7 +323,7 @@ public class AccumuloClientImpl implements AccumuloClient {
       }
     }
 
-    private static Properties buildProps(ClientBuilderImpl<Properties> cbi) {
+    public static Properties buildProps(ClientBuilderImpl<Properties> cbi) {
       return cbi.properties;
     }
 
