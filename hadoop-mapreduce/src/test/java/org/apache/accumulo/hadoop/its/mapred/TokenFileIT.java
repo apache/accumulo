@@ -94,7 +94,6 @@ public class TokenFileIT extends AccumuloClusterHarness {
 
     }
 
-    @SuppressWarnings("deprecation")
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
     @Override
     public int run(String[] args) throws Exception {
