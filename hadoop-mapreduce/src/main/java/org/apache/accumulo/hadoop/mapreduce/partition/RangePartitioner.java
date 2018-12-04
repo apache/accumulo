@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.hadoopImpl.mapreduce.lib.partition;
+package org.apache.accumulo.hadoop.mapreduce.partition;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -42,6 +42,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Hadoop partitioner that uses ranges, and optionally sub-bins based on hashing.
+ *
+ * @since 2.0.0
  */
 public class RangePartitioner extends Partitioner<Text,Writable> implements Configurable {
   private static final String PREFIX = RangePartitioner.class.getName();
