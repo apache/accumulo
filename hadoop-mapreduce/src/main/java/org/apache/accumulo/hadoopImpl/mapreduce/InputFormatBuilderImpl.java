@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -63,8 +64,9 @@ public class InputFormatBuilderImpl<T>
   }
 
   @Override
-  public InputFormatBuilder.TableParams<T> clientInfo(ClientInfo clientInfo) {
-    this.clientInfo = Objects.requireNonNull(clientInfo, "ClientInfo must not be null");
+  public InputFormatBuilder.TableParams<T> clientProperties(Properties clientProperties) {
+    this.clientInfo = ClientInfo
+        .from(Objects.requireNonNull(clientProperties, "clientProperties must not be null"));
     return this;
   }
 

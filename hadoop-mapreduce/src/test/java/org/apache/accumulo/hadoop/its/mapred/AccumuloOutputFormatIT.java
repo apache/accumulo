@@ -27,13 +27,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
@@ -83,7 +83,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       // set the max memory so that we ensure we don't flush on the write.
       batchConfig.setMaxMemory(Long.MAX_VALUE);
       AccumuloOutputFormat outputFormat = new AccumuloOutputFormat();
-      AccumuloOutputFormat.configure().clientInfo(getClientInfo(batchConfig)).store(job);
+      AccumuloOutputFormat.configure().clientProperties(getClientInfo(batchConfig).getProperties())
+          .store(job);
       RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(null, job, "Test", null);
 
       try {
@@ -168,10 +169,10 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      ClientInfo info = ClientInfo
-          .from(Accumulo.newClientProperties().to(instanceName, zooKeepers).as(user, pass).build());
+      Properties cp = Accumulo.newClientProperties().to(instanceName, zooKeepers).as(user, pass)
+          .build();
 
-      AccumuloInputFormat.configure().clientInfo(info).table(table1).auths(Authorizations.EMPTY)
+      AccumuloInputFormat.configure().clientProperties(cp).table(table1).auths(Authorizations.EMPTY)
           .store(job);
 
       job.setMapperClass(TestMapper.class);
@@ -181,7 +182,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.configure().clientInfo(info).defaultTable(table2).store(job);
+      AccumuloOutputFormat.configure().clientProperties(cp).defaultTable(table2).store(job);
 
       job.setNumReduceTasks(0);
 

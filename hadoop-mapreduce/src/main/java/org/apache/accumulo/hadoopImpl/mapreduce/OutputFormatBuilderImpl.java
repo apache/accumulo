@@ -23,6 +23,7 @@ import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.hadoop.mapreduce.OutputFormatBuilder;
@@ -39,7 +40,7 @@ public class OutputFormatBuilderImpl<T>
   boolean simulationMode = false;
 
   @Override
-  public OutputFormatBuilder.OutputOptions<T> clientInfo(ClientInfo clientInfo) {
+  public OutputFormatBuilder.OutputOptions<T> clientProperties(Properties clientProperties) {
     this.clientInfo = Objects.requireNonNull(clientInfo, "ClientInfo must not be null");
     return this;
   }

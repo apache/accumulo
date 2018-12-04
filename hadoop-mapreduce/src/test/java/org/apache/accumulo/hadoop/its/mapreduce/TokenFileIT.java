@@ -27,11 +27,12 @@ import java.io.PrintStream;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Properties;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -94,7 +95,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
       }
 
       String tokenFile = args[0];
-      ClientInfo ci = ClientInfo.from(Paths.get(tokenFile));
+      Properties cp = Accumulo.newClientProperties().from(Paths.get(tokenFile)).build();
       String table1 = args[1];
       String table2 = args[2];
 
@@ -104,7 +105,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.configure().clientInfo(ci).table(table1).auths(Authorizations.EMPTY)
+      AccumuloInputFormat.configure().clientProperties(cp).table(table1).auths(Authorizations.EMPTY)
           .store(job);
 
       job.setMapperClass(TestMapper.class);
@@ -114,7 +115,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.configure().clientInfo(ci).defaultTable(table2).store(job);
+      AccumuloOutputFormat.configure().clientProperties(cp).defaultTable(table2).store(job);
 
       job.setNumReduceTasks(0);
 
