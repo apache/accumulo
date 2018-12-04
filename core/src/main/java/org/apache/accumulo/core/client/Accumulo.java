@@ -65,7 +65,8 @@ public final class Accumulo {
    * @return a builder object for Accumulo clients
    */
   public static AccumuloClient.PropertyOptions<AccumuloClient> newClient() {
-    return new AccumuloClientImpl.ClientBuilderImpl<>(AccumuloClientImpl.ClientBuilderImpl::buildClient);
+    return new AccumuloClientImpl.ClientBuilderImpl<>(
+        AccumuloClientImpl.ClientBuilderImpl::buildClient);
   }
 
   /**
@@ -82,6 +83,7 @@ public final class Accumulo {
    * @return a builder object for client Properties
    */
   public static AccumuloClient.PropertyOptions<Properties> newClientProperties() {
-    return new AccumuloClientImpl.ClientBuilderImpl<>(AccumuloClientImpl.ClientBuilderImpl::buildProps);
+    return new AccumuloClientImpl.ClientBuilderImpl<>(
+        AccumuloClientImpl.ClientBuilderImpl::buildProps);
   }
 }

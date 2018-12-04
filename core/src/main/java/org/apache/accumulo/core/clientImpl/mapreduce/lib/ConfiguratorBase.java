@@ -340,7 +340,7 @@ public class ConfiguratorBase {
     try {
       return org.apache.accumulo.core.client.Connector.from(getClient(implementingClass, conf))
           .getInstance();
-    } catch (AccumuloSecurityException|AccumuloException e) {
+    } catch (AccumuloSecurityException | AccumuloException e) {
       throw new RuntimeException(e);
     }
   }

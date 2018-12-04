@@ -278,7 +278,8 @@ public abstract class Connector {
    *
    * @since 2.0
    */
-  public static Connector from(AccumuloClient client) throws AccumuloSecurityException, AccumuloException {
+  public static Connector from(AccumuloClient client)
+      throws AccumuloSecurityException, AccumuloException {
     return new ConnectorImpl((AccumuloClientImpl) client);
   }
 }

@@ -90,7 +90,6 @@ public class AccumuloClientImpl implements AccumuloClient {
     return tableId;
   }
 
-
   void authenticate() throws AccumuloSecurityException, AccumuloException {
     if (context.getCredentials().getToken().isDestroyed())
       throw new AccumuloSecurityException(context.getCredentials().getPrincipal(),
@@ -294,9 +293,9 @@ public class AccumuloClientImpl implements AccumuloClient {
 
     private Properties properties = new Properties();
     private AuthenticationToken token = null;
-    private Function<ClientBuilderImpl, T> builderFunction;
+    private Function<ClientBuilderImpl,T> builderFunction;
 
-    public ClientBuilderImpl(Function<ClientBuilderImpl, T> builderFunction) {
+    public ClientBuilderImpl(Function<ClientBuilderImpl,T> builderFunction) {
       this.builderFunction = builderFunction;
     }
 

@@ -49,7 +49,8 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
 
   private final AccumuloClientImpl impl;
 
-  public ConnectorImpl(AccumuloClientImpl impl) throws AccumuloSecurityException, AccumuloException {
+  public ConnectorImpl(AccumuloClientImpl impl)
+      throws AccumuloSecurityException, AccumuloException {
     this.impl = impl;
     SingletonManager.setMode(Mode.CONNECTOR);
     impl.authenticate();

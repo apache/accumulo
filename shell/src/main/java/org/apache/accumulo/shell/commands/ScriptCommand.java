@@ -186,7 +186,7 @@ public class ScriptCommand extends Command {
   private void putConnector(Bindings b, AccumuloClient client) {
     try {
       b.put("connection", org.apache.accumulo.core.client.Connector.from(client));
-    } catch (AccumuloSecurityException|AccumuloException e) {
+    } catch (AccumuloSecurityException | AccumuloException e) {
       throw new RuntimeException(e);
     }
   }
