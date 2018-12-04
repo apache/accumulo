@@ -34,6 +34,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -166,8 +167,8 @@ public class RestartIT extends AccumuloClusterHarness {
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
       control.stopAllServers(ServerType.MONITOR);
 
-      ZooReader zreader = new ZooReader(c.info().getZooKeepers(),
-          c.info().getZooKeepersSessionTimeOut());
+      ClientInfo info = ClientInfo.from(c.properties());
+      ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
       byte[] masterLockData;
       do {
@@ -235,8 +236,8 @@ public class RestartIT extends AccumuloClusterHarness {
 
       control.stopAllServers(ServerType.MASTER);
 
-      ZooReader zreader = new ZooReader(c.info().getZooKeepers(),
-          c.info().getZooKeepersSessionTimeOut());
+      ClientInfo info = ClientInfo.from(c.properties());
+      ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
       byte[] masterLockData;
       do {

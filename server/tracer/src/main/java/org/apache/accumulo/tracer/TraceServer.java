@@ -273,7 +273,7 @@ public class TraceServer implements Watcher {
           at = token;
         }
 
-        accumuloClient = Accumulo.newClient().from(context.getClientInfo()).as(principal, at)
+        accumuloClient = Accumulo.newClient().from(context.getProperties()).as(principal, at)
             .build();
         if (!accumuloClient.tableOperations().exists(tableName)) {
           accumuloClient.tableOperations().create(tableName);

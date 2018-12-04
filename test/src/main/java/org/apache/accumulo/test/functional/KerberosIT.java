@@ -460,7 +460,8 @@ public class KerberosIT extends AccumuloITBase {
     try {
       // Use the delegation token to try to log in as a different user
       userWithoutPrivs.doAs((PrivilegedExceptionAction<Void>) () -> {
-        mac.getAccumuloClient("some_other_user", delegationToken);
+        AccumuloClient client = mac.getAccumuloClient("some_other_user", delegationToken);
+        client.securityOperations().authenticateUser("some_other_user", delegationToken);
         return null;
       });
       fail("Using a delegation token as a different user should throw an exception");

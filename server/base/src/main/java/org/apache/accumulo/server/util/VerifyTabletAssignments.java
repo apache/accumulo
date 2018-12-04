@@ -74,7 +74,7 @@ public class VerifyTabletAssignments {
     opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
 
     AccumuloClient client = opts.getClient();
-    ClientContext context = new ClientContext(client.info());
+    ClientContext context = new ClientContext(client);
     for (String table : client.tableOperations().list())
       checkTable(context, opts, table, null);
 

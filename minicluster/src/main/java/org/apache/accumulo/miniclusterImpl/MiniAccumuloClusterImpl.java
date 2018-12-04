@@ -781,9 +781,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   @Override
-  public AccumuloClient getAccumuloClient(String user, AuthenticationToken token)
-      throws AccumuloException, AccumuloSecurityException {
-    return Accumulo.newClient().from(getClientInfo()).as(user, token).build();
+  public AccumuloClient getAccumuloClient(String user, AuthenticationToken token) {
+    return Accumulo.newClient().from(getClientInfo().getProperties()).as(user, token).build();
   }
 
   @SuppressWarnings("deprecation")

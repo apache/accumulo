@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
@@ -200,8 +201,8 @@ public class ReplicationIT extends ConfigurableMacBase {
   private void waitForGCLock(AccumuloClient client) throws InterruptedException {
     // Check if the GC process has the lock before wasting our retry attempts
     ZooCacheFactory zcf = new ZooCacheFactory();
-    ZooCache zcache = zcf.getZooCache(client.info().getZooKeepers(),
-        client.info().getZooKeepersSessionTimeOut());
+    ClientInfo info = ClientInfo.from(client.properties());
+    ZooCache zcache = zcf.getZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
     String zkPath = ZooUtil.getRoot(client.getInstanceID()) + Constants.ZGC_LOCK;
     log.info("Looking for GC lock at {}", zkPath);
     byte[] data = ZooLock.getLockData(zcache, zkPath, null);

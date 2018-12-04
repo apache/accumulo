@@ -131,8 +131,7 @@ public class MiniAccumuloCluster {
    *
    * @since 2.0.0
    */
-  public AccumuloClient getAccumuloClient(String user, AuthenticationToken token)
-      throws AccumuloException, AccumuloSecurityException {
+  public AccumuloClient getAccumuloClient(String user, AuthenticationToken token) {
     return impl.getAccumuloClient(user, token);
   }
 

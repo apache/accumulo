@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -91,11 +92,11 @@ public class CredentialsIT extends AccumuloClusterHarness {
     assertFalse(token.isDestroyed());
     token.destroy();
     assertTrue(token.isDestroyed());
-    try (AccumuloClient client = getAccumuloClient()) {
-      client.changeUser("non_existent_user", token);
+    try (AccumuloClient ignored = Accumulo.newClient().from(getClientInfo().getProperties())
+        .as("non_existent_user", token).build()) {
       fail();
-    } catch (AccumuloSecurityException e) {
-      assertEquals(e.getSecurityErrorCode(), SecurityErrorCode.TOKEN_EXPIRED);
+    } catch (IllegalArgumentException e) {
+      assertEquals(e.getMessage(), "AuthenticationToken has been destroyed");
     }
   }
 
@@ -103,7 +104,9 @@ public class CredentialsIT extends AccumuloClusterHarness {
   public void testDestroyTokenBeforeRPC() throws Exception {
     try (AccumuloClient client = getAccumuloClient()) {
       AuthenticationToken token = getUser(0).getToken();
-      try (AccumuloClient userAccumuloClient = client.changeUser(username, token);
+      try (
+          AccumuloClient userAccumuloClient = Accumulo.newClient().from(client.properties())
+              .as(username, token).build();
           Scanner scanner = userAccumuloClient.createScanner(MetadataTable.NAME,
               Authorizations.EMPTY)) {
         assertFalse(token.isDestroyed());

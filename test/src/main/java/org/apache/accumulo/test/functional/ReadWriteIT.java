@@ -183,8 +183,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       log.debug("Stopping accumulo cluster");
       ClusterControl control = cluster.getClusterControl();
       control.adminStopAll();
-      ZooReader zreader = new ZooReader(accumuloClient.info().getZooKeepers(),
-          accumuloClient.info().getZooKeepersSessionTimeOut());
+      ClientInfo info = ClientInfo.from(accumuloClient.properties());
+      ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
       byte[] masterLockData;
       do {

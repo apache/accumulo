@@ -40,7 +40,7 @@ import org.junit.Test;
 
 public class SystemCredentialsIT extends ConfigurableMacBase {
 
-  private static final int FAIL_CODE = 7, BAD_PASSWD_FAIL_CODE = 8;
+  private static final int SCAN_FAILED = 7, AUTHENICATION_FAILED = 8;
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -51,9 +51,9 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
   public void testSystemCredentials() throws Exception {
     assertEquals(0,
         exec(SystemCredentialsIT.class, "good", getCluster().getZooKeepers()).waitFor());
-    assertEquals(FAIL_CODE,
+    assertEquals(AUTHENICATION_FAILED,
         exec(SystemCredentialsIT.class, "bad", getCluster().getZooKeepers()).waitFor());
-    assertEquals(BAD_PASSWD_FAIL_CODE,
+    assertEquals(AUTHENICATION_FAILED,
         exec(SystemCredentialsIT.class, "bad_password", getCluster().getZooKeepers()).waitFor());
   }
 
@@ -77,9 +77,10 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
     AccumuloClient client;
     try {
       client = context.getClient(creds.getPrincipal(), creds.getToken());
+      client.securityOperations().authenticateUser(creds.getPrincipal(), creds.getToken());
     } catch (AccumuloSecurityException e) {
       e.printStackTrace(System.err);
-      System.exit(BAD_PASSWD_FAIL_CODE);
+      System.exit(AUTHENICATION_FAILED);
       return;
     }
     try (Scanner scan = client.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
@@ -87,13 +88,8 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
         e.hashCode();
       }
     } catch (RuntimeException e) {
-      // catch the runtime exception from the scanner iterator
-      if (e.getCause() instanceof AccumuloSecurityException
-          && ((AccumuloSecurityException) e.getCause())
-              .getSecurityErrorCode() == SecurityErrorCode.BAD_CREDENTIALS) {
-        e.printStackTrace(System.err);
-        System.exit(FAIL_CODE);
-      }
+      e.printStackTrace(System.err);
+      System.exit(SCAN_FAILED);
     }
   }
 }

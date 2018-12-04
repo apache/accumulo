@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -134,7 +135,8 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
       assertTrue(Property.isValidPropertyKey(propertyName));
 
       // Getting a fresh token will ensure we're logged in as this user (if necessary)
-      try (AccumuloClient testclient = c.changeUser(testUser, user.getToken())) {
+      try (AccumuloClient testclient = Accumulo.newClient().from(c.properties())
+          .as(testUser, user.getToken()).build()) {
         // Set the property to the desired value
         testclient.tableOperations().setProperty(tableName, propertyName, description1);
 
@@ -203,7 +205,8 @@ public class ArbitraryTablePropertiesIT extends SharedMiniClusterBase {
       assertTrue(Property.isValidPropertyKey(propertyName));
 
       // Getting a fresh token will ensure we're logged in as this user (if necessary)
-      try (AccumuloClient testclient = c.changeUser(testUser, user.getToken())) {
+      try (AccumuloClient testclient = Accumulo.newClient().from(c.properties())
+          .as(testUser, user.getToken()).build()) {
 
         // Try to set the property to the desired value.
         // If able to set it, the test fails, since permission was never granted

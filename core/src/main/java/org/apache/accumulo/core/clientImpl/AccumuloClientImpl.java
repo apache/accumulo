@@ -22,8 +22,8 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -71,19 +71,30 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
   }
 
-  public AccumuloClientImpl(SingletonReservation reservation, final ClientContext context)
-      throws AccumuloSecurityException, AccumuloException {
+  public AccumuloClientImpl(SingletonReservation reservation, final ClientContext context) {
     checkArgument(context != null, "Context is null");
     checkArgument(context.getCredentials() != null, "Credentials are null");
     checkArgument(context.getCredentials().getToken() != null, "Authentication token is null");
-    if (context.getCredentials().getToken().isDestroyed())
-      throw new AccumuloSecurityException(context.getCredentials().getPrincipal(),
-          SecurityErrorCode.TOKEN_EXPIRED);
 
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.context = context;
     instanceID = context.getInstanceID();
+    this.tableops = new TableOperationsImpl(context);
+    this.namespaceops = new NamespaceOperationsImpl(context, tableops);
+  }
 
+  Table.ID getTableId(String tableName) throws TableNotFoundException {
+    Table.ID tableId = Tables.getTableId(context, tableName);
+    if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
+      throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
+    return tableId;
+  }
+
+
+  void authenticate() throws AccumuloSecurityException, AccumuloException {
+    if (context.getCredentials().getToken().isDestroyed())
+      throw new AccumuloSecurityException(context.getCredentials().getPrincipal(),
+          SecurityErrorCode.TOKEN_EXPIRED);
     // Skip fail fast for system services; string literal for class name, to avoid dependency on
     // server jar
     final String tokenClassName = context.getCredentials().getToken().getClass().getName();
@@ -94,16 +105,6 @@ public class AccumuloClientImpl implements AccumuloClient {
               SecurityErrorCode.BAD_CREDENTIALS);
       });
     }
-
-    this.tableops = new TableOperationsImpl(context);
-    this.namespaceops = new NamespaceOperationsImpl(context, tableops);
-  }
-
-  Table.ID getTableId(String tableName) throws TableNotFoundException {
-    Table.ID tableId = Tables.getTableId(context, tableName);
-    if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
-      throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
-    return tableId;
   }
 
   @Override
@@ -261,16 +262,20 @@ public class AccumuloClientImpl implements AccumuloClient {
   }
 
   @Override
-  public ClientInfo info() {
+  public Properties properties() {
     ensureOpen();
-    return this.context.getClientInfo();
+    Properties result = new Properties();
+    this.context.getProperties().forEach((key, value) -> {
+      if (!key.equals(ClientProperty.AUTH_TOKEN.getKey())) {
+        result.setProperty((String) key, (String) value);
+      }
+    });
+    return result;
   }
 
-  @Override
-  public AccumuloClient changeUser(String principal, AuthenticationToken token)
-      throws AccumuloSecurityException, AccumuloException {
+  public AuthenticationToken token() {
     ensureOpen();
-    return Accumulo.newClient().from(info()).as(principal, token).build();
+    return this.context.getAuthenticationToken();
   }
 
   @Override
@@ -283,12 +288,17 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
   }
 
-  public static class AccumuloClientBuilderImpl
-      implements InstanceArgs, PropertyOptions, ClientInfoOptions, AuthenticationArgs,
-      ConnectionOptions, SslOptions, SaslOptions, AccumuloClientFactory, FromOptions {
+  public static class ClientBuilderImpl<T>
+      implements InstanceArgs<T>, PropertyOptions<T>, AuthenticationArgs<T>, ConnectionOptions<T>,
+      SslOptions<T>, SaslOptions<T>, ClientFactory<T>, FromOptions<T> {
 
     private Properties properties = new Properties();
     private AuthenticationToken token = null;
+    private Function<ClientBuilderImpl, T> builderFunction;
+
+    public ClientBuilderImpl(Function<ClientBuilderImpl, T> builderFunction) {
+      this.builderFunction = builderFunction;
+    }
 
     private ClientInfo getClientInfo() {
       if (token != null) {
@@ -298,36 +308,40 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
 
     @Override
-    public AccumuloClient build() throws AccumuloException, AccumuloSecurityException {
+    public T build() {
+      return builderFunction.apply(this);
+    }
+
+    public static AccumuloClient buildClient(ClientBuilderImpl<AccumuloClient> cbi) {
       SingletonReservation reservation = SingletonManager.getClientReservation();
       try {
-        return new AccumuloClientImpl(reservation, new ClientContext(getClientInfo()));
-      } catch (AccumuloException | AccumuloSecurityException | RuntimeException e) {
+        // AccumuloClientImpl closes reservation unless a RuntimeException is thrown
+        return new AccumuloClientImpl(reservation, new ClientContext(cbi.getClientInfo()));
+      } catch (RuntimeException e) {
         reservation.close();
         throw e;
       }
     }
 
-    @Override
-    public ClientInfo info() {
-      return getClientInfo();
+    public static Properties buildProps(ClientBuilderImpl<Properties> cbi) {
+      return cbi.properties;
     }
 
     @Override
-    public AuthenticationArgs to(CharSequence instanceName, CharSequence zookeepers) {
+    public AuthenticationArgs<T> to(CharSequence instanceName, CharSequence zookeepers) {
       setProperty(ClientProperty.INSTANCE_NAME, instanceName);
       setProperty(ClientProperty.INSTANCE_ZOOKEEPERS, zookeepers);
       return this;
     }
 
     @Override
-    public SslOptions truststore(CharSequence path) {
+    public SslOptions<T> truststore(CharSequence path) {
       setProperty(ClientProperty.SSL_TRUSTSTORE_PATH, path);
       return this;
     }
 
     @Override
-    public SslOptions truststore(CharSequence path, CharSequence password, CharSequence type) {
+    public SslOptions<T> truststore(CharSequence path, CharSequence password, CharSequence type) {
       setProperty(ClientProperty.SSL_TRUSTSTORE_PATH, path);
       setProperty(ClientProperty.SSL_TRUSTSTORE_PASSWORD, password);
       setProperty(ClientProperty.SSL_TRUSTSTORE_TYPE, type);
@@ -335,13 +349,13 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
 
     @Override
-    public SslOptions keystore(CharSequence path) {
+    public SslOptions<T> keystore(CharSequence path) {
       setProperty(ClientProperty.SSL_KEYSTORE_PATH, path);
       return this;
     }
 
     @Override
-    public SslOptions keystore(CharSequence path, CharSequence password, CharSequence type) {
+    public SslOptions<T> keystore(CharSequence path, CharSequence password, CharSequence type) {
       setProperty(ClientProperty.SSL_KEYSTORE_PATH, path);
       setProperty(ClientProperty.SSL_KEYSTORE_PASSWORD, password);
       setProperty(ClientProperty.SSL_KEYSTORE_TYPE, type);
@@ -349,31 +363,31 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
 
     @Override
-    public SslOptions useJsse() {
+    public SslOptions<T> useJsse() {
       setProperty(ClientProperty.SSL_USE_JSSE, "true");
       return this;
     }
 
     @Override
-    public ConnectionOptions zkTimeout(int timeout) {
+    public ConnectionOptions<T> zkTimeout(int timeout) {
       ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.setTimeInMillis(properties, (long) timeout);
       return this;
     }
 
     @Override
-    public SslOptions useSsl() {
+    public SslOptions<T> useSsl() {
       setProperty(ClientProperty.SSL_ENABLED, "true");
       return this;
     }
 
     @Override
-    public SaslOptions useSasl() {
+    public SaslOptions<T> useSasl() {
       setProperty(ClientProperty.SASL_ENABLED, "true");
       return this;
     }
 
     @Override
-    public ConnectionOptions batchWriterConfig(BatchWriterConfig batchWriterConfig) {
+    public ConnectionOptions<T> batchWriterConfig(BatchWriterConfig batchWriterConfig) {
       ClientProperty.BATCH_WRITER_MEMORY_MAX.setBytes(properties, batchWriterConfig.getMaxMemory());
       ClientProperty.BATCH_WRITER_LATENCY_MAX.setTimeInMillis(properties,
           batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
@@ -386,69 +400,67 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
 
     @Override
-    public ConnectionOptions batchScannerQueryThreads(int numQueryThreads) {
+    public ConnectionOptions<T> batchScannerQueryThreads(int numQueryThreads) {
       setProperty(ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS, numQueryThreads);
       return this;
     }
 
     @Override
-    public ConnectionOptions scannerBatchSize(int batchSize) {
+    public ConnectionOptions<T> scannerBatchSize(int batchSize) {
       setProperty(ClientProperty.SCANNER_BATCH_SIZE, batchSize);
       return this;
     }
 
     @Override
-    public SaslOptions primary(CharSequence kerberosServerPrimary) {
+    public SaslOptions<T> primary(CharSequence kerberosServerPrimary) {
       setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY, kerberosServerPrimary);
       return this;
     }
 
     @Override
-    public SaslOptions qop(CharSequence qualityOfProtection) {
+    public SaslOptions<T> qop(CharSequence qualityOfProtection) {
       setProperty(ClientProperty.SASL_QOP, qualityOfProtection);
       return this;
     }
 
     @Override
-    public AccumuloClientFactory from(String propertiesFilePath) {
+    public FromOptions<T> from(String propertiesFilePath) {
       return from(ClientInfoImpl.toProperties(propertiesFilePath));
     }
 
     @Override
-    public AccumuloClientFactory from(Path propertiesFile) {
+    public FromOptions<T> from(Path propertiesFile) {
       return from(ClientInfoImpl.toProperties(propertiesFile));
     }
 
     @Override
-    public AccumuloClientFactory from(Properties properties) {
+    public FromOptions<T> from(Properties properties) {
       this.properties = properties;
       return this;
     }
 
     @Override
-    public ConnectionOptions as(CharSequence username, CharSequence password) {
+    public ConnectionOptions<T> as(CharSequence username, CharSequence password) {
       setProperty(ClientProperty.AUTH_PRINCIPAL, username);
       ClientProperty.setPassword(properties, password);
       return this;
     }
 
     @Override
-    public ConnectionOptions as(CharSequence principal, Path keyTabFile) {
+    public ConnectionOptions<T> as(CharSequence principal, Path keyTabFile) {
       setProperty(ClientProperty.AUTH_PRINCIPAL, principal);
       ClientProperty.setKerberosKeytab(properties, keyTabFile.toString());
       return this;
     }
 
     @Override
-    public ConnectionOptions as(CharSequence principal, AuthenticationToken token) {
+    public ConnectionOptions<T> as(CharSequence principal, AuthenticationToken token) {
+      if (token.isDestroyed()) {
+        throw new IllegalArgumentException("AuthenticationToken has been destroyed");
+      }
       setProperty(ClientProperty.AUTH_PRINCIPAL, principal.toString());
+      ClientProperty.setAuthenticationToken(properties, token);
       this.token = token;
-      return this;
-    }
-
-    @Override
-    public FromOptions from(ClientInfo clientInfo) {
-      this.properties = clientInfo.getProperties();
       return this;
     }
 

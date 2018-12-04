@@ -91,7 +91,7 @@ public class ReplicationTable {
   }
 
   public static boolean isOnline(AccumuloClient client) {
-    return TableState.ONLINE == Tables.getTableState(new ClientContext(client.info()), ID);
+    return TableState.ONLINE == Tables.getTableState(new ClientContext(client), ID);
   }
 
   public static void setOnline(AccumuloClient client)

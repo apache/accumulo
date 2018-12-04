@@ -23,8 +23,8 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -35,9 +35,6 @@ public class AccumuloOutputFormatTest {
   @Test
   public void testBWSettings() throws IOException {
     Job job = Job.getInstance();
-
-    AccumuloClient.ConnectionOptions opts = Accumulo.newClient().to("test", "zk").as("blah",
-        "blah");
 
     // make sure we aren't testing defaults
     final BatchWriterConfig bwDefaults = new BatchWriterConfig();
@@ -51,8 +48,11 @@ public class AccumuloOutputFormatTest {
     bwConfig.setTimeout(9898989L, TimeUnit.MILLISECONDS);
     bwConfig.setMaxWriteThreads(42);
     bwConfig.setMaxMemory(1123581321L);
-    opts.batchWriterConfig(bwConfig);
-    AccumuloOutputFormat.configure().clientInfo(opts.info()).store(job);
+
+    ClientInfo info = ClientInfo.from(Accumulo.newClientProperties().to("test", "zk")
+        .as("blah", "blah").batchWriterConfig(bwConfig).build());
+
+    AccumuloOutputFormat.configure().clientInfo(info).store(job);
 
     AccumuloOutputFormat myAOF = new AccumuloOutputFormat() {
       @Override
