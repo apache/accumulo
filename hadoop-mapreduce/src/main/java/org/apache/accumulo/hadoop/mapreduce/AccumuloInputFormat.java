@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
  * job using the {@link #configure()} method, which provides a fluent API. For Example:
  *
  * <pre>
- * AccumuloInputFormat.configure().clientProperties(info).table(name).auths(auths) // required
+ * AccumuloInputFormat.configure().clientProperties(props).table(name).auths(auths) // required
  *     .addIterator(iter1).ranges(ranges).fetchColumns(columns).executionHints(hints)
  *     .samplerConfiguration(sampleConf).disableAutoAdjustRanges() // enabled by default
  *     .scanIsolation() // not available with batchScan()

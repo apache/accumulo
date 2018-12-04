@@ -52,8 +52,8 @@ public class AccumuloInputFormatTest {
   public static Properties setupClientProperties() {
     Properties cp = new Properties();
     cp.setProperty(ClientProperty.INSTANCE_NAME.getKey(), "test-instance");
-    cp.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), "test-zk");
-    cp.setProperty(ClientProperty.AUTH_TYPE.getKey(), "test-auth-type");
+    cp.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), "test-zk:2181");
+    cp.setProperty(ClientProperty.AUTH_TYPE.getKey(), "password");
     cp.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), "test-principal");
     cp.setProperty(ClientProperty.AUTH_TOKEN.getKey(), "test-token");
     return cp;

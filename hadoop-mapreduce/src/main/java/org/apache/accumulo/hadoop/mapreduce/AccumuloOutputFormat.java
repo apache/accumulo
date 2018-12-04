@@ -45,7 +45,7 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
  * Here is an example with all possible options:
  *
  * <pre>
- * AccumuloOutputFormat.configure().clientProperties(clientProperties).batchWriterOptions(bwConfig)
+ * AccumuloOutputFormat.configure().clientProperties(props).batchWriterOptions(bwConfig)
  *     .defaultTable(name).createTables() // disabled by default
  *     .simulationMode() // disabled by default
  *     .store(job);
