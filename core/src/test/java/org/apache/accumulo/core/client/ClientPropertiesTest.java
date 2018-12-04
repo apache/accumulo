@@ -24,8 +24,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class ClientPropertiesTest {
 
@@ -33,7 +31,7 @@ public class ClientPropertiesTest {
   public void testBasic() {
     Properties props1 = Accumulo.newClientProperties().to("inst1", "zoo1")
         .as("user1", "pass1").build();
-    assertTrue(ClientProperty.hasRequired(props1));
+    Assert.assertTrue(ClientProperty.hasRequired(props1));
     assertEquals("inst1", ClientProperty.INSTANCE_NAME.getValue(props1));
     assertEquals("zoo1", ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props1));
     assertEquals("user1", ClientProperty.AUTH_PRINCIPAL.getValue(props1));
@@ -41,7 +39,7 @@ public class ClientPropertiesTest {
     assertEquals("pass1", ClientProperty.AUTH_TOKEN.getValue(props1));
 
     Properties props2 = Accumulo.newClientProperties().from(props1).as("user2", Paths.get("/path2")).build();
-    assertTrue(ClientProperty.hasRequired(props1));
+    Assert.assertTrue(ClientProperty.hasRequired(props1));
     assertEquals("inst1", ClientProperty.INSTANCE_NAME.getValue(props1));
     assertEquals("zoo1", ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props1));
     assertEquals("user2", ClientProperty.AUTH_PRINCIPAL.getValue(props1));
@@ -49,7 +47,7 @@ public class ClientPropertiesTest {
     assertEquals("/path2", ClientProperty.AUTH_TOKEN.getValue(props1));
 
     props2.remove(ClientProperty.AUTH_PRINCIPAL.getKey());
-    assertFalse(ClientProperty.hasRequired(props2));
+    Assert.assertFalse(ClientProperty.hasRequired(props2));
     try {
       ClientProperty.validate(props2);
       Assert.fail();
