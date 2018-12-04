@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.hadoop.mapreduce.lib.partition;
+package org.apache.accumulo.hadoop.mapreduce.partition;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.hadoop.conf.Configurable;
@@ -25,6 +25,8 @@ import org.apache.hadoop.mapreduce.Partitioner;
 
 /**
  * Hadoop partitioner that uses ranges based on row keys, and optionally sub-bins based on hashing.
+ *
+ * @since 2.0.0
  */
 public class KeyRangePartitioner extends Partitioner<Key,Writable> implements Configurable {
   private RangePartitioner rp = new RangePartitioner();
