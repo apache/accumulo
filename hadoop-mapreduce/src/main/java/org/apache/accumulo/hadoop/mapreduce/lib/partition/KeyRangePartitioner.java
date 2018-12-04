@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.hadoopImpl.mapreduce.lib.partition;
+package org.apache.accumulo.hadoop.mapreduce.lib.partition;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.hadoop.conf.Configurable;
