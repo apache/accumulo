@@ -1171,6 +1171,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       throws AccumuloException, AccumuloSecurityException {
     accumuloClient = Accumulo.newClient().from(accumuloClient.properties()).as(principal, token)
         .build();
+    accumuloClient.securityOperations().authenticateUser(principal, token);
     context = new ClientContext(accumuloClient);
   }
 
