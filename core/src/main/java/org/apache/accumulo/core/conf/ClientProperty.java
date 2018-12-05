@@ -302,4 +302,27 @@ public enum ClientProperty {
     properties.setProperty(ClientProperty.AUTH_TYPE.getKey(), token.getClass().getName());
     properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
   }
+
+  public static void validateProperty(Properties properties, ClientProperty prop) {
+    if (!properties.containsKey(prop.getKey()) || prop.getValue(properties).isEmpty()) {
+      throw new IllegalArgumentException(prop.getKey() + " is not set");
+    }
+  }
+
+  public static void validate(Properties properties, boolean validateToken) {
+    validateProperty(properties, ClientProperty.INSTANCE_NAME);
+    validateProperty(properties, ClientProperty.INSTANCE_ZOOKEEPERS);
+    validateProperty(properties, ClientProperty.AUTH_TYPE);
+    validateProperty(properties, ClientProperty.AUTH_PRINCIPAL);
+    if (validateToken) {
+      validateProperty(properties, ClientProperty.AUTH_TOKEN);
+    }
+  }
+
+  /**
+   * @throws IllegalArgumentException if Properties does not contain all required
+   */
+  public static void validate(Properties properties) {
+    validate(properties, true);
+  }
 }

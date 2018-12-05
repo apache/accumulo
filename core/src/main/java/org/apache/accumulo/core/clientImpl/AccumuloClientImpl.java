@@ -301,8 +301,10 @@ public class AccumuloClientImpl implements AccumuloClient {
 
     private ClientInfo getClientInfo() {
       if (token != null) {
+        ClientProperty.validate(properties, false);
         return new ClientInfoImpl(properties, token);
       }
+      ClientProperty.validate(properties);
       return new ClientInfoImpl(properties);
     }
 
@@ -323,6 +325,7 @@ public class AccumuloClientImpl implements AccumuloClient {
     }
 
     public static Properties buildProps(ClientBuilderImpl<Properties> cbi) {
+      ClientProperty.validate(cbi.properties);
       return cbi.properties;
     }
 
