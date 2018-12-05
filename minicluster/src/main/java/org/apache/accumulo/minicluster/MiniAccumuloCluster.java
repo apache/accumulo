@@ -18,14 +18,15 @@ package org.apache.accumulo.minicluster;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -137,7 +138,7 @@ public class MiniAccumuloCluster {
 
   /**
    * @since 1.6.0
-   * @deprecated since 2.0.0, replaced by {@link #getClientInfo()}
+   * @deprecated since 2.0.0, replaced by {@link #getClientProperties()}
    */
   @Deprecated
   public org.apache.accumulo.core.client.ClientConfiguration getClientConfig() {
@@ -145,24 +146,24 @@ public class MiniAccumuloCluster {
   }
 
   /**
-   * @return Connection info for cluster
+   * @return Connection properties for cluster
    * @since 2.0.0
    */
-  public ClientInfo getClientInfo() {
-    return impl.getClientInfo();
+  public Properties getClientProperties() {
+    return impl.getClientProperties();
   }
 
   /**
-   * Construct a {@link ClientInfo} using a {@link MiniAccumuloCluster} directory
+   * Construct client {@link Properties} using a {@link MiniAccumuloCluster} directory
    *
    * @param directory
    *          MiniAccumuloCluster directory
-   * @return {@link ClientInfo} for that directory
+   * @return {@link Properties} for that directory
    * @since 2.0.0
    */
-  public static ClientInfo getClientInfo(File directory) {
+  public static Properties getClientProperties(File directory) {
     File clientProps = new File(new File(directory, "conf"), "accumulo-client.properties");
     Preconditions.checkArgument(clientProps.exists());
-    return ClientInfo.from(clientProps.toPath());
+    return ClientInfoImpl.toProperties(clientProps.toPath());
   }
 }

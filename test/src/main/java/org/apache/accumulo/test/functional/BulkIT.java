@@ -99,7 +99,7 @@ public class BulkIT extends AccumuloClusterHarness {
     opts.rows = N;
     opts.cols = 1;
     opts.setTableName(tableName);
-    opts.setClientInfo(info);
+    opts.setClientProperties(info.getProperties());
     opts.conf = new Configuration(false);
     opts.fs = fs;
     String fileFormat = filePrefix + "rf%02d";
@@ -118,7 +118,7 @@ public class BulkIT extends AccumuloClusterHarness {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     vopts.setTableName(tableName);
     vopts.random = 56;
-    vopts.setClientInfo(info);
+    vopts.setClientProperties(info.getProperties());
     for (int i = 0; i < COUNT; i++) {
       vopts.startRow = i * N;
       vopts.rows = N;

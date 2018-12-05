@@ -370,7 +370,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("exporttable -t " + table + " " + exportUri, true);
     DistCp cp = newDistCp(new Configuration(false));
     String import_ = "file://" + new File(rootPath, "ShellServerIT.import");
-    if (getCluster().getClientInfo().saslEnabled()) {
+    ClientInfo info = ClientInfo.from(getCluster().getClientProperties());
+    if (info.saslEnabled()) {
       // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it
       // ourselves by hand.
       FileSystem fs = getCluster().getFileSystem();

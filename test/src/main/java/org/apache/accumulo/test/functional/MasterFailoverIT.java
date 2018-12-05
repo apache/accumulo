@@ -54,7 +54,7 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
       c.tableOperations().create(names[0]);
       TestIngest.Opts opts = new TestIngest.Opts();
       opts.setTableName(names[0]);
-      opts.setClientInfo(getClientInfo());
+      opts.setClientProperties(getClientProperties());
       TestIngest.ingest(c, opts, new BatchWriterOpts());
 
       ClusterControl control = cluster.getClusterControl();
@@ -65,7 +65,7 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
       c.tableOperations().rename(names[0], names[1]);
       VerifyIngest.Opts vopts = new VerifyIngest.Opts();
       vopts.setTableName(names[1]);
-      vopts.setClientInfo(getClientInfo());
+      vopts.setClientProperties(getClientProperties());
       VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     }
   }

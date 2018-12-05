@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -79,6 +80,10 @@ public class ServerContext extends ClientContext {
   public ServerContext(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
       int zooKeepersSessionTimeOut) {
     this(new ServerInfo(siteConfig, instanceName, zooKeepers, zooKeepersSessionTimeOut));
+  }
+
+  public ServerContext(SiteConfiguration siteConfig, Properties clientProps) {
+    this(siteConfig, ClientInfo.from(clientProps));
   }
 
   public ServerContext(SiteConfiguration siteConfig, ClientInfo info) {

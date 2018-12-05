@@ -97,6 +97,10 @@ public class ClientContext {
     this(ClientInfo.from(client.properties(), ((AccumuloClientImpl) client).token()));
   }
 
+  public ClientContext(Properties clientProperties) {
+    this(ClientInfo.from(clientProperties));
+  }
+
   public ClientContext(ClientInfo info) {
     this(info, ClientConfConverter.toAccumuloConf(info.getProperties()));
   }

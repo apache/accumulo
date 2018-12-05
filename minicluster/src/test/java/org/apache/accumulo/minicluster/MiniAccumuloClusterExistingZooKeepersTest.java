@@ -93,7 +93,7 @@ public class MiniAccumuloClusterExistingZooKeepersTest {
   @Test
   public void canConnectViaExistingZooKeeper() throws Exception {
     org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", SECRET);
-    ClientContext context = new ClientContext(accumulo.getClientInfo());
+    ClientContext context = new ClientContext(accumulo.getClientProperties());
     assertEquals(zooKeeper.getConnectString(), context.getZooKeepers());
 
     String tableName = "foo";

@@ -131,8 +131,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
     TestIngest.Opts opts = new TestIngest.Opts();
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    opts.setClientInfo(getClientInfo());
-    vopts.setClientInfo(getClientInfo());
+    opts.setClientProperties(getClientProperties());
+    vopts.setClientProperties(getClientProperties());
     vopts.rows = opts.rows = 200000;
     opts.setTableName(TEST_TABLE);
     TestIngest.ingest(accumuloClient, opts, new BatchWriterOpts());
