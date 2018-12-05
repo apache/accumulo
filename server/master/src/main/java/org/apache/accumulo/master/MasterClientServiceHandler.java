@@ -172,7 +172,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       }
 
       if (tableId.equals(RootTable.ID))
-        break; // this code does not properly handle the root tablet
+        break; // this code does not properly handle the root tablet. See #798
 
       if (l == maxLoops - 1)
         break;
@@ -181,8 +181,6 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
       serversToFlush.clear();
 
-      // TODO ensure range works properly with metadata table.
-      // TODO was scanning entire root table, not sure why.
       try (TabletsMetadata tablets = TabletsMetadata.builder().forTable(tableId)
           .overlapping(startRow, endRow).fetchFlushId().fetchLocation().fetchLogs().fetchPrev()
           .build(master.getContext())) {
@@ -207,7 +205,6 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
         // TODO detect case of table offline AND tablets w/ logs? - ACCUMULO-1296
 
-        // TODO even if tables exists, do not expect tablet count to be zero
         if (tabletCount == 0 && !Tables.exists(master.getContext(), tableId))
           throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH,
               TableOperationExceptionType.NOTFOUND, null);

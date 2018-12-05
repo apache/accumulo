@@ -63,7 +63,7 @@ class CompactionDriver extends MasterRepo {
   public long isReady(long tid, Master master) throws Exception {
 
     if (tableId.equals(RootTable.ID)) {
-      // this codes not properly handle the root table.
+      // this codes not properly handle the root table. See #798
       return 0;
     }
 
