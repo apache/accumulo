@@ -52,6 +52,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -223,8 +224,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       else
         startRow = new Text();
 
-      nextRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null,
-          false);
+      nextRange = new Range(TabletsSection.getRow(tableId, startRow), true, null, false);
     } else {
 
       if (currentExtent.getEndRow() == null) {
