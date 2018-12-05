@@ -303,23 +303,6 @@ public enum ClientProperty {
     properties.setProperty(ClientProperty.AUTH_TOKEN.getKey(), encodeToken(token));
   }
 
-  public static boolean isPropertySet(Properties properties, ClientProperty prop) {
-    return properties.containsKey(prop.getKey()) && !prop.getValue(properties).isEmpty();
-  }
-
-  /**
-   * @return True if Properties contains all required properties
-   */
-  public static boolean hasRequired(Properties properties) {
-    boolean valid = true;
-    valid &= isPropertySet(properties, ClientProperty.INSTANCE_NAME);
-    valid &= isPropertySet(properties, ClientProperty.INSTANCE_ZOOKEEPERS);
-    valid &= isPropertySet(properties, ClientProperty.AUTH_TYPE);
-    valid &= isPropertySet(properties, ClientProperty.AUTH_PRINCIPAL);
-    valid &= isPropertySet(properties, ClientProperty.AUTH_TOKEN);
-    return valid;
-  }
-
   public static void validateProperty(Properties properties, ClientProperty prop) {
     if (!properties.containsKey(prop.getKey()) || prop.getValue(properties).isEmpty()) {
       throw new IllegalArgumentException(prop.getKey() + " is not set");

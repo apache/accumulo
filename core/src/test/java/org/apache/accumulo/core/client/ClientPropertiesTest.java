@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.client;
 
+import static org.junit.Assert.assertEquals;
+
 import java.nio.file.Paths;
 import java.util.Properties;
 
@@ -23,15 +25,12 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
 public class ClientPropertiesTest {
 
   @Test
   public void testBasic() {
     Properties props1 = Accumulo.newClientProperties().to("inst1", "zoo1")
         .as("user1", "pass1").build();
-    Assert.assertTrue(ClientProperty.hasRequired(props1));
     assertEquals("inst1", ClientProperty.INSTANCE_NAME.getValue(props1));
     assertEquals("zoo1", ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props1));
     assertEquals("user1", ClientProperty.AUTH_PRINCIPAL.getValue(props1));
@@ -39,7 +38,6 @@ public class ClientPropertiesTest {
     assertEquals("pass1", ClientProperty.AUTH_TOKEN.getValue(props1));
 
     Properties props2 = Accumulo.newClientProperties().from(props1).as("user2", Paths.get("/path2")).build();
-    Assert.assertTrue(ClientProperty.hasRequired(props1));
     assertEquals("inst1", ClientProperty.INSTANCE_NAME.getValue(props1));
     assertEquals("zoo1", ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props1));
     assertEquals("user2", ClientProperty.AUTH_PRINCIPAL.getValue(props1));
@@ -47,7 +45,6 @@ public class ClientPropertiesTest {
     assertEquals("/path2", ClientProperty.AUTH_TOKEN.getValue(props1));
 
     props2.remove(ClientProperty.AUTH_PRINCIPAL.getKey());
-    Assert.assertFalse(ClientProperty.hasRequired(props2));
     try {
       ClientProperty.validate(props2);
       Assert.fail();
