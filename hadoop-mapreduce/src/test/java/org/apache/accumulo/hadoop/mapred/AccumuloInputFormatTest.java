@@ -16,9 +16,6 @@
  */
 package org.apache.accumulo.hadoop.mapred;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
@@ -29,9 +26,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.iterators.system.CountingIterator;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
@@ -50,6 +45,7 @@ import org.junit.rules.TestName;
 public class AccumuloInputFormatTest {
 
   private JobConf job;
+  private static Properties clientProperties;
 
   @Rule
   public TestName test = new TestName();
@@ -59,16 +55,10 @@ public class AccumuloInputFormatTest {
     job = new JobConf();
   }
 
-  static ClientInfo clientInfo;
-
   @BeforeClass
   public static void setupClientInfo() {
-    clientInfo = createMock(ClientInfo.class);
-    AuthenticationToken token = createMock(AuthenticationToken.class);
-    Properties props = createMock(Properties.class);
-    expect(clientInfo.getAuthenticationToken()).andReturn(token).anyTimes();
-    expect(clientInfo.getProperties()).andReturn(props).anyTimes();
-    replay(clientInfo);
+    clientProperties = org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest
+        .setupClientProperties();
   }
 
   /**
@@ -76,8 +66,8 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testSetIterator() throws Exception {
-    InputFormatOptions<JobConf> opts = AccumuloInputFormat.configure().clientInfo(clientInfo)
-        .table("test").auths(Authorizations.EMPTY);
+    InputFormatOptions<JobConf> opts = AccumuloInputFormat.configure()
+        .clientProperties(clientProperties).table("test").auths(Authorizations.EMPTY);
 
     IteratorSetting is = new IteratorSetting(1, "WholeRow", WholeRowIterator.class);
     opts.addIterator(is).store(job);
@@ -89,8 +79,8 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testAddIterator() throws Exception {
-    InputFormatOptions<JobConf> opts = AccumuloInputFormat.configure().clientInfo(clientInfo)
-        .table("test").auths(Authorizations.EMPTY);
+    InputFormatOptions<JobConf> opts = AccumuloInputFormat.configure()
+        .clientProperties(clientProperties).table("test").auths(Authorizations.EMPTY);
 
     IteratorSetting iter1 = new IteratorSetting(1, "WholeRow", WholeRowIterator.class);
     IteratorSetting iter2 = new IteratorSetting(2, "Versions", VersioningIterator.class);
@@ -141,8 +131,8 @@ public class AccumuloInputFormatTest {
     IteratorSetting iter1 = new IteratorSetting(1, "iter1", WholeRowIterator.class);
     iter1.addOption(key, value);
     // also test if reusing options will create duplicate iterators
-    InputFormatOptions<JobConf> opts = AccumuloInputFormat.configure().clientInfo(clientInfo)
-        .table("test").auths(Authorizations.EMPTY);
+    InputFormatOptions<JobConf> opts = AccumuloInputFormat.configure()
+        .clientProperties(clientProperties).table("test").auths(Authorizations.EMPTY);
     opts.addIterator(iter1).store(job);
 
     List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class, job);
@@ -171,8 +161,9 @@ public class AccumuloInputFormatTest {
     IteratorSetting iter1 = new IteratorSetting(1, "WholeRow", WholeRowIterator.class.getName());
     IteratorSetting iter2 = new IteratorSetting(2, "Versions", VersioningIterator.class.getName());
     IteratorSetting iter3 = new IteratorSetting(3, "Count", CountingIterator.class.getName());
-    AccumuloInputFormat.configure().clientInfo(clientInfo).table("test").auths(Authorizations.EMPTY)
-        .addIterator(iter1).addIterator(iter2).addIterator(iter3).store(job);
+    AccumuloInputFormat.configure().clientProperties(clientProperties).table("test")
+        .auths(Authorizations.EMPTY).addIterator(iter1).addIterator(iter2).addIterator(iter3)
+        .store(job);
 
     List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class, job);
 
@@ -203,8 +194,8 @@ public class AccumuloInputFormatTest {
 
     IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
-    AccumuloInputFormat.configure().clientInfo(clientInfo).table("test").auths(Authorizations.EMPTY)
-        .addIterator(is).store(job);
+    AccumuloInputFormat.configure().clientProperties(clientProperties).table("test")
+        .auths(Authorizations.EMPTY).addIterator(is).store(job);
 
     assertEquals(regex,
         InputConfigurator.getIterators(AccumuloInputFormat.class, job).get(0).getName());
@@ -218,8 +209,8 @@ public class AccumuloInputFormatTest {
     cols.add(new IteratorSetting.Column(new Text(""), new Text("bar")));
     cols.add(new IteratorSetting.Column(new Text(""), new Text("")));
     cols.add(new IteratorSetting.Column(new Text("foo"), new Text("")));
-    AccumuloInputFormat.configure().clientInfo(clientInfo).table("test").auths(Authorizations.EMPTY)
-        .fetchColumns(cols).store(job);
+    AccumuloInputFormat.configure().clientProperties(clientProperties).table("test")
+        .auths(Authorizations.EMPTY).fetchColumns(cols).store(job);
 
     assertEquals(cols, InputConfigurator.getFetchedColumns(AccumuloInputFormat.class, job));
   }

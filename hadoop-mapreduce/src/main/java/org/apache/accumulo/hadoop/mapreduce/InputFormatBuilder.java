@@ -20,9 +20,9 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -46,13 +46,13 @@ public interface InputFormatBuilder {
    */
   interface ClientParams<T> {
     /**
-     * Set the connection information needed to communicate with Accumulo in this job. ClientInfo
-     * param can be created using {@link ClientInfo#from(Properties)}
+     * Set the connection information needed to communicate with Accumulo in this job.
+     * clientProperties param can be created using {@link Accumulo#newClientProperties()}
      *
-     * @param clientInfo
+     * @param clientProperties
      *          Accumulo connection information
      */
-    TableParams<T> clientInfo(ClientInfo clientInfo);
+    TableParams<T> clientProperties(Properties clientProperties);
   }
 
   /**

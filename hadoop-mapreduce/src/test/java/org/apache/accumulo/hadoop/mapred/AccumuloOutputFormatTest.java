@@ -20,11 +20,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import java.io.IOException;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapred.JobConf;
@@ -48,9 +48,9 @@ public class AccumuloOutputFormatTest {
     bwConfig.setMaxWriteThreads(42);
     bwConfig.setMaxMemory(1123581321L);
 
-    ClientInfo info = ClientInfo.from(Accumulo.newClientProperties().to("test", "zk")
-        .as("blah", "blah").batchWriterConfig(bwConfig).build());
-    AccumuloOutputFormat.configure().clientInfo(info).store(job);
+    Properties cp = Accumulo.newClientProperties().to("test", "zk").as("blah", "blah")
+        .batchWriterConfig(bwConfig).build();
+    AccumuloOutputFormat.configure().clientProperties(cp).store(job);
 
     AccumuloOutputFormat myAOF = new AccumuloOutputFormat() {
       @Override

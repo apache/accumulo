@@ -151,8 +151,8 @@ public class RowHashIT extends ConfigurableMacBase {
       Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
       Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
       if (cf.getLength() > 0)
-        AccumuloInputFormat.configure().clientInfo(opts.getClientInfo()).table(opts.getTableName())
-            .auths(Authorizations.EMPTY)
+        AccumuloInputFormat.configure().clientProperties(opts.getClientInfo().getProperties())
+            .table(opts.getTableName()).auths(Authorizations.EMPTY)
             .fetchColumns(Collections.singleton(new IteratorSetting.Column(cf, cq))).store(job);
 
       job.setMapperClass(RowHash.HashDataMapper.class);
@@ -162,7 +162,8 @@ public class RowHashIT extends ConfigurableMacBase {
       job.setNumReduceTasks(0);
 
       job.setOutputFormatClass(AccumuloOutputFormat.class);
-      AccumuloOutputFormat.configure().clientInfo(opts.getClientInfo()).store(job);
+      AccumuloOutputFormat.configure().clientProperties(opts.getClientInfo().getProperties())
+          .store(job);
 
       job.waitForCompletion(true);
       return job.isSuccessful() ? 0 : 1;

@@ -44,9 +44,10 @@ public class MapReduceClientOnDefaultTable extends MapReduceClientOpts {
       throws IOException, AccumuloException, AccumuloSecurityException {
     final String tableName = getTableName();
     final ClientInfo info = getClientInfo();
-    AccumuloInputFormat.configure().clientInfo(info).table(tableName).auths(auths).store(job);
-    AccumuloOutputFormat.configure().clientInfo(info).defaultTable(tableName).createTables()
-        .store(job);
+    AccumuloInputFormat.configure().clientProperties(info.getProperties()).table(tableName)
+        .auths(auths).store(job);
+    AccumuloOutputFormat.configure().clientProperties(info.getProperties()).defaultTable(tableName)
+        .createTables().store(job);
   }
 
 }
