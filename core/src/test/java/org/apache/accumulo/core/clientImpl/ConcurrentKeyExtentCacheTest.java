@@ -26,8 +26,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -48,7 +48,7 @@ public class ConcurrentKeyExtentCacheTest {
   @BeforeClass
   public static void setupSplits() {
     Text prev = null;
-    for (int i = 1; i < 256; i++) {
+    for (int i = 1; i < 255; i++) {
       Text endRow = new Text(String.format("%02x", i));
       extents.add(new KeyExtent(Table.ID.of("1"), endRow, prev));
       prev = endRow;
@@ -61,7 +61,7 @@ public class ConcurrentKeyExtentCacheTest {
 
   private static class TestCache extends ConcurrentKeyExtentCache {
 
-    AtomicInteger updates = new AtomicInteger(0);
+    ConcurrentSkipListSet<KeyExtent> seen = new ConcurrentSkipListSet<>();
 
     TestCache() {
       super(null, null);
@@ -70,7 +70,7 @@ public class ConcurrentKeyExtentCacheTest {
     @Override
     protected void updateCache(KeyExtent e) {
       super.updateCache(e);
-      updates.incrementAndGet();
+      assertTrue(seen.add(e));
     }
 
     @Override
@@ -103,16 +103,18 @@ public class ConcurrentKeyExtentCacheTest {
   @Test
   public void testExactEndRows() {
     Random rand = new SecureRandom();
+
     TestCache tc = new TestCache();
-    rand.ints(10000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i))).sequential()
+
+    rand.ints(20000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i))).sequential()
         .forEach(lookupRow -> testLookup(tc, lookupRow));
-    assertEquals(256, tc.updates.get());
+    assertEquals(extentsSet, tc.seen);
 
     // try parallel
     TestCache tc2 = new TestCache();
-    rand.ints(10000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i))).parallel()
+    rand.ints(20000, 0, 256).mapToObj(i -> new Text(String.format("%02x", i))).parallel()
         .forEach(lookupRow -> testLookup(tc2, lookupRow));
-    assertEquals(256, tc2.updates.get());
+    assertEquals(extentsSet, tc.seen);
   }
 
   @Test
@@ -120,14 +122,14 @@ public class ConcurrentKeyExtentCacheTest {
     TestCache tc = new TestCache();
 
     Random rand = new SecureRandom();
-    rand.ints(10000).mapToObj(i -> new Text(String.format("%08x", i))).sequential()
+    rand.ints(20000).mapToObj(i -> new Text(String.format("%08x", i))).sequential()
         .forEach(lookupRow -> testLookup(tc, lookupRow));
-    assertEquals(256, tc.updates.get());
+    assertEquals(extentsSet, tc.seen);
 
     // try parallel
     TestCache tc2 = new TestCache();
-    rand.ints(10000).mapToObj(i -> new Text(String.format("%08x", i))).parallel()
+    rand.ints(20000).mapToObj(i -> new Text(String.format("%08x", i))).parallel()
         .forEach(lookupRow -> testLookup(tc2, lookupRow));
-    assertEquals(256, tc2.updates.get());
+    assertEquals(extentsSet, tc2.seen);
   }
 }
