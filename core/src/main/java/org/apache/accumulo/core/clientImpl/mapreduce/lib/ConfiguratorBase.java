@@ -70,7 +70,21 @@ public class ConfiguratorBase {
    * @since 1.6.0
    */
   public enum ConnectorInfo {
-    IS_CONFIGURED
+    IS_CONFIGURED, PRINCIPAL, TOKEN,
+  }
+
+  public static enum TokenSource {
+    FILE, INLINE, JOB;
+
+    private String prefix;
+
+    private TokenSource() {
+      prefix = name().toLowerCase() + ":";
+    }
+
+    public String prefix() {
+      return prefix;
+    }
   }
 
   public enum ClientOpts {
@@ -242,6 +256,46 @@ public class ConfiguratorBase {
     ClientProperty.setAuthenticationToken(props, token);
     setClientProperties(implementingClass, conf, props);
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
+  }
+
+  /**
+   * Sets the connector information needed to communicate with Accumulo in this job.
+   *
+   * <p>
+   * Pulls a token file into the Distributed Cache that contains the authentication token in an
+   * attempt to be more secure than storing the password in the Configuration. Token file created
+   * with "bin/accumulo create-token".
+   *
+   * @param implementingClass
+   *          the class whose name will be used as a prefix for the property configuration key
+   * @param conf
+   *          the Hadoop configuration object to configure
+   * @param principal
+   *          a valid Accumulo user name
+   * @param tokenFile
+   *          the path to the token file in DFS
+   * @since 1.6.0
+   */
+  public static void setConnectorInfo(Class<?> implementingClass, Configuration conf,
+      String principal, String tokenFile) throws AccumuloSecurityException {
+    if (isConnectorInfoSet(implementingClass, conf))
+      throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
+          + " can only be set once per job");
+
+    checkArgument(principal != null, "principal is null");
+    checkArgument(tokenFile != null, "tokenFile is null");
+
+    try {
+      DistributedCacheHelper.addCacheFile(new URI(tokenFile), conf);
+    } catch (URISyntaxException e) {
+      throw new IllegalStateException(
+          "Unable to add tokenFile \"" + tokenFile + "\" to distributed cache.");
+    }
+
+    conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
+        TokenSource.FILE.prefix() + tokenFile);
   }
 
   /**

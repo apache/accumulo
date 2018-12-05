@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -38,6 +37,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapred.AccumuloOutputFormat;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -83,7 +83,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       // set the max memory so that we ensure we don't flush on the write.
       batchConfig.setMaxMemory(Long.MAX_VALUE);
       AccumuloOutputFormat outputFormat = new AccumuloOutputFormat();
-      AccumuloOutputFormat.setClientProperties(job, getClientProperties());
+      ClientInfo ci = getClientInfo();
+      AccumuloOutputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloOutputFormat.setBatchWriterOptions(job, batchConfig);
       RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(null, job, "Test", null);
 
@@ -169,10 +170,10 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      Properties clientProps = Accumulo.newClientProperties().to(instanceName, zooKeepers)
-          .as(user, pass).build();
+      ClientInfo info = ClientInfo
+          .from(Accumulo.newClientProperties().to(instanceName, zooKeepers).as(user, pass).build());
 
-      AccumuloInputFormat.setClientProperties(job, clientProps);
+      AccumuloInputFormat.setConnectorInfo(job, info.getPrincipal(), info.getAuthenticationToken());
       AccumuloInputFormat.setInputTableName(job, table1);
 
       job.setMapperClass(TestMapper.class);
@@ -182,7 +183,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.setClientProperties(job, clientProps);
+      AccumuloOutputFormat.setConnectorInfo(job, info.getPrincipal(),
+          info.getAuthenticationToken());
       AccumuloOutputFormat.setCreateTables(job, false);
       AccumuloOutputFormat.setDefaultTableName(job, table2);
 

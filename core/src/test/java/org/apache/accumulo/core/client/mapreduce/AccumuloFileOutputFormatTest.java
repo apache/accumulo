@@ -61,7 +61,6 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setIndexBlockSize(job1, d);
     AccumuloFileOutputFormat.setCompressionType(job1, e);
     AccumuloFileOutputFormat.setSampler(job1, samplerConfig);
-    AccumuloFileOutputFormat.setSummarizers(job1, sc1, sc2);
 
     AccumuloConfiguration acuconf = FileOutputConfigurator
         .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job1.getConfiguration());

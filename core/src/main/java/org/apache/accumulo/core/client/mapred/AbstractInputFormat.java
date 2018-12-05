@@ -28,7 +28,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -37,7 +36,9 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -116,45 +117,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Sets connection information needed to communicate with Accumulo for this job
-   *
-   * @param job
-   *          Hadoop job instance to be configured
-   * @param clientProps
-   *          Connection information for Accumulo
-   * @since 2.0.0
-   */
-  public static void setClientProperties(JobConf job, Properties clientProps) {
-    Properties inputProps = InputConfigurator.updateToken(job.getCredentials(), clientProps);
-    InputConfigurator.setClientProperties(CLASS, job, inputProps);
-  }
-
-  /**
-   * Set Accumulo client properties file used to connect to Accumulo
-   *
-   * @param job
-   *          Hadoop job to be configured
-   * @param clientPropsFile
-   *          URL to Accumulo client properties file
-   * @since 2.0.0
-   */
-  public static void setClientPropertiesFile(JobConf job, String clientPropsFile) {
-    InputConfigurator.setClientPropertiesFile(CLASS, job, clientPropsFile);
-  }
-
-  /**
-   * Retrieves {@link Properties} from the configuration
-   *
-   * @param job
-   *          Hadoop job instance configuration
-   * @return {@link Properties} object
-   * @since 2.0.0
-   */
-  protected static Properties getClientProperties(JobConf job) {
-    return InputConfigurator.getClientProperties(CLASS, job);
-  }
-
-  /**
    * Sets the connector information needed to communicate with Accumulo in this job.
    *
    * <p>
@@ -173,15 +135,14 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @param token
    *          the user's password
    * @since 1.5.0
-   * @deprecated since 2.0.0, use {@link #setClientProperties(JobConf, Properties)} instead
    */
-  @Deprecated
   public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token)
       throws AccumuloSecurityException {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
-      try (AccumuloClient client = Accumulo.newClient().from(getClientProperties(job))
-          .as(principal, token).build()) {
+      try (AccumuloClient client = Accumulo.newClient()
+          .from(InputConfigurator.getClientInfo(CLASS, job).getProperties()).as(principal, token)
+          .build()) {
         token = client.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, Mappers/Reducers will likely"
@@ -219,12 +180,10 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @param tokenFile
    *          the path to the token file
    * @since 1.6.0
-   * @deprecated since 2.0.0, use {@link #setClientPropertiesFile(JobConf, String)} instead
    */
-  @Deprecated
   public static void setConnectorInfo(JobConf job, String principal, String tokenFile)
       throws AccumuloSecurityException {
-    setClientPropertiesFile(job, tokenFile);
+    InputConfigurator.setConnectorInfo(CLASS, job, principal, tokenFile);
   }
 
   /**
@@ -277,11 +236,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @param clientConfig
    *          client configuration containing connection options
    * @since 1.6.0
-   * @deprecated since 2.0.0; Use {@link #setClientProperties(JobConf, Properties)} instead.
    */
-  @Deprecated
-  public static void setZooKeeperInstance(JobConf job,
-      org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
+  public static void setZooKeeperInstance(JobConf job, ClientConfiguration clientConfig) {
     InputConfigurator.setZooKeeperInstance(CLASS, job, clientConfig);
   }
 
@@ -293,10 +249,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @deprecated since 2.0.0, Use {@link #getClientProperties(JobConf)} instead
+   * @see #setZooKeeperInstance(JobConf, ClientConfiguration)
    */
-  @Deprecated
-  protected static org.apache.accumulo.core.client.Instance getInstance(JobConf job) {
+  protected static Instance getInstance(JobConf job) {
     return InputConfigurator.getInstance(CLASS, job);
   }
 
@@ -360,11 +315,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          The job
    * @return The client configuration for the job
    * @since 1.7.0
-   * @deprecated since 2.0.0, replaced by {@link #getClientProperties(JobConf)}
    */
-  @Deprecated
-  protected static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
-      JobConf job) {
+  protected static ClientConfiguration getClientConfiguration(JobConf job) {
     return InputConfigurator.getClientConfiguration(CLASS, job);
   }
 
@@ -480,7 +432,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       baseSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + baseSplit);
 
-      try (ClientContext context = new ClientContext(getClientProperties(job))) {
+      try (ClientContext context = new ClientContext(InputConfigurator.getClientInfo(CLASS, job))) {
         Authorizations authorizations = getScanAuthorizations(job);
         String classLoaderContext = getClassLoaderContext(job);
         String table = baseSplit.getTableName();
@@ -585,15 +537,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           scannerBase.setSamplerConfiguration(samplerConfig);
         }
 
-        Map<String,String> executionHints = baseSplit.getExecutionHints();
-        if (executionHints == null || executionHints.size() == 0) {
-          executionHints = tableConfig.getExecutionHints();
-        }
-
-        if (executionHints != null) {
-          scannerBase.setExecutionHints(executionHints);
-        }
-
         scannerIterator = scannerBase.iterator();
         numKeysRead = 0;
       }
@@ -625,7 +568,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job, Table.ID tableId,
       List<Range> ranges)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    ClientContext context = new ClientContext(getClientProperties(job));
+    ClientContext context = new ClientContext(InputConfigurator.getClientInfo(CLASS, job));
     return InputConfigurator.binOffline(tableId, ranges, context);
   }
 
@@ -651,7 +594,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       String tableName = tableConfigEntry.getKey();
       InputTableConfig tableConfig = tableConfigEntry.getValue();
 
-      ClientContext context = new ClientContext(getClientProperties(job));
+      ClientContext context = new ClientContext(InputConfigurator.getClientInfo(CLASS, job));
       Table.ID tableId;
       // resolve table name to id once, and use id from this point forward
       try {

@@ -812,8 +812,7 @@ public class InputConfigurator extends ConfiguratorBase {
       queryConfig.setAutoAdjustRanges(getAutoAdjustRanges(implementingClass, conf))
           .setUseIsolatedScanners(isIsolated(implementingClass, conf))
           .setUseLocalIterators(usesLocalIterators(implementingClass, conf))
-          .setOfflineScan(isOfflineScan(implementingClass, conf))
-          .setExecutionHints(getExecutionHints(implementingClass, conf));
+          .setOfflineScan(isOfflineScan(implementingClass, conf));
       return Maps.immutableEntry(tableName, queryConfig);
     }
     return null;

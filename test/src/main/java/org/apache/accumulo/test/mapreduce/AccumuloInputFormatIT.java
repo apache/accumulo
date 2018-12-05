@@ -42,6 +42,7 @@ import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.mapreduce.BatchInputSplit;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -101,8 +102,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       Job job = Job.getInstance();
       AccumuloInputFormat.setInputTableName(job, table);
-      AccumuloInputFormat.setClientProperties(job, getClientProperties());
-
+      ClientInfo ci = getClientInfo();
+      AccumuloInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       // split table
       TreeSet<Text> splitsToAdd = new TreeSet<>();
       for (int i = 0; i < 10000; i += 1000)
@@ -283,7 +284,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(inputFormatClass);
 
-      AccumuloInputFormat.setClientProperties(job, getClientProperties());
+      ClientInfo ci = getClientInfo();
+      AccumuloInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setBatchScan(job, batchScan);
       if (sample) {
@@ -404,7 +406,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     try (AccumuloClient accumuloClient = createAccumuloClient()) {
       accumuloClient.tableOperations().create(table);
 
-      AccumuloInputFormat.setClientProperties(job, getClientProperties());
+      ClientInfo ci = getClientInfo();
+      AccumuloInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setScanAuthorizations(job, auths);
       AccumuloInputFormat.setScanIsolation(job, isolated);

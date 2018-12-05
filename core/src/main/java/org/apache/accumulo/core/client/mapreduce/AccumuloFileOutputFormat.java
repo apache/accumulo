@@ -21,8 +21,6 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.client.summary.Summarizer;
-import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase;
 import org.apache.accumulo.core.clientImpl.mapreduce.lib.FileOutputConfigurator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -144,20 +142,6 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
   public static void setSampler(Job job, SamplerConfiguration samplerConfig) {
     FileOutputConfigurator.setSampler(CLASS, job.getConfiguration(), samplerConfig);
-  }
-
-  /**
-   * Specifies a list of summarizer configurations to create summary data in the output file. Each
-   * Key Value written will be passed to the configured {@link Summarizer}'s.
-   *
-   * @param job
-   *          The Hadoop job instance to be configured
-   * @param summarizerConfigs
-   *          summarizer configurations
-   * @since 2.0.0
-   */
-  public static void setSummarizers(Job job, SummarizerConfiguration... summarizerConfigs) {
-    FileOutputConfigurator.setSummarizers(CLASS, job.getConfiguration(), summarizerConfigs);
   }
 
   @Override

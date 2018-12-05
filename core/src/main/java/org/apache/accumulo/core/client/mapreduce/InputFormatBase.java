@@ -19,12 +19,12 @@ package org.apache.accumulo.core.client.mapreduce;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -375,21 +374,63 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
     InputConfigurator.setSamplerConfiguration(CLASS, job.getConfiguration(), samplerConfig);
   }
 
-  /**
-   * Set these execution hints on scanners created for input splits. See
-   * {@link ScannerBase#setExecutionHints(java.util.Map)}
-   *
-   * @since 2.0.0
-   */
-  public static void setExecutionHints(JobConf job, Map<String,String> hints) {
-    InputConfigurator.setExecutionHints(CLASS, job, hints);
-  }
-
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
     protected List<IteratorSetting> contextIterators(TaskAttemptContext context, String tableName) {
       return getIterators(context);
+    }
+
+    /**
+     * Apply the configured iterators from the configuration to the scanner.
+     *
+     * @param context
+     *          the Hadoop context for the configured job
+     * @param scanner
+     *          the scanner to configure
+     * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
+     */
+    @Deprecated
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
+      // tableName is given as null as it will be ignored in eventual call to #contextIterators
+      setupIterators(context, scanner, null, null);
+    }
+
+    /**
+     * Initialize a scanner over the given input split using this task attempt configuration.
+     *
+     * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
+     */
+    @Deprecated
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner,
+        org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
+      setupIterators(context, scanner, null, split);
+    }
+  }
+
+  /**
+   * @deprecated since 1.5.2; Use {@link org.apache.accumulo.core.client.mapreduce.RangeInputSplit}
+   *             instead.
+   * @see org.apache.accumulo.core.client.mapreduce.RangeInputSplit
+   */
+  @Deprecated
+  public static class RangeInputSplit
+      extends org.apache.accumulo.core.client.mapreduce.RangeInputSplit {
+
+    public RangeInputSplit() {
+      super();
+    }
+
+    public RangeInputSplit(RangeInputSplit other) throws IOException {
+      super(other);
+    }
+
+    protected RangeInputSplit(String table, Range range, String[] locations) {
+      super(table, "", range, locations);
+    }
+
+    public RangeInputSplit(String table, String tableId, Range range, String[] locations) {
+      super(table, tableId, range, locations);
     }
   }
 }

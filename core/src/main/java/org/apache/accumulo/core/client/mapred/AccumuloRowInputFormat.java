@@ -19,7 +19,9 @@ package org.apache.accumulo.core.client.mapred;
 import java.io.IOException;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.RowIterator;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -40,9 +42,10 @@ import org.apache.hadoop.mapred.Reporter;
  * The user must specify the following via static configurator methods:
  *
  * <ul>
- * <li>{@link AccumuloRowInputFormat#setClientProperties(JobConf, java.util.Properties)}
+ * <li>{@link AccumuloRowInputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)}
  * <li>{@link AccumuloRowInputFormat#setInputTableName(JobConf, String)}
  * <li>{@link AccumuloRowInputFormat#setScanAuthorizations(JobConf, Authorizations)}
+ * <li>{@link AccumuloRowInputFormat#setZooKeeperInstance(JobConf, ClientConfiguration)}
  * </ul>
  *
  * Other static methods are optional.

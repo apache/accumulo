@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapred.RangeInputSplit;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -123,7 +124,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.setClientProperties(job, getClientProperties());
+      ClientInfo ci = getClientInfo();
+      AccumuloInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setBatchScan(job, batchScan);
       if (sample) {
@@ -219,7 +221,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     try (AccumuloClient accumuloClient = createAccumuloClient()) {
       accumuloClient.tableOperations().create(table);
 
-      AccumuloInputFormat.setClientProperties(job, getClientProperties());
+      ClientInfo ci = getClientInfo();
+      AccumuloInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
       AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setScanAuthorizations(job, auths);
       AccumuloInputFormat.setScanIsolation(job, isolated);

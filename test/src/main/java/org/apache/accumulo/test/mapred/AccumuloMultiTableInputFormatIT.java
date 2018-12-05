@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapred.AccumuloMultiTableInputFormat;
 import org.apache.accumulo.core.client.mapred.RangeInputSplit;
 import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -104,7 +105,9 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      AccumuloMultiTableInputFormat.setClientProperties(job, getClientProperties());
+      ClientInfo ci = getClientInfo();
+      AccumuloMultiTableInputFormat.setConnectorInfo(job, ci.getPrincipal(),
+          ci.getAuthenticationToken());
 
       InputTableConfig tableConfig1 = new InputTableConfig();
       InputTableConfig tableConfig2 = new InputTableConfig();
