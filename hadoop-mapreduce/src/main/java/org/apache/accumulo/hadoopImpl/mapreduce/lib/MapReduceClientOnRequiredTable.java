@@ -32,12 +32,11 @@ public class MapReduceClientOnRequiredTable extends MapReduceClientOpts {
   private String tableName;
 
   @Override
-  public void setAccumuloConfigs(Job job)
-      throws AccumuloException, AccumuloSecurityException {
+  public void setAccumuloConfigs(Job job) throws AccumuloException, AccumuloSecurityException {
     final String tableName = getTableName();
     final Properties clientProps = getClientProperties();
-    AccumuloInputFormat.configure().clientProperties(clientProps).table(tableName)
-        .auths(auths).store(job);
+    AccumuloInputFormat.configure().clientProperties(clientProps).table(tableName).auths(auths)
+        .store(job);
     AccumuloOutputFormat.configure().clientProperties(clientProps).defaultTable(tableName)
         .createTables().store(job);
   }

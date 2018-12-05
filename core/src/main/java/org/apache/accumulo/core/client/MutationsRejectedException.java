@@ -88,12 +88,12 @@ public class MutationsRejectedException extends AccumuloException {
    *
    * @since 2.0.0
    */
-  public MutationsRejectedException(Properties clientProps, List<ConstraintViolationSummary> cvsList,
-      Map<TabletId,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors,
-      int unknownErrors, Throwable cause) {
+  public MutationsRejectedException(Properties clientProps,
+      List<ConstraintViolationSummary> cvsList, Map<TabletId,Set<SecurityErrorCode>> hashMap,
+      Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
     super("# constraint violations : " + cvsList.size() + "  security codes: "
-        + format(hashMap, new ClientContext(clientProps)) + "  # server errors " + serverSideErrors.size()
-        + " # exceptions " + unknownErrors, cause);
+        + format(hashMap, new ClientContext(clientProps)) + "  # server errors "
+        + serverSideErrors.size() + " # exceptions " + unknownErrors, cause);
     this.cvsl = cvsList;
     this.af = hashMap;
     this.es = serverSideErrors;

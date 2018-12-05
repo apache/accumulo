@@ -162,8 +162,7 @@ public class RowHashIT extends ConfigurableMacBase {
       job.setNumReduceTasks(0);
 
       job.setOutputFormatClass(AccumuloOutputFormat.class);
-      AccumuloOutputFormat.configure().clientProperties(opts.getClientProperties())
-          .store(job);
+      AccumuloOutputFormat.configure().clientProperties(opts.getClientProperties()).store(job);
 
       job.waitForCompletion(true);
       return job.isSuccessful() ? 0 : 1;

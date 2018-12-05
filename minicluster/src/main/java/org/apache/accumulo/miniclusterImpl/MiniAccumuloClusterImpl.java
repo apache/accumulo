@@ -794,8 +794,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public synchronized Properties getClientProperties() {
     if (clientProperties == null) {
-      clientProperties = Accumulo.newClientProperties()
-          .from(config.getClientPropsFile().toPath()).build();
+      clientProperties = Accumulo.newClientProperties().from(config.getClientPropsFile().toPath())
+          .build();
     }
     return clientProperties;
   }
