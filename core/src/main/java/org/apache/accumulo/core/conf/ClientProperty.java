@@ -320,7 +320,8 @@ public enum ClientProperty {
   }
 
   /**
-   * @throws IllegalArgumentException if Properties does not contain all required
+   * @throws IllegalArgumentException
+   *           if Properties does not contain all required
    */
   public static void validate(Properties properties) {
     validate(properties, true);

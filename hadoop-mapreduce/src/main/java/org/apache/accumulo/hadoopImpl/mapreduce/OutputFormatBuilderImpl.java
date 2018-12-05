@@ -41,7 +41,8 @@ public class OutputFormatBuilderImpl<T>
 
   @Override
   public OutputFormatBuilder.OutputOptions<T> clientProperties(Properties clientProperties) {
-    this.clientInfo = ClientInfo.from(Objects.requireNonNull(clientProperties, "ClientInfo must not be null"));
+    this.clientInfo = ClientInfo
+        .from(Objects.requireNonNull(clientProperties, "ClientInfo must not be null"));
     return this;
   }
 
