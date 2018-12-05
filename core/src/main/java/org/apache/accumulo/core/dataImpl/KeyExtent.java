@@ -43,7 +43,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.TextUtil;
@@ -119,11 +118,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
    *
    */
   public Text getMetadataEntry() {
-    return getMetadataEntry(getTableId(), getEndRow());
-  }
-
-  public static Text getMetadataEntry(Table.ID tableId, Text endRow) {
-    return MetadataSchema.TabletsSection.getRow(tableId, endRow);
+    return TabletsSection.getRow(getTableId(), getEndRow());
   }
 
   // constructor for loading extents from metadata rows
@@ -642,7 +637,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public static Text getMetadataEntry(KeyExtent extent) {
-    return getMetadataEntry(extent.getTableId(), extent.getEndRow());
+    return TabletsSection.getRow(extent.getTableId(), extent.getEndRow());
   }
 
   public TKeyExtent toThrift() {

@@ -19,6 +19,7 @@ package org.apache.accumulo.core.metadata;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 
 public class RootTable {
 
@@ -43,6 +44,6 @@ public class RootTable {
 
   public static final KeyExtent EXTENT = new KeyExtent(ID, null, null);
   public static final KeyExtent OLD_EXTENT = new KeyExtent(MetadataTable.ID,
-      KeyExtent.getMetadataEntry(MetadataTable.ID, null), null);
+      TabletsSection.getRow(MetadataTable.ID, null), null);
 
 }

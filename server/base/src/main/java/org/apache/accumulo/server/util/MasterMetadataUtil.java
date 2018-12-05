@@ -155,7 +155,7 @@ public class MasterMetadataUtil {
           "Split tablet does not have prev end row, something is amiss, extent = " + metadataEntry);
 
     // check to see if prev tablet exist in metadata tablet
-    Key prevRowKey = new Key(new Text(KeyExtent.getMetadataEntry(tableId, metadataPrevEndRow)));
+    Key prevRowKey = new Key(new Text(TabletsSection.getRow(tableId, metadataPrevEndRow)));
 
     try (ScannerImpl scanner2 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner2.setRange(new Range(prevRowKey, prevRowKey.followingKey(PartialKey.ROW)));

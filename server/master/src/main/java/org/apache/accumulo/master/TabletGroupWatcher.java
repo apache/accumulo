@@ -604,8 +604,8 @@ abstract class TabletGroupWatcher extends Daemon {
         start = new Text();
       }
       Master.log.debug("Making file deletion entries for {}", extent);
-      Range deleteRange = new Range(KeyExtent.getMetadataEntry(extent.getTableId(), start), false,
-          KeyExtent.getMetadataEntry(extent.getTableId(), extent.getEndRow()), true);
+      Range deleteRange = new Range(TabletsSection.getRow(extent.getTableId(), start), false,
+          TabletsSection.getRow(extent.getTableId(), extent.getEndRow()), true);
       Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(deleteRange);
       TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
@@ -694,8 +694,8 @@ abstract class TabletGroupWatcher extends Daemon {
     if (start == null) {
       start = new Text();
     }
-    Range scanRange = new Range(KeyExtent.getMetadataEntry(range.getTableId(), start), false,
-        stopRow, false);
+    Range scanRange = new Range(TabletsSection.getRow(range.getTableId(), start), false, stopRow,
+        false);
     String targetSystemTable = MetadataTable.NAME;
     if (range.isMeta()) {
       targetSystemTable = RootTable.NAME;

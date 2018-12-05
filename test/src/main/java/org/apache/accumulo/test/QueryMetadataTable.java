@@ -107,7 +107,7 @@ public class QueryMetadataTable {
 
     try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, opts.auths)) {
       scanner.setBatchSize(scanOpts.scanBatchSize);
-      Text mdrow = new Text(KeyExtent.getMetadataEntry(MetadataTable.ID, null));
+      Text mdrow = new Text(TabletsSection.getRow(MetadataTable.ID, null));
 
       for (Entry<Key,Value> entry : scanner) {
         System.out.print(".");

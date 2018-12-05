@@ -726,7 +726,7 @@ public class MetadataTableUtil {
       Map<Key,Value> tablet) {
 
     KeyExtent ke = new KeyExtent(tablet.keySet().iterator().next().getRow(), (Text) null);
-    Mutation m = new Mutation(KeyExtent.getMetadataEntry(tableId, ke.getEndRow()));
+    Mutation m = new Mutation(TabletsSection.getRow(tableId, ke.getEndRow()));
 
     for (Entry<Key,Value> entry : tablet.entrySet()) {
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
@@ -1044,7 +1044,7 @@ public class MetadataTableUtil {
         ServerConstants.getBaseUris(context.getConfiguration())) + Constants.HDFS_TABLES_DIR
         + Path.SEPARATOR + ReplicationTable.ID + Constants.DEFAULT_TABLET_LOCATION;
 
-    Mutation m = new Mutation(new Text(KeyExtent.getMetadataEntry(ReplicationTable.ID, null)));
+    Mutation m = new Mutation(new Text(TabletsSection.getRow(ReplicationTable.ID, null)));
     m.put(DIRECTORY_COLUMN.getColumnFamily(), DIRECTORY_COLUMN.getColumnQualifier(), 0,
         new Value(dir.getBytes(UTF_8)));
     m.put(TIME_COLUMN.getColumnFamily(), TIME_COLUMN.getColumnQualifier(), 0,

@@ -32,6 +32,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -197,7 +198,7 @@ public class MergeStats {
       start = new Text();
     }
     Table.ID tableId = extent.getTableId();
-    Text first = KeyExtent.getMetadataEntry(tableId, start);
+    Text first = TabletsSection.getRow(tableId, start);
     Range range = new Range(first, false, null, true);
     scanner.setRange(range.clip(MetadataSchema.TabletsSection.getRange()));
     KeyExtent prevExtent = null;

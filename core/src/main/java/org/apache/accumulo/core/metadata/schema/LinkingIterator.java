@@ -26,7 +26,7 @@ import java.util.function.Function;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,8 +104,7 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
       source = iteratorFactory.apply(range);
     } else {
       // get the metadata table row for the previous tablet
-      Text prevMetaRow = KeyExtent.getMetadataEntry(prevTablet.getTableId(),
-          prevTablet.getEndRow());
+      Text prevMetaRow = TabletsSection.getRow(prevTablet.getTableId(), prevTablet.getEndRow());
 
       // ensure the previous tablet still exists in the metadata table
       if (Iterators.size(iteratorFactory.apply(new Range(prevMetaRow))) == 0) {
