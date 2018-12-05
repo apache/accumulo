@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.Properties;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ClusterControl;
@@ -266,9 +267,14 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     return clusterConf.getAdminPrincipal();
   }
 
+  public static Properties getClientProperties() {
+    checkState(initialized);
+    return getCluster().getClientProperties();
+  }
+
   public static ClientInfo getClientInfo() {
     checkState(initialized);
-    return getCluster().getClientInfo();
+    return ClientInfo.from(getCluster().getClientProperties());
   }
 
   public static ClientContext getClientContext() {

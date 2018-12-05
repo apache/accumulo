@@ -40,7 +40,7 @@ public class MapReduceClientOnDefaultTable extends MapReduceClientOpts {
   public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
     super.setAccumuloConfigs(job);
     final String tableName = getTableName();
-    final ClientInfo info = getClientInfo();
+    final ClientInfo info = ClientInfo.from(getClientProperties());
     AccumuloInputFormat.setClientInfo(job, info);
     AccumuloInputFormat.setInputTableName(job, tableName);
     AccumuloInputFormat.setScanAuthorizations(job, auths);

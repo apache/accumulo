@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ClusterUser;
@@ -132,7 +133,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @Override
   public synchronized ServerContext getServerContext() {
     if (context == null) {
-      context = new ServerContext(siteConfig, getClientInfo());
+      context = new ServerContext(siteConfig, getClientProperties());
     }
     return context;
   }
@@ -149,8 +150,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  public ClientInfo getClientInfo() {
-    return info;
+  public Properties getClientProperties() {
+    return info.getProperties();
   }
 
   @Override

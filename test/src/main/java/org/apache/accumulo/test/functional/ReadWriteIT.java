@@ -220,7 +220,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.columnFamily = colf;
     opts.createTable = true;
     opts.setTableName(tableName);
-    opts.setClientInfo(info);
+    opts.setClientProperties(info.getProperties());
 
     TestIngest.ingest(accumuloClient, opts, new BatchWriterOpts());
   }
@@ -240,7 +240,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.startRow = offset;
     opts.columnFamily = colf;
     opts.setTableName(tableName);
-    opts.setClientInfo(info);
+    opts.setClientProperties(info.getProperties());
 
     VerifyIngest.verifyIngest(accumuloClient, opts, scannerOpts);
   }

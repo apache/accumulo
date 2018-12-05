@@ -1547,7 +1547,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
-      DistributedTrace.enable("localhost", "testTrace", mac.getClientInfo().getProperties());
+      DistributedTrace.enable("localhost", "testTrace", mac.getClientProperties());
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       Span root = Trace.on("traceTest");
       try (ConditionalWriter cw = client.createConditionalWriter(tableName,

@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -199,6 +200,10 @@ public class ConfigurableMacBase extends AccumuloITBase {
 
   protected ClientContext getClientContext() {
     return new ClientContext(getClientInfo());
+  }
+
+  protected Properties getClientProperties() {
+    return getClientInfo().getProperties();
   }
 
   protected ClientInfo getClientInfo() {

@@ -17,11 +17,11 @@
 package org.apache.accumulo.cluster;
 
 import java.io.IOException;
+import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.server.ServerContext;
@@ -63,15 +63,15 @@ public interface AccumuloCluster {
   /**
    * Get the client configuration for the cluster
    *
-   * @deprecated since 2.0.0, replaced by {@link #getClientInfo()}
+   * @deprecated since 2.0.0, replaced by {@link #getClientProperties()}}
    */
   @Deprecated
   org.apache.accumulo.core.client.ClientConfiguration getClientConfig();
 
   /**
-   * @return Connection Info for cluster
+   * @return client connection info for cluster
    */
-  ClientInfo getClientInfo();
+  Properties getClientProperties();
 
   /**
    * Get server side config derived from accumulo.properties
