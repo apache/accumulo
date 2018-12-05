@@ -37,7 +37,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -62,11 +61,9 @@ import java.util.zip.ZipInputStream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -93,10 +90,8 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
@@ -112,7 +107,10 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
@@ -1191,13 +1189,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       else
         range = new Range(startRow, lastRow);
 
-      String metaTable = MetadataTable.NAME;
-      if (tableId.equals(MetadataTable.ID))
-        metaTable = RootTable.NAME;
-
-      Scanner scanner = createMetadataScanner(metaTable, range);
-
-      RowIterator rowIter = new RowIterator(scanner);
+      TabletsMetadata tablets = TabletsMetadata.builder().scanMetadataTable().overRange(range)
+          .fetchLocation().fetchPrev().build(context);
 
       KeyExtent lastExtent = null;
 
@@ -1207,51 +1200,34 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Text continueRow = null;
       MapCounter<String> serverCounts = new MapCounter<>();
 
-      while (rowIter.hasNext()) {
-        Iterator<Entry<Key,Value>> row = rowIter.next();
-
+      for (TabletMetadata tablet : tablets) {
         total++;
 
-        KeyExtent extent = null;
-        String future = null;
-        String current = null;
+        Location loc = tablet.getLocation();
 
-        while (row.hasNext()) {
-          Entry<Key,Value> entry = row.next();
-          Key key = entry.getKey();
-
-          if (key.getColumnFamily().equals(TabletsSection.FutureLocationColumnFamily.NAME))
-            future = entry.getValue().toString();
-
-          if (key.getColumnFamily().equals(TabletsSection.CurrentLocationColumnFamily.NAME))
-            current = entry.getValue().toString();
-
-          if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key))
-            extent = new KeyExtent(key.getRow(), entry.getValue());
-        }
-
-        if ((expectedState == TableState.ONLINE && current == null)
-            || (expectedState == TableState.OFFLINE && (future != null || current != null))) {
+        if ((expectedState == TableState.ONLINE
+            && (loc == null || loc.getType() == LocationType.FUTURE))
+            || (expectedState == TableState.OFFLINE && loc != null)) {
           if (continueRow == null)
-            continueRow = extent.getMetadataEntry();
+            continueRow = tablet.getExtent().getMetadataEntry();
           waitFor++;
-          lastRow = extent.getMetadataEntry();
+          lastRow = tablet.getExtent().getMetadataEntry();
 
-          if (current != null)
-            serverCounts.increment(current, 1);
-          if (future != null)
-            serverCounts.increment(future, 1);
+          if (loc != null) {
+            serverCounts.increment(loc.getId(), 1);
+          }
         }
 
-        if (!extent.getTableId().equals(tableId)) {
-          throw new AccumuloException("Saw unexpected table Id " + tableId + " " + extent);
+        if (!tablet.getExtent().getTableId().equals(tableId)) {
+          throw new AccumuloException(
+              "Saw unexpected table Id " + tableId + " " + tablet.getExtent());
         }
 
-        if (lastExtent != null && !extent.isPreviousExtent(lastExtent)) {
+        if (lastExtent != null && !tablet.getExtent().isPreviousExtent(lastExtent)) {
           holes++;
         }
 
-        lastExtent = extent;
+        lastExtent = tablet.getExtent();
       }
 
       if (continueRow != null) {
@@ -1281,20 +1257,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
 
     }
-  }
-
-  /**
-   * Create an IsolatedScanner over the given table, fetching the columns necessary to determine
-   * when a table has transitioned to online or offline.
-   */
-  protected IsolatedScanner createMetadataScanner(String metaTable, Range range)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    Scanner scanner = context.getClient().createScanner(metaTable, Authorizations.EMPTY);
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(TabletsSection.FutureLocationColumnFamily.NAME);
-    scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-    scanner.setRange(range);
-    return new IsolatedScanner(scanner);
   }
 
   @Override

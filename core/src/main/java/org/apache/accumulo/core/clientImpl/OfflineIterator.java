@@ -30,9 +30,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.RowIterator;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -53,9 +52,9 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -213,7 +212,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
   }
 
-  private void nextTablet() throws TableNotFoundException, AccumuloException, IOException {
+  private void nextTablet()
+      throws TableNotFoundException, AccumuloException, IOException, AccumuloSecurityException {
 
     Range nextRange = null;
 
@@ -244,7 +244,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     List<String> relFiles = new ArrayList<>();
 
-    Pair<KeyExtent,String> eloc = getTabletFiles(nextRange, relFiles);
+    Pair<KeyExtent,Location> eloc = getTabletFiles(nextRange, relFiles);
 
     while (eloc.getSecond() != null) {
       if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
@@ -296,37 +296,16 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   }
 
-  private Pair<KeyExtent,String> getTabletFiles(Range nextRange, List<String> relFiles)
-      throws TableNotFoundException {
-    Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setBatchSize(100);
-    scanner.setRange(nextRange);
+  private Pair<KeyExtent,Location> getTabletFiles(Range nextRange, List<String> relFiles)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
-    RowIterator rowIter = new RowIterator(scanner);
-    Iterator<Entry<Key,Value>> row = rowIter.next();
+    try (TabletsMetadata tablets = TabletsMetadata.builder().scanMetadataTable()
+        .overRange(nextRange).fetchFiles().fetchLocation().fetchPrev().build(client)) {
+      TabletMetadata tablet = tablets.iterator().next();
+      relFiles.addAll(tablet.getFiles());
 
-    KeyExtent extent = null;
-    String location = null;
-
-    while (row.hasNext()) {
-      Entry<Key,Value> entry = row.next();
-      Key key = entry.getKey();
-
-      if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-        relFiles.add(key.getColumnQualifier().toString());
-      }
-
-      if (key.getColumnFamily().equals(TabletsSection.CurrentLocationColumnFamily.NAME)
-          || key.getColumnFamily().equals(TabletsSection.FutureLocationColumnFamily.NAME)) {
-        location = entry.getValue().toString();
-      }
-
-      if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
-        extent = new KeyExtent(key.getRow(), entry.getValue());
-      }
-
+      return new Pair<>(tablet.getExtent(), tablet.getLocation());
     }
-    return new Pair<>(extent, location);
   }
 
   private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent, List<String> absFiles)

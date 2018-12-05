@@ -26,6 +26,7 @@ import java.io.Serializable;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
@@ -71,6 +72,10 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
 
   public TServerInstance(Value address, Text session) {
     this(AddressUtil.parseAddress(new String(address.get(), UTF_8), false), session.toString());
+  }
+
+  public TServerInstance(Location location) {
+    this(location.getHostAndPort(), location.getSession());
   }
 
   public void putLocation(Mutation m) {

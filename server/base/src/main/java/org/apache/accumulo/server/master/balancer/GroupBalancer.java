@@ -33,17 +33,10 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.function.Function;
 
-import org.apache.accumulo.core.client.IsolatedScanner;
-import org.apache.accumulo.core.client.RowIterator;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.Table;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
@@ -84,7 +77,20 @@ public abstract class GroupBalancer extends TabletBalancer {
   }
 
   protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {
-    return new MetadataLocationProvider();
+    return () -> {
+      try {
+        return TabletsMetadata.builder().forTable(tableId).fetchLocation().fetchPrev()
+            .build(context).stream().map(tm -> {
+              Location loc = Location.NONE;
+              if (tm.hasCurrent()) {
+                loc = new Location(new TServerInstance(tm.getLocation()));
+              }
+              return new Pair<>(tm.getExtent(), loc);
+            }).iterator();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    };
   }
 
   /**
@@ -767,50 +773,6 @@ public abstract class GroupBalancer extends TabletBalancer {
         if (moves.size() == 0) {
           break;
         }
-      }
-    }
-  }
-
-  static class LocationFunction
-      implements Function<Iterator<Entry<Key,Value>>,Pair<KeyExtent,Location>> {
-    @Override
-    public Pair<KeyExtent,Location> apply(Iterator<Entry<Key,Value>> input) {
-      Location loc = Location.NONE;
-      KeyExtent extent = null;
-      while (input.hasNext()) {
-        Entry<Key,Value> entry = input.next();
-        if (entry.getKey().getColumnFamily()
-            .equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)) {
-          loc = new Location(
-              new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier()));
-        } else if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN
-            .hasColumns(entry.getKey())) {
-          extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
-        }
-      }
-
-      return new Pair<>(extent, loc);
-    }
-
-  }
-
-  class MetadataLocationProvider implements Iterable<Pair<KeyExtent,Location>> {
-
-    @Override
-    public Iterator<Pair<KeyExtent,Location>> iterator() {
-      try {
-        Scanner scanner = new IsolatedScanner(
-            context.getClient().createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-        scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-        MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-        scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
-
-        RowIterator rowIter = new RowIterator(scanner);
-
-        Function<Iterator<Entry<Key,Value>>,Pair<KeyExtent,Location>> f = new LocationFunction();
-        return Iterators.transform(rowIter, x -> f.apply(x));
-      } catch (Exception e) {
-        throw new RuntimeException(e);
       }
     }
   }

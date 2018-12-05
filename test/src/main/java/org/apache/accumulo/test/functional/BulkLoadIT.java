@@ -52,8 +52,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.MemoryUnit;
@@ -376,9 +376,9 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     Set<String> endRowsSeen = new HashSet<>();
 
     String id = client.tableOperations().tableIdMap().get(tableName);
-    try (MetadataScanner scanner = MetadataScanner.builder().from(client).scanMetadataTable()
-        .overRange(Table.ID.of(id)).fetchFiles().fetchLoaded().fetchPrev().build()) {
-      for (TabletMetadata tablet : scanner) {
+    try (TabletsMetadata tablets = TabletsMetadata.builder().forTable(Table.ID.of(id)).fetchFiles()
+        .fetchLoaded().fetchPrev().build(client)) {
+      for (TabletMetadata tablet : tablets) {
         assertTrue(tablet.getLoaded().isEmpty());
 
         Set<String> fileHashes = tablet.getFiles().stream().map(f -> hash(f))

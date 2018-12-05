@@ -37,8 +37,8 @@ public class DataFileValue {
     this.time = -1;
   }
 
-  public DataFileValue(byte[] encodedDFV) {
-    String[] ba = new String(encodedDFV, UTF_8).split(",");
+  public DataFileValue(String encodedDFV) {
+    String[] ba = encodedDFV.split(",");
 
     size = Long.parseLong(ba[0]);
     numEntries = Long.parseLong(ba[1]);
@@ -47,6 +47,10 @@ public class DataFileValue {
       time = Long.parseLong(ba[2]);
     else
       time = -1;
+  }
+
+  public DataFileValue(byte[] encodedDFV) {
+    this(new String(encodedDFV, UTF_8));
   }
 
   public long getSize() {

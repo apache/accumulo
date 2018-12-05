@@ -81,7 +81,8 @@ public class MetadataSchema {
        * README : very important that prevRow sort last to avoid race conditions between garbage
        * collector and split this needs to sort after everything else for that tablet
        */
-      public static final ColumnFQ PREV_ROW_COLUMN = new ColumnFQ(NAME, new Text("~pr"));
+      public static final String PREV_ROW_QUAL = "~pr";
+      public static final ColumnFQ PREV_ROW_COLUMN = new ColumnFQ(NAME, new Text(PREV_ROW_QUAL));
       /**
        * A temporary field in case a split fails and we need to roll back
        */
@@ -101,24 +102,29 @@ public class MetadataSchema {
       /**
        * Holds the location of the tablet in the DFS file system
        */
-      public static final ColumnFQ DIRECTORY_COLUMN = new ColumnFQ(NAME, new Text("dir"));
+      public static final String DIRECTORY_QUAL = "dir";
+      public static final ColumnFQ DIRECTORY_COLUMN = new ColumnFQ(NAME, new Text(DIRECTORY_QUAL));
       /**
        * Holds the {@link TimeType}
        */
-      public static final ColumnFQ TIME_COLUMN = new ColumnFQ(NAME, new Text("time"));
+      public static final String TIME_QUAL = "time";
+      public static final ColumnFQ TIME_COLUMN = new ColumnFQ(NAME, new Text(TIME_QUAL));
       /**
        * Holds flush IDs to enable waiting on a flush to complete
        */
-      public static final ColumnFQ FLUSH_COLUMN = new ColumnFQ(NAME, new Text("flush"));
+      public static final String FLUSH_QUAL = "flush";
+      public static final ColumnFQ FLUSH_COLUMN = new ColumnFQ(NAME, new Text(FLUSH_QUAL));
       /**
        * Holds compact IDs to enable waiting on a compaction to complete
        */
-      public static final ColumnFQ COMPACT_COLUMN = new ColumnFQ(NAME, new Text("compact"));
+      public static final String COMPACT_QUAL = "compact";
+      public static final ColumnFQ COMPACT_COLUMN = new ColumnFQ(NAME, new Text(COMPACT_QUAL));
       /**
        * Holds lock IDs to enable a sanity check to ensure that the TServer writing to the metadata
        * tablet is not dead
        */
-      public static final ColumnFQ LOCK_COLUMN = new ColumnFQ(NAME, new Text("lock"));
+      public static final String LOCK_QUAL = "lock";
+      public static final ColumnFQ LOCK_COLUMN = new ColumnFQ(NAME, new Text(LOCK_QUAL));
     }
 
     /**
