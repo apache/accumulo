@@ -53,14 +53,12 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.conf.Configuration;
@@ -242,32 +240,30 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       nextRange = new Range(currentExtent.getMetadataEntry(), false, null, false);
     }
 
-    List<String> relFiles = new ArrayList<>();
+    TabletMetadata tablet = getTabletFiles(nextRange);
 
-    Pair<KeyExtent,Location> eloc = getTabletFiles(nextRange, relFiles);
-
-    while (eloc.getSecond() != null) {
+    while (tablet.getLocation() != null) {
       if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
         Tables.clearCache(context);
         if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
           throw new AccumuloException("Table is online " + tableId
-              + " cannot scan tablet in offline mode " + eloc.getFirst());
+              + " cannot scan tablet in offline mode " + tablet.getExtent());
         }
       }
 
       sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
 
-      eloc = getTabletFiles(nextRange, relFiles);
+      tablet = getTabletFiles(nextRange);
     }
 
-    KeyExtent extent = eloc.getFirst();
-
-    if (!extent.getTableId().equals(tableId)) {
-      throw new AccumuloException(" did not find tablets for table " + tableId + " " + extent);
+    if (!tablet.getExtent().getTableId().equals(tableId)) {
+      throw new AccumuloException(
+          " did not find tablets for table " + tableId + " " + tablet.getExtent());
     }
 
-    if (currentExtent != null && !extent.isPreviousExtent(currentExtent))
-      throw new AccumuloException(" " + currentExtent + " is not previous extent " + extent);
+    if (currentExtent != null && !tablet.getExtent().isPreviousExtent(currentExtent))
+      throw new AccumuloException(
+          " " + currentExtent + " is not previous extent " + tablet.getExtent());
 
     // Old property is only used to resolve relative paths into absolute paths. For systems upgraded
     // with relative paths, it's assumed that correct instance.dfs.{uri,dir} is still correct in the
@@ -276,7 +272,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     String tablesDir = config.get(Property.INSTANCE_DFS_DIR) + Constants.HDFS_TABLES_DIR;
 
     List<String> absFiles = new ArrayList<>();
-    for (String relPath : relFiles) {
+    for (String relPath : tablet.getFiles()) {
       if (relPath.contains(":")) {
         absFiles.add(relPath);
       } else {
@@ -289,22 +285,19 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       }
     }
 
-    iter = createIterator(extent, absFiles);
+    iter = createIterator(tablet.getExtent(), absFiles);
     iter.seek(range, LocalityGroupUtil.families(options.fetchedColumns),
         options.fetchedColumns.size() != 0);
-    currentExtent = extent;
+    currentExtent = tablet.getExtent();
 
   }
 
-  private Pair<KeyExtent,Location> getTabletFiles(Range nextRange, List<String> relFiles)
+  private TabletMetadata getTabletFiles(Range nextRange)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
     try (TabletsMetadata tablets = TabletsMetadata.builder().scanMetadataTable()
         .overRange(nextRange).fetchFiles().fetchLocation().fetchPrev().build(client)) {
-      TabletMetadata tablet = tablets.iterator().next();
-      relFiles.addAll(tablet.getFiles());
-
-      return new Pair<>(tablet.getExtent(), tablet.getLocation());
+      return tablets.iterator().next();
     }
   }
 
