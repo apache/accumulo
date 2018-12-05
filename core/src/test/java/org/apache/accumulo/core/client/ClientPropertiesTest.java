@@ -17,12 +17,12 @@
 package org.apache.accumulo.core.client;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.nio.file.Paths;
 import java.util.Properties;
 
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ClientPropertiesTest {
@@ -47,7 +47,7 @@ public class ClientPropertiesTest {
     props2.remove(ClientProperty.AUTH_PRINCIPAL.getKey());
     try {
       ClientProperty.validate(props2);
-      Assert.fail();
+      fail();
     } catch (IllegalArgumentException e) {
       // expected
     }
