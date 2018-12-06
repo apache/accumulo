@@ -49,6 +49,9 @@ import org.apache.log4j.Logger;
  * {@link FileOutputFormat} are not supported and may be ignored or cause failures. Using other
  * Hadoop configuration options that affect the behavior of the underlying files directly in the
  * Job's configuration may work, but are not directly supported at this time.
+ *
+ * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
+ *             New users should use org.apache.accumulo.hadoop.mapred.AccumuloFileOutputFormat
  */
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 

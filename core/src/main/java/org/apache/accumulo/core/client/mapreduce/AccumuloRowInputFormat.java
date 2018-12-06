@@ -49,7 +49,11 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * </ul>
  *
  * Other static methods are optional.
+ *
+ * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
+ *             New users see org.apache.accumulo.hadoop.mapreduce.AccumuloRowInputFormat
  */
+@Deprecated
 public class AccumuloRowInputFormat
     extends InputFormatBase<Text,PeekingIterator<Entry<Key,Value>>> {
   @Override

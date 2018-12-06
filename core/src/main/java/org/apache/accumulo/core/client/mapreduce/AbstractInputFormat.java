@@ -88,7 +88,11 @@ import org.apache.log4j.Logger;
  * An abstract input format to provide shared methods common to all other input format classes. At
  * the very least, any classes inheriting from this class will need to define their own
  * {@link RecordReader}.
+ *
+ * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
+ *             New users see org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat
  */
+@Deprecated
 public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
   protected static final Class<?> CLASS = AccumuloInputFormat.class;

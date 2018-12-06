@@ -52,7 +52,11 @@ import org.apache.hadoop.mapred.Reporter;
  * to the desired generic types K,V.
  * <p>
  * See {@link AccumuloInputFormat} for an example implementation.
+ *
+ * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
+ *             New users should use org.apache.accumulo.hadoop.mapred.AccumuloInputFormat
  */
+@Deprecated
 public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
 
   /**

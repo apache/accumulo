@@ -53,7 +53,11 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * the desired generic types K,V.
  * <p>
  * See {@link AccumuloInputFormat} for an example implementation.
+ *
+ * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
+ *             New users see org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat
  */
+@Deprecated
 public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
 
   /**

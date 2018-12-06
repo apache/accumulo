@@ -36,7 +36,11 @@ import org.apache.hadoop.io.Writable;
 /**
  * This class to holds a batch scan configuration for a table. It contains all the properties needed
  * to specify how rows should be returned from the table.
+ *
+ * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
+ *             New users see org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat
  */
+@Deprecated
 public class InputTableConfig implements Writable {
 
   private List<IteratorSetting> iterators;

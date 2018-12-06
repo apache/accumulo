@@ -77,7 +77,11 @@ import org.apache.log4j.Logger;
  * </ul>
  *
  * Other static methods are optional.
+ *
+ * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
+ *             New users should use org.apache.accumulo.hadoop.mapred.AccumuloOutputFormat
  */
+@Deprecated
 public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   private static final Class<?> CLASS = AccumuloOutputFormat.class;

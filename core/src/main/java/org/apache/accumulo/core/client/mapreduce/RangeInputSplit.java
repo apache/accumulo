@@ -53,7 +53,11 @@ import org.apache.log4j.Level;
 
 /**
  * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
+ *
+ * @deprecated since 2.0. This class maintained for backwards compatibility please do not remove.
+ *             New users see org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat
  */
+@Deprecated
 public class RangeInputSplit extends InputSplit implements Writable {
   private Range range;
   private String[] locations;
