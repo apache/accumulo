@@ -254,7 +254,7 @@ public class TabletMetadata {
       Key key = kv.getKey();
       String val = kv.getValue().toString();
       String fam = key.getColumnFamilyData().toString();
-      String qual = key.getColumnFamilyData().toString();
+      String qual = key.getColumnQualifierData().toString();
 
       if (buildKeyValueMap) {
         kvBuilder.put(key, kv.getValue());
