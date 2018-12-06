@@ -43,8 +43,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * For Example:
  *
  * <pre>
- * AccumuloRowInputFormat.configure().clientProperties(props).table(name).auths(auths) // required
- *     .addIterator(iter1).ranges(ranges).fetchColumns(columns).executionHints(hints)
+ * AccumuloRowInputFormat.configure().clientProperties(props).table(name) // required
+ *     .auths(auths).addIterator(iter1).ranges(ranges).fetchColumns(columns).executionHints(hints)
  *     .samplerConfiguration(sampleConf).disableAutoAdjustRanges() // enabled by default
  *     .scanIsolation() // not available with batchScan()
  *     .offlineScan() // not available with batchScan()
