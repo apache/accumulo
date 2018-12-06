@@ -51,6 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
@@ -226,10 +227,10 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     if (null == t) {
       throw new RuntimeException("Table Operations cannot be null");
     }
-    tableIdToTableName = new HashMap<>();
-    poolNameToRegexPattern = new HashMap<>();
+    Map<String,String> tableIdToTableNameBuilder = new HashMap<>();
+    Map<String,Pattern> poolNameToRegexPatternBuilder = new HashMap<>();
     for (Entry<String,String> table : t.tableIdMap().entrySet()) {
-      tableIdToTableName.put(table.getValue(), table.getKey());
+      tableIdToTableNameBuilder.put(table.getValue(), table.getKey());
       conf.getTableConfiguration(table.getValue()).addObserver(this);
       Map<String,String> customProps = conf.getTableConfiguration(table.getValue())
           .getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
@@ -244,11 +245,15 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
             }
             String tableName = customProp.getKey().substring(HOST_BALANCER_PREFIX.length());
             String regex = customProp.getValue();
-            poolNameToRegexPattern.put(tableName, Pattern.compile(regex));
+            poolNameToRegexPatternBuilder.put(tableName, Pattern.compile(regex));
           }
         }
       }
     }
+
+    tableIdToTableName = ImmutableMap.copyOf(tableIdToTableNameBuilder);
+    poolNameToRegexPattern = ImmutableMap.copyOf(poolNameToRegexPatternBuilder);
+
     String oobProperty = conf.getConfiguration().get(HOST_BALANCER_OOB_CHECK_KEY);
     if (null != oobProperty) {
       oobCheckMillis = AccumuloConfiguration.getTimeInMillis(oobProperty);
