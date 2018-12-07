@@ -84,12 +84,7 @@ public class ReplicationTableUtil {
   static synchronized Writer getWriter(ClientContext context) {
     Writer replicationTable = writers.get(context.getCredentials());
     if (replicationTable == null) {
-      AccumuloClient client;
-      try {
-        client = context.getClient();
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        throw new RuntimeException(e);
-      }
+      AccumuloClient client = context.getClient();
 
       configureMetadataTable(client, MetadataTable.NAME);
 

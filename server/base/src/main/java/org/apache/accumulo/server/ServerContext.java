@@ -25,8 +25,6 @@ import java.util.Properties;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.AccumuloClientImpl;
@@ -242,8 +240,7 @@ public class ServerContext extends ClientContext {
   }
 
   @Override
-  public synchronized AccumuloClient getClient()
-      throws AccumuloException, AccumuloSecurityException {
+  public synchronized AccumuloClient getClient() {
     if (client == null) {
       client = new AccumuloClientImpl(SingletonReservation.noop(), this);
     }

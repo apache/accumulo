@@ -256,11 +256,7 @@ public class MetadataScanner implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public TableOptions from(ClientContext ctx) {
-      try {
-        this.client = ctx.getClient();
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        throw new RuntimeException(e);
-      }
+      this.client = ctx.getClient();
       return this;
     }
 

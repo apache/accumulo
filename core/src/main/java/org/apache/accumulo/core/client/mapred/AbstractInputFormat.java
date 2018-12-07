@@ -482,12 +482,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       log.debug("Initializing input split: " + baseSplit);
 
       ClientContext context = new ClientContext(getClientInfo(job));
-      AccumuloClient client;
-      try {
-        client = context.getClient();
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        throw new IllegalStateException(e);
-      }
+      AccumuloClient client = context.getClient();
       Authorizations authorizations = getScanAuthorizations(job);
       String classLoaderContext = getClassLoaderContext(job);
       String table = baseSplit.getTableName();
