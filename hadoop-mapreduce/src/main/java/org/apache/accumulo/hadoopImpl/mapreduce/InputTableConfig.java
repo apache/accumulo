@@ -27,12 +27,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -43,14 +46,18 @@ import org.apache.hadoop.io.Writable;
  */
 public class InputTableConfig implements Writable {
 
-  private List<IteratorSetting> iterators;
-  private List<Range> ranges;
-  private Collection<IteratorSetting.Column> columns;
+  private List<IteratorSetting> iterators = Collections.emptyList();
+  private List<Range> ranges = Collections.emptyList();
+  private Collection<IteratorSetting.Column> columns = Collections.emptyList();
+
+  private Optional<Authorizations> scanAuths = Optional.empty();
+  private Optional<String> context = Optional.empty();
 
   private boolean autoAdjustRanges = true;
   private boolean useLocalIterators = false;
   private boolean useIsolatedScanners = false;
   private boolean offlineScan = false;
+  private boolean batchScan = false;
   private SamplerConfiguration samplerConfig = null;
   private Map<String,String> executionHints = Collections.emptyMap();
 
@@ -83,7 +90,7 @@ public class InputTableConfig implements Writable {
    * Returns the ranges to be queried in the configuration
    */
   public List<Range> getRanges() {
-    return ranges != null ? ranges : new ArrayList<>();
+    return ranges;
   }
 
   /**
@@ -123,7 +130,7 @@ public class InputTableConfig implements Writable {
    * Returns the iterators to be set on this configuration
    */
   public List<IteratorSetting> getIterators() {
-    return iterators != null ? iterators : new ArrayList<>();
+    return iterators;
   }
 
   /**
@@ -217,7 +224,6 @@ public class InputTableConfig implements Writable {
    *
    * @param offlineScan
    *          the feature is enabled if true, disabled otherwise
-   * @since 1.6.0
    */
   public InputTableConfig setOfflineScan(boolean offlineScan) {
     this.offlineScan = offlineScan;
@@ -228,7 +234,6 @@ public class InputTableConfig implements Writable {
    * Determines whether a configuration has the offline table scan feature enabled.
    *
    * @return true if the feature is enabled, false otherwise
-   * @since 1.6.0
    * @see #setOfflineScan(boolean)
    */
   public boolean isOfflineScan() {
@@ -243,7 +248,6 @@ public class InputTableConfig implements Writable {
    *
    * @param useIsolatedScanners
    *          the feature is enabled if true, disabled otherwise
-   * @since 1.6.0
    */
   public InputTableConfig setUseIsolatedScanners(boolean useIsolatedScanners) {
     this.useIsolatedScanners = useIsolatedScanners;
@@ -254,11 +258,18 @@ public class InputTableConfig implements Writable {
    * Determines whether a configuration has isolation enabled.
    *
    * @return true if the feature is enabled, false otherwise
-   * @since 1.6.0
    * @see #setUseIsolatedScanners(boolean)
    */
   public boolean shouldUseIsolatedScanners() {
     return useIsolatedScanners;
+  }
+
+  public void setUseBatchScan(boolean value) {
+    this.batchScan = value;
+  }
+
+  public boolean shouldBatchScan() {
+    return batchScan;
   }
 
   /**
@@ -267,35 +278,41 @@ public class InputTableConfig implements Writable {
    * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
    * @see InputFormatBase#setSamplerConfiguration(org.apache.hadoop.mapreduce.Job,
    *      SamplerConfiguration)
-   *
-   * @since 1.8.0
    */
   public void setSamplerConfiguration(SamplerConfiguration samplerConfiguration) {
     this.samplerConfig = samplerConfiguration;
   }
 
-  /**
-   *
-   * @since 1.8.0
-   */
   public SamplerConfiguration getSamplerConfiguration() {
     return samplerConfig;
   }
 
   /**
    * The execution hints to set on created scanners. See {@link ScannerBase#setExecutionHints(Map)}
-   *
-   * @since 2.0.0
    */
   public void setExecutionHints(Map<String,String> executionHints) {
     this.executionHints = executionHints;
   }
 
-  /**
-   * @since 2.0.0
-   */
   public Map<String,String> getExecutionHints() {
     return executionHints;
+  }
+
+  public Optional<Authorizations> getScanAuths() {
+    return scanAuths;
+  }
+
+  public InputTableConfig setScanAuths(Authorizations scanAuths) {
+    this.scanAuths = Optional.of(scanAuths);
+    return this;
+  }
+
+  public Optional<String> getContext() {
+    return context;
+  }
+
+  public void setContext(String context) {
+    this.context = Optional.of(context);
   }
 
   @Override
@@ -340,7 +357,7 @@ public class InputTableConfig implements Writable {
       new SamplerConfigurationImpl(samplerConfig).write(dataOutput);
     }
 
-    if (executionHints == null || executionHints.size() == 0) {
+    if (executionHints.isEmpty()) {
       dataOutput.writeInt(0);
     } else {
       dataOutput.writeInt(executionHints.size());
@@ -419,17 +436,15 @@ public class InputTableConfig implements Writable {
       return false;
     if (useLocalIterators != that.useLocalIterators)
       return false;
-    if (columns != null ? !columns.equals(that.columns) : that.columns != null)
+    if (!Objects.equals(columns, that.columns))
       return false;
-    if (iterators != null ? !iterators.equals(that.iterators) : that.iterators != null)
+    if (!Objects.equals(iterators, that.iterators))
       return false;
-    if (ranges != null ? !ranges.equals(that.ranges) : that.ranges != null)
+    if (!Objects.equals(ranges, that.ranges))
       return false;
-    if (executionHints != null ? !executionHints.equals(that.executionHints)
-        : that.executionHints != null)
+    if (!Objects.equals(executionHints, that.executionHints))
       return false;
-    return samplerConfig != null ? samplerConfig.equals(that.samplerConfig)
-        : that.samplerConfig == null;
+    return Objects.equals(samplerConfig, that.samplerConfig);
   }
 
   @Override

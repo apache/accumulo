@@ -201,35 +201,6 @@ public abstract class AbstractInputFormat {
   }
 
   /**
-   * Fetches all {@link InputTableConfig}s that have been set on the given Hadoop job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @return the {@link InputTableConfig} objects set on the job
-   * @since 1.6.0
-   */
-  protected static Map<String,InputTableConfig> getInputTableConfigs(JobConf job) {
-    return InputConfigurator.getInputTableConfigs(CLASS, job);
-  }
-
-  /**
-   * Fetches a {@link InputTableConfig} that has been set on the configuration for a specific table.
-   *
-   * <p>
-   * null is returned in the event that the table doesn't exist.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param tableName
-   *          the table name for which to grab the config object
-   * @return the {@link InputTableConfig} for the given table
-   * @since 1.6.0
-   */
-  protected static InputTableConfig getInputTableConfig(JobConf job, String tableName) {
-    return InputConfigurator.getInputTableConfig(CLASS, job, tableName);
-  }
-
-  /**
    * An abstract base class to be used to create {@link org.apache.hadoop.mapred.RecordReader}
    * instances that convert from Accumulo
    * {@link org.apache.accumulo.core.data.Key}/{@link org.apache.accumulo.core.data.Value} pairs to
@@ -305,7 +276,8 @@ public abstract class AbstractInputFormat {
 
       // in case the table name changed, we can still use the previous name for terms of
       // configuration, but the scanner will use the table id resolved at job setup time
-      InputTableConfig tableConfig = getInputTableConfig(job, baseSplit.getTableName());
+      InputTableConfig tableConfig = InputConfigurator.getInputTableConfig(CLASS, job,
+          baseSplit.getTableName());
 
       log.debug("Created client with user: " + context.whoami());
       log.debug("Creating scanner for table: " + table);
@@ -452,18 +424,13 @@ public abstract class AbstractInputFormat {
   /**
    * Gets the splits of the tables that have been set on the job by reading the metadata table for
    * the specified ranges.
-   *
-   * @return the splits from the tables based on the ranges.
-   * @throws java.io.IOException
-   *           if a table set on the job doesn't exist or an error occurs initializing the tablet
-   *           locator
    */
-  public static InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
+  public static InputSplit[] getSplits(JobConf job) throws IOException {
     validateOptions(job);
 
     Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
-    Map<String,InputTableConfig> tableConfigs = getInputTableConfigs(job);
+    Map<String,InputTableConfig> tableConfigs = InputConfigurator.getInputTableConfigs(CLASS, job);
     try (AccumuloClient client = createClient(job)) {
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
         String tableName = tableConfigEntry.getKey();

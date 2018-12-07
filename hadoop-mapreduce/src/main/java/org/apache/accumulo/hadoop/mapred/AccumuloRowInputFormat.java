@@ -53,7 +53,7 @@ public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
-    return AbstractInputFormat.getSplits(job, numSplits);
+    return AbstractInputFormat.getSplits(job);
   }
 
   @Override

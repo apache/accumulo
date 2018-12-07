@@ -40,6 +40,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TestName;
 
 public class AccumuloInputFormatTest {
@@ -49,6 +50,8 @@ public class AccumuloInputFormatTest {
 
   @Rule
   public TestName test = new TestName();
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
 
   @Before
   public void createJob() {
@@ -59,6 +62,14 @@ public class AccumuloInputFormatTest {
   public static void setupClientInfo() {
     clientProperties = org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest
         .setupClientProperties();
+  }
+
+  @Test
+  public void testMissingTable() throws Exception {
+    Properties clientProps = org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest
+        .setupClientProperties();
+    exception.expect(IllegalArgumentException.class);
+    AccumuloInputFormat.configure().clientProperties(clientProps).store(new JobConf());
   }
 
   /**
