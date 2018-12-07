@@ -208,8 +208,7 @@ public class AccumuloOutputFormatImpl {
 
     private AccumuloClient client;
 
-    public AccumuloRecordWriter(TaskAttemptContext context)
-        throws AccumuloException, AccumuloSecurityException {
+    public AccumuloRecordWriter(TaskAttemptContext context) {
       this.simulate = getSimulationMode(context);
       this.createTables = canCreateTables(context);
 
@@ -322,7 +321,7 @@ public class AccumuloOutputFormatImpl {
     }
 
     @Override
-    public void close(TaskAttemptContext attempt) throws IOException, InterruptedException {
+    public void close(TaskAttemptContext attempt) throws IOException {
       log.debug("mutations written: " + mutCount + ", values written: " + valCount);
       if (simulate)
         return;

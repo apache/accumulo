@@ -72,8 +72,7 @@ public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<
           }
 
           @Override
-          public boolean next(Text key, PeekingIterator<Entry<Key,Value>> value)
-              throws IOException {
+          public boolean next(Text key, PeekingIterator<Entry<Key,Value>> value) {
             if (!rowIterator.hasNext())
               return false;
             value.initialize(rowIterator.next());

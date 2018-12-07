@@ -408,12 +408,12 @@ public abstract class AbstractInputFormat {
     }
 
     @Override
-    public long getPos() throws IOException {
+    public long getPos() {
       return numKeysRead;
     }
 
     @Override
-    public float getProgress() throws IOException {
+    public float getProgress() {
       if (numKeysRead > 0 && currentKey == null)
         return 1.0f;
       return baseSplit.getProgress(currentKey);

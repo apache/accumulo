@@ -90,7 +90,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * Sets all the information required for this map reduce job.
    */
   public static OutputFormatBuilder.ClientParams<Job> configure() {
-    return new OutputFormatBuilderImpl<Job>();
+    return new OutputFormatBuilderImpl<>();
   }
 
 }

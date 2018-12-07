@@ -55,7 +55,7 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       int count = 0;
 
       @Override
-      protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
+      protected void map(Key k, Value v, Context context) {
         try {
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));

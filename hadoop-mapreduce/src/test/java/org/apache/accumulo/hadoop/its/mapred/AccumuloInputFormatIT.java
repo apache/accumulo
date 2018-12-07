@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -73,8 +72,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       int count = 0;
 
       @Override
-      public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter)
-          throws IOException {
+      public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter) {
         try {
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
@@ -92,7 +90,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       public void configure(JobConf job) {}
 
       @Override
-      public void close() throws IOException {
+      public void close() {
         try {
           assertEquals(100, count);
         } catch (AssertionError e) {

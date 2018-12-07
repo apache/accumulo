@@ -206,7 +206,7 @@ public class AccumuloOutputFormatImpl {
 
     private AccumuloClient client;
 
-    public AccumuloRecordWriter(JobConf job) throws AccumuloException, AccumuloSecurityException {
+    public AccumuloRecordWriter(JobConf job) {
       this.simulate = getSimulationMode(job);
       this.createTables = canCreateTables(job);
 
