@@ -45,7 +45,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * <pre>
  * AccumuloRowInputFormat.configure().clientProperties(props).table(name) // required
  *     .auths(auths).addIterator(iter1).ranges(ranges).fetchColumns(columns).executionHints(hints)
- *     .samplerConfiguration(sampleConf).disableAutoAdjustRanges() // enabled by default
+ *     .samplerConfiguration(sampleConf).autoAdjustRanges() // enabled by default
  *     .scanIsolation() // not available with batchScan()
  *     .offlineScan() // not available with batchScan()
  *     .store(job);

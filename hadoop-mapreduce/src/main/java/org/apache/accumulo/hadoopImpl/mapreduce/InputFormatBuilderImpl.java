@@ -43,8 +43,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class InputFormatBuilderImpl<T>
     implements InputFormatBuilder, InputFormatBuilder.ClientParams<T>,
-    InputFormatBuilder.TableParams<T>, InputFormatBuilder.InputFormatOptions<T>,
-    InputFormatBuilder.ScanOptions<T>, InputFormatBuilder.BatchScanOptions<T> {
+    InputFormatBuilder.TableParams<T>, InputFormatBuilder.InputFormatOptions<T> {
 
   Class<?> callingClass;
   String tableName;
@@ -134,33 +133,34 @@ public class InputFormatBuilderImpl<T>
   }
 
   @Override
-  public InputFormatOptions<T> disableAutoAdjustRanges() {
-    bools.autoAdjustRanges = false;
+  public InputFormatOptions<T> autoAdjustRanges(boolean value) {
+    bools.autoAdjustRanges = value;
     return this;
   }
 
   @Override
-  public ScanOptions<T> scanIsolation() {
-    bools.scanIsolation = true;
+  public InputFormatOptions<T> scanIsolation(boolean value) {
+    bools.scanIsolation = value;
     return this;
   }
 
   @Override
-  public ScanOptions<T> localIterators() {
-    bools.localIters = true;
+  public InputFormatOptions<T> localIterators(boolean value) {
+    bools.localIters = value;
     return this;
   }
 
   @Override
-  public ScanOptions<T> offlineScan() {
-    bools.offlineScan = true;
+  public InputFormatOptions<T> offlineScan(boolean value) {
+    bools.offlineScan = value;
     return this;
   }
 
   @Override
-  public BatchScanOptions<T> batchScan() {
-    bools.batchScan = true;
-    bools.autoAdjustRanges = true;
+  public InputFormatOptions<T> batchScan(boolean value) {
+    bools.batchScan = value;
+    if (value)
+      bools.autoAdjustRanges = true;
     return this;
   }
 

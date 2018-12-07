@@ -71,40 +71,6 @@ public interface InputFormatBuilder {
   }
 
   /**
-   * Options for batch scan
-   *
-   * @since 2.0
-   */
-  interface BatchScanOptions<T> {
-    /**
-     * Finish configuring, verify and store options into the JobConf or Job
-     */
-    void store(T t) throws AccumuloException, AccumuloSecurityException;
-  }
-
-  /**
-   * Options for scan
-   *
-   * @since 2.0
-   */
-  interface ScanOptions<T> extends BatchScanOptions<T> {
-    /**
-     * @see InputFormatOptions#scanIsolation()
-     */
-    ScanOptions<T> scanIsolation();
-
-    /**
-     * @see InputFormatOptions#localIterators()
-     */
-    ScanOptions<T> localIterators();
-
-    /**
-     * @see InputFormatOptions#offlineScan()
-     */
-    ScanOptions<T> offlineScan();
-  }
-
-  /**
    * Optional values to set using fluent API
    *
    * @since 2.0
@@ -184,14 +150,14 @@ public interface InputFormatBuilder {
      *
      * @see #ranges(Collection)
      */
-    InputFormatOptions<T> disableAutoAdjustRanges();
+    InputFormatOptions<T> autoAdjustRanges(boolean value);
 
     /**
      * Enables the use of the {@link IsolatedScanner} in this job.
      * <p>
      * By default, this feature is <b>disabled</b>.
      */
-    ScanOptions<T> scanIsolation();
+    InputFormatOptions<T> scanIsolation(boolean value);
 
     /**
      * Enables the use of the {@link ClientSideIteratorScanner} in this job. This feature will cause
@@ -201,7 +167,7 @@ public interface InputFormatBuilder {
      * <p>
      * By default, this feature is <b>disabled</b>.
      */
-    ScanOptions<T> localIterators();
+    InputFormatOptions<T> localIterators(boolean value);
 
     /**
      * Enable reading offline tables. By default, this feature is disabled and only online tables
@@ -228,7 +194,7 @@ public interface InputFormatBuilder {
      * <p>
      * By default, this feature is <b>disabled</b>.
      */
-    ScanOptions<T> offlineScan();
+    InputFormatOptions<T> offlineScan(boolean value);
 
     /**
      * Enables the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job.
@@ -239,7 +205,7 @@ public interface InputFormatBuilder {
      * In order to achieve good locality of InputSplits this option always clips the input Ranges to
      * tablet boundaries. This may result in one input Range contributing to several InputSplits.
      * <p>
-     * Note: calls to {@link #disableAutoAdjustRanges()} is ignored when BatchScan is enabled.
+     * Note: calls to {@link #autoAdjustRanges()} is ignored when BatchScan is enabled.
      * <p>
      * This configuration is incompatible with:
      * <ul>
@@ -250,7 +216,7 @@ public interface InputFormatBuilder {
      * <p>
      * By default, this feature is <b>disabled</b>.
      */
-    BatchScanOptions<T> batchScan();
+    InputFormatOptions<T> batchScan(boolean value);
 
     /**
      * Finish configuring, verify and serialize options into the JobConf or Job
