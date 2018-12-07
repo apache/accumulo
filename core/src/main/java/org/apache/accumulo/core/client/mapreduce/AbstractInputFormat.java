@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -36,7 +37,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -54,6 +54,7 @@ import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
@@ -122,13 +123,13 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *
    * @param job
    *          Hadoop job instance to be configured
-   * @param info
+   * @param clientProps
    *          Connection information for Accumulo
    * @since 2.0.0
    */
-  public static void setClientInfo(Job job, ClientInfo info) {
-    ClientInfo inputInfo = InputConfigurator.updateToken(job.getCredentials(), info);
-    InputConfigurator.setClientInfo(CLASS, job.getConfiguration(), inputInfo);
+  public static void setClientProperties(Job job, Properties clientProps) {
+    Properties inputProps = InputConfigurator.updateToken(job.getCredentials(), clientProps);
+    InputConfigurator.setClientProperties(CLASS, job.getConfiguration(), inputProps);
   }
 
   /**
@@ -145,15 +146,15 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   }
 
   /**
-   * Gets the {@link ClientInfo} from the configuration
+   * Gets the {@link Properties} from the configuration
    *
    * @param context
    *          Hadoop job context
-   * @return ClientInfo
+   * @return Properties
    * @since 2.0.0
    */
-  protected static ClientInfo getClientInfo(JobContext context) {
-    return InputConfigurator.getClientInfo(CLASS, context.getConfiguration());
+  protected static Properties getClientProperties(JobContext context) {
+    return InputConfigurator.getClientProperties(CLASS, context.getConfiguration());
   }
 
   /**
@@ -175,7 +176,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @param token
    *          the user's password
    * @since 1.5.0
-   * @deprecated since 2.0.0; use {@link #setClientInfo(Job, ClientInfo)} instead.
+   * @deprecated since 2.0.0; use {@link #setClientProperties(Job, Properties)} instead.
    */
   @Deprecated
   public static void setConnectorInfo(Job job, String principal, AuthenticationToken token)
@@ -183,7 +184,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        AccumuloClient client = Accumulo.newClient().from(getClientInfo(job).getProperties())
+        AccumuloClient client = Accumulo.newClient().from(getClientProperties(job))
             .as(principal, token).build();
         token = client.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
@@ -282,7 +283,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @param clientConfig
    *          client configuration containing connection options
    * @since 1.6.0
-   * @deprecated since 2.0.0; Use {@link #setClientInfo(Job, ClientInfo)} instead.
+   * @deprecated since 2.0.0; Use {@link #setClientProperties(Job, Properties)} instead.
    */
   @Deprecated
   public static void setZooKeeperInstance(Job job,
@@ -298,7 +299,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @deprecated since 2.0.0, use {@link #getClientInfo(JobContext)} instead
+   * @deprecated since 2.0.0, use {@link #getClientProperties(JobContext)} instead
    */
   @Deprecated
   protected static org.apache.accumulo.core.client.Instance getInstance(JobContext context) {
@@ -409,7 +410,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    *          The Job
    * @return The ClientConfiguration
    * @since 1.7.0
-   * @deprecated since 2.0.0; use {@link #getClientInfo(JobContext)} instead
+   * @deprecated since 2.0.0; use {@link #getClientProperties(JobContext)} instead
    */
   @Deprecated
   protected static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
@@ -488,7 +489,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split);
 
-      ClientInfo info = getClientInfo(attempt);
+      ClientInfo info = ClientInfo.from(getClientProperties(attempt));
       ClientContext context = new ClientContext(info);
       AccumuloClient client = context.getClient();
       Authorizations authorizations = getScanAuthorizations(attempt);
@@ -651,7 +652,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
   Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobContext context, Table.ID tableId,
       List<Range> ranges)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    ClientContext clientContext = new ClientContext(getClientInfo(context));
+    ClientContext clientContext = new ClientContext(getClientProperties(context));
     return InputConfigurator.binOffline(tableId, ranges, clientContext);
   }
 
@@ -677,7 +678,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       String tableName = tableConfigEntry.getKey();
       InputTableConfig tableConfig = tableConfigEntry.getValue();
 
-      ClientContext clientContext = new ClientContext(getClientInfo(context));
+      ClientContext clientContext = new ClientContext(getClientProperties(context));
       Table.ID tableId;
       // resolve table name to id once, and use id from this point forward
       try {

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client;
+package org.apache.accumulo.core.clientImpl;
 
 import java.nio.file.Path;
 import java.util.Properties;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 
 /**
  * Accumulo client information. Can be built using {@link Accumulo#newClient()}

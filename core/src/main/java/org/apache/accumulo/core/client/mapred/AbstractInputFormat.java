@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -36,7 +37,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -120,13 +120,13 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *
    * @param job
    *          Hadoop job instance to be configured
-   * @param info
+   * @param clientProps
    *          Connection information for Accumulo
    * @since 2.0.0
    */
-  public static void setClientInfo(JobConf job, ClientInfo info) {
-    ClientInfo inputInfo = InputConfigurator.updateToken(job.getCredentials(), info);
-    InputConfigurator.setClientInfo(CLASS, job, inputInfo);
+  public static void setClientProperties(JobConf job, Properties clientProps) {
+    Properties inputProps = InputConfigurator.updateToken(job.getCredentials(), clientProps);
+    InputConfigurator.setClientProperties(CLASS, job, inputProps);
   }
 
   /**
@@ -143,15 +143,15 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Retrieves {@link ClientInfo} from the configuration
+   * Retrieves {@link Properties} from the configuration
    *
    * @param job
    *          Hadoop job instance configuration
-   * @return {@link ClientInfo} object
+   * @return {@link Properties} object
    * @since 2.0.0
    */
-  protected static ClientInfo getClientInfo(JobConf job) {
-    return InputConfigurator.getClientInfo(CLASS, job);
+  protected static Properties getClientProperties(JobConf job) {
+    return InputConfigurator.getClientProperties(CLASS, job);
   }
 
   /**
@@ -173,7 +173,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @param token
    *          the user's password
    * @since 1.5.0
-   * @deprecated since 2.0.0, use {@link #setClientInfo(JobConf, ClientInfo)} instead
+   * @deprecated since 2.0.0, use {@link #setClientProperties(JobConf, Properties)} instead
    */
   @Deprecated
   public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token)
@@ -181,7 +181,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        AccumuloClient client = Accumulo.newClient().from(getClientInfo(job).getProperties())
+        AccumuloClient client = Accumulo.newClient().from(getClientProperties(job))
             .as(principal, token).build();
         token = client.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
@@ -278,7 +278,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @param clientConfig
    *          client configuration containing connection options
    * @since 1.6.0
-   * @deprecated since 2.0.0; Use {@link #setClientInfo(JobConf, ClientInfo)} instead.
+   * @deprecated since 2.0.0; Use {@link #setClientProperties(JobConf, Properties)} instead.
    */
   @Deprecated
   public static void setZooKeeperInstance(JobConf job,
@@ -294,7 +294,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @deprecated since 2.0.0, Use {@link #getClientInfo(JobConf)} instead
+   * @deprecated since 2.0.0, Use {@link #getClientProperties(JobConf)} instead
    */
   @Deprecated
   protected static org.apache.accumulo.core.client.Instance getInstance(JobConf job) {
@@ -361,7 +361,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          The job
    * @return The client configuration for the job
    * @since 1.7.0
-   * @deprecated since 2.0.0, replaced by {@link #getClientInfo(JobConf)}
+   * @deprecated since 2.0.0, replaced by {@link #getClientProperties(JobConf)}
    */
   @Deprecated
   protected static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
@@ -481,7 +481,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       baseSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + baseSplit);
 
-      ClientContext context = new ClientContext(getClientInfo(job));
+      ClientContext context = new ClientContext(getClientProperties(job));
       AccumuloClient client = context.getClient();
       Authorizations authorizations = getScanAuthorizations(job);
       String classLoaderContext = getClassLoaderContext(job);
@@ -625,7 +625,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job, Table.ID tableId,
       List<Range> ranges)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    ClientContext context = new ClientContext(getClientInfo(job));
+    ClientContext context = new ClientContext(getClientProperties(job));
     return InputConfigurator.binOffline(tableId, ranges, context);
   }
 
@@ -651,7 +651,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       String tableName = tableConfigEntry.getKey();
       InputTableConfig tableConfig = tableConfigEntry.getValue();
 
-      ClientContext context = new ClientContext(getClientInfo(job));
+      ClientContext context = new ClientContext(getClientProperties(job));
       Table.ID tableId;
       // resolve table name to id once, and use id from this point forward
       try {

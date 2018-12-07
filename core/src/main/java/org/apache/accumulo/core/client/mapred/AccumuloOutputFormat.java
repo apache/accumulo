@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -28,7 +29,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -66,7 +66,7 @@ import org.apache.log4j.Logger;
  * The user must specify the following via static configurator methods:
  *
  * <ul>
- * <li>{@link AccumuloOutputFormat#setClientInfo(JobConf, ClientInfo)}
+ * <li>{@link AccumuloOutputFormat#setClientProperties(JobConf, Properties)}
  * </ul>
  *
  * Other static methods are optional.
@@ -81,13 +81,13 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *
    * @param job
    *          Hadoop job to be configured
-   * @param info
+   * @param clientProps
    *          Accumulo connection information
    * @since 2.0.0
    */
-  public static void setClientInfo(JobConf job, ClientInfo info) {
-    ClientInfo outInfo = OutputConfigurator.updateToken(job.getCredentials(), info);
-    OutputConfigurator.setClientInfo(CLASS, job, outInfo);
+  public static void setClientProperties(JobConf job, Properties clientProps) {
+    Properties outProps = OutputConfigurator.updateToken(job.getCredentials(), clientProps);
+    OutputConfigurator.setClientProperties(CLASS, job, outProps);
   }
 
   /**
@@ -97,8 +97,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          Hadoop job to be configured
    * @since 2.0.0
    */
-  protected static ClientInfo getClientInfo(JobConf job) {
-    return OutputConfigurator.getClientInfo(CLASS, job);
+  protected static Properties getClientProperties(JobConf job) {
+    return OutputConfigurator.getClientProperties(CLASS, job);
   }
 
   /**
@@ -134,7 +134,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @param token
    *          the user's password
    * @since 1.5.0
-   * @deprecated since 2.0.0, use {@link #setClientInfo(JobConf, ClientInfo)} instead.
+   * @deprecated since 2.0.0, use {@link #setClientProperties(JobConf, Properties)} instead.
    */
   @Deprecated
   public static void setConnectorInfo(JobConf job, String principal, AuthenticationToken token)
@@ -230,7 +230,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @param clientConfig
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0
-   * @deprecated since 2.0.0; Use {@link #setClientInfo(JobConf, ClientInfo)} instead.
+   * @deprecated since 2.0.0; Use {@link #setClientProperties(JobConf, Properties)} instead.
    */
   @Deprecated
   public static void setZooKeeperInstance(JobConf job,
@@ -246,7 +246,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @deprecated since 2.0.0; Use {@link #getClientInfo(JobConf)} instead
+   * @deprecated since 2.0.0; Use {@link #getClientProperties(JobConf)} instead
    */
   @Deprecated
   protected static org.apache.accumulo.core.client.Instance getInstance(JobConf job) {
@@ -410,8 +410,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
     private AccumuloClient client;
 
-    protected AccumuloRecordWriter(JobConf job)
-        throws AccumuloException, AccumuloSecurityException, IOException {
+    protected AccumuloRecordWriter(JobConf job) {
       Level l = getLogLevel(job);
       if (l != null)
         log.setLevel(getLogLevel(job));
@@ -427,7 +426,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
 
       if (!simulate) {
-        this.client = Accumulo.newClient().from(getClientInfo(job).getProperties()).build();
+        this.client = Accumulo.newClient().from(getClientProperties(job)).build();
         mtbw = client.createMultiTableBatchWriter(getBatchWriterOptions(job));
       }
     }
@@ -564,7 +563,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       throw new IOException("Connector info has not been set.");
     try {
       // if the instance isn't configured, it will complain here
-      AccumuloClient c = Accumulo.newClient().from(getClientInfo(job).getProperties()).build();
+      AccumuloClient c = Accumulo.newClient().from(getClientProperties(job)).build();
       String principal = getPrincipal(job);
       AuthenticationToken token = getAuthenticationToken(job);
       if (!c.securityOperations().authenticateUser(principal, token))
