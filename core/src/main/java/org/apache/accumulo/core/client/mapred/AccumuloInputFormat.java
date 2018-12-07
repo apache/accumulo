@@ -19,7 +19,6 @@ package org.apache.accumulo.core.client.mapred;
 import java.io.IOException;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -38,7 +37,7 @@ import org.apache.log4j.Level;
  * The user must specify the following via static configurator methods:
  *
  * <ul>
- * <li>{@link AccumuloInputFormat#setClientInfo(JobConf, ClientInfo)}
+ * <li>{@link AccumuloInputFormat#setClientProperties(JobConf, java.util.Properties)}
  * <li>{@link AccumuloInputFormat#setInputTableName(JobConf, String)}</li>
  * <li>{@link AccumuloInputFormat#setScanAuthorizations(JobConf, Authorizations)}
  * </ul>

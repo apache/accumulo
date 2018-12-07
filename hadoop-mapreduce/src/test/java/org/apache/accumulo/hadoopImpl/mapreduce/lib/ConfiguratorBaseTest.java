@@ -23,9 +23,9 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 

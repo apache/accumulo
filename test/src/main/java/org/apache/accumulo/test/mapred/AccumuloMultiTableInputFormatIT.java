@@ -104,7 +104,7 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      AccumuloMultiTableInputFormat.setClientInfo(job, getClientInfo());
+      AccumuloMultiTableInputFormat.setClientProperties(job, getClientProperties());
 
       InputTableConfig tableConfig1 = new InputTableConfig();
       InputTableConfig tableConfig2 = new InputTableConfig();

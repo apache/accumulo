@@ -20,7 +20,6 @@ import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
@@ -39,9 +38,8 @@ public class MapReduceClientOpts extends ClientOpts {
   private static final Logger log = LoggerFactory.getLogger(MapReduceClientOpts.class);
 
   public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
-    ClientInfo info = ClientInfo.from(this.getClientProperties());
-    AccumuloInputFormat.setClientInfo(job, info);
-    AccumuloOutputFormat.setClientInfo(job, info);
+    AccumuloInputFormat.setClientProperties(job, getClientProperties());
+    AccumuloOutputFormat.setClientProperties(job, getClientProperties());
   }
 
   @Override

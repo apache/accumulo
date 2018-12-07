@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.ClientInfo;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.hadoop.mapreduce.OutputFormatBuilder;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
