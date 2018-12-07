@@ -293,9 +293,9 @@ public class AccumuloClientImpl implements AccumuloClient {
 
     private Properties properties = new Properties();
     private AuthenticationToken token = null;
-    private Function<ClientBuilderImpl,T> builderFunction;
+    private Function<ClientBuilderImpl<T>,T> builderFunction;
 
-    public ClientBuilderImpl(Function<ClientBuilderImpl,T> builderFunction) {
+    public ClientBuilderImpl(Function<ClientBuilderImpl<T>,T> builderFunction) {
       this.builderFunction = builderFunction;
     }
 

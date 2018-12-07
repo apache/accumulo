@@ -25,8 +25,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.Property;
@@ -138,11 +136,7 @@ public class TableLoadBalancer extends TabletBalancer {
 
   protected TableOperations getTableOperations() {
     if (tops == null)
-      try {
-        tops = this.context.getClient().tableOperations();
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        log.error("Unable to access table operations from within table balancer", e);
-      }
+      tops = this.context.getClient().tableOperations();
     return tops;
   }
 

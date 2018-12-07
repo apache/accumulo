@@ -29,8 +29,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -53,7 +51,6 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.master.LiveTServerSet;
-import org.apache.accumulo.server.master.LiveTServerSet.Listener;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -94,23 +91,14 @@ public class GarbageCollectWriteAheadLogs {
     this.context = context;
     this.fs = fs;
     this.useTrash = useTrash;
-    this.liveServers = new LiveTServerSet(context, new Listener() {
-      @Override
-      public void update(LiveTServerSet current, Set<TServerInstance> deleted,
-          Set<TServerInstance> added) {
-        log.debug("New tablet servers noticed: {}", added);
-        log.debug("Tablet servers removed: {}", deleted);
-      }
+    this.liveServers = new LiveTServerSet(context, (current, deleted, added) -> {
+      log.debug("New tablet servers noticed: {}", added);
+      log.debug("Tablet servers removed: {}", deleted);
     });
     liveServers.startListeningForTabletServerChanges();
     this.walMarker = new WalStateManager(context);
-    this.store = new Iterable<TabletLocationState>() {
-      @Override
-      public Iterator<TabletLocationState> iterator() {
-        return Iterators.concat(new RootTabletStateStore(context).iterator(),
-            new MetaDataStateStore(context).iterator());
-      }
-    };
+    this.store = () -> Iterators.concat(new RootTabletStateStore(context).iterator(),
+        new MetaDataStateStore(context).iterator());
   }
 
   /**
@@ -377,7 +365,7 @@ public class GarbageCollectWriteAheadLogs {
       }
 
       return candidates.size();
-    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+    } catch (TableNotFoundException e) {
       log.error("Failed to scan metadata table", e);
       throw new IllegalArgumentException(e);
     }

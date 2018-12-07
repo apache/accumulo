@@ -287,12 +287,7 @@ public abstract class AbstractInputFormat {
 
       ClientInfo info = getClientInfo(attempt);
       ClientContext context = new ClientContext(info);
-      AccumuloClient client;
-      try {
-        client = context.getClient();
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        throw new IllegalStateException(e);
-      }
+      AccumuloClient client = context.getClient();
       Authorizations authorizations = getScanAuthorizations(attempt);
       String classLoaderContext = getClassLoaderContext(attempt);
       String table = split.getTableName();

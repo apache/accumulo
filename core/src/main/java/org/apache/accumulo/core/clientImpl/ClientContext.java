@@ -243,8 +243,7 @@ public class ClientContext {
   /**
    * Retrieve an Accumulo client
    */
-  public synchronized AccumuloClient getClient()
-      throws AccumuloException, AccumuloSecurityException {
+  public synchronized AccumuloClient getClient() {
     ensureOpen();
     if (client == null) {
       client = new AccumuloClientImpl(SingletonReservation.noop(), this);

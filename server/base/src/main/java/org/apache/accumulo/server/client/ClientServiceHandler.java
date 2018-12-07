@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -476,9 +475,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       }
       return retUsages;
 
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    } catch (AccumuloException | TableNotFoundException | IOException e) {
+    } catch (TableNotFoundException | IOException e) {
       throw new TException(e);
     }
   }
