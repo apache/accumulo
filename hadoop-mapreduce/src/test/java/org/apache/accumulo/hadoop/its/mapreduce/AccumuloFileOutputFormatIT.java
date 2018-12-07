@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.IOException;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -118,8 +117,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       int index = 0;
 
       @Override
-      protected void map(Key key, Value value, Context context)
-          throws IOException, InterruptedException {
+      protected void map(Key key, Value value, Context context) {
         String table = context.getConfiguration().get("MRTester_tableName");
         assertNotNull(table);
         try {
@@ -137,7 +135,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       }
 
       @Override
-      protected void cleanup(Context context) throws IOException, InterruptedException {
+      protected void cleanup(Context context) {
         String table = context.getConfiguration().get("MRTester_tableName");
         assertNotNull(table);
         try {

@@ -93,7 +93,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * Sets all the information required for this map reduce job.
    */
   public static FileOutputFormatBuilder.PathParams<Job> configure() {
-    return new FileOutputFormatBuilderImpl<Job>();
+    return new FileOutputFormatBuilderImpl<>();
   }
 
 }

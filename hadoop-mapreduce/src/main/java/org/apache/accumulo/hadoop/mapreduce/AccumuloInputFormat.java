@@ -77,7 +77,7 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
 
     return new InputFormatBase.RecordReaderBase<Key,Value>() {
       @Override
-      public boolean nextKeyValue() throws IOException, InterruptedException {
+      public boolean nextKeyValue() {
         if (scannerIterator.hasNext()) {
           ++numKeysRead;
           Entry<Key,Value> entry = scannerIterator.next();

@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -59,8 +58,7 @@ public class ConfiguratorBaseTest {
   }
 
   @Test
-  public void testSetConnectorInfoClassOfQConfigurationStringString()
-      throws AccumuloSecurityException {
+  public void testSetConnectorInfoClassOfQConfigurationStringString() {
     Configuration conf = new Configuration();
     assertFalse(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
     ConfiguratorBase.setConnectorInfo(this.getClass(), conf, "testUser",

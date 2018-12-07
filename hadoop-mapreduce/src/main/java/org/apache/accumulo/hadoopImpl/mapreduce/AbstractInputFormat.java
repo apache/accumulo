@@ -412,7 +412,7 @@ public abstract class AbstractInputFormat {
     }
 
     @Override
-    public float getProgress() throws IOException {
+    public float getProgress() {
       if (numKeysRead > 0 && currentKey == null)
         return 1.0f;
       return split.getProgress(currentKey);
@@ -435,12 +435,12 @@ public abstract class AbstractInputFormat {
     protected Key currentKey = null;
 
     @Override
-    public K getCurrentKey() throws IOException, InterruptedException {
+    public K getCurrentKey() {
       return currentK;
     }
 
     @Override
-    public V getCurrentValue() throws IOException, InterruptedException {
+    public V getCurrentValue() {
       return currentV;
     }
   }

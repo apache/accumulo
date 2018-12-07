@@ -46,7 +46,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
   @Override
   public RecordWriter<Key,Value> getRecordWriter(FileSystem ignored, JobConf job, String name,
-      Progressable progress) throws IOException {
+      Progressable progress) {
     // get the path of the temporary output file
     final Configuration conf = job;
     final AccumuloConfiguration acuConf = FileOutputConfigurator

@@ -810,8 +810,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   public static Map<String,Map<KeyExtent,List<Range>>> binOffline(Table.ID tableId,
-      List<Range> ranges, ClientContext context)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      List<Range> ranges, ClientContext context) throws AccumuloException, TableNotFoundException {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
     if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {

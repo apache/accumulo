@@ -68,8 +68,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
       OutputCollector<Text,Mutation> finalOutput;
 
       @Override
-      public void map(Key k, Value v, OutputCollector<Text,Mutation> output, Reporter reporter)
-          throws IOException {
+      public void map(Key k, Value v, OutputCollector<Text,Mutation> output, Reporter reporter) {
         finalOutput = output;
         try {
           if (key != null)

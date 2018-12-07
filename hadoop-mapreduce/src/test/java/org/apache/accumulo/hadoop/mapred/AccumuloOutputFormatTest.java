@@ -54,7 +54,7 @@ public class AccumuloOutputFormatTest {
 
     AccumuloOutputFormat myAOF = new AccumuloOutputFormat() {
       @Override
-      public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
+      public void checkOutputSpecs(FileSystem ignored, JobConf job) {
         BatchWriterConfig bwOpts = OutputConfigurator
             .getBatchWriterOptions(AccumuloOutputFormat.class, job);
 

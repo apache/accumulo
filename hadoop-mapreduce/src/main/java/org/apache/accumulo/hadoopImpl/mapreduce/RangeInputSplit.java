@@ -117,7 +117,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   @Override
-  public String[] getLocations() throws IOException {
+  public String[] getLocations() {
     return Arrays.copyOf(locations, locations.length);
   }
 
