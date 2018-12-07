@@ -97,6 +97,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterables;
 
 /**
  * provides a reference to the metadata table for updates by tablet servers
@@ -551,18 +552,19 @@ public class MetadataTableUtil {
       }
 
     } else {
-      try (TabletsMetadata tablets = TabletsMetadata.builder().forExtent(extent).fetchFiles()
+      try (TabletsMetadata tablets = TabletsMetadata.builder().forTablet(extent).fetchFiles()
           .fetchLogs().fetchPrev().build(context)) {
-        for (TabletMetadata tablet : tablets) {
-          if (!tablet.getExtent().equals(extent))
-            throw new RuntimeException(
-                "Unexpected extent " + tablet.getExtent() + " expected " + extent);
 
-          result.addAll(tablet.getLogs());
-          tablet.getFilesMap().forEach((k, v) -> {
-            sizes.put(new FileRef(k, fs.getFullPath(tablet.getTableId(), k)), v);
-          });
-        }
+        TabletMetadata tablet = Iterables.getOnlyElement(tablets);
+
+        if (!tablet.getExtent().equals(extent))
+          throw new RuntimeException(
+              "Unexpected extent " + tablet.getExtent() + " expected " + extent);
+
+        result.addAll(tablet.getLogs());
+        tablet.getFilesMap().forEach((k, v) -> {
+          sizes.put(new FileRef(k, fs.getFullPath(tablet.getTableId(), k)), v);
+        });
       }
     }
 

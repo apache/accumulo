@@ -232,6 +232,13 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
+    public Options forTablet(KeyExtent extent) {
+      forTable(extent.getTableId());
+      this.range = new Range(extent.getMetadataEntry());
+      return this;
+    }
+
+    @Override
     public Options overRange(Range range) {
       this.range = TabletsSection.getRange().clip(range);
       return this;
@@ -303,20 +310,18 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   }
 
   public interface TableOptions {
+
     /**
-     * Same as calling {@link #forTable(ID)} and then
-     * {@link TableRangeOptions#overlapping(Text, Text)}
+     * Get the tablet metadata for this extents end row. This should only ever return a single
+     * tablet. No checking is done for prev row, so it could differ.
      */
-    default Options forExtent(KeyExtent extent) {
-      return forTable(extent.getTableId()).overlapping(extent.getPrevEndRow(), extent.getEndRow());
-    }
+    Options forTablet(KeyExtent extent);
 
     /**
      * This method automatically determines where the metadata for the passed in table ID resides.
      * For example if a user tablet ID is passed in, then the metadata table is scanned. If the
      * metadata table ID is passed in then the root table is scanned. Defaults to returning all
      * tablets for the table ID.
-     *
      */
     TableRangeOptions forTable(Table.ID tableId);
 
@@ -347,7 +352,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     /**
      * Limit to tablets that overlap the range {@code (startRow, endRow]}. Can pass null
-     * representing -inf and +inf.
+     * representing -inf and +inf. The impl creates open ended ranges which may be problematic, see
+     * #813.
      */
     Options overlapping(Text startRow, Text endRow);
   }
