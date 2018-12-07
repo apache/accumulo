@@ -44,17 +44,14 @@ import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
-import org.apache.accumulo.core.trace.Tracer;
 
 public class AccumuloClientImpl implements AccumuloClient {
-  private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security."
-      + "SystemCredentials$SystemToken";
+
   final ClientContext context;
   private final String instanceID;
   private SecurityOperations secops = null;
@@ -88,22 +85,6 @@ public class AccumuloClientImpl implements AccumuloClient {
     if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
       throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
     return tableId;
-  }
-
-  void authenticate() throws AccumuloSecurityException, AccumuloException {
-    if (context.getCredentials().getToken().isDestroyed())
-      throw new AccumuloSecurityException(context.getCredentials().getPrincipal(),
-          SecurityErrorCode.TOKEN_EXPIRED);
-    // Skip fail fast for system services; string literal for class name, to avoid dependency on
-    // server jar
-    final String tokenClassName = context.getCredentials().getToken().getClass().getName();
-    if (!SYSTEM_TOKEN_NAME.equals(tokenClassName)) {
-      ServerClient.executeVoid(context, iface -> {
-        if (!iface.authenticate(Tracer.traceInfo(), context.rpcCreds()))
-          throw new AccumuloSecurityException("Authentication failed, access denied",
-              SecurityErrorCode.BAD_CREDENTIALS);
-      });
-    }
   }
 
   @Override
