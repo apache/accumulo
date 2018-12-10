@@ -43,9 +43,9 @@ import org.slf4j.LoggerFactory;
  * <pre>
  * AccumuloInputFormat.configure().clientProperties(props).table(name) // required
  *     .auths(auths).addIterator(iter1).ranges(ranges).fetchColumns(columns).executionHints(hints)
- *     .samplerConfiguration(sampleConf).disableAutoAdjustRanges() // enabled by default
- *     .scanIsolation() // not available with batchScan()
- *     .offlineScan() // not available with batchScan()
+ *     .samplerConfiguration(sampleConf).autoAdjustRanges(false) // enabled by default
+ *     .scanIsolation(true) // not available with batchScan()
+ *     .offlineScan(true) // not available with batchScan()
  *     .store(job);
  * </pre>
  *

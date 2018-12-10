@@ -53,14 +53,14 @@ public class OutputFormatBuilderImpl<T>
   }
 
   @Override
-  public OutputFormatBuilder.OutputOptions<T> createTables() {
-    this.createTables = true;
+  public OutputFormatBuilder.OutputOptions<T> createTables(boolean value) {
+    this.createTables = value;
     return this;
   }
 
   @Override
-  public OutputFormatBuilder.OutputOptions<T> simulationMode() {
-    this.simulationMode = true;
+  public OutputFormatBuilder.OutputOptions<T> simulationMode(boolean value) {
+    this.simulationMode = value;
     return this;
   }
 
