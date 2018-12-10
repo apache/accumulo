@@ -55,7 +55,7 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       int count = 0;
 
       @Override
-      protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
+      protected void map(Key k, Value v, Context context) {
         try {
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
@@ -93,8 +93,8 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(AccumuloInputFormat.class);
 
-      AccumuloInputFormat.configure().clientInfo(getClientInfo()).table(table1)
-          .auths(Authorizations.EMPTY).store(job);
+      AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties())
+          .table(table1).auths(Authorizations.EMPTY).store(job);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -103,7 +103,8 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.configure().clientInfo(getClientInfo()).defaultTable(table2).store(job);
+      AccumuloOutputFormat.configure().clientProperties(getClientInfo().getProperties())
+          .defaultTable(table2).store(job);
 
       job.setNumReduceTasks(0);
 

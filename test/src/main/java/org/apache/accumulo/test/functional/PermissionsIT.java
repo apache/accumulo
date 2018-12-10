@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -109,7 +110,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
       loginAs(rootUser);
       c.securityOperations().createLocalUser(principal, passwordToken);
       loginAs(testUser);
-      try (AccumuloClient test_user_client = c.changeUser(principal, token)) {
+      try (AccumuloClient test_user_client = Accumulo.newClient().from(c.properties())
+          .as(principal, token).build()) {
         loginAs(rootUser);
         verifyHasNoSystemPermissions(c, principal, SystemPermission.values());
 
@@ -570,7 +572,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
     try (AccumuloClient c = getAccumuloClient()) {
       c.securityOperations().createLocalUser(principal, passwordToken);
       loginAs(testUser);
-      try (AccumuloClient test_user_client = c.changeUser(principal, token)) {
+      try (AccumuloClient test_user_client = Accumulo.newClient().from(c.properties())
+          .as(principal, token).build()) {
 
         // check for read-only access to metadata table
         loginAs(rootUser);

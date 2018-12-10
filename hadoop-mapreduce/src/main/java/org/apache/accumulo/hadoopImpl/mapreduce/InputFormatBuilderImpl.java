@@ -22,14 +22,15 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
@@ -63,8 +64,9 @@ public class InputFormatBuilderImpl<T>
   }
 
   @Override
-  public InputFormatBuilder.TableParams<T> clientInfo(ClientInfo clientInfo) {
-    this.clientInfo = Objects.requireNonNull(clientInfo, "ClientInfo must not be null");
+  public InputFormatBuilder.TableParams<T> clientProperties(Properties clientProperties) {
+    this.clientInfo = ClientInfo
+        .from(Objects.requireNonNull(clientProperties, "clientProperties must not be null"));
     return this;
   }
 
@@ -245,7 +247,7 @@ public class InputFormatBuilderImpl<T>
       throws AccumuloSecurityException, AccumuloException {
     if (scanAuths != null)
       return scanAuths;
-    AccumuloClient c = Accumulo.newClient().from(clientInfo).build();
+    AccumuloClient c = Accumulo.newClient().from(clientInfo.getProperties()).build();
     return c.securityOperations().getUserAuthorizations(clientInfo.getPrincipal());
   }
 

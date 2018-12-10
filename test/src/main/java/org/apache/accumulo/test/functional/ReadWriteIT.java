@@ -65,7 +65,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -73,6 +72,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -183,8 +183,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       log.debug("Stopping accumulo cluster");
       ClusterControl control = cluster.getClusterControl();
       control.adminStopAll();
-      ZooReader zreader = new ZooReader(accumuloClient.info().getZooKeepers(),
-          accumuloClient.info().getZooKeepersSessionTimeOut());
+      ClientInfo info = ClientInfo.from(accumuloClient.properties());
+      ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
       byte[] masterLockData;
       do {
@@ -220,7 +220,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.columnFamily = colf;
     opts.createTable = true;
     opts.setTableName(tableName);
-    opts.setClientInfo(info);
+    opts.setClientProperties(info.getProperties());
 
     TestIngest.ingest(accumuloClient, opts, new BatchWriterOpts());
   }
@@ -240,7 +240,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.startRow = offset;
     opts.columnFamily = colf;
     opts.setTableName(tableName);
-    opts.setClientInfo(info);
+    opts.setClientProperties(info.getProperties());
 
     VerifyIngest.verifyIngest(accumuloClient, opts, scannerOpts);
   }

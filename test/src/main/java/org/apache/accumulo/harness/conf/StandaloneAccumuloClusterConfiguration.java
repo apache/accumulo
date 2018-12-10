@@ -28,10 +28,10 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -104,8 +104,8 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
     this.conf = getConfiguration(type);
     this.clientPropsFile = clientPropsFile;
-    clientInfo = Accumulo.newClient().to(getInstanceName(), getZooKeepers())
-        .as(getAdminPrincipal(), getAdminToken()).info();
+    clientInfo = ClientInfo.from(Accumulo.newClientProperties()
+        .to(getInstanceName(), getZooKeepers()).as(getAdminPrincipal(), getAdminToken()).build());
 
     // The user Accumulo is running as
     serverUser = conf.get(ACCUMULO_STANDALONE_SERVER_USER);

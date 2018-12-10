@@ -32,8 +32,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -80,11 +78,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public TabletsMetadata build(ClientContext ctx) {
-      try {
-        return build(ctx.getClient());
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        throw new RuntimeException(e);
-      }
+      return build(ctx.getClient());
     }
 
     @Override

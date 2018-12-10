@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -109,8 +108,7 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
       int count = 0;
 
       @Override
-      protected void map(Text k, PeekingIterator<Entry<Key,Value>> v, Context context)
-          throws IOException, InterruptedException {
+      protected void map(Text k, PeekingIterator<Entry<Key,Value>> v, Context context) {
         try {
           switch (count) {
             case 0:
@@ -135,7 +133,7 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
       }
 
       @Override
-      protected void cleanup(Context context) throws IOException, InterruptedException {
+      protected void cleanup(Context context) {
         try {
           assertEquals(3, count);
         } catch (AssertionError e) {
@@ -159,8 +157,8 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(AccumuloRowInputFormat.class);
 
-      AccumuloRowInputFormat.configure().clientInfo(getClientInfo()).table(table)
-          .auths(Authorizations.EMPTY).store(job);
+      AccumuloRowInputFormat.configure().clientProperties(getClientInfo().getProperties())
+          .table(table).auths(Authorizations.EMPTY).store(job);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);

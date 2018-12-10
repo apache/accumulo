@@ -37,6 +37,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -679,7 +680,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
     c.securityOperations().createLocalUser(u1, pass);
 
     loginAs(user1);
-    try (AccumuloClient user1Con = c.changeUser(u1, user1.getToken())) {
+    try (AccumuloClient user1Con = Accumulo.newClient().from(c.properties())
+        .as(u1, user1.getToken()).build()) {
 
       try {
         user1Con.tableOperations().create(t2);

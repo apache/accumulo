@@ -20,16 +20,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.AccumuloClientImpl;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -79,6 +78,10 @@ public class ServerContext extends ClientContext {
   public ServerContext(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
       int zooKeepersSessionTimeOut) {
     this(new ServerInfo(siteConfig, instanceName, zooKeepers, zooKeepersSessionTimeOut));
+  }
+
+  public ServerContext(SiteConfiguration siteConfig, Properties clientProps) {
+    this(siteConfig, ClientInfo.from(clientProps));
   }
 
   public ServerContext(SiteConfiguration siteConfig, ClientInfo info) {
@@ -237,17 +240,15 @@ public class ServerContext extends ClientContext {
   }
 
   @Override
-  public synchronized AccumuloClient getClient()
-      throws AccumuloException, AccumuloSecurityException {
+  public synchronized AccumuloClient getClient() {
     if (client == null) {
       client = new AccumuloClientImpl(SingletonReservation.noop(), this);
     }
     return client;
   }
 
-  public AccumuloClient getClient(String principal, AuthenticationToken token)
-      throws AccumuloSecurityException, AccumuloException {
-    return Accumulo.newClient().from(info).as(principal, token).build();
+  public AccumuloClient getClient(String principal, AuthenticationToken token) {
+    return Accumulo.newClient().from(info.getProperties()).as(principal, token).build();
   }
 
   public synchronized TableManager getTableManager() {

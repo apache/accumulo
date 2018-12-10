@@ -24,8 +24,8 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.hadoop.mapreduce.OutputFormatBuilder;
 import org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl;
@@ -51,7 +51,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       ClientInfo clientInfo = getClientInfo(job);
       String principal = clientInfo.getPrincipal();
       AuthenticationToken token = clientInfo.getAuthenticationToken();
-      AccumuloClient c = Accumulo.newClient().from(clientInfo).build();
+      AccumuloClient c = Accumulo.newClient().from(clientInfo.getProperties()).build();
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException | AccumuloSecurityException e) {

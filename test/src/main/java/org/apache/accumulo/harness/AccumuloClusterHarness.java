@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.Properties;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ClusterControl;
@@ -28,13 +29,13 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.conf.AccumuloClusterConfiguration;
@@ -266,9 +267,14 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     return clusterConf.getAdminPrincipal();
   }
 
+  public static Properties getClientProperties() {
+    checkState(initialized);
+    return getCluster().getClientProperties();
+  }
+
   public static ClientInfo getClientInfo() {
     checkState(initialized);
-    return getCluster().getClientInfo();
+    return ClientInfo.from(getCluster().getClientProperties());
   }
 
   public static ClientContext getClientContext() {

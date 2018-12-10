@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -128,7 +129,7 @@ public class RestartIT extends AccumuloClusterHarness {
       } else {
         throw new RuntimeException("Unknown token");
       }
-      OPTS.setClientInfo(getClientInfo());
+      OPTS.setClientProperties(getClientProperties());
 
       Future<Integer> ret = svc.submit(() -> {
         try {
@@ -153,8 +154,8 @@ public class RestartIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       OPTS.setTableName(tableName);
       VOPTS.setTableName(tableName);
-      OPTS.setClientInfo(getClientInfo());
-      VOPTS.setClientInfo(getClientInfo());
+      OPTS.setClientProperties(getClientProperties());
+      VOPTS.setClientProperties(getClientProperties());
       TestIngest.ingest(c, OPTS, BWOPTS);
       ClusterControl control = getCluster().getClusterControl();
 
@@ -166,8 +167,8 @@ public class RestartIT extends AccumuloClusterHarness {
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
       control.stopAllServers(ServerType.MONITOR);
 
-      ZooReader zreader = new ZooReader(c.info().getZooKeepers(),
-          c.info().getZooKeepersSessionTimeOut());
+      ClientInfo info = ClientInfo.from(c.properties());
+      ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
       byte[] masterLockData;
       do {
@@ -221,8 +222,8 @@ public class RestartIT extends AccumuloClusterHarness {
       } else {
         throw new RuntimeException("Unknown token");
       }
-      OPTS.setClientInfo(getClientInfo());
-      VOPTS.setClientInfo(getClientInfo());
+      OPTS.setClientProperties(getClientProperties());
+      VOPTS.setClientProperties(getClientProperties());
 
       Future<Integer> ret = svc.submit(() -> {
         try {
@@ -235,8 +236,8 @@ public class RestartIT extends AccumuloClusterHarness {
 
       control.stopAllServers(ServerType.MASTER);
 
-      ZooReader zreader = new ZooReader(c.info().getZooKeepers(),
-          c.info().getZooKeepersSessionTimeOut());
+      ClientInfo info = ClientInfo.from(c.properties());
+      ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
       byte[] masterLockData;
       do {
@@ -261,8 +262,8 @@ public class RestartIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       OPTS.setTableName(tableName);
       VOPTS.setTableName(tableName);
-      OPTS.setClientInfo(getClientInfo());
-      VOPTS.setClientInfo(getClientInfo());
+      OPTS.setClientProperties(getClientProperties());
+      VOPTS.setClientProperties(getClientProperties());
       TestIngest.ingest(c, OPTS, BWOPTS);
       VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
       cluster.getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -293,7 +294,7 @@ public class RestartIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       OPTS.setTableName(tableName);
-      OPTS.setClientInfo(getClientInfo());
+      OPTS.setClientProperties(getClientProperties());
       TestIngest.ingest(c, OPTS, BWOPTS);
       try {
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -309,8 +310,8 @@ public class RestartIT extends AccumuloClusterHarness {
     try (AccumuloClient c = getAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       VOPTS.setTableName(tableName);
-      OPTS.setClientInfo(getClientInfo());
-      VOPTS.setClientInfo(getClientInfo());
+      OPTS.setClientProperties(getClientProperties());
+      VOPTS.setClientProperties(getClientProperties());
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
       String splitThreshold = null;
@@ -326,7 +327,7 @@ public class RestartIT extends AccumuloClusterHarness {
             "20K");
         TestIngest.Opts opts = new TestIngest.Opts();
         opts.setTableName(tableName);
-        opts.setClientInfo(getClientInfo());
+        opts.setClientProperties(getClientProperties());
         TestIngest.ingest(c, opts, BWOPTS);
         c.tableOperations().flush(tableName, null, null, false);
         VerifyIngest.verifyIngest(c, VOPTS, SOPTS);

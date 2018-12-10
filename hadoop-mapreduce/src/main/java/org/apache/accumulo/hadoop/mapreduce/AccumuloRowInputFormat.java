@@ -43,8 +43,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * For Example:
  *
  * <pre>
- * AccumuloRowInputFormat.configure().clientInfo(info).table(name).auths(auths) // required
- *     .addIterator(iter1).ranges(ranges).fetchColumns(columns).executionHints(hints)
+ * AccumuloRowInputFormat.configure().clientProperties(props).table(name) // required
+ *     .auths(auths).addIterator(iter1).ranges(ranges).fetchColumns(columns).executionHints(hints)
  *     .samplerConfiguration(sampleConf).disableAutoAdjustRanges() // enabled by default
  *     .scanIsolation() // not available with batchScan()
  *     .offlineScan() // not available with batchScan()
@@ -61,7 +61,7 @@ public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Ent
 
   @Override
   public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> createRecordReader(InputSplit split,
-      TaskAttemptContext context) throws IOException, InterruptedException {
+      TaskAttemptContext context) {
     return new InputFormatBase.RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {
       RowIterator rowIterator;
 
@@ -74,7 +74,7 @@ public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Ent
       }
 
       @Override
-      public boolean nextKeyValue() throws IOException, InterruptedException {
+      public boolean nextKeyValue() {
         if (!rowIterator.hasNext())
           return false;
         currentV = new PeekingIterator<>(rowIterator.next());
@@ -104,6 +104,6 @@ public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Ent
    * Sets all the information required for this map reduce job.
    */
   public static InputFormatBuilder.ClientParams<Job> configure() {
-    return new InputFormatBuilderImpl<Job>(CLASS);
+    return new InputFormatBuilderImpl<>(CLASS);
   }
 }

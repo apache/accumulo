@@ -36,12 +36,12 @@ import javax.ws.rs.core.MediaType;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 import org.apache.accumulo.monitor.rest.tservers.TabletServers;
@@ -130,8 +130,8 @@ public class TablesResource {
       String systemTableName = MetadataTable.ID.equals(tableId) ? RootTable.NAME
           : MetadataTable.NAME;
       MetaDataTableScanner scanner = new MetaDataTableScanner(Monitor.getContext(),
-          new Range(KeyExtent.getMetadataEntry(tableId, new Text()),
-              KeyExtent.getMetadataEntry(tableId, null)),
+          new Range(TabletsSection.getRow(tableId, new Text()),
+              TabletsSection.getRow(tableId, null)),
           systemTableName);
 
       while (scanner.hasNext()) {

@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -181,11 +182,12 @@ public class KerberosReplicationIT extends AccumuloITBase {
             replicationUser.getKeytab().getAbsolutePath());
 
         // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
+        ClientInfo info = ClientInfo.from(peerclient.properties());
         primaryclient.instanceOperations().setProperty(
             Property.REPLICATION_PEERS.getKey() + PEER_NAME,
             ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
-                AccumuloReplicaSystem.buildConfiguration(peerclient.info().getInstanceName(),
-                    peerclient.info().getZooKeepers())));
+                AccumuloReplicaSystem.buildConfiguration(info.getInstanceName(),
+                    info.getZooKeepers())));
 
         String primaryTable1 = "primary", peerTable1 = "peer";
 

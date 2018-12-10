@@ -27,12 +27,12 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
@@ -208,8 +208,7 @@ public class AccumuloOutputFormatImpl {
 
     private AccumuloClient client;
 
-    public AccumuloRecordWriter(TaskAttemptContext context)
-        throws AccumuloException, AccumuloSecurityException {
+    public AccumuloRecordWriter(TaskAttemptContext context) {
       this.simulate = getSimulationMode(context);
       this.createTables = canCreateTables(context);
 
@@ -222,7 +221,7 @@ public class AccumuloOutputFormatImpl {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
 
       if (!simulate) {
-        this.client = Accumulo.newClient().from(getClientInfo(context)).build();
+        this.client = Accumulo.newClient().from(getClientInfo(context).getProperties()).build();
         mtbw = client.createMultiTableBatchWriter();
       }
     }
@@ -322,7 +321,7 @@ public class AccumuloOutputFormatImpl {
     }
 
     @Override
-    public void close(TaskAttemptContext attempt) throws IOException, InterruptedException {
+    public void close(TaskAttemptContext attempt) throws IOException {
       log.debug("mutations written: " + mutCount + ", values written: " + valCount);
       if (simulate)
         return;

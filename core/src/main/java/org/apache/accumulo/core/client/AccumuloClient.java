@@ -307,21 +307,9 @@ public interface AccumuloClient extends AutoCloseable {
   ReplicationOperations replicationOperations();
 
   /**
-   * @return {@link ClientInfo} which contains information about client connection to Accumulo
+   * @return All {@link Properties} used to create client except 'auth.token'
    */
-  ClientInfo info();
-
-  /**
-   * Change user
-   *
-   * @param principal
-   *          Principal/username
-   * @param token
-   *          Authentication token
-   * @return {@link AccumuloClient} for new user
-   */
-  AccumuloClient changeUser(String principal, AuthenticationToken token)
-      throws AccumuloSecurityException, AccumuloException;
+  Properties properties();
 
   /**
    * Cleans up any resources created by an AccumuloClient like threads and sockets. Anything created
@@ -332,34 +320,18 @@ public interface AccumuloClient extends AutoCloseable {
   void close();
 
   /**
-   * Builds ClientInfo after all options have been specified
+   * Builds AccumuloClient or client Properties after all options have been specified
    *
    * @since 2.0.0
    */
-  interface ClientInfoFactory {
+  interface ClientFactory<T> {
 
     /**
-     * Builds ClientInfo after all options have been specified
+     * Builds AccumuloClient or client Properties
      *
-     * @return ClientInfo
+     * @return AccumuloClient or Properties
      */
-    ClientInfo info();
-  }
-
-  /**
-   * Builds AccumuloClient
-   *
-   * @since 2.0.0
-   */
-  interface AccumuloClientFactory extends ClientInfoFactory {
-
-    /**
-     * Builds AccumuloClient after all options have been specified
-     *
-     * @return AccumuloClient
-     */
-    AccumuloClient build() throws AccumuloException, AccumuloSecurityException;
-
+    T build();
   }
 
   /**
@@ -367,8 +339,8 @@ public interface AccumuloClient extends AutoCloseable {
    *
    * @since 2.0.0
    */
-  interface InstanceArgs {
-    AuthenticationArgs to(CharSequence instanceName, CharSequence zookeepers);
+  interface InstanceArgs<T> {
+    AuthenticationArgs<T> to(CharSequence instanceName, CharSequence zookeepers);
   }
 
   /**
@@ -376,7 +348,7 @@ public interface AccumuloClient extends AutoCloseable {
    *
    * @since 2.0.0
    */
-  interface PropertyOptions extends InstanceArgs {
+  interface PropertyOptions<T> extends InstanceArgs<T> {
 
     /**
      * Build using properties file. An example properties file can be found at
@@ -386,7 +358,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Path to properties file
      * @return this builder
      */
-    AccumuloClientFactory from(String propertiesFilePath);
+    FromOptions<T> from(String propertiesFilePath);
 
     /**
      * Build using properties file. An example properties file can be found at
@@ -396,7 +368,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Path to properties file
      * @return this builder
      */
-    AccumuloClientFactory from(Path propertiesFile);
+    FromOptions<T> from(Path propertiesFile);
 
     /**
      * Build using Java properties object. A list of available properties can be found in the
@@ -406,22 +378,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Properties object
      * @return this builder
      */
-    AccumuloClientFactory from(Properties properties);
-  }
-
-  /**
-   * @since 2.0.0
-   */
-  interface ClientInfoOptions extends PropertyOptions {
-
-    /**
-     * Build using Accumulo client information
-     *
-     * @param clientInfo
-     *          ClientInfo object
-     * @return this builder
-     */
-    FromOptions from(ClientInfo clientInfo);
+    FromOptions<T> from(Properties properties);
   }
 
   /**
@@ -429,7 +386,7 @@ public interface AccumuloClient extends AutoCloseable {
    *
    * @since 2.0.0
    */
-  interface AuthenticationArgs {
+  interface AuthenticationArgs<T> {
 
     /**
      * Build using password-based credentials
@@ -440,7 +397,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Password
      * @return this builder
      */
-    ConnectionOptions as(CharSequence username, CharSequence password);
+    ConnectionOptions<T> as(CharSequence username, CharSequence password);
 
     /**
      * Build using Kerberos credentials
@@ -451,7 +408,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Path to keytab file
      * @return this builder
      */
-    ConnectionOptions as(CharSequence principal, Path keyTabFile);
+    ConnectionOptions<T> as(CharSequence principal, Path keyTabFile);
 
     /**
      * Build using specified credentials
@@ -462,7 +419,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Authentication token
      * @return this builder
      */
-    ConnectionOptions as(CharSequence principal, AuthenticationToken token);
+    ConnectionOptions<T> as(CharSequence principal, AuthenticationToken token);
   }
 
   /**
@@ -470,7 +427,7 @@ public interface AccumuloClient extends AutoCloseable {
    *
    * @since 2.0.0
    */
-  interface SslOptions extends AccumuloClientFactory {
+  interface SslOptions<T> extends ClientFactory<T> {
 
     /**
      * Build with SSL trust store
@@ -479,7 +436,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Path to trust store
      * @return this builder
      */
-    SslOptions truststore(CharSequence path);
+    SslOptions<T> truststore(CharSequence path);
 
     /**
      * Build with SSL trust store
@@ -492,7 +449,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Trust store type
      * @return this builder
      */
-    SslOptions truststore(CharSequence path, CharSequence password, CharSequence type);
+    SslOptions<T> truststore(CharSequence path, CharSequence password, CharSequence type);
 
     /**
      * Build with SSL key store
@@ -501,7 +458,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Path to SSL key store
      * @return this builder
      */
-    SslOptions keystore(CharSequence path);
+    SslOptions<T> keystore(CharSequence path);
 
     /**
      * Build with SSL key store
@@ -514,14 +471,14 @@ public interface AccumuloClient extends AutoCloseable {
      *          Key store type
      * @return this builder
      */
-    SslOptions keystore(CharSequence path, CharSequence password, CharSequence type);
+    SslOptions<T> keystore(CharSequence path, CharSequence password, CharSequence type);
 
     /**
      * Use JSSE system properties to configure SSL
      *
      * @return this builder
      */
-    SslOptions useJsse();
+    SslOptions<T> useJsse();
   }
 
   /**
@@ -529,7 +486,7 @@ public interface AccumuloClient extends AutoCloseable {
    *
    * @since 2.0.0
    */
-  interface SaslOptions extends AccumuloClientFactory {
+  interface SaslOptions<T> extends ClientFactory<T> {
 
     /**
      * Build with Kerberos Server Primary
@@ -538,7 +495,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Kerberos server primary
      * @return this builder
      */
-    SaslOptions primary(CharSequence kerberosServerPrimary);
+    SaslOptions<T> primary(CharSequence kerberosServerPrimary);
 
     /**
      * Build with SASL quality of protection
@@ -547,7 +504,7 @@ public interface AccumuloClient extends AutoCloseable {
      *          Quality of protection
      * @return this builder
      */
-    SaslOptions qop(CharSequence qualityOfProtection);
+    SaslOptions<T> qop(CharSequence qualityOfProtection);
   }
 
   /**
@@ -555,7 +512,7 @@ public interface AccumuloClient extends AutoCloseable {
    *
    * @since 2.0.0
    */
-  interface ConnectionOptions extends AccumuloClientFactory {
+  interface ConnectionOptions<T> extends ClientFactory<T> {
 
     /**
      * Build using Zookeeper timeout
@@ -564,21 +521,21 @@ public interface AccumuloClient extends AutoCloseable {
      *          Zookeeper timeout (in milliseconds)
      * @return this builder
      */
-    ConnectionOptions zkTimeout(int timeout);
+    ConnectionOptions<T> zkTimeout(int timeout);
 
     /**
      * Build with SSL/TLS options
      *
      * @return this builder
      */
-    SslOptions useSsl();
+    SslOptions<T> useSsl();
 
     /**
      * Build with SASL options
      *
      * @return this builder
      */
-    SaslOptions useSasl();
+    SaslOptions<T> useSasl();
 
     /**
      * Build with BatchWriterConfig defaults for BatchWriter, MultiTableBatchWriter &amp;
@@ -588,23 +545,23 @@ public interface AccumuloClient extends AutoCloseable {
      *          BatchWriterConfig
      * @return this builder
      */
-    ConnectionOptions batchWriterConfig(BatchWriterConfig batchWriterConfig);
+    ConnectionOptions<T> batchWriterConfig(BatchWriterConfig batchWriterConfig);
 
     /**
      * Build with default number of query threads for BatchScanner
      */
-    ConnectionOptions batchScannerQueryThreads(int numQueryThreads);
+    ConnectionOptions<T> batchScannerQueryThreads(int numQueryThreads);
 
     /**
      * Build with default batch size for Scanner
      */
-    ConnectionOptions scannerBatchSize(int batchSize);
+    ConnectionOptions<T> scannerBatchSize(int batchSize);
   }
 
   /**
    * @since 2.0.0
    */
-  interface FromOptions extends ConnectionOptions, PropertyOptions, AuthenticationArgs {
+  interface FromOptions<T> extends ConnectionOptions<T>, AuthenticationArgs<T> {
 
   }
 }

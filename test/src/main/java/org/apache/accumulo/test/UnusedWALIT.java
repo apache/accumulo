@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -82,7 +83,8 @@ public class UnusedWALIT extends ConfigurableMacBase {
       c.tableOperations().create(lilTable);
 
       ServerContext context = getServerContext();
-      new ZooReaderWriter(c.info().getZooKeepers(), c.info().getZooKeepersSessionTimeOut(), "");
+      ClientInfo info = getClientInfo();
+      new ZooReaderWriter(info.getZooKeepers(), info.getZooKeepersSessionTimeOut(), "");
 
       // put some data in a log that should be replayed for both tables
       writeSomeData(c, bigTable, 0, 10, 0, 10);

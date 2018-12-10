@@ -32,7 +32,7 @@ public class ServerUtilOnRequiredTable extends ClientOnRequiredTable {
       if (instance == null) {
         context = new ServerContext(new SiteConfiguration());
       } else {
-        context = new ServerContext(new SiteConfiguration(), getClientInfo());
+        context = new ServerContext(new SiteConfiguration(), getClientProperties());
       }
     }
     return context;

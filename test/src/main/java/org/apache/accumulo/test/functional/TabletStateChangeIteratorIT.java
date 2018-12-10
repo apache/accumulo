@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Key;
@@ -242,8 +243,9 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
         try {
           String zPath = ZooUtil.getRoot(client.getInstanceID()) + Constants.ZTSERVERS + "/"
               + tserver;
-          long sessionId = ZooLock.getSessionId(new ZooCache(getCluster().getZooKeepers(),
-              client.info().getZooKeepersSessionTimeOut()), zPath);
+          ClientInfo info = getClientInfo();
+          long sessionId = ZooLock.getSessionId(
+              new ZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut()), zPath);
           tservers.add(new TServerInstance(tserver, sessionId));
         } catch (Exception e) {
           throw new RuntimeException(e);

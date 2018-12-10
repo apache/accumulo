@@ -26,8 +26,6 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -82,12 +80,7 @@ public class TestMultiTableIngest {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(TestMultiTableIngest.class.getName(), args, scanOpts, bwOpts);
     // create the test table within accumulo
-    AccumuloClient accumuloClient;
-    try {
-      accumuloClient = opts.getClient();
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
+    AccumuloClient accumuloClient = opts.getClient();
     for (int i = 0; i < opts.tables; i++) {
       tableNames.add(String.format(opts.prefix + "%04d", i));
     }

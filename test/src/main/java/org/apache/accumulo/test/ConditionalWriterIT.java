@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -261,7 +262,8 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       client1.securityOperations().changeUserAuthorizations(user, auths);
       client1.securityOperations().grantSystemPermission(user, SystemPermission.CREATE_TABLE);
 
-      try (AccumuloClient client2 = client1.changeUser(user, user1.getToken())) {
+      try (AccumuloClient client2 = Accumulo.newClient().from(client1.properties())
+          .as(user, user1.getToken()).build()) {
         client2.tableOperations().create(tableName);
 
         try (
@@ -1323,12 +1325,14 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       cm1.put("tx", "seq", "1");
       cm1.put("data", "x", "a");
 
-      try (AccumuloClient conn2 = client.changeUser(user, user1.getToken());
-          ConditionalWriter cw1 = conn2.createConditionalWriter(table1,
+      try (
+          AccumuloClient client2 = Accumulo.newClient().from(client.properties())
+              .as(user, user1.getToken()).build();
+          ConditionalWriter cw1 = client2.createConditionalWriter(table1,
               new ConditionalWriterConfig());
-          ConditionalWriter cw2 = conn2.createConditionalWriter(table2,
+          ConditionalWriter cw2 = client2.createConditionalWriter(table2,
               new ConditionalWriterConfig());
-          ConditionalWriter cw3 = conn2.createConditionalWriter(table3,
+          ConditionalWriter cw3 = client2.createConditionalWriter(table3,
               new ConditionalWriterConfig())) {
 
         // Should be able to conditional-update a table we have R/W on
@@ -1543,7 +1547,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
-      DistributedTrace.enable("localhost", "testTrace", mac.getClientInfo().getProperties());
+      DistributedTrace.enable("localhost", "testTrace", mac.getClientProperties());
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       Span root = Trace.on("traceTest");
       try (ConditionalWriter cw = client.createConditionalWriter(tableName,

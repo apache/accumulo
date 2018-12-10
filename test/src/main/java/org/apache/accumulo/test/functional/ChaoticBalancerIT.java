@@ -68,8 +68,8 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
       vopts.rows = opts.rows = 20000;
       opts.setTableName(tableName);
       vopts.setTableName(tableName);
-      opts.setClientInfo(getClientInfo());
-      vopts.setClientInfo(getClientInfo());
+      opts.setClientProperties(getClientProperties());
+      vopts.setClientProperties(getClientProperties());
       TestIngest.ingest(c, opts, new BatchWriterOpts());
       c.tableOperations().flush(tableName, null, null, true);
       VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());

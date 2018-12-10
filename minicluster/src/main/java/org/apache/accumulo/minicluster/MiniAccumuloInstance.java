@@ -24,7 +24,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 
 /**
  * @since 1.6.0
- * @deprecated since 2.0.0, Use {@link MiniAccumuloCluster#getClientInfo(File)} instead
+ * @deprecated since 2.0.0, Use {@link MiniAccumuloCluster#getClientProperties(File)} instead
  */
 @Deprecated
 public class MiniAccumuloInstance extends org.apache.accumulo.core.client.ZooKeeperInstance {

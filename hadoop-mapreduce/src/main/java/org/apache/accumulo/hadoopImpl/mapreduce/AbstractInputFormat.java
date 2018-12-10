@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.clientImpl.Table;
@@ -287,12 +287,7 @@ public abstract class AbstractInputFormat {
 
       ClientInfo info = getClientInfo(attempt);
       ClientContext context = new ClientContext(info);
-      AccumuloClient client;
-      try {
-        client = context.getClient();
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        throw new IllegalStateException(e);
-      }
+      AccumuloClient client = context.getClient();
       Authorizations authorizations = getScanAuthorizations(attempt);
       String classLoaderContext = getClassLoaderContext(attempt);
       String table = split.getTableName();
@@ -417,7 +412,7 @@ public abstract class AbstractInputFormat {
     }
 
     @Override
-    public float getProgress() throws IOException {
+    public float getProgress() {
       if (numKeysRead > 0 && currentKey == null)
         return 1.0f;
       return split.getProgress(currentKey);
@@ -440,12 +435,12 @@ public abstract class AbstractInputFormat {
     protected Key currentKey = null;
 
     @Override
-    public K getCurrentKey() throws IOException, InterruptedException {
+    public K getCurrentKey() {
       return currentK;
     }
 
     @Override
-    public V getCurrentValue() throws IOException, InterruptedException {
+    public V getCurrentValue() {
       return currentV;
     }
   }

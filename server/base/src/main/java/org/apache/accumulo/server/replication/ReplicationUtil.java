@@ -27,8 +27,6 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -164,7 +162,7 @@ public class ReplicationUtil {
     BatchScanner bs;
     try {
       bs = context.getClient().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
-    } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
+    } catch (TableNotFoundException e) {
       log.debug("No replication table exists", e);
       return counts;
     }
@@ -201,7 +199,7 @@ public class ReplicationUtil {
     BatchScanner bs;
     try {
       bs = context.getClient().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
-    } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
+    } catch (TableNotFoundException e) {
       log.debug("No replication table exists", e);
       return paths;
     }

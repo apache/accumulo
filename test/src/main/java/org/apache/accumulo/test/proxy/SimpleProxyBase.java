@@ -49,6 +49,7 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -183,8 +184,9 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       hostname = InetAddress.getLocalHost().getCanonicalHostName();
 
       Properties props = new Properties();
-      props.put("instance", c.info().getInstanceName());
-      props.put("zookeepers", c.info().getZooKeepers());
+      ClientInfo info = ClientInfo.from(c.properties());
+      props.put("instance", info.getInstanceName());
+      props.put("zookeepers", info.getZooKeepers());
 
       final String tokenClass;
       if (isKerberosEnabled()) {
@@ -226,7 +228,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       }
 
       props.put("tokenClass", tokenClass);
-      props.putAll(SharedMiniClusterBase.getCluster().getClientInfo().getProperties());
+      props.putAll(SharedMiniClusterBase.getCluster().getClientProperties());
       proxyPort = PortUtils.getRandomFreePort();
       proxyServer = Proxy.createProxyServer(HostAndPort.fromParts(hostname, proxyPort), factory,
           props).server;

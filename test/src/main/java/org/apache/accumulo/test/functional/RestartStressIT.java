@@ -135,7 +135,7 @@ public class RestartStressIT extends AccumuloClusterHarness {
       }
       assertEquals(0, retCode.get().intValue());
       VOPTS.setTableName(tableName);
-      VOPTS.setClientInfo(getClientInfo());
+      VOPTS.setClientProperties(getClientProperties());
       VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
     }
   }

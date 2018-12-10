@@ -24,15 +24,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.MonitorUtil;
@@ -193,7 +194,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     return cluster;
   }
 
-  protected AccumuloClient getClient() throws AccumuloException, AccumuloSecurityException {
+  protected AccumuloClient getClient() {
     return getCluster().getAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
   }
 
@@ -201,14 +202,20 @@ public class ConfigurableMacBase extends AccumuloITBase {
     return new ClientContext(getClientInfo());
   }
 
+  protected Properties getClientProperties() {
+    return getClientInfo().getProperties();
+  }
+
   protected ClientInfo getClientInfo() {
-    return Accumulo.newClient().to(getCluster().getInstanceName(), getCluster().getZooKeepers())
-        .as("root", ROOT_PASSWORD).info();
+    return ClientInfo.from(Accumulo.newClientProperties()
+        .to(getCluster().getInstanceName(), getCluster().getZooKeepers()).as("root", ROOT_PASSWORD)
+        .build());
   }
 
   protected ClientInfo getClientInfo(BatchWriterConfig bwConfig) {
-    return Accumulo.newClient().to(getCluster().getInstanceName(), getCluster().getZooKeepers())
-        .as("root", ROOT_PASSWORD).batchWriterConfig(bwConfig).info();
+    return ClientInfo.from(Accumulo.newClientProperties()
+        .to(getCluster().getInstanceName(), getCluster().getZooKeepers()).as("root", ROOT_PASSWORD)
+        .batchWriterConfig(bwConfig).build());
   }
 
   protected ServerContext getServerContext() {

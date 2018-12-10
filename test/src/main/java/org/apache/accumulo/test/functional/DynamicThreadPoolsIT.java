@@ -88,7 +88,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
       opts.rows = 500 * 1000;
       opts.createTable = true;
       opts.setTableName(firstTable);
-      opts.setClientInfo(getClientInfo());
+      opts.setClientProperties(getClientProperties());
       TestIngest.ingest(c, opts, new BatchWriterOpts());
       c.tableOperations().flush(firstTable, null, null, true);
       for (int i = 1; i < tables.length; i++)

@@ -41,8 +41,8 @@ import org.slf4j.LoggerFactory;
  * job using the {@link #configure()} method, which provides a fluent API. For Example:
  *
  * <pre>
- * AccumuloInputFormat.configure().clientInfo(info).table(name).auths(auths) // required
- *     .addIterator(iter1).ranges(ranges).fetchColumns(columns).executionHints(hints)
+ * AccumuloInputFormat.configure().clientProperties(props).table(name) // required
+ *     .auths(auths).addIterator(iter1).ranges(ranges).fetchColumns(columns).executionHints(hints)
  *     .samplerConfiguration(sampleConf).disableAutoAdjustRanges() // enabled by default
  *     .scanIsolation() // not available with batchScan()
  *     .offlineScan() // not available with batchScan()
@@ -77,7 +77,7 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
 
     return new InputFormatBase.RecordReaderBase<Key,Value>() {
       @Override
-      public boolean nextKeyValue() throws IOException, InterruptedException {
+      public boolean nextKeyValue() {
         if (scannerIterator.hasNext()) {
           ++numKeysRead;
           Entry<Key,Value> entry = scannerIterator.next();

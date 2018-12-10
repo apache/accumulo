@@ -65,7 +65,6 @@ import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientConfConverter;
-import org.apache.accumulo.core.clientImpl.ConnectorImpl;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -226,8 +225,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
     String[] pair = ByteBufferUtil.toString(login).split(",", 2);
     if (instance.getInstanceID().equals(pair[0])) {
       Credentials creds = Credentials.deserialize(pair[1]);
-      return ((ConnectorImpl) instance.getConnector(creds.getPrincipal(), creds.getToken()))
-          .getAccumuloClient();
+      return ((org.apache.accumulo.core.clientImpl.ConnectorImpl) instance
+          .getConnector(creds.getPrincipal(), creds.getToken())).getAccumuloClient();
     } else {
       throw new org.apache.accumulo.core.client.AccumuloSecurityException(pair[0],
           org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode.INVALID_INSTANCEID);

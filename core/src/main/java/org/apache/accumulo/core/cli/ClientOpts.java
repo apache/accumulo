@@ -24,9 +24,6 @@ import java.util.Properties;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -101,7 +98,7 @@ public class ClientOpts extends Help {
   private Password securePassword = null;
 
   public AuthenticationToken getToken() {
-    return getClientInfo().getAuthenticationToken();
+    return ClientProperty.getAuthenticationToken(getClientProperties());
   }
 
   @Parameter(names = {"-z", "--keepers"},
@@ -156,32 +153,24 @@ public class ClientOpts extends Help {
     startTracing(programName);
   }
 
-  private ClientInfo cachedInfo = null;
   private AccumuloClient cachedAccumuloClient = null;
   private Properties cachedProps = null;
 
   public String getPrincipal() {
-    return getClientInfo().getPrincipal();
+    return ClientProperty.AUTH_PRINCIPAL.getValue(getClientProperties());
   }
 
   public void setPrincipal(String principal) {
     this.principal = principal;
   }
 
-  public void setClientInfo(ClientInfo info) {
-    this.cachedInfo = info;
+  public void setClientProperties(Properties clientProps) {
+    this.cachedProps = clientProps;
   }
 
-  public ClientInfo getClientInfo() {
-    if (cachedInfo == null) {
-      cachedInfo = Accumulo.newClient().from(getClientProperties()).info();
-    }
-    return cachedInfo;
-  }
-
-  public AccumuloClient getClient() throws AccumuloException, AccumuloSecurityException {
+  public AccumuloClient getClient() {
     if (cachedAccumuloClient == null) {
-      cachedAccumuloClient = Accumulo.newClient().from(getClientInfo()).build();
+      cachedAccumuloClient = Accumulo.newClient().from(getClientProperties()).build();
     }
     return cachedAccumuloClient;
   }

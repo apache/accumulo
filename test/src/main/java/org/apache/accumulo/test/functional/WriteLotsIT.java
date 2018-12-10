@@ -55,7 +55,7 @@ public class WriteLotsIT extends AccumuloClusterHarness {
               opts.startRow = index * 10000;
               opts.rows = 10000;
               opts.setTableName(tableName);
-              opts.setClientInfo(getClientInfo());
+              opts.setClientProperties(getClientProperties());
               BatchWriterOpts bwOpts = new BatchWriterOpts();
               bwOpts.batchMemory = 1024L * 1024;
               bwOpts.batchThreads = 2;
@@ -75,7 +75,7 @@ public class WriteLotsIT extends AccumuloClusterHarness {
       VerifyIngest.Opts vopts = new VerifyIngest.Opts();
       vopts.rows = 10000 * THREADS;
       vopts.setTableName(tableName);
-      vopts.setClientInfo(getClientInfo());
+      vopts.setClientProperties(getClientProperties());
       VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
     }
   }

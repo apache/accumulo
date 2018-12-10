@@ -26,7 +26,6 @@ import java.util.Properties;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -77,16 +76,16 @@ public class ConfiguratorBaseTest {
   }
 
   @Test
-  public void testSetClientInfo() {
+  public void testSetClientProperties() {
     Configuration conf = new Configuration();
-    ClientInfo info = Accumulo.newClient().to("myinstance", "myzookeepers").as("user", "pass")
-        .info();
-    ConfiguratorBase.setClientInfo(this.getClass(), conf, info);
-    ClientInfo info2 = ConfiguratorBase.getClientInfo(this.getClass(), conf);
-    assertEquals("myinstance", info2.getInstanceName());
-    assertEquals("myzookeepers", info2.getZooKeepers());
-    assertEquals("user", info2.getPrincipal());
-    assertTrue(info2.getAuthenticationToken() instanceof PasswordToken);
+    Properties props = Accumulo.newClientProperties().to("myinstance", "myzookeepers")
+        .as("user", "pass").build();
+    ConfiguratorBase.setClientProperties(this.getClass(), conf, props);
+    Properties props2 = ConfiguratorBase.getClientProperties(this.getClass(), conf);
+    assertEquals("myinstance", ClientProperty.INSTANCE_NAME.getValue(props2));
+    assertEquals("myzookeepers", ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props2));
+    assertEquals("user", ClientProperty.AUTH_PRINCIPAL.getValue(props2));
+    assertTrue(ClientProperty.getAuthenticationToken(props2) instanceof PasswordToken);
   }
 
   @SuppressWarnings("deprecation")

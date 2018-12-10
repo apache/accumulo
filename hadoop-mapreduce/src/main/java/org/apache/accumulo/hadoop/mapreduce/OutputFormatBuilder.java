@@ -18,7 +18,7 @@ package org.apache.accumulo.hadoop.mapreduce;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.ClientInfo;
+import org.apache.accumulo.core.client.Accumulo;
 
 /**
  * Builder for all the information needed for the Map Reduce job. Fluent API used by
@@ -35,13 +35,13 @@ public interface OutputFormatBuilder {
    */
   interface ClientParams<T> {
     /**
-     * Set the connection information needed to communicate with Accumulo in this job. ClientInfo
-     * param can be created using {@link ClientInfo#from(Properties)}
+     * Set the connection information needed to communicate with Accumulo in this job.
+     * clientProperties param can be created using {@link Accumulo#newClientProperties()}
      *
-     * @param clientInfo
+     * @param clientProperties
      *          Accumulo connection information
      */
-    OutputOptions<T> clientInfo(ClientInfo clientInfo);
+    OutputOptions<T> clientProperties(Properties clientProperties);
   }
 
   /**

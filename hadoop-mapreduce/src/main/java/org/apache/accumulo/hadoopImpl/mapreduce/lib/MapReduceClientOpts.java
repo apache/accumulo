@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -39,7 +37,7 @@ public abstract class MapReduceClientOpts extends ClientOpts {
   private static final Logger log = LoggerFactory.getLogger(MapReduceClientOpts.class);
 
   public abstract void setAccumuloConfigs(Job job)
-      throws IOException, AccumuloException, AccumuloSecurityException;
+      throws AccumuloException, AccumuloSecurityException;
 
   @Override
   public AuthenticationToken getToken() {
@@ -60,7 +58,7 @@ public abstract class MapReduceClientOpts extends ClientOpts {
         log.info("Obtaining delegation token for {}", newPrincipal);
 
         setPrincipal(newPrincipal);
-        AccumuloClient client = Accumulo.newClient().from(getClientInfo())
+        AccumuloClient client = Accumulo.newClient().from(getClientProperties())
             .as(newPrincipal, krbToken).build();
 
         // Do the explicit check to see if the user has the permission to get a delegation token

@@ -23,10 +23,9 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
@@ -59,8 +58,7 @@ public class ConfiguratorBaseTest {
   }
 
   @Test
-  public void testSetConnectorInfoClassOfQConfigurationStringString()
-      throws AccumuloSecurityException {
+  public void testSetConnectorInfoClassOfQConfigurationStringString() {
     Configuration conf = new Configuration();
     assertFalse(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
     ConfiguratorBase.setConnectorInfo(this.getClass(), conf, "testUser",
@@ -74,8 +72,8 @@ public class ConfiguratorBaseTest {
   @Test
   public void testSetClientInfo() {
     Configuration conf = new Configuration();
-    ClientInfo info = Accumulo.newClient().to("myinstance", "myzookeepers").as("user", "pass")
-        .info();
+    ClientInfo info = ClientInfo.from(
+        Accumulo.newClientProperties().to("myinstance", "myzookeepers").as("user", "pass").build());
     ConfiguratorBase.setClientInfo(this.getClass(), conf, info);
     ClientInfo info2 = ConfiguratorBase.getClientInfo(this.getClass(), conf);
     assertEquals("myinstance", info2.getInstanceName());

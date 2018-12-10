@@ -20,6 +20,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -34,9 +36,11 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
+import org.apache.accumulo.core.trace.Tracer;
 
 /**
  * This class now delegates to {@link AccumuloClientImpl}, except for the methods which were not
@@ -45,11 +49,27 @@ import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 @Deprecated
 public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
 
+  private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security."
+      + "SystemCredentials$SystemToken";
   private final AccumuloClientImpl impl;
 
-  public ConnectorImpl(AccumuloClientImpl impl) {
+  public ConnectorImpl(AccumuloClientImpl impl)
+      throws AccumuloSecurityException, AccumuloException {
     this.impl = impl;
     SingletonManager.setMode(Mode.CONNECTOR);
+    if (impl.context.getCredentials().getToken().isDestroyed())
+      throw new AccumuloSecurityException(impl.context.getCredentials().getPrincipal(),
+          SecurityErrorCode.TOKEN_EXPIRED);
+    // Skip fail fast for system services; string literal for class name, to avoid dependency on
+    // server jar
+    final String tokenClassName = impl.context.getCredentials().getToken().getClass().getName();
+    if (!SYSTEM_TOKEN_NAME.equals(tokenClassName)) {
+      ServerClient.executeVoid(impl.context, iface -> {
+        if (!iface.authenticate(Tracer.traceInfo(), impl.context.rpcCreds()))
+          throw new AccumuloSecurityException("Authentication failed, access denied",
+              SecurityErrorCode.BAD_CREDENTIALS);
+      });
+    }
   }
 
   public AccumuloClientImpl getAccumuloClient() {

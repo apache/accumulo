@@ -560,7 +560,7 @@ public class Initialize implements KeywordExecutable {
 
   private static void createEntriesForTablet(TreeMap<Key,Value> map, Tablet tablet) {
     Value EMPTY_SIZE = new DataFileValue(0, 0).encodeAsValue();
-    Text extent = new Text(KeyExtent.getMetadataEntry(tablet.tableId, tablet.endRow));
+    Text extent = new Text(TabletsSection.getRow(tablet.tableId, tablet.endRow));
     addEntry(map, extent, DIRECTORY_COLUMN, new Value(tablet.dir.getBytes(UTF_8)));
     addEntry(map, extent, TIME_COLUMN,
         new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(UTF_8)));

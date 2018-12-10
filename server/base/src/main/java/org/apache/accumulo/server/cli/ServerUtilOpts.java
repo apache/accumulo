@@ -27,7 +27,7 @@ public class ServerUtilOpts extends ClientOpts {
   }
 
   public ClientContext getClientContext() {
-    return new ClientContext(getClientInfo());
+    return new ClientContext(getClientProperties());
   }
 
   private ServerContext context;
@@ -37,7 +37,7 @@ public class ServerUtilOpts extends ClientOpts {
       if (instance == null) {
         context = new ServerContext(new SiteConfiguration());
       } else {
-        context = new ServerContext(new SiteConfiguration(), getClientInfo());
+        context = new ServerContext(new SiteConfiguration(), getClientProperties());
       }
     }
     return context;

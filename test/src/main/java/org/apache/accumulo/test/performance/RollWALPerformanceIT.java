@@ -23,6 +23,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -81,8 +82,9 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
 
     log.info("Starting ingest");
     final long start = System.nanoTime();
-    final String args[] = {"-i", c.info().getInstanceName(), "-z", c.info().getZooKeepers(), "-u",
-        "root", "-p", ROOT_PASSWORD, "--batchThreads", "2", "--table", tableName, "--num",
+    ClientInfo info = ClientInfo.from(c.properties());
+    final String args[] = {"-i", info.getInstanceName(), "-z", info.getZooKeepers(), "-u", "root",
+        "-p", ROOT_PASSWORD, "--batchThreads", "2", "--table", tableName, "--num",
         Long.toString(50 * 1000), // 50K 100 byte entries
     };
 

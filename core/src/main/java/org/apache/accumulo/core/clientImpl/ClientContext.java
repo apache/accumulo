@@ -26,11 +26,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -92,6 +92,14 @@ public class ClientContext {
     return () -> Suppliers.memoizeWithExpiration(s::get, 100, TimeUnit.MILLISECONDS).get();
   }
 
+  public ClientContext(AccumuloClient client) {
+    this(ClientInfo.from(client.properties(), ((AccumuloClientImpl) client).token()));
+  }
+
+  public ClientContext(Properties clientProperties) {
+    this(ClientInfo.from(clientProperties));
+  }
+
   public ClientContext(ClientInfo info) {
     this(info, ClientConfConverter.toAccumuloConf(info.getProperties()));
   }
@@ -150,8 +158,9 @@ public class ClientContext {
       @Override
       public org.apache.accumulo.core.client.Connector getConnector(String principal,
           AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-        return org.apache.accumulo.core.client.Connector
-            .from(context.getClient().changeUser(principal, token));
+        AccumuloClient client = Accumulo.newClient().from(context.getProperties())
+            .as(principal, token).build();
+        return org.apache.accumulo.core.client.Connector.from(client);
       }
     };
   }
@@ -233,8 +242,7 @@ public class ClientContext {
   /**
    * Retrieve an Accumulo client
    */
-  public synchronized AccumuloClient getClient()
-      throws AccumuloException, AccumuloSecurityException {
+  public synchronized AccumuloClient getClient() {
     ensureOpen();
     if (client == null) {
       client = new AccumuloClientImpl(SingletonReservation.noop(), this);

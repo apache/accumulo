@@ -19,7 +19,6 @@ package org.apache.accumulo.hadoop.mapred;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.util.Collection;
 
 import org.apache.accumulo.core.client.sample.RowSampler;
@@ -39,7 +38,7 @@ import org.junit.Test;
 public class AccumuloFileOutputFormatTest {
 
   @Test
-  public void validateConfiguration() throws IOException, InterruptedException {
+  public void validateConfiguration() {
 
     int a = 7;
     long b = 300L;

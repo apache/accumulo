@@ -34,12 +34,12 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.ClientConfConverter;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub;
@@ -113,16 +113,19 @@ public class ConfiguratorBase {
         + StringUtils.camelize(e.name().toLowerCase());
   }
 
-  public static ClientInfo updateToken(org.apache.hadoop.security.Credentials credentials,
-      ClientInfo info) {
-    ClientInfo result = info;
-    if (info.getAuthenticationToken() instanceof KerberosToken) {
+  public static Properties updateToken(org.apache.hadoop.security.Credentials credentials,
+      Properties props) {
+    Properties result = new Properties();
+    props.forEach((key, value) -> result.setProperty((String) key, (String) value));
+
+    AuthenticationToken token = ClientProperty.getAuthenticationToken(result);
+    if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        AccumuloClient client = Accumulo.newClient().from(info).build();
-        AuthenticationToken token = client.securityOperations()
+        AccumuloClient client = Accumulo.newClient().from(props).build();
+        AuthenticationToken delegationToken = client.securityOperations()
             .getDelegationToken(new DelegationTokenConfig());
-        result = Accumulo.newClient().from(info).as(info.getPrincipal(), token).info();
+        ClientProperty.setAuthenticationToken(result, delegationToken);
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, "
             + "Mappers/Reducers will likely fail to communicate with Accumulo", e);
@@ -130,8 +133,8 @@ public class ConfiguratorBase {
     }
     // DelegationTokens can be passed securely from user to task without serializing insecurely in
     // the configuration
-    if (info.getAuthenticationToken() instanceof DelegationTokenImpl) {
-      DelegationTokenImpl delegationToken = (DelegationTokenImpl) info.getAuthenticationToken();
+    if (token instanceof DelegationTokenImpl) {
+      DelegationTokenImpl delegationToken = (DelegationTokenImpl) token;
 
       // Convert it into a Hadoop Token
       AuthenticationTokenIdentifier identifier = delegationToken.getIdentifier();
@@ -336,8 +339,12 @@ public class ConfiguratorBase {
   @Deprecated
   public static org.apache.accumulo.core.client.Instance getInstance(Class<?> implementingClass,
       Configuration conf) {
-    return org.apache.accumulo.core.client.Connector.from(getClient(implementingClass, conf))
-        .getInstance();
+    try {
+      return org.apache.accumulo.core.client.Connector.from(getClient(implementingClass, conf))
+          .getInstance();
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -351,11 +358,7 @@ public class ConfiguratorBase {
    * @since 2.0.0
    */
   public static AccumuloClient getClient(Class<?> implementingClass, Configuration conf) {
-    try {
-      return Accumulo.newClient().from(getClientInfo(implementingClass, conf)).build();
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new IllegalStateException(e);
-    }
+    return Accumulo.newClient().from(getClientProperties(implementingClass, conf)).build();
   }
 
   /**

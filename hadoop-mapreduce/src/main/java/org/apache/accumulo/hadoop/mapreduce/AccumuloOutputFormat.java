@@ -24,8 +24,8 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl;
 import org.apache.accumulo.hadoopImpl.mapreduce.OutputFormatBuilderImpl;
@@ -45,7 +45,7 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
  * Here is an example with all possible options:
  *
  * <pre>
- * AccumuloOutputFormat.configure().clientInfo(clientInfo).batchWriterOptions(bwConfig)
+ * AccumuloOutputFormat.configure().clientProperties(props).batchWriterOptions(bwConfig)
  *     .defaultTable(name).createTables() // disabled by default
  *     .simulationMode() // disabled by default
  *     .store(job);
@@ -62,7 +62,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       ClientInfo clientInfo = getClientInfo(job);
       String principal = clientInfo.getPrincipal();
       AuthenticationToken token = clientInfo.getAuthenticationToken();
-      AccumuloClient c = Accumulo.newClient().from(clientInfo).build();
+      AccumuloClient c = Accumulo.newClient().from(clientInfo.getProperties()).build();
 
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
@@ -90,7 +90,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * Sets all the information required for this map reduce job.
    */
   public static OutputFormatBuilder.ClientParams<Job> configure() {
-    return new OutputFormatBuilderImpl<Job>();
+    return new OutputFormatBuilderImpl<>();
   }
 
 }

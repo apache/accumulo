@@ -38,8 +38,8 @@ public class MapReduceClientOpts extends ClientOpts {
   private static final Logger log = LoggerFactory.getLogger(MapReduceClientOpts.class);
 
   public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
-    AccumuloInputFormat.setClientInfo(job, this.getClientInfo());
-    AccumuloOutputFormat.setClientInfo(job, this.getClientInfo());
+    AccumuloInputFormat.setClientProperties(job, getClientProperties());
+    AccumuloOutputFormat.setClientProperties(job, getClientProperties());
   }
 
   @Override
@@ -61,7 +61,7 @@ public class MapReduceClientOpts extends ClientOpts {
         log.info("Obtaining delegation token for {}", newPrincipal);
 
         setPrincipal(newPrincipal);
-        AccumuloClient client = Accumulo.newClient().from(getClientInfo())
+        AccumuloClient client = Accumulo.newClient().from(getClientProperties())
             .as(newPrincipal, krbToken).build();
 
         // Do the explicit check to see if the user has the permission to get a delegation token

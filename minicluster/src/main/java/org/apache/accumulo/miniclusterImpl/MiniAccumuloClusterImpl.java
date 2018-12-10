@@ -58,7 +58,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientInfo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.MasterClient;
@@ -175,7 +174,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private String dfsUri;
   private SiteConfiguration siteConfig;
   private ServerContext context;
-  private ClientInfo clientInfo;
+  private Properties clientProperties;
 
   public List<LogWriter> getLogWriters() {
     return logWriters;
@@ -331,7 +330,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (config.getHadoopConfDir() != null)
       builder.environment().put("HADOOP_CONF_DIR", config.getHadoopConfDir().getAbsolutePath());
 
-    log.info("Starting MiniAccumuloCluster process with class: " + clazz.getSimpleName()
+    log.debug("Starting MiniAccumuloCluster process with class: " + clazz.getSimpleName()
         + "\n, jvmOpts: " + extraJvmOpts + "\n, classpath: " + classpath + "\n, args: " + argList
         + "\n, environment: " + builder.environment());
     Process process = builder.start();
@@ -781,9 +780,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   @Override
-  public AccumuloClient getAccumuloClient(String user, AuthenticationToken token)
-      throws AccumuloException, AccumuloSecurityException {
-    return Accumulo.newClient().from(getClientInfo()).as(user, token).build();
+  public AccumuloClient getAccumuloClient(String user, AuthenticationToken token) {
+    return Accumulo.newClient().from(getClientProperties()).as(user, token).build();
   }
 
   @SuppressWarnings("deprecation")
@@ -794,11 +792,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   @Override
-  public ClientInfo getClientInfo() {
-    if (clientInfo == null) {
-      clientInfo = ClientInfo.from(config.getClientPropsFile().toPath());
+  public synchronized Properties getClientProperties() {
+    if (clientProperties == null) {
+      clientProperties = Accumulo.newClientProperties().from(config.getClientPropsFile().toPath())
+          .build();
     }
-    return clientInfo;
+    return clientProperties;
   }
 
   @Override
@@ -844,7 +843,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     MasterClientService.Iface client = null;
     while (true) {
       try {
-        ClientContext context = new ClientContext(getClientInfo());
+        ClientContext context = new ClientContext(getClientProperties());
         client = MasterClient.getConnectionWithRetry(context);
         return client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
       } catch (ThriftSecurityException exception) {
