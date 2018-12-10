@@ -205,13 +205,13 @@ public interface InputFormatBuilder {
      * In order to achieve good locality of InputSplits this option always clips the input Ranges to
      * tablet boundaries. This may result in one input Range contributing to several InputSplits.
      * <p>
-     * Note: calls to {@link #autoAdjustRanges()} is ignored when BatchScan is enabled.
+     * Note: calls to {@link #autoAdjustRanges(boolean)} is ignored when BatchScan is enabled.
      * <p>
      * This configuration is incompatible with:
      * <ul>
-     * <li>{@link #offlineScan()}</li>
-     * <li>{@link #localIterators()}</li>
-     * <li>{@link #scanIsolation()}</li>
+     * <li>{@link #offlineScan(boolean)}</li>
+     * <li>{@link #localIterators(boolean)}</li>
+     * <li>{@link #scanIsolation(boolean)}</li>
      * </ul>
      * <p>
      * By default, this feature is <b>disabled</b>.
