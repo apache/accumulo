@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -33,9 +32,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.IsolatedScanner;
-import org.apache.accumulo.core.client.RowIterator;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
@@ -64,11 +60,10 @@ import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
@@ -147,15 +142,17 @@ public class MasterClientServiceHandler extends FateServiceHandler
   }
 
   @Override
-  public void waitForFlush(TInfo tinfo, TCredentials c, String tableIdStr, ByteBuffer startRow,
-      ByteBuffer endRow, long flushID, long maxLoops)
+  public void waitForFlush(TInfo tinfo, TCredentials c, String tableIdStr, ByteBuffer startRowBB,
+      ByteBuffer endRowBB, long flushID, long maxLoops)
       throws ThriftSecurityException, ThriftTableOperationException {
     Table.ID tableId = Table.ID.of(tableIdStr);
     Namespace.ID namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
-    if (endRow != null && startRow != null
-        && ByteBufferUtil.toText(startRow).compareTo(ByteBufferUtil.toText(endRow)) >= 0)
+    Text startRow = ByteBufferUtil.toText(startRowBB);
+    Text endRow = ByteBufferUtil.toText(endRowBB);
+
+    if (endRow != null && startRow != null && startRow.compareTo(endRow) >= 0)
       throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH,
           TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
 
@@ -167,12 +164,15 @@ public class MasterClientServiceHandler extends FateServiceHandler
         try {
           final TServerConnection server = master.tserverSet.getConnection(instance);
           if (server != null)
-            server.flush(master.masterLock, tableId, ByteBufferUtil.toBytes(startRow),
-                ByteBufferUtil.toBytes(endRow));
+            server.flush(master.masterLock, tableId, ByteBufferUtil.toBytes(startRowBB),
+                ByteBufferUtil.toBytes(endRowBB));
         } catch (TException ex) {
           Master.log.error(ex.toString());
         }
       }
+
+      if (tableId.equals(RootTable.ID))
+        break; // this code does not properly handle the root tablet. See #798
 
       if (l == maxLoops - 1)
         break;
@@ -181,71 +181,23 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
       serversToFlush.clear();
 
-      try {
-        AccumuloClient client = master.getClient();
-        Scanner scanner;
-        if (tableId.equals(MetadataTable.ID)) {
-          scanner = new IsolatedScanner(client.createScanner(RootTable.NAME, Authorizations.EMPTY));
-          scanner.setRange(MetadataSchema.TabletsSection.getRange());
-        } else {
-          scanner = new IsolatedScanner(
-              client.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-          Range range = new KeyExtent(tableId, null, ByteBufferUtil.toText(startRow))
-              .toMetadataRange();
-          scanner.setRange(range.clip(MetadataSchema.TabletsSection.getRange()));
-        }
-        TabletsSection.ServerColumnFamily.FLUSH_COLUMN.fetch(scanner);
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
-        scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-        scanner.fetchColumnFamily(LogColumnFamily.NAME);
-
-        RowIterator ri = new RowIterator(scanner);
-
+      try (TabletsMetadata tablets = TabletsMetadata.builder().forTable(tableId)
+          .overlapping(startRow, endRow).fetchFlushId().fetchLocation().fetchLogs().fetchPrev()
+          .build(master.getContext())) {
         int tabletsToWaitFor = 0;
         int tabletCount = 0;
 
-        Text ert = ByteBufferUtil.toText(endRow);
-
-        while (ri.hasNext()) {
-          Iterator<Entry<Key,Value>> row = ri.next();
-          long tabletFlushID = -1;
-          int logs = 0;
-          boolean online = false;
-
-          TServerInstance server = null;
-
-          Entry<Key,Value> entry = null;
-          while (row.hasNext()) {
-            entry = row.next();
-            Key key = entry.getKey();
-
-            if (TabletsSection.ServerColumnFamily.FLUSH_COLUMN.equals(key.getColumnFamily(),
-                key.getColumnQualifier())) {
-              tabletFlushID = Long.parseLong(entry.getValue().toString());
-            }
-
-            if (LogColumnFamily.NAME.equals(key.getColumnFamily()))
-              logs++;
-
-            if (TabletsSection.CurrentLocationColumnFamily.NAME.equals(key.getColumnFamily())) {
-              online = true;
-              server = new TServerInstance(entry.getValue(), key.getColumnQualifier());
-            }
-
-          }
+        for (TabletMetadata tablet : tablets) {
+          int logs = tablet.getLogs().size();
 
           // when tablet is not online and has no logs, there is no reason to wait for it
-          if ((online || logs > 0) && tabletFlushID < flushID) {
+          if ((tablet.hasCurrent() || logs > 0) && tablet.getFlushId().orElse(-1) < flushID) {
             tabletsToWaitFor++;
-            if (server != null)
-              serversToFlush.add(server);
+            if (tablet.hasCurrent())
+              serversToFlush.add(new TServerInstance(tablet.getLocation()));
           }
 
           tabletCount++;
-
-          Text tabletEndRow = new KeyExtent(entry.getKey().getRow(), (Text) null).getEndRow();
-          if (tabletEndRow == null || (ert != null && tabletEndRow.compareTo(ert) >= 0))
-            break;
         }
 
         if (tabletsToWaitFor == 0)
@@ -257,15 +209,9 @@ public class MasterClientServiceHandler extends FateServiceHandler
           throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH,
               TableOperationExceptionType.NOTFOUND, null);
 
-      } catch (AccumuloException | TabletDeletedException e) {
+      } catch (TabletDeletedException e) {
         Master.log.debug("Failed to scan {} table to wait for flush {}", MetadataTable.NAME,
             tableId, e);
-      } catch (AccumuloSecurityException e) {
-        Master.log.warn("{}", e.getMessage(), e);
-        throw new ThriftSecurityException();
-      } catch (TableNotFoundException e) {
-        Master.log.error("{}", e.getMessage(), e);
-        throw new ThriftTableOperationException();
       }
     }
 

@@ -17,15 +17,20 @@
 
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
 
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.function.Function;
@@ -44,9 +49,11 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
 
@@ -54,6 +61,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterators;
@@ -65,7 +73,7 @@ public class TabletMetadata {
   private boolean sawPrevEndRow = false;
   private Text endRow;
   private Location location;
-  private List<String> files;
+  private Map<String,DataFileValue> files;
   private List<String> scans;
   private Set<String> loadedFiles;
   private EnumSet<FetchedColumns> fetchedCols;
@@ -75,13 +83,16 @@ public class TabletMetadata {
   private String time;
   private String cloned;
   private SortedMap<Key,Value> keyValues;
+  private OptionalLong flush = OptionalLong.empty();
+  private List<LogEntry> logs;
+  private OptionalLong compact = OptionalLong.empty();
 
   public static enum LocationType {
     CURRENT, FUTURE, LAST
   }
 
   public static enum FetchedColumns {
-    LOCATION, PREV_ROW, FILES, LAST, LOADED, SCANS, DIR, TIME, CLONED
+    LOCATION, PREV_ROW, FILES, LAST, LOADED, SCANS, DIR, TIME, CLONED, FLUSH_ID, LOGS, COMPACT_ID
   }
 
   public static class Location {
@@ -103,8 +114,20 @@ public class TabletMetadata {
       return session;
     }
 
-    public LocationType getLocationType() {
+    public LocationType getType() {
       return lt;
+    }
+
+    @Override
+    public String toString() {
+      return server + ":" + session + ":" + lt;
+    }
+
+    /**
+     * @return an ID composed of host, port, and session id.
+     */
+    public String getId() {
+      return server + "[" + session + "]";
     }
   }
 
@@ -125,6 +148,9 @@ public class TabletMetadata {
 
   public Text getPrevEndRow() {
     ensureFetched(FetchedColumns.PREV_ROW);
+    if (!sawPrevEndRow)
+      throw new IllegalStateException(
+          "No prev endrow seen.  tableId: " + tableId + " endrow: " + endRow);
     return prevEndRow;
   }
 
@@ -142,6 +168,11 @@ public class TabletMetadata {
     return location;
   }
 
+  public boolean hasCurrent() {
+    ensureFetched(FetchedColumns.LOCATION);
+    return location != null && location.getType() == LocationType.CURRENT;
+  }
+
   public Set<String> getLoaded() {
     ensureFetched(FetchedColumns.LOADED);
     return loadedFiles;
@@ -152,9 +183,19 @@ public class TabletMetadata {
     return last;
   }
 
-  public List<String> getFiles() {
+  public Collection<String> getFiles() {
+    ensureFetched(FetchedColumns.FILES);
+    return files.keySet();
+  }
+
+  public Map<String,DataFileValue> getFilesMap() {
     ensureFetched(FetchedColumns.FILES);
     return files;
+  }
+
+  public Collection<LogEntry> getLogs() {
+    ensureFetched(FetchedColumns.LOGS);
+    return logs;
   }
 
   public List<String> getScans() {
@@ -177,6 +218,16 @@ public class TabletMetadata {
     return cloned;
   }
 
+  public OptionalLong getFlushId() {
+    ensureFetched(FetchedColumns.FLUSH_ID);
+    return flush;
+  }
+
+  public OptionalLong getCompactId() {
+    ensureFetched(FetchedColumns.COMPACT_ID);
+    return compact;
+  }
+
   public SortedMap<Key,Value> getKeyValues() {
     Preconditions.checkState(keyValues != null, "Requested key values when it was not saved");
     return keyValues;
@@ -192,76 +243,79 @@ public class TabletMetadata {
       kvBuilder = ImmutableSortedMap.naturalOrder();
     }
 
-    Builder<String> filesBuilder = ImmutableList.builder();
+    ImmutableMap.Builder<String,DataFileValue> filesBuilder = ImmutableMap.builder();
     Builder<String> scansBuilder = ImmutableList.builder();
+    Builder<LogEntry> logsBuilder = ImmutableList.builder();
     final ImmutableSet.Builder<String> loadedFilesBuilder = ImmutableSet.builder();
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
       Entry<Key,Value> kv = rowIter.next();
-      Key k = kv.getKey();
-      Value v = kv.getValue();
-      Text fam = k.getColumnFamily();
+      Key key = kv.getKey();
+      String val = kv.getValue().toString();
+      String fam = key.getColumnFamilyData().toString();
+      String qual = key.getColumnQualifierData().toString();
 
       if (buildKeyValueMap) {
-        kvBuilder.put(k, v);
+        kvBuilder.put(key, kv.getValue());
       }
 
       if (row == null) {
-        row = k.getRowData();
-        KeyExtent ke = new KeyExtent(k.getRow(), (Text) null);
+        row = key.getRowData();
+        KeyExtent ke = new KeyExtent(key.getRow(), (Text) null);
         te.endRow = ke.getEndRow();
         te.tableId = ke.getTableId();
-      } else if (!row.equals(k.getRowData())) {
+      } else if (!row.equals(key.getRowData())) {
         throw new IllegalArgumentException(
-            "Input contains more than one row : " + row + " " + k.getRowData());
+            "Input contains more than one row : " + row + " " + key.getRowData());
       }
 
       switch (fam.toString()) {
         case TabletColumnFamily.STR_NAME:
-          if (PREV_ROW_COLUMN.hasColumns(k)) {
-            te.prevEndRow = KeyExtent.decodePrevEndRow(v);
+          if (PREV_ROW_QUAL.equals(qual)) {
+            te.prevEndRow = KeyExtent.decodePrevEndRow(kv.getValue());
             te.sawPrevEndRow = true;
           }
           break;
         case ServerColumnFamily.STR_NAME:
-          if (DIRECTORY_COLUMN.hasColumns(k)) {
-            te.dir = v.toString();
-          } else if (TIME_COLUMN.hasColumns(k)) {
-            te.time = v.toString();
+          switch (qual) {
+            case DIRECTORY_QUAL:
+              te.dir = val;
+              break;
+            case TIME_QUAL:
+              te.time = val;
+              break;
+            case FLUSH_QUAL:
+              te.flush = OptionalLong.of(Long.parseLong(val));
+              break;
+            case COMPACT_QUAL:
+              te.compact = OptionalLong.of(Long.parseLong(val));
+              break;
           }
           break;
         case DataFileColumnFamily.STR_NAME:
-          filesBuilder.add(k.getColumnQualifier().toString());
+          filesBuilder.put(qual, new DataFileValue(val));
           break;
         case BulkFileColumnFamily.STR_NAME:
-          loadedFilesBuilder.add(k.getColumnQualifier().toString());
+          loadedFilesBuilder.add(qual);
           break;
         case CurrentLocationColumnFamily.STR_NAME:
-          if (te.location != null) {
-            throw new IllegalArgumentException(
-                "Input contains more than one location " + te.location + " " + v);
-          }
-          te.location = new Location(v.toString(), k.getColumnQualifierData().toString(),
-              LocationType.CURRENT);
+          te.setLocationOnce(val, qual, LocationType.CURRENT);
           break;
         case FutureLocationColumnFamily.STR_NAME:
-          if (te.location != null) {
-            throw new IllegalArgumentException(
-                "Input contains more than one location " + te.location + " " + v);
-          }
-          te.location = new Location(v.toString(), k.getColumnQualifierData().toString(),
-              LocationType.FUTURE);
+          te.setLocationOnce(val, qual, LocationType.FUTURE);
           break;
         case LastLocationColumnFamily.STR_NAME:
-          te.last = new Location(v.toString(), k.getColumnQualifierData().toString(),
-              LocationType.LAST);
+          te.last = new Location(val, qual, LocationType.LAST);
           break;
         case ScanFileColumnFamily.STR_NAME:
-          scansBuilder.add(k.getColumnQualifierData().toString());
+          scansBuilder.add(qual);
           break;
         case ClonedColumnFamily.STR_NAME:
-          te.cloned = v.toString();
+          te.cloned = val;
+          break;
+        case LogColumnFamily.STR_NAME:
+          logsBuilder.add(LogEntry.fromKeyValue(key, val));
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);
@@ -272,10 +326,18 @@ public class TabletMetadata {
     te.loadedFiles = loadedFilesBuilder.build();
     te.fetchedCols = fetchedColumns;
     te.scans = scansBuilder.build();
+    te.logs = logsBuilder.build();
     if (buildKeyValueMap) {
       te.keyValues = kvBuilder.build();
     }
     return te;
+  }
+
+  private void setLocationOnce(String val, String qual, LocationType lt) {
+    if (location != null)
+      throw new IllegalStateException("Attempted to set second location for tableId: " + tableId
+          + " endrow: " + endRow + " -- " + location + " " + qual + " " + val);
+    location = new Location(val, qual, lt);
   }
 
   static Iterable<TabletMetadata> convert(Scanner input, EnumSet<FetchedColumns> fetchedColumns,

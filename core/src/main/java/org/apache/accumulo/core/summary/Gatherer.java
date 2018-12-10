@@ -56,8 +56,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
-import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
@@ -166,9 +166,9 @@ public class Gatherer {
       Predicate<String> fileSelector)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
-    Iterable<TabletMetadata> tmi = MetadataScanner.builder().from(ctx).scanMetadataTable()
-        .overRange(tableId, startRow, endRow).fetchFiles().fetchLocation().fetchLast().fetchPrev()
-        .build();
+    Iterable<TabletMetadata> tmi = TabletsMetadata.builder().forTable(tableId)
+        .overlapping(startRow, endRow).fetchFiles().fetchLocation().fetchLast().fetchPrev()
+        .build(ctx);
 
     // get a subset of files
     Map<String,List<TabletMetadata>> files = new HashMap<>();
@@ -525,9 +525,8 @@ public class Gatherer {
   private int countFiles()
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // TODO use a batch scanner + iterator to parallelize counting files
-    return MetadataScanner.builder().from(ctx).scanMetadataTable()
-        .overRange(tableId, startRow, endRow).fetchFiles().fetchPrev().build().stream()
-        .mapToInt(tm -> tm.getFiles().size()).sum();
+    return TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow).fetchFiles()
+        .fetchPrev().build(ctx).stream().mapToInt(tm -> tm.getFiles().size()).sum();
   }
 
   private class GatherRequest implements Supplier<SummaryCollection> {

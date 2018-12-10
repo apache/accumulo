@@ -41,9 +41,9 @@ import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
@@ -271,9 +271,9 @@ class LoadFiles extends MasterRepo {
 
     Text startRow = loadMapEntry.getKey().getPrevEndRow();
 
-    Iterator<TabletMetadata> tabletIter = MetadataScanner.builder().from(master.getContext())
-        .scanMetadataTable().overRange(tableId, startRow, null).checkConsistency().fetchPrev()
-        .fetchLocation().fetchLoaded().build().iterator();
+    Iterator<TabletMetadata> tabletIter = TabletsMetadata.builder().forTable(tableId)
+        .overlapping(startRow, null).checkConsistency().fetchPrev().fetchLocation().fetchLoaded()
+        .build(master.getContext()).iterator();
 
     List<TabletMetadata> tablets = new ArrayList<>();
     TabletMetadata currentTablet = tabletIter.next();

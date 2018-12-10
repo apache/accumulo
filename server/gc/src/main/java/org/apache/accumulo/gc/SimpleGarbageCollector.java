@@ -58,9 +58,9 @@ import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
@@ -280,9 +280,8 @@ public class SimpleGarbageCollector implements Iface {
     public Stream<Reference> getReferences()
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
-      Stream<TabletMetadata> tabletStream = MetadataScanner.builder().from(getClient())
-          .scanTable(tableName).overTabletRange().checkConsistency().fetchDir().fetchFiles()
-          .fetchScans().build().stream();
+      Stream<TabletMetadata> tabletStream = TabletsMetadata.builder().scanTable(tableName)
+          .checkConsistency().fetchDir().fetchFiles().fetchScans().build(getClient()).stream();
 
       Stream<Reference> refStream = tabletStream.flatMap(tm -> {
         Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())

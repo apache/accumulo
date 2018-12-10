@@ -36,8 +36,8 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -163,9 +163,9 @@ public class PrepBulkImport extends MasterRepo {
       Iterators.transform(lmi, entry -> entry.getKey());
 
       TabletIterFactory tabletIterFactory = startRow -> {
-        return MetadataScanner.builder().from(master.getContext()).scanMetadataTable()
-            .overRange(bulkInfo.tableId, startRow, null).checkConsistency().fetchPrev().build()
-            .stream().map(TabletMetadata::getExtent).iterator();
+        return TabletsMetadata.builder().forTable(bulkInfo.tableId).overlapping(startRow, null)
+            .checkConsistency().fetchPrev().build(master.getContext()).stream()
+            .map(TabletMetadata::getExtent).iterator();
       };
 
       checkForMerge(bulkInfo.tableId.canonicalID(),

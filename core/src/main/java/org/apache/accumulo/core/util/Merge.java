@@ -19,25 +19,19 @@ package org.apache.accumulo.core.util;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -218,55 +212,23 @@ public class Merge {
   protected Iterator<Size> getSizeIterator(AccumuloClient client, String tablename, Text start,
       Text end) throws MergeException {
     // open up metadata, walk through the tablets.
+
     Table.ID tableId;
-    Scanner scanner;
+    TabletsMetadata tablets;
     try {
       ClientContext context = new ClientContext(client);
       tableId = Tables.getTableId(context, tablename);
-      scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      tablets = TabletsMetadata.builder().scanMetadataTable()
+          .overRange(new KeyExtent(tableId, end, start).toMetadataRange()).fetchFiles().fetchPrev()
+          .build(context);
     } catch (Exception e) {
       throw new MergeException(e);
     }
-    scanner.setRange(new KeyExtent(tableId, end, start).toMetadataRange());
-    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-    final Iterator<Entry<Key,Value>> iterator = scanner.iterator();
 
-    return new Iterator<Size>() {
-      Size next = fetch();
-
-      @Override
-      public boolean hasNext() {
-        return next != null;
-      }
-
-      private Size fetch() {
-        long tabletSize = 0;
-        while (iterator.hasNext()) {
-          Entry<Key,Value> entry = iterator.next();
-          Key key = entry.getKey();
-          if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            tabletSize += new DataFileValue(entry.getValue().get()).getSize();
-          } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
-            KeyExtent extent = new KeyExtent(key.getRow(), entry.getValue());
-            return new Size(extent, tabletSize);
-          }
-        }
-        return null;
-      }
-
-      @Override
-      public Size next() {
-        Size result1 = next;
-        next = fetch();
-        return result1;
-      }
-
-      @Override
-      public void remove() {
-        throw new UnsupportedOperationException();
-      }
-    };
+    return tablets.stream().map(tm -> {
+      long size = tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
+      return new Size(tm.getExtent(), size);
+    }).iterator();
   }
 
 }

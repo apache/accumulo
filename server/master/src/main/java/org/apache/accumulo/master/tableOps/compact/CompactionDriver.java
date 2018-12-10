@@ -17,30 +17,18 @@
 package org.apache.accumulo.master.tableOps.compact;
 
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.IsolatedScanner;
-import org.apache.accumulo.core.client.RowIterator;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -49,7 +37,6 @@ import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +62,11 @@ class CompactionDriver extends MasterRepo {
   @Override
   public long isReady(long tid, Master master) throws Exception {
 
+    if (tableId.equals(RootTable.ID)) {
+      // this codes not properly handle the root table. See #798
+      return 0;
+    }
+
     String zCancelID = Constants.ZROOT + "/" + master.getInstanceID() + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
@@ -87,60 +79,24 @@ class CompactionDriver extends MasterRepo {
     }
 
     MapCounter<TServerInstance> serversToFlush = new MapCounter<>();
-    AccumuloClient client = master.getClient();
-
-    Scanner scanner;
-
-    if (tableId.equals(MetadataTable.ID)) {
-      scanner = new IsolatedScanner(client.createScanner(RootTable.NAME, Authorizations.EMPTY));
-      scanner.setRange(MetadataSchema.TabletsSection.getRange());
-    } else {
-      scanner = new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-      Range range = new KeyExtent(tableId, null, startRow == null ? null : new Text(startRow))
-          .toMetadataRange();
-      scanner.setRange(range);
-    }
-
-    TabletsSection.ServerColumnFamily.COMPACT_COLUMN.fetch(scanner);
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
-    scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-
     long t1 = System.currentTimeMillis();
-    RowIterator ri = new RowIterator(scanner);
 
     int tabletsToWaitFor = 0;
     int tabletCount = 0;
 
-    while (ri.hasNext()) {
-      Iterator<Entry<Key,Value>> row = ri.next();
-      long tabletCompactID = -1;
+    TabletsMetadata tablets = TabletsMetadata.builder().forTable(tableId)
+        .overlapping(startRow, endRow).fetchLocation().fetchPrev().fetchCompactId()
+        .build(master.getContext());
 
-      TServerInstance server = null;
-
-      Entry<Key,Value> entry = null;
-      while (row.hasNext()) {
-        entry = row.next();
-        Key key = entry.getKey();
-
-        if (TabletsSection.ServerColumnFamily.COMPACT_COLUMN.equals(key.getColumnFamily(),
-            key.getColumnQualifier()))
-          tabletCompactID = Long.parseLong(entry.getValue().toString());
-
-        if (TabletsSection.CurrentLocationColumnFamily.NAME.equals(key.getColumnFamily()))
-          server = new TServerInstance(entry.getValue(), key.getColumnQualifier());
-      }
-
-      if (tabletCompactID < compactId) {
+    for (TabletMetadata tablet : tablets) {
+      if (tablet.getCompactId().orElse(-1) < compactId) {
         tabletsToWaitFor++;
-        if (server != null)
-          serversToFlush.increment(server, 1);
+        if (tablet.hasCurrent()) {
+          serversToFlush.increment(new TServerInstance(tablet.getLocation()), 1);
+        }
       }
 
       tabletCount++;
-
-      Text tabletEndRow = new KeyExtent(entry.getKey().getRow(), (Text) null).getEndRow();
-      if (tabletEndRow == null || (endRow != null && tabletEndRow.compareTo(new Text(endRow)) >= 0))
-        break;
     }
 
     long scanTime = System.currentTimeMillis() - t1;
@@ -170,11 +126,9 @@ class CompactionDriver extends MasterRepo {
 
     long sleepTime = 500;
 
+    // make wait time depend on the server with the most to compact
     if (serversToFlush.size() > 0)
-      sleepTime = Collections.max(serversToFlush.values()) * sleepTime; // make wait time depend on
-                                                                        // the server with the most
-                                                                        // to
-                                                                        // compact
+      sleepTime = Collections.max(serversToFlush.values()) * sleepTime;
 
     sleepTime = Math.max(2 * scanTime, sleepTime);
 

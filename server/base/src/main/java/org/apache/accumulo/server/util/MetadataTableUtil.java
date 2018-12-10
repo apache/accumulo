@@ -61,7 +61,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataScanner;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -72,6 +71,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -97,6 +97,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterables;
 
 /**
  * provides a reference to the metadata table for updates by tablet servers
@@ -551,27 +552,19 @@ public class MetadataTableUtil {
       }
 
     } else {
-      Table.ID systemTableToCheck = extent.isMeta() ? RootTable.ID : MetadataTable.ID;
-      try (Scanner scanner = new ScannerImpl(context, systemTableToCheck, Authorizations.EMPTY)) {
-        scanner.fetchColumnFamily(LogColumnFamily.NAME);
-        scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-        scanner.setRange(extent.toMetadataRange());
+      try (TabletsMetadata tablets = TabletsMetadata.builder().forTablet(extent).fetchFiles()
+          .fetchLogs().fetchPrev().build(context)) {
 
-        for (Entry<Key,Value> entry : scanner) {
-          if (!entry.getKey().getRow().equals(extent.getMetadataEntry())) {
-            throw new RuntimeException("Unexpected row " + entry.getKey().getRow() + " expected "
-                + extent.getMetadataEntry());
-          }
+        TabletMetadata tablet = Iterables.getOnlyElement(tablets);
 
-          if (entry.getKey().getColumnFamily().equals(LogColumnFamily.NAME)) {
-            result.add(LogEntry.fromKeyValue(entry.getKey(), entry.getValue()));
-          } else if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            DataFileValue dfv = new DataFileValue(entry.getValue().get());
-            sizes.put(new FileRef(fs, entry.getKey()), dfv);
-          } else {
-            throw new RuntimeException("Unexpected col fam " + entry.getKey().getColumnFamily());
-          }
-        }
+        if (!tablet.getExtent().equals(extent))
+          throw new RuntimeException(
+              "Unexpected extent " + tablet.getExtent() + " expected " + extent);
+
+        result.addAll(tablet.getLogs());
+        tablet.getFilesMap().forEach((k, v) -> {
+          sizes.put(new FileRef(k, fs.getFullPath(tablet.getTableId(), k)), v);
+        });
       }
     }
 
@@ -713,7 +706,8 @@ public class MetadataTableUtil {
     }
   }
 
-  private static void getFiles(Set<String> files, List<String> tabletFiles, Table.ID srcTableId) {
+  private static void getFiles(Set<String> files, Collection<String> tabletFiles,
+      Table.ID srcTableId) {
     for (String file : tabletFiles) {
       if (srcTableId != null && !file.startsWith("../") && !file.contains(":")) {
         file = "../" + srcTableId + file;
@@ -766,13 +760,9 @@ public class MetadataTableUtil {
       range = TabletsSection.getRange(tableId);
     }
 
-    try {
-      return MetadataScanner.builder().from(client).scanTable(tableName).overRange(range)
-          .checkConsistency().saveKeyValues().fetchFiles().fetchLocation().fetchLast().fetchCloned()
-          .fetchPrev().fetchTime().build();
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
+    return TabletsMetadata.builder().scanTable(tableName).overRange(range).checkConsistency()
+        .saveKeyValues().fetchFiles().fetchLocation().fetchLast().fetchCloned().fetchPrev()
+        .fetchTime().build(client);
   }
 
   @VisibleForTesting

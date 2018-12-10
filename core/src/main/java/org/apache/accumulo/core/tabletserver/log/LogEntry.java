@@ -80,19 +80,23 @@ public class LogEntry {
 
   private static final Text EMPTY_TEXT = new Text();
 
-  public static LogEntry fromKeyValue(Key key, Value value) {
-    String qualifier = key.getColumnQualifier().toString();
+  public static LogEntry fromKeyValue(Key key, String value) {
+    String qualifier = key.getColumnQualifierData().toString();
     if (qualifier.indexOf('/') < 1) {
       throw new IllegalArgumentException("Bad key for log entry: " + key);
     }
     KeyExtent extent = new KeyExtent(key.getRow(), EMPTY_TEXT);
-    String[] parts = key.getColumnQualifier().toString().split("/", 2);
+    String[] parts = qualifier.split("/", 2);
     String server = parts[0];
     // handle old-style log entries that specify log sets
-    parts = value.toString().split("\\|")[0].split(";");
+    parts = value.split("\\|")[0].split(";");
     String filename = parts[parts.length - 1];
     long timestamp = key.getTimestamp();
     return new LogEntry(extent, timestamp, server, filename);
+  }
+
+  public static LogEntry fromKeyValue(Key key, Value value) {
+    return fromKeyValue(key, value.toString());
   }
 
   public Text getRow() {
