@@ -147,12 +147,6 @@ public class ConfiguratorBase {
     return result;
   }
 
-  public static void setClientInfo(Class<?> implementingClass, Configuration conf,
-      ClientInfo info) {
-    setClientProperties(implementingClass, conf, info.getProperties());
-    conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
-  }
-
   public static ClientInfo getClientInfo(Class<?> implementingClass, Configuration conf) {
     Properties props = getClientProperties(implementingClass, conf);
     return new ClientInfoImpl(props);
@@ -179,6 +173,7 @@ public class ConfiguratorBase {
       throw new IllegalStateException(e);
     }
     conf.set(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS), writer.toString());
+    conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
   }
 
   public static Properties getClientProperties(Class<?> implementingClass, Configuration conf) {

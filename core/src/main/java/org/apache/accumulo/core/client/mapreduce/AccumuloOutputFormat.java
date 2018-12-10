@@ -563,6 +563,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
 
   @Override
   public void checkOutputSpecs(JobContext job) throws IOException {
+    if (!isConnectorInfoSet(job))
+      throw new IOException("Connector info has not been set.");
     try {
       // if the instance isn't configured, it will complain here
       String principal = getPrincipal(job);
