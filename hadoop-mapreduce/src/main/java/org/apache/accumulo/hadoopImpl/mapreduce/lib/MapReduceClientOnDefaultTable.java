@@ -45,7 +45,7 @@ public class MapReduceClientOnDefaultTable extends MapReduceClientOpts {
     AccumuloInputFormat.configure().clientProperties(clientProps).table(tableName).auths(auths)
         .store(job);
     AccumuloOutputFormat.configure().clientProperties(clientProps).defaultTable(tableName)
-        .createTables().store(job);
+        .createTables(true).store(job);
   }
 
 }
