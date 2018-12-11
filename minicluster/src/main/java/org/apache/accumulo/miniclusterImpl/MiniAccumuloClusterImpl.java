@@ -128,18 +128,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     private BufferedReader in;
     private BufferedWriter out;
 
-    public LogWriter(InputStream stream, File logFile) throws IOException {
-      this.in = new BufferedReader(new InputStreamReader(stream));
-      out = new BufferedWriter(new FileWriter(logFile));
 
-      SimpleTimer.getInstance(null).schedule(() -> {
-        try {
-          flush();
-        } catch (IOException e) {
-          log.error("Exception while attempting to flush.", e);
-        }
-      }, 1000, 1000);
-    }
 
     public synchronized void flush() throws IOException {
       if (out != null)
@@ -335,15 +324,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         + "\n, environment: " + builder.environment());
     Process process = builder.start();
 
-    LogWriter lw;
-    lw = new LogWriter(process.getErrorStream(),
-        new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".err"));
-    logWriters.add(lw);
-    lw.start();
-    lw = new LogWriter(process.getInputStream(),
-        new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".out"));
-    logWriters.add(lw);
-    lw.start();
+    builder.redirectError(
+            new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".err"));
+    builder.redirectInput(
+            new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".out"));
 
     cleanup.add(process);
 
