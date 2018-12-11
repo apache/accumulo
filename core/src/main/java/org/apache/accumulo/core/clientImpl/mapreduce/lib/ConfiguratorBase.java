@@ -304,7 +304,7 @@ public class ConfiguratorBase {
    * @param clientConfig
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0
-   * @deprecated since 2.0.0; use {@link #setClientInfo(Class, Configuration, ClientInfo)} instead
+   * @deprecated since 2.0.0; use {@link #setClientProperties(Class, Configuration, Properties)} instead
    */
   @Deprecated
   public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf,
