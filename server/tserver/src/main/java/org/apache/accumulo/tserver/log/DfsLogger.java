@@ -609,7 +609,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       LogFileValue value = new LogFileValue();
       value.mutations = tabletMutations.getMutations();
       data.add(new Pair<>(key, value));
-      durability = chooseDurability(tabletMutations.getDurability(), durability);
+      durability = maxDurability(tabletMutations.getDurability(), durability);
     }
     return logFileData(data, durability);
   }
@@ -617,7 +617,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   /**
    * Return the Durability with the highest precedence
    */
-  static Durability chooseDurability(Durability dur1, Durability dur2) {
+  static Durability maxDurability(Durability dur1, Durability dur2) {
     if (dur1.ordinal() > dur2.ordinal()) {
       return dur1;
     } else {
