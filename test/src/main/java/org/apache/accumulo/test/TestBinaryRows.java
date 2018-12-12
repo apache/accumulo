@@ -236,8 +236,8 @@ public class TestBinaryRows {
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(TestBinaryRows.class.getName(), args, scanOpts, bwOpts);
 
-    try {
-      runTest(opts.getClient(), opts, bwOpts, scanOpts);
+    try (AccumuloClient client = opts.createClient()) {
+      runTest(client, opts, bwOpts, scanOpts);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

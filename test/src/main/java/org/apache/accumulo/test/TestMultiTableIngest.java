@@ -80,39 +80,40 @@ public class TestMultiTableIngest {
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.parseArgs(TestMultiTableIngest.class.getName(), args, scanOpts, bwOpts);
     // create the test table within accumulo
-    AccumuloClient accumuloClient = opts.getClient();
-    for (int i = 0; i < opts.tables; i++) {
-      tableNames.add(String.format(opts.prefix + "%04d", i));
-    }
+    try (AccumuloClient accumuloClient = opts.createClient()) {
+      for (int i = 0; i < opts.tables; i++) {
+        tableNames.add(String.format(opts.prefix + "%04d", i));
+      }
 
-    if (!opts.readonly) {
-      for (String table : tableNames)
-        accumuloClient.tableOperations().create(table);
+      if (!opts.readonly) {
+        for (String table : tableNames)
+          accumuloClient.tableOperations().create(table);
 
-      MultiTableBatchWriter b;
+        MultiTableBatchWriter b;
+        try {
+          b = accumuloClient.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+
+        // populate
+        for (int i = 0; i < opts.count; i++) {
+          Mutation m = new Mutation(new Text(String.format("%06d", i)));
+          m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"),
+              new Value("junk".getBytes(UTF_8)));
+          b.getBatchWriter(tableNames.get(i % tableNames.size())).addMutation(m);
+        }
+        try {
+          b.close();
+        } catch (MutationsRejectedException e) {
+          throw new RuntimeException(e);
+        }
+      }
       try {
-        b = accumuloClient.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
+        readBack(opts, scanOpts, accumuloClient, tableNames);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-
-      // populate
-      for (int i = 0; i < opts.count; i++) {
-        Mutation m = new Mutation(new Text(String.format("%06d", i)));
-        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"),
-            new Value("junk".getBytes(UTF_8)));
-        b.getBatchWriter(tableNames.get(i % tableNames.size())).addMutation(m);
-      }
-      try {
-        b.close();
-      } catch (MutationsRejectedException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    try {
-      readBack(opts, scanOpts, accumuloClient, tableNames);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
     }
   }
 

@@ -61,6 +61,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   private static String principal = "root";
   private static String rootPassword;
   private static AuthenticationToken token;
+  private static AccumuloClient client;
   private static MiniAccumuloClusterImpl cluster;
   private static TestingKdc krb;
 
@@ -117,13 +118,13 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
       // permissions to)
       UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
           systemUser.getKeytab().getAbsolutePath());
-      AccumuloClient client = cluster.getAccumuloClient(systemUser.getPrincipal(),
+      AccumuloClient client = cluster.createAccumuloClient(systemUser.getPrincipal(),
           new KerberosToken());
 
       // Then, log back in as the "root" user and do the grant
       UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
           rootUser.getKeytab().getAbsolutePath());
-      client = cluster.getAccumuloClient(principal, token);
+      client = cluster.createAccumuloClient(principal, token);
 
       // Create the trace table
       client.tableOperations().create(traceTable);
@@ -158,6 +159,9 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
         log.error("Failed to stop KDC", e);
       }
     }
+    if (client != null) {
+      client.close();
+    }
   }
 
   public static String getRootPassword() {
@@ -189,11 +193,10 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   }
 
   public static AccumuloClient getClient() {
-    try {
-      return getCluster().getAccumuloClient(principal, getToken());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    if (client == null) {
+      client = getCluster().createAccumuloClient(principal, getToken());
     }
+    return client;
   }
 
   public static TestingKdc getKdc() {

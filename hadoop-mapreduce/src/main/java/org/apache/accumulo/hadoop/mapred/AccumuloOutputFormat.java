@@ -46,12 +46,10 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   @Override
   public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
-    try {
-      // if the instance isn't configured, it will complain here
-      ClientInfo clientInfo = getClientInfo(job);
-      String principal = clientInfo.getPrincipal();
-      AuthenticationToken token = clientInfo.getAuthenticationToken();
-      AccumuloClient c = Accumulo.newClient().from(clientInfo.getProperties()).build();
+    ClientInfo clientInfo = getClientInfo(job);
+    String principal = clientInfo.getPrincipal();
+    AuthenticationToken token = clientInfo.getAuthenticationToken();
+    try (AccumuloClient c = Accumulo.newClient().from(clientInfo.getProperties()).build()) {
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException | AccumuloSecurityException e) {

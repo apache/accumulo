@@ -73,11 +73,11 @@ public class VerifyTabletAssignments {
     Opts opts = new Opts();
     opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
 
-    AccumuloClient client = opts.getClient();
-    ClientContext context = new ClientContext(client);
-    for (String table : client.tableOperations().list())
-      checkTable(context, opts, table, null);
-
+    try (AccumuloClient client = opts.createClient()) {
+      ClientContext context = new ClientContext(client);
+      for (String table : client.tableOperations().list())
+        checkTable(context, opts, table, null);
+    }
   }
 
   private static void checkTable(final ClientContext context, final Opts opts, String tableName,

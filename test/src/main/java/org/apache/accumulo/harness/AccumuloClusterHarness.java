@@ -78,6 +78,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   private static boolean initialized = false;
 
   protected static AccumuloCluster cluster;
+  protected static AccumuloClient client;
   protected static ClusterType type;
   protected static AccumuloClusterPropertyConfiguration clusterConf;
   protected static TestingKdc krb;
@@ -101,6 +102,9 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   public static void tearDownKdc() throws Exception {
     if (null != krb) {
       krb.stop();
+    }
+    if (client != null) {
+      client.close();
     }
   }
 
@@ -184,7 +188,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           // permissions to)
           UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
               systemUser.getKeytab().getAbsolutePath());
-          AccumuloClient client = cluster.getAccumuloClient(systemUser.getPrincipal(),
+          AccumuloClient client = cluster.createAccumuloClient(systemUser.getPrincipal(),
               new KerberosToken());
 
           // Then, log back in as the "root" user and do the grant
@@ -349,17 +353,19 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   }
 
   public AccumuloClient getAccumuloClient() {
-    try {
-      String princ = getAdminPrincipal();
-      AuthenticationToken token = getAdminToken();
-      log.debug("Creating client as {} with {}", princ, token);
-      return cluster.getAccumuloClient(princ, token);
-    } catch (Exception e) {
-      log.error("Could not connect to Accumulo", e);
-      fail("Could not connect to Accumulo: " + e.getMessage());
-
-      throw new RuntimeException("Could not connect to Accumulo", e);
+    if (client == null) {
+      try {
+        String princ = getAdminPrincipal();
+        AuthenticationToken token = getAdminToken();
+        log.debug("Creating client as {} with {}", princ, token);
+        client = cluster.createAccumuloClient(princ, token);
+      } catch (Exception e) {
+        log.error("Could not connect to Accumulo", e);
+        fail("Could not connect to Accumulo: " + e.getMessage());
+        throw new RuntimeException("Could not connect to Accumulo", e);
+      }
     }
+    return client;
   }
 
   // TODO Really don't want this here. Will ultimately need to abstract configuration method away

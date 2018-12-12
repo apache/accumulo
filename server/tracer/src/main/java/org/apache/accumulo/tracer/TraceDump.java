@@ -82,18 +82,19 @@ public class TraceDump {
     PrintStream out = System.out;
     long endTime = System.currentTimeMillis();
     long startTime = endTime - opts.length;
-    AccumuloClient client = opts.getClient();
-    Scanner scanner = client.createScanner(opts.getTableName(), opts.auths);
-    scanner.setBatchSize(scanOpts.scanBatchSize);
-    Range range = new Range(new Text("start:" + Long.toHexString(startTime)),
-        new Text("start:" + Long.toHexString(endTime)));
-    scanner.setRange(range);
-    out.println("Trace            Day/Time                 (ms)  Start");
-    for (Entry<Key,Value> entry : scanner) {
-      RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
-      out.println(String.format("%016x %s %5d %s", span.traceId,
-          TraceFormatter.formatDate(new Date(span.getStart())), span.stop - span.start,
-          span.description));
+    try (AccumuloClient client = opts.createClient()) {
+      Scanner scanner = client.createScanner(opts.getTableName(), opts.auths);
+      scanner.setBatchSize(scanOpts.scanBatchSize);
+      Range range = new Range(new Text("start:" + Long.toHexString(startTime)),
+          new Text("start:" + Long.toHexString(endTime)));
+      scanner.setRange(range);
+      out.println("Trace            Day/Time                 (ms)  Start");
+      for (Entry<Key,Value> entry : scanner) {
+        RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
+        out.println(String.format("%016x %s %5d %s", span.traceId,
+            TraceFormatter.formatDate(new Date(span.getStart())), span.stop - span.start,
+            span.description));
+      }
     }
     return 0;
   }
@@ -104,20 +105,15 @@ public class TraceDump {
 
   private static int dumpTrace(Opts opts, ScannerOpts scanOpts) throws Exception {
     final PrintStream out = System.out;
-    AccumuloClient client = opts.getClient();
-
     int count = 0;
-    for (String traceId : opts.traceIds) {
-      Scanner scanner = client.createScanner(opts.getTableName(), opts.auths);
-      scanner.setBatchSize(scanOpts.scanBatchSize);
-      Range range = new Range(new Text(traceId.toString()));
-      scanner.setRange(range);
-      count = printTrace(scanner, new Printer() {
-        @Override
-        public void print(String line) {
-          out.println(line);
-        }
-      });
+    try (AccumuloClient client = opts.createClient()) {
+      for (String traceId : opts.traceIds) {
+        Scanner scanner = client.createScanner(opts.getTableName(), opts.auths);
+        scanner.setBatchSize(scanOpts.scanBatchSize);
+        Range range = new Range(new Text(traceId));
+        scanner.setRange(range);
+        count = printTrace(scanner, out::println);
+      }
     }
     return count > 0 ? 0 : 1;
   }

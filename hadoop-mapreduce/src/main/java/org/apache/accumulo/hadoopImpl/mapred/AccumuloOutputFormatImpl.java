@@ -346,6 +346,8 @@ public class AccumuloOutputFormatImpl {
           log.error("Constraint violations : " + e.getConstraintViolationSummaries().size());
         }
         throw new IOException(e);
+      } finally {
+        client.close();
       }
     }
   }

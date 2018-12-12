@@ -340,7 +340,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       try {
         DistributedTrace.enable(InetAddress.getLocalHost().getHostName(), "shell", properties);
         this.setTableName("");
-        accumuloClient = Accumulo.newClient().from(props).as(principal, token).build();
+        accumuloClient = Accumulo.newClient().from(options.getClientProperties())
+            .as(principal, token).build();
         context = new ClientContext(accumuloClient);
       } catch (Exception e) {
         printException(e);
@@ -609,6 +610,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   public void shutdown() {
     if (reader != null) {
       reader.shutdown();
+    }
+    if (accumuloClient != null) {
+      accumuloClient.close();
     }
   }
 
@@ -1169,6 +1173,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void updateUser(String principal, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
+    if (accumuloClient != null) {
+      accumuloClient.close();
+    }
     accumuloClient = Accumulo.newClient().from(accumuloClient.properties()).as(principal, token)
         .build();
     accumuloClient.securityOperations().authenticateUser(principal, token);

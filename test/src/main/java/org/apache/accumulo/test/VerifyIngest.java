@@ -71,7 +71,9 @@ public class VerifyIngest {
         Trace.data("cmdLine", Arrays.asList(args).toString());
       }
 
-      verifyIngest(opts.getClient(), opts, scanOpts);
+      try (AccumuloClient client = opts.createClient()) {
+        verifyIngest(client, opts, scanOpts);
+      }
 
     } finally {
       Trace.off();

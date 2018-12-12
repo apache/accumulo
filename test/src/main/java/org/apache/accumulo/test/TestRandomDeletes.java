@@ -82,7 +82,8 @@ public class TestRandomDeletes {
   private static TreeSet<RowColumn> scanAll(ClientOnDefaultTable opts, ScannerOpts scanOpts,
       String tableName) throws Exception {
     TreeSet<RowColumn> result = new TreeSet<>();
-    try (Scanner scanner = opts.getClient().createScanner(tableName, auths)) {
+    try (AccumuloClient client = opts.createClient();
+        Scanner scanner = client.createScanner(tableName, auths)) {
       scanner.setBatchSize(scanOpts.scanBatchSize);
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
@@ -101,21 +102,21 @@ public class TestRandomDeletes {
     ArrayList<RowColumn> entries = new ArrayList<>(rows);
     java.util.Collections.shuffle(entries);
 
-    AccumuloClient accumuloClient = opts.getClient();
-    BatchWriter mutations = accumuloClient.createBatchWriter(tableName,
-        bwOpts.getBatchWriterConfig());
+    try (AccumuloClient accumuloClient = opts.createClient()) {
+      BatchWriter mutations = accumuloClient.createBatchWriter(tableName,
+          bwOpts.getBatchWriterConfig());
 
-    for (int i = 0; i < (entries.size() + 1) / 2; i++) {
-      RowColumn rc = entries.get(i);
-      Mutation m = new Mutation(rc.row);
-      m.putDelete(new Text(rc.column.columnFamily), new Text(rc.column.columnQualifier),
-          new ColumnVisibility(rc.column.getColumnVisibility()), rc.timestamp + 1);
-      mutations.addMutation(m);
-      rows.remove(rc);
-      result++;
+      for (int i = 0; i < (entries.size() + 1) / 2; i++) {
+        RowColumn rc = entries.get(i);
+        Mutation m = new Mutation(rc.row);
+        m.putDelete(new Text(rc.column.columnFamily), new Text(rc.column.columnQualifier),
+            new ColumnVisibility(rc.column.getColumnVisibility()), rc.timestamp + 1);
+        mutations.addMutation(m);
+        rows.remove(rc);
+        result++;
+      }
+      mutations.close();
     }
-
-    mutations.close();
 
     Set<RowColumn> current = scanAll(opts, scanOpts, tableName);
     current.removeAll(rows);

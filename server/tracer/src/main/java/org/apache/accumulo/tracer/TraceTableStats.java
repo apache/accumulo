@@ -25,8 +25,6 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -72,11 +70,8 @@ public class TraceTableStats {
     stats.count(opts);
   }
 
-  public void count(Opts opts)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    AccumuloClient client = opts.getClient();
-    Scanner scanner = client.createScanner(opts.getTableName(), Authorizations.EMPTY);
-    scanner.setRange(new Range(null, true, "idx:", false));
+  public void count(Opts opts) throws TableNotFoundException {
+
     Map<String,SpanTypeCount> counts = new TreeMap<>();
     final SpanTypeCount hdfs = new SpanTypeCount();
     hdfs.type = "HDFS";
@@ -85,31 +80,36 @@ public class TraceTableStats {
     long numSpans = 0;
     double maxSpanLength = 0;
     double maxSpanLengthMS = 0;
-    for (Entry<Key,Value> entry : scanner) {
-      numSpans++;
-      RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
-      String id = span.getSvc() + ":" + span.getDescription().replaceAll("[0-9][0-9][0-9]+", "");
-      SpanTypeCount stc = counts.get(id);
-      if (stc == null) {
-        stc = new SpanTypeCount();
-        counts.put(id, stc);
-        if (span.description.startsWith("org.apache.hadoop") || span.svc.equals("NameNode")
-            || span.svc.equals("DataNode") || span.description.contains("DFSOutputStream")
-            || span.description.contains("DFSInputStream")
-            || span.description.contains("BlockReader")) {
-          stc.type = hdfs.type;
-        } else {
-          stc.type = accumulo.type;
+
+    try (AccumuloClient client = opts.createClient()) {
+      Scanner scanner = client.createScanner(opts.getTableName(), Authorizations.EMPTY);
+      scanner.setRange(new Range(null, true, "idx:", false));
+      for (Entry<Key,Value> entry : scanner) {
+        numSpans++;
+        RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
+        String id = span.getSvc() + ":" + span.getDescription().replaceAll("[0-9][0-9][0-9]+", "");
+        SpanTypeCount stc = counts.get(id);
+        if (stc == null) {
+          stc = new SpanTypeCount();
+          counts.put(id, stc);
+          if (span.description.startsWith("org.apache.hadoop") || span.svc.equals("NameNode")
+              || span.svc.equals("DataNode") || span.description.contains("DFSOutputStream")
+              || span.description.contains("DFSInputStream")
+              || span.description.contains("BlockReader")) {
+            stc.type = hdfs.type;
+          } else {
+            stc.type = accumulo.type;
+          }
         }
+        increment(stc, span);
+        if (stc.type.equals(hdfs.type)) {
+          increment(hdfs, span);
+        } else {
+          increment(accumulo, span);
+        }
+        maxSpanLength = Math.max(maxSpanLength, Math.log10(span.stop - span.start));
+        maxSpanLengthMS = Math.max(maxSpanLengthMS, span.stop - span.start);
       }
-      increment(stc, span);
-      if (stc.type.equals(hdfs.type)) {
-        increment(hdfs, span);
-      } else {
-        increment(accumulo, span);
-      }
-      maxSpanLength = Math.max(maxSpanLength, Math.log10(span.stop - span.start));
-      maxSpanLengthMS = Math.max(maxSpanLengthMS, span.stop - span.start);
     }
     System.out.println();
     System.out.println("log10 max span length " + maxSpanLength + " " + maxSpanLengthMS);

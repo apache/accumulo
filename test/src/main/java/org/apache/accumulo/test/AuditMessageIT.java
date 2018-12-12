@@ -207,7 +207,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Connect as Audit User and do a bunch of stuff.
     // Testing activity begins here
-    auditAccumuloClient = getCluster().getAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    auditAccumuloClient = getCluster().createAccumuloClient(AUDIT_USER_1,
+        new PasswordToken(PASSWORD));
     auditAccumuloClient.tableOperations().create(OLD_TEST_TABLE_NAME);
     auditAccumuloClient.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
     Map<String,String> emptyMap = Collections.emptyMap();
@@ -247,7 +248,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditAccumuloClient = getCluster().getAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    auditAccumuloClient = getCluster().createAccumuloClient(AUDIT_USER_1,
+        new PasswordToken(PASSWORD));
     auditAccumuloClient.securityOperations().createLocalUser(AUDIT_USER_2,
         new PasswordToken(PASSWORD));
 
@@ -302,7 +304,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditAccumuloClient = getCluster().getAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    auditAccumuloClient = getCluster().createAccumuloClient(AUDIT_USER_1,
+        new PasswordToken(PASSWORD));
     auditAccumuloClient.tableOperations().create(OLD_TEST_TABLE_NAME);
 
     // Insert some play data
@@ -390,7 +393,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Connect as Audit User and do a bunch of stuff.
     // Start testing activities here
-    auditAccumuloClient = getCluster().getAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    auditAccumuloClient = getCluster().createAccumuloClient(AUDIT_USER_1,
+        new PasswordToken(PASSWORD));
     auditAccumuloClient.tableOperations().create(OLD_TEST_TABLE_NAME);
 
     // Insert some play data
@@ -444,7 +448,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // Create our user with no privs
     client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     client.tableOperations().create(OLD_TEST_TABLE_NAME);
-    auditAccumuloClient = getCluster().getAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
+    auditAccumuloClient = getCluster().createAccumuloClient(AUDIT_USER_1,
+        new PasswordToken(PASSWORD));
 
     // Start testing activities
     // We should get denied or / failed audit messages here.
