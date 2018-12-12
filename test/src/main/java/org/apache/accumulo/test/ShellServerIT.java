@@ -304,7 +304,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     traceProcess = getCluster().exec(TraceServer.class);
 
-    AccumuloClient client = getCluster().getAccumuloClient(getPrincipal(), getToken());
+    AccumuloClient client = getCluster().createAccumuloClient(getPrincipal(), getToken());
     TableOperations tops = client.tableOperations();
 
     // give the tracer some time to start

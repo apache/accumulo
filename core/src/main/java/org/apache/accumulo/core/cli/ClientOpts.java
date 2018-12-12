@@ -153,7 +153,6 @@ public class ClientOpts extends Help {
     startTracing(programName);
   }
 
-  private AccumuloClient cachedAccumuloClient = null;
   private Properties cachedProps = null;
 
   public String getPrincipal() {
@@ -168,11 +167,11 @@ public class ClientOpts extends Help {
     this.cachedProps = clientProps;
   }
 
-  public AccumuloClient getClient() {
-    if (cachedAccumuloClient == null) {
-      cachedAccumuloClient = Accumulo.newClient().from(getClientProperties()).build();
-    }
-    return cachedAccumuloClient;
+  /**
+   * @return {@link AccumuloClient} that must be closed by user
+   */
+  public AccumuloClient createClient() {
+    return Accumulo.newClient().from(getClientProperties()).build();
   }
 
   public String getClientConfigFile() {

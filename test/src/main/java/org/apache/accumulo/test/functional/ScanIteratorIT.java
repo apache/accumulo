@@ -226,7 +226,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
   private void runTest(Authorizations auths, boolean shouldFail) throws Exception {
     ClusterUser clusterUser = getUser(0);
-    AccumuloClient userC = getCluster().getAccumuloClient(clusterUser.getPrincipal(),
+    AccumuloClient userC = getCluster().createAccumuloClient(clusterUser.getPrincipal(),
         clusterUser.getToken());
     writeTestMutation(userC);
 

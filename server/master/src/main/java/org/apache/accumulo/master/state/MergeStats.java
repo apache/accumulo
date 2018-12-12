@@ -262,22 +262,23 @@ public class MergeStats {
     ServerUtilOpts opts = new ServerUtilOpts();
     opts.parseArgs(MergeStats.class.getName(), args);
 
-    AccumuloClient client = opts.getClient();
-    Map<String,String> tableIdMap = client.tableOperations().tableIdMap();
-    ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooReaderWriter();
-    for (Entry<String,String> entry : tableIdMap.entrySet()) {
-      final String table = entry.getKey(), tableId = entry.getValue();
-      String path = ZooUtil.getRoot(client.getInstanceID()) + Constants.ZTABLES + "/" + tableId
-          + "/merge";
-      MergeInfo info = new MergeInfo();
-      if (zooReaderWriter.exists(path)) {
-        byte[] data = zooReaderWriter.getData(path, new Stat());
-        DataInputBuffer in = new DataInputBuffer();
-        in.reset(data, data.length);
-        info.readFields(in);
+    try (AccumuloClient client = opts.createClient()) {
+      Map<String,String> tableIdMap = client.tableOperations().tableIdMap();
+      ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooReaderWriter();
+      for (Entry<String,String> entry : tableIdMap.entrySet()) {
+        final String table = entry.getKey(), tableId = entry.getValue();
+        String path = ZooUtil.getRoot(client.getInstanceID()) + Constants.ZTABLES + "/" + tableId
+            + "/merge";
+        MergeInfo info = new MergeInfo();
+        if (zooReaderWriter.exists(path)) {
+          byte[] data = zooReaderWriter.getData(path, new Stat());
+          DataInputBuffer in = new DataInputBuffer();
+          in.reset(data, data.length);
+          info.readFields(in);
+        }
+        System.out.println(String.format("%25s  %10s %10s %s", table, info.getState(),
+            info.getOperation(), info.getExtent()));
       }
-      System.out.println(String.format("%25s  %10s %10s %s", table, info.getState(),
-          info.getOperation(), info.getExtent()));
     }
   }
 }

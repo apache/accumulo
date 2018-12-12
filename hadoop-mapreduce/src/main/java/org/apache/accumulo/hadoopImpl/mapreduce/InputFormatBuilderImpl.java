@@ -247,8 +247,9 @@ public class InputFormatBuilderImpl<T>
       throws AccumuloSecurityException, AccumuloException {
     if (scanAuths != null)
       return scanAuths;
-    AccumuloClient c = Accumulo.newClient().from(clientInfo.getProperties()).build();
-    return c.securityOperations().getUserAuthorizations(clientInfo.getPrincipal());
+    try (AccumuloClient c = Accumulo.newClient().from(clientInfo.getProperties()).build()) {
+      return c.securityOperations().getUserAuthorizations(clientInfo.getPrincipal());
+    }
   }
 
   private static class BuilderBooleans {

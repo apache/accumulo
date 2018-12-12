@@ -780,7 +780,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   @Override
-  public AccumuloClient getAccumuloClient(String user, AuthenticationToken token) {
+  public AccumuloClient createAccumuloClient(String user, AuthenticationToken token) {
     return Accumulo.newClient().from(getClientProperties()).as(user, token).build();
   }
 

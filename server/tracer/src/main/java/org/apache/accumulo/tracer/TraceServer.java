@@ -80,7 +80,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TraceServer implements Watcher {
+public class TraceServer implements Watcher, AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(TraceServer.class);
   private final ServerConfigurationFactory serverConfiguration;
@@ -95,6 +95,13 @@ public class TraceServer implements Watcher {
 
   private static void put(Mutation m, String cf, String cq, byte[] bytes, int len) {
     m.put(new Text(cf), new Text(cq), new Value(bytes, 0, len));
+  }
+
+  @Override
+  public void close() throws Exception {
+    if (accumuloClient != null) {
+      accumuloClient.close();
+    }
   }
 
   static class ByteArrayTransport extends TTransport {
@@ -267,14 +274,13 @@ public class TraceServer implements Watcher {
           for (Entry<String,String> entry : loginMap.entrySet()) {
             props.put(entry.getKey().substring(prefixLength), entry.getValue());
           }
-
           token.init(props);
-
           at = token;
         }
 
         accumuloClient = Accumulo.newClient().from(context.getProperties()).as(principal, at)
             .build();
+
         if (!accumuloClient.tableOperations().exists(tableName)) {
           accumuloClient.tableOperations().create(tableName);
           IteratorSetting setting = new IteratorSetting(10, "ageoff", AgeOffFilter.class.getName());
@@ -288,6 +294,10 @@ public class TraceServer implements Watcher {
           | RuntimeException ex) {
         log.info("Waiting to checking/create the trace table.", ex);
         sleepUninterruptibly(1, TimeUnit.SECONDS);
+        if (accumuloClient != null) {
+          accumuloClient.close();
+          accumuloClient = null;
+        }
       }
     }
     return accumuloClient;

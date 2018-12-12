@@ -155,7 +155,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
         rootUser.getKeytab().getAbsolutePath());
     log.info("Logged in as {}", rootUser.getPrincipal());
 
-    AccumuloClient client = mac.getAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
+    AccumuloClient client = mac.createAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
     log.info("Created client as {}", rootUser.getPrincipal());
     assertEquals(rootUser.getPrincipal(), client.whoami());
 

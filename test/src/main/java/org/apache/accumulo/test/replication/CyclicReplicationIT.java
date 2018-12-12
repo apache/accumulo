@@ -216,9 +216,9 @@ public class CyclicReplicationIT {
     }
 
     try {
-      AccumuloClient clientMaster1 = master1Cluster.getAccumuloClient("root",
+      AccumuloClient clientMaster1 = master1Cluster.createAccumuloClient("root",
           new PasswordToken(password)),
-          clientMaster2 = master2Cluster.getAccumuloClient("root", new PasswordToken(password));
+          clientMaster2 = master2Cluster.createAccumuloClient("root", new PasswordToken(password));
 
       String master1UserName = "master1", master1Password = "foo";
       String master2UserName = "master2", master2Password = "bar";

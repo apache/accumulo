@@ -27,8 +27,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -94,65 +92,65 @@ public class QueryMetadataTable {
     int numThreads = 1;
   }
 
-  public static void main(String[] args)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public static void main(String[] args) throws TableNotFoundException {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(QueryMetadataTable.class.getName(), args, scanOpts);
 
-    AccumuloClient accumuloClient = opts.getClient();
-    HashSet<Text> rowSet = new HashSet<>();
+    try (AccumuloClient accumuloClient = opts.createClient()) {
+      HashSet<Text> rowSet = new HashSet<>();
 
-    int count = 0;
+      int count = 0;
 
-    try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, opts.auths)) {
-      scanner.setBatchSize(scanOpts.scanBatchSize);
-      Text mdrow = new Text(TabletsSection.getRow(MetadataTable.ID, null));
+      try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, opts.auths)) {
+        scanner.setBatchSize(scanOpts.scanBatchSize);
+        Text mdrow = new Text(TabletsSection.getRow(MetadataTable.ID, null));
 
-      for (Entry<Key,Value> entry : scanner) {
-        System.out.print(".");
-        if (count % 72 == 0) {
-          System.out.printf(" %,d%n", count);
+        for (Entry<Key,Value> entry : scanner) {
+          System.out.print(".");
+          if (count % 72 == 0) {
+            System.out.printf(" %,d%n", count);
+          }
+          if (entry.getKey().compareRow(mdrow) == 0 && entry.getKey().getColumnFamily()
+              .compareTo(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
+            System.out.println(entry.getKey() + " " + entry.getValue());
+            location = entry.getValue().toString();
+          }
+
+          if (!entry.getKey().getRow().toString().startsWith(MetadataTable.ID.canonicalID()))
+            rowSet.add(entry.getKey().getRow());
+          count++;
         }
-        if (entry.getKey().compareRow(mdrow) == 0 && entry.getKey().getColumnFamily()
-            .compareTo(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
-          System.out.println(entry.getKey() + " " + entry.getValue());
-          location = entry.getValue().toString();
-        }
-
-        if (!entry.getKey().getRow().toString().startsWith(MetadataTable.ID.canonicalID()))
-          rowSet.add(entry.getKey().getRow());
-        count++;
       }
+
+      System.out.printf(" %,d%n", count);
+
+      ArrayList<Text> rows = new ArrayList<>(rowSet);
+
+      Random r = new SecureRandom();
+
+      ExecutorService tp = Executors.newFixedThreadPool(opts.numThreads);
+
+      long t1 = System.currentTimeMillis();
+
+      for (int i = 0; i < opts.numQueries; i++) {
+        int index = r.nextInt(rows.size());
+        MDTQuery mdtq = new MDTQuery(accumuloClient, rows.get(index));
+        tp.submit(mdtq);
+      }
+
+      tp.shutdown();
+
+      try {
+        tp.awaitTermination(1, TimeUnit.HOURS);
+      } catch (InterruptedException e) {
+        log.error("Failed while awaiting the ExcecutorService to terminate.", e);
+        throw new RuntimeException(e);
+      }
+
+      long t2 = System.currentTimeMillis();
+      double delta = (t2 - t1) / 1000.0;
+      System.out.println("time : " + delta + "  queries per sec : " + (opts.numQueries / delta));
     }
-
-    System.out.printf(" %,d%n", count);
-
-    ArrayList<Text> rows = new ArrayList<>(rowSet);
-
-    Random r = new SecureRandom();
-
-    ExecutorService tp = Executors.newFixedThreadPool(opts.numThreads);
-
-    long t1 = System.currentTimeMillis();
-
-    for (int i = 0; i < opts.numQueries; i++) {
-      int index = r.nextInt(rows.size());
-      MDTQuery mdtq = new MDTQuery(accumuloClient, rows.get(index));
-      tp.submit(mdtq);
-    }
-
-    tp.shutdown();
-
-    try {
-      tp.awaitTermination(1, TimeUnit.HOURS);
-    } catch (InterruptedException e) {
-      log.error("Failed while awaiting the ExcecutorService to terminate.", e);
-      throw new RuntimeException(e);
-    }
-
-    long t2 = System.currentTimeMillis();
-    double delta = (t2 - t1) / 1000.0;
-    System.out.println("time : " + delta + "  queries per sec : " + (opts.numQueries / delta));
   }
 }

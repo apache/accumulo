@@ -58,24 +58,25 @@ public abstract class MapReduceClientOpts extends ClientOpts {
         log.info("Obtaining delegation token for {}", newPrincipal);
 
         setPrincipal(newPrincipal);
-        AccumuloClient client = Accumulo.newClient().from(getClientProperties())
-            .as(newPrincipal, krbToken).build();
+        try (AccumuloClient client = Accumulo.newClient().from(getClientProperties())
+            .as(newPrincipal, krbToken).build()) {
 
-        // Do the explicit check to see if the user has the permission to get a delegation token
-        if (!client.securityOperations().hasSystemPermission(client.whoami(),
-            SystemPermission.OBTAIN_DELEGATION_TOKEN)) {
-          log.error(
-              "{} doesn't have the {} SystemPermission neccesary to obtain a delegation"
-                  + " token. MapReduce tasks cannot automatically use the client's"
-                  + " credentials on remote servers. Delegation tokens provide a means to run"
-                  + " MapReduce without distributing the user's credentials.",
-              user.getUserName(), SystemPermission.OBTAIN_DELEGATION_TOKEN.name());
-          throw new IllegalStateException(
-              client.whoami() + " does not have permission to obtain a delegation token");
+          // Do the explicit check to see if the user has the permission to get a delegation token
+          if (!client.securityOperations().hasSystemPermission(client.whoami(),
+              SystemPermission.OBTAIN_DELEGATION_TOKEN)) {
+            log.error(
+                "{} doesn't have the {} SystemPermission neccesary to obtain a delegation"
+                    + " token. MapReduce tasks cannot automatically use the client's"
+                    + " credentials on remote servers. Delegation tokens provide a means to run"
+                    + " MapReduce without distributing the user's credentials.",
+                user.getUserName(), SystemPermission.OBTAIN_DELEGATION_TOKEN.name());
+            throw new IllegalStateException(
+                client.whoami() + " does not have permission to obtain a delegation token");
+          }
+
+          // Get the delegation token from Accumulo
+          return client.securityOperations().getDelegationToken(new DelegationTokenConfig());
         }
-
-        // Get the delegation token from Accumulo
-        return client.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
         final String msg = "Failed to acquire DelegationToken for use with MapReduce";
         log.error(msg, e);

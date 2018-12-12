@@ -167,8 +167,10 @@ public class KerberosReplicationIT extends AccumuloITBase {
     ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
       log.info("testing {}", ugi);
       final KerberosToken token = new KerberosToken();
-      try (AccumuloClient primaryclient = primary.getAccumuloClient(rootUser.getPrincipal(), token);
-          AccumuloClient peerclient = peer.getAccumuloClient(rootUser.getPrincipal(), token)) {
+      try (
+          AccumuloClient primaryclient = primary.createAccumuloClient(rootUser.getPrincipal(),
+              token);
+          AccumuloClient peerclient = peer.createAccumuloClient(rootUser.getPrincipal(), token)) {
 
         ClusterUser replicationUser = kdc.getClientPrincipal(0);
 

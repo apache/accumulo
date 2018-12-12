@@ -73,7 +73,7 @@ public class MiniAccumuloClusterImplTest {
     accumulo = new MiniAccumuloClusterImpl(config);
     accumulo.start();
     // create a table to ensure there are some entries in the !0 table
-    AccumuloClient client = accumulo.getAccumuloClient("root", new PasswordToken("superSecret"));
+    AccumuloClient client = accumulo.createAccumuloClient("root", new PasswordToken("superSecret"));
     TableOperations tableops = client.tableOperations();
     tableops.create(TEST_TABLE);
     testTableID = tableops.tableIdMap().get(TEST_TABLE);

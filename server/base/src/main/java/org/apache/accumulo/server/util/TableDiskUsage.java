@@ -299,9 +299,10 @@ public class TableDiskUsage {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(TableDiskUsage.class.getName(), args);
-    AccumuloClient client = opts.getClient();
-    VolumeManager fs = opts.getServerContext().getVolumeManager();
-    org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, fs, client, false);
+    try (AccumuloClient client = opts.createClient()) {
+      VolumeManager fs = opts.getServerContext().getVolumeManager();
+      org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, fs, client, false);
+    }
   }
 
 }

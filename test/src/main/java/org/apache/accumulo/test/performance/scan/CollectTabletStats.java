@@ -214,41 +214,32 @@ public class CollectTabletStats {
       runTest("read tablet files w/ table iter stack", tests, opts.numThreads, threadPool);
     }
 
-    for (int i = 0; i < opts.iterations; i++) {
-
-      ArrayList<Test> tests = new ArrayList<>();
-
-      final AccumuloClient client = opts.getClient();
-
-      for (final KeyExtent ke : tabletsToTest) {
-        Test test = new Test(ke) {
-          @Override
-          public int runTest() throws Exception {
-            return scanTablet(client, opts.getTableName(), opts.auths, scanOpts.scanBatchSize,
-                ke.getPrevEndRow(), ke.getEndRow(), columns);
-          }
-        };
-
-        tests.add(test);
+    try (AccumuloClient client = opts.createClient()) {
+      for (int i = 0; i < opts.iterations; i++) {
+        ArrayList<Test> tests = new ArrayList<>();
+        for (final KeyExtent ke : tabletsToTest) {
+          Test test = new Test(ke) {
+            @Override
+            public int runTest() throws Exception {
+              return scanTablet(client, opts.getTableName(), opts.auths, scanOpts.scanBatchSize,
+                  ke.getPrevEndRow(), ke.getEndRow(), columns);
+            }
+          };
+          tests.add(test);
+        }
+        runTest("read tablet data through accumulo", tests, opts.numThreads, threadPool);
       }
 
-      runTest("read tablet data through accumulo", tests, opts.numThreads, threadPool);
-    }
-
-    for (final KeyExtent ke : tabletsToTest) {
-      final AccumuloClient client = opts.getClient();
-
-      threadPool.submit(new Runnable() {
-        @Override
-        public void run() {
+      for (final KeyExtent ke : tabletsToTest) {
+        threadPool.submit(() -> {
           try {
             calcTabletStats(client, opts.getTableName(), opts.auths, scanOpts.scanBatchSize, ke,
                 columns);
           } catch (Exception e) {
             log.error("Failed to calculate tablet stats.", e);
           }
-        }
-      });
+        });
+      }
     }
 
     threadPool.shutdown();

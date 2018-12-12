@@ -63,7 +63,6 @@ public class MetadataBatchScan {
 
     ClientOpts opts = new ClientOpts();
     opts.parseArgs(MetadataBatchScan.class.getName(), args);
-    final AccumuloClient accumuloClient = opts.getClient();
 
     TreeSet<Long> splits = new TreeSet<>();
     Random r = new SecureRandom();
@@ -87,88 +86,87 @@ public class MetadataBatchScan {
 
     extents.add(new KeyExtent(tid, null, per));
 
-    if (args[0].equals("write")) {
+    try (AccumuloClient accumuloClient = opts.createClient()) {
+      if (args[0].equals("write")) {
 
-      BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME,
-          new BatchWriterConfig());
+        BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME,
+            new BatchWriterConfig());
 
-      for (KeyExtent extent : extents) {
-        Mutation mut = extent.getPrevRowUpdateMutation();
-        new TServerInstance(HostAndPort.fromParts("192.168.1.100", 4567), "DEADBEEF")
-            .putLocation(mut);
-        bw.addMutation(mut);
-      }
-
-      bw.close();
-    } else if (args[0].equals("writeFiles")) {
-      BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME,
-          new BatchWriterConfig());
-
-      for (KeyExtent extent : extents) {
-
-        Mutation mut = new Mutation(extent.getMetadataEntry());
-
-        String dir = "/t-" + UUID.randomUUID();
-
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value(dir.getBytes(UTF_8)));
-
-        for (int i = 0; i < 5; i++) {
-          mut.put(DataFileColumnFamily.NAME, new Text(dir + "/00000_0000" + i + ".map"),
-              new DataFileValue(10000, 1000000).encodeAsValue());
+        for (KeyExtent extent : extents) {
+          Mutation mut = extent.getPrevRowUpdateMutation();
+          new TServerInstance(HostAndPort.fromParts("192.168.1.100", 4567), "DEADBEEF")
+              .putLocation(mut);
+          bw.addMutation(mut);
         }
 
-        bw.addMutation(mut);
-      }
+        bw.close();
+      } else if (args[0].equals("writeFiles")) {
+        BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME,
+            new BatchWriterConfig());
 
-      bw.close();
-    } else if (args[0].equals("scan")) {
+        for (KeyExtent extent : extents) {
 
-      int numThreads = Integer.parseInt(args[1]);
-      final int numLoop = Integer.parseInt(args[2]);
-      int numLookups = Integer.parseInt(args[3]);
+          Mutation mut = new Mutation(extent.getMetadataEntry());
 
-      HashSet<Integer> indexes = new HashSet<>();
-      while (indexes.size() < numLookups) {
-        indexes.add(r.nextInt(extents.size()));
-      }
+          String dir = "/t-" + UUID.randomUUID();
 
-      final List<Range> ranges = new ArrayList<>();
-      for (Integer i : indexes) {
-        ranges.add(extents.get(i).toMetadataRange());
-      }
+          TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
+              new Value(dir.getBytes(UTF_8)));
 
-      Thread threads[] = new Thread[numThreads];
+          for (int i = 0; i < 5; i++) {
+            mut.put(DataFileColumnFamily.NAME, new Text(dir + "/00000_0000" + i + ".map"),
+                new DataFileValue(10000, 1000000).encodeAsValue());
+          }
 
-      for (int i = 0; i < threads.length; i++) {
-        threads[i] = new Thread(new Runnable() {
+          bw.addMutation(mut);
+        }
 
-          @Override
-          public void run() {
+        bw.close();
+      } else if (args[0].equals("scan")) {
+
+        int numThreads = Integer.parseInt(args[1]);
+        final int numLoop = Integer.parseInt(args[2]);
+        int numLookups = Integer.parseInt(args[3]);
+
+        HashSet<Integer> indexes = new HashSet<>();
+        while (indexes.size() < numLookups) {
+          indexes.add(r.nextInt(extents.size()));
+        }
+
+        final List<Range> ranges = new ArrayList<>();
+        for (Integer i : indexes) {
+          ranges.add(extents.get(i).toMetadataRange());
+        }
+
+        Thread threads[] = new Thread[numThreads];
+
+        for (int i = 0; i < threads.length; i++) {
+          threads[i] = new Thread(() -> {
             try {
               System.out.println(runScanTest(accumuloClient, numLoop, ranges));
             } catch (Exception e) {
               log.error("Exception while running scan test.", e);
             }
-          }
-        });
+          });
+        }
+
+        long t1 = System.currentTimeMillis();
+
+        for (Thread thread : threads) {
+          thread.start();
+        }
+
+        for (Thread thread : threads) {
+          thread.join();
+        }
+
+        long t2 = System.currentTimeMillis();
+
+        System.out.printf("tt : %6.2f%n", (t2 - t1) / 1000.0);
+
+      } else {
+        throw new IllegalArgumentException();
       }
-
-      long t1 = System.currentTimeMillis();
-
-      for (Thread thread : threads) {
-        thread.start();
-      }
-
-      for (Thread thread : threads) {
-        thread.join();
-      }
-
-      long t2 = System.currentTimeMillis();
-
-      System.out.printf("tt : %6.2f%n", (t2 - t1) / 1000.0);
-
-    } else {
-      throw new IllegalArgumentException();
     }
 
   }

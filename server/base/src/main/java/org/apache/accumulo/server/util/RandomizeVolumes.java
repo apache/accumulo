@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -50,18 +49,12 @@ import org.slf4j.LoggerFactory;
 public class RandomizeVolumes {
   private static final Logger log = LoggerFactory.getLogger(RandomizeVolumes.class);
 
-  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException {
+  public static void main(String[] args) {
     ServerUtilOnRequiredTable opts = new ServerUtilOnRequiredTable();
     opts.parseArgs(RandomizeVolumes.class.getName(), args);
     ServerContext context = opts.getServerContext();
-    AccumuloClient c;
-    if (opts.getToken() == null) {
-      c = context.getClient();
-    } else {
-      c = opts.getClient();
-    }
     try {
-      int status = randomize(context, c, opts.getTableName());
+      int status = randomize(context, opts.getTableName());
       System.exit(status);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
@@ -69,14 +62,14 @@ public class RandomizeVolumes {
     }
   }
 
-  public static int randomize(ServerContext context, AccumuloClient c, String tableName)
-      throws IOException, AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  public static int randomize(ServerContext context, String tableName)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     final VolumeManager vm = context.getVolumeManager();
     if (vm.getVolumes().size() < 2) {
       log.error("There are not enough volumes configured");
       return 1;
     }
-    String tblStr = c.tableOperations().tableIdMap().get(tableName);
+    String tblStr = context.getClient().tableOperations().tableIdMap().get(tableName);
     if (null == tblStr) {
       log.error("Could not determine the table ID for table {}", tableName);
       return 2;
@@ -85,15 +78,15 @@ public class RandomizeVolumes {
     TableState tableState = context.getTableManager().getTableState(tableId);
     if (TableState.OFFLINE != tableState) {
       log.info("Taking {} offline", tableName);
-      c.tableOperations().offline(tableName, true);
+      context.getClient().tableOperations().offline(tableName, true);
       log.info("{} offline", tableName);
     }
     SimpleThreadPool pool = new SimpleThreadPool(50, "directory maker");
     log.info("Rewriting entries for {}", tableName);
-    Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner scanner = context.getClient().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     DIRECTORY_COLUMN.fetch(scanner);
     scanner.setRange(TabletsSection.getRange(tableId));
-    BatchWriter writer = c.createBatchWriter(MetadataTable.NAME, null);
+    BatchWriter writer = context.getClient().createBatchWriter(MetadataTable.NAME, null);
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
       String oldLocation = entry.getValue().toString();
@@ -122,14 +115,11 @@ public class RandomizeVolumes {
         log.trace("Replacing {} with {}", oldLocation, newLocation);
       }
       writer.addMutation(m);
-      pool.submit(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            vm.mkdirs(new Path(newLocation));
-          } catch (IOException ex) {
-            // nevermind
-          }
+      pool.submit(() -> {
+        try {
+          vm.mkdirs(new Path(newLocation));
+        } catch (IOException ex) {
+          // nevermind
         }
       });
       count++;
@@ -147,7 +137,7 @@ public class RandomizeVolumes {
     }
     log.info("Updated {} entries for table {}", count, tableName);
     if (TableState.OFFLINE != tableState) {
-      c.tableOperations().online(tableName, true);
+      context.getClient().tableOperations().online(tableName, true);
       log.info("table {} back online", tableName);
     }
     return 0;

@@ -176,7 +176,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peerCluster.start();
 
     try (AccumuloClient clientMaster = getClient();
-        AccumuloClient clientPeer = peerCluster.getAccumuloClient("root",
+        AccumuloClient clientPeer = peerCluster.createAccumuloClient("root",
             new PasswordToken(ROOT_PASSWORD))) {
 
       ReplicationTable.setOnline(clientMaster);
@@ -350,7 +350,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peer1Cluster.start();
 
     try (AccumuloClient clientMaster = getClient();
-        AccumuloClient clientPeer = peer1Cluster.getAccumuloClient("root",
+        AccumuloClient clientPeer = peer1Cluster.createAccumuloClient("root",
             new PasswordToken(ROOT_PASSWORD))) {
       String peerClusterName = "peer";
       String peerUserName = "peer", peerPassword = "foo";
@@ -510,7 +510,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peerCluster.start();
 
     try (AccumuloClient clientMaster = getClient();
-        AccumuloClient clientPeer = peerCluster.getAccumuloClient("root",
+        AccumuloClient clientPeer = peerCluster.createAccumuloClient("root",
             new PasswordToken(ROOT_PASSWORD))) {
 
       String peerUserName = "repl";
@@ -630,7 +630,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peer1Cluster.start();
 
     try (AccumuloClient clientMaster = getClient();
-        AccumuloClient clientPeer = peer1Cluster.getAccumuloClient("root",
+        AccumuloClient clientPeer = peer1Cluster.createAccumuloClient("root",
             new PasswordToken(ROOT_PASSWORD))) {
 
       String peerClusterName = "peer";

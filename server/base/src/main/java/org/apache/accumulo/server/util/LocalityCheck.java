@@ -45,35 +45,36 @@ public class LocalityCheck {
     opts.parseArgs(LocalityCheck.class.getName(), args);
 
     VolumeManager fs = opts.getServerContext().getVolumeManager();
-    AccumuloClient accumuloClient = opts.getClient();
-    Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    scanner.setRange(MetadataSchema.TabletsSection.getRange());
+    try (AccumuloClient accumuloClient = opts.createClient()) {
+      Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+      scanner.setRange(MetadataSchema.TabletsSection.getRange());
 
-    Map<String,Long> totalBlocks = new HashMap<>();
-    Map<String,Long> localBlocks = new HashMap<>();
-    ArrayList<String> files = new ArrayList<>();
+      Map<String,Long> totalBlocks = new HashMap<>();
+      Map<String,Long> localBlocks = new HashMap<>();
+      ArrayList<String> files = new ArrayList<>();
 
-    for (Entry<Key,Value> entry : scanner) {
-      Key key = entry.getKey();
-      if (key.compareColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
-        String location = entry.getValue().toString();
-        String[] parts = location.split(":");
-        String host = parts[0];
-        addBlocks(fs, host, files, totalBlocks, localBlocks);
-        files.clear();
-      } else if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
+      for (Entry<Key,Value> entry : scanner) {
+        Key key = entry.getKey();
+        if (key.compareColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
+          String location = entry.getValue().toString();
+          String[] parts = location.split(":");
+          String host = parts[0];
+          addBlocks(fs, host, files, totalBlocks, localBlocks);
+          files.clear();
+        } else if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
 
-        files.add(fs.getFullPath(key).toString());
+          files.add(fs.getFullPath(key).toString());
+        }
       }
-    }
-    System.out.println(" Server         %local  total blocks");
-    for (Entry<String,Long> entry : totalBlocks.entrySet()) {
-      final String host = entry.getKey();
-      final Long blocksForHost = entry.getValue();
-      System.out.println(String.format("%15s %5.1f %8d", host,
-          (localBlocks.get(host) * 100.) / blocksForHost, blocksForHost));
+      System.out.println(" Server         %local  total blocks");
+      for (Entry<String,Long> entry : totalBlocks.entrySet()) {
+        final String host = entry.getKey();
+        final Long blocksForHost = entry.getValue();
+        System.out.println(String.format("%15s %5.1f %8d", host,
+            (localBlocks.get(host) * 100.) / blocksForHost, blocksForHost));
+      }
     }
     return 0;
   }

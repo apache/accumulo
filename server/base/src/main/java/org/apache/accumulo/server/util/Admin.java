@@ -247,8 +247,7 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
       } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
-        rc = RandomizeVolumes.randomize(context, context.getClient(),
-            randomizeVolumesOpts.tableName);
+        rc = RandomizeVolumes.randomize(context, randomizeVolumesOpts.tableName);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 

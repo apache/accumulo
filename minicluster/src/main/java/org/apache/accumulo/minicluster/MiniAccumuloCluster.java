@@ -118,22 +118,23 @@ public class MiniAccumuloCluster {
    * Utility method to get a connector to the MAC.
    *
    * @since 1.6.0
-   * @deprecated since 2.0.0, replaced by {@link #getAccumuloClient(String, AuthenticationToken)}
+   * @deprecated since 2.0.0, replaced by {@link #createAccumuloClient(String, AuthenticationToken)}
    */
   @Deprecated
   public org.apache.accumulo.core.client.Connector getConnector(String user, String passwd)
       throws AccumuloException, AccumuloSecurityException {
     return org.apache.accumulo.core.client.Connector
-        .from(impl.getAccumuloClient(user, new PasswordToken(passwd)));
+        .from(impl.createAccumuloClient(user, new PasswordToken(passwd)));
   }
 
   /**
-   * Utility method to get a client connection to the MAC.
+   * Utility method to create an {@link AccumuloClient} with connection to the MAC. The
+   * AccumuloClient object should be closed by user
    *
    * @since 2.0.0
    */
-  public AccumuloClient getAccumuloClient(String user, AuthenticationToken token) {
-    return impl.getAccumuloClient(user, token);
+  public AccumuloClient createAccumuloClient(String user, AuthenticationToken token) {
+    return impl.createAccumuloClient(user, token);
   }
 
   /**

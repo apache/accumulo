@@ -20,8 +20,6 @@ import java.io.IOException;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.server.ServerContext;
@@ -53,12 +51,10 @@ public interface AccumuloCluster {
   ServerContext getServerContext();
 
   /**
-   * Utility method to get a client connection to the cluster.
-   *
+   * @return {@link AccumuloClient} that must be closed by user
    * @since 2.0
    */
-  AccumuloClient getAccumuloClient(String user, AuthenticationToken token)
-      throws AccumuloException, AccumuloSecurityException;
+  AccumuloClient createAccumuloClient(String user, AuthenticationToken token);
 
   /**
    * Get the client configuration for the cluster
