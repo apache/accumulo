@@ -31,6 +31,7 @@ import java.lang.reflect.Method;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -597,7 +598,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return new LoggerOperation(work);
   }
 
-  public LoggerOperation logManyTablets(List<TabletMutations> mutations) throws IOException {
+  public LoggerOperation logManyTablets(Collection<TabletMutations> mutations) throws IOException {
     Durability durability = Durability.NONE;
     List<Pair<LogFileKey,LogFileValue>> data = new ArrayList<>();
     for (TabletMutations tabletMutations : mutations) {
@@ -608,21 +609,20 @@ public class DfsLogger implements Comparable<DfsLogger> {
       LogFileValue value = new LogFileValue();
       value.mutations = tabletMutations.getMutations();
       data.add(new Pair<>(key, value));
-      if (tabletMutations.getDurability().ordinal() > durability.ordinal()) {
-        durability = tabletMutations.getDurability();
-      }
+      durability = maxDurability(tabletMutations.getDurability(), durability);
     }
-    return logFileData(data, chooseDurabilityForGroupCommit(mutations));
+    return logFileData(data, durability);
   }
 
-  static Durability chooseDurabilityForGroupCommit(List<TabletMutations> mutations) {
-    Durability result = Durability.NONE;
-    for (TabletMutations tabletMutations : mutations) {
-      if (tabletMutations.getDurability().ordinal() > result.ordinal()) {
-        result = tabletMutations.getDurability();
-      }
+  /**
+   * Return the Durability with the highest precedence
+   */
+  static Durability maxDurability(Durability dur1, Durability dur2) {
+    if (dur1.ordinal() > dur2.ordinal()) {
+      return dur1;
+    } else {
+      return dur2;
     }
-    return result;
   }
 
   public LoggerOperation minorCompactionFinished(long seq, int tid, String fqfn,

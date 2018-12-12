@@ -1013,7 +1013,8 @@ public class TabletServer implements Runnable {
     private void flush(UpdateSession us) {
 
       int mutationCount = 0;
-      Map<CommitSession,Mutations> sendables = new HashMap<>();
+      Map<CommitSession,List<Mutation>> sendables = new HashMap<>();
+      Map<CommitSession,TabletMutations> loggables = new HashMap<>();
       Throwable error = null;
 
       long pt1 = System.currentTimeMillis();
@@ -1031,7 +1032,8 @@ public class TabletServer implements Runnable {
         for (Entry<Tablet,? extends List<Mutation>> entry : us.queuedMutations.entrySet()) {
 
           Tablet tablet = entry.getKey();
-          Durability tabletDurability = tablet.getDurability();
+          Durability durability = DurabilityImpl.resolveDurabilty(us.durability,
+              tablet.getDurability());
           List<Mutation> mutations = entry.getValue();
           if (mutations.size() > 0) {
             try {
@@ -1045,8 +1047,11 @@ public class TabletServer implements Runnable {
                 }
                 us.failures.put(tablet.getExtent(), us.successfulCommits.get(tablet));
               } else {
-                sendables.put(commitSession, new Mutations(
-                    DurabilityImpl.resolveDurabilty(us.durability, tabletDurability), mutations));
+                if (durability != Durability.NONE) {
+                  loggables.put(commitSession, new TabletMutations(commitSession.getLogId(),
+                      commitSession.getWALogSeq(), mutations, durability));
+                }
+                sendables.put(commitSession, mutations);
                 mutationCount += mutations.size();
               }
 
@@ -1059,9 +1064,12 @@ public class TabletServer implements Runnable {
                 // only log and commit mutations if there were some
                 // that did not violate constraints... this is what
                 // prepareMutationsForCommit() expects
-                sendables.put(e.getCommitSession(),
-                    new Mutations(DurabilityImpl.resolveDurabilty(us.durability, tabletDurability),
-                        e.getNonViolators()));
+                CommitSession cs = e.getCommitSession();
+                if (durability != Durability.NONE) {
+                  loggables.put(cs, new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
+                      e.getNonViolators(), durability));
+                }
+                sendables.put(cs, e.getNonViolators());
               }
 
               mutationCount += mutations.size();
@@ -1082,9 +1090,7 @@ public class TabletServer implements Runnable {
       updateAvgPrepTime(pt2 - pt1, us.queuedMutations.size());
 
       if (error != null) {
-        for (Entry<CommitSession,Mutations> e : sendables.entrySet()) {
-          e.getKey().abortCommit(e.getValue().getMutations());
-        }
+        sendables.forEach(CommitSession::abortCommit);
         throw new RuntimeException(error);
       }
       try {
@@ -1094,7 +1100,7 @@ public class TabletServer implements Runnable {
             try {
               long t1 = System.currentTimeMillis();
 
-              logger.logManyTablets(sendables);
+              logger.logManyTablets(loggables);
 
               long t2 = System.currentTimeMillis();
               us.walogTimes.addStat(t2 - t1);
@@ -1115,12 +1121,8 @@ public class TabletServer implements Runnable {
         Span commit = Trace.start("commit");
         try {
           long t1 = System.currentTimeMillis();
-          for (Entry<CommitSession,Mutations> entry : sendables.entrySet()) {
-            CommitSession commitSession = entry.getKey();
-            List<Mutation> mutations = entry.getValue().getMutations();
-
+          sendables.forEach((commitSession, mutations) -> {
             commitSession.commit(mutations);
-
             KeyExtent extent = commitSession.getExtent();
 
             if (us.currentTablet != null && extent == us.currentTablet.getExtent()) {
@@ -1131,7 +1133,7 @@ public class TabletServer implements Runnable {
               us.successfulCommits.increment(us.currentTablet,
                   us.queuedMutations.get(us.currentTablet).size());
             }
-          }
+          });
           long t2 = System.currentTimeMillis();
 
           us.flushTime += (t2 - pt1);
@@ -1266,12 +1268,14 @@ public class TabletServer implements Runnable {
           throw new NotServingTabletException(tkeyExtent);
         }
 
-        while (true) {
+        Durability durability = DurabilityImpl
+            .resolveDurabilty(DurabilityImpl.fromThrift(tdurability), tabletDurability);
+        // instead of always looping on true, skip completely when durability is NONE
+        while (durability != Durability.NONE) {
           try {
             final Span wal = Trace.start("wal");
             try {
-              logger.log(cs, cs.getWALogSeq(), mutation, DurabilityImpl
-                  .resolveDurabilty(DurabilityImpl.fromThrift(tdurability), tabletDurability));
+              logger.log(cs, cs.getWALogSeq(), mutation, durability);
             } finally {
               wal.stop();
             }
@@ -1356,7 +1360,8 @@ public class TabletServer implements Runnable {
         ArrayList<TCMResult> results, ConditionalSession sess) {
       Set<Entry<KeyExtent,List<ServerConditionalMutation>>> es = updates.entrySet();
 
-      Map<CommitSession,Mutations> sendables = new HashMap<>();
+      Map<CommitSession,List<Mutation>> sendables = new HashMap<>();
+      Map<CommitSession,TabletMutations> loggables = new HashMap<>();
 
       boolean sessionCanceled = sess.interruptFlag.get();
 
@@ -1369,7 +1374,8 @@ public class TabletServer implements Runnable {
             for (ServerConditionalMutation scm : entry.getValue())
               results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
           } else {
-            final Durability tabletDurability = tablet.getDurability();
+            final Durability durability = DurabilityImpl.resolveDurabilty(sess.durability,
+                tablet.getDurability());
             try {
 
               @SuppressWarnings("unchecked")
@@ -1386,18 +1392,21 @@ public class TabletServer implements Runnable {
                 } else {
                   for (ServerConditionalMutation scm : entry.getValue())
                     results.add(new TCMResult(scm.getID(), TCMStatus.ACCEPTED));
-                  sendables.put(cs,
-                      new Mutations(
-                          DurabilityImpl.resolveDurabilty(sess.durability, tabletDurability),
-                          mutations));
+                  if (durability != Durability.NONE) {
+                    loggables.put(cs, new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
+                        mutations, durability));
+                  }
+                  sendables.put(cs, mutations);
                 }
               }
             } catch (TConstraintViolationException e) {
+              CommitSession cs = e.getCommitSession();
               if (e.getNonViolators().size() > 0) {
-                sendables.put(e.getCommitSession(),
-                    new Mutations(
-                        DurabilityImpl.resolveDurabilty(sess.durability, tabletDurability),
-                        e.getNonViolators()));
+                if (durability != Durability.NONE) {
+                  loggables.put(cs, new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
+                      e.getNonViolators(), durability));
+                }
+                sendables.put(cs, e.getNonViolators());
                 for (Mutation m : e.getNonViolators())
                   results.add(
                       new TCMResult(((ServerConditionalMutation) m).getID(), TCMStatus.ACCEPTED));
@@ -1418,10 +1427,10 @@ public class TabletServer implements Runnable {
 
       Span walSpan = Trace.start("wal");
       try {
-        while (sendables.size() > 0) {
+        while (loggables.size() > 0) {
           try {
             long t1 = System.currentTimeMillis();
-            logger.logManyTablets(sendables);
+            logger.logManyTablets(loggables);
             long t2 = System.currentTimeMillis();
             updateWalogWriteTime(t2 - t1);
             break;
@@ -1440,12 +1449,7 @@ public class TabletServer implements Runnable {
       Span commitSpan = Trace.start("commit");
       try {
         long t1 = System.currentTimeMillis();
-        for (Entry<CommitSession,Mutations> entry : sendables.entrySet()) {
-          CommitSession commitSession = entry.getKey();
-          List<Mutation> mutations = entry.getValue().getMutations();
-
-          commitSession.commit(mutations);
-        }
+        sendables.forEach(CommitSession::commit);
         long t2 = System.currentTimeMillis();
         updateAvgCommitTime(t2 - t1, sendables.size());
       } finally {
@@ -3389,7 +3393,7 @@ public class TabletServer implements Runnable {
             "Unable to find recovery files for extent " + extent + " logEntry: " + entry);
       recoveryLogs.add(recovery);
     }
-    logger.recover(fs, extent, tconf, recoveryLogs, tabletFiles, mutationReceiver);
+    logger.recover(fs, extent, recoveryLogs, tabletFiles, mutationReceiver);
   }
 
   public int createLogId() {
