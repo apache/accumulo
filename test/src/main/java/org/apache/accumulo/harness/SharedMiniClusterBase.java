@@ -118,26 +118,29 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
       // permissions to)
       UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
           systemUser.getKeytab().getAbsolutePath());
-      AccumuloClient client = cluster.createAccumuloClient(systemUser.getPrincipal(),
-          new KerberosToken());
+
+      AuthenticationToken tempToken = new KerberosToken();
+      try (AccumuloClient c = cluster.createAccumuloClient(systemUser.getPrincipal(), tempToken)) {
+        c.securityOperations().authenticateUser(systemUser.getPrincipal(), tempToken);
+      }
 
       // Then, log back in as the "root" user and do the grant
       UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
           rootUser.getKeytab().getAbsolutePath());
-      client = cluster.createAccumuloClient(principal, token);
 
-      // Create the trace table
-      client.tableOperations().create(traceTable);
-
-      // Trace user (which is the same kerberos principal as the system user, but using a normal
-      // KerberosToken) needs
-      // to have the ability to read, write and alter the trace table
-      client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-          TablePermission.READ);
-      client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-          TablePermission.WRITE);
-      client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-          TablePermission.ALTER_TABLE);
+      try (AccumuloClient c = cluster.createAccumuloClient(principal, token)) {
+        // Create the trace table
+        c.tableOperations().create(traceTable);
+        // Trace user (which is the same kerberos principal as the system user, but using a normal
+        // KerberosToken) needs
+        // to have the ability to read, write and alter the trace table
+        c.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+            TablePermission.READ);
+        c.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+            TablePermission.WRITE);
+        c.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+            TablePermission.ALTER_TABLE);
+      }
     }
   }
 
