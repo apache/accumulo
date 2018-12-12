@@ -764,13 +764,7 @@ public class TabletServer implements Runnable {
 
       // check if user has permission to the tables
       for (Table.ID tableId : tables) {
-        Namespace.ID namespaceId;
-        try {
-          namespaceId = Tables.getNamespaceId(context, tableId);
-        } catch (TableNotFoundException e1) {
-          throw new ThriftSecurityException(credentials.getPrincipal(),
-              SecurityErrorCode.TABLE_DOESNT_EXIST);
-        }
+        Namespace.ID namespaceId = getNamespaceId(credentials, tableId);
         if (!security.canScan(credentials, tableId, namespaceId, tbatch, tcolumns, ssiList, ssio,
             authorizations))
           throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -1232,13 +1226,7 @@ public class TabletServer implements Runnable {
         throws NotServingTabletException, ConstraintViolationException, ThriftSecurityException {
 
       final Table.ID tableId = Table.ID.of(new String(tkeyExtent.getTable(), UTF_8));
-      Namespace.ID namespaceId;
-      try {
-        namespaceId = Tables.getNamespaceId(context, tableId);
-      } catch (TableNotFoundException e1) {
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.TABLE_DOESNT_EXIST);
-      }
+      Namespace.ID namespaceId = getNamespaceId(credentials, tableId);
       if (!security.canWrite(credentials, tableId, namespaceId))
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED);
@@ -1304,6 +1292,16 @@ public class TabletServer implements Runnable {
             Translator.translate(e.getViolations().asList(), Translators.CVST));
       } finally {
         writeTracker.finishWrite(opid);
+      }
+    }
+
+    private Namespace.ID getNamespaceId(TCredentials credentials, Table.ID tableId)
+        throws ThriftSecurityException {
+      try {
+        return Tables.getNamespaceId(context, tableId);
+      } catch (TableNotFoundException e1) {
+        throw new ThriftSecurityException(credentials.getPrincipal(),
+            SecurityErrorCode.TABLE_DOESNT_EXIST);
       }
     }
 
@@ -1498,13 +1496,7 @@ public class TabletServer implements Runnable {
 
       Table.ID tableId = Table.ID.of(tableIdStr);
       Authorizations userauths = null;
-      Namespace.ID namespaceId;
-      try {
-        namespaceId = Tables.getNamespaceId(context, tableId);
-      } catch (TableNotFoundException e) {
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.TABLE_DOESNT_EXIST);
-      }
+      Namespace.ID namespaceId = getNamespaceId(credentials, tableId);
       if (!security.canConditionallyUpdate(credentials, tableId, namespaceId, authorizations))
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED);
@@ -1598,14 +1590,7 @@ public class TabletServer implements Runnable {
         ByteBuffer splitPoint) throws NotServingTabletException, ThriftSecurityException {
 
       Table.ID tableId = Table.ID.of(new String(ByteBufferUtil.toBytes(tkeyExtent.table)));
-      Namespace.ID namespaceId;
-      try {
-        namespaceId = Tables.getNamespaceId(context, tableId);
-      } catch (TableNotFoundException ex) {
-        // tableOperationsImpl catches ThriftSecurityException and checks for missing table
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.TABLE_DOESNT_EXIST);
-      }
+      Namespace.ID namespaceId = getNamespaceId(credentials, tableId);
 
       if (!security.canSplitTablet(credentials, tableId, namespaceId))
         throw new ThriftSecurityException(credentials.getPrincipal(),
