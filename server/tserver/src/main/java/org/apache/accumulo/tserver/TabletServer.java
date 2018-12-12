@@ -1019,7 +1019,7 @@ public class TabletServer implements Runnable {
     private void flush(UpdateSession us) {
 
       int mutationCount = 0;
-      Map<CommitSession,TabletMutations> sendables = new HashMap<>();
+      Map<CommitSession,List<Mutation>> sendables = new HashMap<>();
       Map<CommitSession,TabletMutations> loggables = new HashMap<>();
       Throwable error = null;
 
@@ -1053,12 +1053,11 @@ public class TabletServer implements Runnable {
                 }
                 us.failures.put(tablet.getExtent(), us.successfulCommits.get(tablet));
               } else {
-                TabletMutations tMutations = new TabletMutations(commitSession.getLogId(),
-                    commitSession.getWALogSeq(), mutations, durability);
                 if (durability != Durability.NONE) {
-                  loggables.put(commitSession, tMutations);
+                  loggables.put(commitSession, new TabletMutations(commitSession.getLogId(),
+                      commitSession.getWALogSeq(), mutations, durability));
                 }
-                sendables.put(commitSession, tMutations);
+                sendables.put(commitSession, mutations);
                 mutationCount += mutations.size();
               }
 
@@ -1072,12 +1071,11 @@ public class TabletServer implements Runnable {
                 // that did not violate constraints... this is what
                 // prepareMutationsForCommit() expects
                 CommitSession cs = e.getCommitSession();
-                TabletMutations tMutations = new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
-                    e.getNonViolators(), durability);
                 if (durability != Durability.NONE) {
-                  loggables.put(cs, tMutations);
+                  loggables.put(cs, new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
+                      e.getNonViolators(), durability));
                 }
-                sendables.put(cs, tMutations);
+                sendables.put(cs, e.getNonViolators());
               }
 
               mutationCount += mutations.size();
@@ -1098,9 +1096,7 @@ public class TabletServer implements Runnable {
       updateAvgPrepTime(pt2 - pt1, us.queuedMutations.size());
 
       if (error != null) {
-        for (Entry<CommitSession,TabletMutations> e : sendables.entrySet()) {
-          e.getKey().abortCommit(e.getValue().getMutations());
-        }
+        sendables.forEach(CommitSession::abortCommit);
         throw new RuntimeException(error);
       }
       try {
@@ -1131,12 +1127,8 @@ public class TabletServer implements Runnable {
         Span commit = Trace.start("commit");
         try {
           long t1 = System.currentTimeMillis();
-          for (Entry<CommitSession,TabletMutations> entry : sendables.entrySet()) {
-            CommitSession commitSession = entry.getKey();
-            List<Mutation> mutations = entry.getValue().getMutations();
-
+          sendables.forEach((commitSession, mutations) -> {
             commitSession.commit(mutations);
-
             KeyExtent extent = commitSession.getExtent();
 
             if (us.currentTablet != null && extent == us.currentTablet.getExtent()) {
@@ -1147,7 +1139,7 @@ public class TabletServer implements Runnable {
               us.successfulCommits.increment(us.currentTablet,
                   us.queuedMutations.get(us.currentTablet).size());
             }
-          }
+          });
           long t2 = System.currentTimeMillis();
 
           us.flushTime += (t2 - pt1);
@@ -1370,7 +1362,7 @@ public class TabletServer implements Runnable {
         ArrayList<TCMResult> results, ConditionalSession sess) {
       Set<Entry<KeyExtent,List<ServerConditionalMutation>>> es = updates.entrySet();
 
-      Map<CommitSession,TabletMutations> sendables = new HashMap<>();
+      Map<CommitSession,List<Mutation>> sendables = new HashMap<>();
       Map<CommitSession,TabletMutations> loggables = new HashMap<>();
 
       boolean sessionCanceled = sess.interruptFlag.get();
@@ -1402,23 +1394,21 @@ public class TabletServer implements Runnable {
                 } else {
                   for (ServerConditionalMutation scm : entry.getValue())
                     results.add(new TCMResult(scm.getID(), TCMStatus.ACCEPTED));
-                  TabletMutations tMutations = new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
-                      mutations, durability);
                   if (durability != Durability.NONE) {
-                    loggables.put(cs, tMutations);
+                    loggables.put(cs, new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
+                        mutations, durability));
                   }
-                  sendables.put(cs, tMutations);
+                  sendables.put(cs, mutations);
                 }
               }
             } catch (TConstraintViolationException e) {
               CommitSession cs = e.getCommitSession();
-              TabletMutations tMutations = new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
-                  e.getNonViolators(), durability);
               if (e.getNonViolators().size() > 0) {
                 if (durability != Durability.NONE) {
-                  loggables.put(cs, tMutations);
+                  loggables.put(cs, new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
+                      e.getNonViolators(), durability));
                 }
-                sendables.put(cs, tMutations);
+                sendables.put(cs, e.getNonViolators());
                 for (Mutation m : e.getNonViolators())
                   results.add(
                       new TCMResult(((ServerConditionalMutation) m).getID(), TCMStatus.ACCEPTED));
@@ -1461,12 +1451,7 @@ public class TabletServer implements Runnable {
       Span commitSpan = Trace.start("commit");
       try {
         long t1 = System.currentTimeMillis();
-        for (Entry<CommitSession,TabletMutations> entry : sendables.entrySet()) {
-          CommitSession commitSession = entry.getKey();
-          List<Mutation> mutations = entry.getValue().getMutations();
-
-          commitSession.commit(mutations);
-        }
+        sendables.forEach(CommitSession::commit);
         long t2 = System.currentTimeMillis();
         updateAvgCommitTime(t2 - t1, sendables.size());
       } finally {
