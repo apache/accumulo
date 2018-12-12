@@ -1288,12 +1288,14 @@ public class TabletServer implements Runnable {
           throw new NotServingTabletException(tkeyExtent);
         }
 
-        while (true) {
+        Durability durability = DurabilityImpl
+            .resolveDurabilty(DurabilityImpl.fromThrift(tdurability), tabletDurability);
+        // instead of always looping on true, skip completely when durability is NONE
+        while (durability != Durability.NONE) {
           try {
             final Span wal = Trace.start("wal");
             try {
-              logger.log(cs, cs.getWALogSeq(), mutation, DurabilityImpl
-                  .resolveDurabilty(DurabilityImpl.fromThrift(tdurability), tabletDurability));
+              logger.log(cs, cs.getWALogSeq(), mutation, durability);
             } finally {
               wal.stop();
             }
