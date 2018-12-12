@@ -19,6 +19,7 @@ package org.apache.accumulo.tserver.log;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -31,28 +32,36 @@ public class DfsLoggerTest {
   @Test
   public void testDurabilityForGroupCommit() {
     List<TabletMutations> lst = new ArrayList<>();
-    assertEquals(Durability.NONE, DfsLogger.chooseDurabilityForGroupCommit(lst));
+    assertEquals(Durability.NONE, chooseDurabilityForGroupCommit(lst));
     TabletMutations m1 = new TabletMutations(0, 1, Collections.emptyList(), Durability.NONE);
     lst.add(m1);
-    assertEquals(Durability.NONE, DfsLogger.chooseDurabilityForGroupCommit(lst));
+    assertEquals(Durability.NONE, chooseDurabilityForGroupCommit(lst));
     TabletMutations m2 = new TabletMutations(0, 1, Collections.emptyList(), Durability.LOG);
     lst.add(m2);
-    assertEquals(Durability.LOG, DfsLogger.chooseDurabilityForGroupCommit(lst));
+    assertEquals(Durability.LOG, chooseDurabilityForGroupCommit(lst));
     TabletMutations m3 = new TabletMutations(0, 1, Collections.emptyList(), Durability.NONE);
     lst.add(m3);
-    assertEquals(Durability.LOG, DfsLogger.chooseDurabilityForGroupCommit(lst));
+    assertEquals(Durability.LOG, chooseDurabilityForGroupCommit(lst));
     TabletMutations m4 = new TabletMutations(0, 1, Collections.emptyList(), Durability.FLUSH);
     lst.add(m4);
-    assertEquals(Durability.FLUSH, DfsLogger.chooseDurabilityForGroupCommit(lst));
+    assertEquals(Durability.FLUSH, chooseDurabilityForGroupCommit(lst));
     TabletMutations m5 = new TabletMutations(0, 1, Collections.emptyList(), Durability.LOG);
     lst.add(m5);
-    assertEquals(Durability.FLUSH, DfsLogger.chooseDurabilityForGroupCommit(lst));
+    assertEquals(Durability.FLUSH, chooseDurabilityForGroupCommit(lst));
     TabletMutations m6 = new TabletMutations(0, 1, Collections.emptyList(), Durability.SYNC);
     lst.add(m6);
-    assertEquals(Durability.SYNC, DfsLogger.chooseDurabilityForGroupCommit(lst));
+    assertEquals(Durability.SYNC, chooseDurabilityForGroupCommit(lst));
     TabletMutations m7 = new TabletMutations(0, 1, Collections.emptyList(), Durability.FLUSH);
     lst.add(m7);
-    assertEquals(Durability.SYNC, DfsLogger.chooseDurabilityForGroupCommit(lst));
+    assertEquals(Durability.SYNC, chooseDurabilityForGroupCommit(lst));
+  }
+
+  static Durability chooseDurabilityForGroupCommit(Collection<TabletMutations> mutations) {
+    Durability result = Durability.NONE;
+    for (TabletMutations tabletMutations : mutations) {
+      result = DfsLogger.chooseDurability(tabletMutations.getDurability(), result);
+    }
+    return result;
   }
 
 }

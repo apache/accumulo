@@ -16,10 +16,11 @@
  */
 package org.apache.accumulo.tserver.log;
 
+import static java.util.Collections.singletonList;
+
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -447,7 +448,7 @@ public class TabletServerLogger {
   public void defineTablet(final CommitSession commitSession, final Retry writeRetry)
       throws IOException {
     // scribble this into the metadata tablet, too.
-    write(Collections.singletonList(commitSession), false, logger -> {
+    write(singletonList(commitSession), false, logger -> {
       logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(),
           commitSession.getExtent());
       return DfsLogger.NO_WAIT_LOGGER_OP;
@@ -462,7 +463,7 @@ public class TabletServerLogger {
     if (durability == Durability.DEFAULT) {
       throw new IllegalArgumentException("Unexpected durability " + durability);
     }
-    write(Collections.singletonList(commitSession), false,
+    write(singletonList(commitSession), false,
         logger -> logger.log(tabletSeq, commitSession.getLogId(), m, durability),
         writeRetryFactory.createRetry());
     logSizeEstimate.addAndGet(m.numBytes());
@@ -475,7 +476,7 @@ public class TabletServerLogger {
     if (loggables.size() == 0)
       return;
 
-    write(loggables.keySet(), false, (logger -> logger.logManyTablets(loggables.values())),
+    write(loggables.keySet(), false, logger -> logger.logManyTablets(loggables.values()),
         writeRetryFactory.createRetry());
     for (TabletMutations entry : loggables.values()) {
       if (entry.getMutations().size() < 1) {
@@ -493,9 +494,9 @@ public class TabletServerLogger {
 
     long t1 = System.currentTimeMillis();
 
-    write(Collections.singletonList(commitSession), true,
-        logger -> logger.minorCompactionFinished(walogSeq, commitSession.getLogId(),
-            fullyQualifiedFileName, durability),
+    write(
+        singletonList(commitSession), true, logger -> logger.minorCompactionFinished(walogSeq,
+            commitSession.getLogId(), fullyQualifiedFileName, durability),
         writeRetryFactory.createRetry());
 
     long t2 = System.currentTimeMillis();
@@ -505,8 +506,9 @@ public class TabletServerLogger {
 
   public long minorCompactionStarted(final CommitSession commitSession, final long seq,
       final String fullyQualifiedFileName, final Durability durability) throws IOException {
-    write(Collections.singletonList(commitSession), false, logger -> logger
-        .minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName, durability),
+    write(
+        singletonList(commitSession), false, logger -> logger.minorCompactionStarted(seq,
+            commitSession.getLogId(), fullyQualifiedFileName, durability),
         writeRetryFactory.createRetry());
     return seq;
   }

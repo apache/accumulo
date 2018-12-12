@@ -609,21 +609,20 @@ public class DfsLogger implements Comparable<DfsLogger> {
       LogFileValue value = new LogFileValue();
       value.mutations = tabletMutations.getMutations();
       data.add(new Pair<>(key, value));
-      if (tabletMutations.getDurability().ordinal() > durability.ordinal()) {
-        durability = tabletMutations.getDurability();
-      }
+      durability = chooseDurability(tabletMutations.getDurability(), durability);
     }
-    return logFileData(data, chooseDurabilityForGroupCommit(mutations));
+    return logFileData(data, durability);
   }
 
-  static Durability chooseDurabilityForGroupCommit(Collection<TabletMutations> mutations) {
-    Durability result = Durability.NONE;
-    for (TabletMutations tabletMutations : mutations) {
-      if (tabletMutations.getDurability().ordinal() > result.ordinal()) {
-        result = tabletMutations.getDurability();
-      }
+  /**
+   * Return the Durability with the highest precedence
+   */
+  static Durability chooseDurability(Durability dur1, Durability dur2) {
+    if (dur1.ordinal() > dur2.ordinal()) {
+      return dur1;
+    } else {
+      return dur2;
     }
-    return result;
   }
 
   public LoggerOperation minorCompactionFinished(long seq, int tid, String fqfn,
