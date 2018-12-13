@@ -56,7 +56,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
     Random random = new SecureRandom();
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
           "" + SMALL_QUEUE_SIZE);
       String tableName = getUniqueNames(1)[0];

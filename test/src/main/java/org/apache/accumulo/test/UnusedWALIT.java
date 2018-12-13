@@ -78,7 +78,7 @@ public class UnusedWALIT extends ConfigurableMacBase {
     String[] tableNames = getUniqueNames(2);
     String bigTable = tableNames[0];
     String lilTable = tableNames[1];
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       c.tableOperations().create(bigTable);
       c.tableOperations().create(lilTable);
 

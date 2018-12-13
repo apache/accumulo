@@ -63,7 +63,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
 
   @Test
   public void simpleBalancerFairness() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       c.tableOperations().create("test_ingest");
       c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(),
           "10K");

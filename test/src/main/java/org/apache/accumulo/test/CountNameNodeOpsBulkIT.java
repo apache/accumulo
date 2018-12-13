@@ -93,7 +93,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
 
   @Test
   public void compareOldNewBulkImportTest() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       getCluster().getClusterControl().kill(ServerType.GARBAGE_COLLECTOR, "localhost");
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);

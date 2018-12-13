@@ -47,7 +47,7 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
       justification = "unencrypted socket is okay for testing")
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       String[] tableNames = getUniqueNames(3);
       for (String tableName : tableNames) {
         c.tableOperations().create(tableName);

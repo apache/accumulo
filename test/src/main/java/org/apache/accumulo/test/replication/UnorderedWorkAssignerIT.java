@@ -110,7 +110,7 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
   @Before
   public void init() throws Exception {
-    client = getClient();
+    client = createClient();
     assigner = new MockUnorderedWorkAssigner(client);
     ReplicationTable.setOnline(client);
     client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,

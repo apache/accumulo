@@ -44,7 +44,7 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
 
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
-    try (AccumuloClient client = this.getClient()) {
+    try (AccumuloClient client = this.createClient()) {
       // Yes, there's a tabletserver
       assertEquals(1, client.instanceOperations().getTabletServers().size());
       final String tableName = getUniqueNames(1)[0];

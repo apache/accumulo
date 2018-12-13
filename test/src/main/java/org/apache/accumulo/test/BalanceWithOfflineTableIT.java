@@ -46,7 +46,7 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
     final String tableName = tableNames[0];
     // create a table with a bunch of splits
 
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       log.info("Creating table {}", tableName);
       c.tableOperations().create(tableName);
       final SortedSet<Text> splits = new TreeSet<>();

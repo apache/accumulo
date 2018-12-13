@@ -62,7 +62,7 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     getCluster().getClusterControl().start(ServerType.MONITOR);
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1");

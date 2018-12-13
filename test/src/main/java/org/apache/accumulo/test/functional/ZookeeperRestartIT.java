@@ -59,7 +59,7 @@ public class ZookeeperRestartIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       c.tableOperations().create("test_ingest");
       BatchWriter bw = c.createBatchWriter("test_ingest", null);
       Mutation m = new Mutation("row");

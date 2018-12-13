@@ -107,7 +107,7 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
 
   @Test
   public void testWalPerformanceOnce() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       // get time with a small WAL, which will cause many WAL roll-overs
       long avg1 = getAverage(c);
       // use a bigger WAL max size to eliminate WAL roll-overs

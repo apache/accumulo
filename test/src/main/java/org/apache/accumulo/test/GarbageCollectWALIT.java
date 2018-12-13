@@ -53,7 +53,7 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
     // not yet, please
     String tableName = getUniqueNames(1)[0];
     cluster.getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       c.tableOperations().create(tableName);
       // count the number of WALs in the filesystem
       assertEquals(2, countWALsInFS(cluster));

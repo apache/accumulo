@@ -91,7 +91,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
@@ -105,7 +105,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   @Test
   public void testPerTableClasspath() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       final String tableName = getUniqueNames(1)[0];
       File destFile = installJar(getCluster().getConfig().getAccumuloDir(),
           "/TestCompactionStrat.jar");

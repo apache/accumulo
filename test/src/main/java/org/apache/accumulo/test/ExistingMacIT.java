@@ -158,7 +158,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
   @Test
   public void testExistingRunningInstance() throws Exception {
     final String table = getUniqueNames(1)[0];
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       // Ensure that a master and tserver are up so the existing instance check won't fail.
       client.tableOperations().create(table);
       BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());

@@ -65,7 +65,7 @@ public class CleanTmpIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       // make a table
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);

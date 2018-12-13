@@ -58,7 +58,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
       Thread reader = new Thread() {
         @Override
         public void run() {
-          try (AccumuloClient client = getClient()) {
+          try (AccumuloClient client = createClient()) {
             CacheTestReader.main(new String[] {pathName, testDir.getAbsolutePath(),
                 getClientInfo().getZooKeepers()});
           } catch (Exception ex) {

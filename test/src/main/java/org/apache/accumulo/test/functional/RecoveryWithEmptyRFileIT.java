@@ -69,7 +69,7 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
   public void replaceMissingRFile() throws Exception {
     log.info("Ingest some data, verify it was stored properly, replace an"
         + " underlying rfile with an empty one and verify we can scan.");
-    try (AccumuloClient accumuloClient = getClient()) {
+    try (AccumuloClient accumuloClient = createClient()) {
       String tableName = getUniqueNames(1)[0];
       ReadWriteIT.ingest(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
       ReadWriteIT.verify(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);

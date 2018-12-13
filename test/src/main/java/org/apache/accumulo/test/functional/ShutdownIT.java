@@ -73,7 +73,7 @@ public class ShutdownIT extends ConfigurableMacBase {
 
   @Test
   public void shutdownDuringDeleteTable() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       for (int i = 0; i < 10; i++) {
         c.tableOperations().create("table" + i);
       }
@@ -104,7 +104,7 @@ public class ShutdownIT extends ConfigurableMacBase {
 
   @Test
   public void adminStop() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       runAdminStopTest(c, cluster);
     }
   }

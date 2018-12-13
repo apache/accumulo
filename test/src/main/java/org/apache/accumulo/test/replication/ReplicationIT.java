@@ -215,7 +215,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void replicationTableCreated() throws AccumuloException, AccumuloSecurityException {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       assertTrue(client.tableOperations().exists(ReplicationTable.NAME));
       assertEquals(ReplicationTable.ID.canonicalID(),
           client.tableOperations().tableIdMap().get(ReplicationTable.NAME));
@@ -225,7 +225,7 @@ public class ReplicationIT extends ConfigurableMacBase {
   @Test
   public void verifyReplicationTableConfig()
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       TableOperations tops = client.tableOperations();
       Map<String,EnumSet<IteratorScope>> iterators = tops.listIterators(ReplicationTable.NAME);
 
@@ -294,7 +294,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void correctRecordsCompleteFile() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       String table = "table1";
       client.tableOperations().create(table);
       // If we have more than one tserver, this is subject to a race condition.
@@ -370,7 +370,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void noRecordsWithoutReplication() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       List<String> tables = new ArrayList<>();
 
       // replication shouldn't be online when we begin
@@ -410,7 +410,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void twoEntriesForTwoTables() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       String table1 = "table1", table2 = "table2";
 
       // replication shouldn't exist when we begin
@@ -542,7 +542,7 @@ public class ReplicationIT extends ConfigurableMacBase {
   @Test
   public void replicationEntriesPrecludeWalDeletion() throws Exception {
     final ServerContext context = getServerContext();
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       String table1 = "table1", table2 = "table2", table3 = "table3";
       final Multimap<String,Table.ID> logs = HashMultimap.create();
       final AtomicBoolean keepRunning = new AtomicBoolean(true);
@@ -657,7 +657,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void combinerWorksOnMetadata() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
 
       client.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
@@ -703,7 +703,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void noDeadlock() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
 
       ReplicationTable.setOnline(client);
       client.securityOperations().grantTablePermission("root", ReplicationTable.NAME,
@@ -748,7 +748,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void filesClosedAfterUnused() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
 
       String table = "table";
       client.tableOperations().create(table);
@@ -865,7 +865,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     // against expected Status messages.
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
 
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       String table1 = "table1";
 
       // replication shouldn't be online when we begin
@@ -1037,7 +1037,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void correctClusterNameInWorkEntry() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       String table1 = "table1";
 
       // replication shouldn't be online when we begin
@@ -1122,7 +1122,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
 
     final ServerContext context = getServerContext();
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
 
       ReplicationTable.setOnline(client);
       client.securityOperations().grantTablePermission("root", ReplicationTable.NAME,
@@ -1300,7 +1300,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     // Just stop it now, we'll restart it after we restart the tserver
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
 
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       log.info("Got client to MAC");
       String table1 = "table1";
 

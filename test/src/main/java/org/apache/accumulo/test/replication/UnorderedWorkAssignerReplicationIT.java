@@ -180,7 +180,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     peerCluster.start();
 
-    try (AccumuloClient clientMaster = getClient();
+    try (AccumuloClient clientMaster = createClient();
         AccumuloClient clientPeer = peerCluster.createAccumuloClient("root",
             new PasswordToken(ROOT_PASSWORD))) {
 
@@ -345,7 +345,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     peer1Cluster.start();
 
-    try (AccumuloClient clientMaster = getClient();
+    try (AccumuloClient clientMaster = createClient();
         AccumuloClient clientPeer = peer1Cluster.createAccumuloClient("root",
             new PasswordToken(ROOT_PASSWORD))) {
 
@@ -520,7 +520,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     peerCluster.start();
 
-    try (AccumuloClient clientMaster = getClient();
+    try (AccumuloClient clientMaster = createClient();
         AccumuloClient clientPeer = peerCluster.createAccumuloClient("root",
             new PasswordToken(ROOT_PASSWORD))) {
 
@@ -636,7 +636,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     peer1Cluster.start();
 
-    try (AccumuloClient clientMaster = getClient();
+    try (AccumuloClient clientMaster = createClient();
         AccumuloClient clientPeer = peer1Cluster.createAccumuloClient("root",
             new PasswordToken(ROOT_PASSWORD))) {
 

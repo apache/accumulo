@@ -167,7 +167,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   @Before
   public void resetInstance() throws Exception {
-    client = getClient();
+    client = createClient();
 
     removeUsersAndTables();
 

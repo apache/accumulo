@@ -74,7 +74,7 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
   public void testSerializedRecovery() throws Exception {
     // make a table with many splits
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       c.tableOperations().create(tableName);
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 0; i < 200; i++) {

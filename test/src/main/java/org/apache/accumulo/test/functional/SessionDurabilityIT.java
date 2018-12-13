@@ -51,7 +51,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void nondurableTableHasDurableWrites() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       String tableName = getUniqueNames(1)[0];
       // table default has no durability
       c.tableOperations().create(tableName);
@@ -69,7 +69,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void durableTableLosesNonDurableWrites() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       String tableName = getUniqueNames(1)[0];
       // table default is durable writes
       c.tableOperations().create(tableName);
@@ -101,7 +101,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void testConditionDurability() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       String tableName = getUniqueNames(1)[0];
       // table default is durable writes
       c.tableOperations().create(tableName);
@@ -120,7 +120,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void testConditionDurability2() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       String tableName = getUniqueNames(1)[0];
       // table default is durable writes
       c.tableOperations().create(tableName);

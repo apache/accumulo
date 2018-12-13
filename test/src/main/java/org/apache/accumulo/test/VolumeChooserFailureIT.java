@@ -117,7 +117,7 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
     log.info("Starting missingVolumePreferredVolumeChooser");
 
     // Create namespace
-    try (AccumuloClient accumuloClient = getClient()) {
+    try (AccumuloClient accumuloClient = createClient()) {
       accumuloClient.namespaceOperations().create(namespace1);
 
       // Set properties on the namespace
@@ -140,7 +140,7 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
     log.info("Starting notInstancePreferredVolumeChooser");
 
     // Create namespace
-    try (AccumuloClient accumuloClient = getClient()) {
+    try (AccumuloClient accumuloClient = createClient()) {
       accumuloClient.namespaceOperations().create(namespace1);
 
       // Set properties on the namespace

@@ -81,7 +81,7 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
       client.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),

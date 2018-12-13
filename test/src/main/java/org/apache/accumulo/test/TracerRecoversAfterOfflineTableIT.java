@@ -55,7 +55,7 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     Process tracer = null;
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       if (!client.tableOperations().exists("trace")) {
         MiniAccumuloClusterImpl mac = cluster;
         tracer = mac.exec(TraceServer.class);

@@ -96,7 +96,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   @Before
   public void init() throws Exception {
-    client = getClient();
+    client = createClient();
     assigner = new MockSequentialWorkAssigner(client);
     // grant ourselves write to the replication table
     client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,

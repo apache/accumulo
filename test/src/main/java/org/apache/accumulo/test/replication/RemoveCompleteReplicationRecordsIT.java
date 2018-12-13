@@ -73,7 +73,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
   @Before
   public void initialize() throws Exception {
-    client = getClient();
+    client = createClient();
     rcrr = new MockRemoveCompleteReplicationRecords(client);
     client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.READ);

@@ -44,7 +44,7 @@ public class SslIT extends ConfigurableMacBase {
 
   @Test
   public void binary() throws AccumuloException, AccumuloSecurityException, Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
       BinaryIT.runTest(client, tableName);
@@ -53,21 +53,21 @@ public class SslIT extends ConfigurableMacBase {
 
   @Test
   public void concurrency() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       ConcurrencyIT.runTest(client, getUniqueNames(1)[0]);
     }
   }
 
   @Test
   public void adminStop() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       ShutdownIT.runAdminStopTest(client, getCluster());
     }
   }
 
   @Test
   public void bulk() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       BulkIT.runTest(client, getClientInfo(), cluster.getFileSystem(),
           new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"),
           getUniqueNames(1)[0], this.getClass().getName(), testName.getMethodName(), true);
@@ -76,7 +76,7 @@ public class SslIT extends ConfigurableMacBase {
 
   @Test
   public void mapReduce() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       MapReduceIT.runTest(client, getCluster());
     }
   }
