@@ -80,7 +80,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME,
           TablePermission.WRITE);
       final String tableName = getUniqueNames(1)[0];

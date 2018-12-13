@@ -69,7 +69,6 @@ public class ConfigurableMacBase extends AccumuloITBase {
   public static final Logger log = LoggerFactory.getLogger(ConfigurableMacBase.class);
 
   protected MiniAccumuloClusterImpl cluster;
-  protected AccumuloClient client;
 
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {}
 
@@ -190,20 +189,14 @@ public class ConfigurableMacBase extends AccumuloITBase {
         // ignored
       }
     }
-    if (client != null) {
-      client.close();
-    }
   }
 
   protected MiniAccumuloClusterImpl getCluster() {
     return cluster;
   }
 
-  protected AccumuloClient getClient() {
-    if (client == null) {
-      client = getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
-    }
-    return client;
+  protected AccumuloClient createClient() {
+    return getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
   }
 
   protected ClientContext getClientContext() {

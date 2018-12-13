@@ -69,7 +69,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
   @Before
   public void configureInstance() throws Exception {
-    client = getClient();
+    client = createClient();
     ReplicationTable.setOnline(client);
     client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);

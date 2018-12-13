@@ -84,7 +84,7 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
   @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "test password is okay")
   @Test
   public void testDurability() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       Properties proxyProps = new Properties();
       // Avoid issues with locally installed client configuration files with custom properties
       File emptyFile = Files.createTempFile(null, null).toFile();

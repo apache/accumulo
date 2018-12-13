@@ -63,7 +63,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = this.getClient()) {
+    try (AccumuloClient c = this.createClient()) {
       c.tableOperations().create("test");
       Collection<ProcessReference> tservers = getCluster().getProcesses()
           .get(ServerType.TABLET_SERVER);

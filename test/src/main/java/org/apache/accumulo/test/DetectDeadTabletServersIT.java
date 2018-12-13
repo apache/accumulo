@@ -51,7 +51,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       log.info("verifying that everything is up");
       Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
 

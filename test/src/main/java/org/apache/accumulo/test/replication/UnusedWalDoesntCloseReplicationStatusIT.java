@@ -74,7 +74,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
   @Test
   public void test() throws Exception {
     File accumuloDir = this.getCluster().getConfig().getAccumuloDir();
-    final AccumuloClient client = getClient();
+    final AccumuloClient client = createClient();
     final String tableName = getUniqueNames(1)[0];
 
     client.securityOperations().grantTablePermission("root", MetadataTable.NAME,

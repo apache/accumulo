@@ -70,7 +70,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
   // Prevent regression of ACCUMULO-3709.
   @Test
   public void testMapred() throws Exception {
-    try (AccumuloClient accumuloClient = getClient()) {
+    try (AccumuloClient accumuloClient = createClient()) {
       // create a table and put some data in it
       accumuloClient.tableOperations().create(testName.getMethodName());
 
@@ -200,7 +200,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
   @Test
   public void testMR() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       String instanceName = getCluster().getInstanceName();
       String table1 = instanceName + "_t1";
       String table2 = instanceName + "_t2";

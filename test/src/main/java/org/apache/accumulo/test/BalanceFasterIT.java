@@ -65,7 +65,7 @@ public class BalanceFasterIT extends ConfigurableMacBase {
   public void test() throws Exception {
     // create a table, add a bunch of splits
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       client.tableOperations().create(tableName);
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 0; i < 1000; i++) {

@@ -41,7 +41,7 @@ public class BackupMasterIT extends ConfigurableMacBase {
     UtilWaitThread.sleep(1000);
     // create a backup
     Process backup = exec(Master.class);
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       String secret = getCluster().getSiteConfiguration().get(Property.INSTANCE_SECRET);
       IZooReaderWriter writer = new ZooReaderWriterFactory()
           .getZooReaderWriter(cluster.getZooKeepers(), 30 * 1000, secret);

@@ -56,6 +56,7 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -79,12 +80,17 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
   @Before
   public void setupInstance() throws Exception {
-    client = getClient();
+    client = createClient();
     client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
     client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
     ReplicationTable.setOnline(client);
+  }
+
+  @After
+  public void teardownInstance() {
+    client.close();
   }
 
   @Before

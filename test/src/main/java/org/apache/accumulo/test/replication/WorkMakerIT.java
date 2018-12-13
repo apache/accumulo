@@ -79,7 +79,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
   @Before
   public void setupInstance() throws Exception {
-    client = getClient();
+    client = createClient();
     ReplicationTable.setOnline(client);
     client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);

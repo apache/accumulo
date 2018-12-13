@@ -57,7 +57,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
   @Test(timeout = 4 * 60 * 1000)
   public void testRecoveryOverMultipleTables() throws Exception {
     final int N = 3;
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       final String[] tables = getUniqueNames(N);
       final BatchWriter[] writers = new BatchWriter[N];
       final byte[][] values = new byte[N][];
@@ -116,7 +116,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
     return new Thread() {
       @Override
       public void run() {
-        try (AccumuloClient client = getClient()) {
+        try (AccumuloClient client = createClient()) {
           int i = 0;
           while (!stop.get()) {
             sleepUninterruptibly(10, TimeUnit.SECONDS);

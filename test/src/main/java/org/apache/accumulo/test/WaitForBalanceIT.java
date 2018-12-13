@@ -48,7 +48,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       // ensure the metadata table is online
       Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
       c.instanceOperations().waitForBalance();

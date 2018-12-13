@@ -119,7 +119,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
   public String test(int seconds, boolean expectTserverDied) throws Exception {
     if (!makeDiskFailureLibrary())
       return null;
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       assertEquals(1, c.instanceOperations().getTabletServers().size());
 
       // create our own tablet server with the special test library

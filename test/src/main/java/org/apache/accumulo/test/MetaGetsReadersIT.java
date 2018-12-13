@@ -80,7 +80,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     final String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       c.tableOperations().create(tableName);
       Random random = new SecureRandom();
       BatchWriter bw = c.createBatchWriter(tableName, null);

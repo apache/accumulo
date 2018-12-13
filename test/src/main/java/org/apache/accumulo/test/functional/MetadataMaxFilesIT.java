@@ -60,7 +60,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 0; i < 1000; i++) {
         splits.add(new Text(String.format("%03d", i)));

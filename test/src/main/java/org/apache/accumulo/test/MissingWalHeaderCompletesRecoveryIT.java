@@ -78,7 +78,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Before
   public void setupMetadataPermission() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       rootHasWritePermission = client.securityOperations().hasTablePermission("root",
           MetadataTable.NAME, TablePermission.WRITE);
       if (!rootHasWritePermission) {
@@ -92,7 +92,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @After
   public void resetMetadataPermission() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       // Final state doesn't match the original
       if (rootHasWritePermission != client.securityOperations().hasTablePermission("root",
           MetadataTable.NAME, TablePermission.WRITE)) {
@@ -111,7 +111,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Test
   public void testEmptyWalRecoveryCompletes() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       MiniAccumuloClusterImpl cluster = getCluster();
       FileSystem fs = cluster.getFileSystem();
 
@@ -167,7 +167,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Test
   public void testPartialHeaderWalRecoveryCompletes() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       MiniAccumuloClusterImpl cluster = getCluster();
       FileSystem fs = getCluster().getFileSystem();
 

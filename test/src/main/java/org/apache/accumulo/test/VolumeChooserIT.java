@@ -259,7 +259,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     log.info("Starting twoTablesPreferredVolumeChooser");
 
     // Create namespace
-    try (AccumuloClient accumuloClient = getClient()) {
+    try (AccumuloClient accumuloClient = createClient()) {
       accumuloClient.namespaceOperations().create(namespace1);
 
       // Set properties on the namespace
@@ -291,7 +291,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     log.info("Starting twoTablesRandomVolumeChooser()");
 
     // Create namespace
-    try (AccumuloClient accumuloClient = getClient()) {
+    try (AccumuloClient accumuloClient = createClient()) {
       accumuloClient.namespaceOperations().create(namespace1);
 
       // Set properties on the namespace
@@ -342,7 +342,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     log.info("Starting twoTablesDiffChoosers");
 
     // Create namespace
-    try (AccumuloClient accumuloClient = getClient()) {
+    try (AccumuloClient accumuloClient = createClient()) {
       accumuloClient.namespaceOperations().create(namespace1);
 
       // Set properties on the namespace
@@ -366,7 +366,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   @Test
   public void includeSpecialVolumeForTable() throws Exception {
     log.info("Starting includeSpecialVolumeForTable");
-    try (AccumuloClient accumuloClient = getClient()) {
+    try (AccumuloClient accumuloClient = createClient()) {
 
       // the following table will be configured to go to the excluded volume
       String configuredVolumes = v4.toString();
@@ -380,7 +380,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   public void waLogsSentToConfiguredVolumes() throws Exception {
     log.info("Starting waLogsSentToConfiguredVolumes");
 
-    try (AccumuloClient accumuloClient = getClient()) {
+    try (AccumuloClient accumuloClient = createClient()) {
       String tableName = "anotherTable";
       accumuloClient.tableOperations().create(tableName);
 

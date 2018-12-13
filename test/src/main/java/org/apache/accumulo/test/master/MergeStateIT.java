@@ -107,7 +107,7 @@ public class MergeStateIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    try (AccumuloClient accumuloClient = getClient()) {
+    try (AccumuloClient accumuloClient = createClient()) {
       EasyMock.expect(context.getClient()).andReturn(accumuloClient).anyTimes();
       EasyMock.replay(context);
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),

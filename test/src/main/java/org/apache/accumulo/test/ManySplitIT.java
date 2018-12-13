@@ -59,7 +59,7 @@ public class ManySplitIT extends ConfigurableMacBase {
 
     final String tableName = getUniqueNames(1)[0];
 
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
 
       log.info("Creating table");
       log.info("splitting metadata table");

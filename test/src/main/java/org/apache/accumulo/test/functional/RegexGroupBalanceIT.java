@@ -53,7 +53,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
   @Test(timeout = 120000)
   public void testBalancing() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       String tablename = getUniqueNames(1)[0];
       client.tableOperations().create(tablename);
 

@@ -56,7 +56,7 @@ public class MetaRecoveryIT extends ConfigurableMacBase {
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
     String[] tables = getUniqueNames(10);
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       int i = 0;
       for (String table : tables) {
         log.info("Creating table {}", i);
