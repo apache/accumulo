@@ -196,13 +196,12 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
             // Create the trace table
             client.tableOperations().create(traceTable);
 
-            // Trace user (which is the same kerberos principal as the system user, but using a normal
-            // KerberosToken) needs
-            // to have the ability to read, write and alter the trace table
-            client.securityOperations()
-                .grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.READ);
-            client.securityOperations()
-                .grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.WRITE);
+            // Trace user (which is the same kerberos principal as the system user, but using a
+            // normal KerberosToken) needs to be able to read, write and alter the trace table
+            client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+                TablePermission.READ);
+            client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+                TablePermission.WRITE);
             client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
                 TablePermission.ALTER_TABLE);
           }
