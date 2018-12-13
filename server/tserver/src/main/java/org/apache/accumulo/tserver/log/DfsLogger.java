@@ -48,6 +48,7 @@ import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
 import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.cryptoImpl.NoCryptoService;
+import org.apache.accumulo.core.cryptoImpl.NoFileEncrypter;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
@@ -443,8 +444,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
       byte[] cryptoParams = encrypter.getDecryptionParameters();
       CryptoUtils.writeParams(cryptoParams, logFile);
 
-      encryptingLogFile = new DataOutputStream(
-          encrypter.encryptStream(new NoFlushOutputStream(logFile)));
+      // write directly to logFile if no crypto detected
+      if (encrypter instanceof NoFileEncrypter) {
+        encryptingLogFile = logFile;
+      } else {
+        encryptingLogFile = (NoFlushOutputStream) encrypter
+            .encryptStream(new NoFlushOutputStream(logFile));
+      }
 
       LogFileKey key = new LogFileKey();
       key.event = OPEN;

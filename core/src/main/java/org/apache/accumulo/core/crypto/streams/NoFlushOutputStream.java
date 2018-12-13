@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.core.crypto.streams;
 
-import java.io.FilterOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class NoFlushOutputStream extends FilterOutputStream {
+public class NoFlushOutputStream extends DataOutputStream {
 
   public NoFlushOutputStream(OutputStream out) {
     super(out);
