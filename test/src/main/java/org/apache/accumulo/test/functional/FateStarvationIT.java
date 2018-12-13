@@ -41,7 +41,7 @@ public class FateStarvationIT extends AccumuloClusterHarness {
   @Test
   public void run() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(tableName);
 
       c.tableOperations().addSplits(tableName, TestIngest.getSplitPoints(0, 100000, 50));

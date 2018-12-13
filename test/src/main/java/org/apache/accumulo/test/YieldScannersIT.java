@@ -62,7 +62,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
   public void testScan() throws Exception {
     // make a table
     final String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       client.tableOperations().create(tableName);
       final BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig());
       for (int i = 0; i < 10; i++) {
@@ -117,7 +117,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
   public void testBatchScan() throws Exception {
     // make a table
     final String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       client.tableOperations().create(tableName);
       final BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig());
       for (int i = 0; i < 10; i++) {

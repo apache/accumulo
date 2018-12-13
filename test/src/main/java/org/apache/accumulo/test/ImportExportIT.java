@@ -69,7 +69,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
   @Test
   public void testExportImportThenScan() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
 
       String[] tableNames = getUniqueNames(2);
       String srcTable = tableNames[0], destTable = tableNames[1];

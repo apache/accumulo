@@ -68,7 +68,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
   @Before
   public void setup() throws Exception {
-    accumuloClient = getAccumuloClient();
+    accumuloClient = createAccumuloClient();
     tableName = getUniqueNames(1)[0];
 
     accumuloClient.tableOperations().create(tableName);
@@ -110,7 +110,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
   @Test
   public void run() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
 
       BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
 

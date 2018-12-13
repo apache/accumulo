@@ -85,7 +85,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> config = iops.getSystemConfiguration();
       gcCycleDelay = config.get(Property.GC_CYCLE_DELAY.getKey());
@@ -96,7 +96,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
     }
     getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
 
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       ClientInfo info = ClientInfo.from(client.properties());
       ZooCache zcache = new ZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       zcache.clear();
@@ -130,7 +130,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
 
   @After
   public void restoreConfig() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       InstanceOperations iops = c.instanceOperations();
       if (null != gcCycleDelay) {
         iops.setProperty(Property.GC_CYCLE_DELAY.getKey(), gcCycleDelay);
@@ -149,7 +149,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     // make a table
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       log.info("Creating table to be deleted");
       c.tableOperations().create(tableName);
       final String tableId = c.tableOperations().tableIdMap().get(tableName);

@@ -81,7 +81,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
   @Before
   public void setup() throws Exception {
-    accumuloClient = getAccumuloClient();
+    accumuloClient = createAccumuloClient();
   }
 
   @After

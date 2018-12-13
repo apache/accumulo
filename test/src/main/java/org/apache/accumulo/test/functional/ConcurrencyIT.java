@@ -98,7 +98,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
   // @formatter:on
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       runTest(c, getUniqueNames(1)[0]);
     }
   }

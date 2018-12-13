@@ -48,7 +48,7 @@ public class ScannerIT extends AccumuloClusterHarness {
   @Test
   public void testScannerReadaheadConfiguration() throws Exception {
     final String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(table);
 
       BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());

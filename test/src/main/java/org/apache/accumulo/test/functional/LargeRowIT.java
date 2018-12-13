@@ -94,7 +94,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
     REG_TABLE_NAME = names[0];
     PRE_SPLIT_TABLE_NAME = names[1];
 
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       tservMajcDelay = c.instanceOperations().getSystemConfiguration()
           .get(Property.TSERV_MAJC_DELAY.getKey());
       c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "10ms");
@@ -104,7 +104,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
   @After
   public void resetMajcDelay() throws Exception {
     if (null != tservMajcDelay) {
-      try (AccumuloClient client = getAccumuloClient()) {
+      try (AccumuloClient client = createAccumuloClient()) {
         client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
       }
     }
@@ -123,7 +123,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
       TestIngest.toPrintableChars(rowData);
       splitPoints.add(new Text(rowData));
     }
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(REG_TABLE_NAME);
       c.tableOperations().create(PRE_SPLIT_TABLE_NAME);
       c.tableOperations().setProperty(PRE_SPLIT_TABLE_NAME,

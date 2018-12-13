@@ -71,7 +71,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
 
     String tableName = getUniqueNames(1)[0];
 
-    try (AccumuloClient accumuloClient = getAccumuloClient()) {
+    try (AccumuloClient accumuloClient = createAccumuloClient()) {
       for (int tn = 0; tn < 2; tn++) {
         // create a table and put some data in it
         accumuloClient.tableOperations().create(tableName);

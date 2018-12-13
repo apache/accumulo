@@ -52,7 +52,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
   @Test
   public void testConcurrentDeleteTablesOps() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String[] tables = getUniqueNames(2);
 
       TreeSet<Text> splits = createSplits();
@@ -150,7 +150,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
   @Test
   public void testConcurrentFateOpsWithDelete() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String[] tables = getUniqueNames(2);
 
       TreeSet<Text> splits = createSplits();

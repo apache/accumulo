@@ -58,7 +58,7 @@ public class TabletIT extends AccumuloClusterHarness {
 
   @Test
   public void createTableTest() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       createTableTest(client, tableName, false);
       createTableTest(client, tableName, true);

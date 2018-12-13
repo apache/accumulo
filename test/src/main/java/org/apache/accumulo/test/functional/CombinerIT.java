@@ -57,7 +57,7 @@ public class CombinerIT extends AccumuloClusterHarness {
 
   @Test
   public void aggregationTest() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       IteratorSetting setting = new IteratorSetting(10, SummingCombiner.class);

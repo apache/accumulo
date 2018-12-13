@@ -36,7 +36,7 @@ public class BinaryIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       runTest(c, tableName);
@@ -46,7 +46,7 @@ public class BinaryIT extends AccumuloClusterHarness {
   @Test
   public void testPreSplit() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(tableName);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("8"));

@@ -107,7 +107,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void restartMaster() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       OPTS.setTableName(tableName);
       VOPTS.setTableName(tableName);
@@ -149,7 +149,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void restartMasterRecovery() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       OPTS.setTableName(tableName);
@@ -200,7 +200,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void restartMasterSplit() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       final AuthenticationToken token = getAdminToken();
       final ClusterControl control = getCluster().getClusterControl();
@@ -257,7 +257,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void killedTabletServer() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       OPTS.setTableName(tableName);
@@ -274,7 +274,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void killedTabletServer2() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       final String[] names = getUniqueNames(2);
       final String tableName = names[0];
       final ClusterControl control = getCluster().getClusterControl();
@@ -290,7 +290,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void killedTabletServerDuringShutdown() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       OPTS.setTableName(tableName);
@@ -307,7 +307,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void shutdownDuringCompactingSplitting() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       VOPTS.setTableName(tableName);
       OPTS.setClientProperties(getClientProperties());

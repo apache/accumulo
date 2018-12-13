@@ -57,7 +57,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
   @Test
   public void run() throws Exception {
     String[] tableNames = getUniqueNames(3);
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       for (String table : tableNames) {
         c.tableOperations().create(table);
         c.tableOperations().addConstraint(table, NumericValueConstraint.class.getName());

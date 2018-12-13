@@ -63,7 +63,7 @@ public class BulkFileIT extends AccumuloClusterHarness {
   @SuppressWarnings("deprecation")
   @Test
   public void testBulkFile() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       SortedSet<Text> splits = new TreeSet<>();

@@ -49,7 +49,7 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String[] names = getUniqueNames(2);
       c.tableOperations().create(names[0]);
       TestIngest.Opts opts = new TestIngest.Opts();

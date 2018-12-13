@@ -59,7 +59,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testMultipleRowsInTablet() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
@@ -101,7 +101,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testMultipleTablets() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
@@ -153,7 +153,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testSingleLargeRow() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
       client.tableOperations().setProperty(tableName, Property.TABLE_SCAN_MAXMEM.getKey(), "1");
@@ -201,7 +201,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testNoMatchesForTable() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
@@ -242,7 +242,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testNoMatchesInSingleTablet() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
@@ -297,7 +297,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
 
   @Test
   public void testResultOrder() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 

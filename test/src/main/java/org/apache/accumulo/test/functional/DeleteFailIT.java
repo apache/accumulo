@@ -35,7 +35,7 @@ public class DeleteFailIT extends AccumuloClusterHarness {
 
   @Test
   public void testFail() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       NewTableConfiguration ntc = new NewTableConfiguration();
       ntc.setProperties(

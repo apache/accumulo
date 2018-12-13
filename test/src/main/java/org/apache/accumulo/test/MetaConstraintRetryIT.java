@@ -40,7 +40,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
   // a test for ACCUMULO-3096
   @Test(expected = ConstraintViolationException.class)
   public void test() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       client.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME,
           TablePermission.WRITE);
 

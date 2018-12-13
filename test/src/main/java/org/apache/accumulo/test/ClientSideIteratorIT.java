@@ -77,7 +77,7 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
 
   @Before
   public void setupInstance() throws Exception {
-    client = getAccumuloClient();
+    client = createAccumuloClient();
     tableName = getUniqueNames(1)[0];
   }
 

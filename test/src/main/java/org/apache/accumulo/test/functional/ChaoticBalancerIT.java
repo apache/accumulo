@@ -53,7 +53,7 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String[] names = getUniqueNames(1);
       String tableName = names[0];
       NewTableConfiguration ntc = new NewTableConfiguration();

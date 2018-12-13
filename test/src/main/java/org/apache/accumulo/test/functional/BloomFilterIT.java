@@ -70,7 +70,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       final String readAhead = c.instanceOperations().getSystemConfiguration()
           .get(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey());
       c.instanceOperations().setProperty(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(),

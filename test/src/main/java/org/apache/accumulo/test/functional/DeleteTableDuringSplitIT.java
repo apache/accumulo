@@ -49,7 +49,7 @@ public class DeleteTableDuringSplitIT extends AccumuloClusterHarness {
   @Test
   public void test() throws Exception {
 
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
 
       // 96 invocations, 8 at a time
       int batches = 12, batchSize = 8;

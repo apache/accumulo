@@ -45,7 +45,7 @@ public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
     // test bug fox for ACCUMULO-3977
 
     String table = super.getUniqueNames(1)[0];
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
 
       client.tableOperations().create(table);
 

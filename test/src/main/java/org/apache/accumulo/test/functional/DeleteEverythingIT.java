@@ -62,7 +62,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
 
   @Before
   public void updateMajcDelay() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       majcDelay = c.instanceOperations().getSystemConfiguration()
           .get(Property.TSERV_MAJC_DELAY.getKey());
       c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
@@ -75,14 +75,14 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
 
   @After
   public void resetMajcDelay() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
     }
   }
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());

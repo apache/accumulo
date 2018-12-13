@@ -81,7 +81,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   public void test() throws AccumuloException, AccumuloSecurityException, TableExistsException,
       TableNotFoundException {
 
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
 
       String[] tables = getUniqueNames(4);
       final String t1 = tables[0];

@@ -61,7 +61,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
 
   @Before
   public void updateMajcDelay() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       majcDelay = c.instanceOperations().getSystemConfiguration()
           .get(Property.TSERV_MAJC_DELAY.getKey());
       c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
@@ -73,7 +73,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
 
   @After
   public void resetMajcDelay() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
     }
   }
@@ -82,7 +82,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     final String[] tables = getUniqueNames(15);
     String firstTable = tables[0];
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       c.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "5");
       TestIngest.Opts opts = new TestIngest.Opts();
       opts.rows = 500 * 1000;

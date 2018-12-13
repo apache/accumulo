@@ -55,7 +55,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       majcDelay = client.instanceOperations().getSystemConfiguration()
           .get(Property.TSERV_MAJC_DELAY.getKey());
       if (!"1s".equals(majcDelay)) {
@@ -69,7 +69,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
   @After
   public void resetConfig() throws Exception {
     if (null != majcDelay) {
-      try (AccumuloClient client = getAccumuloClient()) {
+      try (AccumuloClient client = createAccumuloClient()) {
         client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
         getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
         getClusterControl().startAllServers(ServerType.TABLET_SERVER);
@@ -82,7 +82,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
   @Test
   public void testBulkSplitOptimization() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1000");

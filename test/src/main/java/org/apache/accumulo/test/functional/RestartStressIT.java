@@ -98,7 +98,7 @@ public class RestartStressIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       final AuthenticationToken token = getAdminToken();
       c.tableOperations().create(tableName);

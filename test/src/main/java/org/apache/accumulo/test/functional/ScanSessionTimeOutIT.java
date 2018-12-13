@@ -64,7 +64,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
 
   @Before
   public void reduceSessionIdle() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       InstanceOperations ops = client.instanceOperations();
       sessionIdle = ops.getSystemConfiguration().get(Property.TSERV_SESSION_MAXIDLE.getKey());
       ops.setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
@@ -86,7 +86,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
   @After
   public void resetSessionIdle() throws Exception {
     if (null != sessionIdle) {
-      try (AccumuloClient client = getAccumuloClient()) {
+      try (AccumuloClient client = createAccumuloClient()) {
         client.instanceOperations().setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(),
             sessionIdle);
       }
@@ -95,7 +95,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
 

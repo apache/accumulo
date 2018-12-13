@@ -51,7 +51,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
   public void addSplitTest() throws Exception {
 
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(tableName);
 
       insertData(c, tableName, 1L);

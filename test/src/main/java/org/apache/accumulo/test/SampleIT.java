@@ -124,7 +124,7 @@ public class SampleIT extends AccumuloClusterHarness {
   @Test
   public void testBasic() throws Exception {
 
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       String clone = tableName + "_clone";
 
@@ -308,7 +308,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
   @Test
   public void testIterator() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       String clone = tableName + "_clone";
 
@@ -421,7 +421,7 @@ public class SampleIT extends AccumuloClusterHarness {
   @Test
   public void testSampleNotPresent() throws Exception {
 
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       String clone = tableName + "_clone";
 

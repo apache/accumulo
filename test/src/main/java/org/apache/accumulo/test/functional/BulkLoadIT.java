@@ -102,7 +102,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Before
   public void setupBulkTest() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       aconf = getCluster().getServerContext().getConfiguration();
@@ -139,14 +139,14 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Test
   public void testSingleTabletSingleFile() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       testSingleTabletSingleFile(client, false);
     }
   }
 
   @Test
   public void testSingleTabletSingleFileOffline() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       testSingleTabletSingleFile(client, true);
     }
   }
@@ -171,21 +171,21 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Test
   public void testSingleTabletSingleFileNoSplits() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       testSingleTabletSingleFileNoSplits(client, false);
     }
   }
 
   @Test
   public void testSingleTabletSingleFileNoSplitsOffline() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       testSingleTabletSingleFileNoSplits(client, true);
     }
   }
 
   @Test
   public void testBadPermissions() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       addSplits(c, tableName, "0333");
 
       String dir = getDir("/testBadPermissions-");
@@ -220,7 +220,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
   }
 
   private void testBulkFile(boolean offline, boolean usePlan) throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       addSplits(c, tableName, "0333 0666 0999 1333 1666");
 
       if (offline)
@@ -297,7 +297,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Test
   public void testBadLoadPlans() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       addSplits(c, tableName, "0333 0666 0999 1333 1666");
 
       String dir = getDir("/testBulkFile-");
