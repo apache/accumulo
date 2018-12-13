@@ -49,7 +49,7 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     log.info("Creating table");
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(tableName);
       log.info("Adding slow iterator");
       IteratorSetting setting = new IteratorSetting(50, SlowIterator.class);

@@ -63,7 +63,7 @@ public class TableIT extends AccumuloClusterHarness {
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
     String rootPath = mac.getConfig().getDir().getAbsolutePath();
 
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       TableOperations to = c.tableOperations();
       String tableName = getUniqueNames(1)[0];
       to.create(tableName);

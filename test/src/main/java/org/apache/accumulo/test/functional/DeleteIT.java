@@ -43,7 +43,7 @@ public class DeleteIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       AuthenticationToken token = getAdminToken();

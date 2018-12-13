@@ -45,7 +45,7 @@ public class SparseColumnFamilyIT extends AccumuloClusterHarness {
   @Test
   public void sparceColumnFamily() throws Exception {
     String scftt = getUniqueNames(1)[0];
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(scftt);
 
       BatchWriter bw = c.createBatchWriter(scftt, new BatchWriterConfig());

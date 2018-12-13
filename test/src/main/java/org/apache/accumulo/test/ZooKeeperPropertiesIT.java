@@ -26,7 +26,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
 
   @Test(expected = AccumuloException.class)
   public void testNoFiles() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       // Should throw an error as this property can't be changed in ZooKeeper
       client.instanceOperations().setProperty(Property.GENERAL_RPC_TIMEOUT.getKey(), "60s");
     }

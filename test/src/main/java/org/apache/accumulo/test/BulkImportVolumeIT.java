@@ -66,7 +66,7 @@ public class BulkImportVolumeIT extends AccumuloClusterHarness {
   @Test
   public void testBulkImportFailure() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       client.tableOperations().create(tableName);
       FileSystem fs = getFileSystem();
       Path rootPath = new Path(cluster.getTemporaryPath(), getClass().getName());

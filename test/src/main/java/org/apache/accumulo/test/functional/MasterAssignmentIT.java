@@ -46,7 +46,7 @@ public class MasterAssignmentIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = super.getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       String tableId = c.tableOperations().tableIdMap().get(tableName);

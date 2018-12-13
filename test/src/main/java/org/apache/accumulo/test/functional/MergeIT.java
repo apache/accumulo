@@ -56,7 +56,7 @@ public class MergeIT extends AccumuloClusterHarness {
 
   @Test
   public void merge() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k".split(" ")));
@@ -75,7 +75,7 @@ public class MergeIT extends AccumuloClusterHarness {
 
   @Test
   public void mergeSize() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().addSplits(tableName,
@@ -113,7 +113,7 @@ public class MergeIT extends AccumuloClusterHarness {
   @Test
   public void mergeTest() throws Exception {
     int tc = 0;
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       runMergeTest(c, tableName + tc++, ns(), ns(), ns("l", "m", "n"), ns(null, "l"),
           ns(null, "n"));

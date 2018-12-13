@@ -51,7 +51,7 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     // make a table
     final String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       client.tableOperations().create(tableName);
 
       // make the world's slowest scanner

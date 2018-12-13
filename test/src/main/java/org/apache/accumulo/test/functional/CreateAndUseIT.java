@@ -63,7 +63,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
   @Test
   public void verifyDataIsPresent() throws Exception {
 
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
 
       Text cf = new Text("cf1");
       Text cq = new Text("cq1");
@@ -98,7 +98,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
 
   @Test
   public void createTableAndScan() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String table2 = getUniqueNames(1)[0];
       client.tableOperations().create(table2);
       client.tableOperations().addSplits(table2, splits);
@@ -118,7 +118,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
 
   @Test
   public void createTableAndBatchScan() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       ArrayList<Range> ranges = new ArrayList<>();
       for (int i = 1; i < 257; i++) {
         ranges.add(new Range(new Text(String.format("%08x", (i << 8) - 16))));

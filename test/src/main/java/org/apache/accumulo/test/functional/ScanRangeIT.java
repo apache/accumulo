@@ -48,7 +48,7 @@ public class ScanRangeIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String[] tableNames = getUniqueNames(2);
       String table1 = tableNames[0];
       c.tableOperations().create(table1);

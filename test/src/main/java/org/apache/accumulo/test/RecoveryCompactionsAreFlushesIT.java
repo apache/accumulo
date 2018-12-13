@@ -61,7 +61,7 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     // create a table
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100");
       c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "3");

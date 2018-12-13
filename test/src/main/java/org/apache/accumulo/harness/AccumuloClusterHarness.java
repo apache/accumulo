@@ -84,7 +84,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   protected static TestingKdc krb;
 
   @BeforeClass
-  public static void setUp() throws Exception {
+  public static void setUpHarness() throws Exception {
     clusterConf = AccumuloClusterPropertyConfiguration.get();
     type = clusterConf.getClusterType();
 
@@ -99,7 +99,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   }
 
   @AfterClass
-  public static void tearDownKdc() throws Exception {
+  public static void tearDownHarness() throws Exception {
     if (null != krb) {
       krb.stop();
     }
@@ -352,18 +352,22 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     return clusterConf;
   }
 
+  public AccumuloClient createAccumuloClient() {
+    try {
+      String princ = getAdminPrincipal();
+      AuthenticationToken token = getAdminToken();
+      log.debug("Creating client as {} with {}", princ, token);
+      return cluster.createAccumuloClient(princ, token);
+    } catch (Exception e) {
+      log.error("Could not connect to Accumulo", e);
+      fail("Could not connect to Accumulo: " + e.getMessage());
+      throw new RuntimeException("Could not connect to Accumulo", e);
+    }
+  }
+
   public AccumuloClient getAccumuloClient() {
     if (client == null) {
-      try {
-        String princ = getAdminPrincipal();
-        AuthenticationToken token = getAdminToken();
-        log.debug("Creating client as {} with {}", princ, token);
-        client = cluster.createAccumuloClient(princ, token);
-      } catch (Exception e) {
-        log.error("Could not connect to Accumulo", e);
-        fail("Could not connect to Accumulo: " + e.getMessage());
-        throw new RuntimeException("Could not connect to Accumulo", e);
-      }
+      client = createAccumuloClient();
     }
     return client;
   }

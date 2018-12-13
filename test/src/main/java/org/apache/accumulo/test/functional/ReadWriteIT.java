@@ -139,7 +139,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     // Shutdown cleanly.
     log.debug("Starting Monitor");
     cluster.getClusterControl().startAllServers(ServerType.MONITOR);
-    try (AccumuloClient accumuloClient = getAccumuloClient()) {
+    try (AccumuloClient accumuloClient = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       ingest(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
       verify(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
@@ -323,7 +323,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   @Test
   public void largeTest() throws Exception {
     // write a few large values
-    try (AccumuloClient accumuloClient = getAccumuloClient()) {
+    try (AccumuloClient accumuloClient = createAccumuloClient()) {
       String table = getUniqueNames(1)[0];
       ingest(accumuloClient, getClientInfo(), 2, 1, 500000, 0, table);
       verify(accumuloClient, getClientInfo(), 2, 1, 500000, 0, table);
@@ -333,7 +333,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   @Test
   public void interleaved() throws Exception {
     // read and write concurrently
-    try (AccumuloClient accumuloClient = getAccumuloClient()) {
+    try (AccumuloClient accumuloClient = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       interleaveTest(accumuloClient, tableName);
     }
@@ -378,7 +378,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   @Test
   public void localityGroupPerf() throws Exception {
     // verify that locality groups can make look-ups faster
-    try (AccumuloClient accumuloClient = getAccumuloClient()) {
+    try (AccumuloClient accumuloClient = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       accumuloClient.tableOperations().create(tableName);
       accumuloClient.tableOperations().setProperty(tableName, "table.group.g1", "colf");
@@ -411,7 +411,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
    */
   @Test
   public void sunnyLG() throws Exception {
-    try (AccumuloClient accumuloClient = getAccumuloClient()) {
+    try (AccumuloClient accumuloClient = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       accumuloClient.tableOperations().create(tableName);
       Map<String,Set<Text>> groups = new TreeMap<>();
@@ -428,7 +428,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   @Test
   public void sunnyLGUsingNewTableConfiguration() throws Exception {
     // create a locality group, write to it and ensure it exists in the RFiles that result
-    try (AccumuloClient accumuloClient = getAccumuloClient()) {
+    try (AccumuloClient accumuloClient = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       NewTableConfiguration ntc = new NewTableConfiguration();
       Map<String,Set<Text>> groups = new HashMap<>();
@@ -486,7 +486,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   @Test
   public void localityGroupChange() throws Exception {
     // Make changes to locality groups and ensure nothing is lost
-    try (AccumuloClient accumuloClient = getAccumuloClient()) {
+    try (AccumuloClient accumuloClient = createAccumuloClient()) {
       String table = getUniqueNames(1)[0];
       TableOperations to = accumuloClient.tableOperations();
       to.create(table);

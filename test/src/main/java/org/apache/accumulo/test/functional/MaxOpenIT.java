@@ -65,7 +65,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> sysConfig = iops.getSystemConfiguration();
       scanMaxOpenFiles = sysConfig.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey());
@@ -76,7 +76,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   @After
   public void restoreConfig() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       InstanceOperations iops = client.instanceOperations();
       if (null != scanMaxOpenFiles) {
         iops.setProperty(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), scanMaxOpenFiles);
@@ -95,7 +95,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");

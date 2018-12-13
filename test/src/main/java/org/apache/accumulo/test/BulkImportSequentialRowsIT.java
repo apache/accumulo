@@ -62,7 +62,7 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
   @Test
   public void testBulkImportFailure() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       TableOperations to = client.tableOperations();
       to.create(tableName);
       FileSystem fs = getFileSystem();

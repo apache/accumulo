@@ -52,7 +52,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   @Before
   public void saveMetadataSplits() throws Exception {
     if (ClusterType.STANDALONE == getClusterType()) {
-      try (AccumuloClient client = getAccumuloClient()) {
+      try (AccumuloClient client = createAccumuloClient()) {
         Collection<Text> splits = client.tableOperations().listSplits(MetadataTable.NAME);
         // We expect a single split
         if (!splits.equals(Arrays.asList(new Text("~")))) {
@@ -71,7 +71,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   public void restoreMetadataSplits() throws Exception {
     if (null != metadataSplits) {
       log.info("Restoring split on metadata table");
-      try (AccumuloClient client = getAccumuloClient()) {
+      try (AccumuloClient client = createAccumuloClient()) {
         client.tableOperations().merge(MetadataTable.NAME, null, null);
         client.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(metadataSplits));
       }
@@ -80,7 +80,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
 
   @Test(expected = AccumuloException.class)
   public void testRootTableSplit() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("5"));
       client.tableOperations().addSplits(RootTable.NAME, splits);
@@ -89,7 +89,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
 
   @Test
   public void testRootTableMerge() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       client.tableOperations().merge(RootTable.NAME, null, null);
     }
   }
@@ -104,7 +104,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
 
   @Test
   public void testMetadataTableSplit() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       TableOperations opts = client.tableOperations();
       for (int i = 1; i <= 10; i++) {
         opts.create(Integer.toString(i));

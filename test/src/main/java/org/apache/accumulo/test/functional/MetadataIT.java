@@ -61,7 +61,7 @@ public class MetadataIT extends AccumuloClusterHarness {
 
   @Test
   public void testFlushAndCompact() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableNames[] = getUniqueNames(2);
 
       // create a table to write some data to metadata table
@@ -100,7 +100,7 @@ public class MetadataIT extends AccumuloClusterHarness {
 
   @Test
   public void mergeMeta() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String[] names = getUniqueNames(5);
       SortedSet<Text> splits = new TreeSet<>();
       for (String id : "1 2 3 4 5".split(" ")) {
@@ -123,7 +123,7 @@ public class MetadataIT extends AccumuloClusterHarness {
 
   @Test
   public void batchScanTest() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
 

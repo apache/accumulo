@@ -39,7 +39,7 @@ import org.junit.Test;
 public class TooManyDeletesIT extends AccumuloClusterHarness {
   @Test
   public void tooManyDeletesCompactionStrategyIT() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
 
       String table = getUniqueNames(1)[0];
 

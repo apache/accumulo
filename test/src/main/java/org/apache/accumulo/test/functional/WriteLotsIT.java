@@ -38,7 +38,7 @@ public class WriteLotsIT extends AccumuloClusterHarness {
 
   @Test
   public void writeLots() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       final AtomicReference<Exception> ref = new AtomicReference<>();

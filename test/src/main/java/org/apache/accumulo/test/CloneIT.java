@@ -46,7 +46,7 @@ public class CloneIT extends AccumuloClusterHarness {
 
   @Test
   public void testNoFiles() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
@@ -75,7 +75,7 @@ public class CloneIT extends AccumuloClusterHarness {
 
   @Test
   public void testFilesChange() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
@@ -133,7 +133,7 @@ public class CloneIT extends AccumuloClusterHarness {
   // test split where files of children are the same
   @Test
   public void testSplit1() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
@@ -177,7 +177,7 @@ public class CloneIT extends AccumuloClusterHarness {
   // test split where files of children differ... like majc and split occurred
   @Test
   public void testSplit2() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
@@ -255,7 +255,7 @@ public class CloneIT extends AccumuloClusterHarness {
   // test two tablets splitting into four
   @Test
   public void testSplit3() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
@@ -304,7 +304,7 @@ public class CloneIT extends AccumuloClusterHarness {
   // test cloned marker
   @Test
   public void testClonedMarker() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
@@ -371,7 +371,7 @@ public class CloneIT extends AccumuloClusterHarness {
   // test two tablets splitting into four
   @Test
   public void testMerge() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 

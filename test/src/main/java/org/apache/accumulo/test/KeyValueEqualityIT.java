@@ -42,7 +42,7 @@ public class KeyValueEqualityIT extends AccumuloClusterHarness {
 
   @Test
   public void testEquality() throws Exception {
-    try (AccumuloClient client = this.getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       final BatchWriterConfig config = new BatchWriterConfig();
 
       final String[] tables = getUniqueNames(2);

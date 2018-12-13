@@ -30,7 +30,7 @@ public class CreateManyScannersIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       for (int i = 0; i < 100000; i++) {

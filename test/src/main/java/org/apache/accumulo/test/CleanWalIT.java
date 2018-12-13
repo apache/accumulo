@@ -68,7 +68,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
 
   @Before
   public void offlineTraceTable() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String traceTable = client.instanceOperations().getSystemConfiguration()
           .get(Property.TRACE_TABLE.getKey());
       if (client.tableOperations().exists(traceTable)) {
@@ -80,7 +80,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
   @After
   public void onlineTraceTable() throws Exception {
     if (null != cluster) {
-      try (AccumuloClient client = getAccumuloClient()) {
+      try (AccumuloClient client = createAccumuloClient()) {
         String traceTable = client.instanceOperations().getSystemConfiguration()
             .get(Property.TRACE_TABLE.getKey());
         if (client.tableOperations().exists(traceTable)) {
@@ -93,7 +93,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
   // test for ACCUMULO-1830
   @Test
   public void test() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
       BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());

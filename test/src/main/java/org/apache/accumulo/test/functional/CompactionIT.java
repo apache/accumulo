@@ -73,7 +73,7 @@ public class CompactionIT extends AccumuloClusterHarness {
   @Before
   public void alterConfig() throws Exception {
     if (ClusterType.STANDALONE == getClusterType()) {
-      try (AccumuloClient client = getAccumuloClient()) {
+      try (AccumuloClient client = createAccumuloClient()) {
         InstanceOperations iops = client.instanceOperations();
         Map<String,String> config = iops.getSystemConfiguration();
         majcThreadMaxOpen = config.get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey());
@@ -94,7 +94,7 @@ public class CompactionIT extends AccumuloClusterHarness {
   public void resetConfig() throws Exception {
     // We set the values..
     if (null != majcThreadMaxOpen) {
-      try (AccumuloClient client = getAccumuloClient()) {
+      try (AccumuloClient client = createAccumuloClient()) {
         InstanceOperations iops = client.instanceOperations();
 
         iops.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), majcThreadMaxOpen);
@@ -109,7 +109,7 @@ public class CompactionIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");

@@ -67,7 +67,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits
     final String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
 
       // Eliminate whole tablets
       for (int test = 0; test < 10; test++) {

@@ -48,7 +48,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
 
   @Before
   public void checkProperty() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       // TABLE_VOLUME_CHOOSER is a valid property that can be updated in ZK, whereas the crypto
       // properties are not.
       // This lets us run this test more generically rather than forcibly needing to update some
@@ -63,7 +63,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
   @After
   public void resetProperty() throws Exception {
     if (null != origPropValue) {
-      try (AccumuloClient client = getAccumuloClient()) {
+      try (AccumuloClient client = createAccumuloClient()) {
         client.instanceOperations().setProperty(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER,
             origPropValue);
       }

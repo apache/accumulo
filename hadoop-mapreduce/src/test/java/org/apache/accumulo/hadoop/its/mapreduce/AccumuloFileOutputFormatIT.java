@@ -83,7 +83,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
     TEST_TABLE = PREFIX + "_mapreduce_test_table";
     EMPTY_TABLE = PREFIX + "_mapreduce_empty_table";
 
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(EMPTY_TABLE);
       c.tableOperations().create(TEST_TABLE);
       c.tableOperations().create(BAD_TABLE);

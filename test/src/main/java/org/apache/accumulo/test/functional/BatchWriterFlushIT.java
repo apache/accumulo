@@ -67,7 +67,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String[] tableNames = getUniqueNames(2);
       String bwft = tableNames[0];
       c.tableOperations().create(bwft);
@@ -183,7 +183,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
   @Test
   public void runMultiThreadedBinningTest() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String[] tableNames = getUniqueNames(1);
       String tableName = tableNames[0];
       c.tableOperations().create(tableName);

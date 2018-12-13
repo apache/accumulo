@@ -35,7 +35,7 @@ public class UsersIT extends AccumuloClusterHarness {
   @Test
   public void testCreateExistingUser() throws Exception {
     ClusterUser user0 = getUser(0);
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       Set<String> currentUsers = client.securityOperations().listLocalUsers();
 
       // Ensure that the user exists

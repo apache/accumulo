@@ -65,7 +65,7 @@ public class BulkIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       runTest(client, getClientInfo(), getCluster().getFileSystem(),
           getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
           testName.getMethodName(), false);
@@ -74,7 +74,7 @@ public class BulkIT extends AccumuloClusterHarness {
 
   @Test
   public void testOld() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       runTest(client, getClientInfo(), getCluster().getFileSystem(),
           getCluster().getTemporaryPath(), getUniqueNames(1)[0], this.getClass().getName(),
           testName.getMethodName(), true);

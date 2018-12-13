@@ -71,7 +71,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
     String table1 = tableNames[0];
     String table2 = tableNames[1];
 
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
 
       c.tableOperations().create(table1);
 
@@ -205,7 +205,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
     String table2 = tableNames[1];
     String table3 = tableNames[2];
 
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       AccumuloCluster cluster = getCluster();
       Assume.assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
       MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
@@ -266,7 +266,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
   @Test
   public void testCloneWithSplits() throws Exception {
-    try (AccumuloClient client = getAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
 
       List<Mutation> mutations = new ArrayList<>();
       TreeSet<Text> splits = new TreeSet<>();

@@ -62,14 +62,14 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   @Before
   public void emptyAuths() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       origAuths = c.securityOperations().getUserAuthorizations(getAdminPrincipal());
     }
   }
 
   @After
   public void resetAuths() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       if (null != origAuths) {
         c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), origAuths);
       }
@@ -78,7 +78,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String[] tableNames = getUniqueNames(2);
       String table = tableNames[0];
       c.tableOperations().create(table);

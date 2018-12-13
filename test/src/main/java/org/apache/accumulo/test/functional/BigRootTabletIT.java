@@ -51,7 +51,7 @@ public class BigRootTabletIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().addSplits(MetadataTable.NAME,
           FunctionalTestUtils.splits("0 1 2 3 4 5 6 7 8 9 a".split(" ")));
       String[] names = getUniqueNames(10);

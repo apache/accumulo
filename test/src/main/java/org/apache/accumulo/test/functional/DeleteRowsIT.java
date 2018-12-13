@@ -69,7 +69,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
 
   @Test(timeout = 5 * 60 * 1000)
   public void testDeleteAllRows() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String[] tableNames = this.getUniqueNames(20);
       for (String tableName : tableNames) {
         c.tableOperations().create(tableName);
@@ -83,7 +83,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
 
   @Test
   public void testManyRows() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       // Delete ranges of rows, and verify the tablets are removed.
       int i = 0;
       // Eliminate whole tablets

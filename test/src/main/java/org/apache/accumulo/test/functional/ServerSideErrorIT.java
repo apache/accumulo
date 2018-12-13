@@ -48,7 +48,7 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       IteratorSetting is = new IteratorSetting(5, "Bad Aggregator", BadCombiner.class);

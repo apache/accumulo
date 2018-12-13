@@ -43,7 +43,7 @@ public class RenameIT extends AccumuloClusterHarness {
     opts.setTableName(name1);
     opts.setClientProperties(cluster.getClientProperties());
 
-    try (AccumuloClient c = getAccumuloClient()) {
+    try (AccumuloClient c = createAccumuloClient()) {
       TestIngest.ingest(c, opts, bwOpts);
       c.tableOperations().rename(name1, name2);
       TestIngest.ingest(c, opts, bwOpts);
