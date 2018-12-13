@@ -68,7 +68,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
   @Before
   public void setup() throws Exception {
-    accumuloClient = getAccumuloClient();
+    accumuloClient = createAccumuloClient();
     tableName = getUniqueNames(1)[0];
 
     accumuloClient.tableOperations().create(tableName);

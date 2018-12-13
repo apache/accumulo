@@ -106,7 +106,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
     Assume.assumeTrue(ClusterType.MINI == getClusterType());
 
     // prepare a unique namespace and get a new root client for each test
-    c = getAccumuloClient();
+    c = createAccumuloClient();
     namespace = "ns_" + getUniqueNames(1)[0];
   }
 

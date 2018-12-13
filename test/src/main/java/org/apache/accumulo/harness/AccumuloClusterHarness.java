@@ -78,7 +78,6 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   private static boolean initialized = false;
 
   protected static AccumuloCluster cluster;
-  protected static AccumuloClient client;
   protected static ClusterType type;
   protected static AccumuloClusterPropertyConfiguration clusterConf;
   protected static TestingKdc krb;
@@ -102,9 +101,6 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   public static void tearDownHarness() throws Exception {
     if (null != krb) {
       krb.stop();
-    }
-    if (client != null) {
-      client.close();
     }
   }
 
@@ -188,26 +184,28 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           // permissions to)
           UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
               systemUser.getKeytab().getAbsolutePath());
-          AccumuloClient client = cluster.createAccumuloClient(systemUser.getPrincipal(),
+          AccumuloClient c = cluster.createAccumuloClient(systemUser.getPrincipal(),
               new KerberosToken());
+          c.close();
 
           // Then, log back in as the "root" user and do the grant
           UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
               rootUser.getKeytab().getAbsolutePath());
-          client = getAccumuloClient();
 
-          // Create the trace table
-          client.tableOperations().create(traceTable);
+          try (AccumuloClient client = createAccumuloClient()) {
+            // Create the trace table
+            client.tableOperations().create(traceTable);
 
-          // Trace user (which is the same kerberos principal as the system user, but using a normal
-          // KerberosToken) needs
-          // to have the ability to read, write and alter the trace table
-          client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-              TablePermission.READ);
-          client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-              TablePermission.WRITE);
-          client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-              TablePermission.ALTER_TABLE);
+            // Trace user (which is the same kerberos principal as the system user, but using a normal
+            // KerberosToken) needs
+            // to have the ability to read, write and alter the trace table
+            client.securityOperations()
+                .grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.READ);
+            client.securityOperations()
+                .grantTablePermission(systemUser.getPrincipal(), traceTable, TablePermission.WRITE);
+            client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
+                TablePermission.ALTER_TABLE);
+          }
         }
         break;
       default:
@@ -217,22 +215,26 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
 
   public void cleanupTables() throws Exception {
     final String tablePrefix = this.getClass().getSimpleName() + "_";
-    final TableOperations tops = getAccumuloClient().tableOperations();
-    for (String table : tops.list()) {
-      if (table.startsWith(tablePrefix)) {
-        log.debug("Removing table {}", table);
-        tops.delete(table);
+    try (AccumuloClient client = createAccumuloClient()) {
+      final TableOperations tops = client.tableOperations();
+      for (String table : tops.list()) {
+        if (table.startsWith(tablePrefix)) {
+          log.debug("Removing table {}", table);
+          tops.delete(table);
+        }
       }
     }
   }
 
   public void cleanupUsers() throws Exception {
     final String userPrefix = this.getClass().getSimpleName();
-    final SecurityOperations secOps = getAccumuloClient().securityOperations();
-    for (String user : secOps.listLocalUsers()) {
-      if (user.startsWith(userPrefix)) {
-        log.info("Dropping local user {}", user);
-        secOps.dropLocalUser(user);
+    try (AccumuloClient client = createAccumuloClient()) {
+      final SecurityOperations secOps = client.securityOperations();
+      for (String user : secOps.listLocalUsers()) {
+        if (user.startsWith(userPrefix)) {
+          log.info("Dropping local user {}", user);
+          secOps.dropLocalUser(user);
+        }
       }
     }
   }
@@ -363,13 +365,6 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
       fail("Could not connect to Accumulo: " + e.getMessage());
       throw new RuntimeException("Could not connect to Accumulo", e);
     }
-  }
-
-  public AccumuloClient getAccumuloClient() {
-    if (client == null) {
-      client = createAccumuloClient();
-    }
-    return client;
   }
 
   // TODO Really don't want this here. Will ultimately need to abstract configuration method away

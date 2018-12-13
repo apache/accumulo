@@ -58,7 +58,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
   @Before
   public void setUpArgs() throws AccumuloException, AccumuloSecurityException {
-    accumuloClient = getAccumuloClient();
+    accumuloClient = createAccumuloClient();
     mtbw = getMultiTableBatchWriter();
   }
 

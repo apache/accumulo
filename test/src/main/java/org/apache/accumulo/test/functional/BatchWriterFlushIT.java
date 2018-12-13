@@ -81,7 +81,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
   private void runLatencyTest(AccumuloClient client, String tableName) throws Exception {
     // should automatically flush after 2 seconds
     try (
-        BatchWriter bw = getAccumuloClient().createBatchWriter(tableName,
+        BatchWriter bw = client.createBatchWriter(tableName,
             new BatchWriterConfig().setMaxLatency(1000, TimeUnit.MILLISECONDS));
         Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
 
