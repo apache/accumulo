@@ -21,6 +21,7 @@ import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
+import static org.apache.accumulo.tserver.logger.LogEvents.MUTATION;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 
 import java.io.DataInputStream;
@@ -66,6 +67,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
+import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
@@ -368,7 +370,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
         CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, params);
 
         FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
-        log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
+        if (log.isDebugEnabled())
+          log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
         decryptingInput = cryptoService instanceof NoCryptoService ? input
             : new DataInputStream(decrypter.decryptStream(input));
       } else {
@@ -397,10 +400,12 @@ public class DfsLogger implements Comparable<DfsLogger> {
    */
   public synchronized void open(String address) throws IOException {
     String filename = UUID.randomUUID().toString();
-    log.debug("Address is {}", address);
+    if (log.isDebugEnabled())
+      log.debug("Address is {}", address);
     String logger = Joiner.on("+").join(address.split(":"));
 
-    log.debug("DfsLogger.open() begin");
+    if (log.isDebugEnabled())
+      log.debug("DfsLogger.open() begin");
     VolumeManager fs = conf.getFileSystem();
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.LOGGER,
@@ -427,7 +432,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
       CryptoService cryptoService = context.getCryptoService();
       logFile.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
 
-      log.debug("Using {} for encrypting WAL {}", cryptoService.getClass().getSimpleName(),
+      if (log.isDebugEnabled())
+        log.debug("Using {} for encrypting WAL {}", cryptoService.getClass().getSimpleName(),
           filename);
       CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, null);
       FileEncrypter encrypter = cryptoService.getFileEncrypter(env);
@@ -463,7 +469,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     syncThread.setName("Accumulo WALog thread " + this);
     syncThread.start();
     op.await();
-    log.debug("Got new write-ahead log: {}", this);
+    if (log.isDebugEnabled())
+      log.debug("Got new write-ahead log: {}", this);
   }
 
   static long getWalBlockSize(AccumuloConfiguration conf) {
@@ -537,13 +544,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
   }
 
-  public synchronized void defineTablet(long seq, int tid, KeyExtent tablet) throws IOException {
+  public synchronized LoggerOperation defineTablet(CommitSession cs) throws IOException {
     // write this log to the METADATA table
     final LogFileKey key = new LogFileKey();
     key.event = DEFINE_TABLET;
-    key.seq = seq;
-    key.tabletId = tid;
-    key.tablet = tablet;
+    key.seq = cs.getWALogSeq();
+    key.tabletId = cs.getLogId();
+    key.tablet = cs.getExtent();
     try {
       write(key, EMPTY);
     } catch (ClosedChannelException ex) {
@@ -553,18 +560,13 @@ public class DfsLogger implements Comparable<DfsLogger> {
           + " incompatible with this version of Hadoop.");
       throw new RuntimeException(e);
     }
+    return NO_WAIT_LOGGER_OP;
   }
 
   private synchronized void write(LogFileKey key, LogFileValue value) throws IOException {
     key.write(encryptingLogFile);
     value.write(encryptingLogFile);
     encryptingLogFile.flush();
-  }
-
-  public LoggerOperation log(long seq, int tid, Mutation mutation, Durability durability)
-      throws IOException {
-    return logManyTablets(Collections.singletonList(
-        new TabletMutations(tid, seq, Collections.singletonList(mutation), durability)));
   }
 
   private LoggerOperation logFileData(List<Pair<LogFileKey,LogFileValue>> keys,
@@ -614,6 +616,18 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return logFileData(data, durability);
   }
 
+  public LoggerOperation log(CommitSession cs, Mutation m, Durability d) throws IOException {
+    List<Pair<LogFileKey,LogFileValue>> data = new ArrayList<>();
+    LogFileKey key = new LogFileKey();
+    key.event = MUTATION;
+    key.seq = cs.getWALogSeq();
+    key.tabletId = cs.getLogId();
+    LogFileValue value = new LogFileValue();
+    value.mutations = Collections.singletonList(m);
+    data.add(new Pair<>(key, value));
+    return logFileData(data, d);
+  }
+
   /**
    * Return the Durability with the highest precedence
    */
@@ -626,7 +640,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   }
 
   public LoggerOperation minorCompactionFinished(long seq, int tid, Durability durability)
-      throws IOException {
+          throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_FINISH;
     key.seq = seq;
