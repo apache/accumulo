@@ -81,7 +81,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
   @Before
   public void setup() {
     accumuloClient = createAccumuloClient();
-    context = new ClientContext(accumuloClient);
+    context = (ClientContext) accumuloClient;
   }
 
   @After

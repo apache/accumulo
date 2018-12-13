@@ -557,6 +557,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
           log.error("Constraint violations : " + e.getConstraintViolationSummaries().size());
         }
         throw new IOException(e);
+      } finally {
+        client.close();
       }
     }
   }
@@ -565,11 +567,9 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   public void checkOutputSpecs(JobContext job) throws IOException {
     if (!isConnectorInfoSet(job))
       throw new IOException("Connector info has not been set.");
-    try {
-      // if the instance isn't configured, it will complain here
-      String principal = getPrincipal(job);
-      AuthenticationToken token = getAuthenticationToken(job);
-      AccumuloClient c = Accumulo.newClient().from(getClientProperties(job)).build();
+    String principal = getPrincipal(job);
+    AuthenticationToken token = getAuthenticationToken(job);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties(job)).build()) {
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException | AccumuloSecurityException e) {

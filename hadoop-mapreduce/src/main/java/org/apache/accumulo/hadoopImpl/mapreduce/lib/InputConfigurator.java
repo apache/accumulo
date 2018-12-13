@@ -711,8 +711,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf,
       Table.ID tableId) {
     try (AccumuloClient client = createClient(implementingClass, conf)) {
-      ClientContext context = new ClientContext(client);
-      return TabletLocator.getLocator(context, tableId);
+      return TabletLocator.getLocator((ClientContext) client, tableId);
     }
   }
 
@@ -831,7 +830,7 @@ public class InputConfigurator extends ConfiguratorBase {
 
       Range metadataRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(),
           true, null, false);
-      Scanner scanner = context.getClient().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME);
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);

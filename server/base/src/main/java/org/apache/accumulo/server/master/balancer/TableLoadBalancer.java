@@ -136,7 +136,7 @@ public class TableLoadBalancer extends TabletBalancer {
 
   protected TableOperations getTableOperations() {
     if (tops == null)
-      tops = this.context.getClient().tableOperations();
+      tops = this.context.tableOperations();
     return tops;
   }
 

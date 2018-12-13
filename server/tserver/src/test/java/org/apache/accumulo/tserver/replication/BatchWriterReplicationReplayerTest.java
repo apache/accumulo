@@ -27,8 +27,6 @@ import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -57,19 +55,16 @@ public class BatchWriterReplicationReplayerTest {
   private BatchWriter bw;
 
   @Before
-  public void setUpContext() throws AccumuloException, AccumuloSecurityException {
-    client = createMock(AccumuloClient.class);
+  public void setUpContext() {
     conf = createMock(AccumuloConfiguration.class);
     bw = createMock(BatchWriter.class);
     context = createMock(ClientContext.class);
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
-    expect(context.getClient()).andReturn(client).anyTimes();
-    replay(context);
   }
 
   @After
   public void verifyMock() {
-    verify(context, client, conf, bw);
+    verify(context, conf, bw);
   }
 
   @Test
@@ -124,7 +119,7 @@ public class BatchWriterReplicationReplayerTest {
 
     expect(conf.getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY))
         .andReturn(bwCfg.getMaxMemory());
-    expect(client.createBatchWriter(tableName, bwCfg)).andReturn(bw);
+    expect(context.createBatchWriter(tableName, bwCfg)).andReturn(bw);
 
     bw.addMutations(Lists.newArrayList(expectedMutation));
     expectLastCall().once();
@@ -132,7 +127,7 @@ public class BatchWriterReplicationReplayerTest {
     bw.close();
     expectLastCall().once();
 
-    replay(client, conf, bw);
+    replay(context, conf, bw);
 
     replayer.replicateLog(context, tableName, edits);
   }
@@ -196,7 +191,7 @@ public class BatchWriterReplicationReplayerTest {
 
     expect(conf.getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY))
         .andReturn(bwCfg.getMaxMemory());
-    expect(client.createBatchWriter(tableName, bwCfg)).andReturn(bw);
+    expect(context.createBatchWriter(tableName, bwCfg)).andReturn(bw);
 
     bw.addMutations(Lists.newArrayList(expectedMutation));
     expectLastCall().once();
@@ -204,7 +199,7 @@ public class BatchWriterReplicationReplayerTest {
     bw.close();
     expectLastCall().once();
 
-    replay(client, conf, bw);
+    replay(context, conf, bw);
 
     replayer.replicateLog(context, tableName, edits);
   }

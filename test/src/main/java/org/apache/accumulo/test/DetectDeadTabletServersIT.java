@@ -86,7 +86,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
   }
 
   private MasterMonitorInfo getStats(AccumuloClient c) throws Exception {
-    ClientContext context = getClientContext();
+    ClientContext context = (ClientContext) c;
     Client client = null;
     while (true) {
       try {

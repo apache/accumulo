@@ -164,94 +164,95 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
    *          callback which shuts down some tablet servers.
    */
   private void suspensionTestBody(TServerKiller serverStopper) throws Exception {
-    ClientContext ctx = getClientContext();
+    try (AccumuloClient client = createClient()) {
+      ClientContext ctx = (ClientContext) client;
 
-    String tableName = getUniqueNames(1)[0];
+      String tableName = getUniqueNames(1)[0];
 
-    AccumuloClient client = ctx.getClient();
+      // Create a table with a bunch of splits
+      log.info("Creating table " + tableName);
+      ctx.tableOperations().create(tableName);
+      SortedSet<Text> splitPoints = new TreeSet<>();
+      for (int i = 1; i < TABLETS; ++i) {
+        splitPoints.add(new Text("" + i));
+      }
+      ctx.tableOperations().addSplits(tableName, splitPoints);
 
-    // Create a table with a bunch of splits
-    log.info("Creating table " + tableName);
-    client.tableOperations().create(tableName);
-    SortedSet<Text> splitPoints = new TreeSet<>();
-    for (int i = 1; i < TABLETS; ++i) {
-      splitPoints.add(new Text("" + i));
-    }
-    client.tableOperations().addSplits(tableName, splitPoints);
+      // Wait for all of the tablets to hosted ...
+      log.info("Waiting on hosting and balance");
+      TabletLocations ds;
+      for (ds = TabletLocations.retrieve(ctx,
+          tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
+        Thread.sleep(1000);
+      }
 
-    // Wait for all of the tablets to hosted ...
-    log.info("Waiting on hosting and balance");
-    TabletLocations ds;
-    for (ds = TabletLocations.retrieve(ctx,
-        tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
-      Thread.sleep(1000);
-    }
+      // ... and balanced.
+      ctx.instanceOperations().waitForBalance();
+      do {
+        // Give at least another 5 seconds for migrations to finish up
+        Thread.sleep(5000);
+        ds = TabletLocations.retrieve(ctx, tableName);
+      } while (ds.hostedCount != TABLETS);
 
-    // ... and balanced.
-    client.instanceOperations().waitForBalance();
-    do {
-      // Give at least another 5 seconds for migrations to finish up
-      Thread.sleep(5000);
+      // Pray all of our tservers have at least 1 tablet.
+      assertEquals(TSERVERS, ds.hosted.keySet().size());
+
+      // Kill two tablet servers hosting our tablets. This should put tablets into suspended state,
+      // and thus halt balancing.
+
+      TabletLocations beforeDeathState = ds;
+      log.info("Eliminating tablet servers");
+      serverStopper.eliminateTabletServers(ctx, beforeDeathState, 2);
+
+      // Eventually some tablets will be suspended.
+      log.info("Waiting on suspended tablets");
       ds = TabletLocations.retrieve(ctx, tableName);
-    } while (ds.hostedCount != TABLETS);
+      // Until we can scan the metadata table, the master probably can't either, so won't have been
+      // able to suspend the tablets.
+      // So we note the time that we were first able to successfully scan the metadata table.
+      long killTime = System.nanoTime();
+      while (ds.suspended.keySet().size() != 2) {
+        Thread.sleep(1000);
+        ds = TabletLocations.retrieve(ctx, tableName);
+      }
 
-    // Pray all of our tservers have at least 1 tablet.
-    assertEquals(TSERVERS, ds.hosted.keySet().size());
+      SetMultimap<HostAndPort,KeyExtent> deadTabletsByServer = ds.suspended;
 
-    // Kill two tablet servers hosting our tablets. This should put tablets into suspended state,
-    // and thus halt balancing.
+      // By this point, all tablets should be either hosted or suspended. All suspended tablets
+      // should
+      // "belong" to the dead tablet servers, and should be in exactly the same place as before any
+      // tserver death.
+      for (HostAndPort server : deadTabletsByServer.keySet()) {
+        assertEquals(deadTabletsByServer.get(server), beforeDeathState.hosted.get(server));
+      }
+      assertEquals(TABLETS, ds.hostedCount + ds.suspendedCount);
 
-    TabletLocations beforeDeathState = ds;
-    log.info("Eliminating tablet servers");
-    serverStopper.eliminateTabletServers(ctx, beforeDeathState, 2);
+      // Restart the first tablet server, making sure it ends up on the same port
+      HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
+      log.info("Restarting " + restartedServer);
+      getCluster().getClusterControl().start(ServerType.TABLET_SERVER, null,
+          ImmutableMap.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
+              Property.TSERV_PORTSEARCH.getKey(), "false"),
+          1);
 
-    // Eventually some tablets will be suspended.
-    log.info("Waiting on suspended tablets");
-    ds = TabletLocations.retrieve(ctx, tableName);
-    // Until we can scan the metadata table, the master probably can't either, so won't have been
-    // able to suspend the tablets.
-    // So we note the time that we were first able to successfully scan the metadata table.
-    long killTime = System.nanoTime();
-    while (ds.suspended.keySet().size() != 2) {
-      Thread.sleep(1000);
-      ds = TabletLocations.retrieve(ctx, tableName);
+      // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
+      log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
+      for (ds = TabletLocations.retrieve(ctx, tableName); ds.suspended.containsKey(restartedServer)
+          || ds.assignedCount != 0; ds = TabletLocations.retrieve(ctx, tableName)) {
+        Thread.sleep(1000);
+      }
+      assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
+
+      // Finally, after much longer, remaining suspended tablets should be reassigned.
+      log.info("Awaiting tablet reassignment for remaining tablets");
+      for (ds = TabletLocations.retrieve(ctx,
+          tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
+        Thread.sleep(1000);
+      }
+
+      long recoverTime = System.nanoTime();
+      assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
     }
-
-    SetMultimap<HostAndPort,KeyExtent> deadTabletsByServer = ds.suspended;
-
-    // By this point, all tablets should be either hosted or suspended. All suspended tablets should
-    // "belong" to the dead tablet servers, and should be in exactly the same place as before any
-    // tserver death.
-    for (HostAndPort server : deadTabletsByServer.keySet()) {
-      assertEquals(deadTabletsByServer.get(server), beforeDeathState.hosted.get(server));
-    }
-    assertEquals(TABLETS, ds.hostedCount + ds.suspendedCount);
-
-    // Restart the first tablet server, making sure it ends up on the same port
-    HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
-    log.info("Restarting " + restartedServer);
-    getCluster().getClusterControl().start(ServerType.TABLET_SERVER, null,
-        ImmutableMap.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
-            Property.TSERV_PORTSEARCH.getKey(), "false"),
-        1);
-
-    // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
-    log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
-    for (ds = TabletLocations.retrieve(ctx, tableName); ds.suspended.containsKey(restartedServer)
-        || ds.assignedCount != 0; ds = TabletLocations.retrieve(ctx, tableName)) {
-      Thread.sleep(1000);
-    }
-    assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
-
-    // Finally, after much longer, remaining suspended tablets should be reassigned.
-    log.info("Awaiting tablet reassignment for remaining tablets");
-    for (ds = TabletLocations.retrieve(ctx,
-        tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
-      Thread.sleep(1000);
-    }
-
-    long recoverTime = System.nanoTime();
-    assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, MILLISECONDS));
   }
 
   private interface TServerKiller {
@@ -313,7 +314,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     }
 
     private void scan(ClientContext ctx, String tableName) throws Exception {
-      Map<String,String> idMap = ctx.getClient().tableOperations().tableIdMap();
+      Map<String,String> idMap = ctx.tableOperations().tableIdMap();
       String tableId = Objects.requireNonNull(idMap.get(tableName));
       try (MetaDataTableScanner scanner = new MetaDataTableScanner(ctx, new Range())) {
         while (scanner.hasNext()) {

@@ -20,7 +20,7 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.client.lexicoder.Lexicoder;
 import org.apache.accumulo.core.client.rfile.RFile;
-import org.apache.accumulo.core.clientImpl.AccumuloClientImpl;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 
 /**
  * This class contains all API entry points created in 2.0.0 or later. The majority of the API is
@@ -65,8 +65,7 @@ public final class Accumulo {
    * @return a builder object for Accumulo clients
    */
   public static AccumuloClient.PropertyOptions<AccumuloClient> newClient() {
-    return new AccumuloClientImpl.ClientBuilderImpl<>(
-        AccumuloClientImpl.ClientBuilderImpl::buildClient);
+    return new ClientContext.ClientBuilderImpl<>(ClientContext.ClientBuilderImpl::buildClient);
   }
 
   /**
@@ -83,7 +82,6 @@ public final class Accumulo {
    * @return a builder object for client Properties
    */
   public static AccumuloClient.PropertyOptions<Properties> newClientProperties() {
-    return new AccumuloClientImpl.ClientBuilderImpl<>(
-        AccumuloClientImpl.ClientBuilderImpl::buildProps);
+    return new ClientContext.ClientBuilderImpl<>(ClientContext.ClientBuilderImpl::buildProps);
   }
 }

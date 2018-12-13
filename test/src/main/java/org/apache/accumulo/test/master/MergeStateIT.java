@@ -51,7 +51,6 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
-import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class MergeStateIT extends ConfigurableMacBase {
@@ -106,10 +105,8 @@ public class MergeStateIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    ServerContext context = EasyMock.createMock(ServerContext.class);
+    ServerContext context = getServerContext();
     try (AccumuloClient accumuloClient = createClient()) {
-      EasyMock.expect(context.getClient()).andReturn(accumuloClient).anyTimes();
-      EasyMock.replay(context);
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
           MetadataTable.NAME, TablePermission.WRITE);
       BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME,

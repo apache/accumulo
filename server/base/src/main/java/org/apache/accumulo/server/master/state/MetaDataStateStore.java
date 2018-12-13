@@ -90,7 +90,7 @@ public class MetaDataStateStore extends TabletStateStore {
 
   BatchWriter createBatchWriter() {
     try {
-      return context.getClient().createBatchWriter(targetTableName,
+      return context.createBatchWriter(targetTableName,
           new BatchWriterConfig().setMaxMemory(MAX_MEMORY)
               .setMaxLatency(LATENCY, TimeUnit.MILLISECONDS).setMaxWriteThreads(THREADS));
     } catch (Exception e) {

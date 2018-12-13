@@ -72,6 +72,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -127,8 +128,10 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   @Test(expected = RuntimeException.class)
   public void invalidInstanceName() throws Exception {
-    Accumulo.newClient().to("fake_instance_name", cluster.getZooKeepers())
-        .as(getAdminPrincipal(), getAdminToken()).build();
+    try (AccumuloClient client = Accumulo.newClient().to("fake_instance_name", cluster.getZooKeepers())
+        .as(getAdminPrincipal(), getAdminToken()).build()) {
+      client.instanceOperations().getTabletServers();
+    }
   }
 
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "URLCONNECTION_SSRF_FD"},
@@ -145,7 +148,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       verify(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
       String monitorLocation = null;
       while (null == monitorLocation) {
-        monitorLocation = MonitorUtil.getLocation(getClientContext());
+        monitorLocation = MonitorUtil.getLocation((ClientContext) accumuloClient);
         if (null == monitorLocation) {
           log.debug("Could not fetch monitor HTTP address from zookeeper");
           Thread.sleep(2000);

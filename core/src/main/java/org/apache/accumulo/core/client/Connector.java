@@ -21,7 +21,7 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.clientImpl.AccumuloClientImpl;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ConnectorImpl;
 import org.apache.accumulo.core.security.Authorizations;
 
@@ -280,6 +280,6 @@ public abstract class Connector {
    */
   public static Connector from(AccumuloClient client)
       throws AccumuloSecurityException, AccumuloException {
-    return new ConnectorImpl((AccumuloClientImpl) client);
+    return new ConnectorImpl((ClientContext) client);
   }
 }

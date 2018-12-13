@@ -42,6 +42,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -105,7 +106,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           // expected
         }
 
-        FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
+        FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
       }
 
       es.shutdown();
@@ -253,7 +254,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           // expected
         }
 
-        FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
+        FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
       }
 
       es.shutdown();

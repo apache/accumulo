@@ -161,7 +161,7 @@ public class ReplicationUtil {
     // Read over the queued work
     BatchScanner bs;
     try {
-      bs = context.getClient().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
+      bs = context.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
     } catch (TableNotFoundException e) {
       log.debug("No replication table exists", e);
       return counts;
@@ -198,7 +198,7 @@ public class ReplicationUtil {
     // Read over the queued work
     BatchScanner bs;
     try {
-      bs = context.getClient().createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
+      bs = context.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
     } catch (TableNotFoundException e) {
       log.debug("No replication table exists", e);
       return paths;

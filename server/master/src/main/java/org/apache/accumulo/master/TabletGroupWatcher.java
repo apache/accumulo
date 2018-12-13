@@ -37,7 +37,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -677,8 +676,7 @@ abstract class TabletGroupWatcher extends Daemon {
             new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir,
             master.getContext(), timeType, this.master.masterLock);
       }
-    } catch (RuntimeException | IOException | TableNotFoundException
-        | AccumuloSecurityException ex) {
+    } catch (RuntimeException | IOException | TableNotFoundException ex) {
       throw new AccumuloException(ex);
     }
   }

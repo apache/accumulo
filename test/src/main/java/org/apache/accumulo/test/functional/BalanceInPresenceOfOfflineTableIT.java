@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.MasterClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
@@ -156,7 +157,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       MasterMonitorInfo stats;
       while (true) {
         try {
-          client = MasterClient.getConnectionWithRetry(getClientContext());
+          client = MasterClient.getConnectionWithRetry((ClientContext) accumuloClient);
           stats = client.getMasterStats(Tracer.traceInfo(),
               creds.toThrift(accumuloClient.getInstanceID()));
           break;

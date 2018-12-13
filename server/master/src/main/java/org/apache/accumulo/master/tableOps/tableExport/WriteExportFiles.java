@@ -213,13 +213,12 @@ class WriteExportFiles extends MasterRepo {
 
   private static Map<String,String> exportMetadata(VolumeManager fs, ServerContext context,
       Table.ID tableID, ZipOutputStream zipOut, DataOutputStream dataOut)
-      throws IOException, TableNotFoundException, AccumuloException, AccumuloSecurityException {
+      throws IOException, TableNotFoundException {
     zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_METADATA_FILE));
 
     Map<String,String> uniqueFiles = new HashMap<>();
 
-    Scanner metaScanner = context.getClient().createScanner(MetadataTable.NAME,
-        Authorizations.EMPTY);
+    Scanner metaScanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);
     TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(metaScanner);
@@ -254,13 +253,11 @@ class WriteExportFiles extends MasterRepo {
   }
 
   private static void exportConfig(ServerContext context, Table.ID tableID, ZipOutputStream zipOut,
-      DataOutputStream dataOut)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
-    AccumuloClient client = context.getClient();
+      DataOutputStream dataOut) throws AccumuloException, AccumuloSecurityException, IOException {
 
     DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();
-    Map<String,String> siteConfig = client.instanceOperations().getSiteConfiguration();
-    Map<String,String> systemConfig = client.instanceOperations().getSystemConfiguration();
+    Map<String,String> siteConfig = context.instanceOperations().getSiteConfiguration();
+    Map<String,String> systemConfig = context.instanceOperations().getSystemConfiguration();
 
     TableConfiguration tableConfig = context.getServerConfFactory().getTableConfiguration(tableID);
 

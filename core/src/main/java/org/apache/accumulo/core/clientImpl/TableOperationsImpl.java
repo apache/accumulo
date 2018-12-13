@@ -1102,7 +1102,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private Path checkPath(String dir, String kind, String type)
       throws IOException, AccumuloException, AccumuloSecurityException {
     Path ret;
-    Map<String,String> props = context.getClient().instanceOperations().getSystemConfiguration();
+    Map<String,String> props = context.instanceOperations().getSystemConfiguration();
     AccumuloConfiguration conf = new ConfigurationCopy(props);
 
     FileSystem fs = VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), conf)
@@ -1347,7 +1347,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(auths != null, "auths is null");
-    Scanner scanner = context.getClient().createScanner(tableName, auths);
+    Scanner scanner = context.createScanner(tableName, auths);
     return FindMax.findMax(scanner, startRow, startInclusive, endRow, endInclusive);
   }
 

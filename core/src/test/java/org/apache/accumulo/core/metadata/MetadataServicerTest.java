@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -51,12 +50,10 @@ public class MetadataServicerTest {
     tableNameToIdMap.put(userTableName, userTableId.canonicalID());
 
     context = EasyMock.createMock(ClientContext.class);
-    AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     TableOperations tableOps = EasyMock.createMock(TableOperations.class);
     EasyMock.expect(tableOps.tableIdMap()).andReturn(tableNameToIdMap).anyTimes();
-    EasyMock.expect(client.tableOperations()).andReturn(tableOps).anyTimes();
-    EasyMock.expect(context.getClient()).andReturn(client).anyTimes();
-    EasyMock.replay(context, client, tableOps);
+    EasyMock.expect(context.tableOperations()).andReturn(tableOps).anyTimes();
+    EasyMock.replay(context, tableOps);
   }
 
   @Test

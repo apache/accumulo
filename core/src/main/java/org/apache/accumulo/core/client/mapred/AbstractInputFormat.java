@@ -180,9 +180,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       throws AccumuloSecurityException {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
-      try {
-        AccumuloClient client = Accumulo.newClient().from(getClientProperties(job))
-            .as(principal, token).build();
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProperties(job))
+          .as(principal, token).build()) {
         token = client.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, Mappers/Reducers will likely"
@@ -482,7 +481,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       log.debug("Initializing input split: " + baseSplit);
 
       ClientContext context = new ClientContext(getClientProperties(job));
-      AccumuloClient client = context.getClient();
       Authorizations authorizations = getScanAuthorizations(job);
       String classLoaderContext = getClassLoaderContext(job);
       String table = baseSplit.getTableName();
@@ -491,7 +489,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       // configuration, but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(job, baseSplit.getTableName());
 
-      log.debug("Created client with user: " + client.whoami());
+      log.debug("Created client with user: " + context.whoami());
       log.debug("Creating scanner for table: " + table);
       log.debug("Authorizations are: " + authorizations);
 
@@ -503,7 +501,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit
           // will not span tablets
           int scanThreads = 1;
-          scanner = client.createBatchScanner(baseSplit.getTableName(), authorizations,
+          scanner = context.createBatchScanner(baseSplit.getTableName(), authorizations,
               scanThreads);
           setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
           if (null != classLoaderContext) {

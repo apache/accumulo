@@ -117,7 +117,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     Table.ID tableId = Tables.getTableId(context, tableName);
 
-    Map<String,String> props = context.getClient().instanceOperations().getSystemConfiguration();
+    Map<String,String> props = context.instanceOperations().getSystemConfiguration();
     AccumuloConfiguration conf = new ConfigurationCopy(props);
 
     FileSystem fs = VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), conf)

@@ -31,7 +31,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.Table;
@@ -168,8 +167,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
       return;
     }
 
-    AccumuloClient accumuloClient = context.getClient();
-    Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     scanner.addScanIterator(new IteratorSetting(1, "keys-only", SortedKeyIterator.class));
 
     scanner.setRange(new Range(new Text("~err_" + table)));
@@ -223,10 +221,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
           if (iter2 == null) {
             try {
               if ((table == null || !isMeta(table)) && iter1Count == 0) {
-                AccumuloClient accumuloClient = context.getClient();
-                Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME,
-                    Authorizations.EMPTY);
-
+                Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
                 scanner.setTimeout(3, TimeUnit.SECONDS);
 
                 if (table == null) {

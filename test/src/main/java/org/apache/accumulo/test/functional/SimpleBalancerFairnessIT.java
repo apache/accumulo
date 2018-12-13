@@ -79,7 +79,6 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       c.tableOperations().flush("test_ingest", null, null, false);
       sleepUninterruptibly(45, TimeUnit.SECONDS);
       Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
-      ClientContext context = getClientContext();
 
       MasterMonitorInfo stats = null;
       int unassignedTablets = 1;
@@ -87,7 +86,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
         MasterClientService.Iface client = null;
         while (true) {
           try {
-            client = MasterClient.getConnectionWithRetry(context);
+            client = MasterClient.getConnectionWithRetry((ClientContext) c);
             stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstanceID()));
             break;
           } catch (ThriftNotActiveServiceException e) {

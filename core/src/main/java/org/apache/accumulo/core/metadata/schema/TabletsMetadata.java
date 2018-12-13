@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Table.ID;
 import org.apache.accumulo.core.data.Range;
@@ -75,11 +74,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private boolean checkConsistency = false;
     private boolean saveKeyValues;
     private ID tableId;
-
-    @Override
-    public TabletsMetadata build(ClientContext ctx) {
-      return build(ctx.getClient());
-    }
 
     @Override
     public TabletsMetadata build(AccumuloClient client) {
@@ -261,8 +255,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
   public interface Options {
     TabletsMetadata build(AccumuloClient client);
-
-    TabletsMetadata build(ClientContext ctx);
 
     /**
      * Checks that the metadata table forms a linked list and automatically backs up until it does.

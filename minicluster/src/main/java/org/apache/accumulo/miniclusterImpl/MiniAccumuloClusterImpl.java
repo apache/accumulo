@@ -842,10 +842,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       throws AccumuloException, AccumuloSecurityException {
     MasterClientService.Iface client = null;
     while (true) {
-      try {
-        ClientContext context = new ClientContext(getClientProperties());
-        client = MasterClient.getConnectionWithRetry(context);
-        return client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
+      try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+        client = MasterClient.getConnectionWithRetry((ClientContext) c);
+        return client.getMasterStats(Tracer.traceInfo(), ((ClientContext)c).rpcCreds());
       } catch (ThriftSecurityException exception) {
         throw new AccumuloSecurityException(exception);
       } catch (ThriftNotActiveServiceException e) {

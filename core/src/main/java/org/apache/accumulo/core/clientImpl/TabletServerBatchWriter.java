@@ -568,8 +568,8 @@ public class TabletServerBatchWriter {
         af.put(new TabletIdImpl(entry.getKey()), codes);
       }
 
-      throw new MutationsRejectedException(context.getProperties(), cvsList, af, serverSideErrors,
-          unknownErrors, lastUnknownError);
+      throw new MutationsRejectedException(context, cvsList, af, serverSideErrors, unknownErrors,
+          lastUnknownError);
     }
   }
 

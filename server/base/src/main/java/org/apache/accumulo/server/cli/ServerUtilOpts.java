@@ -17,17 +17,12 @@
 package org.apache.accumulo.server.cli;
 
 import org.apache.accumulo.core.cli.ClientOpts;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
 
 public class ServerUtilOpts extends ClientOpts {
   {
     setPrincipal("root");
-  }
-
-  public ClientContext getClientContext() {
-    return new ClientContext(getClientProperties());
   }
 
   private ServerContext context;

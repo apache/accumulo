@@ -102,7 +102,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
   }
 
   private void checkBalance(AccumuloClient c) throws Exception {
-    ClientContext context = getClientContext();
+    ClientContext context = (ClientContext) c;
 
     MasterMonitorInfo stats = null;
     int unassignedTablets = 1;

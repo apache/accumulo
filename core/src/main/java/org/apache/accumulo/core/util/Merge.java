@@ -215,7 +215,7 @@ public class Merge {
     Table.ID tableId;
     TabletsMetadata tablets;
     try {
-      ClientContext context = new ClientContext(client);
+      ClientContext context = (ClientContext) client;
       tableId = Tables.getTableId(context, tablename);
       tablets = TabletsMetadata.builder().scanMetadataTable()
           .overRange(new KeyExtent(tableId, end, start).toMetadataRange()).fetchFiles().fetchPrev()

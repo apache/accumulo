@@ -86,15 +86,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
     // what the version they bundle uses.
     Stopwatch sw = Stopwatch.createUnstarted();
 
-    AccumuloClient client;
-    try {
-      client = context.getClient();
-    } catch (Exception e) {
-      log.error("Could not create client", e);
-      throw new RuntimeException(e);
-    }
-
-    if (!ReplicationTable.isOnline(client)) {
+    if (!ReplicationTable.isOnline(context)) {
       log.debug("Replication table isn't online, not attempting to clean up wals");
       return;
     }
@@ -116,7 +108,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
     long recordsClosed = 0;
     try {
       sw.start();
-      recordsClosed = updateReplicationEntries(client, closed);
+      recordsClosed = updateReplicationEntries(context, closed);
     } finally {
       sw.stop();
       updateReplicationSpan.stop();

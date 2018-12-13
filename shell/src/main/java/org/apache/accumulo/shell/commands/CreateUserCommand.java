@@ -25,7 +25,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.clientImpl.AccumuloClientImpl;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -38,7 +38,7 @@ public class CreateUserCommand extends Command {
       TableExistsException, IOException {
     final String user = cl.getArgs()[0];
 
-    AuthenticationToken userToken = ((AccumuloClientImpl) shellState.getAccumuloClient()).token();
+    AuthenticationToken userToken = ((ClientContext) shellState.getAccumuloClient()).token();
     PasswordToken passwordToken;
     if (userToken instanceof KerberosToken) {
       passwordToken = new PasswordToken();

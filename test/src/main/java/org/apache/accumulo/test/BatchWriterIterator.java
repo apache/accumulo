@@ -235,6 +235,8 @@ public class BatchWriterIterator extends WrappingIterator {
       batchWriter.close();
     } catch (MutationsRejectedException e) {
       log.error("Failed to close BatchWriter; some mutations may not be applied", e);
+    } finally {
+      accumuloClient.close();
     }
   }
 

@@ -106,8 +106,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    */
   private Set<String> getWalsForTable(String tableName) throws Exception {
     final ServerContext context = getServerContext();
-    final AccumuloClient client = context.getClient();
-    final String tableId = client.tableOperations().tableIdMap().get(tableName);
+    final String tableId = context.tableOperations().tableIdMap().get(tableName);
 
     assertNotNull("Could not determine table ID for " + tableName, tableId);
 
@@ -382,7 +381,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     client.tableOperations().flush(otherTable, null, null, true);
 
     // Get the tservers which the master deems as active
-    final ClientContext context = getClientContext();
+    final ClientContext context = (ClientContext) client;
     List<String> tservers = MasterClient.execute(context,
         cli -> cli.getActiveTservers(Tracer.traceInfo(), context.rpcCreds()));
 

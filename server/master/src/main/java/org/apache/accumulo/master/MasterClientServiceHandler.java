@@ -29,8 +29,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
@@ -498,12 +496,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public boolean drainReplicationTable(TInfo tfino, TCredentials credentials, String tableName,
       Set<String> logsToWatch) throws TException {
-    AccumuloClient client;
-    try {
-      client = master.getClient();
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new RuntimeException("Failed to obtain client", e);
-    }
+    AccumuloClient client = master.getClient();
 
     final Text tableId = new Text(getTableId(master.getContext(), tableName).getUtf8());
 

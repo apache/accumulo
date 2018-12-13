@@ -342,7 +342,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
             clientProperties);
         this.setTableName("");
         accumuloClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
-        context = new ClientContext(accumuloClient);
+        context = (ClientContext) accumuloClient;
       } catch (Exception e) {
         printException(e);
         exitCode = 1;
@@ -1178,7 +1178,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
     accumuloClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
     accumuloClient.securityOperations().authenticateUser(principal, token);
-    context = new ClientContext(accumuloClient);
+    context = (ClientContext) accumuloClient;
   }
 
   public ClientContext getContext() {
