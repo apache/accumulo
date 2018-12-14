@@ -25,7 +25,6 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
@@ -71,6 +70,7 @@ import org.apache.accumulo.server.replication.ReplicaSystemHelper;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.tserver.log.DfsLogger;
+import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -729,8 +729,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     Span span = Trace.start("Read WAL header");
     span.data("file", p.toString());
     try {
-      InputStream stream = DfsLogger.readHeaderAndReturnStream(input, conf);
-      return new DataInputStream(stream);
+      DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(input, conf);
+      return streams.getDecryptingInputStream();
     } finally {
       span.stop();
     }
