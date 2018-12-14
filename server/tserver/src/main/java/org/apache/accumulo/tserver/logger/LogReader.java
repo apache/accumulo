@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -37,7 +38,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.tserver.log.DfsLogger;
-import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.log.RecoveryLogReader;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -107,15 +107,15 @@ public class LogReader {
       if (fs.getFileStatus(path).isFile()) {
         try (final FSDataInputStream fsinput = fs.open(path)) {
           // read log entries from a simple hdfs file
-          DFSLoggerInputStreams streams;
+          InputStream stream;
           try {
-            streams = DfsLogger.readHeaderAndReturnStream(fsinput, siteConfig);
+            stream = DfsLogger.readHeaderAndReturnStream(fsinput, siteConfig);
           } catch (LogHeaderIncompleteException e) {
             log.warn("Could not read header for {} . Ignoring...", path);
             continue;
           }
 
-          try (DataInputStream input = streams.getDecryptingInputStream()) {
+          try (DataInputStream input = new DataInputStream(stream)) {
             while (true) {
               try {
                 key.readFields(input);

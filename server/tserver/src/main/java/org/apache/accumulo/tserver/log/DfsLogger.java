@@ -23,9 +23,9 @@ import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.nio.channels.ClosedChannelException;
@@ -113,34 +113,6 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
     public LogHeaderIncompleteException(Throwable cause) {
       super(cause);
-    }
-  }
-
-  public static class DFSLoggerInputStreams {
-
-    private FSDataInputStream originalInput;
-    private DataInputStream decryptingInputStream;
-
-    public DFSLoggerInputStreams(FSDataInputStream originalInput,
-        DataInputStream decryptingInputStream) {
-      this.originalInput = originalInput;
-      this.decryptingInputStream = decryptingInputStream;
-    }
-
-    public FSDataInputStream getOriginalInput() {
-      return originalInput;
-    }
-
-    public void setOriginalInput(FSDataInputStream originalInput) {
-      this.originalInput = originalInput;
-    }
-
-    public DataInputStream getDecryptingInputStream() {
-      return decryptingInputStream;
-    }
-
-    public void setDecryptingInputStream(DataInputStream decryptingInputStream) {
-      this.decryptingInputStream = decryptingInputStream;
     }
   }
 
@@ -363,9 +335,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
     metaReference = meta;
   }
 
-  public static DFSLoggerInputStreams readHeaderAndReturnStream(FSDataInputStream input,
+  public static InputStream readHeaderAndReturnStream(FSDataInputStream input,
       AccumuloConfiguration conf) throws IOException {
-    DataInputStream decryptingInput;
+    InputStream decryptingInput;
 
     byte[] magic = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
     byte[] magicBuffer = new byte[magic.length];
@@ -379,8 +351,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
         FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
         log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
-        decryptingInput = cryptoService instanceof NoCryptoService ? input
-            : new DataInputStream(decrypter.decryptStream(input));
+        decryptingInput = decrypter.decryptStream(input);
       } else {
         log.error("Unsupported WAL version.");
         input.seek(0);
@@ -393,7 +364,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       throw new LogHeaderIncompleteException(e);
     }
 
-    return new DFSLoggerInputStreams(input, decryptingInput);
+    return decryptingInput;
   }
 
   /**

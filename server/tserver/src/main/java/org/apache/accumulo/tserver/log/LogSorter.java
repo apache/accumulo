@@ -19,6 +19,7 @@ package org.apache.accumulo.tserver.log;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -39,7 +40,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
-import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -113,9 +113,9 @@ public class LogSorter {
         fs.deleteRecursively(new Path(destPath));
 
         try (final FSDataInputStream fsinput = fs.open(srcPath)) {
-          DFSLoggerInputStreams inputStreams;
+          InputStream inputStream;
           try {
-            inputStreams = DfsLogger.readHeaderAndReturnStream(fsinput, conf);
+            inputStream = DfsLogger.readHeaderAndReturnStream(fsinput, conf);
           } catch (LogHeaderIncompleteException e) {
             log.warn("Could not read header from write-ahead log {}. Not sorting.", srcPath);
             // Creating a 'finished' marker will cause recovery to proceed normally and the
@@ -126,8 +126,13 @@ public class LogSorter {
             return;
           }
 
-          this.input = inputStreams.getOriginalInput();
-          this.decryptingInput = inputStreams.getDecryptingInputStream();
+          if (inputStream instanceof FSDataInputStream) {
+            this.input = (FSDataInputStream) inputStream;
+            this.decryptingInput = this.input;
+          } else {
+            this.input = new FSDataInputStream(this.input);
+            this.decryptingInput = new DataInputStream(inputStream);
+          }
 
           final long bufferSize = conf.getAsBytes(Property.TSERV_SORT_BUFFER_SIZE);
           Thread.currentThread().setName("Sorting " + name + " for recovery");
