@@ -527,8 +527,7 @@ public abstract class AbstractInputFormat {
           } else {
             tl = InputConfigurator.getTabletLocator(CLASS, context.getConfiguration(), tableId);
             // its possible that the cache could contain complete, but old information about a
-            // tables
-            // tablets... so clear it
+            // tables tablets... so clear it
             tl.invalidateCache();
 
             while (!tl.binRanges(clientContext, ranges, binnedRanges).isEmpty()) {
