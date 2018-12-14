@@ -1565,7 +1565,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
 
     try (AccumuloClient accumuloClient = createClient();
-         Scanner s = accumuloClient.createScanner(table, Authorizations.EMPTY)) {
+        Scanner s = accumuloClient.createScanner(table, Authorizations.EMPTY)) {
       IteratorSetting cfg = new IteratorSetting(30, SlowIterator.class);
       SlowIterator.setSleepTime(cfg, 500);
       s.addScanIterator(cfg);
