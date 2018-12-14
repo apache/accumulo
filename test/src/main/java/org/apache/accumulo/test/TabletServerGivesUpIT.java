@@ -17,7 +17,6 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
 
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -46,9 +45,11 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
 
   @Test(timeout = 45 * 1000)
   public void test() throws Exception {
-    try (AccumuloClient client = this.createClient()) {
-      // Yes, there's a tabletserver
-      assertEquals(1, client.instanceOperations().getTabletServers().size());
+    try (AccumuloClient client = createClient()) {
+      while (client.instanceOperations().getTabletServers().isEmpty()) {
+        // Wait until at least one tablet server is up
+        Thread.sleep(100);
+      }
       final String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
       // Kill dfs
