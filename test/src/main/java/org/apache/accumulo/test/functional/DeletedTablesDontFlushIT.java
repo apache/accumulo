@@ -51,7 +51,7 @@ public class DeletedTablesDontFlushIT extends SharedMiniClusterBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       IteratorSetting setting = new IteratorSetting(100, SlowIterator.class);

@@ -60,7 +60,7 @@ public class SplitCancelsMajCIT extends SharedMiniClusterBase {
   @Test
   public void test() throws Exception {
     final String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = getClient()) {
+    try (AccumuloClient c = createClient()) {
       c.tableOperations().create(tableName);
       // majc should take 100 * .5 secs
       IteratorSetting it = new IteratorSetting(100, SlowIterator.class);

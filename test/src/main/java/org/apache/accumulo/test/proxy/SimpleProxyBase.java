@@ -178,7 +178,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   public static void setUpProxy() throws Exception {
     assertNotNull("Implementations must initialize the TProtocolFactory", factory);
 
-    try (AccumuloClient c = SharedMiniClusterBase.getClient()) {
+    try (AccumuloClient c = SharedMiniClusterBase.createClient()) {
       waitForAccumulo(c);
 
       hostname = InetAddress.getLocalHost().getCanonicalHostName();
