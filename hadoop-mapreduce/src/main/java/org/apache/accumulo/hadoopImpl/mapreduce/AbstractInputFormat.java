@@ -387,7 +387,7 @@ public abstract class AbstractInputFormat {
       }
 
       // setup a scanner within the bounds of this split
-      for (Pair<Text, Text> c : columns) {
+      for (Pair<Text,Text> c : columns) {
         if (c.getSecond() != null) {
           log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
           scannerBase.fetchColumn(c.getFirst(), c.getSecond());
@@ -406,7 +406,7 @@ public abstract class AbstractInputFormat {
         scannerBase.setSamplerConfiguration(samplerConfig);
       }
 
-      Map<String, String> executionHints = split.getExecutionHints();
+      Map<String,String> executionHints = split.getExecutionHints();
       if (executionHints == null || executionHints.isEmpty()) {
         executionHints = tableConfig.getExecutionHints();
       }
@@ -512,7 +512,7 @@ public abstract class AbstractInputFormat {
         }
 
         // get the metadata information for these ranges
-        Map<String, Map<KeyExtent, List<Range>>> binnedRanges = new HashMap<>();
+        Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
         TabletLocator tl;
         try {
           if (tableConfig.isOfflineScan()) {
@@ -526,7 +526,8 @@ public abstract class AbstractInputFormat {
             }
           } else {
             tl = InputConfigurator.getTabletLocator(CLASS, context.getConfiguration(), tableId);
-            // its possible that the cache could contain complete, but old information about a tables
+            // its possible that the cache could contain complete, but old information about a
+            // tables
             // tablets... so clear it
             tl.invalidateCache();
 
@@ -550,13 +551,13 @@ public abstract class AbstractInputFormat {
         // all of this code will add either range per each locations or split ranges and add
         // range-location split
         // Map from Range to Array of Locations, we only use this if we're don't split
-        HashMap<Range, ArrayList<String>> splitsToAdd = null;
+        HashMap<Range,ArrayList<String>> splitsToAdd = null;
 
         if (!autoAdjust)
           splitsToAdd = new HashMap<>();
 
-        HashMap<String, String> hostNameCache = new HashMap<>();
-        for (Map.Entry<String, Map<KeyExtent, List<Range>>> tserverBin : binnedRanges.entrySet()) {
+        HashMap<String,String> hostNameCache = new HashMap<>();
+        for (Map.Entry<String,Map<KeyExtent,List<Range>>> tserverBin : binnedRanges.entrySet()) {
           String ip = tserverBin.getKey().split(":", 2)[0];
           String location = hostNameCache.get(ip);
           if (location == null) {
@@ -564,7 +565,7 @@ public abstract class AbstractInputFormat {
             location = inetAddress.getCanonicalHostName();
             hostNameCache.put(ip, location);
           }
-          for (Map.Entry<KeyExtent, List<Range>> extentRanges : tserverBin.getValue().entrySet()) {
+          for (Map.Entry<KeyExtent,List<Range>> extentRanges : tserverBin.getValue().entrySet()) {
             Range ke = extentRanges.getKey().toDataRange();
             if (batchScan) {
               // group ranges by tablet to be read by a BatchScanner
@@ -572,7 +573,7 @@ public abstract class AbstractInputFormat {
               for (Range r : extentRanges.getValue())
                 clippedRanges.add(ke.clip(r));
               BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges,
-                  new String[]{location});
+                  new String[] {location});
               SplitUtils.updateSplit(split, tableConfig);
 
               splits.add(split);
@@ -582,7 +583,7 @@ public abstract class AbstractInputFormat {
                 if (autoAdjust) {
                   // divide ranges into smaller ranges, based on the tablets
                   RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
-                      ke.clip(r), new String[]{location});
+                      ke.clip(r), new String[] {location});
                   SplitUtils.updateSplit(split, tableConfig);
                   split.setOffline(tableConfig.isOfflineScan());
                   split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
@@ -602,7 +603,7 @@ public abstract class AbstractInputFormat {
         }
 
         if (!autoAdjust)
-          for (Map.Entry<Range, ArrayList<String>> entry : splitsToAdd.entrySet()) {
+          for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
             RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
                 entry.getKey(), entry.getValue().toArray(new String[0]));
             SplitUtils.updateSplit(split, tableConfig);
