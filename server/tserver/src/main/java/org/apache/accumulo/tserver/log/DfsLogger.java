@@ -544,7 +544,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
   }
 
-  public synchronized LoggerOperation defineTablet(CommitSession cs) throws IOException {
+  public LoggerOperation defineTablet(CommitSession cs) throws IOException {
     // write this log to the METADATA table
     final LogFileKey key = new LogFileKey();
     key.event = DEFINE_TABLET;
@@ -572,17 +572,15 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private LoggerOperation logFileData(List<Pair<LogFileKey,LogFileValue>> keys,
       Durability durability) throws IOException {
     DfsLogger.LogWork work = new DfsLogger.LogWork(new CountDownLatch(1), durability);
-    synchronized (DfsLogger.this) {
-      try {
-        for (Pair<LogFileKey,LogFileValue> pair : keys) {
-          write(pair.getFirst(), pair.getSecond());
-        }
-      } catch (ClosedChannelException ex) {
-        throw new LogClosedException();
-      } catch (Exception e) {
-        log.error("Failed to write log entries", e);
-        work.exception = e;
+    try {
+      for (Pair<LogFileKey,LogFileValue> pair : keys) {
+        write(pair.getFirst(), pair.getSecond());
       }
+    } catch (ClosedChannelException ex) {
+      throw new LogClosedException();
+    } catch (Exception e) {
+      log.error("Failed to write log entries", e);
+      work.exception = e;
     }
 
     if (durability == Durability.LOG)
