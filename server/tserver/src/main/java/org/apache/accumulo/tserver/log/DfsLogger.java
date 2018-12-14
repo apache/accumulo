@@ -47,7 +47,6 @@ import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
 import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
-import org.apache.accumulo.core.cryptoImpl.NoCryptoService;
 import org.apache.accumulo.core.cryptoImpl.NoFileEncrypter;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -419,8 +418,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       if (encrypter instanceof NoFileEncrypter) {
         encryptingLogFile = logFile;
       } else {
-        encryptingLogFile = (NoFlushOutputStream) encrypter
-            .encryptStream(new NoFlushOutputStream(logFile));
+        encryptingLogFile = new NoFlushOutputStream(encrypter.encryptStream(logFile));
       }
 
       LogFileKey key = new LogFileKey();
