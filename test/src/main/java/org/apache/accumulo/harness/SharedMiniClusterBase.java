@@ -61,7 +61,6 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   private static String principal = "root";
   private static String rootPassword;
   private static AuthenticationToken token;
-  private static AccumuloClient client;
   private static MiniAccumuloClusterImpl cluster;
   private static TestingKdc krb;
 
@@ -162,9 +161,6 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
         log.error("Failed to stop KDC", e);
       }
     }
-    if (client != null) {
-      client.close();
-    }
   }
 
   public static String getRootPassword() {
@@ -195,11 +191,8 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
     return cluster.getConfig().getDir();
   }
 
-  public static AccumuloClient getClient() {
-    if (client == null) {
-      client = getCluster().createAccumuloClient(principal, getToken());
-    }
-    return client;
+  public static AccumuloClient createClient() {
+    return getCluster().createAccumuloClient(principal, getToken());
   }
 
   public static TestingKdc getKdc() {

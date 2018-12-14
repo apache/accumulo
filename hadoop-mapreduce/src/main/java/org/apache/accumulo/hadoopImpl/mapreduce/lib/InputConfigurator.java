@@ -49,7 +49,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
@@ -711,9 +710,10 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf,
       Table.ID tableId) {
-    ClientInfo info = getClientInfo(implementingClass, conf);
-    ClientContext context = new ClientContext(info);
-    return TabletLocator.getLocator(context, tableId);
+    try (AccumuloClient client = createClient(implementingClass, conf)) {
+      ClientContext context = new ClientContext(client);
+      return TabletLocator.getLocator(context, tableId);
+    }
   }
 
   /**

@@ -70,7 +70,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
   @Test
   public void testCombinerSetOnMetadata() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       TableOperations tops = client.tableOperations();
       Map<String,EnumSet<IteratorScope>> iterators = tops.listIterators(MetadataTable.NAME);
 
@@ -98,7 +98,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient client = getClient()) {
+    try (AccumuloClient client = createClient()) {
       ClusterUser user = getAdminUser();
 
       ReplicationTable.setOnline(client);
