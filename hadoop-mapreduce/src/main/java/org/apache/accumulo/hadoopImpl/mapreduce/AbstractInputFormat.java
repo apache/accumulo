@@ -145,6 +145,18 @@ public abstract class AbstractInputFormat {
   }
 
   /**
+   * Creates {@link AccumuloClient} from the configuration
+   *
+   * @param context
+   *          Hadoop job context
+   * @return AccumuloClient
+   * @since 2.0.0
+   */
+  public static AccumuloClient createClient(JobContext context) {
+    return Accumulo.newClient().from(getClientInfo(context).getProperties()).build();
+  }
+
+  /**
    * Sets the {@link org.apache.accumulo.core.security.Authorizations} used to scan. Must be a
    * subset of the user's authorization. Defaults to the empty set.
    *
@@ -233,6 +245,7 @@ public abstract class AbstractInputFormat {
    */
   protected abstract static class AbstractRecordReader<K,V> extends RecordReader<K,V> {
     protected long numKeysRead;
+    protected AccumuloClient client;
     protected Iterator<Map.Entry<Key,Value>> scannerIterator;
     protected ScannerBase scannerBase;
     protected RangeInputSplit split;
@@ -288,9 +301,8 @@ public abstract class AbstractInputFormat {
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split);
 
-      ClientInfo info = getClientInfo(attempt);
-      ClientContext context = new ClientContext(info);
-      AccumuloClient client = context.getClient();
+      client = createClient(attempt);
+      ClientContext context = new ClientContext(client);
       Authorizations authorizations = getScanAuthorizations(attempt);
       String classLoaderContext = getClassLoaderContext(attempt);
       String table = split.getTableName();
@@ -300,7 +312,7 @@ public abstract class AbstractInputFormat {
       // but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(attempt, split.getTableName());
 
-      log.debug("Creating client with user: " + info.getPrincipal());
+      log.debug("Creating client with user: " + client.whoami());
       log.debug("Creating scanner for table: " + table);
       log.debug("Authorizations are: " + authorizations);
 
@@ -375,7 +387,7 @@ public abstract class AbstractInputFormat {
       }
 
       // setup a scanner within the bounds of this split
-      for (Pair<Text,Text> c : columns) {
+      for (Pair<Text, Text> c : columns) {
         if (c.getSecond() != null) {
           log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
           scannerBase.fetchColumn(c.getFirst(), c.getSecond());
@@ -394,7 +406,7 @@ public abstract class AbstractInputFormat {
         scannerBase.setSamplerConfiguration(samplerConfig);
       }
 
-      Map<String,String> executionHints = split.getExecutionHints();
+      Map<String, String> executionHints = split.getExecutionHints();
       if (executionHints == null || executionHints.isEmpty()) {
         executionHints = tableConfig.getExecutionHints();
       }
@@ -411,6 +423,9 @@ public abstract class AbstractInputFormat {
     public void close() {
       if (null != scannerBase) {
         scannerBase.close();
+      }
+      if (client != null) {
+        client.close();
       }
     }
 
@@ -451,16 +466,17 @@ public abstract class AbstractInputFormat {
   public static Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobContext context,
       Table.ID tableId, List<Range> ranges)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    ClientContext clientContext = new ClientContext(getClientInfo(context));
-    return InputConfigurator.binOffline(tableId, ranges, clientContext);
+    try (AccumuloClient client = createClient(context)) {
+      ClientContext clientContext = new ClientContext(client);
+      return InputConfigurator.binOffline(tableId, ranges, clientContext);
+    }
   }
 
   public static List<InputSplit> getSplits(JobContext context) throws IOException {
     validateOptions(context);
     Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
-    ClientInfo info = getClientInfo(context);
-    try (AccumuloClient client = Accumulo.newClient().from(info.getProperties()).build()) {
+    try (AccumuloClient client = createClient(context)) {
       Map<String,InputTableConfig> tableConfigs = getInputTableConfigs(context);
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
 

@@ -711,9 +711,10 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static TabletLocator getTabletLocator(Class<?> implementingClass, Configuration conf,
       Table.ID tableId) {
-    ClientInfo info = getClientInfo(implementingClass, conf);
-    ClientContext context = new ClientContext(info);
-    return TabletLocator.getLocator(context, tableId);
+    try (AccumuloClient client = createClient(implementingClass, conf)) {
+      ClientContext context = new ClientContext(client);
+      return TabletLocator.getLocator(context, tableId);
+    }
   }
 
   /**

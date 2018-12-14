@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -144,6 +145,18 @@ public abstract class AbstractInputFormat {
   }
 
   /**
+   * Creates {@link AccumuloClient} from the configuration
+   *
+   * @param job
+   *          Hadoop job instance configuration
+   * @return {@link AccumuloClient} object
+   * @since 2.0.0
+   */
+  protected static AccumuloClient createClient(JobConf job) {
+    return Accumulo.newClient().from(getClientInfo(job).getProperties()).build();
+  }
+
+  /**
    * Sets the {@link org.apache.accumulo.core.security.Authorizations} used to scan. Must be a
    * subset of the user's authorization. Defaults to the empty set.
    *
@@ -231,6 +244,7 @@ public abstract class AbstractInputFormat {
    */
   public abstract static class AbstractRecordReader<K,V> implements RecordReader<K,V> {
     protected long numKeysRead;
+    protected AccumuloClient client;
     protected Iterator<Map.Entry<Key,Value>> scannerIterator;
     protected RangeInputSplit split;
     private org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit baseSplit;
@@ -283,8 +297,8 @@ public abstract class AbstractInputFormat {
       baseSplit = (org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + baseSplit);
 
-      ClientContext context = new ClientContext(getClientInfo(job));
-      AccumuloClient client = context.getClient();
+      client = createClient(job);
+      ClientContext context = new ClientContext(client);
       Authorizations authorizations = getScanAuthorizations(job);
       String classLoaderContext = getClassLoaderContext(job);
       String table = baseSplit.getTableName();
@@ -369,7 +383,7 @@ public abstract class AbstractInputFormat {
       }
 
       // setup a scanner within the bounds of this split
-      for (Pair<Text,Text> c : columns) {
+      for (Pair<Text, Text> c : columns) {
         if (c.getSecond() != null) {
           log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
           scannerBase.fetchColumn(c.getFirst(), c.getSecond());
@@ -388,7 +402,7 @@ public abstract class AbstractInputFormat {
         scannerBase.setSamplerConfiguration(samplerConfig);
       }
 
-      Map<String,String> executionHints = baseSplit.getExecutionHints();
+      Map<String, String> executionHints = baseSplit.getExecutionHints();
       if (executionHints == null || executionHints.size() == 0) {
         executionHints = tableConfig.getExecutionHints();
       }
@@ -405,6 +419,9 @@ public abstract class AbstractInputFormat {
     public void close() {
       if (null != scannerBase) {
         scannerBase.close();
+      }
+      if (client != null) {
+        client.close();
       }
     }
 
@@ -427,8 +444,10 @@ public abstract class AbstractInputFormat {
   public static Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job,
       Table.ID tableId, List<Range> ranges)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    ClientContext context = new ClientContext(getClientInfo(job));
-    return InputConfigurator.binOffline(tableId, ranges, context);
+    try (AccumuloClient client = createClient(job)) {
+      ClientContext context = new ClientContext(client);
+      return InputConfigurator.binOffline(tableId, ranges, context);
+    }
   }
 
   /**
@@ -446,137 +465,139 @@ public abstract class AbstractInputFormat {
     Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
     Map<String,InputTableConfig> tableConfigs = getInputTableConfigs(job);
-    for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
-      String tableName = tableConfigEntry.getKey();
-      InputTableConfig tableConfig = tableConfigEntry.getValue();
+    try (AccumuloClient client = createClient(job)) {
+      for (Map.Entry<String, InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
+        String tableName = tableConfigEntry.getKey();
+        InputTableConfig tableConfig = tableConfigEntry.getValue();
 
-      ClientContext context = new ClientContext(getClientInfo(job));
-      Table.ID tableId;
-      // resolve table name to id once, and use id from this point forward
-      try {
-        tableId = Tables.getTableId(context, tableName);
-      } catch (TableNotFoundException e) {
-        throw new IOException(e);
-      }
+        ClientContext context = new ClientContext(client);
+        Table.ID tableId;
+        // resolve table name to id once, and use id from this point forward
+        try {
+          tableId = Tables.getTableId(context, tableName);
+        } catch (TableNotFoundException e) {
+          throw new IOException(e);
+        }
 
-      boolean batchScan = InputConfigurator.isBatchScan(CLASS, job);
-      boolean supportBatchScan = !(tableConfig.isOfflineScan()
-          || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
-      if (batchScan && !supportBatchScan)
-        throw new IllegalArgumentException("BatchScanner optimization not available for offline"
-            + " scan, isolated, or local iterators");
+        boolean batchScan = InputConfigurator.isBatchScan(CLASS, job);
+        boolean supportBatchScan = !(tableConfig.isOfflineScan()
+            || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
+        if (batchScan && !supportBatchScan)
+          throw new IllegalArgumentException("BatchScanner optimization not available for offline"
+              + " scan, isolated, or local iterators");
 
-      boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
-      if (batchScan && !autoAdjust)
-        throw new IllegalArgumentException(
-            "AutoAdjustRanges must be enabled when using BatchScanner optimization");
+        boolean autoAdjust = tableConfig.shouldAutoAdjustRanges();
+        if (batchScan && !autoAdjust)
+          throw new IllegalArgumentException(
+              "AutoAdjustRanges must be enabled when using BatchScanner optimization");
 
-      List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges())
-          : tableConfig.getRanges();
-      if (ranges.isEmpty()) {
-        ranges = new ArrayList<>(1);
-        ranges.add(new Range());
-      }
+        List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges())
+            : tableConfig.getRanges();
+        if (ranges.isEmpty()) {
+          ranges = new ArrayList<>(1);
+          ranges.add(new Range());
+        }
 
-      // get the metadata information for these ranges
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
-      TabletLocator tl;
-      try {
-        if (tableConfig.isOfflineScan()) {
-          binnedRanges = binOfflineTable(job, tableId, ranges);
-          while (binnedRanges == null) {
-            // Some tablets were still online, try again
-            // sleep randomly between 100 and 200 ms
-            sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
+        // get the metadata information for these ranges
+        Map<String, Map<KeyExtent, List<Range>>> binnedRanges = new HashMap<>();
+        TabletLocator tl;
+        try {
+          if (tableConfig.isOfflineScan()) {
             binnedRanges = binOfflineTable(job, tableId, ranges);
-          }
-        } else {
-          tl = InputConfigurator.getTabletLocator(CLASS, job, tableId);
-          // its possible that the cache could contain complete, but old information about a tables
-          // tablets... so clear it
-          tl.invalidateCache();
-
-          while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
-            String tableIdStr = tableId.canonicalID();
-            if (!Tables.exists(context, tableId))
-              throw new TableDeletedException(tableIdStr);
-            if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
-              throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
-            binnedRanges.clear();
-            log.warn("Unable to locate bins for specified ranges. Retrying.");
-            // sleep randomly between 100 and 200 ms
-            sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
-            tl.invalidateCache();
-          }
-        }
-      } catch (Exception e) {
-        throw new IOException(e);
-      }
-
-      HashMap<Range,ArrayList<String>> splitsToAdd = null;
-
-      if (!autoAdjust)
-        splitsToAdd = new HashMap<>();
-
-      HashMap<String,String> hostNameCache = new HashMap<>();
-      for (Map.Entry<String,Map<KeyExtent,List<Range>>> tserverBin : binnedRanges.entrySet()) {
-        String ip = tserverBin.getKey().split(":", 2)[0];
-        String location = hostNameCache.get(ip);
-        if (location == null) {
-          InetAddress inetAddress = InetAddress.getByName(ip);
-          location = inetAddress.getCanonicalHostName();
-          hostNameCache.put(ip, location);
-        }
-        for (Map.Entry<KeyExtent,List<Range>> extentRanges : tserverBin.getValue().entrySet()) {
-          Range ke = extentRanges.getKey().toDataRange();
-          if (batchScan) {
-            // group ranges by tablet to be read by a BatchScanner
-            ArrayList<Range> clippedRanges = new ArrayList<>();
-            for (Range r : extentRanges.getValue())
-              clippedRanges.add(ke.clip(r));
-
-            BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges,
-                new String[] {location});
-            SplitUtils.updateSplit(split, tableConfig);
-
-            splits.add(split);
+            while (binnedRanges == null) {
+              // Some tablets were still online, try again
+              // sleep randomly between 100 and 200 ms
+              sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
+              binnedRanges = binOfflineTable(job, tableId, ranges);
+            }
           } else {
-            // not grouping by tablet
-            for (Range r : extentRanges.getValue()) {
-              if (autoAdjust) {
-                // divide ranges into smaller ranges, based on the tablets
-                RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
-                    ke.clip(r), new String[] {location});
-                SplitUtils.updateSplit(split, tableConfig);
-                split.setOffline(tableConfig.isOfflineScan());
-                split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
-                split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
+            tl = InputConfigurator.getTabletLocator(CLASS, job, tableId);
+            // its possible that the cache could contain complete, but old information about a tables
+            // tablets... so clear it
+            tl.invalidateCache();
 
-                splits.add(split);
-              } else {
-                // don't divide ranges
-                ArrayList<String> locations = splitsToAdd.get(r);
-                if (locations == null)
-                  locations = new ArrayList<>(1);
-                locations.add(location);
-                splitsToAdd.put(r, locations);
+            while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
+              String tableIdStr = tableId.canonicalID();
+              if (!Tables.exists(context, tableId))
+                throw new TableDeletedException(tableIdStr);
+              if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
+                throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
+              binnedRanges.clear();
+              log.warn("Unable to locate bins for specified ranges. Retrying.");
+              // sleep randomly between 100 and 200 ms
+              sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
+              tl.invalidateCache();
+            }
+          }
+        } catch (Exception e) {
+          throw new IOException(e);
+        }
+
+        HashMap<Range, ArrayList<String>> splitsToAdd = null;
+
+        if (!autoAdjust)
+          splitsToAdd = new HashMap<>();
+
+        HashMap<String, String> hostNameCache = new HashMap<>();
+        for (Map.Entry<String, Map<KeyExtent, List<Range>>> tserverBin : binnedRanges.entrySet()) {
+          String ip = tserverBin.getKey().split(":", 2)[0];
+          String location = hostNameCache.get(ip);
+          if (location == null) {
+            InetAddress inetAddress = InetAddress.getByName(ip);
+            location = inetAddress.getCanonicalHostName();
+            hostNameCache.put(ip, location);
+          }
+          for (Map.Entry<KeyExtent, List<Range>> extentRanges : tserverBin.getValue().entrySet()) {
+            Range ke = extentRanges.getKey().toDataRange();
+            if (batchScan) {
+              // group ranges by tablet to be read by a BatchScanner
+              ArrayList<Range> clippedRanges = new ArrayList<>();
+              for (Range r : extentRanges.getValue())
+                clippedRanges.add(ke.clip(r));
+
+              BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges,
+                  new String[]{location});
+              SplitUtils.updateSplit(split, tableConfig);
+
+              splits.add(split);
+            } else {
+              // not grouping by tablet
+              for (Range r : extentRanges.getValue()) {
+                if (autoAdjust) {
+                  // divide ranges into smaller ranges, based on the tablets
+                  RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
+                      ke.clip(r), new String[]{location});
+                  SplitUtils.updateSplit(split, tableConfig);
+                  split.setOffline(tableConfig.isOfflineScan());
+                  split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
+                  split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
+
+                  splits.add(split);
+                } else {
+                  // don't divide ranges
+                  ArrayList<String> locations = splitsToAdd.get(r);
+                  if (locations == null)
+                    locations = new ArrayList<>(1);
+                  locations.add(location);
+                  splitsToAdd.put(r, locations);
+                }
               }
             }
           }
         }
+
+        if (!autoAdjust)
+          for (Map.Entry<Range, ArrayList<String>> entry : splitsToAdd.entrySet()) {
+            RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
+                entry.getKey(), entry.getValue().toArray(new String[0]));
+            SplitUtils.updateSplit(split, tableConfig);
+            split.setOffline(tableConfig.isOfflineScan());
+            split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
+            split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
+
+            splits.add(split);
+          }
       }
-
-      if (!autoAdjust)
-        for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
-          RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
-              entry.getKey(), entry.getValue().toArray(new String[0]));
-          SplitUtils.updateSplit(split, tableConfig);
-          split.setOffline(tableConfig.isOfflineScan());
-          split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
-          split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
-
-          splits.add(split);
-        }
     }
 
     return splits.toArray(new InputSplit[splits.size()]);
