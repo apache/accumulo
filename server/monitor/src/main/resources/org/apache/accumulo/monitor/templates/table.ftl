@@ -23,9 +23,14 @@
           refreshTable();
         });
       </script>
-      <div><h3>${title}</h3></div>
-      <div class="center-block">
-      <table id="participatingTServers" class="table table-bordered table-striped table-condensed">
+      <div class="row">
+        <div class="col-xs-12">
+          <h3>${title}</h3>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-12">
+          <table id="participatingTServers" class="table table-bordered table-striped table-condensed">
           <caption><span class="table-caption">${table}</span></caption>
           <tbody>
           <tr><th class="firstcell">Server&nbsp;</th>
@@ -42,5 +47,6 @@
           <th title="The recent data cache hit rate.">Data Cache<br/>Hit Rate&nbsp;</th>
           <th title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval.">OS&nbsp;Load&nbsp;</th></tr>
           </tbody>
-      </table>
+          </table>
+        </div>
       </div>

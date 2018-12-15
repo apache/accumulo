@@ -23,9 +23,14 @@
           refreshProblems();
         });
       </script>
-      <div><h3>${title}</h3></div>
-      <div class="center-block">
-        <table id="problemSummary" class="table table-bordered table-striped table-condensed">
+      <div class="row">
+        <div class="col-xs-12">
+          <h3>${title}</h3>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-12">
+          <table id="problemSummary" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Summary</span></caption>
             <tbody><tr><th class="firstcell">Table&nbsp;</th>
                 <th>FILE_READ&nbsp;</th>
@@ -33,8 +38,8 @@
                 <th>TABLET_LOAD&nbsp;</th>
                 <th>Operations&nbsp;</th></tr>
             </tbody>
-        </table>
-        <table id="problemDetails" class="table table-bordered table-striped table-condensed">
+          </table>
+          <table id="problemDetails" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Details</span></caption>
             <tbody><tr><th class="firstcell" >Table&nbsp;</th>
                 <th>Problem&nbsp;Type&nbsp;</th>
@@ -44,5 +49,6 @@
                 <th>Exception&nbsp;</th>
                 <th>Operations&nbsp;</th></tr>
             </tbody>
-        </table>
+          </table>
+        </div>
       </div>

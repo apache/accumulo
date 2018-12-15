@@ -15,36 +15,15 @@
 * limitations under the License.
 */
 /* basic screen style for all pages */
-html,body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  color: #333333;
-  font-size: 10pt;
+body {
   font-family: verdana, arial, sans-serif;
+  font-size: 10pt;
+  padding-top:50px; /* For fixed top navbar */
 }
 
 #banner {
   height: 1.5em;
   font-size: 1.0em;
-}
-
-#content-wrapper {
-  position: relative;
-  min-height: 95%;
-}
-
-* #content-wrapper {
-  height: 95%;
-}
-
-#content {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 1.5em;
-  padding-bottom: 0;
 }
 
 #header {
@@ -86,38 +65,9 @@ html,body {
 }
 
 #main {
-  position: absolute;
-  top: 5.0em;
-  /*left: 11em;*/
-  left: 0;
-  right: 0;
-  bottom: 0;
   padding: 0.6em;
   /*overflow: scroll;*/
-  margin-left: auto;
-  margin-right: auto;
   width: 90%;
-}
-
-#nav {
-  position: absolute;
-  top: 0.5em;
-  /*left: 0;*/
-  right: 0;
-  /*bottom: 0;*/
-  padding: 0.5em;
-  /*width: 10em;*/
-  /*color: #304065;*/
-  /*background-color: #c4c4c4;*/
-  /*text-align: left;*/
-  /*height: 3.0em;*/
-}
-
-#nav-title {
-  margin-left: auto;
-  margin-right: auto;
-  text-align: center;
-  font-size: 1.1em;
 }
 
 h1 {
@@ -439,10 +389,6 @@ pre.logevent {
   border-radius: 5px;
   width: 32px;
   height: 32px;
-}
-
-.center-block {
-  width: 100%;
 }
 
 .nav-pills > li > a {

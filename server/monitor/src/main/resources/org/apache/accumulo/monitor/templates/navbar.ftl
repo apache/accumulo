@@ -14,6 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
+    <div id="navbar" class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
         <!-- toggle -->
         <div class="navbar-header">
@@ -82,3 +83,4 @@
           </ul>
         </div>
       </div>
+    </div>

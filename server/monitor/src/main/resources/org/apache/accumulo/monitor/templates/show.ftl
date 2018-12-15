@@ -57,12 +57,18 @@
           }
         }
       </script>
-      <div><h3>${title}</h3></div>
-      <div class="center-block">
-        <table id="trace" class="table table-bordered table-striped table-condensed">
+      <div class="row">
+        <div class="col-xs-12">
+          <h3>${title}</h3>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-12">
+          <table id="trace" class="table table-bordered table-striped table-condensed">
             <caption><span id="caption" class="table-caption">Trace ${id} started at<br/></span></caption>
             <tbody>
             <tr><th>Time&nbsp;</th><th>Start&nbsp;</th><th>Service@Location&nbsp;</th><th>Name&nbsp;</th><th>Addl&nbsp;Data&nbsp;</th></tr>
             </tbody>
-        </table>
+          </table>
+        </div>
       </div>
