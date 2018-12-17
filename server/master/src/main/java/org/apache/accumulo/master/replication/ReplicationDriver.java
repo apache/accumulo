@@ -63,7 +63,7 @@ public class ReplicationDriver extends Daemon {
 
     while (master.stillMaster()) {
       if (null == workMaker) {
-        client = master.getClient();
+        client = master.getContext();
         statusMaker = new StatusMaker(client, master.getFileSystem());
         workMaker = new WorkMaker(master.getContext(), client);
         finishedWorkUpdater = new FinishedWorkUpdater(client);

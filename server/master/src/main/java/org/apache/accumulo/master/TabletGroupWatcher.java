@@ -430,7 +430,7 @@ abstract class TabletGroupWatcher extends Daemon {
       String table = MetadataTable.NAME;
       if (extent.isMeta())
         table = RootTable.NAME;
-      Scanner scanner = this.master.getClient().createScanner(table, Authorizations.EMPTY);
+      Scanner scanner = this.master.getContext().createScanner(table, Authorizations.EMPTY);
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
       scanner.setRange(new Range(row));
@@ -459,7 +459,7 @@ abstract class TabletGroupWatcher extends Daemon {
         TServerInstance alive = master.tserverSet.find(entry.getValue().toString());
         if (alive == null) {
           Master.log.info("Removing entry  {}", entry);
-          BatchWriter bw = this.master.getClient().createBatchWriter(table,
+          BatchWriter bw = this.master.getContext().createBatchWriter(table,
               new BatchWriterConfig());
           Mutation m = new Mutation(entry.getKey().getRow());
           m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
@@ -554,7 +554,7 @@ abstract class TabletGroupWatcher extends Daemon {
   private void updateMergeState(Map<Table.ID,MergeStats> mergeStatsCache) {
     for (MergeStats stats : mergeStatsCache.values()) {
       try {
-        MergeState update = stats.nextMergeState(this.master.getClient(), this.master);
+        MergeState update = stats.nextMergeState(this.master.getContext(), this.master);
         // when next state is MERGING, its important to persist this before
         // starting the merge... the verification check that is done before
         // moving into the merging state could fail if merge starts but does
@@ -597,7 +597,7 @@ abstract class TabletGroupWatcher extends Daemon {
       Master.log.debug("Found following tablet {}", followingTablet);
     }
     try {
-      AccumuloClient client = this.master.getClient();
+      AccumuloClient client = this.master.getContext();
       Text start = extent.getPrevEndRow();
       if (start == null) {
         start = new Text();
@@ -702,7 +702,7 @@ abstract class TabletGroupWatcher extends Daemon {
     BatchWriter bw = null;
     try {
       long fileCount = 0;
-      AccumuloClient client = this.master.getClient();
+      AccumuloClient client = this.master.getContext();
       // Make file entries in highest tablet
       bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig());
       Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
@@ -818,7 +818,7 @@ abstract class TabletGroupWatcher extends Daemon {
 
   private KeyExtent getHighTablet(KeyExtent range) throws AccumuloException {
     try {
-      AccumuloClient client = this.master.getClient();
+      AccumuloClient client = this.master.getContext();
       Scanner scanner = client.createScanner(range.isMeta() ? RootTable.NAME : MetadataTable.NAME,
           Authorizations.EMPTY);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);

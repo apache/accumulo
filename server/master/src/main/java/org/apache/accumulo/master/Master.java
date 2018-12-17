@@ -644,10 +644,6 @@ public class Master
     return context.getTableManager();
   }
 
-  public AccumuloClient getClient() {
-    return context;
-  }
-
   public Master(ServerContext context) throws IOException {
     this.context = context;
     this.serverConfig = context.getServerConfFactory();

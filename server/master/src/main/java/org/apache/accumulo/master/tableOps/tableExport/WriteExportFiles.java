@@ -92,7 +92,7 @@ class WriteExportFiles extends MasterRepo {
     if (reserved > 0)
       return reserved;
 
-    AccumuloClient client = master.getClient();
+    AccumuloClient client = master.getContext();
 
     checkOffline(master.getContext());
 

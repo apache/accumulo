@@ -496,7 +496,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public boolean drainReplicationTable(TInfo tfino, TCredentials credentials, String tableName,
       Set<String> logsToWatch) throws TException {
-    AccumuloClient client = master.getClient();
+    AccumuloClient client = master.getContext();
 
     final Text tableId = new Text(getTableId(master.getContext(), tableName).getUtf8());
 
