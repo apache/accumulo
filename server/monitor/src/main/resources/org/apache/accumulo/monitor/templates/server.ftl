@@ -72,24 +72,31 @@
         refreshServer();
       });
       </script>
-      <div><h3>${title}</h3></div>
-      <div class="center-block">
-        <table id="tServerDetail" class="table table-bordered table-striped table-condensed">
+      <div class="row">
+        <div class="col-xs-12">
+          <h3>${title}</h3>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-12">
+          <table id="tServerDetail" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">${server}</span></caption>
             <tbody>
-            <tr><th class="firstcell">Hosted&nbsp;Tablets&nbsp;</th>
+              <tr><th class="firstcell">Hosted&nbsp;Tablets&nbsp;</th>
                 <th>Entries&nbsp;</th>
                 <th>Minor&nbsp;Compacting&nbsp;</th>
                 <th>Major&nbsp;Compacting&nbsp;</th>
                 <th>Splitting&nbsp;</th></tr>
             </tbody>
-        </table>
+          </table>
+        </div>
       </div>
-      <div class="center-block">
-        <table id="opHistoryDetails" class="table table-bordered table-striped table-condensed">
+      <div class="row">
+        <div class="col-xs-12">
+          <table id="opHistoryDetails" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">All-Time&nbsp;Tablet&nbsp;Operation&nbsp;Results</span></caption>
             <tbody>
-            <tr><th class="firstcell">Operation&nbsp;</th>
+              <tr><th class="firstcell">Operation&nbsp;</th>
                 <th>Success&nbsp;</th>
                 <th>Failure&nbsp;</th>
                 <th>Average<br/>Queue&nbsp;Time&nbsp;</th>
@@ -98,24 +105,28 @@
                 <th>Std.&nbsp;Dev.<br/>Time&nbsp;</th>
                 <th>Percentage&nbsp;Time&nbsp;Spent&nbsp;</th></tr>
             </tbody>
-        </table>
+          </table>
+        </div>
       </div>
-      <div class="center-block">
-        <table id="currentTabletOps" class="table table-bordered table-striped table-condensed">
+      <div class="row">
+        <div class="col-xs-12">
+          <table id="currentTabletOps" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Current&nbsp;Tablet&nbsp;Operation&nbsp;Results</span></caption>
             <tbody>
-            <tr><th class="firstcell">Minor&nbsp;Average&nbsp;</th>
+              <tr><th class="firstcell">Minor&nbsp;Average&nbsp;</th>
                 <th>Minor&nbsp;Std&nbsp;Dev&nbsp;</th>
                 <th>Major&nbsp;Avg&nbsp;</th>
                 <th>Major&nbsp;Std&nbsp;Dev&nbsp;</th></tr>
             </tbody>
-        </table>
+          </table>
+        </div>
       </div>
-      <div class="center-block">
-        <table id="perTabletResults" class="table table-bordered table-striped table-condensed">
+      <div class="row">
+        <div class="col-xs-12">
+          <table id="perTabletResults" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Detailed Tablet Operations</span></caption>
             <thead>
-            <tr><th>Table&nbsp;</th>
+              <tr><th>Table&nbsp;</th>
                 <th>Tablet&nbsp;</th>
                 <th class="big-num">Entries&nbsp;</th>
                 <th class="big-num">Ingest&nbsp;</th>
@@ -128,5 +139,6 @@
                 <th class="big-num">Major&nbsp;Avg&nbsp;e/s&nbsp;</th></tr>
             </thead>
             <tbody></tbody>
-        </table>
+          </table>
+        </div>
       </div>

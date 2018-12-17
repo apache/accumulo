@@ -60,18 +60,12 @@
   </head>
 
   <body>
-    <#include "modals.ftl">
-    <div id="content-wrapper">
-      <div id="content">
-        <div id="navbar" class="navbar navbar-inverse navbar-fixed-top">
-          <#include "navbar.ftl">
-        </div>
+    <#include "navbar.ftl">
 
-        <div id="main">
-          <#include "${template}">
+    <div id="main" class="container-fluid">
+      <#include "${template}">
 
-        </div>
-      </div>
     </div>
+    <#include "modals.ftl">
   </body>
 </html>

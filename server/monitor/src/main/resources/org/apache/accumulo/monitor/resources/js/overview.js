@@ -116,44 +116,41 @@ function refreshZKTable() {
 /**
  * Create the plots for the overview page
  */
+var plotOptions = {
+  colors: ['#d9534f', '#337ab7'],
+  grid: {
+    backgroundColor: {colors: ['#fff', '#eee']},
+  },
+  lines: {
+    show: true
+  },
+  points: {
+    show: false,
+    radius: 1
+  },
+  xaxis: {
+    mode: 'time',
+    minTickSize: [1, 'minute'],
+    timeformat: '%H:%M',
+    ticks: 3
+  },
+  yaxis: {
+    min: 0
+  }
+};
+
+var cachePlotOptions = $.extend(true, {}, plotOptions, {
+  lines: { show: false },
+  points: { show: true },
+  yaxis: {
+    max: 1.1,
+    ticks: [0, 0.25, 0.5, 0.75, 1.0]
+  }
+});
+
 function makePlots() {
   var d = new Date();
   var n = d.getTimezoneOffset() * 60000; // Converts offset to milliseconds
-  var tz = d.toLocaleTimeString('en-us',
-      {timeZoneName: 'short'}).split(' ')[2]; // Short version of timezone
-  var tzFormat = '%H:%M<br>' + tz;
-
-  var plotOptions = {
-    colors: ['#d9534f', '#337ab7'],
-    grid: {
-      backgroundColor: {colors: ['#fff', '#eee']},
-    },
-    lines: {
-      show: true
-    },
-    points: {
-      show: false,
-      radius: 1
-    },
-    xaxis: {
-      mode: 'time',
-      minTickSize: [1, 'minute'],
-      timeformat: tzFormat,
-      ticks: 3
-    },
-    yaxis: {
-      min: 0
-    }
-  };
-
-  var cachePlotOptions = $.extend(true, {}, plotOptions, {
-    lines: { show: false },
-    points: { show: true },
-    yaxis: {
-      max: 1.1,
-      ticks: [0, 0.25, 0.5, 0.75, 1.0]
-    }
-  });
 
   // Create Ingest Rate plot
   var ingestRate = [{data:[]}];

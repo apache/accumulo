@@ -14,10 +14,15 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-      <div><h3>${title}</h3></div>
+      <div class="row">
+        <div class="col-xs-12">
+          <h3>${title}</h3>
+        </div>
+      </div>
       <div id="masterBanner" style="display: none;"><div class="alert alert-danger" role="alert">Master Server Not Running</div></div>
-      <div class="center-block">
-        <table id="masterStatus" class="table table-bordered table-striped table-condensed">
+      <div class="row">
+        <div class="col-xs-12">
+          <table id="masterStatus" class="table table-bordered table-striped table-condensed">
           <tbody>
             <tr><th class="firstcell" title="The hostname of the master server">Hostname</th>
                 <th title="Number of tablet servers currently available">Online TServers&nbsp;</th>
@@ -32,8 +37,8 @@
                 <th title="The maximum amount of time that ingest has been held across all servers due to a lack of memory to store the records">Hold&nbsp;Time</th>
                 <th title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval.">OS&nbsp;Load</th></tr>
           </tbody>
-        </table>
-        <table id="recoveryList" class="table table-bordered table-striped table-condensed">
+          </table>
+          <table id="recoveryList" class="table table-bordered table-striped table-condensed">
           <caption><span class="table-caption">Log&nbsp;Recovery</span><br/>
             <span class="table-subcaption">Some tablets were unloaded in an unsafe manner. Write-ahead logs are being recovered.</span><br/>
           </caption>
@@ -44,7 +49,8 @@
                 <th>Progress</th></tr>
             </thead>
             <tbody></tbody>
-        </table>
+          </table>
+        </div>
       </div>
       <br/>
       <#include "${tablesTemplate}">

@@ -14,15 +14,21 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-      <div><h3>${title}</h3></div>
-      <div class="center-block">
-        <table id="replicationStats" class="table table-bordered table-striped table-condensed">
+      <div class="row">
+        <div class="col-xs-12">
+          <h3>${title}</h3>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-12">
+          <table id="replicationStats" class="table table-bordered table-striped table-condensed">
             <tbody>
-            <tr><th class="firstcell">Table&nbsp;</th>
+              <tr><th class="firstcell">Table&nbsp;</th>
                 <th>Peer&nbsp;</th>
                 <th>Remote&nbsp;Identifier&nbsp;</th>
                 <th>Replica&nbsp;System&nbsp;Type&nbsp;</th>
                 <th>Files&nbsp;needing&nbsp;replication&nbsp;</th></tr>
             </tbody>
-        </table>
+          </table>
+        </div>
       </div>

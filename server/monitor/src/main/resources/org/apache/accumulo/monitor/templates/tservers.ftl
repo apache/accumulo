@@ -14,20 +14,25 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-      <div><h3>${title}</h3></div>
-      <div class="center-block">
-        <table id="badtservers" class="table table-bordered table-striped table-condensed">
+      <div class="row">
+        <div class="col-xs-12">
+          <h3>${title}</h3>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-12">
+          <table id="badtservers" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Non-Functioning Tablet Servers</span><br/>
-                <span class="table-subcaption">The following tablet servers reported a status other than Online</span><br/></caption>
+              <span class="table-subcaption">The following tablet servers reported a status other than Online</span></caption>
             <thead><tr>
                 <th>Server</th>
                 <th>Status</th></tr>
             </thead>
             <tbody></tbody>
-        </table>
-        <table id="deadtservers" class="table table-bordered table-striped table-condensed">
+          </table>
+          <table id="deadtservers" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Dead Tablet Servers</span><br/>
-                <span class="table-subcaption">The following tablet servers are no longer reachable.</span><br/></caption>
+              <span class="table-subcaption">The following tablet servers are no longer reachable.</span><br/></caption>
             <thead><tr>
                 <th>Server</th>
                 <th class="duration">Last Updated</th>
@@ -35,8 +40,8 @@
                 <th>Clear</th></tr>
             </thead>
             <tbody></tbody>
-        </table>
-        <table id="tservers" class="table table-bordered table-striped table-condensed">
+          </table>
+          <table id="tservers" class="table table-bordered table-striped table-condensed">
             <thead><tr><th class="firstcell">Server&nbsp;</th>
                 <th class="big-num">Hosted&nbsp;Tablets&nbsp;</th>
                 <th class="duration">Last&nbsp;Contact&nbsp;</th>
@@ -51,8 +56,9 @@
                 <th title="The recent index cache hit rate." class="percent">Index Cache<br/>Hit Rate&nbsp;</th>
                 <th title="The recent data cache hit rate." class="percent">Data Cache<br/>Hit Rate&nbsp;</th>
                 <th title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval."  class="big-num">OS&nbsp;Load&nbsp;</th>
-            </tr>
+              </tr>
             </thead>
             <tbody></tbody>
-        </table>
+          </table>
+        </div>
       </div>
