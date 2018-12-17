@@ -436,11 +436,15 @@ public class DfsLogger implements Comparable<DfsLogger> {
       byte[] cryptoParams = encrypter.getDecryptionParameters();
       CryptoUtils.writeParams(cryptoParams, logFile);
 
-      // write directly to logFile if no crypto detected
-      if (encrypter instanceof NoFileEncrypter) {
-        encryptingLogFile = logFile;
+      /** Always wrap the WAL in a NoFlushOutputStream to prevent extra flushing to HDFS.
+       * The {@link #write(LogFileKey, LogFileValue)} method will flush crypto data or do nothing
+       * when crypto is not enabled.
+       **/
+      OutputStream encryptedStream = encrypter.encryptStream(new NoFlushOutputStream(logFile));
+      if (encryptedStream instanceof NoFlushOutputStream) {
+        encryptingLogFile = (NoFlushOutputStream)encryptedStream;
       } else {
-        encryptingLogFile = new NoFlushOutputStream(encrypter.encryptStream(logFile));
+        encryptingLogFile = new DataOutputStream(encryptedStream);
       }
 
       LogFileKey key = new LogFileKey();
