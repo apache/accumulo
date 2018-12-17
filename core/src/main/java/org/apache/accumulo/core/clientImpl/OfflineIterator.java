@@ -28,7 +28,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
@@ -150,7 +149,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private SortedKeyValueIterator<Key,Value> iter;
   private Range range;
   private KeyExtent currentExtent;
-  private AccumuloClient client;
   private Table.ID tableId;
   private Authorizations authorizations;
   private ClientContext context;
@@ -174,8 +172,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.readers = new ArrayList<>();
 
     try {
-      client = context.getClient();
-      config = new ConfigurationCopy(client.instanceOperations().getSiteConfiguration());
+      config = new ConfigurationCopy(context.instanceOperations().getSiteConfiguration());
       nextTablet();
 
       while (iter != null && !iter.hasTop())
@@ -292,11 +289,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   }
 
-  private TabletMetadata getTabletFiles(Range nextRange)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-
+  private TabletMetadata getTabletFiles(Range nextRange) {
     try (TabletsMetadata tablets = TabletsMetadata.builder().scanMetadataTable()
-        .overRange(nextRange).fetchFiles().fetchLocation().fetchPrev().build(client)) {
+        .overRange(nextRange).fetchFiles().fetchLocation().fetchPrev().build(context)) {
       return tablets.iterator().next();
     }
   }
@@ -309,7 +304,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     // possible race condition here, if table is renamed
     String tableName = Tables.getTableName(context, tableId);
     AccumuloConfiguration acuTableConf = new ConfigurationCopy(
-        client.tableOperations().getProperties(tableName));
+        context.tableOperations().getProperties(tableName));
 
     Configuration conf = CachedConfiguration.getInstance();
 

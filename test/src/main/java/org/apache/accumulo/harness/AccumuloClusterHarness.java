@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
@@ -67,7 +66,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   private static final Logger log = LoggerFactory.getLogger(AccumuloClusterHarness.class);
   private static final String TRUE = Boolean.toString(true);
 
-  public static enum ClusterType {
+  public enum ClusterType {
     MINI, STANDALONE;
 
     public boolean isDynamic() {
@@ -282,11 +281,6 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     return ClientInfo.from(getCluster().getClientProperties());
   }
 
-  public static ClientContext getClientContext() {
-    checkState(initialized);
-    return new ClientContext(getClientInfo());
-  }
-
   public static ServerContext getServerContext() {
     return getCluster().getServerContext();
   }
@@ -354,6 +348,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   }
 
   public AccumuloClient createAccumuloClient() {
+    checkState(initialized);
     try {
       String princ = getAdminPrincipal();
       AuthenticationToken token = getAdminToken();

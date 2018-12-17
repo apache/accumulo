@@ -78,7 +78,7 @@ public class ListVolumesUsed {
 
     System.out.println("Listing volumes referenced in " + name + " tablets section");
 
-    Scanner scanner = context.getClient().createScanner(name, Authorizations.EMPTY);
+    Scanner scanner = context.createScanner(name, Authorizations.EMPTY);
 
     scanner.setRange(MetadataSchema.TabletsSection.getRange());
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);

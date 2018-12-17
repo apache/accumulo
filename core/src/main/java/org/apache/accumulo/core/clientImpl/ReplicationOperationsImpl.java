@@ -66,7 +66,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
       throws AccumuloException, AccumuloSecurityException, PeerExistsException {
     requireNonNull(name);
     requireNonNull(replicaType);
-    context.getClient().instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + name,
+    context.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + name,
         replicaType);
   }
 
@@ -74,8 +74,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   public void removePeer(final String name)
       throws AccumuloException, AccumuloSecurityException, PeerNotFoundException {
     requireNonNull(name);
-    context.getClient().instanceOperations()
-        .removeProperty(Property.REPLICATION_PEERS.getKey() + name);
+    context.instanceOperations().removeProperty(Property.REPLICATION_PEERS.getKey() + name);
   }
 
   @Override
@@ -146,13 +145,12 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
 
     log.debug("Collecting referenced files for replication of table {}", tableName);
 
-    AccumuloClient client = context.getClient();
-    Table.ID tableId = getTableId(client, tableName);
+    Table.ID tableId = getTableId(context, tableName);
 
     log.debug("Found id of {} for name {}", tableId, tableName);
 
     // Get the WALs currently referenced by the table
-    BatchScanner metaBs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
+    BatchScanner metaBs = context.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
     metaBs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange(tableId)));
     metaBs.fetchColumnFamily(LogColumnFamily.NAME);
     Set<String> wals = new HashSet<>();
@@ -166,7 +164,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     }
 
     // And the WALs that need to be replicated for this table
-    metaBs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
+    metaBs = context.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
     metaBs.setRanges(Collections.singleton(ReplicationSection.getRange()));
     metaBs.fetchColumnFamily(ReplicationSection.COLF);
     try {

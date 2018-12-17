@@ -19,27 +19,46 @@ package org.apache.accumulo.core.clientImpl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchDeleter;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
+import org.apache.accumulo.core.client.MultiTableBatchWriter;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.NamespaceOperations;
+import org.apache.accumulo.core.client.admin.ReplicationOperations;
+import org.apache.accumulo.core.client.admin.SecurityOperations;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -59,18 +78,17 @@ import com.google.common.base.Suppliers;
  * to this object for later retrieval, rather than as a separate parameter. Any state in this object
  * should be available at the time of its construction.
  */
-public class ClientContext {
+public class ClientContext implements AccumuloClient {
 
   private static final Logger log = LoggerFactory.getLogger(ClientContext.class);
 
   private ClientInfo info;
-  private String instanceId = null;
+  private String instanceId;
   private final ZooCache zooCache;
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
   private AccumuloConfiguration serverConf;
-  protected AccumuloClient client;
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
   // compute, so cache them.
@@ -80,6 +98,13 @@ public class ClientContext {
   private TCredentials rpcCreds;
 
   private volatile boolean closed = false;
+
+  private SecurityOperations secops = null;
+  private TableOperationsImpl tableops = null;
+  private NamespaceOperations namespaceops = null;
+  private InstanceOperations instanceops = null;
+  private ReplicationOperations replicationops = null;
+  private SingletonReservation singletonReservation;
 
   private void ensureOpen() {
     if (closed) {
@@ -92,12 +117,12 @@ public class ClientContext {
     return () -> Suppliers.memoizeWithExpiration(s::get, 100, TimeUnit.MILLISECONDS).get();
   }
 
-  public ClientContext(AccumuloClient client) {
-    this(ClientInfo.from(client.properties(), ((AccumuloClientImpl) client).token()));
-  }
-
   public ClientContext(Properties clientProperties) {
     this(ClientInfo.from(clientProperties));
+  }
+
+  public ClientContext(SingletonReservation reservation, ClientInfo info) {
+    this(reservation, info, ClientConfConverter.toAccumuloConf(info.getProperties()));
   }
 
   public ClientContext(ClientInfo info) {
@@ -105,6 +130,11 @@ public class ClientContext {
   }
 
   public ClientContext(ClientInfo info, AccumuloConfiguration serverConf) {
+    this(SingletonReservation.noop(), info, serverConf);
+  }
+
+  public ClientContext(SingletonReservation reservation, ClientInfo info,
+      AccumuloConfiguration serverConf) {
     this.info = info;
     zooCache = new ZooCacheFactory().getZooCache(info.getZooKeepers(),
         info.getZooKeepersSessionTimeOut());
@@ -114,6 +144,9 @@ public class ClientContext {
     sslSupplier = memoizeWithExpiration(() -> SslConnectionParams.forClient(getConfiguration()));
     saslSupplier = memoizeWithExpiration(
         () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()));
+    this.singletonReservation = Objects.requireNonNull(reservation);
+    this.tableops = new TableOperationsImpl(this);
+    this.namespaceops = new NamespaceOperationsImpl(this, tableops);
   }
 
   /**
@@ -158,16 +191,9 @@ public class ClientContext {
       @Override
       public org.apache.accumulo.core.client.Connector getConnector(String principal,
           AuthenticationToken token) throws AccumuloException, AccumuloSecurityException {
-        AccumuloClient client = Accumulo.newClient().from(context.getProperties())
-            .as(principal, token).build();
-        return org.apache.accumulo.core.client.Connector.from(client);
+        return org.apache.accumulo.core.client.Connector.from(context);
       }
     };
-  }
-
-  public ClientInfo getClientInfo() {
-    ensureOpen();
-    return info;
   }
 
   /**
@@ -237,17 +263,6 @@ public class ClientContext {
   public SaslConnectionParams getSaslParams() {
     ensureOpen();
     return saslSupplier.get();
-  }
-
-  /**
-   * Retrieve an Accumulo client
-   */
-  public synchronized AccumuloClient getClient() {
-    ensureOpen();
-    if (client == null) {
-      client = new AccumuloClientImpl(SingletonReservation.noop(), this);
-    }
-    return client;
   }
 
   public BatchWriterConfig getBatchWriterConfig() {
@@ -427,7 +442,371 @@ public class ClientContext {
     return zooCache;
   }
 
+  Table.ID getTableId(String tableName) throws TableNotFoundException {
+    Table.ID tableId = Tables.getTableId(this, tableName);
+    if (Tables.getTableState(this, tableId) == TableState.OFFLINE)
+      throw new TableOfflineException(Tables.getTableOfflineMsg(this, tableId));
+    return tableId;
+  }
+
+  @Override
+  public BatchScanner createBatchScanner(String tableName, Authorizations authorizations,
+      int numQueryThreads) throws TableNotFoundException {
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(authorizations != null, "authorizations is null");
+    ensureOpen();
+    return new TabletServerBatchReader(this, getTableId(tableName), authorizations,
+        numQueryThreads);
+  }
+
+  @Override
+  public BatchScanner createBatchScanner(String tableName, Authorizations authorizations)
+      throws TableNotFoundException {
+    Integer numQueryThreads = ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS
+        .getInteger(getProperties());
+    Objects.requireNonNull(numQueryThreads);
+    ensureOpen();
+    return createBatchScanner(tableName, authorizations, numQueryThreads);
+  }
+
+  @Override
+  public BatchScanner createBatchScanner(String tableName)
+      throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    Authorizations auths = securityOperations().getUserAuthorizations(getPrincipal());
+    return createBatchScanner(tableName, auths);
+  }
+
+  @Override
+  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
+      int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException {
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(authorizations != null, "authorizations is null");
+    ensureOpen();
+    return new TabletServerBatchDeleter(this, getTableId(tableName), authorizations,
+        numQueryThreads, config.merge(getBatchWriterConfig()));
+  }
+
+  @Override
+  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
+      int numQueryThreads) throws TableNotFoundException {
+    ensureOpen();
+    return createBatchDeleter(tableName, authorizations, numQueryThreads, new BatchWriterConfig());
+  }
+
+  @Override
+  public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
+      throws TableNotFoundException {
+    checkArgument(tableName != null, "tableName is null");
+    ensureOpen();
+    // we used to allow null inputs for bw config
+    if (config == null) {
+      config = new BatchWriterConfig();
+    }
+    return new BatchWriterImpl(this, getTableId(tableName), config.merge(getBatchWriterConfig()));
+  }
+
+  @Override
+  public BatchWriter createBatchWriter(String tableName) throws TableNotFoundException {
+    return createBatchWriter(tableName, new BatchWriterConfig());
+  }
+
+  @Override
+  public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
+    ensureOpen();
+    return new MultiTableBatchWriterImpl(this, config.merge(getBatchWriterConfig()));
+  }
+
+  @Override
+  public MultiTableBatchWriter createMultiTableBatchWriter() {
+    return createMultiTableBatchWriter(new BatchWriterConfig());
+  }
+
+  @Override
+  public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
+      throws TableNotFoundException {
+    ensureOpen();
+    return new ConditionalWriterImpl(this, getTableId(tableName), config);
+  }
+
+  @Override
+  public Scanner createScanner(String tableName, Authorizations authorizations)
+      throws TableNotFoundException {
+    checkArgument(tableName != null, "tableName is null");
+    checkArgument(authorizations != null, "authorizations is null");
+    ensureOpen();
+    Scanner scanner = new ScannerImpl(this, getTableId(tableName), authorizations);
+    Integer batchSize = ClientProperty.SCANNER_BATCH_SIZE.getInteger(getProperties());
+    if (batchSize != null) {
+      scanner.setBatchSize(batchSize);
+    }
+    return scanner;
+  }
+
+  @Override
+  public Scanner createScanner(String tableName)
+      throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    Authorizations auths = securityOperations().getUserAuthorizations(getPrincipal());
+    return createScanner(tableName, auths);
+  }
+
+  @Override
+  public String whoami() {
+    ensureOpen();
+    return getCredentials().getPrincipal();
+  }
+
+  @Override
+  public synchronized TableOperations tableOperations() {
+    ensureOpen();
+    return tableops;
+  }
+
+  @Override
+  public synchronized NamespaceOperations namespaceOperations() {
+    ensureOpen();
+    return namespaceops;
+  }
+
+  @Override
+  public synchronized SecurityOperations securityOperations() {
+    ensureOpen();
+    if (secops == null)
+      secops = new SecurityOperationsImpl(this);
+
+    return secops;
+  }
+
+  @Override
+  public synchronized InstanceOperations instanceOperations() {
+    ensureOpen();
+    if (instanceops == null)
+      instanceops = new InstanceOperationsImpl(this);
+
+    return instanceops;
+  }
+
+  @Override
+  public synchronized ReplicationOperations replicationOperations() {
+    ensureOpen();
+    if (null == replicationops) {
+      replicationops = new ReplicationOperationsImpl(this);
+    }
+
+    return replicationops;
+  }
+
+  @Override
+  public Properties properties() {
+    ensureOpen();
+    Properties result = new Properties();
+    getProperties().forEach((key, value) -> {
+      if (!key.equals(ClientProperty.AUTH_TOKEN.getKey())) {
+        result.setProperty((String) key, (String) value);
+      }
+    });
+    return result;
+  }
+
+  public AuthenticationToken token() {
+    ensureOpen();
+    return getAuthenticationToken();
+  }
+
+  @Override
   public void close() {
     closed = true;
+    singletonReservation.close();
+  }
+
+  public static class ClientBuilderImpl<T>
+      implements InstanceArgs<T>, PropertyOptions<T>, AuthenticationArgs<T>, ConnectionOptions<T>,
+      SslOptions<T>, SaslOptions<T>, ClientFactory<T>, FromOptions<T> {
+
+    private Properties properties = new Properties();
+    private AuthenticationToken token = null;
+    private Function<ClientBuilderImpl<T>,T> builderFunction;
+
+    public ClientBuilderImpl(Function<ClientBuilderImpl<T>,T> builderFunction) {
+      this.builderFunction = builderFunction;
+    }
+
+    private ClientInfo getClientInfo() {
+      if (token != null) {
+        ClientProperty.validate(properties, false);
+        return new ClientInfoImpl(properties, token);
+      }
+      ClientProperty.validate(properties);
+      return new ClientInfoImpl(properties);
+    }
+
+    @Override
+    public T build() {
+      return builderFunction.apply(this);
+    }
+
+    public static AccumuloClient buildClient(ClientBuilderImpl<AccumuloClient> cbi) {
+      SingletonReservation reservation = SingletonManager.getClientReservation();
+      try {
+        // ClientContext closes reservation unless a RuntimeException is thrown
+        return new ClientContext(reservation, cbi.getClientInfo());
+      } catch (RuntimeException e) {
+        reservation.close();
+        throw e;
+      }
+    }
+
+    public static Properties buildProps(ClientBuilderImpl<Properties> cbi) {
+      ClientProperty.validate(cbi.properties);
+      return cbi.properties;
+    }
+
+    @Override
+    public AuthenticationArgs<T> to(CharSequence instanceName, CharSequence zookeepers) {
+      setProperty(ClientProperty.INSTANCE_NAME, instanceName);
+      setProperty(ClientProperty.INSTANCE_ZOOKEEPERS, zookeepers);
+      return this;
+    }
+
+    @Override
+    public SslOptions<T> truststore(CharSequence path) {
+      setProperty(ClientProperty.SSL_TRUSTSTORE_PATH, path);
+      return this;
+    }
+
+    @Override
+    public SslOptions<T> truststore(CharSequence path, CharSequence password, CharSequence type) {
+      setProperty(ClientProperty.SSL_TRUSTSTORE_PATH, path);
+      setProperty(ClientProperty.SSL_TRUSTSTORE_PASSWORD, password);
+      setProperty(ClientProperty.SSL_TRUSTSTORE_TYPE, type);
+      return this;
+    }
+
+    @Override
+    public SslOptions<T> keystore(CharSequence path) {
+      setProperty(ClientProperty.SSL_KEYSTORE_PATH, path);
+      return this;
+    }
+
+    @Override
+    public SslOptions<T> keystore(CharSequence path, CharSequence password, CharSequence type) {
+      setProperty(ClientProperty.SSL_KEYSTORE_PATH, path);
+      setProperty(ClientProperty.SSL_KEYSTORE_PASSWORD, password);
+      setProperty(ClientProperty.SSL_KEYSTORE_TYPE, type);
+      return this;
+    }
+
+    @Override
+    public SslOptions<T> useJsse() {
+      setProperty(ClientProperty.SSL_USE_JSSE, "true");
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions<T> zkTimeout(int timeout) {
+      ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.setTimeInMillis(properties, (long) timeout);
+      return this;
+    }
+
+    @Override
+    public SslOptions<T> useSsl() {
+      setProperty(ClientProperty.SSL_ENABLED, "true");
+      return this;
+    }
+
+    @Override
+    public SaslOptions<T> useSasl() {
+      setProperty(ClientProperty.SASL_ENABLED, "true");
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions<T> batchWriterConfig(BatchWriterConfig batchWriterConfig) {
+      ClientProperty.BATCH_WRITER_MEMORY_MAX.setBytes(properties, batchWriterConfig.getMaxMemory());
+      ClientProperty.BATCH_WRITER_LATENCY_MAX.setTimeInMillis(properties,
+          batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+      ClientProperty.BATCH_WRITER_TIMEOUT_MAX.setTimeInMillis(properties,
+          batchWriterConfig.getTimeout(TimeUnit.MILLISECONDS));
+      setProperty(ClientProperty.BATCH_WRITER_THREADS_MAX, batchWriterConfig.getMaxWriteThreads());
+      setProperty(ClientProperty.BATCH_WRITER_DURABILITY,
+          batchWriterConfig.getDurability().toString());
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions<T> batchScannerQueryThreads(int numQueryThreads) {
+      setProperty(ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS, numQueryThreads);
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions<T> scannerBatchSize(int batchSize) {
+      setProperty(ClientProperty.SCANNER_BATCH_SIZE, batchSize);
+      return this;
+    }
+
+    @Override
+    public SaslOptions<T> primary(CharSequence kerberosServerPrimary) {
+      setProperty(ClientProperty.SASL_KERBEROS_SERVER_PRIMARY, kerberosServerPrimary);
+      return this;
+    }
+
+    @Override
+    public SaslOptions<T> qop(CharSequence qualityOfProtection) {
+      setProperty(ClientProperty.SASL_QOP, qualityOfProtection);
+      return this;
+    }
+
+    @Override
+    public FromOptions<T> from(String propertiesFilePath) {
+      return from(ClientInfoImpl.toProperties(propertiesFilePath));
+    }
+
+    @Override
+    public FromOptions<T> from(Path propertiesFile) {
+      return from(ClientInfoImpl.toProperties(propertiesFile));
+    }
+
+    @Override
+    public FromOptions<T> from(Properties properties) {
+      this.properties = properties;
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions<T> as(CharSequence username, CharSequence password) {
+      setProperty(ClientProperty.AUTH_PRINCIPAL, username);
+      ClientProperty.setPassword(properties, password);
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions<T> as(CharSequence principal, Path keyTabFile) {
+      setProperty(ClientProperty.AUTH_PRINCIPAL, principal);
+      ClientProperty.setKerberosKeytab(properties, keyTabFile.toString());
+      return this;
+    }
+
+    @Override
+    public ConnectionOptions<T> as(CharSequence principal, AuthenticationToken token) {
+      if (token.isDestroyed()) {
+        throw new IllegalArgumentException("AuthenticationToken has been destroyed");
+      }
+      setProperty(ClientProperty.AUTH_PRINCIPAL, principal.toString());
+      ClientProperty.setAuthenticationToken(properties, token);
+      this.token = token;
+      return this;
+    }
+
+    public void setProperty(ClientProperty property, CharSequence value) {
+      properties.setProperty(property.getKey(), value.toString());
+    }
+
+    public void setProperty(ClientProperty property, Long value) {
+      setProperty(property, Long.toString(value));
+    }
+
+    public void setProperty(ClientProperty property, Integer value) {
+      setProperty(property, Integer.toString(value));
+    }
   }
 }

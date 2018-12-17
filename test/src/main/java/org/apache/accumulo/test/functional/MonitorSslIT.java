@@ -35,6 +35,8 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.minicluster.ServerType;
@@ -126,15 +128,17 @@ public class MonitorSslIT extends ConfigurableMacBase {
     log.debug("Starting Monitor");
     cluster.getClusterControl().startAllServers(ServerType.MONITOR);
     String monitorLocation = null;
-    while (null == monitorLocation) {
-      try {
-        monitorLocation = MonitorUtil.getLocation(getClientContext());
-      } catch (Exception e) {
-        // ignored
-      }
-      if (null == monitorLocation) {
-        log.debug("Could not fetch monitor HTTP address from zookeeper");
-        Thread.sleep(2000);
+    try (AccumuloClient client = createClient()) {
+      while (null == monitorLocation) {
+        try {
+          monitorLocation = MonitorUtil.getLocation((ClientContext) client);
+        } catch (Exception e) {
+          // ignored
+        }
+        if (null == monitorLocation) {
+          log.debug("Could not fetch monitor HTTP address from zookeeper");
+          Thread.sleep(2000);
+        }
       }
     }
     URL url = new URL("https://" + monitorLocation);

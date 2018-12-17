@@ -23,8 +23,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.accumulo.core.clientImpl.AccumuloClientImpl;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.singletons.SingletonReservation;
@@ -70,8 +70,8 @@ public class SystemCredentialsTest {
 
   /**
    * This is a test to ensure the string literal in
-   * {@link AccumuloClientImpl#AccumuloClientImpl(SingletonReservation, ClientContext)} is kept
-   * up-to-date if we move the {@link SystemToken}<br>
+   * {@link ClientContext#ClientContext(SingletonReservation, ClientInfo)} is kept up-to-date if we
+   * move the {@link SystemToken}<br>
    * This check will not be needed after ACCUMULO-1578
    */
   @Test

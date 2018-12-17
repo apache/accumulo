@@ -298,7 +298,7 @@ public abstract class AbstractInputFormat {
       log.debug("Initializing input split: " + baseSplit);
 
       client = createClient(job);
-      ClientContext context = new ClientContext(client);
+      ClientContext context = (ClientContext) client;
       Authorizations authorizations = getScanAuthorizations(job);
       String classLoaderContext = getClassLoaderContext(job);
       String table = baseSplit.getTableName();
@@ -307,7 +307,7 @@ public abstract class AbstractInputFormat {
       // configuration, but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(job, baseSplit.getTableName());
 
-      log.debug("Created client with user: " + client.whoami());
+      log.debug("Created client with user: " + context.whoami());
       log.debug("Creating scanner for table: " + table);
       log.debug("Authorizations are: " + authorizations);
 
@@ -319,7 +319,7 @@ public abstract class AbstractInputFormat {
           // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit
           // will not span tablets
           int scanThreads = 1;
-          scanner = client.createBatchScanner(baseSplit.getTableName(), authorizations,
+          scanner = context.createBatchScanner(baseSplit.getTableName(), authorizations,
               scanThreads);
           setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
           if (null != classLoaderContext) {
@@ -445,8 +445,7 @@ public abstract class AbstractInputFormat {
       Table.ID tableId, List<Range> ranges)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     try (AccumuloClient client = createClient(job)) {
-      ClientContext context = new ClientContext(client);
-      return InputConfigurator.binOffline(tableId, ranges, context);
+      return InputConfigurator.binOffline(tableId, ranges, (ClientContext) client);
     }
   }
 
@@ -470,7 +469,7 @@ public abstract class AbstractInputFormat {
         String tableName = tableConfigEntry.getKey();
         InputTableConfig tableConfig = tableConfigEntry.getValue();
 
-        ClientContext context = new ClientContext(client);
+        ClientContext context = (ClientContext) client;
         Table.ID tableId;
         // resolve table name to id once, and use id from this point forward
         try {

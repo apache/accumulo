@@ -183,9 +183,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       throws AccumuloSecurityException {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
-      try {
-        AccumuloClient client = Accumulo.newClient().from(getClientProperties(job))
-            .as(principal, token).build();
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProperties(job))
+          .as(principal, token).build()) {
         token = client.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, "
@@ -491,7 +490,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
       ClientInfo info = ClientInfo.from(getClientProperties(attempt));
       ClientContext context = new ClientContext(info);
-      AccumuloClient client = context.getClient();
       Authorizations authorizations = getScanAuthorizations(attempt);
       String classLoaderContext = getClassLoaderContext(attempt);
       String table = split.getTableName();
@@ -513,7 +511,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit
           // will not span tablets
           int scanThreads = 1;
-          scanner = client.createBatchScanner(split.getTableName(), authorizations, scanThreads);
+          scanner = context.createBatchScanner(split.getTableName(), authorizations, scanThreads);
           setupIterators(attempt, scanner, split.getTableName(), split);
           if (null != classLoaderContext) {
             scanner.setClassLoaderContext(classLoaderContext);

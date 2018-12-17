@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.data.Key;
@@ -71,7 +72,6 @@ import com.google.common.collect.Sets;
 public class TableOperationsIT extends AccumuloClusterHarness {
 
   static TabletClientService.Client client;
-
   private AccumuloClient accumuloClient;
 
   @Override
@@ -80,13 +80,13 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   @Before
-  public void setup() throws Exception {
+  public void setup() {
     accumuloClient = createAccumuloClient();
   }
 
   @After
   public void checkForDanglingFateLocks() {
-    FunctionalTestUtils.assertNoDanglingFateLocks(getClientContext(), getCluster());
+    FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) accumuloClient, getCluster());
     accumuloClient.close();
   }
 

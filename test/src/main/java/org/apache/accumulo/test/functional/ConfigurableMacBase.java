@@ -28,15 +28,11 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -49,7 +45,6 @@ import org.apache.accumulo.test.util.CertUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.zookeeper.KeeperException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.experimental.categories.Category;
@@ -199,10 +194,6 @@ public class ConfigurableMacBase extends AccumuloITBase {
     return getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
   }
 
-  protected ClientContext getClientContext() {
-    return new ClientContext(getClientInfo());
-  }
-
   protected Properties getClientProperties() {
     return getClientInfo().getProperties();
   }
@@ -225,10 +216,5 @@ public class ConfigurableMacBase extends AccumuloITBase {
 
   protected Process exec(Class<?> clazz, String... args) throws IOException {
     return getCluster().exec(clazz, args);
-  }
-
-  protected String getMonitor()
-      throws KeeperException, InterruptedException, AccumuloSecurityException, AccumuloException {
-    return MonitorUtil.getLocation(getClientContext());
   }
 }

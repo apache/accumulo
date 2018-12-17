@@ -302,7 +302,7 @@ public abstract class AbstractInputFormat {
       log.debug("Initializing input split: " + split);
 
       client = createClient(attempt);
-      ClientContext context = new ClientContext(client);
+      ClientContext context = (ClientContext) client;
       Authorizations authorizations = getScanAuthorizations(attempt);
       String classLoaderContext = getClassLoaderContext(attempt);
       String table = split.getTableName();
@@ -324,7 +324,7 @@ public abstract class AbstractInputFormat {
           // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit
           // will not span tablets
           int scanThreads = 1;
-          scanner = client.createBatchScanner(split.getTableName(), authorizations, scanThreads);
+          scanner = context.createBatchScanner(split.getTableName(), authorizations, scanThreads);
           setupIterators(attempt, scanner, split.getTableName(), split);
           if (null != classLoaderContext) {
             scanner.setClassLoaderContext(classLoaderContext);
@@ -467,8 +467,7 @@ public abstract class AbstractInputFormat {
       Table.ID tableId, List<Range> ranges)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     try (AccumuloClient client = createClient(context)) {
-      ClientContext clientContext = new ClientContext(client);
-      return InputConfigurator.binOffline(tableId, ranges, clientContext);
+      return InputConfigurator.binOffline(tableId, ranges, (ClientContext) client);
     }
   }
 
@@ -483,7 +482,7 @@ public abstract class AbstractInputFormat {
         String tableName = tableConfigEntry.getKey();
         InputTableConfig tableConfig = tableConfigEntry.getValue();
 
-        ClientContext clientContext = new ClientContext(client);
+        ClientContext clientContext = (ClientContext) client;
         Table.ID tableId;
         // resolve table name to id once, and use id from this point forward
         try {

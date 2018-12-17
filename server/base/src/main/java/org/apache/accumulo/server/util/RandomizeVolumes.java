@@ -69,7 +69,7 @@ public class RandomizeVolumes {
       log.error("There are not enough volumes configured");
       return 1;
     }
-    String tblStr = context.getClient().tableOperations().tableIdMap().get(tableName);
+    String tblStr = context.tableOperations().tableIdMap().get(tableName);
     if (null == tblStr) {
       log.error("Could not determine the table ID for table {}", tableName);
       return 2;
@@ -78,15 +78,15 @@ public class RandomizeVolumes {
     TableState tableState = context.getTableManager().getTableState(tableId);
     if (TableState.OFFLINE != tableState) {
       log.info("Taking {} offline", tableName);
-      context.getClient().tableOperations().offline(tableName, true);
+      context.tableOperations().offline(tableName, true);
       log.info("{} offline", tableName);
     }
     SimpleThreadPool pool = new SimpleThreadPool(50, "directory maker");
     log.info("Rewriting entries for {}", tableName);
-    Scanner scanner = context.getClient().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     DIRECTORY_COLUMN.fetch(scanner);
     scanner.setRange(TabletsSection.getRange(tableId));
-    BatchWriter writer = context.getClient().createBatchWriter(MetadataTable.NAME, null);
+    BatchWriter writer = context.createBatchWriter(MetadataTable.NAME, null);
     int count = 0;
     for (Entry<Key,Value> entry : scanner) {
       String oldLocation = entry.getValue().toString();
@@ -137,7 +137,7 @@ public class RandomizeVolumes {
     }
     log.info("Updated {} entries for table {}", count, tableName);
     if (TableState.OFFLINE != tableState) {
-      context.getClient().tableOperations().online(tableName, true);
+      context.tableOperations().online(tableName, true);
       log.info("table {} back online", tableName);
     }
     return 0;

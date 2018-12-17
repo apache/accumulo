@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -93,16 +92,15 @@ public class MiniAccumuloClusterExistingZooKeepersTest {
   @Test
   public void canConnectViaExistingZooKeeper() throws Exception {
     org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", SECRET);
-    ClientContext context = new ClientContext(accumulo.getClientProperties());
-    assertEquals(zooKeeper.getConnectString(), context.getZooKeepers());
+    assertEquals(zooKeeper.getConnectString(), conn.getInstance().getZooKeepers());
 
     String tableName = "foo";
     conn.tableOperations().create(tableName);
     Map<String,String> tableIds = conn.tableOperations().tableIdMap();
     assertTrue(tableIds.containsKey(tableName));
 
-    String zkTablePath = String.format("/accumulo/%s/tables/%s/name", context.getInstanceID(),
-        tableIds.get(tableName));
+    String zkTablePath = String.format("/accumulo/%s/tables/%s/name",
+        conn.getInstance().getInstanceID(), tableIds.get(tableName));
     try (CuratorFramework client = CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(),
         new RetryOneTime(1))) {
       client.start();

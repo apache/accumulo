@@ -85,7 +85,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private ReplicationOperationsImpl getReplicationOperations() throws Exception {
     Master master = EasyMock.createMock(Master.class);
     ServerContext serverContext = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(master.getClient()).andReturn(client).anyTimes();
+    EasyMock.expect((AccumuloClient) master.getContext()).andReturn(client).anyTimes();
     EasyMock.expect(master.getContext()).andReturn(serverContext).anyTimes();
     EasyMock.replay(master);
 
@@ -101,7 +101,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
       }
     };
 
-    ClientContext context = getClientContext();
+    ClientContext context = (ClientContext) client;
     return new ReplicationOperationsImpl(context) {
       @Override
       protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds,

@@ -177,8 +177,8 @@ public class SimpleGarbageCollector implements Iface {
     return context.getConfiguration();
   }
 
-  AccumuloClient getClient() throws AccumuloSecurityException, AccumuloException {
-    return context.getClient();
+  AccumuloClient getClient() {
+    return context;
   }
 
   /**

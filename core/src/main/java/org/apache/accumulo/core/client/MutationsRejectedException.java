@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
@@ -56,7 +55,7 @@ public class MutationsRejectedException extends AccumuloException {
    *
    * @since 1.7.0
    * @deprecated since 2.0.0, replaced by
-   *             {@link #MutationsRejectedException(Properties, List, Map, Collection, int, Throwable)}
+   *             {@link #MutationsRejectedException(AccumuloClient, List, Map, Collection, int, Throwable)}
    */
   @Deprecated
   public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList,
@@ -75,8 +74,8 @@ public class MutationsRejectedException extends AccumuloException {
   /**
    * Creates Mutations rejected exception
    *
-   * @param clientProps
-   *          Client props
+   * @param client
+   *          AccumuloClient
    * @param cvsList
    *          list of constraint violations
    * @param hashMap
@@ -88,12 +87,12 @@ public class MutationsRejectedException extends AccumuloException {
    *
    * @since 2.0.0
    */
-  public MutationsRejectedException(Properties clientProps,
-      List<ConstraintViolationSummary> cvsList, Map<TabletId,Set<SecurityErrorCode>> hashMap,
-      Collection<String> serverSideErrors, int unknownErrors, Throwable cause) {
+  public MutationsRejectedException(AccumuloClient client, List<ConstraintViolationSummary> cvsList,
+      Map<TabletId,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors,
+      int unknownErrors, Throwable cause) {
     super("# constraint violations : " + cvsList.size() + "  security codes: "
-        + format(hashMap, new ClientContext(clientProps)) + "  # server errors "
-        + serverSideErrors.size() + " # exceptions " + unknownErrors, cause);
+        + format(hashMap, (ClientContext) client) + "  # server errors " + serverSideErrors.size()
+        + " # exceptions " + unknownErrors, cause);
     this.cvsl = cvsList;
     this.af = hashMap;
     this.es = serverSideErrors;

@@ -96,7 +96,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     MiniAccumuloClusterControl control = mac.getClusterControl();
     control.stop(GARBAGE_COLLECTOR);
     ServerContext context = getServerContext();
-    try (AccumuloClient c = context.getClient()) {
+    try (AccumuloClient c = createClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       writeSomeData(c, tableName, 1, 1);

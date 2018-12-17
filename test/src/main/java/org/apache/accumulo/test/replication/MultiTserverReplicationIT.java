@@ -54,7 +54,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
   public void tserverReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
     AccumuloClient client = createClient();
-    ClientContext context = getClientContext();
+    ClientContext context = (ClientContext) client;
 
     // Wait for a tserver to come up to fulfill this request
     client.tableOperations().create("foo");
@@ -91,7 +91,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
   public void masterReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
     AccumuloClient client = createClient();
-    ClientContext context = getClientContext();
+    ClientContext context = (ClientContext) client;
 
     // Wait for a tserver to come up to fulfill this request
     client.tableOperations().create("foo");

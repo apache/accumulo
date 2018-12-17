@@ -271,10 +271,9 @@ public class Admin implements KeywordExecutable {
     }
   }
 
-  private static int ping(ClientContext context, List<String> args)
-      throws AccumuloException, AccumuloSecurityException {
+  private static int ping(ClientContext context, List<String> args) {
 
-    InstanceOperations io = context.getClient().instanceOperations();
+    InstanceOperations io = context.instanceOperations();
 
     if (args.size() == 0) {
       args = io.getTabletServers();
@@ -301,31 +300,25 @@ public class Admin implements KeywordExecutable {
    * an attempt to initiate flushes of all tables and give up if it takes too long.
    *
    */
-  private static void flushAll(final ClientContext context)
-      throws AccumuloException, AccumuloSecurityException {
+  private static void flushAll(final ClientContext context) {
 
     final AtomicInteger flushesStarted = new AtomicInteger(0);
 
-    Runnable flushTask = new Runnable() {
-
-      @Override
-      public void run() {
-        try {
-          AccumuloClient client = context.getClient();
-          Set<String> tables = client.tableOperations().tableIdMap().keySet();
-          for (String table : tables) {
-            if (table.equals(MetadataTable.NAME))
-              continue;
-            try {
-              client.tableOperations().flush(table, null, null, false);
-              flushesStarted.incrementAndGet();
-            } catch (TableNotFoundException e) {
-              // ignore
-            }
+    Runnable flushTask = () -> {
+      try {
+        Set<String> tables = context.tableOperations().tableIdMap().keySet();
+        for (String table : tables) {
+          if (table.equals(MetadataTable.NAME))
+            continue;
+          try {
+            context.tableOperations().flush(table, null, null, false);
+            flushesStarted.incrementAndGet();
+          } catch (TableNotFoundException e) {
+            // ignore
           }
-        } catch (Exception e) {
-          log.warn("Failed to intiate flush {}", e.getMessage());
         }
+      } catch (Exception e) {
+        log.warn("Failed to intiate flush {}", e.getMessage());
       }
     };
 
@@ -451,12 +444,11 @@ public class Admin implements KeywordExecutable {
         throw new IllegalArgumentException(opts.directory + " is not writable");
       }
     }
-    AccumuloClient accumuloClient = context.getClient();
     defaultConfig = DefaultConfiguration.getInstance();
-    siteConfig = accumuloClient.instanceOperations().getSiteConfiguration();
-    systemConfig = accumuloClient.instanceOperations().getSystemConfiguration();
+    siteConfig = context.instanceOperations().getSiteConfiguration();
+    systemConfig = context.instanceOperations().getSystemConfiguration();
     if (opts.allConfiguration || opts.users) {
-      localUsers = Lists.newArrayList(accumuloClient.securityOperations().listLocalUsers());
+      localUsers = Lists.newArrayList(context.securityOperations().listLocalUsers());
       Collections.sort(localUsers);
     }
 
@@ -464,35 +456,35 @@ public class Admin implements KeywordExecutable {
       // print accumulo site
       printSystemConfiguration(outputDirectory);
       // print namespaces
-      for (String namespace : accumuloClient.namespaceOperations().list()) {
-        printNameSpaceConfiguration(accumuloClient, namespace, outputDirectory);
+      for (String namespace : context.namespaceOperations().list()) {
+        printNameSpaceConfiguration(context, namespace, outputDirectory);
       }
       // print tables
-      SortedSet<String> tableNames = accumuloClient.tableOperations().list();
+      SortedSet<String> tableNames = context.tableOperations().list();
       for (String tableName : tableNames) {
-        printTableConfiguration(accumuloClient, tableName, outputDirectory);
+        printTableConfiguration(context, tableName, outputDirectory);
       }
       // print users
       for (String user : localUsers) {
-        printUserConfiguration(accumuloClient, user, outputDirectory);
+        printUserConfiguration(context, user, outputDirectory);
       }
     } else {
       if (opts.systemConfiguration) {
         printSystemConfiguration(outputDirectory);
       }
       if (opts.namespaceConfiguration) {
-        for (String namespace : accumuloClient.namespaceOperations().list()) {
-          printNameSpaceConfiguration(accumuloClient, namespace, outputDirectory);
+        for (String namespace : context.namespaceOperations().list()) {
+          printNameSpaceConfiguration(context, namespace, outputDirectory);
         }
       }
       if (opts.tables.size() > 0) {
         for (String tableName : opts.tables) {
-          printTableConfiguration(accumuloClient, tableName, outputDirectory);
+          printTableConfiguration(context, tableName, outputDirectory);
         }
       }
       if (opts.users) {
         for (String user : localUsers) {
-          printUserConfiguration(accumuloClient, user, outputDirectory);
+          printUserConfiguration(context, user, outputDirectory);
         }
       }
     }

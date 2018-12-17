@@ -643,8 +643,7 @@ public class MetadataTableUtil {
       rootTableEntries = getLogEntries(context, new KeyExtent(MetadataTable.ID, null, null))
           .iterator();
       try {
-        Scanner scanner = context.getClient().createScanner(MetadataTable.NAME,
-            Authorizations.EMPTY);
+        Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         log.info("Setting range to {}", MetadataSchema.TabletsSection.getRange());
         scanner.setRange(MetadataSchema.TabletsSection.getRange());
         scanner.fetchColumnFamily(LogColumnFamily.NAME);
@@ -872,19 +871,18 @@ public class MetadataTableUtil {
   public static void cloneTable(ServerContext context, Table.ID srcTableId, Table.ID tableId,
       VolumeManager volumeManager) throws Exception {
 
-    AccumuloClient client = context.getClient();
-    try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
+    try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
 
       while (true) {
 
         try {
-          initializeClone(null, srcTableId, tableId, client, bw);
+          initializeClone(null, srcTableId, tableId, context, bw);
 
           // the following loop looks changes in the file that occurred during the copy.. if files
           // were dereferenced then they could have been GCed
 
           while (true) {
-            int rewrites = checkClone(null, srcTableId, tableId, client, bw);
+            int rewrites = checkClone(null, srcTableId, tableId, context, bw);
 
             if (rewrites == 0)
               break;
@@ -908,7 +906,7 @@ public class MetadataTableUtil {
       }
 
       // delete the clone markers and create directory entries
-      Scanner mscanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      Scanner mscanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
       mscanner.fetchColumnFamily(ClonedColumnFamily.NAME);
 

@@ -114,7 +114,7 @@ class CopyFailed extends MasterRepo {
      */
 
     // determine which failed files were loaded
-    AccumuloClient client = master.getClient();
+    AccumuloClient client = master.getContext();
     try (Scanner mscanner = new IsolatedScanner(
         client.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());

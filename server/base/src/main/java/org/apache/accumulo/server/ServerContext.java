@@ -23,10 +23,6 @@ import java.util.Objects;
 import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.clientImpl.AccumuloClientImpl;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -35,7 +31,6 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
-import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -237,18 +232,6 @@ public class ServerContext extends ClientContext {
 
   public AuthenticationTokenSecretManager getSecretManager() {
     return secretManager;
-  }
-
-  @Override
-  public synchronized AccumuloClient getClient() {
-    if (client == null) {
-      client = new AccumuloClientImpl(SingletonReservation.noop(), this);
-    }
-    return client;
-  }
-
-  public AccumuloClient getClient(String principal, AuthenticationToken token) {
-    return Accumulo.newClient().from(info.getProperties()).as(principal, token).build();
   }
 
   public synchronized TableManager getTableManager() {

@@ -47,7 +47,7 @@ public class WorkDriver extends Daemon {
   public WorkDriver(Master master) throws AccumuloException, AccumuloSecurityException {
     super();
     this.master = master;
-    this.client = master.getClient();
+    this.client = master.getContext();
     this.conf = master.getConfiguration();
     configureWorkAssigner();
   }

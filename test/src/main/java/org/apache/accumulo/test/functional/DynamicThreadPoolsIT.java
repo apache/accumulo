@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.MasterClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
@@ -103,7 +104,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
         MasterMonitorInfo stats = null;
         while (true) {
           try {
-            client = MasterClient.getConnectionWithRetry(getClientContext());
+            client = MasterClient.getConnectionWithRetry((ClientContext) c);
             stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstanceID()));
             break;
           } catch (ThriftNotActiveServiceException e) {

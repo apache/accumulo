@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -43,49 +44,48 @@ import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.Tracer;
 
 /**
- * This class now delegates to {@link AccumuloClientImpl}, except for the methods which were not
- * copied over to that.
+ * This class now delegates to {@link ClientContext}, except for the methods which were not copied
+ * over to that.
  */
 @Deprecated
 public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
 
   private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security."
       + "SystemCredentials$SystemToken";
-  private final AccumuloClientImpl impl;
+  private final ClientContext context;
 
-  public ConnectorImpl(AccumuloClientImpl impl)
-      throws AccumuloSecurityException, AccumuloException {
-    this.impl = impl;
+  public ConnectorImpl(ClientContext context) throws AccumuloSecurityException, AccumuloException {
+    this.context = context;
     SingletonManager.setMode(Mode.CONNECTOR);
-    if (impl.context.getCredentials().getToken().isDestroyed())
-      throw new AccumuloSecurityException(impl.context.getCredentials().getPrincipal(),
+    if (context.getCredentials().getToken().isDestroyed())
+      throw new AccumuloSecurityException(context.getCredentials().getPrincipal(),
           SecurityErrorCode.TOKEN_EXPIRED);
     // Skip fail fast for system services; string literal for class name, to avoid dependency on
     // server jar
-    final String tokenClassName = impl.context.getCredentials().getToken().getClass().getName();
+    final String tokenClassName = context.getCredentials().getToken().getClass().getName();
     if (!SYSTEM_TOKEN_NAME.equals(tokenClassName)) {
-      ServerClient.executeVoid(impl.context, iface -> {
-        if (!iface.authenticate(Tracer.traceInfo(), impl.context.rpcCreds()))
+      ServerClient.executeVoid(context, iface -> {
+        if (!iface.authenticate(Tracer.traceInfo(), context.rpcCreds()))
           throw new AccumuloSecurityException("Authentication failed, access denied",
               SecurityErrorCode.BAD_CREDENTIALS);
       });
     }
   }
 
-  public AccumuloClientImpl getAccumuloClient() {
-    return impl;
+  public AccumuloClient getAccumuloClient() {
+    return context;
   }
 
   @Override
   @Deprecated
   public org.apache.accumulo.core.client.Instance getInstance() {
-    return impl.context.getDeprecatedInstance();
+    return context.getDeprecatedInstance();
   }
 
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations,
       int numQueryThreads) throws TableNotFoundException {
-    return impl.createBatchScanner(tableName, authorizations, numQueryThreads);
+    return context.createBatchScanner(tableName, authorizations, numQueryThreads);
   }
 
   @Override
@@ -94,7 +94,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchDeleter(impl.context, impl.getTableId(tableName), authorizations,
+    return new TabletServerBatchDeleter(context, context.getTableId(tableName), authorizations,
         numQueryThreads, new BatchWriterConfig().setMaxMemory(maxMemory)
             .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
@@ -102,14 +102,14 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException {
-    return impl.createBatchDeleter(tableName, authorizations, numQueryThreads, config);
+    return context.createBatchDeleter(tableName, authorizations, numQueryThreads, config);
   }
 
   @Override
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency,
       int maxWriteThreads) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    return new BatchWriterImpl(impl.context, impl.getTableId(tableName),
+    return new BatchWriterImpl(context, context.getTableId(tableName),
         new BatchWriterConfig().setMaxMemory(maxMemory)
             .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
@@ -117,62 +117,61 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   @Override
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
       throws TableNotFoundException {
-    return impl.createBatchWriter(tableName, config);
+    return context.createBatchWriter(tableName, config);
   }
 
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency,
       int maxWriteThreads) {
-    return new MultiTableBatchWriterImpl(impl.context,
-        new BatchWriterConfig().setMaxMemory(maxMemory)
-            .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
+    return new MultiTableBatchWriterImpl(context, new BatchWriterConfig().setMaxMemory(maxMemory)
+        .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
   }
 
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
-    return impl.createMultiTableBatchWriter(config);
+    return context.createMultiTableBatchWriter(config);
   }
 
   @Override
   public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
       throws TableNotFoundException {
-    return impl.createConditionalWriter(tableName, config);
+    return context.createConditionalWriter(tableName, config);
   }
 
   @Override
   public Scanner createScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException {
-    return impl.createScanner(tableName, authorizations);
+    return context.createScanner(tableName, authorizations);
   }
 
   @Override
   public String whoami() {
-    return impl.whoami();
+    return context.whoami();
   }
 
   @Override
   public TableOperations tableOperations() {
-    return impl.tableOperations();
+    return context.tableOperations();
   }
 
   @Override
   public NamespaceOperations namespaceOperations() {
-    return impl.namespaceOperations();
+    return context.namespaceOperations();
   }
 
   @Override
   public SecurityOperations securityOperations() {
-    return impl.securityOperations();
+    return context.securityOperations();
   }
 
   @Override
   public InstanceOperations instanceOperations() {
-    return impl.instanceOperations();
+    return context.instanceOperations();
   }
 
   @Override
   public ReplicationOperations replicationOperations() {
-    return impl.replicationOperations();
+    return context.replicationOperations();
   }
 
 }

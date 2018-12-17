@@ -23,7 +23,6 @@ import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGE
 import java.io.IOException;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -40,6 +39,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -58,7 +58,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.tracer.SpanTree;
-import org.apache.accumulo.tracer.SpanTreeVisitor;
 import org.apache.accumulo.tracer.TraceDump;
 import org.apache.accumulo.tracer.TraceFormatter;
 import org.apache.accumulo.tracer.thrift.Annotation;
@@ -91,34 +90,39 @@ public class TracesResource {
 
     RecentTracesList recentTraces = new RecentTracesList();
 
-    Pair<Scanner,UserGroupInformation> pair = getScanner();
-    final Scanner scanner = pair.getFirst();
-    if (scanner == null) {
+    Pair<AccumuloClient,UserGroupInformation> pair = getClient();
+    AccumuloClient client = pair.getFirst();
+    if (client == null) {
       return recentTraces;
     }
+    try {
+      final Scanner scanner = getScanner(client);
+      if (scanner == null) {
+        return recentTraces;
+      }
 
-    Range range = getRangeForTrace(minutes);
-    scanner.setRange(range);
+      Range range = getRangeForTrace(minutes);
+      scanner.setRange(range);
 
-    final Map<String,RecentTracesInformation> summary = new TreeMap<>();
-    if (null != pair.getSecond()) {
-      pair.getSecond().doAs(new PrivilegedAction<Void>() {
-        @Override
-        public Void run() {
+      final Map<String,RecentTracesInformation> summary = new TreeMap<>();
+      if (null != pair.getSecond()) {
+        pair.getSecond().doAs((PrivilegedAction<Void>) () -> {
           parseSpans(scanner, summary);
           return null;
-        }
-      });
-    } else {
-      parseSpans(scanner, summary);
-    }
+        });
+      } else {
+        parseSpans(scanner, summary);
+      }
 
-    // Adds the traces to the list
-    for (Entry<String,RecentTracesInformation> entry : summary.entrySet()) {
-      RecentTracesInformation stat = entry.getValue();
-      recentTraces.addTrace(stat);
+      // Adds the traces to the list
+      for (Entry<String,RecentTracesInformation> entry : summary.entrySet()) {
+        RecentTracesInformation stat = entry.getValue();
+        recentTraces.addTrace(stat);
+      }
+      return recentTraces;
+    } finally {
+      client.close();
     }
-    return recentTraces;
   }
 
   /**
@@ -138,20 +142,23 @@ public class TracesResource {
 
     TraceType typeTraces = new TraceType(type);
 
-    Pair<Scanner,UserGroupInformation> pair = getScanner();
-    final Scanner scanner = pair.getFirst();
-    if (scanner == null) {
+    Pair<AccumuloClient,UserGroupInformation> pair = getClient();
+    AccumuloClient client = pair.getFirst();
+    if (client == null) {
       return typeTraces;
     }
+    try {
+      final Scanner scanner = getScanner(client);
+      if (scanner == null) {
+        return typeTraces;
+      }
 
-    Range range = getRangeForTrace(minutes);
+      Range range = getRangeForTrace(minutes);
 
-    scanner.setRange(range);
+      scanner.setRange(range);
 
-    if (null != pair.getSecond()) {
-      pair.getSecond().doAs(new PrivilegedAction<Void>() {
-        @Override
-        public Void run() {
+      if (null != pair.getSecond()) {
+        pair.getSecond().doAs((PrivilegedAction<Void>) () -> {
           for (Entry<Key,Value> entry : scanner) {
             RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
 
@@ -160,17 +167,19 @@ public class TracesResource {
             }
           }
           return null;
-        }
-      });
-    } else {
-      for (Entry<Key,Value> entry : scanner) {
-        RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
-        if (span.description.equals(type)) {
-          typeTraces.addTrace(new TracesForTypeInformation(span));
+        });
+      } else {
+        for (Entry<Key,Value> entry : scanner) {
+          RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
+          if (span.description.equals(type)) {
+            typeTraces.addTrace(new TracesForTypeInformation(span));
+          }
         }
       }
+      return typeTraces;
+    } finally {
+      client.close();
     }
-    return typeTraces;
   }
 
   /**
@@ -187,45 +196,45 @@ public class TracesResource {
 
     TraceList traces = new TraceList(id);
 
-    Pair<Scanner,UserGroupInformation> entry = getScanner();
-    final Scanner scanner = entry.getFirst();
-    if (scanner == null) {
+    Pair<AccumuloClient,UserGroupInformation> pair = getClient();
+    AccumuloClient client = pair.getFirst();
+    if (client == null) {
       return traces;
     }
+    try {
+      final Scanner scanner = getScanner(client);
 
-    Range range = new Range(new Text(id));
-    scanner.setRange(range);
-    final SpanTree tree = new SpanTree();
-    long start;
+      if (scanner == null) {
+        return traces;
+      }
 
-    if (null != entry.getSecond()) {
-      start = entry.getSecond().doAs(new PrivilegedAction<Long>() {
-        @Override
-        public Long run() {
-          return addSpans(scanner, tree, Long.MAX_VALUE);
+      Range range = new Range(new Text(id));
+      scanner.setRange(range);
+      final SpanTree tree = new SpanTree();
+      long start;
+
+      if (null != pair.getSecond()) {
+        start = pair.getSecond()
+            .doAs((PrivilegedAction<Long>) () -> addSpans(scanner, tree, Long.MAX_VALUE));
+      } else {
+        start = addSpans(scanner, tree, Long.MAX_VALUE);
+      }
+
+      traces.addStartTime(start);
+
+      final long finalStart = start;
+      Set<Long> visited = tree.visit((level, parent, node, children) -> traces
+          .addTrace(addTraceInformation(level, node, finalStart)));
+      tree.nodes.keySet().removeAll(visited);
+      if (!tree.nodes.isEmpty()) {
+        for (RemoteSpan span : TraceDump.sortByStart(tree.nodes.values())) {
+          traces.addTrace(addTraceInformation(0, span, finalStart));
         }
-      });
-    } else {
-      start = addSpans(scanner, tree, Long.MAX_VALUE);
-    }
-
-    traces.addStartTime(start);
-
-    final long finalStart = start;
-    Set<Long> visited = tree.visit(new SpanTreeVisitor() {
-      @Override
-      public void visit(int level, RemoteSpan parent, RemoteSpan node,
-          Collection<RemoteSpan> children) {
-        traces.addTrace(addTraceInformation(level, node, finalStart));
       }
-    });
-    tree.nodes.keySet().removeAll(visited);
-    if (!tree.nodes.isEmpty()) {
-      for (RemoteSpan span : TraceDump.sortByStart(tree.nodes.values())) {
-        traces.addTrace(addTraceInformation(0, span, finalStart));
-      }
+      return traces;
+    } finally {
+      client.close();
     }
-    return traces;
   }
 
   private static TraceInformation addTraceInformation(int level, RemoteSpan node, long finalStart) {
@@ -284,8 +293,7 @@ public class TracesResource {
     }
   }
 
-  protected Pair<Scanner,UserGroupInformation> getScanner()
-      throws AccumuloException, AccumuloSecurityException {
+  protected Pair<AccumuloClient,UserGroupInformation> getClient() {
     AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
     final boolean saslEnabled = conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED);
     UserGroupInformation traceUgi = null;
@@ -330,17 +338,14 @@ public class TracesResource {
       at = null;
     }
 
-    final String table = conf.get(Property.TRACE_TABLE);
-    Scanner scanner;
+    java.util.Properties props = Monitor.getContext().getProperties();
+    AccumuloClient client;
     if (null != traceUgi) {
       try {
-        scanner = traceUgi.doAs((PrivilegedExceptionAction<Scanner>) () -> {
+        client = traceUgi.doAs((PrivilegedExceptionAction<AccumuloClient>) () -> {
           // Make the KerberosToken inside the doAs
-          AuthenticationToken token = at;
-          if (null == token) {
-            token = new KerberosToken();
-          }
-          return getScanner(table, principal, token);
+          AuthenticationToken token = new KerberosToken();
+          return Accumulo.newClient().from(props).as(principal, token).build();
         });
       } catch (IOException | InterruptedException e) {
         throw new RuntimeException("Failed to obtain scanner", e);
@@ -349,21 +354,19 @@ public class TracesResource {
       if (null == at) {
         throw new AssertionError("AuthenticationToken should not be null");
       }
-      scanner = getScanner(table, principal, at);
+      client = Accumulo.newClient().from(props).as(principal, at).build();
     }
-
-    return new Pair<>(scanner, traceUgi);
+    return new Pair<>(client, traceUgi);
   }
 
-  private Scanner getScanner(String table, String principal, AuthenticationToken at)
-      throws AccumuloException, AccumuloSecurityException {
+  private Scanner getScanner(AccumuloClient client) throws AccumuloException {
     try {
-      AccumuloClient client = Monitor.getContext().getClient(principal, at);
+      AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
+      final String table = conf.get(Property.TRACE_TABLE);
       if (!client.tableOperations().exists(table)) {
         return null;
       }
-      return client.createScanner(table,
-          client.securityOperations().getUserAuthorizations(principal));
+      return client.createScanner(table);
     } catch (AccumuloSecurityException | TableNotFoundException ex) {
       return null;
     }
