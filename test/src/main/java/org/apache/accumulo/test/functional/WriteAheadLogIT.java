@@ -33,6 +33,10 @@ public class WriteAheadLogIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    setupConfig(cfg, hadoopCoreSite);
+  }
+
+  public static void setupConfig(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "2M");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
     cfg.setProperty(Property.GC_CYCLE_START, "1");
@@ -50,22 +54,25 @@ public class WriteAheadLogIT extends AccumuloClusterHarness {
   @Test
   public void test() throws Exception {
     try (AccumuloClient c = createAccumuloClient()) {
-      String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "750K");
-      TestIngest.Opts opts = new TestIngest.Opts();
-      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-      opts.setTableName(tableName);
-      opts.setClientProperties(getClientProperties());
-      vopts.setClientProperties(getClientProperties());
-
-      TestIngest.ingest(c, opts, new BatchWriterOpts());
-      vopts.setTableName(tableName);
-      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
-      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      testWAL(c, getUniqueNames(1)[0]);
     }
+  }
+
+  public static void testWAL(AccumuloClient c, String tableName) throws Exception {
+    c.tableOperations().create(tableName);
+    c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "750K");
+    TestIngest.Opts opts = new TestIngest.Opts();
+    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
+    opts.setTableName(tableName);
+    opts.setClientProperties(getClientProperties());
+    vopts.setClientProperties(getClientProperties());
+
+    TestIngest.ingest(c, opts, new BatchWriterOpts());
+    vopts.setTableName(tableName);
+    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+    getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+    getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
   }
 
 }
