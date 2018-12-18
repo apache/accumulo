@@ -128,8 +128,9 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   @Test(expected = RuntimeException.class)
   public void invalidInstanceName() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().to("fake_instance_name", cluster.getZooKeepers())
-        .as(getAdminPrincipal(), getAdminToken()).build()) {
+    try (AccumuloClient client = Accumulo.newClient()
+        .to("fake_instance_name", cluster.getZooKeepers()).as(getAdminPrincipal(), getAdminToken())
+        .build()) {
       client.instanceOperations().getTabletServers();
     }
   }

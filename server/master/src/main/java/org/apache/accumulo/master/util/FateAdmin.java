@@ -77,28 +77,29 @@ public class FateAdmin {
 
     AdminUtil<Master> admin = new AdminUtil<>();
 
-    ServerContext context = new ServerContext(new SiteConfiguration());
-    final String zkRoot = context.getZooKeeperRoot();
-    String path = zkRoot + Constants.ZFATE;
-    String masterPath = zkRoot + Constants.ZMASTER_LOCK;
-    IZooReaderWriter zk = context.getZooReaderWriter();
-    ZooStore<Master> zs = new ZooStore<>(path, zk);
+    try (ServerContext context = new ServerContext(new SiteConfiguration())) {
+      final String zkRoot = context.getZooKeeperRoot();
+      String path = zkRoot + Constants.ZFATE;
+      String masterPath = zkRoot + Constants.ZMASTER_LOCK;
+      IZooReaderWriter zk = context.getZooReaderWriter();
+      ZooStore<Master> zs = new ZooStore<>(path, zk);
 
-    if (jc.getParsedCommand().equals("fail")) {
-      for (String txid : txOpts.get(jc.getParsedCommand()).txids) {
-        if (!admin.prepFail(zs, zk, masterPath, txid)) {
-          System.exit(1);
+      if (jc.getParsedCommand().equals("fail")) {
+        for (String txid : txOpts.get(jc.getParsedCommand()).txids) {
+          if (!admin.prepFail(zs, zk, masterPath, txid)) {
+            System.exit(1);
+          }
         }
-      }
-    } else if (jc.getParsedCommand().equals("delete")) {
-      for (String txid : txOpts.get(jc.getParsedCommand()).txids) {
-        if (!admin.prepDelete(zs, zk, masterPath, txid)) {
-          System.exit(1);
+      } else if (jc.getParsedCommand().equals("delete")) {
+        for (String txid : txOpts.get(jc.getParsedCommand()).txids) {
+          if (!admin.prepDelete(zs, zk, masterPath, txid)) {
+            System.exit(1);
+          }
+          admin.deleteLocks(zs, zk, zkRoot + Constants.ZTABLE_LOCKS, txid);
         }
-        admin.deleteLocks(zs, zk, zkRoot + Constants.ZTABLE_LOCKS, txid);
+      } else if (jc.getParsedCommand().equals("print")) {
+        admin.print(new ReadOnlyStore<>(zs), zk, zkRoot + Constants.ZTABLE_LOCKS);
       }
-    } else if (jc.getParsedCommand().equals("print")) {
-      admin.print(new ReadOnlyStore<>(zs), zk, zkRoot + Constants.ZTABLE_LOCKS);
     }
   }
 }

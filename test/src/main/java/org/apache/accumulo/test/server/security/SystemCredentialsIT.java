@@ -59,38 +59,39 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
 
   public static void main(final String[] args) throws AccumuloException, TableNotFoundException {
     SiteConfiguration siteConfig = new SiteConfiguration();
-    ServerContext context = new ServerContext(siteConfig);
-    Credentials creds;
-    String badInstanceID = SystemCredentials.class.getName();
-    if (args.length < 2)
-      throw new RuntimeException("Incorrect usage; expected to be run by test only");
-    switch (args[0]) {
-      case "bad":
-        creds = SystemCredentials.get(badInstanceID, siteConfig);
-        break;
-      case "good":
-        creds = SystemCredentials.get(context.getInstanceID(), siteConfig);
-        break;
-      case "bad_password":
-        creds = new SystemCredentials(badInstanceID, "!SYSTEM", new PasswordToken("fake"));
-        break;
-      default:
+    try (ServerContext context = new ServerContext(siteConfig)) {
+      Credentials creds;
+      String badInstanceID = SystemCredentials.class.getName();
+      if (args.length < 2)
         throw new RuntimeException("Incorrect usage; expected to be run by test only");
-    }
-    try (AccumuloClient client = Accumulo.newClient().from(context.getProperties())
-        .as(creds.getPrincipal(), creds.getToken()).build()) {
-      client.securityOperations().authenticateUser(creds.getPrincipal(), creds.getToken());
-      try (Scanner scan = client.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
-        for (Entry<Key,Value> e : scan) {
-          e.hashCode();
-        }
-      } catch (RuntimeException e) {
-        e.printStackTrace(System.err);
-        System.exit(SCAN_FAILED);
+      switch (args[0]) {
+        case "bad":
+          creds = SystemCredentials.get(badInstanceID, siteConfig);
+          break;
+        case "good":
+          creds = SystemCredentials.get(context.getInstanceID(), siteConfig);
+          break;
+        case "bad_password":
+          creds = new SystemCredentials(badInstanceID, "!SYSTEM", new PasswordToken("fake"));
+          break;
+        default:
+          throw new RuntimeException("Incorrect usage; expected to be run by test only");
       }
-    } catch (AccumuloSecurityException e) {
-      e.printStackTrace(System.err);
-      System.exit(AUTHENICATION_FAILED);
+      try (AccumuloClient client = Accumulo.newClient().from(context.getProperties())
+          .as(creds.getPrincipal(), creds.getToken()).build()) {
+        client.securityOperations().authenticateUser(creds.getPrincipal(), creds.getToken());
+        try (Scanner scan = client.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
+          for (Entry<Key,Value> e : scan) {
+            e.hashCode();
+          }
+        } catch (RuntimeException e) {
+          e.printStackTrace(System.err);
+          System.exit(SCAN_FAILED);
+        }
+      } catch (AccumuloSecurityException e) {
+        e.printStackTrace(System.err);
+        System.exit(AUTHENICATION_FAILED);
+      }
     }
   }
 }

@@ -41,34 +41,35 @@ public class TabletServerLocks {
 
   public static void main(String[] args) throws Exception {
 
-    ServerContext context = new ServerContext(new SiteConfiguration());
-    String tserverPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-    Opts opts = new Opts();
-    opts.parseArgs(TabletServerLocks.class.getName(), args);
+    try (ServerContext context = new ServerContext(new SiteConfiguration())) {
+      String tserverPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+      Opts opts = new Opts();
+      opts.parseArgs(TabletServerLocks.class.getName(), args);
 
-    ZooCache cache = context.getZooCache();
-    ZooReaderWriter zoo = context.getZooReaderWriter();
+      ZooCache cache = context.getZooCache();
+      ZooReaderWriter zoo = context.getZooReaderWriter();
 
-    if (opts.list) {
+      if (opts.list) {
 
-      List<String> tabletServers = zoo.getChildren(tserverPath);
+        List<String> tabletServers = zoo.getChildren(tserverPath);
 
-      for (String tabletServer : tabletServers) {
-        byte[] lockData = ZooLock.getLockData(cache, tserverPath + "/" + tabletServer, null);
-        String holder = null;
-        if (lockData != null) {
-          holder = new String(lockData, UTF_8);
+        for (String tabletServer : tabletServers) {
+          byte[] lockData = ZooLock.getLockData(cache, tserverPath + "/" + tabletServer, null);
+          String holder = null;
+          if (lockData != null) {
+            holder = new String(lockData, UTF_8);
+          }
+
+          System.out.printf("%32s %16s%n", tabletServer, holder);
         }
-
-        System.out.printf("%32s %16s%n", tabletServer, holder);
+      } else if (opts.delete != null) {
+        ZooLock.deleteLock(zoo, tserverPath + "/" + args[1]);
+      } else {
+        System.out.println(
+            "Usage : " + TabletServerLocks.class.getName() + " -list|-delete <tserver lock>");
       }
-    } else if (opts.delete != null) {
-      ZooLock.deleteLock(zoo, tserverPath + "/" + args[1]);
-    } else {
-      System.out.println(
-          "Usage : " + TabletServerLocks.class.getName() + " -list|-delete <tserver lock>");
-    }
 
+    }
   }
 
 }

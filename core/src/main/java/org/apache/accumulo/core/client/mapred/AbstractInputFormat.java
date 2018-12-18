@@ -480,121 +480,123 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       baseSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + baseSplit);
 
-      ClientContext context = new ClientContext(getClientProperties(job));
-      Authorizations authorizations = getScanAuthorizations(job);
-      String classLoaderContext = getClassLoaderContext(job);
-      String table = baseSplit.getTableName();
+      try (ClientContext context = new ClientContext(getClientProperties(job))) {
+        Authorizations authorizations = getScanAuthorizations(job);
+        String classLoaderContext = getClassLoaderContext(job);
+        String table = baseSplit.getTableName();
 
-      // in case the table name changed, we can still use the previous name for terms of
-      // configuration, but the scanner will use the table id resolved at job setup time
-      InputTableConfig tableConfig = getInputTableConfig(job, baseSplit.getTableName());
+        // in case the table name changed, we can still use the previous name for terms of
+        // configuration, but the scanner will use the table id resolved at job setup time
+        InputTableConfig tableConfig = getInputTableConfig(job, baseSplit.getTableName());
 
-      log.debug("Created client with user: " + context.whoami());
-      log.debug("Creating scanner for table: " + table);
-      log.debug("Authorizations are: " + authorizations);
+        log.debug("Created client with user: " + context.whoami());
+        log.debug("Creating scanner for table: " + table);
+        log.debug("Authorizations are: " + authorizations);
 
-      if (baseSplit instanceof BatchInputSplit) {
-        BatchScanner scanner;
-        BatchInputSplit multiRangeSplit = (BatchInputSplit) baseSplit;
+        if (baseSplit instanceof BatchInputSplit) {
+          BatchScanner scanner;
+          BatchInputSplit multiRangeSplit = (BatchInputSplit) baseSplit;
 
-        try {
-          // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit
-          // will not span tablets
-          int scanThreads = 1;
-          scanner = context.createBatchScanner(baseSplit.getTableName(), authorizations,
-              scanThreads);
-          setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
-          if (null != classLoaderContext) {
-            scanner.setClassLoaderContext(classLoaderContext);
+          try {
+            // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit
+            // will not span tablets
+            int scanThreads = 1;
+            scanner = context.createBatchScanner(baseSplit.getTableName(), authorizations,
+                scanThreads);
+            setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
+            if (null != classLoaderContext) {
+              scanner.setClassLoaderContext(classLoaderContext);
+            }
+          } catch (Exception e) {
+            throw new IOException(e);
           }
-        } catch (Exception e) {
-          throw new IOException(e);
-        }
 
-        scanner.setRanges(multiRangeSplit.getRanges());
-        scannerBase = scanner;
+          scanner.setRanges(multiRangeSplit.getRanges());
+          scannerBase = scanner;
 
-      } else if (baseSplit instanceof RangeInputSplit) {
-        split = (RangeInputSplit) baseSplit;
-        Boolean isOffline = baseSplit.isOffline();
-        if (null == isOffline) {
-          isOffline = tableConfig.isOfflineScan();
-        }
-
-        Boolean isIsolated = baseSplit.isIsolatedScan();
-        if (null == isIsolated) {
-          isIsolated = tableConfig.shouldUseIsolatedScanners();
-        }
-
-        Boolean usesLocalIterators = baseSplit.usesLocalIterators();
-        if (null == usesLocalIterators) {
-          usesLocalIterators = tableConfig.shouldUseLocalIterators();
-        }
-
-        Scanner scanner;
-
-        try {
-          if (isOffline) {
-            scanner = new OfflineScanner(context, Table.ID.of(baseSplit.getTableId()),
-                authorizations);
-          } else {
-            scanner = new ScannerImpl(context, Table.ID.of(baseSplit.getTableId()), authorizations);
+        } else if (baseSplit instanceof RangeInputSplit) {
+          split = (RangeInputSplit) baseSplit;
+          Boolean isOffline = baseSplit.isOffline();
+          if (null == isOffline) {
+            isOffline = tableConfig.isOfflineScan();
           }
-          if (isIsolated) {
-            log.info("Creating isolated scanner");
-            scanner = new IsolatedScanner(scanner);
+
+          Boolean isIsolated = baseSplit.isIsolatedScan();
+          if (null == isIsolated) {
+            isIsolated = tableConfig.shouldUseIsolatedScanners();
           }
-          if (usesLocalIterators) {
-            log.info("Using local iterators");
-            scanner = new ClientSideIteratorScanner(scanner);
+
+          Boolean usesLocalIterators = baseSplit.usesLocalIterators();
+          if (null == usesLocalIterators) {
+            usesLocalIterators = tableConfig.shouldUseLocalIterators();
           }
-          setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
-        } catch (Exception e) {
-          throw new IOException(e);
-        }
 
-        scanner.setRange(baseSplit.getRange());
-        scannerBase = scanner;
-      } else {
-        throw new IllegalArgumentException("Can not initialize from " + baseSplit.getClass());
-      }
+          Scanner scanner;
 
-      Collection<Pair<Text,Text>> columns = baseSplit.getFetchedColumns();
-      if (null == columns) {
-        columns = tableConfig.getFetchedColumns();
-      }
+          try {
+            if (isOffline) {
+              scanner = new OfflineScanner(context, Table.ID.of(baseSplit.getTableId()),
+                  authorizations);
+            } else {
+              scanner = new ScannerImpl(context, Table.ID.of(baseSplit.getTableId()),
+                  authorizations);
+            }
+            if (isIsolated) {
+              log.info("Creating isolated scanner");
+              scanner = new IsolatedScanner(scanner);
+            }
+            if (usesLocalIterators) {
+              log.info("Using local iterators");
+              scanner = new ClientSideIteratorScanner(scanner);
+            }
+            setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
+          } catch (Exception e) {
+            throw new IOException(e);
+          }
 
-      // setup a scanner within the bounds of this split
-      for (Pair<Text,Text> c : columns) {
-        if (c.getSecond() != null) {
-          log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
-          scannerBase.fetchColumn(c.getFirst(), c.getSecond());
+          scanner.setRange(baseSplit.getRange());
+          scannerBase = scanner;
         } else {
-          log.debug("Fetching column family " + c.getFirst());
-          scannerBase.fetchColumnFamily(c.getFirst());
+          throw new IllegalArgumentException("Can not initialize from " + baseSplit.getClass());
         }
-      }
 
-      SamplerConfiguration samplerConfig = baseSplit.getSamplerConfiguration();
-      if (null == samplerConfig) {
-        samplerConfig = tableConfig.getSamplerConfiguration();
-      }
+        Collection<Pair<Text,Text>> columns = baseSplit.getFetchedColumns();
+        if (null == columns) {
+          columns = tableConfig.getFetchedColumns();
+        }
 
-      if (samplerConfig != null) {
-        scannerBase.setSamplerConfiguration(samplerConfig);
-      }
+        // setup a scanner within the bounds of this split
+        for (Pair<Text,Text> c : columns) {
+          if (c.getSecond() != null) {
+            log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
+            scannerBase.fetchColumn(c.getFirst(), c.getSecond());
+          } else {
+            log.debug("Fetching column family " + c.getFirst());
+            scannerBase.fetchColumnFamily(c.getFirst());
+          }
+        }
 
-      Map<String,String> executionHints = baseSplit.getExecutionHints();
-      if (executionHints == null || executionHints.size() == 0) {
-        executionHints = tableConfig.getExecutionHints();
-      }
+        SamplerConfiguration samplerConfig = baseSplit.getSamplerConfiguration();
+        if (null == samplerConfig) {
+          samplerConfig = tableConfig.getSamplerConfiguration();
+        }
 
-      if (executionHints != null) {
-        scannerBase.setExecutionHints(executionHints);
-      }
+        if (samplerConfig != null) {
+          scannerBase.setSamplerConfiguration(samplerConfig);
+        }
 
-      scannerIterator = scannerBase.iterator();
-      numKeysRead = 0;
+        Map<String,String> executionHints = baseSplit.getExecutionHints();
+        if (executionHints == null || executionHints.size() == 0) {
+          executionHints = tableConfig.getExecutionHints();
+        }
+
+        if (executionHints != null) {
+          scannerBase.setExecutionHints(executionHints);
+        }
+
+        scannerIterator = scannerBase.iterator();
+        numKeysRead = 0;
+      }
     }
 
     @Override
