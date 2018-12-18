@@ -55,7 +55,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
     String clusterTypeValue = null, clientConf = null;
     String propertyFile = systemProperties.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
 
-    if (null != propertyFile) {
+    if (propertyFile != null) {
       // Check for properties provided in a file
       File f = new File(propertyFile);
       if (f.exists() && f.isFile() && f.canRead()) {
@@ -67,7 +67,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
           log.warn("Could not read properties from specified file: {}", propertyFile, e);
         }
 
-        if (null != reader) {
+        if (reader != null) {
           try {
             fileProperties.load(reader);
           } catch (IOException e) {
@@ -90,16 +90,16 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
       log.debug("No properties file found in {}", ACCUMULO_IT_PROPERTIES_FILE);
     }
 
-    if (null == clusterTypeValue) {
+    if (clusterTypeValue == null) {
       clusterTypeValue = systemProperties.getProperty(ACCUMULO_CLUSTER_TYPE_KEY);
     }
 
-    if (null == clientConf) {
+    if (clientConf == null) {
       clientConf = systemProperties.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
     }
 
     ClusterType type;
-    if (null == clusterTypeValue) {
+    if (clusterTypeValue == null) {
       type = ClusterType.MINI;
     } else {
       type = ClusterType.valueOf(clusterTypeValue);
@@ -113,7 +113,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
         // started
         return new AccumuloMiniClusterConfiguration();
       case STANDALONE:
-        if (null == clientConf) {
+        if (clientConf == null) {
           throw new RuntimeException(
               "Expected client configuration to be provided: " + ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
         }
@@ -152,7 +152,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
     String propertyFile = systemProperties.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
 
     // Check for properties provided in a file
-    if (null != propertyFile) {
+    if (propertyFile != null) {
       File f = new File(propertyFile);
       if (f.exists() && f.isFile() && f.canRead()) {
         Properties fileProperties = new Properties();
@@ -163,7 +163,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
           log.warn("Could not read properties from specified file: {}", propertyFile, e);
         }
 
-        if (null != reader) {
+        if (reader != null) {
           try {
             fileProperties.load(reader);
             loadFromProperties(prefix, fileProperties, configuration);

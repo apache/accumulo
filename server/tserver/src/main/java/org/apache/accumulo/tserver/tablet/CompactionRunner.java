@@ -68,7 +68,7 @@ final class CompactionRunner implements Runnable, Comparable<CompactionRunner> {
   @Override
   public boolean equals(Object obj) {
     return this == obj || (obj != null && obj instanceof CompactionRunner
-        && 0 == compareTo((CompactionRunner) obj));
+        && compareTo((CompactionRunner) obj) == 0);
   }
 
   @Override

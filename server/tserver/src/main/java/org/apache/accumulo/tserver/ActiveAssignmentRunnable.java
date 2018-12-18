@@ -73,7 +73,7 @@ public class ActiveAssignmentRunnable implements Runnable {
 
   public Exception getException() {
     final Exception e = new Exception("Assignment of " + extent);
-    if (null != executingThread) {
+    if (executingThread != null) {
       e.setStackTrace(executingThread.getStackTrace());
     }
     return e;

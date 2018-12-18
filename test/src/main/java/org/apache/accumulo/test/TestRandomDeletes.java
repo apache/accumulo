@@ -62,7 +62,7 @@ public class TestRandomDeletes {
     @Override
     public boolean equals(Object obj) {
       return this == obj
-          || (obj != null && obj instanceof RowColumn && 0 == compareTo((RowColumn) obj));
+          || (obj != null && obj instanceof RowColumn && compareTo((RowColumn) obj) == 0);
     }
 
     @Override

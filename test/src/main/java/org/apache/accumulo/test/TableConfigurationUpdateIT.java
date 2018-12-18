@@ -85,7 +85,7 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
 
       for (Future<Exception> fut : futures) {
         Exception e = fut.get();
-        if (null != e) {
+        if (e != null) {
           fail("Thread failed with exception " + e);
         }
       }

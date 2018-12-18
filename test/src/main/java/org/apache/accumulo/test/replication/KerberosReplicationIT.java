@@ -83,7 +83,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
     kdc = new TestingKdc();
     kdc.start();
     krbEnabledForITs = System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION);
-    if (null == krbEnabledForITs || !Boolean.parseBoolean(krbEnabledForITs)) {
+    if (krbEnabledForITs == null || !Boolean.parseBoolean(krbEnabledForITs)) {
       System.setProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION, "true");
     }
     rootUser = kdc.getRootUser();
@@ -91,10 +91,10 @@ public class KerberosReplicationIT extends AccumuloITBase {
 
   @AfterClass
   public static void stopKdc() throws Exception {
-    if (null != kdc) {
+    if (kdc != null) {
       kdc.stop();
     }
-    if (null != krbEnabledForITs) {
+    if (krbEnabledForITs != null) {
       System.setProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION, krbEnabledForITs);
     }
   }
@@ -150,10 +150,10 @@ public class KerberosReplicationIT extends AccumuloITBase {
 
   @After
   public void teardown() throws Exception {
-    if (null != peer) {
+    if (peer != null) {
       peer.stop();
     }
-    if (null != primary) {
+    if (primary != null) {
       primary.stop();
     }
     UserGroupInformation.setConfiguration(new Configuration(false));

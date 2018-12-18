@@ -183,23 +183,23 @@ public class RangeInputSplit extends InputSplit implements Writable {
     for (String location : locations)
       out.writeUTF(location);
 
-    out.writeBoolean(null != isolatedScan);
-    if (null != isolatedScan) {
+    out.writeBoolean(isolatedScan != null);
+    if (isolatedScan != null) {
       out.writeBoolean(isolatedScan);
     }
 
-    out.writeBoolean(null != offline);
-    if (null != offline) {
+    out.writeBoolean(offline != null);
+    if (offline != null) {
       out.writeBoolean(offline);
     }
 
-    out.writeBoolean(null != localIterators);
-    if (null != localIterators) {
+    out.writeBoolean(localIterators != null);
+    if (localIterators != null) {
       out.writeBoolean(localIterators);
     }
 
-    out.writeBoolean(null != fetchedColumns);
-    if (null != fetchedColumns) {
+    out.writeBoolean(fetchedColumns != null);
+    if (fetchedColumns != null) {
       String[] cols = InputConfigurator.serializeColumns(fetchedColumns);
       out.writeInt(cols.length);
       for (String col : cols) {
@@ -207,16 +207,16 @@ public class RangeInputSplit extends InputSplit implements Writable {
       }
     }
 
-    out.writeBoolean(null != iterators);
-    if (null != iterators) {
+    out.writeBoolean(iterators != null);
+    if (iterators != null) {
       out.writeInt(iterators.size());
       for (IteratorSetting iterator : iterators) {
         iterator.write(out);
       }
     }
 
-    out.writeBoolean(null != samplerConfig);
-    if (null != samplerConfig) {
+    out.writeBoolean(samplerConfig != null);
+    if (samplerConfig != null) {
       new SamplerConfigurationImpl(samplerConfig).write(out);
     }
 

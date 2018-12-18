@@ -153,7 +153,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       synchronized (tableConfigs) {
         Map<Table.ID,TableConfiguration> configs = tableConfigs.get(instanceID);
         TableConfiguration existingConf = configs.get(tableId);
-        if (null == existingConf) {
+        if (existingConf == null) {
           // Configuration doesn't exist yet
           configs.put(tableId, conf);
         } else {

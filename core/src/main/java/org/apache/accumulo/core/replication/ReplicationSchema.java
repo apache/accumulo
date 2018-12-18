@@ -251,13 +251,13 @@ public class ReplicationSchema {
       // find the last offset
       while (true) {
         int nextOffset = buff.find(ROW_SEPARATOR.toString(), offset + 1);
-        if (-1 == nextOffset) {
+        if (nextOffset == -1) {
           break;
         }
         offset = nextOffset;
       }
 
-      if (-1 == offset) {
+      if (offset == -1) {
         throw new IllegalArgumentException(
             "Row does not contain expected separator for OrderSection");
       }
@@ -278,13 +278,13 @@ public class ReplicationSchema {
       // find the last offset
       while (true) {
         int nextOffset = buff.find(ROW_SEPARATOR.toString(), offset + 1);
-        if (-1 == nextOffset) {
+        if (nextOffset == -1) {
           break;
         }
         offset = nextOffset;
       }
 
-      if (-1 == offset) {
+      if (offset == -1) {
         throw new IllegalArgumentException(
             "Row does not contain expected separator for OrderSection");
       }

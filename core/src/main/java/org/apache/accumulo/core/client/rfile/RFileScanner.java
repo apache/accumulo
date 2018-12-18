@@ -184,7 +184,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     this.opts = opts;
-    if (null != opts.tableConfig && opts.tableConfig.size() > 0) {
+    if (opts.tableConfig != null && opts.tableConfig.size() > 0) {
       ConfigurationCopy tableCC = new ConfigurationCopy(DefaultConfiguration.getInstance());
       opts.tableConfig.forEach(tableCC::set);
       this.tableConf = tableCC;
@@ -212,10 +212,10 @@ class RFileScanner extends ScannerOptions implements Scanner {
         throw new RuntimeException(e);
       }
     }
-    if (null == indexCache) {
+    if (indexCache == null) {
       this.indexCache = new NoopCache();
     }
-    if (null == this.dataCache) {
+    if (this.dataCache == null) {
       this.dataCache = new NoopCache();
     }
     this.cryptoService = CryptoServiceFactory.newInstance(tableConf, ClassloaderType.JAVA);
@@ -397,7 +397,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
       throw new RuntimeException(e);
     }
     try {
-      if (null != this.blockCacheManager) {
+      if (this.blockCacheManager != null) {
         this.blockCacheManager.stop();
       }
     } catch (Exception e1) {

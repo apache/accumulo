@@ -79,7 +79,7 @@ public class SslConnectionParams {
     }
 
     String ciphers = conf.get(Property.RPC_SSL_CIPHER_SUITES);
-    if (null != ciphers && !ciphers.isEmpty()) {
+    if (ciphers != null && !ciphers.isEmpty()) {
       result.cipherSuites = StringUtils.split(ciphers, ',');
     }
 

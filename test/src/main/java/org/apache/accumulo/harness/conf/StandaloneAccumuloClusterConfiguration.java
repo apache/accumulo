@@ -98,7 +98,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public StandaloneAccumuloClusterConfiguration(File clientPropsFile) {
     ClusterType type = getClusterType();
-    if (ClusterType.STANDALONE != type) {
+    if (type != ClusterType.STANDALONE) {
       throw new IllegalStateException("Expected only to see standalone cluster state");
     }
 
@@ -109,7 +109,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
     // The user Accumulo is running as
     serverUser = conf.get(ACCUMULO_STANDALONE_SERVER_USER);
-    if (null == serverUser) {
+    if (serverUser == null) {
       serverUser = ACCUMULO_STANDALONE_SERVER_USER_DEFAULT;
     }
 
@@ -119,14 +119,14 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
       if (key.startsWith(ACCUMULO_STANDALONE_USER_KEY)) {
         String suffix = key.substring(ACCUMULO_STANDALONE_USER_KEY.length());
         String keytab = conf.get(ACCUMULO_STANDALONE_USER_KEYTABS_KEY + suffix);
-        if (null != keytab) {
+        if (keytab != null) {
           File keytabFile = new File(keytab);
           assertTrue("Keytab doesn't exist: " + keytabFile,
               keytabFile.exists() && keytabFile.isFile());
           clusterUsers.add(new ClusterUser(entry.getValue(), keytabFile));
         } else {
           String password = conf.get(ACCUMULO_STANDALONE_USER_PASSWORDS_KEY + suffix);
-          if (null == password) {
+          if (password == null) {
             throw new IllegalArgumentException(
                 "Missing password or keytab configuration for user with offset " + suffix);
           }
@@ -140,7 +140,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
   @Override
   public String getAdminPrincipal() {
     String principal = conf.get(ACCUMULO_STANDALONE_ADMIN_PRINCIPAL_KEY);
-    if (null == principal) {
+    if (principal == null) {
       principal = ACCUMULO_STANDALONE_ADMIN_PRINCIPAL_DEFAULT;
     }
     return principal;
@@ -152,7 +152,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
   public String getPassword() {
     String password = conf.get(ACCUMULO_STANDALONE_PASSWORD_KEY);
-    if (null == password) {
+    if (password == null) {
       password = ACCUMULO_STANDALONE_PASSWORD_DEFAULT;
     }
     return password;
@@ -189,7 +189,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
   public String getZooKeepers() {
     String zookeepers = conf.get(ACCUMULO_STANDALONE_ZOOKEEPERS_KEY);
-    if (null == zookeepers) {
+    if (zookeepers == null) {
       zookeepers = ACCUMULO_STANDALONE_ZOOKEEPERS_DEFAULT;
     }
     return zookeepers;
@@ -197,7 +197,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
   public String getInstanceName() {
     String instanceName = conf.get(ACCUMULO_STANDALONE_INSTANCE_NAME_KEY);
-    if (null == instanceName) {
+    if (instanceName == null) {
       instanceName = ACCUMULO_STANDALONE_INSTANCE_NAME_DEFAULT;
     }
     return instanceName;
@@ -238,7 +238,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
 
   public Path getTmpDirectory() {
     String tmpDir = conf.get(ACCUMULO_STANDALONE_TMP_DIR_KEY);
-    if (null == tmpDir) {
+    if (tmpDir == null) {
       tmpDir = ACCUMULO_STANDALONE_TMP_DIR_DEFAULT;
     }
     return new Path(tmpDir);

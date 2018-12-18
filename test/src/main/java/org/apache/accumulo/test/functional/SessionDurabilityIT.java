@@ -80,7 +80,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
       writeSome(c, tableName, 10, cfg);
       // verify writes are lost on restart
       restartTServer();
-      assertTrue(10 > count(c, tableName));
+      assertTrue(count(c, tableName) < 10);
     }
   }
 

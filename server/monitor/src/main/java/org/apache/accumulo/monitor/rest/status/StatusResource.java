@@ -93,7 +93,7 @@ public class StatusResource {
       }
     } else {
       masterStatus = Status.ERROR;
-      if (null == Monitor.getGcStatus()) {
+      if (Monitor.getGcStatus() == null) {
         gcStatus = Status.ERROR;
       } else {
         gcStatus = Status.OK;

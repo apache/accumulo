@@ -252,7 +252,7 @@ public class ThriftUtil {
       if (sslParams != null) {
         // The check in AccumuloServerContext ensures that servers are brought up with sane
         // configurations, but we also want to validate clients
-        if (null != saslParams) {
+        if (saslParams != null) {
           throw new IllegalStateException("Cannot use both SSL and SASL");
         }
 
@@ -287,7 +287,7 @@ public class ThriftUtil {
         }
 
         transport = ThriftUtil.transportFactory().getTransport(transport);
-      } else if (null != saslParams) {
+      } else if (saslParams != null) {
         if (!UserGroupInformation.isSecurityEnabled()) {
           throw new IllegalStateException(
               "Expected Kerberos security to be enabled if SASL is in use");
@@ -307,7 +307,7 @@ public class ThriftUtil {
           // Log in via UGI, ensures we have logged in with our KRB credentials
           final UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
           final UserGroupInformation userForRpc;
-          if (AuthenticationMethod.PROXY == currentUser.getAuthenticationMethod()) {
+          if (currentUser.getAuthenticationMethod() == AuthenticationMethod.PROXY) {
             // A "proxy" user is when the real (Kerberos) credentials are for a user
             // other than the one we're acting as. When we make an RPC though, we need to make sure
             // that the current user is the user that has some credentials.
@@ -405,7 +405,7 @@ public class ThriftUtil {
   static void attemptClientReLogin() {
     try {
       UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
-      if (null == loginUser || !loginUser.hasKerberosCredentials()) {
+      if (loginUser == null || !loginUser.hasKerberosCredentials()) {
         // We should have already checked that we're logged in and have credentials. A
         // precondition-like check.
         throw new RuntimeException("Expected to find Kerberos UGI credentials, but did not");

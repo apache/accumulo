@@ -99,11 +99,11 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public void createLocalUser(final String principal, final PasswordToken password)
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
-    if (null == context.getSaslParams()) {
+    if (context.getSaslParams() == null) {
       checkArgument(password != null, "password is null");
     }
     executeVoid(client -> {
-      if (null == context.getSaslParams()) {
+      if (context.getSaslParams() == null) {
         client.createLocalUser(Tracer.traceInfo(), context.rpcCreds(), principal,
             ByteBuffer.wrap(password.getPassword()));
       } else {
@@ -277,7 +277,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public DelegationToken getDelegationToken(DelegationTokenConfig cfg)
       throws AccumuloException, AccumuloSecurityException {
     final TDelegationTokenConfig tConfig;
-    if (null != cfg) {
+    if (cfg != null) {
       tConfig = DelegationTokenConfigSerializer.serialize(cfg);
     } else {
       tConfig = new TDelegationTokenConfig();

@@ -1585,7 +1585,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
             for (String part : parts) {
               log.info("Looking in trace output for '" + part + "'");
               int pos = traceOutput.indexOf(part);
-              if (-1 == pos) {
+              if (pos == -1) {
                 log.info("Trace output doesn't contain '" + part + "'");
                 Thread.sleep(1000);
                 break loop;

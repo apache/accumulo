@@ -73,7 +73,7 @@ public class SplitIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    Assume.assumeTrue(ClusterType.MINI == getClusterType());
+    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
     try (AccumuloClient client = createAccumuloClient()) {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> config = iops.getSystemConfiguration();
@@ -106,14 +106,14 @@ public class SplitIT extends AccumuloClusterHarness {
   @After
   public void resetConfig() throws Exception {
     try (AccumuloClient client = createAccumuloClient()) {
-      if (null != tservMaxMem) {
+      if (tservMaxMem != null) {
         log.info("Resetting {}={}", Property.TSERV_MAXMEM.getKey(), tservMaxMem);
         client.instanceOperations().setProperty(Property.TSERV_MAXMEM.getKey(), tservMaxMem);
         tservMaxMem = null;
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
         getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
       }
-      if (null != tservMajcDelay) {
+      if (tservMajcDelay != null) {
         log.info("Resetting {}={}", Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
         client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
         tservMajcDelay = null;

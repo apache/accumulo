@@ -70,7 +70,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
   @After
   public void resetAuths() throws Exception {
     try (AccumuloClient c = createAccumuloClient()) {
-      if (null != origAuths) {
+      if (origAuths != null) {
         c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), origAuths);
       }
     }

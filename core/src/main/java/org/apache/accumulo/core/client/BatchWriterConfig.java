@@ -288,42 +288,42 @@ public class BatchWriterConfig implements Writable {
     if (o instanceof BatchWriterConfig) {
       BatchWriterConfig other = (BatchWriterConfig) o;
 
-      if (null != maxMemory) {
+      if (maxMemory != null) {
         if (!maxMemory.equals(other.maxMemory)) {
           return false;
         }
       } else {
-        if (null != other.maxMemory) {
+        if (other.maxMemory != null) {
           return false;
         }
       }
 
-      if (null != maxLatency) {
+      if (maxLatency != null) {
         if (!maxLatency.equals(other.maxLatency)) {
           return false;
         }
       } else {
-        if (null != other.maxLatency) {
+        if (other.maxLatency != null) {
           return false;
         }
       }
 
-      if (null != maxWriteThreads) {
+      if (maxWriteThreads != null) {
         if (!maxWriteThreads.equals(other.maxWriteThreads)) {
           return false;
         }
       } else {
-        if (null != other.maxWriteThreads) {
+        if (other.maxWriteThreads != null) {
           return false;
         }
       }
 
-      if (null != timeout) {
+      if (timeout != null) {
         if (!timeout.equals(other.timeout)) {
           return false;
         }
       } else {
-        if (null != other.timeout) {
+        if (other.timeout != null) {
           return false;
         }
       }

@@ -74,7 +74,7 @@ public class ScriptCommand extends Command {
         engineName = cl.getOptionValue(engine.getOpt());
       }
       ScriptEngine engine = mgr.getEngineByName(engineName);
-      if (null == engine) {
+      if (engine == null) {
         shellState.printException(new Exception(engineName + " not found"));
         return 1;
       }
@@ -126,7 +126,7 @@ public class ScriptCommand extends Command {
       if (cl.hasOption(file.getOpt())) {
         File f = new File(cl.getOptionValue(file.getOpt()));
         if (!f.exists()) {
-          if (null != writer) {
+          if (writer != null) {
             writer.close();
           }
           shellState.printException(new Exception(f.getAbsolutePath() + " not found"));
@@ -143,7 +143,7 @@ public class ScriptCommand extends Command {
           return 1;
         } finally {
           reader.close();
-          if (null != writer) {
+          if (writer != null) {
             writer.close();
           }
         }
@@ -167,12 +167,12 @@ public class ScriptCommand extends Command {
           shellState.printException(ex);
           return 1;
         } finally {
-          if (null != writer) {
+          if (writer != null) {
             writer.close();
           }
         }
       }
-      if (null != writer) {
+      if (writer != null) {
         writer.close();
       }
 

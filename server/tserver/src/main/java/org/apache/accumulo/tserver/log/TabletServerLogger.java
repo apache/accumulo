@@ -195,7 +195,7 @@ public class TabletServerLogger {
   public String getLogFile() {
     logIdLock.readLock().lock();
     try {
-      if (null == currentLog) {
+      if (currentLog == null) {
         return null;
       }
       return currentLog.getFileName();
@@ -225,7 +225,7 @@ public class TabletServerLogger {
         log.info("Using next log {}", currentLog.getFileName());
 
         // When we successfully create a WAL, make sure to reset the Retry.
-        if (null != createRetry) {
+        if (createRetry != null) {
           createRetry = null;
         }
 
@@ -235,7 +235,7 @@ public class TabletServerLogger {
         throw new RuntimeException("Error: unexpected type seen: " + next);
       }
     } catch (Exception t) {
-      if (null == createRetry) {
+      if (createRetry == null) {
         createRetry = createRetryFactory.createRetry();
       }
 
@@ -286,7 +286,7 @@ public class TabletServerLogger {
             }
           } catch (Exception t) {
             log.error("Failed to open WAL", t);
-            if (null != alog) {
+            if (alog != null) {
               // It's possible that the sync of the header and OPEN record to the WAL failed
               // We want to make sure that clean up the resources/thread inside the DfsLogger
               // object before trying to create a new one.
@@ -321,7 +321,7 @@ public class TabletServerLogger {
       throw new IllegalStateException("close should be called with write lock held!");
     }
     try {
-      if (null != currentLog) {
+      if (currentLog != null) {
         try {
           currentLog.close();
         } catch (DfsLogger.LogClosedException ex) {

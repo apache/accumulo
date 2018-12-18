@@ -40,7 +40,7 @@ public class GarbageCollectorStatus {
    *          garbage collector status
    */
   public GarbageCollectorStatus(GCStatus status) {
-    if (null != status) {
+    if (status != null) {
       files = new GarbageCollection(status.last, status.current);
       wals = new GarbageCollection(status.lastLog, status.currentLog);
     }

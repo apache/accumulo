@@ -58,7 +58,7 @@ public class BulkIT extends AccumuloClusterHarness {
 
   @After
   public void restoreConf() {
-    if (null != origConf) {
+    if (origConf != null) {
       CachedConfiguration.setInstance(origConf);
     }
   }

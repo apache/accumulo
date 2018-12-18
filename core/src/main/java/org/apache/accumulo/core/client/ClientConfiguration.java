@@ -266,7 +266,7 @@ public class ClientConfiguration {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "process runs in same security context as user who provided path")
   static String getClientConfPath(String clientConfPath) {
-    if (null == clientConfPath) {
+    if (clientConfPath == null) {
       return null;
     }
     File filePath = new File(clientConfPath);

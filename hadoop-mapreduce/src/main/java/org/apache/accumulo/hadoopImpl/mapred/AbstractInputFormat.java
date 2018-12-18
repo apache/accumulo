@@ -277,11 +277,11 @@ public abstract class AbstractInputFormat {
         org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit split) {
       List<IteratorSetting> iterators = null;
 
-      if (null == split) {
+      if (split == null) {
         iterators = jobIterators(job, tableName);
       } else {
         iterators = split.getIterators();
-        if (null == iterators) {
+        if (iterators == null) {
           iterators = jobIterators(job, tableName);
         }
       }
@@ -322,7 +322,7 @@ public abstract class AbstractInputFormat {
           scanner = context.createBatchScanner(baseSplit.getTableName(), authorizations,
               scanThreads);
           setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
-          if (null != classLoaderContext) {
+          if (classLoaderContext != null) {
             scanner.setClassLoaderContext(classLoaderContext);
           }
         } catch (Exception e) {
@@ -335,17 +335,17 @@ public abstract class AbstractInputFormat {
       } else if (baseSplit instanceof RangeInputSplit) {
         split = (RangeInputSplit) baseSplit;
         Boolean isOffline = baseSplit.isOffline();
-        if (null == isOffline) {
+        if (isOffline == null) {
           isOffline = tableConfig.isOfflineScan();
         }
 
         Boolean isIsolated = baseSplit.isIsolatedScan();
-        if (null == isIsolated) {
+        if (isIsolated == null) {
           isIsolated = tableConfig.shouldUseIsolatedScanners();
         }
 
         Boolean usesLocalIterators = baseSplit.usesLocalIterators();
-        if (null == usesLocalIterators) {
+        if (usesLocalIterators == null) {
           usesLocalIterators = tableConfig.shouldUseLocalIterators();
         }
 
@@ -378,7 +378,7 @@ public abstract class AbstractInputFormat {
       }
 
       Collection<IteratorSetting.Column> columns = baseSplit.getFetchedColumns();
-      if (null == columns) {
+      if (columns == null) {
         columns = tableConfig.getFetchedColumns();
       }
 
@@ -394,7 +394,7 @@ public abstract class AbstractInputFormat {
       }
 
       SamplerConfiguration samplerConfig = baseSplit.getSamplerConfiguration();
-      if (null == samplerConfig) {
+      if (samplerConfig == null) {
         samplerConfig = tableConfig.getSamplerConfiguration();
       }
 
@@ -417,7 +417,7 @@ public abstract class AbstractInputFormat {
 
     @Override
     public void close() {
-      if (null != scannerBase) {
+      if (scannerBase != null) {
         scannerBase.close();
       }
       if (client != null) {

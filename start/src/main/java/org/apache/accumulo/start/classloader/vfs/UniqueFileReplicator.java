@@ -99,7 +99,7 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
     if (tempDir.exists()) {
       String[] list = tempDir.list();
       int numChildren = list == null ? 0 : list.length;
-      if (0 == numChildren && !tempDir.delete())
+      if (numChildren == 0 && !tempDir.delete())
         log.warn("Cannot delete empty directory: {}", tempDir);
     }
   }

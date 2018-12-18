@@ -51,7 +51,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
 
   @Before
   public void saveMetadataSplits() throws Exception {
-    if (ClusterType.STANDALONE == getClusterType()) {
+    if (getClusterType() == ClusterType.STANDALONE) {
       try (AccumuloClient client = createAccumuloClient()) {
         Collection<Text> splits = client.tableOperations().listSplits(MetadataTable.NAME);
         // We expect a single split
@@ -69,7 +69,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
 
   @After
   public void restoreMetadataSplits() throws Exception {
-    if (null != metadataSplits) {
+    if (metadataSplits != null) {
       log.info("Restoring split on metadata table");
       try (AccumuloClient client = createAccumuloClient()) {
         client.tableOperations().merge(MetadataTable.NAME, null, null);

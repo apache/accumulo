@@ -129,7 +129,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
       log.error("Unexpected exception when fetching table id for {}", tableName);
 
-      if (null == cause) {
+      if (cause == null) {
         throw new RuntimeException(e);
       } else if (cause instanceof TableNotFoundException) {
         throw (TableNotFoundException) cause;

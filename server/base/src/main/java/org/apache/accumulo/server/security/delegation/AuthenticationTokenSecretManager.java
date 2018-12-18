@@ -96,9 +96,9 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     identifier.setExpirationDate(expiration);
 
     // Limit the lifetime if the user requests it
-    if (null != cfg) {
+    if (cfg != null) {
       long requestedLifetime = cfg.getTokenLifetime(TimeUnit.MILLISECONDS);
-      if (0 < requestedLifetime) {
+      if (requestedLifetime > 0) {
         long requestedExpirationDate = identifier.getIssueDate() + requestedLifetime;
         // Catch overflow again
         if (requestedExpirationDate < identifier.getIssueDate()) {
@@ -158,7 +158,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     final AuthenticationTokenIdentifier id = new AuthenticationTokenIdentifier(username, cfg);
 
     final StringBuilder svcName = new StringBuilder(DelegationTokenImpl.SERVICE_NAME);
-    if (null != id.getInstanceId()) {
+    if (id.getInstanceId() != null) {
       svcName.append("-").append(id.getInstanceId());
     }
     // Create password will update the state on the identifier given currentKey. Need to call this
@@ -206,7 +206,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
 
     log.debug("Removing AuthenticatioKey with keyId {}", keyId);
 
-    return null != allKeys.remove(keyId);
+    return allKeys.remove(keyId) != null;
   }
 
   /**
@@ -255,7 +255,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
   }
 
   synchronized boolean isCurrentKeySet() {
-    return null != currentKey;
+    return currentKey != null;
   }
 
   /**

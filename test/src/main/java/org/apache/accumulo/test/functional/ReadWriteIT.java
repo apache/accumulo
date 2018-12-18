@@ -148,9 +148,9 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       ingest(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
       verify(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
       String monitorLocation = null;
-      while (null == monitorLocation) {
+      while (monitorLocation == null) {
         monitorLocation = MonitorUtil.getLocation((ClientContext) accumuloClient);
-        if (null == monitorLocation) {
+        if (monitorLocation == null) {
           log.debug("Could not fetch monitor HTTP address from zookeeper");
           Thread.sleep(2000);
         }
@@ -164,7 +164,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           Configuration conf = new Configuration(false);
           conf.addResource(new Path(accumuloProps.toURI()));
           String monitorSslKeystore = conf.get(Property.MONITOR_SSL_KEYSTORE.getKey());
-          if (null != monitorSslKeystore) {
+          if (monitorSslKeystore != null) {
             log.info("Using HTTPS since monitor ssl keystore configuration was observed in {}",
                 accumuloProps);
             scheme = "https://";
@@ -194,11 +194,11 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       do {
         masterLockData = ZooLock.getLockData(zcache,
             ZooUtil.getRoot(accumuloClient.getInstanceID()) + Constants.ZMASTER_LOCK, null);
-        if (null != masterLockData) {
+        if (masterLockData != null) {
           log.info("Master lock is still held");
           Thread.sleep(1000);
         }
-      } while (null != masterLockData);
+      } while (masterLockData != null);
 
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
       control.stopAllServers(ServerType.MONITOR);
@@ -466,7 +466,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           args.add(entry.getKey().getColumnQualifier().toString());
           args.add("--props");
           args.add(getCluster().getAccumuloPropertiesPath());
-          if (ClusterType.STANDALONE == getClusterType() && saslEnabled()) {
+          if (getClusterType() == ClusterType.STANDALONE && saslEnabled()) {
             args.add("--config");
             StandaloneAccumuloCluster sac = (StandaloneAccumuloCluster) cluster;
             String hadoopConfDir = sac.getHadoopConfDir();

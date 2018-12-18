@@ -76,7 +76,7 @@ public class RestartStressIT extends AccumuloClusterHarness {
 
   @After
   public void teardown() throws Exception {
-    if (null == svc) {
+    if (svc == null) {
       return;
     }
 

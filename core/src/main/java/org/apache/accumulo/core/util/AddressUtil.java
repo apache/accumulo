@@ -66,14 +66,14 @@ public class AddressUtil {
       log.warn("Failed to get JVM negative DNS response cache TTL due to security manager. "
           + "Falling back to default based on Oracle JVM 1.4+ (10s)", exception);
     }
-    if (-1 == negativeTtl) {
+    if (negativeTtl == -1) {
       log.error(
           "JVM negative DNS repsonse cache TTL is set to 'forever' and host lookup failed. "
               + "TTL can be changed with security property "
               + "'networkaddress.cache.negative.ttl', see java.net.InetAddress.",
           originalException);
       throw new IllegalArgumentException(originalException);
-    } else if (0 > negativeTtl) {
+    } else if (negativeTtl < 0) {
       log.warn("JVM specified negative DNS response cache TTL was negative (and not 'forever'). "
           + "Falling back to default based on Oracle JVM 1.4+ (10s)");
       negativeTtl = 10;

@@ -82,7 +82,7 @@ public class ReplicationMetrics extends AbstractMetricsImpl implements Replicati
     for (ReplicationTarget configuredTarget : allConfiguredTargets) {
       Long numFiles = targetCounts.get(configuredTarget);
 
-      if (null != numFiles) {
+      if (numFiles != null) {
         filesPending += numFiles;
       }
     }

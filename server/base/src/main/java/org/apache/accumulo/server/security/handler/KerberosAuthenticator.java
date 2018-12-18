@@ -121,7 +121,7 @@ public class KerberosAuthenticator implements Authenticator {
       // doesn't contain the actual credentials
       // Double check that the rpc user can impersonate as the requested user.
       UsersWithHosts usersWithHosts = impersonation.get(rpcPrincipal);
-      if (null == usersWithHosts) {
+      if (usersWithHosts == null) {
         throw new AccumuloSecurityException(principal, SecurityErrorCode.AUTHENTICATOR_FAILED);
       }
       if (!usersWithHosts.getUsers().contains(principal)) {

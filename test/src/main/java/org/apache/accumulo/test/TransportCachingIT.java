@@ -83,7 +83,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
 
       ThriftTransportPool pool = ThriftTransportPool.getInstance();
       TTransport first = null;
-      while (null == first) {
+      while (first == null) {
         try {
           // Get a transport (cached or not)
           first = pool.getAnyTransport(servers, true).getSecond();
@@ -97,7 +97,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
       pool.returnTransport(first);
 
       TTransport second = null;
-      while (null == second) {
+      while (second == null) {
         try {
           // Get a cached transport (should be the first)
           second = pool.getAnyTransport(servers, true).getSecond();
@@ -112,7 +112,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
       pool.returnTransport(second);
 
       TTransport third = null;
-      while (null == third) {
+      while (third == null) {
         try {
           // Get a non-cached transport
           third = pool.getAnyTransport(servers, false).getSecond();

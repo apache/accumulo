@@ -718,7 +718,7 @@ public class Initialize implements KeywordExecutable {
     ConsoleReader c = getConsoleReader();
     c.println("Running against secured HDFS");
 
-    if (null != opts.rootUser) {
+    if (opts.rootUser != null) {
       return opts.rootUser;
     }
 
@@ -872,8 +872,9 @@ public class Initialize implements KeywordExecutable {
             aBasePath, Property.INSTANCE_VOLUMES_REPLACEMENTS, Property.INSTANCE_VOLUMES);
     }
 
-    if (ServerConstants.DATA_VERSION != ServerUtil.getAccumuloPersistentVersion(
-        versionPath.getFileSystem(CachedConfiguration.getInstance()), versionPath)) {
+    if (ServerUtil.getAccumuloPersistentVersion(
+        versionPath.getFileSystem(CachedConfiguration.getInstance()),
+        versionPath) != ServerConstants.DATA_VERSION) {
       throw new IOException("Accumulo " + Constants.VERSION + " cannot initialize data version "
           + ServerUtil.getAccumuloPersistentVersion(fs));
     }

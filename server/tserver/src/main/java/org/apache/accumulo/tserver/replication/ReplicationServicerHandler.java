@@ -74,7 +74,7 @@ public class ReplicationServicerHandler implements Iface {
     String propertyForHandlerTable = Property.TSERV_REPLICATION_REPLAYERS.getKey() + tableId;
 
     String handlerClassForTable = replicationHandlers.get(propertyForHandlerTable);
-    if (null == handlerClassForTable) {
+    if (handlerClassForTable == null) {
       if (!replicationHandlers.isEmpty()) {
         log.debug("Could not find replication replayer for {}", tableId);
       }

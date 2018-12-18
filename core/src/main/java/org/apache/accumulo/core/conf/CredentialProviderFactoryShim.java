@@ -85,12 +85,12 @@ public class CredentialProviderFactoryShim {
    */
   public static synchronized boolean isHadoopCredentialProviderAvailable() {
     // If we already found the class
-    if (null != hadoopClassesAvailable) {
+    if (hadoopClassesAvailable != null) {
       // Make sure everything is initialized as expected
       // Otherwise we failed to load it
-      return hadoopClassesAvailable && null != getProvidersMethod
-          && null != hadoopCredProviderFactory && null != getCredentialEntryMethod
-          && null != getCredentialMethod;
+      return hadoopClassesAvailable && getProvidersMethod != null
+          && hadoopCredProviderFactory != null && getCredentialEntryMethod != null
+          && getCredentialMethod != null;
     }
 
     hadoopClassesAvailable = false;
@@ -245,7 +245,7 @@ public class CredentialProviderFactoryShim {
   protected static char[] getFromHadoopCredentialProvider(Configuration conf, String alias) {
     List<Object> providerObjList = getCredentialProviders(conf);
 
-    if (null == providerObjList) {
+    if (providerObjList == null) {
       return null;
     }
 
@@ -254,7 +254,7 @@ public class CredentialProviderFactoryShim {
         // Invoke CredentialProvider.getCredentialEntry(String)
         Object credEntryObj = getCredentialEntryMethod.invoke(providerObj, alias);
 
-        if (null == credEntryObj) {
+        if (credEntryObj == null) {
           continue;
         }
 
@@ -278,19 +278,19 @@ public class CredentialProviderFactoryShim {
   protected static List<String> getAliasesFromHadoopCredentialProvider(Configuration conf) {
     List<Object> providerObjList = getCredentialProviders(conf);
 
-    if (null == providerObjList) {
+    if (providerObjList == null) {
       log.debug("Failed to get CredProviders");
       return Collections.emptyList();
     }
 
     ArrayList<String> aliases = new ArrayList<>();
     for (Object providerObj : providerObjList) {
-      if (null != providerObj) {
+      if (providerObj != null) {
         Object aliasesObj;
         try {
           aliasesObj = getAliasesMethod.invoke(providerObj);
 
-          if (null != aliasesObj && aliasesObj instanceof List) {
+          if (aliasesObj != null && aliasesObj instanceof List) {
             try {
               aliases.addAll((List<String>) aliasesObj);
             } catch (ClassCastException e) {
@@ -410,12 +410,12 @@ public class CredentialProviderFactoryShim {
     }
 
     List<Object> providers = getCredentialProviders(conf);
-    if (null == providers) {
+    if (providers == null) {
       throw new IOException(
           "Could not fetch any CredentialProviders, is the implementation available?");
     }
 
-    if (1 != providers.size()) {
+    if (providers.size() != 1) {
       log.warn("Found more than one CredentialProvider. Using first provider found");
     }
 

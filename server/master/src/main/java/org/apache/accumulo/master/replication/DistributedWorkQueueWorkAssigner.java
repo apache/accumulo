@@ -126,13 +126,13 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
 
   @Override
   public void assignWork() {
-    if (null == workQueue) {
+    if (workQueue == null) {
       initializeWorkQueue(conf);
     }
 
     initializeQueuedWork();
 
-    if (null == zooCache) {
+    if (zooCache == null) {
       zooCache = new ZooCache(workQueue.getZooReaderWriter());
     }
 

@@ -86,7 +86,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
         TICKET_LIFETIME);
     kdc.start();
     krbEnabledForITs = System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION);
-    if (null == krbEnabledForITs || !Boolean.parseBoolean(krbEnabledForITs)) {
+    if (krbEnabledForITs == null || !Boolean.parseBoolean(krbEnabledForITs)) {
       System.setProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION, "true");
     }
     rootUser = kdc.getRootUser();
@@ -94,10 +94,10 @@ public class KerberosRenewalIT extends AccumuloITBase {
 
   @AfterClass
   public static void stopKdc() throws Exception {
-    if (null != kdc) {
+    if (kdc != null) {
       kdc.stop();
     }
-    if (null != krbEnabledForITs) {
+    if (krbEnabledForITs != null) {
       System.setProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION, krbEnabledForITs);
     }
   }
@@ -136,7 +136,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
 
   @After
   public void stopMac() throws Exception {
-    if (null != mac) {
+    if (mac != null) {
       mac.stop();
     }
   }

@@ -138,7 +138,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     // instance_name,zookeepers
     int index = configuration.indexOf(',');
-    if (-1 == index) {
+    if (index == -1) {
       try {
         Thread.sleep(1000);
       } catch (InterruptedException e) {
@@ -184,7 +184,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       password = getPassword(localConf, target);
     }
 
-    if (null != keytab) {
+    if (keytab != null) {
       try {
         final UserGroupInformation accumuloUgi = UserGroupInformation.getCurrentUser();
         // Get a UGI with the principal + keytab
@@ -270,7 +270,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           span.stop();
         }
 
-        if (null == peerTserverStr) {
+        if (peerTserverStr == null) {
           // Something went wrong, and we didn't get a valid tserver from the remote for some reason
           log.warn("Did not receive tserver from master at {}, cannot proceed"
               + " with replication. Will retry.", target);
@@ -441,7 +441,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         if (!currentStatus.equals(lastStatus)) {
           span = Trace.start("Update replication table");
           try {
-            if (null != accumuloUgi) {
+            if (accumuloUgi != null) {
               final Status copy = currentStatus;
               accumuloUgi.doAs(new PrivilegedAction<Void>() {
                 @Override
@@ -455,7 +455,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
                 }
               });
               Exception e = exceptionRef.get();
-              if (null != e) {
+              if (e != null) {
                 if (e instanceof TableNotFoundException) {
                   throw (TableNotFoundException) e;
                 } else if (e instanceof AccumuloSecurityException) {
@@ -558,11 +558,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
       log.debug(
           "Read {} WAL entries and retained {} bytes of WAL entries for replication to peer '{}'",
-          (Long.MAX_VALUE == edits.entriesConsumed) ? "all remaining" : edits.entriesConsumed,
+          (edits.entriesConsumed == Long.MAX_VALUE) ? "all remaining" : edits.entriesConsumed,
           edits.sizeInBytes, p);
 
       // If we have some edits to send
-      if (0 < edits.walEdits.getEditsSize()) {
+      if (edits.walEdits.getEditsSize() > 0) {
         log.debug("Sending {} edits", edits.walEdits.getEditsSize());
         long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits, tcreds);
         if (entriesReplicated != edits.numUpdates) {
@@ -613,7 +613,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     @Override
     public ReplicationStats execute(Client client) throws Exception {
       RFileReplication kvs = getKeyValues(target, input, p, status, sizeLimit);
-      if (0 < kvs.keyValues.getKeyValuesSize()) {
+      if (kvs.keyValues.getKeyValuesSize() > 0) {
         long entriesReplicated = client.replicateKeyValues(remoteTableId, kvs.keyValues, tcreds);
         if (entriesReplicated != kvs.keyValues.getKeyValuesSize()) {
           log.warn(
@@ -638,7 +638,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         .getAllPropertiesWithPrefix(Property.REPLICATION_PEER_PASSWORD);
     String password = peerPasswords
         .get(Property.REPLICATION_PEER_PASSWORD.getKey() + target.getPeerName());
-    if (null == password) {
+    if (password == null) {
       throw new IllegalArgumentException("Cannot get password for " + target.getPeerName());
     }
     return password;
@@ -652,7 +652,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         .getAllPropertiesWithPrefix(Property.REPLICATION_PEER_KEYTAB);
     String keytab = peerKeytabs
         .get(Property.REPLICATION_PEER_KEYTAB.getKey() + target.getPeerName());
-    if (null == keytab) {
+    if (keytab == null) {
       throw new IllegalArgumentException("Cannot get keytab for " + target.getPeerName());
     }
     return keytab;
@@ -668,7 +668,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         .getAllPropertiesWithPrefix(Property.REPLICATION_PEER_USER);
 
     String user = peerUsers.get(userKey);
-    if (null == user) {
+    if (user == null) {
       throw new IllegalArgumentException("Cannot get user for " + target.getPeerName());
     }
     return user;

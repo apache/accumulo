@@ -85,7 +85,7 @@ public class TestProxyClient {
   }
 
   public synchronized void close() {
-    if (null != transport) {
+    if (transport != null) {
       transport.close();
       transport = null;
     }

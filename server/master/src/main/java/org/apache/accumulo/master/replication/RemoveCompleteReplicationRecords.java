@@ -92,10 +92,10 @@ public class RemoveCompleteReplicationRecords implements Runnable {
       sw.start();
       recordsRemoved = removeCompleteRecords(client, bs, bw);
     } finally {
-      if (null != bs) {
+      if (bs != null) {
         bs.close();
       }
-      if (null != bw) {
+      if (bw != null) {
         try {
           bw.close();
         } catch (MutationsRejectedException e) {
@@ -190,7 +190,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
       if (status.hasCreatedTime()) {
         Long timeClosed = tableToTimeCreated.get(tableId);
-        if (null == timeClosed) {
+        if (timeClosed == null) {
           tableToTimeCreated.put(tableId, status.getCreatedTime());
         } else if (timeClosed != status.getCreatedTime()) {
           log.warn("Found multiple values for timeClosed for {}: {} and {}", row, timeClosed,

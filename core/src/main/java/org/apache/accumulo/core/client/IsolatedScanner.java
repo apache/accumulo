@@ -276,7 +276,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
   @Override
   public void setReadaheadThreshold(long batches) {
-    if (0 > batches) {
+    if (batches < 0) {
       throw new IllegalArgumentException(
           "Number of batches before read-ahead must be non-negative");
     }

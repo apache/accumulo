@@ -52,7 +52,7 @@ public class GarbageCollectorResource {
   @GET
   public GarbageCollection getFileStatus() {
     GCStatus gcStatus = Monitor.getGcStatus();
-    if (null == gcStatus) {
+    if (gcStatus == null) {
       return GarbageCollection.getEmpty();
     }
     return new GarbageCollection(gcStatus.last, gcStatus.current);
@@ -67,7 +67,7 @@ public class GarbageCollectorResource {
   @GET
   public GarbageCollectorCycle getLastCycle() {
     GCStatus status = Monitor.getGcStatus();
-    if (null == status) {
+    if (status == null) {
       return GarbageCollectorCycle.getEmpty();
     }
     return new GarbageCollectorCycle(status.last);
@@ -82,7 +82,7 @@ public class GarbageCollectorResource {
   @GET
   public GarbageCollectorCycle getCurrentCycle() {
     GCStatus status = Monitor.getGcStatus();
-    if (null == status) {
+    if (status == null) {
       return GarbageCollectorCycle.getEmpty();
     }
     return new GarbageCollectorCycle(status.current);
@@ -97,7 +97,7 @@ public class GarbageCollectorResource {
   @GET
   public GarbageCollection getWalStatus() {
     GCStatus gcStatus = Monitor.getGcStatus();
-    if (null == gcStatus) {
+    if (gcStatus == null) {
       return GarbageCollection.getEmpty();
     }
     return new GarbageCollection(gcStatus.lastLog, gcStatus.currentLog);
@@ -112,7 +112,7 @@ public class GarbageCollectorResource {
   @GET
   public GarbageCollectorCycle getLastWalCycle() {
     GCStatus status = Monitor.getGcStatus();
-    if (null == status) {
+    if (status == null) {
       return GarbageCollectorCycle.getEmpty();
     }
     return new GarbageCollectorCycle(status.lastLog);
@@ -127,7 +127,7 @@ public class GarbageCollectorResource {
   @GET
   public GarbageCollectorCycle getCurrentWalCycle() {
     GCStatus status = Monitor.getGcStatus();
-    if (null == status) {
+    if (status == null) {
       return GarbageCollectorCycle.getEmpty();
     }
     return new GarbageCollectorCycle(status.currentLog);

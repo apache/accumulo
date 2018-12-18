@@ -126,7 +126,7 @@ public abstract class AbstractMetricsImpl implements Metrics {
   public void register(StandardMBean mbean) throws Exception {
     // Register this object with the MBeanServer
     MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-    if (null == getObjectName())
+    if (getObjectName() == null)
       throw new IllegalArgumentException("MBean object name must be set.");
     mbs.registerMBean(mbean, getObjectName());
 
@@ -140,7 +140,7 @@ public abstract class AbstractMetricsImpl implements Metrics {
   public void register() throws Exception {
     // Register this object with the MBeanServer
     MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-    if (null == getObjectName())
+    if (getObjectName() == null)
       throw new IllegalArgumentException("MBean object name must be set.");
     mbs.registerMBean(this, getObjectName());
     setupLogging();
@@ -168,14 +168,14 @@ public abstract class AbstractMetricsImpl implements Metrics {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by admin")
   private void setupLogging() throws IOException {
-    if (null == config.getMetricsConfiguration())
+    if (config.getMetricsConfiguration() == null)
       return;
     // If we are already logging, then return
     if (!currentlyLogging
         && config.getMetricsConfiguration().getBoolean(metricsPrefix + ".logging", false)) {
       // Check to see if directory exists, else make it
       String mDir = config.getMetricsConfiguration().getString("logging.dir");
-      if (null != mDir) {
+      if (mDir != null) {
         File dir = new File(mDir);
         if (!dir.isDirectory())
           if (!dir.mkdir())
@@ -190,7 +190,7 @@ public abstract class AbstractMetricsImpl implements Metrics {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by admin")
   private void startNewLog() throws IOException {
-    if (null != logWriter) {
+    if (logWriter != null) {
       logWriter.flush();
       logWriter.close();
     }
@@ -206,7 +206,7 @@ public abstract class AbstractMetricsImpl implements Metrics {
   }
 
   private void writeToLog(String name) throws IOException {
-    if (null == logWriter)
+    if (logWriter == null)
       return;
     // Increment the date if we have to
     Date now = new Date();
@@ -267,7 +267,7 @@ public abstract class AbstractMetricsImpl implements Metrics {
 
   @Override
   protected void finalize() {
-    if (null != logWriter) {
+    if (logWriter != null) {
       try {
         logWriter.close();
       } catch (Exception e) {

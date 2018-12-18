@@ -89,7 +89,7 @@ public class DebugIterator extends WrappingIterator implements OptionDescriber {
       IteratorEnvironment env) throws IOException {
     log.debug("init({}, {}, {})", source, options, env);
 
-    if (null == prefix) {
+    if (prefix == null) {
       prefix = String.format("0x%08X", this.hashCode());
     }
 

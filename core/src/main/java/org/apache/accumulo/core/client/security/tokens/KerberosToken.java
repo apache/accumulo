@@ -69,7 +69,7 @@ public class KerberosToken implements AuthenticationToken {
   static void validateAuthMethod(AuthenticationMethod authMethod) {
     // There is also KERBEROS_SSL but that appears to be deprecated/OBE
     checkArgument(
-        AuthenticationMethod.KERBEROS == authMethod || AuthenticationMethod.PROXY == authMethod,
+        authMethod == AuthenticationMethod.KERBEROS || authMethod == AuthenticationMethod.PROXY,
         "KerberosToken expects KERBEROS or PROXY authentication for the current "
             + "UserGroupInformation user. Saw " + authMethod);
   }
@@ -151,7 +151,7 @@ public class KerberosToken implements AuthenticationToken {
   @Override
   public void readFields(DataInput in) throws IOException {
     int actualVersion = in.readInt();
-    if (VERSION != actualVersion) {
+    if (actualVersion != VERSION) {
       throw new IOException("Did not find expected version in serialized KerberosToken");
     }
   }
@@ -163,7 +163,7 @@ public class KerberosToken implements AuthenticationToken {
 
   @Override
   public boolean isDestroyed() {
-    return null == principal;
+    return principal == null;
   }
 
   @Override

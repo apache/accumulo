@@ -133,12 +133,12 @@ public class CyclicReplicationIT {
 
       // Passwords might be stored in CredentialProvider
       String keystorePassword = primarySiteConfig.get(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey());
-      if (null != keystorePassword) {
+      if (keystorePassword != null) {
         peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), keystorePassword);
       }
       String truststorePassword = primarySiteConfig
           .get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
-      if (null != truststorePassword) {
+      if (truststorePassword != null) {
         peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
       }
 
@@ -149,7 +149,7 @@ public class CyclicReplicationIT {
     // Use the CredentialProvider if the primary also uses one
     String credProvider = primarySiteConfig
         .get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
-    if (null != credProvider) {
+    if (credProvider != null) {
       Map<String,String> peerSiteConfig = peerCfg.getSiteConfig();
       peerSiteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(),
           credProvider);

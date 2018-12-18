@@ -122,7 +122,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       // Copy each file that was exported to the import directory
       String line;
-      while (null != (line = reader.readLine())) {
+      while ((line = reader.readLine()) != null) {
         Path p = new Path(line.substring(5));
         assertTrue("File doesn't exist: " + p, fs.exists(p));
 
@@ -194,7 +194,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
   private boolean looksLikeRelativePath(String uri) {
     if (uri.startsWith("/" + Constants.BULK_PREFIX)) {
-      return '/' == uri.charAt(10);
+      return uri.charAt(10) == '/';
     } else {
       return uri.startsWith("/" + Constants.CLONE_PREFIX);
     }

@@ -128,9 +128,9 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     }
 
     String tableId = null;
-    while (null == tableId) {
+    while (tableId == null) {
       tableId = tops.tableIdMap().get(tableName);
-      if (null == tableId) {
+      if (tableId == null) {
         sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
       }
     }

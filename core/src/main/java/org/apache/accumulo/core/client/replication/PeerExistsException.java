@@ -28,7 +28,7 @@ public class PeerExistsException extends Exception {
 
   public PeerExistsException(String peer, String message) {
     super("Peer '" + peer + "' already exists"
-        + (null == message || message.isEmpty() ? "" : message));
+        + (message == null || message.isEmpty() ? "" : message));
   }
 
   public PeerExistsException(String message, Throwable cause) {

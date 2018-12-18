@@ -397,9 +397,9 @@ public class LiveTServerSet implements Watcher {
   TServerInstance find(Map<String,TServerInfo> servers, String tabletServer) {
     HostAndPort addr;
     String sessionId = null;
-    if (']' == tabletServer.charAt(tabletServer.length() - 1)) {
+    if (tabletServer.charAt(tabletServer.length() - 1) == ']') {
       int index = tabletServer.indexOf('[');
-      if (-1 == index) {
+      if (index == -1) {
         throw new IllegalArgumentException("Could not parse tabletserver '" + tabletServer + "'");
       }
       addr = AddressUtil.parseAddress(tabletServer.substring(0, index), false);
@@ -411,7 +411,7 @@ public class LiveTServerSet implements Watcher {
     for (Entry<String,TServerInfo> entry : servers.entrySet()) {
       if (entry.getValue().instance.getLocation().equals(addr)) {
         // Return the instance if we have no desired session ID, or we match the desired session ID
-        if (null == sessionId || sessionId.equals(entry.getValue().instance.getSession()))
+        if (sessionId == null || sessionId.equals(entry.getValue().instance.getSession()))
           return entry.getValue().instance;
       }
     }

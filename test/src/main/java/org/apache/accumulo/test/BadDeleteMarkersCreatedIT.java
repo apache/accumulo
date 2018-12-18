@@ -104,11 +104,11 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       byte[] gcLockData;
       do {
         gcLockData = ZooLock.getLockData(zcache, path, null);
-        if (null != gcLockData) {
+        if (gcLockData != null) {
           log.info("Waiting for GC ZooKeeper lock to expire");
           Thread.sleep(2000);
         }
-      } while (null != gcLockData);
+      } while (gcLockData != null);
 
       log.info("GC lock was lost");
 
@@ -118,11 +118,11 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       gcLockData = null;
       do {
         gcLockData = ZooLock.getLockData(zcache, path, null);
-        if (null == gcLockData) {
+        if (gcLockData == null) {
           log.info("Waiting for GC ZooKeeper lock to be acquired");
           Thread.sleep(2000);
         }
-      } while (null == gcLockData);
+      } while (gcLockData == null);
 
       log.info("GC lock was acquired");
     }
@@ -132,10 +132,10 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
   public void restoreConfig() throws Exception {
     try (AccumuloClient c = createAccumuloClient()) {
       InstanceOperations iops = c.instanceOperations();
-      if (null != gcCycleDelay) {
+      if (gcCycleDelay != null) {
         iops.setProperty(Property.GC_CYCLE_DELAY.getKey(), gcCycleDelay);
       }
-      if (null != gcCycleStart) {
+      if (gcCycleStart != null) {
         iops.setProperty(Property.GC_CYCLE_START.getKey(), gcCycleStart);
       }
       log.info("Restarting garbage collector");

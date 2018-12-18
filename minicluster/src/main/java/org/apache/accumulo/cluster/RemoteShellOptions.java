@@ -62,7 +62,7 @@ public class RemoteShellOptions {
     String propertyFile = systemProperties.getProperty(SSH_PROPERTIES_FILE);
 
     // Load properties from the specified file
-    if (null != propertyFile) {
+    if (propertyFile != null) {
       // Check for properties provided in a file
       File f = new File(propertyFile);
       if (f.exists() && f.isFile() && f.canRead()) {
@@ -73,7 +73,7 @@ public class RemoteShellOptions {
           log.warn("Could not read properties from specified file: {}", propertyFile, e);
         }
 
-        if (null != reader) {
+        if (reader != null) {
           try {
             properties.load(reader);
           } catch (IOException e) {

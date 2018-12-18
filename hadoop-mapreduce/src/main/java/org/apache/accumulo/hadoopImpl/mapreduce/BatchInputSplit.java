@@ -58,7 +58,7 @@ public class BatchInputSplit extends RangeInputSplit {
    */
   @Override
   public float getProgress(Key currentKey) {
-    if (null == rangeProgress)
+    if (rangeProgress == null)
       rangeProgress = new float[ranges.size()];
 
     float total = 0; // progress per range could be on different scales, this number is "fuzzy"

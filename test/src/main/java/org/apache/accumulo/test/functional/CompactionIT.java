@@ -72,7 +72,7 @@ public class CompactionIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    if (ClusterType.STANDALONE == getClusterType()) {
+    if (getClusterType() == ClusterType.STANDALONE) {
       try (AccumuloClient client = createAccumuloClient()) {
         InstanceOperations iops = client.instanceOperations();
         Map<String,String> config = iops.getSystemConfiguration();
@@ -93,7 +93,7 @@ public class CompactionIT extends AccumuloClusterHarness {
   @After
   public void resetConfig() throws Exception {
     // We set the values..
-    if (null != majcThreadMaxOpen) {
+    if (majcThreadMaxOpen != null) {
       try (AccumuloClient client = createAccumuloClient()) {
         InstanceOperations iops = client.instanceOperations();
 
@@ -162,7 +162,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       } finally {
         // Make sure the internal state in the cluster is reset (e.g. processes in MAC)
         getCluster().stop();
-        if (ClusterType.STANDALONE == getClusterType()) {
+        if (getClusterType() == ClusterType.STANDALONE) {
           // Then restart things for the next test if it's a standalone
           getCluster().start();
         }

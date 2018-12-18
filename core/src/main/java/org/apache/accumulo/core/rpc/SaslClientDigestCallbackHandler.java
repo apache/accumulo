@@ -103,7 +103,7 @@ public class SaslClientDigestCallbackHandler extends SaslDigestCallbackHandler {
 
   @Override
   public boolean equals(Object o) {
-    if (null == o) {
+    if (o == null) {
       return false;
     }
     if (o instanceof SaslClientDigestCallbackHandler) {

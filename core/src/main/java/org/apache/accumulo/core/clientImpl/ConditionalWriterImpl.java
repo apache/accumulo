@@ -274,7 +274,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
           else
             toe = new TimedOutException("Conditional mutation timed out");
 
-          qcm.queueResult(new Result(toe, qcm, (null == server ? null : server.toString())));
+          qcm.queueResult(new Result(toe, qcm, (server == null ? null : server.toString())));
         } else {
           mutations2.add(qcm);
         }

@@ -1999,7 +1999,7 @@ public class TabletServer implements Runnable {
     public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) throws TException {
       String log = logger.getLogFile();
       // Might be null if there no active logger
-      if (null == log) {
+      if (log == null) {
         return Collections.emptyList();
       }
       return Collections.singletonList(log);
@@ -2653,7 +2653,7 @@ public class TabletServer implements Runnable {
     clientHandler = new ThriftClientHandler();
     Iface rpcProxy = TraceWrap.service(clientHandler);
     final Processor<Iface> processor;
-    if (ThriftServerType.SASL == context.getThriftServerType()) {
+    if (context.getThriftServerType() == ThriftServerType.SASL) {
       Iface tcredProxy = TCredentialsUpdatingWrapper.service(rpcProxy, ThriftClientHandler.class,
           getConfiguration());
       processor = new Processor<>(tcredProxy);
@@ -2714,7 +2714,7 @@ public class TabletServer implements Runnable {
       try {
         zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
       } catch (KeeperException e) {
-        if (KeeperException.Code.NOAUTH == e.code()) {
+        if (e.code() == KeeperException.Code.NOAUTH) {
           log.error("Failed to write to ZooKeeper. Ensure that"
               + " accumulo.properties, specifically instance.secret, is consistent.");
         }
@@ -2799,7 +2799,7 @@ public class TabletServer implements Runnable {
       log.error("Error registering with JMX", e);
     }
 
-    if (null != authKeyWatcher) {
+    if (authKeyWatcher != null) {
       log.info("Seeding ZooKeeper watcher for authentication keys");
       try {
         authKeyWatcher.updateAuthKeys();
@@ -3139,7 +3139,7 @@ public class TabletServer implements Runnable {
   }
 
   public String getReplicationAddressSTring() {
-    if (null == replicationAddress) {
+    if (replicationAddress == null) {
       return null;
     }
     return replicationAddress.getHost() + ":" + replicationAddress.getPort();

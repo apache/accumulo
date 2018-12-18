@@ -606,7 +606,7 @@ class FateServiceHandler implements FateService.Iface {
   private void throwIfTableMissingSecurityException(ThriftSecurityException e, Table.ID tableId,
       String tableName, TableOperation op) throws ThriftTableOperationException {
     // ACCUMULO-3135 Table can be deleted after we get table ID but before we can check permission
-    if (e.isSetCode() && SecurityErrorCode.TABLE_DOESNT_EXIST == e.getCode()) {
+    if (e.isSetCode() && e.getCode() == SecurityErrorCode.TABLE_DOESNT_EXIST) {
       throw new ThriftTableOperationException(tableId.canonicalID(), tableName, op,
           TableOperationExceptionType.NOTFOUND, "Table no longer exists");
     }

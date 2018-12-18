@@ -38,7 +38,7 @@ public class LruBlockCacheManager extends BlockCacheManager {
   public void stop() {
     for (CacheType type : CacheType.values()) {
       LruBlockCache cache = ((LruBlockCache) this.getBlockCache(type));
-      if (null != cache) {
+      if (cache != null) {
         cache.shutdown();
       }
     }

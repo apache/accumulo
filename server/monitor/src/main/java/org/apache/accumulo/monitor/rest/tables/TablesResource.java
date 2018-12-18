@@ -89,7 +89,7 @@ public class TablesResource {
       TableInfo tableInfo = tableStats.get(tableId);
       TableState tableState = tableManager.getTableState(tableId);
 
-      if (null != tableInfo && !tableState.equals(TableState.OFFLINE)) {
+      if (tableInfo != null && !tableState.equals(TableState.OFFLINE)) {
         Double holdTime = compactingByTable.get(tableId.canonicalID());
         if (holdTime == null)
           holdTime = 0.;

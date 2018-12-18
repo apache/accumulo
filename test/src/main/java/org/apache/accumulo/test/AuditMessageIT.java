@@ -431,9 +431,9 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     ArrayList<String> auditMessages = getAuditMessages("testDataOperationsAudits");
     assertTrue(
-        1 <= findAuditMessage(auditMessages, "action: scan; targetTable: " + OLD_TEST_TABLE_NAME));
+        findAuditMessage(auditMessages, "action: scan; targetTable: " + OLD_TEST_TABLE_NAME) >= 1);
     assertTrue(
-        1 <= findAuditMessage(auditMessages, "action: scan; targetTable: " + OLD_TEST_TABLE_NAME));
+        findAuditMessage(auditMessages, "action: scan; targetTable: " + OLD_TEST_TABLE_NAME) >= 1);
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_DELETE_RANGE_AUDIT_TEMPLATE,

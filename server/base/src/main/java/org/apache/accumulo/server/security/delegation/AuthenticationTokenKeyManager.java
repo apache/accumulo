@@ -115,7 +115,7 @@ public class AuthenticationTokenKeyManager extends Daemon {
         // expected
         // functionality if the active master happens to die for some reason
         AuthenticationKey currentKey = secretManager.getCurrentKey();
-        if (null != currentKey) {
+        if (currentKey != null) {
           log.info("Updating last key update to {} from current secret manager key",
               currentKey.getCreationDate());
           lastKeyUpdate = currentKey.getCreationDate();

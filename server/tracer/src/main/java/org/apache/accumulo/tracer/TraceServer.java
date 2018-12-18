@@ -167,7 +167,7 @@ public class TraceServer implements Watcher, AutoCloseable {
          * Check for null, because we expect spans to come in much faster than flush calls. In the
          * case of failure, we'd rather avoid logging tons of NPEs.
          */
-        if (null == writer) {
+        if (writer == null) {
           log.warn("writer is not ready; discarding span.");
           return;
         }
@@ -216,7 +216,7 @@ public class TraceServer implements Watcher, AutoCloseable {
         log.warn("Unable to start trace server on port {}", port);
       }
     }
-    if (null == sock) {
+    if (sock == null) {
       throw new RuntimeException(
           "Unable to start trace server on configured ports: " + Arrays.toString(ports));
     }
@@ -312,7 +312,7 @@ public class TraceServer implements Watcher, AutoCloseable {
   private void flush() {
     try {
       final BatchWriter writer = this.writer.get();
-      if (null != writer) {
+      if (writer != null) {
         writer.flush();
       } else {
         // We don't have a writer. If the table exists, try to make a new writer.
@@ -342,7 +342,7 @@ public class TraceServer implements Watcher, AutoCloseable {
       /* Trade in the new writer (even if null) for the one we need to close. */
       writer = this.writer.getAndSet(writer);
       try {
-        if (null != writer) {
+        if (writer != null) {
           writer.close();
         }
       } catch (Exception ex) {

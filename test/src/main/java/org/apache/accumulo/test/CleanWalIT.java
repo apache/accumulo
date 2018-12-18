@@ -79,7 +79,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
 
   @After
   public void onlineTraceTable() throws Exception {
-    if (null != cluster) {
+    if (cluster != null) {
       try (AccumuloClient client = createAccumuloClient()) {
         String traceTable = client.instanceOperations().getSystemConfiguration()
             .get(Property.TRACE_TABLE.getKey());

@@ -75,7 +75,7 @@ public class AlphaNumKeyConstraint implements Constraint {
         violations = addViolation(violations, NON_ALPHA_NUM_COLQ);
     }
 
-    return null == violations ? null : new ArrayList<>(violations);
+    return violations == null ? null : new ArrayList<>(violations);
   }
 
   @Override

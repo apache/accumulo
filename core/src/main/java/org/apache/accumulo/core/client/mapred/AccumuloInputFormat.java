@@ -59,7 +59,7 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
         (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
       // @formatter:on
       Level level = accSplit.getLogLevel();
-      if (null != level) {
+      if (level != null) {
         log.setLevel(level);
       }
     } else {

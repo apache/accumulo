@@ -32,7 +32,7 @@ public class FairVolumeChooser implements VolumeChooser {
   public String choose(VolumeChooserEnvironment env, String[] options) {
     int currentChoice;
     Integer lastChoice = optionLengthToLastChoice.get(options.length);
-    if (null == lastChoice) {
+    if (lastChoice == null) {
       currentChoice = 0;
     } else {
       currentChoice = lastChoice + 1;

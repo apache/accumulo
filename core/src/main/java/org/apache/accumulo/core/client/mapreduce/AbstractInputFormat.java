@@ -469,11 +469,11 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         RangeInputSplit split) {
       List<IteratorSetting> iterators = null;
 
-      if (null == split) {
+      if (split == null) {
         iterators = contextIterators(context, tableName);
       } else {
         iterators = split.getIterators();
-        if (null == iterators) {
+        if (iterators == null) {
           iterators = contextIterators(context, tableName);
         }
       }
@@ -513,7 +513,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           int scanThreads = 1;
           scanner = context.createBatchScanner(split.getTableName(), authorizations, scanThreads);
           setupIterators(attempt, scanner, split.getTableName(), split);
-          if (null != classLoaderContext) {
+          if (classLoaderContext != null) {
             scanner.setClassLoaderContext(classLoaderContext);
           }
         } catch (Exception e) {
@@ -527,17 +527,17 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         Scanner scanner;
 
         Boolean isOffline = split.isOffline();
-        if (null == isOffline) {
+        if (isOffline == null) {
           isOffline = tableConfig.isOfflineScan();
         }
 
         Boolean isIsolated = split.isIsolatedScan();
-        if (null == isIsolated) {
+        if (isIsolated == null) {
           isIsolated = tableConfig.shouldUseIsolatedScanners();
         }
 
         Boolean usesLocalIterators = split.usesLocalIterators();
-        if (null == usesLocalIterators) {
+        if (usesLocalIterators == null) {
           usesLocalIterators = tableConfig.shouldUseLocalIterators();
         }
 
@@ -569,7 +569,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       }
 
       Collection<Pair<Text,Text>> columns = split.getFetchedColumns();
-      if (null == columns) {
+      if (columns == null) {
         columns = tableConfig.getFetchedColumns();
       }
 
@@ -585,7 +585,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       }
 
       SamplerConfiguration samplerConfig = split.getSamplerConfiguration();
-      if (null == samplerConfig) {
+      if (samplerConfig == null) {
         samplerConfig = tableConfig.getSamplerConfiguration();
       }
 
@@ -608,7 +608,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
 
     @Override
     public void close() {
-      if (null != scannerBase) {
+      if (scannerBase != null) {
         scannerBase.close();
       }
     }

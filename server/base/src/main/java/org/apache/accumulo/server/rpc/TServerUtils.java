@@ -143,7 +143,7 @@ public class TServerUtils {
         .getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
     final ThriftServerType serverType = service.getThriftServerType();
 
-    if (ThriftServerType.SASL == serverType) {
+    if (serverType == ThriftServerType.SASL) {
       processor = updateSaslProcessor(serverType, processor);
     }
 
@@ -329,7 +329,7 @@ public class TServerUtils {
     options.protocolFactory(protocolFactory);
     options.transportFactory(transportFactory);
     options.processorFactory(new ClientInfoProcessorFactory(clientAddress, processor));
-    if (null != service) {
+    if (service != null) {
       options.executorService(service);
     }
     return new TThreadPoolServer(options);
@@ -488,7 +488,7 @@ public class TServerUtils {
     saslTransportFactory.addServerDefinition(ThriftUtil.GSSAPI, params.getKerberosServerPrimary(),
         hostname, params.getSaslProperties(), new SaslRpcServer.SaslGssCallbackHandler());
 
-    if (null != params.getSecretManager()) {
+    if (params.getSecretManager() != null) {
       log.info("Adding DIGEST-MD5 server definition for delegation tokens");
       saslTransportFactory.addServerDefinition(ThriftUtil.DIGEST_MD5,
           params.getKerberosServerPrimary(), hostname, params.getSaslProperties(),
@@ -523,7 +523,7 @@ public class TServerUtils {
       SaslServerConnectionParams saslParams, long serverSocketTimeout, HostAndPort... addresses)
       throws TTransportException {
 
-    if (ThriftServerType.SASL == serverType) {
+    if (serverType == ThriftServerType.SASL) {
       processor = updateSaslProcessor(serverType, processor);
     }
 
@@ -599,7 +599,7 @@ public class TServerUtils {
         log.warn("Error attempting to create server at {}. Error: {}", address, e.getMessage());
       }
     }
-    if (null == serverAddress) {
+    if (serverAddress == null) {
       throw new TTransportException(
           "Unable to create server on addresses: " + Arrays.toString(addresses));
     }
@@ -662,7 +662,7 @@ public class TServerUtils {
    * @return A {@link UGIAssumingProcessor} which wraps the provided processor
    */
   private static TProcessor updateSaslProcessor(ThriftServerType serverType, TProcessor processor) {
-    checkArgument(ThriftServerType.SASL == serverType);
+    checkArgument(serverType == ThriftServerType.SASL);
 
     // Wrap the provided processor in our special processor which proxies the provided UGI on the
     // logged-in UGI

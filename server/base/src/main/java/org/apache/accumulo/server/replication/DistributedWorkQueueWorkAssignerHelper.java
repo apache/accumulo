@@ -54,7 +54,7 @@ public class DistributedWorkQueueWorkAssignerHelper {
     requireNonNull(queueKey);
 
     int index = queueKey.indexOf(KEY_SEPARATOR);
-    if (-1 == index) {
+    if (index == -1) {
       throw new IllegalArgumentException(
           "Could not find expected separator in queue key '" + queueKey + "'");
     }
@@ -62,13 +62,13 @@ public class DistributedWorkQueueWorkAssignerHelper {
     String filename = queueKey.substring(0, index);
 
     int secondIndex = queueKey.indexOf(KEY_SEPARATOR, index + 1);
-    if (-1 == secondIndex) {
+    if (secondIndex == -1) {
       throw new IllegalArgumentException(
           "Could not find expected separator in queue key '" + queueKey + "'");
     }
 
     int thirdIndex = queueKey.indexOf(KEY_SEPARATOR, secondIndex + 1);
-    if (-1 == thirdIndex) {
+    if (thirdIndex == -1) {
       throw new IllegalArgumentException(
           "Could not find expected seperator in queue key '" + queueKey + "'");
     }

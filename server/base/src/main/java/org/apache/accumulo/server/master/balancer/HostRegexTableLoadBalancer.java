@@ -136,7 +136,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       List<String> poolNames = getPoolNamesForHost(e.getKey().host());
       for (String pool : poolNames) {
         SortedMap<TServerInstance,TabletServerStatus> np = newPools.get(pool);
-        if (null == np) {
+        if (np == null) {
           np = new TreeMap<>(current.comparator());
           newPools.put(pool, np);
         }
@@ -204,7 +204,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
    * @return tablet server pool name (table name or DEFAULT_POOL)
    */
   protected String getPoolNameForTable(String tableName) {
-    if (null == tableName) {
+    if (tableName == null) {
       return DEFAULT_POOL;
     }
     return poolNameToRegexPattern.containsKey(tableName) ? tableName : DEFAULT_POOL;
@@ -218,7 +218,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
    */
   protected void parseConfiguration(ServerConfiguration conf) {
     TableOperations t = getTableOperations();
-    if (null == t) {
+    if (t == null) {
       throw new RuntimeException("Table Operations cannot be null");
     }
     tableIdToTableName = new HashMap<>();
@@ -229,7 +229,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       conf.getTableConfiguration(tableId).addObserver(this);
       Map<String,String> customProps = conf.getTableConfiguration(tableId)
           .getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
-      if (null != customProps && customProps.size() > 0) {
+      if (customProps != null && customProps.size() > 0) {
         for (Entry<String,String> customProp : customProps.entrySet()) {
           if (customProp.getKey().startsWith(HOST_BALANCER_PREFIX)) {
             if (customProp.getKey().equals(HOST_BALANCER_OOB_CHECK_KEY)
@@ -246,20 +246,20 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       }
     }
     String oobProperty = conf.getSystemConfiguration().get(HOST_BALANCER_OOB_CHECK_KEY);
-    if (null != oobProperty) {
+    if (oobProperty != null) {
       oobCheckMillis = ConfigurationTypeHelper.getTimeInMillis(oobProperty);
     }
     String ipBased = conf.getSystemConfiguration().get(HOST_BALANCER_REGEX_USING_IPS_KEY);
-    if (null != ipBased) {
+    if (ipBased != null) {
       isIpBasedRegex = Boolean.parseBoolean(ipBased);
     }
     String migrations = conf.getSystemConfiguration().get(HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY);
-    if (null != migrations) {
+    if (migrations != null) {
       maxTServerMigrations = Integer.parseInt(migrations);
     }
     String outstanding = conf.getSystemConfiguration()
         .get(HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY);
-    if (null != outstanding) {
+    if (outstanding != null) {
       this.maxOutstandingMigrations = Integer.parseInt(outstanding);
     }
     LOG.info("{}", this);
@@ -331,10 +331,10 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       String tableName = tableIdToTableName.get(e.getKey());
       String poolName = getPoolNameForTable(tableName);
       SortedMap<TServerInstance,TabletServerStatus> currentView = pools.get(poolName);
-      if (null == currentView || currentView.size() == 0) {
+      if (currentView == null || currentView.size() == 0) {
         LOG.warn("No tablet servers online for table {}, assigning within default pool", tableName);
         currentView = pools.get(DEFAULT_POOL);
-        if (null == currentView) {
+        if (currentView == null) {
           LOG.error(
               "No tablet servers exist in the default pool, unable to assign tablets for table {}",
               tableName);
@@ -376,7 +376,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
               continue;
             }
             String tid = tableIdMap.get(table);
-            if (null == tid) {
+            if (tid == null) {
               LOG.warn("Unable to check for out of bounds tablets for table {},"
                   + " it may have been deleted or renamed.", table);
               continue;
@@ -384,7 +384,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
             try {
               List<TabletStats> outOfBoundsTablets = getOnlineTabletsForTable(e.getKey(),
                   Table.ID.of(tid));
-              if (null == outOfBoundsTablets) {
+              if (outOfBoundsTablets == null) {
                 continue;
               }
               Random random = new SecureRandom();
@@ -397,7 +397,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
                 String poolName = getPoolNameForTable(table);
                 SortedMap<TServerInstance,TabletServerStatus> currentView = currentGrouped
                     .get(poolName);
-                if (null != currentView) {
+                if (currentView != null) {
                   int skip = random.nextInt(currentView.size());
                   Iterator<TServerInstance> iter = currentView.keySet().iterator();
                   for (int i = 0; i < skip; i++) {
@@ -472,7 +472,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       String regexTableName = getPoolNameForTable(tableName);
       SortedMap<TServerInstance,TabletServerStatus> currentView = currentGrouped
           .get(regexTableName);
-      if (null == currentView) {
+      if (currentView == null) {
         LOG.warn("Skipping balance for table {} as no tablet servers are online.", tableName);
         continue;
       }

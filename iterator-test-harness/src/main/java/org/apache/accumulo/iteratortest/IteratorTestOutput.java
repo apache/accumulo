@@ -104,7 +104,7 @@ public class IteratorTestOutput {
    * @return True if there is output, false if the output is null.
    */
   public boolean hasOutput() {
-    return null != output;
+    return output != null;
   }
 
   /**
@@ -121,7 +121,7 @@ public class IteratorTestOutput {
    *         pairs.
    */
   public boolean hasException() {
-    return null != exception;
+    return exception != null;
   }
 
   @Override

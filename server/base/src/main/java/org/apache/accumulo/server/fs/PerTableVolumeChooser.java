@@ -90,11 +90,11 @@ public class PerTableVolumeChooser implements VolumeChooser {
 
     // fall back to global default scope, so setting only one default is necessary, rather than a
     // separate default for TABLE scope than other scopes
-    if (null == clazz || clazz.isEmpty()) {
+    if (clazz == null || clazz.isEmpty()) {
       clazz = confFactory.getSystemConfiguration().get(DEFAULT_SCOPED_VOLUME_CHOOSER);
     }
 
-    if (null == clazz || clazz.isEmpty()) {
+    if (clazz == null || clazz.isEmpty()) {
       String msg = "Property " + TABLE_VOLUME_CHOOSER + " or " + DEFAULT_SCOPED_VOLUME_CHOOSER
           + " must be a valid " + VolumeChooser.class.getSimpleName() + " to use the "
           + getClass().getSimpleName();
@@ -122,11 +122,11 @@ public class PerTableVolumeChooser implements VolumeChooser {
 
     // fall back to global default scope if this scope isn't configured (and not already default
     // scope)
-    if ((null == clazz || clazz.isEmpty()) && scope != ChooserScope.DEFAULT) {
+    if ((clazz == null || clazz.isEmpty()) && scope != ChooserScope.DEFAULT) {
       log.debug("{} not found; using {}", property, DEFAULT_SCOPED_VOLUME_CHOOSER);
       clazz = systemConfiguration.get(DEFAULT_SCOPED_VOLUME_CHOOSER);
 
-      if (null == clazz || clazz.isEmpty()) {
+      if (clazz == null || clazz.isEmpty()) {
         String msg = "Property " + property + " or " + DEFAULT_SCOPED_VOLUME_CHOOSER
             + " must be a valid " + VolumeChooser.class.getSimpleName() + " to use the "
             + getClass().getSimpleName();

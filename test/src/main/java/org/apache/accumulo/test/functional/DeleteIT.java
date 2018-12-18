@@ -68,7 +68,7 @@ public class DeleteIT extends AccumuloClusterHarness {
     vopts.cols = opts.cols = 1;
     vopts.random = opts.random = 56;
 
-    assertTrue("Expected one of password or keytab", null != password || null != keytab);
+    assertTrue("Expected one of password or keytab", password != null || keytab != null);
     opts.setClientProperties(getClientProperties());
     vopts.setClientProperties(getClientProperties());
 
@@ -77,13 +77,13 @@ public class DeleteIT extends AccumuloClusterHarness {
 
     String[] args = null;
 
-    assertTrue("Expected one of password or keytab", null != password || null != keytab);
-    if (null != password) {
+    assertTrue("Expected one of password or keytab", password != null || keytab != null);
+    if (password != null) {
       assertNull("Given password, expected null keytab", keytab);
       args = new String[] {"-u", user, "-p", password, "-i", cluster.getInstanceName(), "-z",
           cluster.getZooKeepers(), "--table", tableName};
     }
-    if (null != keytab) {
+    if (keytab != null) {
       assertNull("Given keytab, expect null password", password);
       args = new String[] {"-u", user, "-i", cluster.getInstanceName(), "-z",
           cluster.getZooKeepers(), "--table", tableName, "--keytab", keytab};

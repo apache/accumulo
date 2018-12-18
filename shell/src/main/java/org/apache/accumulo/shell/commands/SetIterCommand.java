@@ -111,9 +111,9 @@ public class SetIterCommand extends Command {
     String name = cl.getOptionValue(nameOpt.getOpt(), null);
 
     // Cannot continue if no name is provided
-    if (null == name && null == configuredName) {
+    if (name == null && configuredName == null) {
       throw new IllegalArgumentException("No provided or default name for iterator");
-    } else if (null == name) {
+    } else if (name == null) {
       // Fall back to the name from OptionDescriber or user input if none is provided on setiter
       // option
       name = configuredName;
@@ -239,7 +239,7 @@ public class SetIterCommand extends Command {
     }
 
     String iteratorName;
-    if (null != iterOptions) {
+    if (iterOptions != null) {
       final IteratorOptions itopts = iterOptions.describeOptions();
       iteratorName = itopts.getName();
 
@@ -315,7 +315,7 @@ public class SetIterCommand extends Command {
       reader.println("The iterator class does not implement OptionDescriber."
           + " Consider this for better iterator configuration using this setiter" + " command.");
       iteratorName = reader.readLine("Name for iterator (enter to skip): ");
-      if (null == iteratorName) {
+      if (iteratorName == null) {
         reader.println();
         throw new IOException("Input stream closed");
       } else if (StringUtils.isWhitespace(iteratorName)) {

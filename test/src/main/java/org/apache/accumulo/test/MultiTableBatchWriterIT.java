@@ -130,7 +130,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       }
 
     } finally {
-      if (null != mtbw) {
+      if (mtbw != null) {
         mtbw.close();
       }
     }
@@ -187,7 +187,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
         }
       }
     } finally {
-      if (null != mtbw) {
+      if (mtbw != null) {
         mtbw.close();
       }
     }
@@ -264,7 +264,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
         }
       }
     } finally {
-      if (null != mtbw) {
+      if (mtbw != null) {
         mtbw.close();
       }
     }
@@ -308,7 +308,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
         // Pass
       }
     } finally {
-      if (null != mtbw) {
+      if (mtbw != null) {
         mtbw.close();
       }
     }
@@ -351,7 +351,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       }
 
     } finally {
-      if (null != mtbw) {
+      if (mtbw != null) {
         try {
           // Mutations might have flushed before the table offline occurred
           mtbw.close();
@@ -401,7 +401,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
         mutationsRejected = true;
       }
     } finally {
-      if (null != mtbw) {
+      if (mtbw != null) {
         try {
           mtbw.close();
         } catch (MutationsRejectedException e) {

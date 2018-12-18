@@ -1460,7 +1460,7 @@ public class Mutation implements Writable {
    * @since 1.7.0
    */
   public void addReplicationSource(String peer) {
-    if (null == replicationSources || replicationSources == EMPTY) {
+    if (replicationSources == null || replicationSources == EMPTY) {
       replicationSources = new HashSet<>();
     }
 
@@ -1485,7 +1485,7 @@ public class Mutation implements Writable {
    * @return An unmodifiable view of the replication sources
    */
   public Set<String> getReplicationSources() {
-    if (null == replicationSources) {
+    if (replicationSources == null) {
       return EMPTY;
     }
     return Collections.unmodifiableSet(replicationSources);
@@ -1531,7 +1531,7 @@ public class Mutation implements Writable {
       }
     }
 
-    if (0x02 == (first & 0x02)) {
+    if ((first & 0x02) == 0x02) {
       int numMutations = WritableUtils.readVInt(in);
       this.replicationSources = new HashSet<>();
       for (int i = 0; i < numMutations; i++) {
@@ -1621,14 +1621,14 @@ public class Mutation implements Writable {
     out.write(data);
     UnsynchronizedBuffer.writeVInt(out, integerBuffer, entries);
 
-    if (0x01 == (0x01 & hasValues)) {
+    if ((0x01 & hasValues) == 0x01) {
       UnsynchronizedBuffer.writeVInt(out, integerBuffer, values.size());
       for (byte[] val : values) {
         UnsynchronizedBuffer.writeVInt(out, integerBuffer, val.length);
         out.write(val);
       }
     }
-    if (0x02 == (0x02 & hasValues)) {
+    if ((0x02 & hasValues) == 0x02) {
       UnsynchronizedBuffer.writeVInt(out, integerBuffer, replicationSources.size());
       for (String source : replicationSources) {
         WritableUtils.writeString(out, source);

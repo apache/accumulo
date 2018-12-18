@@ -193,7 +193,7 @@ public class ShellOptionsJC {
   private List<String> unrecognizedOptions;
 
   public String getUsername() throws Exception {
-    if (null == username) {
+    if (username == null) {
       username = getClientProperties().getProperty(ClientProperty.AUTH_PRINCIPAL.getKey());
       if (username == null || username.isEmpty()) {
         if (ClientProperty.SASL_ENABLED.getBoolean(getClientProperties())) {
@@ -297,10 +297,10 @@ public class ShellOptionsJC {
       props.setProperty(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
     }
     // If the user provided the hosts, set the ZK for tracing too
-    if (null != zooKeeperHosts && !zooKeeperHosts.isEmpty()) {
+    if (zooKeeperHosts != null && !zooKeeperHosts.isEmpty()) {
       props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zooKeeperHosts);
     }
-    if (null != zooKeeperInstanceName && !zooKeeperInstanceName.isEmpty()) {
+    if (zooKeeperInstanceName != null && !zooKeeperInstanceName.isEmpty()) {
       props.setProperty(ClientProperty.INSTANCE_NAME.getKey(), zooKeeperInstanceName);
     }
     return props;

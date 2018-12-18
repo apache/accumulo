@@ -142,7 +142,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
 
   @Override
   public synchronized void invalidateCache() {
-    if (null != propCacheAccessor) {
+    if (propCacheAccessor != null) {
       propCacheAccessor.invalidateCache();
     }
     // Else, if the accessor is null, we could lock and double-check

@@ -220,13 +220,13 @@ public enum ClientProperty {
   }
 
   public void setBytes(Properties properties, Long bytes) {
-    checkState(PropertyType.BYTES == getType(), "Invalid type setting " + "bytes. Type must be "
+    checkState(getType() == PropertyType.BYTES, "Invalid type setting " + "bytes. Type must be "
         + PropertyType.BYTES + ", not " + getType());
     properties.setProperty(getKey(), bytes.toString());
   }
 
   public void setTimeInMillis(Properties properties, Long milliseconds) {
-    checkState(PropertyType.TIMEDURATION == getType(), "Invalid type setting "
+    checkState(getType() == PropertyType.TIMEDURATION, "Invalid type setting "
         + "time. Type must be " + PropertyType.TIMEDURATION + ", not " + getType());
     properties.setProperty(getKey(), milliseconds + "ms");
   }

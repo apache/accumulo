@@ -667,7 +667,7 @@ public class SimpleGarbageCollector implements Iface {
   private HostAndPort startStatsService() throws UnknownHostException {
     Iface rpcProxy = TraceWrap.service(this);
     final Processor<Iface> processor;
-    if (ThriftServerType.SASL == context.getThriftServerType()) {
+    if (context.getThriftServerType() == ThriftServerType.SASL) {
       Iface tcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, getClass(), getConfiguration());
       processor = new Processor<>(tcProxy);
     } else {

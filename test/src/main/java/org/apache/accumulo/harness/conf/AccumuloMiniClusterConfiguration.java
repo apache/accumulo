@@ -49,7 +49,7 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
 
   public AccumuloMiniClusterConfiguration() {
     ClusterType type = getClusterType();
-    if (ClusterType.MINI != type) {
+    if (type != ClusterType.MINI) {
       throw new IllegalStateException("Expected only to see mini cluster state");
     }
 
@@ -65,7 +65,7 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
       return AccumuloClusterHarness.getKdc().getRootUser().getPrincipal();
     } else {
       String principal = conf.get(ACCUMULO_MINI_PRINCIPAL_KEY);
-      if (null == principal) {
+      if (principal == null) {
         principal = ACCUMULO_MINI_PRINCIPAL_DEFAULT;
       }
 
@@ -91,7 +91,7 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
       }
     } else {
       String password = conf.get(ACCUMULO_MINI_PASSWORD_KEY);
-      if (null == password) {
+      if (password == null) {
         password = ACCUMULO_MINI_PASSWORD_DEFAULT;
       }
 

@@ -335,7 +335,7 @@ public class Master
       // This Master hasn't started Fate yet, so any outstanding transactions must be from before
       // the upgrade.
       // Change to Guava's Verify once we use Guava 17.
-      if (null != fate) {
+      if (fate != null) {
         throw new IllegalStateException("Access to Fate should not have been"
             + " initialized prior to the Master transitioning to active. Please"
             + " save all logs and file a bug.");
@@ -503,7 +503,7 @@ public class Master
               + " Accumulo's metadata table if we've already upgraded ZooKeeper."
               + " Please save all logs and file a bug.");
         }
-        if (null != fate) {
+        if (fate != null) {
           throw new IllegalStateException("Access to Fate should not have been"
               + " initialized prior to the Master finishing upgrades. Please save"
               + " all logs and file a bug.");
@@ -966,7 +966,7 @@ public class Master
       TableManager manager = context.getTableManager();
       for (Table.ID tableId : Tables.getIdToNameMap(context).keySet()) {
         TableState state = manager.getTableState(tableId);
-        if (TableState.OFFLINE == state) {
+        if (state == TableState.OFFLINE) {
           clearMigrations(tableId);
         }
       }
@@ -1253,7 +1253,7 @@ public class Master
     Iface haProxy = HighlyAvailableServiceWrapper.service(clientHandler, this);
     Iface rpcProxy = TraceWrap.service(haProxy);
     final Processor<Iface> processor;
-    if (ThriftServerType.SASL == context.getThriftServerType()) {
+    if (context.getThriftServerType() == ThriftServerType.SASL) {
       Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass(),
           getConfiguration());
       processor = new Processor<>(tcredsProxy);
@@ -1371,7 +1371,7 @@ public class Master
 
     // Make sure that we have a secret key (either a new one or an old one from ZK) before we start
     // the master client service.
-    if (null != authenticationTokenKeyManager && null != keyDistributor) {
+    if (authenticationTokenKeyManager != null && keyDistributor != null) {
       log.info("Starting delegation-token key manager");
       keyDistributor.initialize();
       authenticationTokenKeyManager.start();
@@ -1647,7 +1647,7 @@ public class Master
   @Override
   public void stateChanged(Table.ID tableId, TableState state) {
     nextEvent.event("Table state in zookeeper changed for %s to %s", tableId, state);
-    if (TableState.OFFLINE == state) {
+    if (state == TableState.OFFLINE) {
       clearMigrations(tableId);
     }
   }

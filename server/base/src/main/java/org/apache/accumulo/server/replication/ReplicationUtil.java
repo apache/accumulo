@@ -130,13 +130,13 @@ public class ReplicationUtil {
       }
 
       Table.ID localId = tableNameToId.get(table);
-      if (null == localId) {
+      if (localId == null) {
         log.trace("Could not determine ID for {}", table);
         continue;
       }
 
       TableConfiguration tableConf = context.getServerConfFactory().getTableConfiguration(localId);
-      if (null == tableConf) {
+      if (tableConf == null) {
         log.trace("Could not get configuration for table {} (it no longer exists)", table);
         continue;
       }
@@ -179,7 +179,7 @@ public class ReplicationUtil {
         // TODO ACCUMULO-2835 once explicit lengths are tracked, we can give size-based estimates
         // instead of just file-based
         Long count = counts.get(target);
-        if (null == count) {
+        if (count == null) {
           counts.put(target, 1L);
         } else {
           counts.put(target, count + 1);
@@ -233,7 +233,7 @@ public class ReplicationUtil {
    */
   public String getAbsolutePath(AccumuloClient client, String workQueuePath, String queueKey) {
     byte[] data = zooCache.get(workQueuePath + "/" + queueKey);
-    if (null != data) {
+    if (data != null) {
       return new String(data, UTF_8);
     }
 
@@ -255,7 +255,7 @@ public class ReplicationUtil {
     // We could try to grep over the table, but without knowing the full file path, we
     // can't find the status quickly
     String status = "Unknown";
-    if (null != path) {
+    if (path != null) {
       Scanner s;
       try {
         s = ReplicationTable.getScanner(client);
@@ -279,7 +279,7 @@ public class ReplicationUtil {
       }
 
       // If we found the work entry for it, try to compute some progress
-      if (null != kv) {
+      if (kv != null) {
         try {
           Status stat = Status.parseFrom(kv.getValue().get());
           if (StatusUtil.isFullyReplicated(stat)) {

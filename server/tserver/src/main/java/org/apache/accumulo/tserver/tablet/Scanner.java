@@ -133,9 +133,9 @@ public class Scanner {
     } finally {
       // code in finally block because always want
       // to return mapfiles, even when exception is thrown
-      if (null != dataSource && !options.isIsolated()) {
+      if (dataSource != null && !options.isIsolated()) {
         dataSource.close(false);
-      } else if (null != dataSource) {
+      } else if (dataSource != null) {
         dataSource.detachFileManager();
       }
 

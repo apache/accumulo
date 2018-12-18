@@ -77,7 +77,7 @@ public class WorkMaker {
       final Scanner s;
       try {
         s = ReplicationTable.getScanner(client);
-        if (null == writer) {
+        if (writer == null) {
           setBatchWriter(ReplicationTable.getBatchWriter(client));
         }
       } catch (ReplicationTableOfflineException e) {
@@ -117,7 +117,7 @@ public class WorkMaker {
         tableConf = context.getServerConfFactory().getTableConfiguration(tableId);
 
         // getTableConfiguration(String) returns null if the table no longer exists
-        if (null == tableConf) {
+        if (tableConf == null) {
           continue;
         }
 

@@ -150,7 +150,7 @@ public class StandaloneClusterControl implements ClusterControl {
 
   String getJarFromClass(Class<?> clz) {
     CodeSource source = clz.getProtectionDomain().getCodeSource();
-    if (null == source) {
+    if (source == null) {
       throw new RuntimeException("Could not get CodeSource for class");
     }
     URL jarUrl = source.getLocation();
@@ -167,7 +167,7 @@ public class StandaloneClusterControl implements ClusterControl {
     String[] cmd = {serverCmdPrefix, accumuloPath, Admin.class.getName(), "stopAll"};
     // Directly invoke the RemoteShell
     Entry<Integer,String> pair = exec(master, cmd);
-    if (0 != pair.getKey()) {
+    if (pair.getKey() != 0) {
       throw new IOException("stopAll did not finish successfully, retcode=" + pair.getKey()
           + ", stdout=" + pair.getValue());
     }
@@ -187,7 +187,7 @@ public class StandaloneClusterControl implements ClusterControl {
     String master = getHosts(MASTER_HOSTS_FILE).get(0);
     String[] cmd = {serverCmdPrefix, accumuloPath, SetGoalState.class.getName(), goalState};
     Entry<Integer,String> pair = exec(master, cmd);
-    if (0 != pair.getKey()) {
+    if (pair.getKey() != 0) {
       throw new IOException("SetGoalState did not finish successfully, retcode=" + pair.getKey()
           + ", stdout=" + pair.getValue());
     }
@@ -239,7 +239,7 @@ public class StandaloneClusterControl implements ClusterControl {
   public void start(ServerType server, String hostname) throws IOException {
     String[] cmd = {serverCmdPrefix, accumuloServicePath, getProcessString(server), "start"};
     Entry<Integer,String> pair = exec(hostname, cmd);
-    if (0 != pair.getKey()) {
+    if (pair.getKey() != 0) {
       throw new IOException(
           "Start " + server + " on " + hostname + " failed for execute successfully");
     }
@@ -311,7 +311,7 @@ public class StandaloneClusterControl implements ClusterControl {
     }
 
     Entry<Integer,String> pair = exec(hostname, stopCmd);
-    if (0 != pair.getKey()) {
+    if (pair.getKey() != 0) {
       throw new IOException("Signal " + signal + " to " + server + " on " + hostname
           + " failed for execute successfully. stdout=" + pair.getValue());
     }
@@ -336,7 +336,7 @@ public class StandaloneClusterControl implements ClusterControl {
       throws IOException {
     String[] getPidCommand = getPidCommand(server, accumuloHome);
     Entry<Integer,String> ret = exec(hostname, getPidCommand);
-    if (0 != ret.getKey()) {
+    if (ret.getKey() != 0) {
       throw new IOException(
           "Could not locate PID for " + getProcessString(server) + " on " + hostname);
     }

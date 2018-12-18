@@ -205,7 +205,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     String zkPath = ZooUtil.getRoot(client.getInstanceID()) + Constants.ZGC_LOCK;
     log.info("Looking for GC lock at {}", zkPath);
     byte[] data = ZooLock.getLockData(zcache, zkPath, null);
-    while (null == data) {
+    while (data == null) {
       log.info("Waiting for GC ZooKeeper lock to be acquired");
       Thread.sleep(1000);
       data = ZooLock.getLockData(zcache, zkPath, null);
@@ -926,7 +926,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         Status expectedStatus = StatusUtil.openWithUnknownLength();
         attempts = 10;
         // This record will move from new to new with infinite length because of the minc (flush)
-        while (null == entry && attempts > 0) {
+        while (entry == null && attempts > 0) {
           try {
             entry = Iterables.getOnlyElement(s);
             Status actual = Status.parseFrom(entry.getValue().get());
@@ -964,7 +964,7 @@ public class ReplicationIT extends ConfigurableMacBase {
           try (Scanner s2 = ReplicationTable.getScanner(client)) {
             WorkSection.limit(s2);
             int elementsFound = Iterables.size(s2);
-            if (0 < elementsFound) {
+            if (elementsFound > 0) {
               assertEquals(1, elementsFound);
               notFound = false;
             }
@@ -1014,7 +1014,7 @@ public class ReplicationIT extends ConfigurableMacBase {
           try (Scanner s2 = ReplicationTable.getScanner(client)) {
             WorkSection.limit(s2);
             int elementsFound = Iterables.size(s2);
-            if (2 == elementsFound) {
+            if (elementsFound == 2) {
               notFound = false;
             }
             Thread.sleep(500);

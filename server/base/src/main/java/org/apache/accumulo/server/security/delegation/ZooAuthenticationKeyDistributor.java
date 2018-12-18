@@ -72,7 +72,7 @@ public class ZooAuthenticationKeyDistributor {
       }
     } else {
       List<ACL> acls = zk.getACL(baseNode, new Stat());
-      if (1 == acls.size()) {
+      if (acls.size() == 1) {
         ACL actualAcl = acls.get(0), expectedAcl = ZooUtil.PRIVATE.get(0);
         Id actualId = actualAcl.getId();
         // The expected outcome from ZooUtil.PRIVATE
@@ -112,7 +112,7 @@ public class ZooAuthenticationKeyDistributor {
     List<AuthenticationKey> keys = new ArrayList<>(children.size());
     for (String child : children) {
       byte[] data = zk.getData(qualifyPath(child), null);
-      if (null != data) {
+      if (data != null) {
         AuthenticationKey key = new AuthenticationKey();
         try {
           key.readFields(new DataInputStream(new ByteArrayInputStream(data)));

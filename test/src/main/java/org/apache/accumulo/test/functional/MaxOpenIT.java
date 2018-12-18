@@ -78,13 +78,13 @@ public class MaxOpenIT extends AccumuloClusterHarness {
   public void restoreConfig() throws Exception {
     try (AccumuloClient client = createAccumuloClient()) {
       InstanceOperations iops = client.instanceOperations();
-      if (null != scanMaxOpenFiles) {
+      if (scanMaxOpenFiles != null) {
         iops.setProperty(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), scanMaxOpenFiles);
       }
-      if (null != majcConcurrent) {
+      if (majcConcurrent != null) {
         iops.setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), majcConcurrent);
       }
-      if (null != majcThreadMaxOpen) {
+      if (majcThreadMaxOpen != null) {
         iops.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), majcThreadMaxOpen);
       }
     }

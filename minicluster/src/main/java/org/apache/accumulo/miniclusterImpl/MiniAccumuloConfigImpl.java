@@ -190,7 +190,7 @@ public class MiniAccumuloConfigImpl {
 
   private void updateConfigForCredentialProvider() {
     String cpPaths = siteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
-    if (null != cpPaths
+    if (cpPaths != null
         && !Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getDefaultValue().equals(cpPaths)) {
       // Already configured
       return;

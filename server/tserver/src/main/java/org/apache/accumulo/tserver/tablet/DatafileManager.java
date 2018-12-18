@@ -409,7 +409,7 @@ class DatafileManager {
       logFileOnly = new HashSet<>();
       for (String unusedWalLog : unusedWalLogs) {
         int index = unusedWalLog.indexOf('/');
-        if (-1 == index) {
+        if (index == -1) {
           log.warn("Could not find host component to strip from DFSLogger representation of WAL");
         } else {
           unusedWalLog = unusedWalLog.substring(index + 1);

@@ -398,7 +398,7 @@ public class Admin implements KeywordExecutable {
       String hostAndPort) {
     try {
       long sessionId = ZooLock.getSessionId(zooCache, zTServerRoot + "/" + hostAndPort);
-      if (0 == sessionId) {
+      if (sessionId == 0) {
         return hostAndPort;
       }
       return hostAndPort + "[" + Long.toHexString(sessionId) + "]";
@@ -491,13 +491,13 @@ public class Admin implements KeywordExecutable {
   }
 
   private String getDefaultConfigValue(String key) {
-    if (null == key)
+    if (key == null)
       return null;
 
     String defaultValue = null;
     try {
       Property p = Property.getPropertyByKey(key);
-      if (null == p)
+      if (p == null)
         return defaultValue;
       defaultValue = defaultConfig.get(p);
     } catch (IllegalArgumentException e) {

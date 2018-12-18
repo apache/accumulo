@@ -729,7 +729,7 @@ public class TabletServerResourceManager {
       executorService.shutdown();
     }
 
-    if (null != this.cacheManager) {
+    if (this.cacheManager != null) {
       try {
         this.cacheManager.stop();
       } catch (Exception ex) {

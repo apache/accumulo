@@ -176,7 +176,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public void createLocalUser(TInfo tinfo, TCredentials credentials, String principal,
       ByteBuffer password) throws ThriftSecurityException {
     AuthenticationToken token;
-    if (null != context.getSaslParams()) {
+    if (context.getSaslParams() != null) {
       try {
         token = new KerberosToken();
       } catch (IOException e) {

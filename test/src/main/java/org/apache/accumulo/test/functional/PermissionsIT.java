@@ -77,7 +77,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
   @Before
   public void limitToMini() throws Exception {
-    Assume.assumeTrue(ClusterType.MINI == getClusterType());
+    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
     try (AccumuloClient c = createAccumuloClient()) {
       Set<String> users = c.securityOperations().listLocalUsers();
       ClusterUser user = getUser(0);

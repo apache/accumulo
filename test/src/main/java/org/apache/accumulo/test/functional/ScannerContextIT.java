@@ -284,10 +284,10 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   private void scanCheck(AccumuloClient c, String tableName, IteratorSetting cfg, String context,
       String expected) throws Exception {
     try (Scanner bs = c.createScanner(tableName, Authorizations.EMPTY)) {
-      if (null != context) {
+      if (context != null) {
         bs.setClassLoaderContext(context);
       }
-      if (null != cfg) {
+      if (cfg != null) {
         bs.addScanIterator(cfg);
       }
       Iterator<Entry<Key,Value>> iterator = bs.iterator();
@@ -304,10 +304,10 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       String expected) throws Exception {
     try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
       bs.setRanges(Collections.singleton(new Range()));
-      if (null != context) {
+      if (context != null) {
         bs.setClassLoaderContext(context);
       }
-      if (null != cfg) {
+      if (cfg != null) {
         bs.addScanIterator(cfg);
       }
       Iterator<Entry<Key,Value>> iterator = bs.iterator();

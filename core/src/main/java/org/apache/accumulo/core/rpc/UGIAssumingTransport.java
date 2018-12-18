@@ -62,7 +62,7 @@ public class UGIAssumingTransport extends FilterTransport {
 
     // Make sure the transport exception gets (re)thrown if it happened
     TTransportException tte = holder.get();
-    if (null != tte) {
+    if (tte != null) {
       throw tte;
     }
   }

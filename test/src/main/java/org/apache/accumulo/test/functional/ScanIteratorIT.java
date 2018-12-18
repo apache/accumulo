@@ -95,7 +95,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
   @After
   public void tearDown() throws Exception {
-    if (null != user) {
+    if (user != null) {
       if (saslEnabled) {
         ClusterUser rootUser = getAdminUser();
         UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),

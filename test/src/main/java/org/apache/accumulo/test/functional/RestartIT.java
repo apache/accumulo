@@ -92,7 +92,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @After
   public void teardown() throws Exception {
-    if (null == svc) {
+    if (svc == null) {
       return;
     }
 
@@ -174,11 +174,11 @@ public class RestartIT extends AccumuloClusterHarness {
       do {
         masterLockData = ZooLock.getLockData(zcache,
             ZooUtil.getRoot(c.getInstanceID()) + Constants.ZMASTER_LOCK, null);
-        if (null != masterLockData) {
+        if (masterLockData != null) {
           log.info("Master lock is still held");
           Thread.sleep(1000);
         }
-      } while (null != masterLockData);
+      } while (masterLockData != null);
 
       cluster.start();
       sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
@@ -188,11 +188,11 @@ public class RestartIT extends AccumuloClusterHarness {
       do {
         masterLockData = ZooLock.getLockData(zcache,
             ZooUtil.getRoot(c.getInstanceID()) + Constants.ZMASTER_LOCK, null);
-        if (null != masterLockData) {
+        if (masterLockData != null) {
           log.info("Master lock is still held");
           Thread.sleep(1000);
         }
-      } while (null != masterLockData);
+      } while (masterLockData != null);
       cluster.start();
       VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
     }
@@ -243,11 +243,11 @@ public class RestartIT extends AccumuloClusterHarness {
       do {
         masterLockData = ZooLock.getLockData(zcache,
             ZooUtil.getRoot(c.getInstanceID()) + Constants.ZMASTER_LOCK, null);
-        if (null != masterLockData) {
+        if (masterLockData != null) {
           log.info("Master lock is still held");
           Thread.sleep(1000);
         }
-      } while (null != masterLockData);
+      } while (masterLockData != null);
 
       cluster.start();
       assertEquals(0, ret.get().intValue());
