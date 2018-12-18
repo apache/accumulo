@@ -245,7 +245,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     void assertGoodExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
       shellLog.debug("Shell Output: '{}'", output.get());
-      if (0 != shell.getExitCode()) {
+      if (shell.getExitCode() != 0) {
         String errorMsg = callback.getErrorMessage();
         assertEquals(errorMsg, 0, shell.getExitCode());
       }
@@ -257,7 +257,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     void assertBadExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
       shellLog.debug(output.get());
-      if (0 == shell.getExitCode()) {
+      if (shell.getExitCode() == 0) {
         String errorMsg = callback.getErrorMessage();
         assertTrue(errorMsg, shell.getExitCode() > 0);
       }
@@ -322,7 +322,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @AfterClass
   public static void tearDownAfterClass() throws Exception {
-    if (null != traceProcess) {
+    if (traceProcess != null) {
       traceProcess.destroy();
     }
 
@@ -1189,7 +1189,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // 2nd file for that tablet
     // If we notice this, compact and then move on.
     List<String> files = getFiles(tableId);
-    if (3 < files.size()) {
+    if (files.size() > 3) {
       log.info("More than 3 files were found, compacting before proceeding");
       ts.exec("compact -w -t " + table);
       files = getFiles(tableId);
@@ -2000,7 +2000,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String[] lines = StringUtils.split(ts.output.get(), "\n");
     ts.output.clear();
 
-    if (0 == lines.length) {
+    if (lines.length == 0) {
       return Collections.emptyList();
     }
 

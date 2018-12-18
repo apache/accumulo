@@ -193,7 +193,7 @@ public class LogSorter {
     synchronized void close() throws IOException {
       // If we receive an empty or malformed-header WAL, we won't
       // have input streams that need closing. Avoid the NPE.
-      if (null != input) {
+      if (input != null) {
         bytesCopied = input.getPos();
         input.close();
         decryptingInput.close();

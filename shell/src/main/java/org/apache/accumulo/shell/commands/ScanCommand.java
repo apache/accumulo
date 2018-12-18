@@ -101,7 +101,7 @@ public class ScanCommand extends Command {
       // scan with
       final Authorizations auths = getAuths(cl, shellState);
       final Scanner scanner = shellState.getAccumuloClient().createScanner(tableName, auths);
-      if (null != classLoaderContext) {
+      if (classLoaderContext != null) {
         scanner.setClassLoaderContext(classLoaderContext);
       }
       // handle session-specific scan iterators

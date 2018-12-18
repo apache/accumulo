@@ -85,7 +85,7 @@ public class IteratorTestRunner {
       }
 
       // Sanity-check on the IteratorTestCase implementation.
-      if (null == actualOutput) {
+      if (actualOutput == null) {
         throw new IllegalStateException(
             "IteratorTestCase implementations should always return a non-null IteratorTestOutput. "
                 + testCase.getClass().getName() + " did not!");

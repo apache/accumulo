@@ -70,13 +70,13 @@ public class RandomizeVolumes {
       return 1;
     }
     String tblStr = context.tableOperations().tableIdMap().get(tableName);
-    if (null == tblStr) {
+    if (tblStr == null) {
       log.error("Could not determine the table ID for table {}", tableName);
       return 2;
     }
     Table.ID tableId = Table.ID.of(tblStr);
     TableState tableState = context.getTableManager().getTableState(tableId);
-    if (TableState.OFFLINE != tableState) {
+    if (tableState != TableState.OFFLINE) {
       log.info("Taking {} offline", tableName);
       context.tableOperations().offline(tableName, true);
       log.info("{} offline", tableName);
@@ -136,7 +136,7 @@ public class RandomizeVolumes {
       }
     }
     log.info("Updated {} entries for table {}", count, tableName);
-    if (TableState.OFFLINE != tableState) {
+    if (tableState != TableState.OFFLINE) {
       context.tableOperations().online(tableName, true);
       log.info("table {} back online", tableName);
     }

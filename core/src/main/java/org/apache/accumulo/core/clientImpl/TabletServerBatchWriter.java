@@ -724,10 +724,10 @@ public class TabletServerBatchWriter {
     }
 
     void queueMutations(final MutationSet mutationsToSend) throws InterruptedException {
-      if (null == mutationsToSend)
+      if (mutationsToSend == null)
         return;
       binningThreadPool.execute(Trace.wrap(() -> {
-        if (null != mutationsToSend) {
+        if (mutationsToSend != null) {
           try {
             log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
                 mutationsToSend.size());

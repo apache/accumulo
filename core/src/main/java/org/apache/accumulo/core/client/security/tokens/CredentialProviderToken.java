@@ -56,7 +56,7 @@ public class CredentialProviderToken extends PasswordToken {
 
     char[] password = CredentialProviderFactoryShim.getValueFromCredentialProvider(conf, name);
 
-    if (null == password) {
+    if (password == null) {
       throw new IOException(
           "No password could be extracted from CredentialProvider(s) with " + name);
     }
@@ -82,7 +82,7 @@ public class CredentialProviderToken extends PasswordToken {
   public void init(Properties properties) {
     char[] nameCharArray = properties.get(NAME_PROPERTY),
         credentialProvidersCharArray = properties.get(CREDENTIAL_PROVIDERS_PROPERTY);
-    if (null != nameCharArray && null != credentialProvidersCharArray) {
+    if (nameCharArray != null && credentialProvidersCharArray != null) {
       try {
         this.setWithCredentialProviders(new String(nameCharArray),
             new String(credentialProvidersCharArray));

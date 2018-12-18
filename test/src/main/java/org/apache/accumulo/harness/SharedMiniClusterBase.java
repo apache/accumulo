@@ -109,7 +109,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
         miniClusterCallback, krb);
     cluster.start();
 
-    if (null != krb) {
+    if (krb != null) {
       final String traceTable = Property.TRACE_TABLE.getDefaultValue();
       final ClusterUser systemUser = krb.getAccumuloServerUser(), rootUser = krb.getRootUser();
       // Login as the trace user
@@ -147,14 +147,14 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
    * Stops the MiniAccumuloCluster and related services if they are running.
    */
   public static void stopMiniCluster() throws Exception {
-    if (null != cluster) {
+    if (cluster != null) {
       try {
         cluster.stop();
       } catch (Exception e) {
         log.error("Failed to stop minicluster", e);
       }
     }
-    if (null != krb) {
+    if (krb != null) {
       try {
         krb.stop();
       } catch (Exception e) {
@@ -201,7 +201,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
 
   @Override
   public ClusterUser getAdminUser() {
-    if (null == krb) {
+    if (krb == null) {
       return new ClusterUser(getPrincipal(), getRootPassword());
     } else {
       return krb.getRootUser();
@@ -210,7 +210,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
 
   @Override
   public ClusterUser getUser(int offset) {
-    if (null == krb) {
+    if (krb == null) {
       String user = SharedMiniClusterBase.class.getName() + "_" + testName.getMethodName() + "_"
           + offset;
       // Password is the username

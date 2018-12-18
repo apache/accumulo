@@ -145,7 +145,7 @@ public class TableInformation {
 
     this.holdTime = holdTime;
 
-    if (null != info.scans) {
+    if (info.scans != null) {
       this.queuedScans = info.scans.queued;
       this.runningScans = info.scans.running;
       this.scansCombo = info.scans.running + "(" + info.scans.queued + ")";
@@ -155,7 +155,7 @@ public class TableInformation {
       this.scansCombo = ZERO_COMBO;
     }
 
-    if (null != info.minors) {
+    if (info.minors != null) {
       this.queuedMinorCompactions = info.minors.queued;
       this.runningMinorCompactions = info.minors.running;
       this.minorCombo = info.minors.running + "(" + info.minors.queued + ")";
@@ -165,7 +165,7 @@ public class TableInformation {
       this.minorCombo = ZERO_COMBO;
     }
 
-    if (null != info.majors) {
+    if (info.majors != null) {
       this.queuedMajorCompactions = info.majors.queued;
       this.runningMajorCompactions = info.majors.running;
       this.majorCombo = info.majors.running + "(" + info.majors.queued + ")";

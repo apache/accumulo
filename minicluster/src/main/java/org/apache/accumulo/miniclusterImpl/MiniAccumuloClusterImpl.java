@@ -626,7 +626,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         // If we aren't using SASL, add in the root password
         final String saslEnabled = config.getSiteConfig()
             .get(Property.INSTANCE_RPC_SASL_ENABLED.getKey());
-        if (null == saslEnabled || !Boolean.parseBoolean(saslEnabled)) {
+        if (saslEnabled == null || !Boolean.parseBoolean(saslEnabled)) {
           args.add("--password");
           args.add(config.getRootPassword());
         }
@@ -662,7 +662,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     control.start(ServerType.MASTER);
     control.start(ServerType.GARBAGE_COLLECTOR);
 
-    if (null == executor) {
+    if (executor == null) {
       executor = Executors.newSingleThreadExecutor();
     }
   }
@@ -694,10 +694,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     result.put(ServerType.MASTER, references(control.masterProcess));
     result.put(ServerType.TABLET_SERVER,
         references(control.tabletServerProcesses.toArray(new Process[0])));
-    if (null != control.zooKeeperProcess) {
+    if (control.zooKeeperProcess != null) {
       result.put(ServerType.ZOOKEEPER, references(control.zooKeeperProcess));
     }
-    if (null != control.gcProcess) {
+    if (control.gcProcess != null) {
       result.put(ServerType.GARBAGE_COLLECTOR, references(control.gcProcess));
     }
     return result;
@@ -733,7 +733,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    */
   @Override
   public synchronized void stop() throws IOException, InterruptedException {
-    if (null == executor) {
+    if (executor == null) {
       // keep repeated calls to stop() from failing
       return;
     }
@@ -750,7 +750,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     control.stop(ServerType.ZOOKEEPER, null);
 
     // ACCUMULO-2985 stop the ExecutorService after we finished using it to stop accumulo procs
-    if (null != executor) {
+    if (executor != null) {
       List<Runnable> tasksRemaining = executor.shutdownNow();
 
       // the single thread executor shouldn't have any pending tasks, but check anyways

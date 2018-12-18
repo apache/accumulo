@@ -255,7 +255,7 @@ public class Monitor implements HighlyAvailableService {
             synchronized (Monitor.class) {
               if (cachedInstanceName.get().equals(DEFAULT_INSTANCE_NAME)) {
                 final String instanceName = context.getInstanceName();
-                if (null != instanceName) {
+                if (instanceName != null) {
                   cachedInstanceName.set(instanceName);
                 }
               }
@@ -496,7 +496,7 @@ public class Monitor implements HighlyAvailableService {
       log.error("Unable to set monitor HTTP address in zookeeper", ex);
     }
 
-    if (null != advertiseHost) {
+    if (advertiseHost != null) {
       LogService.startLogListener(context, advertiseHost);
     } else {
       log.warn("Not starting log4j listener as we could not determine address to use");
@@ -632,7 +632,7 @@ public class Monitor implements HighlyAvailableService {
     if (zoo.exists(monitorPath)) {
       byte[] data = zoo.getData(monitorPath, null);
       // If the node isn't empty, it's from a previous install (has hostname:port for HTTP server)
-      if (0 != data.length) {
+      if (data.length != 0) {
         // Recursively delete from that parent node
         zoo.recursiveDelete(monitorPath, NodeMissingPolicy.SKIP);
 

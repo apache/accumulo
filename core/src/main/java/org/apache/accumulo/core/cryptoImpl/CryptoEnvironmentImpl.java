@@ -31,10 +31,12 @@ public class CryptoEnvironmentImpl implements CryptoEnvironment {
     this.decryptionParams = decryptionParams;
   }
 
+  @Override
   public Scope getScope() {
     return this.scope;
   }
 
+  @Override
   public byte[] getDecryptionParams() {
     return decryptionParams;
   }

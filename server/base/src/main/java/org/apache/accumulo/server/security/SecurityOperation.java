@@ -200,7 +200,7 @@ public class SecurityOperation {
             try {
               _createUser(credentials, creds, Authorizations.EMPTY);
             } catch (ThriftSecurityException e) {
-              if (SecurityErrorCode.USER_EXISTS != e.getCode()) {
+              if (e.getCode() != SecurityErrorCode.USER_EXISTS) {
                 // For Kerberos, a user acct is automatically created because there is no notion of
                 // a password
                 // in the traditional sense of Accumulo users. As such, if a user acct already

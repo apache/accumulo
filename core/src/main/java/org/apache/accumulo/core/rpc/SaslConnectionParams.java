@@ -177,7 +177,7 @@ public class SaslConnectionParams {
 
     // The full name is our principal
     this.principal = currentUser.getUserName();
-    if (null == this.principal) {
+    if (this.principal == null) {
       throw new RuntimeException("Got null username from " + currentUser);
     }
 
@@ -258,8 +258,8 @@ public class SaslConnectionParams {
       if (!mechanism.equals(other.mechanism)) {
         return false;
       }
-      if (null == callbackHandler) {
-        if (null != other.callbackHandler) {
+      if (callbackHandler == null) {
+        if (other.callbackHandler != null) {
           return false;
         }
       } else if (!callbackHandler.equals(other.callbackHandler)) {

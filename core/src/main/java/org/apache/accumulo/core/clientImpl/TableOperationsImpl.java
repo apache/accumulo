@@ -567,7 +567,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         } catch (NotServingTabletException e) {
           // Do not silently spin when we repeatedly fail to get the location for a tablet
           locationFailures++;
-          if (5 == locationFailures || 0 == locationFailures % 50) {
+          if (locationFailures == 5 || locationFailures % 50 == 0) {
             log.warn("Having difficulty locating hosting tabletserver for split {} on table {}."
                 + " Seen {} failures.", split, tableName, locationFailures);
           }

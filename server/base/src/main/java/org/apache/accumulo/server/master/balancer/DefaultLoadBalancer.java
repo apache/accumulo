@@ -108,7 +108,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
     @Override
     public boolean equals(Object obj) {
       return obj == this
-          || (obj != null && obj instanceof ServerCounts && 0 == compareTo((ServerCounts) obj));
+          || (obj != null && obj instanceof ServerCounts && compareTo((ServerCounts) obj) == 0);
     }
 
     @Override
@@ -245,7 +245,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
         if (onlineTabletsForTable == null) {
           onlineTabletsForTable = new HashMap<>();
           List<TabletStats> stats = getOnlineTabletsForTable(tooMuch.server, table);
-          if (null == stats) {
+          if (stats == null) {
             log.warn("Unable to find tablets to move");
             return result;
           }

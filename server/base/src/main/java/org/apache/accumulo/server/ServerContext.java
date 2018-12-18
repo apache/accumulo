@@ -101,7 +101,7 @@ public class ServerContext extends ClientContext {
     MetricsSystemHelper.configure(applicationClassName);
     DistributedTrace.enable(hostname, applicationName,
         getServerConfFactory().getSystemConfiguration());
-    if (null != getSaslParams()) {
+    if (getSaslParams() != null) {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       enforceKerberosLogin();
     }

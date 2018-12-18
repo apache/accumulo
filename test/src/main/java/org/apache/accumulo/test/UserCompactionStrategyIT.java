@@ -151,7 +151,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   @Test
   public void testPerTableClasspath() throws Exception {
     // Can't assume that a test-resource will be on the server's classpath
-    Assume.assumeTrue(ClusterType.MINI == getClusterType());
+    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
 
     // test per-table classpath + user specified compaction strategy
 

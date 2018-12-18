@@ -189,11 +189,11 @@ public class CloseWriteAheadLogReferences implements Runnable {
     } catch (TableNotFoundException e) {
       log.error("Replication table was deleted", e);
     } finally {
-      if (null != bs) {
+      if (bs != null) {
         bs.close();
       }
 
-      if (null != bw) {
+      if (bw != null) {
         try {
           bw.close();
         } catch (MutationsRejectedException e) {
@@ -264,7 +264,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
       // on every tserver
       // node. The master is already tracking all of this info, so hopefully this is less overall
       // work.
-      if (null != client) {
+      if (client != null) {
         tservers = client.getActiveTservers(tinfo, context.rpcCreds());
       }
     } catch (TException e) {

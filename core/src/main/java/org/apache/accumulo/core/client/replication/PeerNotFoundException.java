@@ -27,7 +27,7 @@ public class PeerNotFoundException extends Exception {
   }
 
   public PeerNotFoundException(String peer, String message) {
-    super("Peer '" + peer + "' not found " + (null == message || message.isEmpty() ? "" : message));
+    super("Peer '" + peer + "' not found " + (message == null || message.isEmpty() ? "" : message));
   }
 
   public PeerNotFoundException(String message, Throwable cause) {

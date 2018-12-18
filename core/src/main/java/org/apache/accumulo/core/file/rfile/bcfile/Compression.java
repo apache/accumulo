@@ -265,7 +265,7 @@ public final class Compression {
         // Set the internal buffer size to read from down stream.
         CompressionCodec decomCodec = codec;
         // if we're not using the default, let's pull from the loading cache
-        if (DEFAULT_BUFFER_SIZE != downStreamBufferSize) {
+        if (downStreamBufferSize != DEFAULT_BUFFER_SIZE) {
           Entry<Algorithm,Integer> sizeOpt = Maps.immutableEntry(GZ, downStreamBufferSize);
           try {
             decomCodec = codecCache.get(sizeOpt);
@@ -431,7 +431,7 @@ public final class Compression {
 
         CompressionCodec decomCodec = snappyCodec;
         // if we're not using the same buffer size, we'll pull the codec from the loading cache
-        if (DEFAULT_BUFFER_SIZE != downStreamBufferSize) {
+        if (downStreamBufferSize != DEFAULT_BUFFER_SIZE) {
           Entry<Algorithm,Integer> sizeOpt = Maps.immutableEntry(SNAPPY, downStreamBufferSize);
           try {
             decomCodec = codecCache.get(sizeOpt);
@@ -547,7 +547,7 @@ public final class Compression {
 
         CompressionCodec decomCodec = zstdCodec;
         // if we're not using the same buffer size, we'll pull the codec from the loading cache
-        if (DEFAULT_BUFFER_SIZE != downStreamBufferSize) {
+        if (downStreamBufferSize != DEFAULT_BUFFER_SIZE) {
           Entry<Algorithm,Integer> sizeOpt = Maps.immutableEntry(ZSTANDARD, downStreamBufferSize);
           try {
             decomCodec = codecCache.get(sizeOpt);

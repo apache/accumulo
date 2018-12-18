@@ -80,9 +80,9 @@ public class ClusterUser {
    *           if performing necessary login failed
    */
   public AuthenticationToken getToken() throws IOException {
-    if (null != password) {
+    if (password != null) {
       return new PasswordToken(password);
-    } else if (null != keytab) {
+    } else if (keytab != null) {
       UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
       return new KerberosToken();
     }
@@ -118,16 +118,16 @@ public class ClusterUser {
 
     if (obj instanceof ClusterUser) {
       ClusterUser other = (ClusterUser) obj;
-      if (null == keytab) {
-        if (null != other.keytab) {
+      if (keytab == null) {
+        if (other.keytab != null) {
           return false;
         }
       } else if (!keytab.equals(other.keytab)) {
         return false;
       }
 
-      if (null == password) {
-        if (null != other.password) {
+      if (password == null) {
+        if (other.password != null) {
           return false;
         }
       } else if (!password.equals(other.password)) {

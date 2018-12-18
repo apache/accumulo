@@ -85,7 +85,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
 
   @After
   public void resetSessionIdle() throws Exception {
-    if (null != sessionIdle) {
+    if (sessionIdle != null) {
       try (AccumuloClient client = createAccumuloClient()) {
         client.instanceOperations().setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(),
             sessionIdle);

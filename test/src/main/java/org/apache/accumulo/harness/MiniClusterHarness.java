@@ -250,7 +250,7 @@ public class MiniClusterHarness {
       return;
     }
 
-    if (null == kdc) {
+    if (kdc == null) {
       throw new IllegalStateException("MiniClusterKdc was null");
     }
 

@@ -72,21 +72,21 @@ public class ReplicationTarget implements Writable {
 
   @Override
   public void write(DataOutput out) throws IOException {
-    if (null == peerName) {
+    if (peerName == null) {
       out.writeBoolean(false);
     } else {
       out.writeBoolean(true);
       WritableUtils.writeString(out, peerName);
     }
 
-    if (null == remoteIdentifier) {
+    if (remoteIdentifier == null) {
       out.writeBoolean(false);
     } else {
       out.writeBoolean(true);
       WritableUtils.writeString(out, remoteIdentifier);
     }
 
-    if (null == sourceTableId) {
+    if (sourceTableId == null) {
       out.writeBoolean(false);
     } else {
       out.writeBoolean(true);

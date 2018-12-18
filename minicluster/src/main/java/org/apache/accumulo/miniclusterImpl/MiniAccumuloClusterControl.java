@@ -123,7 +123,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       Thread.currentThread().interrupt();
       throw new IOException(e);
     }
-    if (0 != p.exitValue()) {
+    if (p.exitValue() != 0) {
       throw new IOException("Failed to run `accumulo admin stopAll`");
     }
   }
@@ -155,28 +155,28 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case MASTER:
-        if (null == masterProcess) {
+        if (masterProcess == null) {
           masterProcess = cluster._exec(Master.class, server, configOverrides);
         }
         break;
       case ZOOKEEPER:
-        if (null == zooKeeperProcess) {
+        if (zooKeeperProcess == null) {
           zooKeeperProcess = cluster._exec(ZooKeeperServerMain.class, server, configOverrides,
               cluster.getZooCfgFile().getAbsolutePath());
         }
         break;
       case GARBAGE_COLLECTOR:
-        if (null == gcProcess) {
+        if (gcProcess == null) {
           gcProcess = cluster._exec(SimpleGarbageCollector.class, server, configOverrides);
         }
         break;
       case MONITOR:
-        if (null == monitor) {
+        if (monitor == null) {
           monitor = cluster._exec(Monitor.class, server, configOverrides);
         }
         break;
       case TRACER:
-        if (null == tracer) {
+        if (tracer == null) {
           tracer = cluster._exec(TraceServer.class, server, configOverrides);
         }
         break;
@@ -198,7 +198,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   public synchronized void stop(ServerType server, String hostname) throws IOException {
     switch (server) {
       case MASTER:
-        if (null != masterProcess) {
+        if (masterProcess != null) {
           try {
             cluster.stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);
           } catch (ExecutionException | TimeoutException e) {
@@ -211,7 +211,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case GARBAGE_COLLECTOR:
-        if (null != gcProcess) {
+        if (gcProcess != null) {
           try {
             cluster.stopProcessWithTimeout(gcProcess, 30, TimeUnit.SECONDS);
           } catch (ExecutionException | TimeoutException e) {
@@ -224,7 +224,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case ZOOKEEPER:
-        if (null != zooKeeperProcess) {
+        if (zooKeeperProcess != null) {
           try {
             cluster.stopProcessWithTimeout(zooKeeperProcess, 30, TimeUnit.SECONDS);
           } catch (ExecutionException | TimeoutException e) {

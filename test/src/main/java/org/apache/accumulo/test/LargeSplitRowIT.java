@@ -240,7 +240,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
         Thread.sleep(250);
       }
 
-      assertTrue(0 < client.tableOperations().listSplits(tableName).size());
+      assertTrue(client.tableOperations().listSplits(tableName).size() > 0);
     }
   }
 

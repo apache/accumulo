@@ -88,7 +88,7 @@ public class RecoveryLogReader implements CloseableIterator<Entry<LogFileKey,Log
 
     @Override
     public boolean equals(Object obj) {
-      return this == obj || (obj != null && obj instanceof Index && 0 == compareTo((Index) obj));
+      return this == obj || (obj != null && obj instanceof Index && compareTo((Index) obj) == 0);
     }
 
     @Override

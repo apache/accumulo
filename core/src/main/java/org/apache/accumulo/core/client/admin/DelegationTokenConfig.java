@@ -42,7 +42,7 @@ public class DelegationTokenConfig {
    * @return this
    */
   public DelegationTokenConfig setTokenLifetime(long lifetime, TimeUnit unit) {
-    checkArgument(0 <= lifetime, "Lifetime must be non-negative");
+    checkArgument(lifetime >= 0, "Lifetime must be non-negative");
     requireNonNull(unit, "TimeUnit was null");
     this.lifetime = TimeUnit.MILLISECONDS.convert(lifetime, unit);
     return this;

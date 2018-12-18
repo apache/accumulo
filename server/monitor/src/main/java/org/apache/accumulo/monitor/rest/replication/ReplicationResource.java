@@ -120,7 +120,7 @@ public class ReplicationResource {
         continue;
       }
       Table.ID localId = tableNameToId.get(table);
-      if (null == localId) {
+      if (localId == null) {
         log.trace("Could not determine ID for {}", table);
         continue;
       }
@@ -165,7 +165,7 @@ public class ReplicationResource {
         // TODO ACCUMULO-2835 once explicit lengths are tracked, we can give size-based estimates
         // instead of just file-based
         Long count = targetCounts.get(target);
-        if (null == count) {
+        if (count == null) {
           targetCounts.put(target, 1L);
         } else {
           targetCounts.put(target, count + 1);
@@ -178,13 +178,13 @@ public class ReplicationResource {
     List<ReplicationInformation> replicationInformation = new ArrayList<>();
     for (ReplicationTarget configuredTarget : allConfiguredTargets) {
       String tableName = tableIdToName.get(configuredTarget.getSourceTableId());
-      if (null == tableName) {
+      if (tableName == null) {
         log.trace("Could not determine table name from id {}", configuredTarget.getSourceTableId());
         continue;
       }
 
       String replicaSystemClass = peers.get(configuredTarget.getPeerName());
-      if (null == replicaSystemClass) {
+      if (replicaSystemClass == null) {
         log.trace("Could not determine configured ReplicaSystem for {}",
             configuredTarget.getPeerName());
         continue;
@@ -194,7 +194,7 @@ public class ReplicationResource {
 
       replicationInformation.add(new ReplicationInformation(tableName,
           configuredTarget.getPeerName(), configuredTarget.getRemoteIdentifier(),
-          replicaSystemClass, (null == numFiles) ? 0 : numFiles));
+          replicaSystemClass, (numFiles == null) ? 0 : numFiles));
     }
 
     return replicationInformation;

@@ -1204,7 +1204,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   public Class<? extends Formatter> getFormatter(String tableName) {
     Class<? extends Formatter> formatter = FormatterCommand.getCurrentFormatter(tableName, this);
 
-    if (null == formatter) {
+    if (formatter == null) {
       logError("Could not load the specified formatter. Using the DefaultFormatter");
       return this.defaultFormatterClass;
     } else {

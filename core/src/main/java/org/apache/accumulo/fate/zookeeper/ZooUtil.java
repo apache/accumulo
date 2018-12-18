@@ -123,10 +123,10 @@ public class ZooUtil {
     public int hashCode() {
       final HashCodeBuilder hcb = new HashCodeBuilder(31, 47);
       hcb.append(keepers).append(timeout);
-      if (null != scheme) {
+      if (scheme != null) {
         hcb.append(scheme);
       }
-      if (null != auth) {
+      if (auth != null) {
         hcb.append(auth);
       }
       return hcb.toHashCode();
@@ -140,8 +140,8 @@ public class ZooUtil {
           return false;
         }
 
-        if (null != scheme) {
-          if (null == other.scheme) {
+        if (scheme != null) {
+          if (other.scheme == null) {
             // Ours is non-null, theirs is null
             return false;
           } else if (!scheme.equals(other.scheme)) {
@@ -150,8 +150,8 @@ public class ZooUtil {
           }
         }
 
-        if (null != auth) {
-          if (null == other.auth) {
+        if (auth != null) {
+          if (other.auth == null) {
             return false;
           } else {
             return Arrays.equals(auth, other.auth);
@@ -170,7 +170,7 @@ public class ZooUtil {
       sb.append("zookeepers=").append(keepers);
       sb.append(", timeout=").append(timeout);
       sb.append(", scheme=").append(scheme);
-      sb.append(", auth=").append(null == auth ? "null" : "REDACTED");
+      sb.append(", auth=").append(auth == null ? "null" : "REDACTED");
       return sb.toString();
     }
   }

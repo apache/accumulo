@@ -78,7 +78,7 @@ public class TabletServerResource {
   @GET
   public TabletServers getTserverSummary() {
     MasterMonitorInfo mmi = Monitor.getMmi();
-    if (null == mmi) {
+    if (mmi == null) {
       throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
     }
 
@@ -118,7 +118,7 @@ public class TabletServerResource {
     TabletServersRecovery recoveryList = new TabletServersRecovery();
 
     MasterMonitorInfo mmi = Monitor.getMmi();
-    if (null == mmi) {
+    if (mmi == null) {
       throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
     }
 

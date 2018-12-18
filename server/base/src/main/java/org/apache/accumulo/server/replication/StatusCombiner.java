@@ -110,7 +110,7 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
 
       // Avoid creation of a new builder and message when we only have one
       // message to reduce
-      if (null == combined) {
+      if (combined == null) {
         if (!iter.hasNext()) {
           if (log.isTraceEnabled()) {
             log.trace("Returned single value: {} {}", key.toStringNoTruncate(),

@@ -264,7 +264,7 @@ public class VolumeManagerImpl implements VolumeManager {
         FileSystem desiredFs = path.getFileSystem(CachedConfiguration.getInstance());
         URI desiredFsUri = desiredFs.getUri();
         Collection<Volume> candidateVolumes = volumesByFileSystemUri.get(desiredFsUri);
-        if (null != candidateVolumes) {
+        if (candidateVolumes != null) {
           for (Volume candidateVolume : candidateVolumes) {
             if (candidateVolume.isValidPath(path)) {
               return candidateVolume;
@@ -454,7 +454,7 @@ public class VolumeManagerImpl implements VolumeManager {
     // ACCUMULO-2974 To ensure that a proper absolute path is created, the caller needs to include
     // the table ID
     // in the relative path. Fail when this doesn't appear to happen.
-    if (FileType.TABLE == fileType) {
+    if (fileType == FileType.TABLE) {
       // Trailing slash doesn't create an additional element
       String[] pathComponents = StringUtils.split(path, Path.SEPARATOR_CHAR);
 

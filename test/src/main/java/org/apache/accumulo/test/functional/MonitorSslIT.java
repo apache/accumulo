@@ -129,13 +129,13 @@ public class MonitorSslIT extends ConfigurableMacBase {
     cluster.getClusterControl().startAllServers(ServerType.MONITOR);
     String monitorLocation = null;
     try (AccumuloClient client = createClient()) {
-      while (null == monitorLocation) {
+      while (monitorLocation == null) {
         try {
           monitorLocation = MonitorUtil.getLocation((ClientContext) client);
         } catch (Exception e) {
           // ignored
         }
-        if (null == monitorLocation) {
+        if (monitorLocation == null) {
           log.debug("Could not fetch monitor HTTP address from zookeeper");
           Thread.sleep(2000);
         }

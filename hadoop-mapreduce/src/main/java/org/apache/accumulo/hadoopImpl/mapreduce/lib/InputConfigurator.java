@@ -350,7 +350,7 @@ public class InputConfigurator extends ConfiguratorBase {
       Collection<String> serialized) {
     Set<IteratorSetting.Column> columns = new HashSet<>();
 
-    if (null == serialized) {
+    if (serialized == null) {
       return columns;
     }
 

@@ -129,7 +129,7 @@ public class TraceDump {
       if (span.parentId == Span.ROOT_SPAN_ID)
         count++;
     }
-    if (Long.MAX_VALUE == start) {
+    if (start == Long.MAX_VALUE) {
       out.print("Did not find any traces!");
       return 0;
     }

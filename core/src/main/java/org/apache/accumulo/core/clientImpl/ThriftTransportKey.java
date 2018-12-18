@@ -42,9 +42,9 @@ public class ThriftTransportKey {
     this.timeout = timeout;
     this.sslParams = context.getClientSslParams();
     this.saslParams = context.getSaslParams();
-    if (null != saslParams) {
+    if (saslParams != null) {
       // TSasl and TSSL transport factories don't play nicely together
-      if (null != sslParams) {
+      if (sslParams != null) {
         throw new RuntimeException("Cannot use both SSL and SASL thrift transports");
       }
     }

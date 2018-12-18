@@ -129,7 +129,7 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
 
   @Override
   public void write(DataOutput out) throws IOException {
-    if (null != impl) {
+    if (impl != null) {
       ThriftMessageUtil msgUtil = new ThriftMessageUtil();
       ByteBuffer serialized = msgUtil.serialize(impl);
       out.writeInt(serialized.limit());
@@ -158,7 +158,7 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
 
   @Override
   public UserGroupInformation getUser() {
-    if (null != impl && impl.isSetPrincipal()) {
+    if (impl != null && impl.isSetPrincipal()) {
       return UserGroupInformation.createRemoteUser(impl.getPrincipal());
     }
     return null;
@@ -166,7 +166,7 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
 
   @Override
   public int hashCode() {
-    if (null == impl) {
+    if (impl == null) {
       return 0;
     }
     HashCodeBuilder hcb = new HashCodeBuilder(7, 11);
@@ -197,13 +197,13 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
 
   @Override
   public boolean equals(Object o) {
-    if (null == o) {
+    if (o == null) {
       return false;
     }
     if (o instanceof AuthenticationTokenIdentifier) {
       AuthenticationTokenIdentifier other = (AuthenticationTokenIdentifier) o;
-      if (null == impl) {
-        return null == other.impl;
+      if (impl == null) {
+        return other.impl == null;
       }
       return impl.equals(other.impl);
     }

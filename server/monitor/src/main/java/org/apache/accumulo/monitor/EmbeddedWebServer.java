@@ -89,7 +89,7 @@ public class EmbeddedWebServer {
       }
 
       final String includeProtocols = conf.get(Property.MONITOR_SSL_INCLUDE_PROTOCOLS);
-      if (null != includeProtocols && !includeProtocols.isEmpty()) {
+      if (includeProtocols != null && !includeProtocols.isEmpty()) {
         sslContextFactory.setIncludeProtocols(StringUtils.split(includeProtocols, ','));
       }
 

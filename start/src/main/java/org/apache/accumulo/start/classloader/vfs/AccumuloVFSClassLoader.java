@@ -197,14 +197,14 @@ public class AccumuloVFSClassLoader {
 
   public static ClassLoader getClassLoader() throws IOException {
     ReloadingClassLoader localLoader = loader;
-    while (null == localLoader) {
+    while (localLoader == null) {
       synchronized (lock) {
-        if (null == loader) {
+        if (loader == null) {
 
           FileSystemManager vfs = generateVfs();
 
           // Set up the 2nd tier class loader
-          if (null == parent) {
+          if (parent == null) {
             parent = AccumuloClassLoader.getClassLoader();
           }
 

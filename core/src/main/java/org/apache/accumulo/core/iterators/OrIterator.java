@@ -117,7 +117,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
 
     @Override
     public boolean equals(Object obj) {
-      return obj == this || (obj instanceof TermSource && 0 == compareTo((TermSource) obj));
+      return obj == this || (obj instanceof TermSource && compareTo((TermSource) obj) == 0);
     }
 
     @Override
@@ -301,7 +301,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
       IteratorEnvironment env) throws IOException {
     LOG.trace("init()");
     String columnsValue = options.get(COLUMNS_KEY);
-    if (null == columnsValue) {
+    if (columnsValue == null) {
       throw new IllegalArgumentException(
           COLUMNS_KEY + " was not provided in the iterator configuration");
     }
@@ -321,6 +321,6 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    return null != options.get(COLUMNS_KEY);
+    return options.get(COLUMNS_KEY) != null;
   }
 }

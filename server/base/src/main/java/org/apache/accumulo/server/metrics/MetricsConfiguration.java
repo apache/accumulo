@@ -109,7 +109,7 @@ public class MetricsConfiguration {
 
   public Configuration getEnvironmentConfiguration() {
     synchronized (MetricsConfiguration.class) {
-      if (null == envConfig)
+      if (envConfig == null)
         envConfig = new EnvironmentConfiguration();
       return envConfig;
     }
@@ -117,7 +117,7 @@ public class MetricsConfiguration {
 
   public Configuration getSystemConfiguration() {
     synchronized (MetricsConfiguration.class) {
-      if (null == sysConfig)
+      if (sysConfig == null)
         sysConfig = new SystemConfiguration();
       return sysConfig;
     }
@@ -136,11 +136,11 @@ public class MetricsConfiguration {
         notFoundCount++;
       }
     }
-    if (null == config || needsReloading) {
+    if (config == null || needsReloading) {
       synchronized (lock) {
         if (needsReloading) {
           loadConfiguration();
-        } else if (null == config) {
+        } else if (config == null) {
           loadConfiguration();
         }
         needsReloading = false;
@@ -169,7 +169,7 @@ public class MetricsConfiguration {
 
       // Start a background Thread that checks a property from the XMLConfiguration
       // every so often to force the FileChangedReloadingStrategy to fire.
-      if (null == watcher || !watcher.isAlive()) {
+      if (watcher == null || !watcher.isAlive()) {
         watcher = new MetricsConfigWatcher();
         watcher.start();
       }
@@ -195,7 +195,7 @@ public class MetricsConfiguration {
 
   public boolean isEnabled() {
     // Force reload if necessary
-    if (null == getMetricsConfiguration())
+    if (getMetricsConfiguration() == null)
       return false;
     return enabled;
   }

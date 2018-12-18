@@ -376,6 +376,7 @@ public class ClientContext implements AccumuloClient {
    *
    * @return a UUID
    */
+  @Override
   public String getInstanceID() {
     ensureOpen();
     final String instanceName = info.getInstanceName();
@@ -588,7 +589,7 @@ public class ClientContext implements AccumuloClient {
   @Override
   public synchronized ReplicationOperations replicationOperations() {
     ensureOpen();
-    if (null == replicationops) {
+    if (replicationops == null) {
       replicationops = new ReplicationOperationsImpl(this);
     }
 

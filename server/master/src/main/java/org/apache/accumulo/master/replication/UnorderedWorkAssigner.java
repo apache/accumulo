@@ -76,7 +76,7 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
    */
   @Override
   protected void initializeQueuedWork() {
-    if (null != queuedWork) {
+    if (queuedWork != null) {
       return;
     }
 
@@ -141,8 +141,8 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
     while (work.hasNext()) {
       String filename = work.next();
       // Null equates to the work was finished
-      if (null == zooCache.get(
-          ZooUtil.getRoot(instanceId) + ReplicationConstants.ZOO_WORK_QUEUE + "/" + filename)) {
+      if (zooCache.get(ZooUtil.getRoot(instanceId) + ReplicationConstants.ZOO_WORK_QUEUE + "/"
+          + filename) == null) {
         work.remove();
       }
     }

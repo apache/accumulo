@@ -59,7 +59,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    if (ClusterType.MINI == getClusterType()) {
+    if (getClusterType() == ClusterType.MINI) {
       return;
     }
     try (AccumuloClient client = createAccumuloClient()) {
@@ -78,7 +78,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
 
   @After
   public void resetConfig() throws Exception {
-    if (null != majcDelay) {
+    if (majcDelay != null) {
       try (AccumuloClient client = createAccumuloClient()) {
         InstanceOperations iops = client.instanceOperations();
         iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);

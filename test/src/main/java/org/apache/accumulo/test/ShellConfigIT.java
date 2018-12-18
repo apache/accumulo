@@ -62,7 +62,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
 
   @After
   public void resetProperty() throws Exception {
-    if (null != origPropValue) {
+    if (origPropValue != null) {
       try (AccumuloClient client = createAccumuloClient()) {
         client.instanceOperations().setProperty(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER,
             origPropValue);

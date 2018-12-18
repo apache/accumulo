@@ -350,7 +350,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
           source.delete();
           source = new NMIterator(ret.getKey());
           fill();
-          if (0 < end && nextEntries.get(0).getKey().equals(ret.getKey())) {
+          if (end > 0 && nextEntries.get(0).getKey().equals(ret.getKey())) {
             index++;
             if (index == end) {
               fill();

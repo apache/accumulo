@@ -150,7 +150,7 @@ public class VolumeConfiguration {
   public static <T extends FileSystem> Volume create(T fs, AccumuloConfiguration acuconf) {
     String dfsDir = acuconf.get(Property.INSTANCE_DFS_DIR);
     return new VolumeImpl(fs,
-        null == dfsDir ? Property.INSTANCE_DFS_DIR.getDefaultValue() : dfsDir);
+        dfsDir == null ? Property.INSTANCE_DFS_DIR.getDefaultValue() : dfsDir);
   }
 
   public static <T extends FileSystem> Volume create(T fs, String basePath) {

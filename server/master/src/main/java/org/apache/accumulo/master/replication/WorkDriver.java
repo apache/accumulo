@@ -55,7 +55,7 @@ public class WorkDriver extends Daemon {
   protected void configureWorkAssigner() {
     String workAssignerClass = conf.get(Property.REPLICATION_WORK_ASSIGNER);
 
-    if (null == assigner || !assigner.getClass().getName().equals(workAssignerClass)) {
+    if (assigner == null || !assigner.getClass().getName().equals(workAssignerClass)) {
       log.info("Initializing work assigner implementation of {}", workAssignerClass);
 
       try {

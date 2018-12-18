@@ -261,7 +261,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw ex;
     } catch (AccumuloException e) {
       Throwable cause = e.getCause();
-      if (null != cause && TableNotFoundException.class.equals(cause.getClass())) {
+      if (cause != null && TableNotFoundException.class.equals(cause.getClass())) {
         throw new org.apache.accumulo.proxy.thrift.TableNotFoundException(cause.toString());
       }
       handleAccumuloException(e);
@@ -322,7 +322,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       throw ex;
     } catch (AccumuloException e) {
       Throwable cause = e.getCause();
-      if (null != cause && NamespaceNotFoundException.class.equals(cause.getClass())) {
+      if (cause != null && NamespaceNotFoundException.class.equals(cause.getClass())) {
         throw new org.apache.accumulo.proxy.thrift.NamespaceNotFoundException(cause.toString());
       }
       handleAccumuloException(e);
@@ -1383,7 +1383,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     } catch (Exception e) {
       handleExceptionMRE(e);
     } finally {
-      if (null != bwpe) {
+      if (bwpe != null) {
         try {
           bwpe.writer.close();
         } catch (MutationsRejectedException e) {
@@ -1936,7 +1936,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
       org.apache.accumulo.proxy.thrift.NamespaceNotFoundException, TException {
     try {
-      if (null != scopes && scopes.size() > 0) {
+      if (scopes != null && scopes.size() > 0) {
         getConnector(login).namespaceOperations().attachIterator(namespaceName,
             getIteratorSetting(setting), getIteratorScopes(scopes));
       } else {
@@ -2081,9 +2081,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public ByteBuffer login(String principal, Map<String,String> loginProperties)
       throws org.apache.accumulo.proxy.thrift.AccumuloSecurityException, TException {
-    if (ThriftServerType.SASL == serverType) {
+    if (serverType == ThriftServerType.SASL) {
       String remoteUser = UGIAssumingProcessor.rpcPrincipal();
-      if (null == remoteUser || !remoteUser.equals(principal)) {
+      if (remoteUser == null || !remoteUser.equals(principal)) {
         logger.error("Denying login from user {} who attempted to log in as {}", remoteUser,
             principal);
         throw new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(

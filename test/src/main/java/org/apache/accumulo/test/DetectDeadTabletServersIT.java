@@ -65,7 +65,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
 
       while (true) {
         stats = getStats(c);
-        if (2 != stats.tServerInfo.size()) {
+        if (stats.tServerInfo.size() != 2) {
           break;
         }
         UtilWaitThread.sleep(500);
@@ -74,7 +74,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
       assertEquals(1, stats.badTServers.size() + stats.deadTabletServers.size());
       while (true) {
         stats = getStats(c);
-        if (0 != stats.deadTabletServers.size()) {
+        if (stats.deadTabletServers.size() != 0) {
           break;
         }
         UtilWaitThread.sleep(500);

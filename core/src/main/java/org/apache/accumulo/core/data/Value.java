@@ -148,7 +148,7 @@ public class Value implements WritableComparable<Object> {
    * @return the underlying byte array directly.
    */
   public byte[] get() {
-    assert (null != value);
+    assert (value != null);
     return this.value;
   }
 
@@ -182,7 +182,7 @@ public class Value implements WritableComparable<Object> {
    * @return size in bytes
    */
   public int getSize() {
-    assert (null != value);
+    assert (value != null);
     return this.value.length;
   }
 

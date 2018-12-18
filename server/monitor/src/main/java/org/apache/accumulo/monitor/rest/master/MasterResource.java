@@ -135,7 +135,7 @@ public class MasterResource {
    */
   public static String getState() {
     MasterMonitorInfo mmi = getMmi();
-    if (null == mmi) {
+    if (mmi == null) {
       return NO_MASTERS;
     }
     return mmi.state.toString();
@@ -148,7 +148,7 @@ public class MasterResource {
    */
   public static String getGoalState() {
     MasterMonitorInfo mmi = getMmi();
-    if (null == mmi) {
+    if (mmi == null) {
       return NO_MASTERS;
     }
     return mmi.goalState.name();
@@ -161,7 +161,7 @@ public class MasterResource {
    */
   public static DeadServerList getDeadTservers() {
     MasterMonitorInfo mmi = getMmi();
-    if (null == mmi) {
+    if (mmi == null) {
       return new DeadServerList();
     }
 
@@ -181,7 +181,7 @@ public class MasterResource {
    */
   public static DeadLoggerList getDeadLoggers() {
     MasterMonitorInfo mmi = getMmi();
-    if (null == mmi) {
+    if (mmi == null) {
       return new DeadLoggerList();
     }
 
@@ -201,13 +201,13 @@ public class MasterResource {
    */
   public static BadTabletServers getNumBadTservers() {
     MasterMonitorInfo mmi = getMmi();
-    if (null == mmi) {
+    if (mmi == null) {
       return new BadTabletServers();
     }
 
     Map<String,Byte> badServers = mmi.getBadTServers();
 
-    if (null == badServers || badServers.isEmpty()) {
+    if (badServers == null || badServers.isEmpty()) {
       return new BadTabletServers();
     }
 

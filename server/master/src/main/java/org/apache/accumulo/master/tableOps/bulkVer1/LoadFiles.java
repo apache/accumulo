@@ -140,7 +140,7 @@ class LoadFiles extends MasterRepo {
       final Random random = new SecureRandom();
       final TServerInstance[] servers;
       String prop = conf.get(Property.MASTER_BULK_TSERVER_REGEX);
-      if (null == prop || "".equals(prop)) {
+      if (prop == null || "".equals(prop)) {
         servers = master.onlineTabletServers().toArray(new TServerInstance[0]);
       } else {
         Pattern regex = Pattern.compile(prop);
@@ -150,7 +150,7 @@ class LoadFiles extends MasterRepo {
             subset.add(t);
           }
         });
-        if (0 == subset.size()) {
+        if (subset.size() == 0) {
           log.warn("There are no tablet servers online that match supplied regex: {}",
               conf.get(Property.MASTER_BULK_TSERVER_REGEX));
         }

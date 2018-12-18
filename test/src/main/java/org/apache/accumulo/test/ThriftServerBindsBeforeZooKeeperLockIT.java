@@ -58,7 +58,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
 
   @Override
   public boolean canRunTest(ClusterType type) {
-    return ClusterType.MINI == type;
+    return type == ClusterType.MINI;
   }
 
   @Test
@@ -66,7 +66,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
     Collection<ProcessReference> monitors = cluster.getProcesses().get(ServerType.MONITOR);
     // Need to start one monitor and let it become active.
-    if (null == monitors || 0 == monitors.size()) {
+    if (monitors == null || monitors.size() == 0) {
       getClusterControl().start(ServerType.MONITOR, "localhost");
     }
 
@@ -97,7 +97,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
             final int responseCode = cnxn.getResponseCode();
             String errorText;
             // This is our "assertion", but we want to re-check it if it's not what we expect
-            if (HttpURLConnection.HTTP_OK == responseCode) {
+            if (responseCode == HttpURLConnection.HTTP_OK) {
               return;
             } else {
               errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
@@ -120,7 +120,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           }
         }
       } finally {
-        if (null != monitor) {
+        if (monitor != null) {
           monitor.destroyForcibly();
         }
       }
@@ -170,7 +170,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
             } catch (Exception e) {
               LOG.debug("Caught exception trying to connect to Master", e);
             } finally {
-              if (null != s) {
+              if (s != null) {
                 s.close();
               }
             }
@@ -187,7 +187,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
             }
           }
         } finally {
-          if (null != master) {
+          if (master != null) {
             master.destroyForcibly();
           }
         }
@@ -238,7 +238,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
             } catch (Exception e) {
               LOG.debug("Caught exception trying to connect to GC", e);
             } finally {
-              if (null != s) {
+              if (s != null) {
                 s.close();
               }
             }
@@ -255,7 +255,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
             }
           }
         } finally {
-          if (null != master) {
+          if (master != null) {
             master.destroyForcibly();
           }
         }

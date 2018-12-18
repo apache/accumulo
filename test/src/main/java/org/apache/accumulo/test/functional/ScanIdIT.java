@@ -182,7 +182,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
       }
 
       assertTrue("Expected at least " + NUM_SCANNERS + " scanIds, but saw " + scanIds.size(),
-          NUM_SCANNERS <= scanIds.size());
+          scanIds.size() >= NUM_SCANNERS);
 
     }
   }

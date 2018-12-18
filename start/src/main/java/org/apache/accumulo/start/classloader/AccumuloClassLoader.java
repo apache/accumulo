@@ -135,8 +135,8 @@ public class AccumuloClassLoader {
       // Not a valid URI
     }
 
-    if (null == uri || !uri.isAbsolute()
-        || (null != uri.getScheme() && uri.getScheme().equals("file://"))) {
+    if (uri == null || !uri.isAbsolute()
+        || (uri.getScheme() != null && uri.getScheme().equals("file://"))) {
       // Then treat this URI as a File.
       // This checks to see if the url string is a dir if it expand and get all jars in that
       // directory

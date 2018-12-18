@@ -107,10 +107,10 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   public String getHadoopConfDir() {
-    if (null == hadoopConfDir) {
+    if (hadoopConfDir == null) {
       hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
     }
-    if (null == hadoopConfDir) {
+    if (hadoopConfDir == null) {
       throw new IllegalArgumentException("Cannot determine HADOOP_CONF_DIR for standalone cluster");
     }
     return hadoopConfDir;

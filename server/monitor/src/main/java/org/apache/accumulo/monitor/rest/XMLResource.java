@@ -47,7 +47,7 @@ public class XMLResource {
   public SummaryInformation getInformation() {
 
     MasterMonitorInfo mmi = Monitor.getMmi();
-    if (null == mmi) {
+    if (mmi == null) {
       throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
     }
 

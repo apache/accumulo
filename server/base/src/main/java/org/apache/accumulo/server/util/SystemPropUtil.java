@@ -44,7 +44,7 @@ public class SystemPropUtil {
     // Find the property taking prefix into account
     Property foundProp = null;
     for (Property prop : Property.values()) {
-      if (PropertyType.PREFIX == prop.getType() && property.startsWith(prop.getKey())
+      if (prop.getType() == PropertyType.PREFIX && property.startsWith(prop.getKey())
           || prop.getKey().equals(property)) {
         foundProp = prop;
         break;

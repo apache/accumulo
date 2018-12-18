@@ -53,9 +53,9 @@ public class TTimeoutTransport {
   private TTimeoutTransport() {}
 
   private Method getNetUtilsInputStreamMethod() {
-    if (null == GET_INPUT_STREAM_METHOD) {
+    if (GET_INPUT_STREAM_METHOD == null) {
       synchronized (this) {
-        if (null == GET_INPUT_STREAM_METHOD) {
+        if (GET_INPUT_STREAM_METHOD == null) {
           try {
             GET_INPUT_STREAM_METHOD = NetUtils.class.getMethod("getInputStream", Socket.class,
                 Long.TYPE);
@@ -153,7 +153,7 @@ public class TTimeoutTransport {
     }
 
     // Should be non-null
-    assert null != socket;
+    assert socket != null;
 
     // Set up the streams
     try {

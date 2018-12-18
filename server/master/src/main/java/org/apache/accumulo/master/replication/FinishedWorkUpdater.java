@@ -137,7 +137,7 @@ public class FinishedWorkUpdater implements Runnable {
         for (Entry<Table.ID,Long> entry : tableIdToProgress.entrySet()) {
           // If the progress is 0, then no one has replicated anything, and we don't need to update
           // anything
-          if (0 == entry.getValue()) {
+          if (entry.getValue() == 0) {
             continue;
           }
 

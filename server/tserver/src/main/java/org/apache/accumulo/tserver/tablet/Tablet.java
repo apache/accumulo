@@ -341,7 +341,7 @@ public class Tablet implements TabletCommitter {
     this.logId = tabletServer.createLogId();
 
     TableConfiguration tblConf = tabletServer.getTableConfiguration(extent);
-    if (null == tblConf) {
+    if (tblConf == null) {
       Tables.clearCache(tabletServer.getContext());
       tblConf = tabletServer.getTableConfiguration(extent);
       requireNonNull(tblConf, "Could not get table configuration for " + extent.getTableId());
@@ -1648,7 +1648,7 @@ public class Tablet implements TabletCommitter {
 
       // We expect to get a midPoint for this set of files. If we don't get one, we have a problem.
       final Key mid = keys.get(.5);
-      if (null == mid) {
+      if (mid == null) {
         throw new IllegalStateException("Could not determine midpoint for files");
       }
 

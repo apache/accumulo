@@ -98,7 +98,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
   @Override
   public boolean equals(Object obj) {
     return this == obj
-        || (obj != null && obj instanceof CachedBlock && 0 == compareTo((CachedBlock) obj));
+        || (obj != null && obj instanceof CachedBlock && compareTo((CachedBlock) obj) == 0);
   }
 
   @Override

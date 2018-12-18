@@ -49,7 +49,7 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
 
   @Override
   public void process(WatchedEvent event) {
-    if (EventType.None == event.getType()) {
+    if (event.getType() == EventType.None) {
       switch (event.getState()) {
         case Disconnected: // Intentional fall through of case
         case Expired: // ZooReader is handling the Expiration of the original ZooKeeper object for
@@ -74,7 +74,7 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
     }
 
     String path = event.getPath();
-    if (null == path) {
+    if (path == null) {
       return;
     }
 
@@ -161,7 +161,7 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
     switch (event.getType()) {
       case NodeDeleted:
         // Key expired
-        if (null == path) {
+        if (path == null) {
           log.error("Got null path for NodeDeleted event");
           return;
         }
@@ -175,7 +175,7 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
         break;
       case NodeCreated:
         // New key created
-        if (null == path) {
+        if (path == null) {
           log.error("Got null path for NodeCreated event");
           return;
         }
@@ -186,7 +186,7 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
         break;
       case NodeDataChanged:
         // Key changed, could happen on restart after not running Accumulo.
-        if (null == path) {
+        if (path == null) {
           log.error("Got null path for NodeDataChanged event");
           return;
         }

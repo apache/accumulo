@@ -45,7 +45,7 @@ class ProtocolOverridingSSLSocketFactory extends SSLSocketFactory {
   public ProtocolOverridingSSLSocketFactory(final SSLSocketFactory delegate,
       final String[] enabledProtocols) {
     requireNonNull(enabledProtocols);
-    checkArgument(0 != enabledProtocols.length, "Expected at least one protocol");
+    checkArgument(enabledProtocols.length != 0, "Expected at least one protocol");
     this.delegate = delegate;
     this.enabledProtocols = enabledProtocols;
   }

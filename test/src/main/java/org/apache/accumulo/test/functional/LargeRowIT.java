@@ -103,7 +103,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
 
   @After
   public void resetMajcDelay() throws Exception {
-    if (null != tservMajcDelay) {
+    if (tservMajcDelay != null) {
       try (AccumuloClient client = createAccumuloClient()) {
         client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
       }

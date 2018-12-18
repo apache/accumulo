@@ -64,7 +64,7 @@ public class ZooKeeperStatus implements Runnable {
     @Override
     public boolean equals(Object obj) {
       return obj == this
-          || (obj != null && obj instanceof ZooKeeperState && 0 == compareTo((ZooKeeperState) obj));
+          || (obj != null && obj instanceof ZooKeeperState && compareTo((ZooKeeperState) obj) == 0);
     }
 
     @Override
@@ -76,9 +76,9 @@ public class ZooKeeperStatus implements Runnable {
       } else {
         if (this.keeper == other.keeper) {
           return 0;
-        } else if (null == this.keeper) {
+        } else if (this.keeper == null) {
           return -1;
-        } else if (null == other.keeper) {
+        } else if (other.keeper == null) {
           return 1;
         } else {
           return this.keeper.compareTo(other.keeper);

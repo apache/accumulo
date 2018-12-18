@@ -196,7 +196,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
           }
         } catch (IllegalArgumentException e) {
           Throwable cause = e.getCause();
-          if (null != cause && cause instanceof TableNotFoundException) {
+          if (cause != null && cause instanceof TableNotFoundException) {
             log.trace("Ignoring extent for deleted table: {}", ts.getExtent());
 
             // The table might have been deleted during the iteration of the tablets

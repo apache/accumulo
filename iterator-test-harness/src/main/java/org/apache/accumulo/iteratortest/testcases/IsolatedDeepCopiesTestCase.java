@@ -155,7 +155,7 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
     }
 
     // Copy the value
-    if (null == topValue) {
+    if (topValue == null) {
       throw new IllegalStateException(
           "Should always find a non-null Value from the iterator being tested.");
     }

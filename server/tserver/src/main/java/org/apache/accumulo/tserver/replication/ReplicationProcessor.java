@@ -157,7 +157,7 @@ public class ReplicationProcessor implements Processor {
     Map<String,String> configuredPeers = conf
         .getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
     String peerType = configuredPeers.get(Property.REPLICATION_PEERS.getKey() + peerName);
-    if (null == peerType) {
+    if (peerType == null) {
       String msg = "Cannot process replication for unknown peer: " + peerName;
       log.warn(msg);
       throw new IllegalArgumentException(msg);

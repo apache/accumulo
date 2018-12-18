@@ -204,12 +204,12 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   private String getSensitiveFromHadoop(Property property) {
     org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
-    if (null != hadoopConf) {
+    if (hadoopConf != null) {
       // Try to find the sensitive value from the CredentialProvider
       try {
         char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
             property.getKey());
-        if (null != value) {
+        if (value != null) {
           return new String(value);
         }
       } catch (IOException e) {
@@ -249,7 +249,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
     // CredentialProvider should take precedence over site
     org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
-    if (null != hadoopConf) {
+    if (hadoopConf != null) {
       try {
         for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
           if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) {
@@ -259,7 +259,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
           if (filter.test(key)) {
             char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
                 key);
-            if (null != value) {
+            if (value != null) {
               props.put(key, new String(value));
             }
           }
@@ -282,7 +282,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     String credProviderPathsKey = Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey();
     String credProviderPathsValue = getConfiguration().getString(credProviderPathsKey);
 
-    if (null != credProviderPathsValue) {
+    if (credProviderPathsValue != null) {
       // We have configuration for a CredentialProvider
       // Try to pull the sensitive password from there
       org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration(

@@ -485,7 +485,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
    * get the cq needed to reference this logger's entry in +r/!0
    */
   public String getMeta() {
-    if (null == metaReference) {
+    if (metaReference == null) {
       throw new IllegalStateException("logger doesn't have meta reference. " + this);
     }
     return metaReference;
@@ -664,7 +664,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
    * @return non-null array of DatanodeInfo
    */
   DatanodeInfo[] getPipeLine() {
-    if (null != logFile) {
+    if (logFile != null) {
       OutputStream os = logFile.getWrappedStream();
       if (os instanceof DFSOutputStream) {
         return ((DFSOutputStream) os).getPipeline();

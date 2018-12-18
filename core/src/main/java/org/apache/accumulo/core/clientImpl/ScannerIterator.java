@@ -127,7 +127,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
         options.executionHints);
 
     // If we want to start readahead immediately, don't wait for hasNext to be called
-    if (0L == readaheadThreshold) {
+    if (readaheadThreshold == 0L) {
       initiateReadAhead();
     }
     iter = null;

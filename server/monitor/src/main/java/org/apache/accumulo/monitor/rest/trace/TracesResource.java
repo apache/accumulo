@@ -105,7 +105,7 @@ public class TracesResource {
       scanner.setRange(range);
 
       final Map<String,RecentTracesInformation> summary = new TreeMap<>();
-      if (null != pair.getSecond()) {
+      if (pair.getSecond() != null) {
         pair.getSecond().doAs((PrivilegedAction<Void>) () -> {
           parseSpans(scanner, summary);
           return null;
@@ -157,7 +157,7 @@ public class TracesResource {
 
       scanner.setRange(range);
 
-      if (null != pair.getSecond()) {
+      if (pair.getSecond() != null) {
         pair.getSecond().doAs((PrivilegedAction<Void>) () -> {
           for (Entry<Key,Value> entry : scanner) {
             RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
@@ -213,7 +213,7 @@ public class TracesResource {
       final SpanTree tree = new SpanTree();
       long start;
 
-      if (null != pair.getSecond()) {
+      if (pair.getSecond() != null) {
         start = pair.getSecond()
             .doAs((PrivilegedAction<Long>) () -> addSpans(scanner, tree, Long.MAX_VALUE));
       } else {
@@ -307,7 +307,7 @@ public class TracesResource {
       keytab = conf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
     }
 
-    if (saslEnabled && null != keytab) {
+    if (saslEnabled && keytab != null) {
       principal = SecurityUtil.getServerPrincipal(conf.get(Property.TRACE_USER));
       try {
         traceUgi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
@@ -340,7 +340,7 @@ public class TracesResource {
 
     java.util.Properties props = Monitor.getContext().getProperties();
     AccumuloClient client;
-    if (null != traceUgi) {
+    if (traceUgi != null) {
       try {
         client = traceUgi.doAs((PrivilegedExceptionAction<AccumuloClient>) () -> {
           // Make the KerberosToken inside the doAs
@@ -351,7 +351,7 @@ public class TracesResource {
         throw new RuntimeException("Failed to obtain scanner", e);
       }
     } else {
-      if (null == at) {
+      if (at == null) {
         throw new AssertionError("AuthenticationToken should not be null");
       }
       client = Accumulo.newClient().from(props).as(principal, at).build();

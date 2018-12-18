@@ -86,7 +86,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     clusterConf = AccumuloClusterPropertyConfiguration.get();
     type = clusterConf.getClusterType();
 
-    if (ClusterType.MINI == type
+    if (type == ClusterType.MINI
         && TRUE.equals(System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION))) {
       krb = new TestingKdc();
       krb.start();
@@ -98,7 +98,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
 
   @AfterClass
   public static void tearDownHarness() throws Exception {
-    if (null != krb) {
+    if (krb != null) {
       krb.stop();
     }
   }
@@ -123,7 +123,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
         // core-site.xml
         cluster = miniClusterHarness.create(this, getAdminToken(), krb);
         // Login as the "root" user
-        if (null != krb) {
+        if (krb != null) {
           ClusterUser rootUser = krb.getRootUser();
           // Log in the 'client' user
           UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
@@ -171,7 +171,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
 
     switch (type) {
       case MINI:
-        if (null != krb) {
+        if (krb != null) {
           final String traceTable = Property.TRACE_TABLE.getDefaultValue();
           final ClusterUser systemUser = krb.getAccumuloServerUser(), rootUser = krb.getRootUser();
 
@@ -239,7 +239,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
 
   @After
   public void teardownCluster() throws Exception {
-    if (null != cluster) {
+    if (cluster != null) {
       if (type.isDynamic()) {
         cluster.stop();
       } else {
@@ -301,7 +301,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   public ClusterUser getAdminUser() {
     switch (type) {
       case MINI:
-        if (null == krb) {
+        if (krb == null) {
           PasswordToken passwordToken = (PasswordToken) getAdminToken();
           return new ClusterUser(getAdminPrincipal(),
               new String(passwordToken.getPassword(), UTF_8));
@@ -319,7 +319,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   public ClusterUser getUser(int offset) {
     switch (type) {
       case MINI:
-        if (null != krb) {
+        if (krb != null) {
           // Defer to the TestingKdc when kerberos is on so we can get the keytab instead of a
           // password
           return krb.getClientPrincipal(offset);

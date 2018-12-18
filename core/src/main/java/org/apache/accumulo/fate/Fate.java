@@ -100,7 +100,7 @@ public class Fate<T> {
         } catch (Exception e) {
           runnerLog.error("Uncaught exception in FATE runner thread.", e);
         } finally {
-          if (null != tid) {
+          if (tid != null) {
             store.unreserve(tid, deferTime);
           }
         }

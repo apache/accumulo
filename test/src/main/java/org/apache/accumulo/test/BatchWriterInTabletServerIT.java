@@ -50,7 +50,7 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
 
   @Override
   public boolean canRunTest(ClusterType type) {
-    return ClusterType.MINI == type;
+    return type == ClusterType.MINI;
   }
 
   /**

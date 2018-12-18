@@ -314,7 +314,7 @@ public class Tables {
         + Constants.ZTABLE_NAMESPACE);
 
     // We might get null out of ZooCache if this tableID doesn't exist
-    if (null == n) {
+    if (n == null) {
       throw new TableNotFoundException(tableId.canonicalID(), null, null);
     }
 

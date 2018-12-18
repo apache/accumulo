@@ -81,7 +81,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     }
 
     // If we don't find a tcredentials in the first two positions
-    if (null == tcreds) {
+    if (tcreds == null) {
       // Not all calls require authentication (e.g. closeMultiScan). We need to let these pass
       // through.
       log.trace("Did not find a TCredentials object in the first two positions"
@@ -96,7 +96,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
 
     // If we authenticated the user over DIGEST-MD5 and they have a DelegationToken, the principals
     // should match
-    if (SaslMechanism.DIGEST_MD5 == UGIAssumingProcessor.rpcMechanism()
+    if (UGIAssumingProcessor.rpcMechanism() == SaslMechanism.DIGEST_MD5
         && DelegationTokenImpl.class.isAssignableFrom(tokenClass)) {
       if (!principal.equals(tcreds.principal)) {
         log.warn("{} issued RPC with delegation token over DIGEST-MD5 as the"
@@ -117,7 +117,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
           SecurityErrorCode.BAD_CREDENTIALS);
     }
 
-    if (null == principal) {
+    if (principal == null) {
       log.debug(
           "Found KerberosToken in TCredentials, but did not receive principal from SASL processor");
       throw new ThriftSecurityException("Did not extract principal from Thrift SASL processor",
@@ -128,7 +128,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     // principal
     if (!principal.equals(tcreds.principal)) {
       UsersWithHosts usersWithHosts = impersonation.get(principal);
-      if (null == usersWithHosts) {
+      if (usersWithHosts == null) {
         principalMismatch(principal, tcreds.principal);
       }
       if (!usersWithHosts.getUsers().contains(tcreds.principal)) {
@@ -153,7 +153,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
 
   protected Class<? extends AuthenticationToken> getTokenClassFromName(String tokenClassName) {
     Class<? extends AuthenticationToken> typedClz = TOKEN_CLASS_CACHE.get(tokenClassName);
-    if (null == typedClz) {
+    if (typedClz == null) {
       Class<?> clz;
       try {
         clz = Class.forName(tokenClassName);

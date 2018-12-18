@@ -99,7 +99,7 @@ public class StatusMaker {
       Text file = new Text();
       for (Entry<Key,Value> entry : s) {
         // Get a writer to the replication table
-        if (null == replicationWriter) {
+        if (replicationWriter == null) {
           // Ensures table is online
           try {
             ReplicationTable.setOnline(client);
@@ -261,7 +261,7 @@ public class StatusMaker {
    */
   protected void deleteStatusRecord(Key k) {
     log.debug("Deleting {} from metadata table as it's no longer needed", k.toStringNoTruncate());
-    if (null == metadataWriter) {
+    if (metadataWriter == null) {
       try {
         metadataWriter = client.createBatchWriter(sourceTableName, new BatchWriterConfig());
       } catch (TableNotFoundException e) {

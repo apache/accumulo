@@ -165,11 +165,11 @@ public class ClientConfConverter {
         // Attempt to load sensitive properties from a CredentialProvider, if configured
         if (property.isSensitive()) {
           org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
-          if (null != hadoopConf) {
+          if (hadoopConf != null) {
             try {
               char[] value = CredentialProviderFactoryShim
                   .getValueFromCredentialProvider(hadoopConf, key);
-              if (null != value) {
+              if (value != null) {
                 log.trace("Loaded sensitive value for {} from CredentialProvider", key);
                 return new String(value);
               } else {
@@ -187,7 +187,7 @@ public class ClientConfConverter {
           return config.getString(key);
         else {
           // Reconstitute the server kerberos property from the client config
-          if (Property.GENERAL_KERBEROS_PRINCIPAL == property) {
+          if (property == Property.GENERAL_KERBEROS_PRINCIPAL) {
             if (config.containsKey(
                 org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
                     .getKey())) {
@@ -231,7 +231,7 @@ public class ClientConfConverter {
 
         // Attempt to load sensitive properties from a CredentialProvider, if configured
         org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
-        if (null != hadoopConf) {
+        if (hadoopConf != null) {
           try {
             for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
               if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) {
@@ -241,7 +241,7 @@ public class ClientConfConverter {
               if (filter.test(key)) {
                 char[] value = CredentialProviderFactoryShim
                     .getValueFromCredentialProvider(hadoopConf, key);
-                if (null != value) {
+                if (value != null) {
                   props.put(key, new String(value));
                 }
               }
@@ -256,7 +256,7 @@ public class ClientConfConverter {
       private org.apache.hadoop.conf.Configuration getHadoopConfiguration() {
         String credProviderPaths = config
             .getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
-        if (null != credProviderPaths && !credProviderPaths.isEmpty()) {
+        if (credProviderPaths != null && !credProviderPaths.isEmpty()) {
           org.apache.hadoop.conf.Configuration hConf = new org.apache.hadoop.conf.Configuration();
           hConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPaths);
           return hConf;

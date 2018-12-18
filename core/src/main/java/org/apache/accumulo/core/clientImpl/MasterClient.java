@@ -62,7 +62,7 @@ public class MasterClient {
     }
 
     HostAndPort master = HostAndPort.fromString(locations.get(0));
-    if (0 == master.getPort())
+    if (master.getPort() == 0)
       return null;
 
     try {
@@ -71,7 +71,7 @@ public class MasterClient {
           context);
     } catch (TTransportException tte) {
       Throwable cause = tte.getCause();
-      if (null != cause && cause instanceof UnknownHostException) {
+      if (cause != null && cause instanceof UnknownHostException) {
         // do not expect to recover from this
         throw new RuntimeException(tte);
       }

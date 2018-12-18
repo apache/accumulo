@@ -374,7 +374,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static Set<Pair<Text,Text>> deserializeFetchedColumns(Collection<String> serialized) {
     Set<Pair<Text,Text>> columns = new HashSet<>();
 
-    if (null == serialized) {
+    if (serialized == null) {
       return columns;
     }
 

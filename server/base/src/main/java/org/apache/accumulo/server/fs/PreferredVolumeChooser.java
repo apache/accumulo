@@ -90,12 +90,12 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
 
     // fall back to global default scope, so setting only one default is necessary, rather than a
     // separate default for TABLE scope than other scopes
-    if (null == preferredVolumes || preferredVolumes.isEmpty()) {
+    if (preferredVolumes == null || preferredVolumes.isEmpty()) {
       preferredVolumes = confFactory.getSystemConfiguration().get(DEFAULT_SCOPED_PREFERRED_VOLUMES);
     }
 
     // throw an error if volumes not specified or empty
-    if (null == preferredVolumes || preferredVolumes.isEmpty()) {
+    if (preferredVolumes == null || preferredVolumes.isEmpty()) {
       String msg = "Property " + TABLE_PREFERRED_VOLUMES + " or " + DEFAULT_SCOPED_PREFERRED_VOLUMES
           + " must be a subset of " + Arrays.toString(options) + " to use the "
           + getClass().getSimpleName();
@@ -116,13 +116,13 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
 
     // fall back to global default scope if this scope isn't configured (and not already default
     // scope)
-    if ((null == preferredVolumes || preferredVolumes.isEmpty()) && scope != ChooserScope.DEFAULT) {
+    if ((preferredVolumes == null || preferredVolumes.isEmpty()) && scope != ChooserScope.DEFAULT) {
       log.debug("{} not found; using {}", property, DEFAULT_SCOPED_PREFERRED_VOLUMES);
       preferredVolumes = systemConfiguration.get(DEFAULT_SCOPED_PREFERRED_VOLUMES);
 
       // only if the custom property is not set to we fall back to the default scoped preferred
       // volumes
-      if (null == preferredVolumes || preferredVolumes.isEmpty()) {
+      if (preferredVolumes == null || preferredVolumes.isEmpty()) {
         String msg = "Property " + property + " or " + DEFAULT_SCOPED_PREFERRED_VOLUMES
             + " must be a subset of " + Arrays.toString(options) + " to use the "
             + getClass().getSimpleName();

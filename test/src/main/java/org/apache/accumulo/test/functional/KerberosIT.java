@@ -104,7 +104,7 @@ public class KerberosIT extends AccumuloITBase {
     kdc = new TestingKdc();
     kdc.start();
     krbEnabledForITs = System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION);
-    if (null == krbEnabledForITs || !Boolean.parseBoolean(krbEnabledForITs)) {
+    if (krbEnabledForITs == null || !Boolean.parseBoolean(krbEnabledForITs)) {
       System.setProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION, "true");
     }
     rootUser = kdc.getRootUser();
@@ -112,10 +112,10 @@ public class KerberosIT extends AccumuloITBase {
 
   @AfterClass
   public static void stopKdc() throws Exception {
-    if (null != kdc) {
+    if (kdc != null) {
       kdc.stop();
     }
-    if (null != krbEnabledForITs) {
+    if (krbEnabledForITs != null) {
       System.setProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION, krbEnabledForITs);
     }
     UserGroupInformation.setConfiguration(new Configuration(false));
@@ -153,7 +153,7 @@ public class KerberosIT extends AccumuloITBase {
 
   @After
   public void stopMac() throws Exception {
-    if (null != mac) {
+    if (mac != null) {
       mac.stop();
     }
   }
@@ -598,7 +598,7 @@ public class KerberosIT extends AccumuloITBase {
       });
     } catch (UndeclaredThrowableException e) {
       Throwable cause = e.getCause();
-      if (null != cause) {
+      if (cause != null) {
         throw cause;
       } else {
         throw e;

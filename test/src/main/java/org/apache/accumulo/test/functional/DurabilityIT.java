@@ -148,7 +148,7 @@ public class DurabilityIT extends ConfigurableMacBase {
       writeSome(client, tableNames[2], N);
       restartTServer();
       long numResults = readSome(client, tableNames[2]);
-      assertTrue("Expected " + N + " >= " + numResults, N >= numResults);
+      assertTrue("Expected " + N + " >= " + numResults, numResults <= N);
       cleanup(client, tableNames);
     }
   }
@@ -161,7 +161,7 @@ public class DurabilityIT extends ConfigurableMacBase {
       writeSome(client, tableNames[3], N);
       restartTServer();
       long numResults = readSome(client, tableNames[3]);
-      assertTrue("Expected " + N + " >= " + numResults, N >= numResults);
+      assertTrue("Expected " + N + " >= " + numResults, numResults <= N);
       cleanup(client, tableNames);
     }
   }
@@ -175,7 +175,7 @@ public class DurabilityIT extends ConfigurableMacBase {
       writeSome(c, tableName, N);
       restartTServer();
       long numResults = readSome(c, tableName);
-      assertTrue("Expected " + N + " >= " + numResults, N >= numResults);
+      assertTrue("Expected " + N + " >= " + numResults, numResults <= N);
       c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
       writeSome(c, tableName, N);
       restartTServer();

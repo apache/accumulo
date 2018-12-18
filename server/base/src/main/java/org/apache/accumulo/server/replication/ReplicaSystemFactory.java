@@ -68,7 +68,7 @@ public class ReplicaSystemFactory {
     requireNonNull(value);
 
     int index = value.indexOf(',');
-    if (-1 == index) {
+    if (index == -1) {
       throw new IllegalArgumentException(
           "Expected comma separator between replication system name and configuration");
     }
@@ -90,7 +90,7 @@ public class ReplicaSystemFactory {
   public static String getPeerConfigurationValue(Class<? extends ReplicaSystem> system,
       String configuration) {
     String systemName = system.getName() + ",";
-    if (null == configuration) {
+    if (configuration == null) {
       return systemName;
     }
 

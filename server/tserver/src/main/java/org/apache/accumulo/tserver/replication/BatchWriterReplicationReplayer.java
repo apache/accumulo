@@ -79,7 +79,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
         }
 
         // Create the batchScanner if we don't already have one.
-        if (null == bw) {
+        if (bw == null) {
           BatchWriterConfig bwConfig = new BatchWriterConfig();
           bwConfig.setMaxMemory(memoryInBytes);
           try {
@@ -127,7 +127,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
 
             // We also need to preserve the replicationSource information to prevent cycles
             Set<String> replicationSources = orig.getReplicationSources();
-            if (null != replicationSources && !replicationSources.isEmpty()) {
+            if (replicationSources != null && !replicationSources.isEmpty()) {
               for (String replicationSource : replicationSources) {
                 copy.addReplicationSource(replicationSource);
               }
@@ -155,7 +155,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
         mutationsApplied += mutationsCopy.size();
       }
     } finally {
-      if (null != bw) {
+      if (bw != null) {
         try {
           bw.close();
         } catch (MutationsRejectedException e) {

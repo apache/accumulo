@@ -204,7 +204,7 @@ public class UserImpersonation {
       final String hostConfig = hostConfigs[i];
 
       final String[] splitUserConfig = StringUtils.split(userConfig, ':');
-      if (2 != splitUserConfig.length) {
+      if (splitUserConfig.length != 2) {
         throw new IllegalArgumentException(
             "Expect a single colon-separated pair, but found '" + userConfig + "'");
       }
