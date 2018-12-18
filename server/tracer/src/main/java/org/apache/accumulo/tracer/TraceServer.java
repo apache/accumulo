@@ -304,12 +304,8 @@ public class TraceServer implements Watcher, AutoCloseable {
   }
 
   public void run() throws Exception {
-    SimpleTimer.getInstance(serverConfiguration.getSystemConfiguration()).schedule(new Runnable() {
-      @Override
-      public void run() {
-        flush();
-      }
-    }, SCHEDULE_DELAY, SCHEDULE_PERIOD);
+    SimpleTimer.getInstance(serverConfiguration.getSystemConfiguration()).schedule(() -> flush(),
+        SCHEDULE_DELAY, SCHEDULE_PERIOD);
     server.serve();
   }
 
@@ -415,8 +411,7 @@ public class TraceServer implements Watcher, AutoCloseable {
     loginTracer(context.getConfiguration());
     MetricsSystemHelper.configure(TraceServer.class.getSimpleName());
     ServerUtil.init(context, app);
-    TraceServer server = new TraceServer(context, opts.getAddress());
-    try {
+    try (TraceServer server = new TraceServer(context, opts.getAddress())) {
       server.run();
     } finally {
       log.info("tracer stopping");

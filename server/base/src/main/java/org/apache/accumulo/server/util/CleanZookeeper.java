@@ -50,15 +50,14 @@ public class CleanZookeeper {
     Opts opts = new Opts();
     opts.parseArgs(CleanZookeeper.class.getName(), args);
 
-    ServerContext context = new ServerContext(new SiteConfiguration());
+    try (ServerContext context = new ServerContext(new SiteConfiguration())) {
 
-    String root = Constants.ZROOT;
-    IZooReaderWriter zk = context.getZooReaderWriter();
-    if (opts.auth != null) {
-      zk.getZooKeeper().addAuthInfo("digest", ("accumulo:" + opts.auth).getBytes(UTF_8));
-    }
+      String root = Constants.ZROOT;
+      IZooReaderWriter zk = context.getZooReaderWriter();
+      if (opts.auth != null) {
+        zk.getZooKeeper().addAuthInfo("digest", ("accumulo:" + opts.auth).getBytes(UTF_8));
+      }
 
-    try {
       for (String child : zk.getChildren(root)) {
         if (Constants.ZINSTANCES.equals("/" + child)) {
           for (String instanceName : zk.getChildren(root + Constants.ZINSTANCES)) {

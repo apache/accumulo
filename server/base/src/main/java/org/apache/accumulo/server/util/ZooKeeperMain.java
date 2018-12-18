@@ -64,18 +64,19 @@ public class ZooKeeperMain implements KeywordExecutable {
   public void execute(final String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(ZooKeeperMain.class.getName(), args);
-    ServerContext context = new ServerContext(new SiteConfiguration());
-    FileSystem fs = context.getVolumeManager().getDefaultVolume().getFileSystem();
-    String baseDir = ServerConstants.getBaseUris(context.getConfiguration())[0];
-    System.out.println("Using " + fs.makeQualified(new Path(baseDir + "/instance_id"))
-        + " to lookup accumulo instance");
-    if (opts.servers == null) {
-      opts.servers = context.getZooKeepers();
+    try (ServerContext context = new ServerContext(new SiteConfiguration())) {
+      FileSystem fs = context.getVolumeManager().getDefaultVolume().getFileSystem();
+      String baseDir = ServerConstants.getBaseUris(context.getConfiguration())[0];
+      System.out.println("Using " + fs.makeQualified(new Path(baseDir + "/instance_id"))
+          + " to lookup accumulo instance");
+      if (opts.servers == null) {
+        opts.servers = context.getZooKeepers();
+      }
+      System.out.println("The accumulo instance id is " + context.getInstanceID());
+      if (!opts.servers.contains("/"))
+        opts.servers += "/accumulo/" + context.getInstanceID();
+      org.apache.zookeeper.ZooKeeperMain
+          .main(new String[] {"-server", opts.servers, "-timeout", "" + (opts.timeout * 1000)});
     }
-    System.out.println("The accumulo instance id is " + context.getInstanceID());
-    if (!opts.servers.contains("/"))
-      opts.servers += "/accumulo/" + context.getInstanceID();
-    org.apache.zookeeper.ZooKeeperMain
-        .main(new String[] {"-server", opts.servers, "-timeout", "" + (opts.timeout * 1000)});
   }
 }

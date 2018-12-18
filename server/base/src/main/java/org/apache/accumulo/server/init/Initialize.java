@@ -393,70 +393,71 @@ public class Initialize implements KeywordExecutable {
       return false;
     }
 
-    final ServerContext context = new ServerContext(siteConfig);
+    try (ServerContext context = new ServerContext(siteConfig)) {
 
-    // When we're using Kerberos authentication, we need valid credentials to perform
-    // initialization. If the user provided some, use them.
-    // If they did not, fall back to the credentials present in accumulo.properties that the servers
-    // will use themselves.
-    try {
-      final SiteConfiguration siteConf = context.getServerConfFactory().getSiteConfiguration();
-      if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-        final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-        // We don't have any valid creds to talk to HDFS
-        if (!ugi.hasKerberosCredentials()) {
-          final String accumuloKeytab = siteConf.get(Property.GENERAL_KERBEROS_KEYTAB),
-              accumuloPrincipal = siteConf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
-
-          // Fail if the site configuration doesn't contain appropriate credentials to login as
-          // servers
-          if (StringUtils.isBlank(accumuloKeytab) || StringUtils.isBlank(accumuloPrincipal)) {
-            log.error("FATAL: No Kerberos credentials provided, and Accumulo is"
-                + " not properly configured for server login");
-            return false;
-          }
-
-          log.info("Logging in as {} with {}", accumuloPrincipal, accumuloKeytab);
-
-          // Login using the keytab as the 'accumulo' user
-          UserGroupInformation.loginUserFromKeytab(accumuloPrincipal, accumuloKeytab);
-        }
-      }
-    } catch (IOException e) {
-      log.error("FATAL: Failed to get the Kerberos user", e);
-      return false;
-    }
-
-    try {
-      initSecurity(context, opts, uuid.toString(), rootUser);
-    } catch (Exception e) {
-      log.error("FATAL: Failed to initialize security", e);
-      return false;
-    }
-
-    if (opts.uploadAccumuloProps) {
+      // When we're using Kerberos authentication, we need valid credentials to perform
+      // initialization. If the user provided some, use them.
+      // If they did not, fall back to the credentials present in accumulo.properties that the
+      // servers will use themselves.
       try {
-        log.info("Uploading properties in accumulo.properties to Zookeeper."
-            + " Properties that cannot be set in Zookeeper will be skipped:");
-        Map<String,String> entries = new TreeMap<>();
-        siteConfig.getProperties(entries, x -> true, false);
-        for (Map.Entry<String,String> entry : entries.entrySet()) {
-          String key = entry.getKey();
-          String value = entry.getValue();
-          if (Property.isValidZooPropertyKey(key)) {
-            SystemPropUtil.setSystemProperty(context, key, value);
-            log.info("Uploaded - {} = {}", key, Property.isSensitive(key) ? "<hidden>" : value);
-          } else {
-            log.info("Skipped - {} = {}", key, Property.isSensitive(key) ? "<hidden>" : value);
+        final SiteConfiguration siteConf = context.getServerConfFactory().getSiteConfiguration();
+        if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+          final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+          // We don't have any valid creds to talk to HDFS
+          if (!ugi.hasKerberosCredentials()) {
+            final String accumuloKeytab = siteConf.get(Property.GENERAL_KERBEROS_KEYTAB),
+                accumuloPrincipal = siteConf.get(Property.GENERAL_KERBEROS_PRINCIPAL);
+
+            // Fail if the site configuration doesn't contain appropriate credentials to login as
+            // servers
+            if (StringUtils.isBlank(accumuloKeytab) || StringUtils.isBlank(accumuloPrincipal)) {
+              log.error("FATAL: No Kerberos credentials provided, and Accumulo is"
+                  + " not properly configured for server login");
+              return false;
+            }
+
+            log.info("Logging in as {} with {}", accumuloPrincipal, accumuloKeytab);
+
+            // Login using the keytab as the 'accumulo' user
+            UserGroupInformation.loginUserFromKeytab(accumuloPrincipal, accumuloKeytab);
           }
         }
-      } catch (Exception e) {
-        log.error("FATAL: Failed to upload accumulo.properties to Zookeeper", e);
+      } catch (IOException e) {
+        log.error("FATAL: Failed to get the Kerberos user", e);
         return false;
       }
-    }
 
-    return true;
+      try {
+        initSecurity(context, opts, uuid.toString(), rootUser);
+      } catch (Exception e) {
+        log.error("FATAL: Failed to initialize security", e);
+        return false;
+      }
+
+      if (opts.uploadAccumuloProps) {
+        try {
+          log.info("Uploading properties in accumulo.properties to Zookeeper."
+              + " Properties that cannot be set in Zookeeper will be skipped:");
+          Map<String,String> entries = new TreeMap<>();
+          siteConfig.getProperties(entries, x -> true, false);
+          for (Map.Entry<String,String> entry : entries.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (Property.isValidZooPropertyKey(key)) {
+              SystemPropUtil.setSystemProperty(context, key, value);
+              log.info("Uploaded - {} = {}", key, Property.isSensitive(key) ? "<hidden>" : value);
+            } else {
+              log.info("Skipped - {} = {}", key, Property.isSensitive(key) ? "<hidden>" : value);
+            }
+          }
+        } catch (Exception e) {
+          log.error("FATAL: Failed to upload accumulo.properties to Zookeeper", e);
+          return false;
+        }
+      }
+
+      return true;
+    }
   }
 
   private static boolean zookeeperAvailable() {
@@ -938,23 +939,24 @@ public class Initialize implements KeywordExecutable {
 
       if (opts.resetSecurity) {
         log.info("Resetting security on accumulo.");
-        ServerContext context = new ServerContext(siteConfig);
-        if (isInitialized(fs, siteConfig)) {
-          if (!opts.forceResetSecurity) {
-            ConsoleReader c = getConsoleReader();
-            String userEnteredName = c.readLine("WARNING: This will remove all"
-                + " users from Accumulo! If you wish to proceed enter the instance" + " name: ");
-            if (userEnteredName != null && !context.getInstanceName().equals(userEnteredName)) {
-              log.error("Aborted reset security: Instance name did not match current instance.");
-              return;
+        try (ServerContext context = new ServerContext(siteConfig)) {
+          if (isInitialized(fs, siteConfig)) {
+            if (!opts.forceResetSecurity) {
+              ConsoleReader c = getConsoleReader();
+              String userEnteredName = c.readLine("WARNING: This will remove all"
+                  + " users from Accumulo! If you wish to proceed enter the instance" + " name: ");
+              if (userEnteredName != null && !context.getInstanceName().equals(userEnteredName)) {
+                log.error("Aborted reset security: Instance name did not match current instance.");
+                return;
+              }
             }
-          }
 
-          final String rootUser = getRootUserName(siteConfig, opts);
-          opts.rootpass = getRootPassword(siteConfig, opts, rootUser);
-          initSecurity(context, opts, context.getInstanceID(), rootUser);
-        } else {
-          log.error("FATAL: Attempted to reset security on accumulo before it was initialized");
+            final String rootUser = getRootUserName(siteConfig, opts);
+            opts.rootpass = getRootPassword(siteConfig, opts, rootUser);
+            initSecurity(context, opts, context.getInstanceID(), rootUser);
+          } else {
+            log.error("FATAL: Attempted to reset security on accumulo before it was initialized");
+          }
         }
       }
 

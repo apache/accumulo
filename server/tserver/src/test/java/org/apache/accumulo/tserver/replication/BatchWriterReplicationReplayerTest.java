@@ -26,7 +26,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
 
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -44,13 +43,9 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-/**
- *
- */
 public class BatchWriterReplicationReplayerTest {
 
   private ClientContext context;
-  private AccumuloClient client;
   private AccumuloConfiguration conf;
   private BatchWriter bw;
 
