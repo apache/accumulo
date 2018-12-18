@@ -77,7 +77,6 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
@@ -130,11 +129,6 @@ public class InMemoryMap {
     }
 
     return pair.getSecond();
-  }
-
-  @VisibleForTesting
-  public InMemoryMap(AccumuloConfiguration config) {
-    this(config, "--TEST--");
   }
 
   public InMemoryMap(AccumuloConfiguration config, String tableId) {

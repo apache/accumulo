@@ -53,7 +53,7 @@ class InMemoryMapMemoryUsageTest extends MemoryUsageTest {
 
   @Override
   void init() {
-    imm = new InMemoryMap(DefaultConfiguration.getInstance());
+    imm = new InMemoryMap(DefaultConfiguration.getInstance(), "--TEST--");
     key = new Text();
 
     colf = new Text(String.format("%0" + colFamLen + "d", 0));
