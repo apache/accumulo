@@ -349,20 +349,15 @@ public class CredentialProviderFactoryShim {
    * @param alias
    *          Name of CredentialEntry key
    * @return The credential if found, null otherwise
-   * @throws IOException
-   *           On errors reading a CredentialProvider
    */
-  public static char[] getValueFromCredentialProvider(Configuration conf, String alias)
-      throws IOException {
+  public static char[] getValueFromCredentialProvider(Configuration conf, String alias) {
     requireNonNull(conf);
     requireNonNull(alias);
-
     if (isHadoopCredentialProviderAvailable()) {
       log.trace("Hadoop CredentialProvider is available, attempting to extract value for {}",
           alias);
       return getFromHadoopCredentialProvider(conf, alias);
     }
-
     return null;
   }
 

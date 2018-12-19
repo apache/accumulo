@@ -166,19 +166,14 @@ public class ClientConfConverter {
         if (property.isSensitive()) {
           org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
           if (hadoopConf != null) {
-            try {
-              char[] value = CredentialProviderFactoryShim
-                  .getValueFromCredentialProvider(hadoopConf, key);
-              if (value != null) {
-                log.trace("Loaded sensitive value for {} from CredentialProvider", key);
-                return new String(value);
-              } else {
-                log.trace("Tried to load sensitive value for {} from CredentialProvider, "
-                    + "but none was found", key);
-              }
-            } catch (IOException e) {
-              log.warn("Failed to extract sensitive property ({}) from Hadoop CredentialProvider,"
-                  + " falling back to base AccumuloConfiguration", key, e);
+            char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
+                key);
+            if (value != null) {
+              log.trace("Loaded sensitive value for {} from CredentialProvider", key);
+              return new String(value);
+            } else {
+              log.trace("Tried to load sensitive value for {} from CredentialProvider, "
+                  + "but none was found", key);
             }
           }
         }

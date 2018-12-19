@@ -23,19 +23,18 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.commons.configuration.CompositeConfiguration;
-import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -49,22 +48,22 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * property is not defined, it defaults to "accumulo.properties" and will look on classpath for
  * file.
  * <p>
- * This class is a singleton.
- * <p>
  * <b>Note</b>: Client code should not use this class, and it may be deprecated in the future.
  */
 public class SiteConfiguration extends AccumuloConfiguration {
+
   private static final Logger log = LoggerFactory.getLogger(SiteConfiguration.class);
 
   private static final AccumuloConfiguration parent = DefaultConfiguration.getInstance();
 
-  private CompositeConfiguration internalConfig;
-
-  private final Map<String,String> overrides;
-  private final Map<String,String> staticConfigs;
+  private final ImmutableMap<String,String> config;
 
   public SiteConfiguration() {
     this(getAccumuloPropsLocation());
+  }
+
+  public SiteConfiguration(Map<String,String> overrides) {
+    this(getAccumuloPropsLocation(), overrides);
   }
 
   public SiteConfiguration(File accumuloPropsFile) {
@@ -79,37 +78,52 @@ public class SiteConfiguration extends AccumuloConfiguration {
     this(accumuloPropsLocation, Collections.emptyMap());
   }
 
+  public SiteConfiguration(URL accumuloPropsLocation, Map<String,String> overrides) {
+    config = createMap(accumuloPropsLocation, overrides);
+  }
+
   @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
       justification = "location of props is specified by an admin")
-  public SiteConfiguration(URL accumuloPropsLocation, Map<String,String> overrides) {
-    this.overrides = overrides;
-
-    init();
-    PropertiesConfiguration config = new PropertiesConfiguration();
+  private static ImmutableMap<String,String> createMap(URL accumuloPropsLocation,
+      Map<String,String> overrides) {
+    CompositeConfiguration config = new CompositeConfiguration();
+    config.setThrowExceptionOnMissing(false);
     config.setDelimiterParsingDisabled(true);
+    PropertiesConfiguration propsConfig = new PropertiesConfiguration();
+    propsConfig.setDelimiterParsingDisabled(true);
     if (accumuloPropsLocation != null) {
       try {
-        config.load(accumuloPropsLocation.openStream());
+        propsConfig.load(accumuloPropsLocation.openStream());
       } catch (IOException | ConfigurationException e) {
         throw new IllegalArgumentException(e);
       }
     }
-    internalConfig.addConfiguration(config);
+    config.addConfiguration(propsConfig);
 
-    Map<String,String> temp = StreamSupport
-        .stream(((Iterable<String>) internalConfig::getKeys).spliterator(), false)
-        .collect(Collectors.toMap(Function.identity(), internalConfig::getString));
+    // Add all properties in config file
+    Map<String,String> result = new HashMap<>();
+    config.getKeys().forEachRemaining(key -> result.put(key, config.getString(key)));
 
-    /*
-     * If any of the configs used in hot codepaths are unset here, set a null so that we'll default
-     * to the parent config without contending for the Hadoop Configuration object
-     */
-    for (Property hotConfig : Property.HOT_PATH_PROPERTIES) {
-      if (!(temp.containsKey(hotConfig.getKey()))) {
-        temp.put(hotConfig.getKey(), null);
+    // Add all overrides
+    overrides.forEach(result::put);
+
+    // Add sensitive properties from credential provider (if set)
+    String credProvider = result.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+    if (credProvider != null) {
+      org.apache.hadoop.conf.Configuration hadoopConf = new org.apache.hadoop.conf.Configuration(
+          CachedConfiguration.getInstance());
+      hadoopConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProvider);
+      for (Property property : Property.values()) {
+        if (property.isSensitive()) {
+          char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
+              property.getKey());
+          if (value != null) {
+            result.put(property.getKey(), new String(value));
+          }
+        }
       }
     }
-    staticConfigs = Collections.unmodifiableMap(temp);
+    return ImmutableMap.copyOf(result);
   }
 
   private static URL toURL(File f) {
@@ -157,80 +171,22 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
   }
 
-  private void init() {
-    internalConfig = new CompositeConfiguration();
-    internalConfig.setThrowExceptionOnMissing(false);
-    internalConfig.setDelimiterParsingDisabled(true);
-  }
-
-  private synchronized Configuration getConfiguration() {
-    if (internalConfig == null) {
-      init();
-    }
-    return internalConfig;
-  }
-
   @Override
   public String get(Property property) {
-    if (overrides.containsKey(property.getKey())) {
-      return overrides.get(property.getKey());
-    }
-
-    String key = property.getKey();
-    // If the property is sensitive, see if CredentialProvider was configured.
-    if (property.isSensitive()) {
-      String hadoopVal = getSensitiveFromHadoop(property);
-      if (hadoopVal != null) {
-        return hadoopVal;
-      }
-    }
-
-    /*
-     * Check the available-on-load configs and fall-back to the possibly-update Configuration
-     * object.
-     */
-    String value = staticConfigs.containsKey(key) ? staticConfigs.get(key)
-        : getConfiguration().getString(key);
-
+    String value = config.get(property.getKey());
     if (value == null || !property.getType().isValidFormat(value)) {
-      if (value != null)
-        log.error("Using default value for {} due to improperly formatted {}: {}", key,
-            property.getType(), value);
+      if (value != null) {
+        log.error("Using default value for {} due to improperly formatted {}: {}",
+            property.getKey(), property.getType(), value);
+      }
       value = parent.get(property);
     }
-
     return value;
-  }
-
-  private String getSensitiveFromHadoop(Property property) {
-    org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
-    if (hadoopConf != null) {
-      // Try to find the sensitive value from the CredentialProvider
-      try {
-        char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
-            property.getKey());
-        if (value != null) {
-          return new String(value);
-        }
-      } catch (IOException e) {
-        log.warn("Failed to extract sensitive property (" + property.getKey()
-            + ") from Hadoop CredentialProvider, falling back to accumulo.properties", e);
-      }
-    }
-    return null;
   }
 
   @Override
   public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
-    if (prop.isSensitive()) {
-      String hadoopVal = getSensitiveFromHadoop(prop);
-      if (hadoopVal != null) {
-        return true;
-      }
-    }
-    return overrides.containsKey(prop.getKey()) || staticConfigs.containsKey(prop.getKey())
-        || getConfiguration().containsKey(prop.getKey())
-        || parent.isPropertySet(prop, cacheAndWatch);
+    return config.containsKey(prop.getKey()) || parent.isPropertySet(prop, cacheAndWatch);
   }
 
   @Override
@@ -243,78 +199,9 @@ public class SiteConfiguration extends AccumuloConfiguration {
     if (useDefaults) {
       parent.getProperties(props, filter);
     }
-
-    StreamSupport.stream(((Iterable<String>) getConfiguration()::getKeys).spliterator(), false)
-        .filter(filter).forEach(k -> props.put(k, getConfiguration().getString(k)));
-
-    // CredentialProvider should take precedence over site
-    org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
-    if (hadoopConf != null) {
-      try {
-        for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
-          if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) {
-            continue;
-          }
-
-          if (filter.test(key)) {
-            char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
-                key);
-            if (value != null) {
-              props.put(key, new String(value));
-            }
-          }
-        }
-      } catch (IOException e) {
-        log.warn("Failed to extract sensitive properties from Hadoop"
-            + " CredentialProvider, falling back to accumulo.properties", e);
-      }
-    }
-    if (overrides != null) {
-      for (Map.Entry<String,String> entry : overrides.entrySet()) {
-        if (filter.test(entry.getKey())) {
-          props.put(entry.getKey(), entry.getValue());
-        }
-      }
-    }
-  }
-
-  protected org.apache.hadoop.conf.Configuration getHadoopConfiguration() {
-    String credProviderPathsKey = Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey();
-    String credProviderPathsValue = getConfiguration().getString(credProviderPathsKey);
-
-    if (credProviderPathsValue != null) {
-      // We have configuration for a CredentialProvider
-      // Try to pull the sensitive password from there
-      org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration(
-          CachedConfiguration.getInstance());
-      conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPathsValue);
-      return conf;
-    }
-
-    return null;
-  }
-
-  /**
-   * Sets a property. This method supports testing and should not be called.
-   *
-   * @param property
-   *          property to set
-   * @param value
-   *          property value
-   */
-  public void set(Property property, String value) {
-    set(property.getKey(), value);
-  }
-
-  /**
-   * Sets a property. This method supports testing and should not be called.
-   *
-   * @param key
-   *          key of property to set
-   * @param value
-   *          property value
-   */
-  public void set(String key, String value) {
-    getConfiguration().setProperty(key, value);
+    config.keySet().forEach(k -> {
+      if (filter.test(k))
+        props.put(k, config.get(k));
+    });
   }
 }

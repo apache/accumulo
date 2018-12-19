@@ -24,10 +24,7 @@ import java.io.File;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Predicate;
 
-import org.apache.hadoop.conf.Configuration;
-import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -57,33 +54,43 @@ public class SiteConfigurationTest {
       return;
     }
 
-    SiteConfiguration siteCfg = EasyMock.createMockBuilder(SiteConfiguration.class)
-        .addMockedMethod("getHadoopConfiguration").createMock();
-
-    siteCfg.set(Property.INSTANCE_SECRET, "ignored");
-
     // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret',
     // 'general.rpc.timeout'=>'timeout'}
     URL keystore = SiteConfigurationTest.class.getResource("/site-cfg.jceks");
     assertNotNull(keystore);
-    String keystorePath = new File(keystore.getFile()).getAbsolutePath();
+    String credProvPath = "jceks://file" + new File(keystore.getFile()).getAbsolutePath();
 
-    Configuration hadoopConf = new Configuration();
-    hadoopConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH,
-        "jceks://file" + keystorePath);
+    SiteConfiguration config = new SiteConfiguration(ImmutableMap
+        .of(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvPath));
 
-    EasyMock.expect(siteCfg.getHadoopConfiguration()).andReturn(hadoopConf).once();
-
-    EasyMock.replay(siteCfg);
-
-    Map<String,String> props = new HashMap<>();
-    Predicate<String> all = x -> true;
-    siteCfg.getProperties(props, all);
-
-    assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
-    assertNull(props.get("ignored.property"));
+    assertEquals("mysecret", config.get(Property.INSTANCE_SECRET));
+    assertNull(config.get("ignored.property"));
     assertEquals(Property.GENERAL_RPC_TIMEOUT.getDefaultValue(),
-        props.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
+        config.get(Property.GENERAL_RPC_TIMEOUT.getKey()));
+  }
+
+  @Test
+  public void testDefault() {
+    SiteConfiguration conf = new SiteConfiguration();
+    assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
+    assertEquals("DEFAULT", conf.get(Property.INSTANCE_SECRET));
+    assertEquals("", conf.get(Property.INSTANCE_VOLUMES));
+    assertEquals("120s", conf.get(Property.GENERAL_RPC_TIMEOUT));
+    assertEquals("1g", conf.get(Property.TSERV_WALOG_MAX_SIZE));
+    assertEquals("org.apache.accumulo.core.cryptoImpl.NoCryptoService",
+        conf.get(Property.INSTANCE_CRYPTO_SERVICE));
+  }
+
+  @Test
+  public void testFile() {
+    URL propsUrl = getClass().getClassLoader().getResource("accumulo2.properties");
+    SiteConfiguration conf = new SiteConfiguration(propsUrl);
+    assertEquals("myhost123:2181", conf.get(Property.INSTANCE_ZK_HOST));
+    assertEquals("mysecret", conf.get(Property.INSTANCE_SECRET));
+    assertEquals("hdfs://localhost:8020/accumulo123", conf.get(Property.INSTANCE_VOLUMES));
+    assertEquals("123s", conf.get(Property.GENERAL_RPC_TIMEOUT));
+    assertEquals("256M", conf.get(Property.TSERV_WALOG_MAX_SIZE));
+    assertEquals("DummyService", conf.get(Property.INSTANCE_CRYPTO_SERVICE));
   }
 
   @Test
