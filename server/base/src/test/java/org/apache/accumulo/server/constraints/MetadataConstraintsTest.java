@@ -44,14 +44,14 @@ public class MetadataConstraintsTest {
       return new Arbitrator() {
 
         @Override
-        public boolean transactionAlive(String type, long tid) throws Exception {
+        public boolean transactionAlive(String type, long tid) {
           if (tid == 9)
             throw new RuntimeException("txid 9 reserved for future use");
           return tid == 5 || tid == 7;
         }
 
         @Override
-        public boolean transactionComplete(String type, long tid) throws Exception {
+        public boolean transactionComplete(String type, long tid) {
           return tid != 5 && tid != 7;
         }
       };

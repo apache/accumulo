@@ -226,7 +226,7 @@ public class VolumeUtilTest {
   }
 
   @Test
-  public void testRootTableReplacement() throws IOException {
+  public void testRootTableReplacement() {
     List<Pair<Path,Path>> replacements = new ArrayList<>();
     replacements.add(new Pair<>(new Path("file:/foo/v1"), new Path("file:/foo/v8")));
     replacements.add(new Pair<>(new Path("file:/foo/v2"), new Path("file:/foo/v9")));

@@ -36,7 +36,7 @@ public class MillisTimeTest {
   private MillisTime mtime;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     mtime = new MillisTime(TIME);
   }
 

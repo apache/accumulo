@@ -93,7 +93,7 @@ class LoadFiles extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(final long tid, final Master master) throws Exception {
+  public Repo<Master> call(final long tid, final Master master) {
     if (bulkInfo.tableState == TableState.ONLINE) {
       return new CompleteBulkImport(bulkInfo);
     } else {

@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -42,8 +41,7 @@ public class InsecureAuthenticator implements Authenticator {
   }
 
   @Override
-  public void initializeSecurity(TCredentials credentials, String principal, byte[] token)
-      throws AccumuloSecurityException {}
+  public void initializeSecurity(TCredentials credentials, String principal, byte[] token) {}
 
   @Override
   public boolean authenticateUser(String principal, AuthenticationToken token) {
@@ -51,20 +49,18 @@ public class InsecureAuthenticator implements Authenticator {
   }
 
   @Override
-  public Set<String> listUsers() throws AccumuloSecurityException {
+  public Set<String> listUsers() {
     return Collections.emptySet();
   }
 
   @Override
-  public void createUser(String principal, AuthenticationToken token)
-      throws AccumuloSecurityException {}
+  public void createUser(String principal, AuthenticationToken token) {}
 
   @Override
-  public void dropUser(String user) throws AccumuloSecurityException {}
+  public void dropUser(String user) {}
 
   @Override
-  public void changePassword(String user, AuthenticationToken token)
-      throws AccumuloSecurityException {}
+  public void changePassword(String user, AuthenticationToken token) {}
 
   @Override
   public boolean userExists(String user) {

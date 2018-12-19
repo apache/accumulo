@@ -50,7 +50,7 @@ public class UnorderedWorkAssignerTest {
   private UnorderedWorkAssigner assigner;
 
   @Before
-  public void init() throws Exception {
+  public void init() {
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
     client = createMock(AccumuloClient.class);
     assigner = new UnorderedWorkAssigner(conf, client);

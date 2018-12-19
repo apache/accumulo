@@ -17,7 +17,6 @@
 package org.apache.accumulo.test.replication;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationTarget;
@@ -76,7 +75,7 @@ public class MockReplicaSystem implements ReplicaSystem {
           "Tried to update status in replication table for {} as {}, but the table did not exist",
           p, ProtobufUtil.toString(newStatus), e);
       return status;
-    } catch (AccumuloException | AccumuloSecurityException e) {
+    } catch (AccumuloException e) {
       log.error("Tried to record new status in replication table for {} as {}, but got an error", p,
           ProtobufUtil.toString(newStatus), e);
       return status;

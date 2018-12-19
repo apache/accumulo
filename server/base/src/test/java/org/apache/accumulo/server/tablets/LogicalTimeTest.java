@@ -34,7 +34,7 @@ public class LogicalTimeTest {
   private LogicalTime ltime;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     ltime = (LogicalTime) TabletTime.getInstance("L1234");
   }
 

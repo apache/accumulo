@@ -51,7 +51,7 @@ public class TabletLocationStateTest {
   private TabletLocationState tls;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     keyExtent = createMock(KeyExtent.class);
     future = createMock(TServerInstance.class);
     current = createMock(TServerInstance.class);

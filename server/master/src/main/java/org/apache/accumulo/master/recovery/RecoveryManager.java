@@ -117,7 +117,7 @@ public class RecoveryManager {
   }
 
   private void initiateSort(String sortId, String source, final String destination)
-      throws KeeperException, InterruptedException, IOException {
+      throws KeeperException, InterruptedException {
     String work = source + "|" + destination;
     new DistributedWorkQueue(master.getZooKeeperRoot() + Constants.ZRECOVERY,
         master.getConfiguration()).addWork(sortId, work.getBytes(UTF_8));

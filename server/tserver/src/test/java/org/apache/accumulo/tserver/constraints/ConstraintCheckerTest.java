@@ -51,7 +51,7 @@ public class ConstraintCheckerTest {
   private Mutation m;
 
   @Before
-  public void setup() throws NoSuchMethodException, SecurityException {
+  public void setup() throws SecurityException {
     cc = createMockBuilder(ConstraintChecker.class).addMockedMethod("getConstraints").createMock();
     constraints = new ArrayList<>();
     expect(cc.getConstraints()).andReturn(constraints);

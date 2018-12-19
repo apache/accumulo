@@ -28,7 +28,7 @@ public class ServerOptsTest {
   private ServerOpts opts;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     opts = new ServerOpts();
   }
 

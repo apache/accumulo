@@ -35,7 +35,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.xml.sax.Attributes;
-import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.beust.jcommander.Parameter;
@@ -55,8 +54,7 @@ public class RestoreZookeeper {
     }
 
     @Override
-    public void startElement(String uri, String localName, String name, Attributes attributes)
-        throws SAXException {
+    public void startElement(String uri, String localName, String name, Attributes attributes) {
       if ("node".equals(name)) {
         String child = attributes.getValue("name");
         if (child == null)
@@ -81,7 +79,7 @@ public class RestoreZookeeper {
     }
 
     @Override
-    public void endElement(String uri, String localName, String name) throws SAXException {
+    public void endElement(String uri, String localName, String name) {
       cwd.pop();
     }
 

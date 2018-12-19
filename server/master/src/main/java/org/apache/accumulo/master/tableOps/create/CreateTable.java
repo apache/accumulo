@@ -76,7 +76,7 @@ public class CreateTable extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) throws Exception {
+  public void undo(long tid, Master env) {
     Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, false);
   }
 

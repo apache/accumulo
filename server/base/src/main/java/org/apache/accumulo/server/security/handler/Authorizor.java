@@ -20,7 +20,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.ServerContext;
@@ -46,7 +45,7 @@ public interface Authorizor {
    * Used to initialize security for the root user
    */
   void initializeSecurity(TCredentials credentials, String rootuser)
-      throws AccumuloSecurityException, ThriftSecurityException;
+      throws AccumuloSecurityException;
 
   /**
    * Used to change the authorizations for the user
@@ -57,13 +56,12 @@ public interface Authorizor {
   /**
    * Used to get the authorizations for the user
    */
-  Authorizations getCachedUserAuthorizations(String user) throws AccumuloSecurityException;
+  Authorizations getCachedUserAuthorizations(String user);
 
   /**
    * Used to check if a user has valid auths.
    */
-  boolean isValidAuthorizations(String user, List<ByteBuffer> list)
-      throws AccumuloSecurityException;
+  boolean isValidAuthorizations(String user, List<ByteBuffer> list);
 
   /**
    * Initializes a new user

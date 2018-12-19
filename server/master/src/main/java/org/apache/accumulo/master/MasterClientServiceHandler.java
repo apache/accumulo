@@ -122,7 +122,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     try {
       fid = zoo.mutate(zTablePath, null, null, new Mutator() {
         @Override
-        public byte[] mutate(byte[] currentValue) throws Exception {
+        public byte[] mutate(byte[] currentValue) {
           long flushID = Long.parseLong(new String(currentValue));
           flushID++;
           return ("" + flushID).getBytes();
@@ -228,8 +228,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
   }
 
   @Override
-  public MasterMonitorInfo getMasterStats(TInfo info, TCredentials credentials)
-      throws ThriftSecurityException {
+  public MasterMonitorInfo getMasterStats(TInfo info, TCredentials credentials) {
     return master.getMasterMonitorInfo();
   }
 
@@ -451,12 +450,12 @@ public class MasterClientServiceHandler extends FateServiceHandler
   }
 
   @Override
-  public void waitForBalance(TInfo tinfo) throws TException {
+  public void waitForBalance(TInfo tinfo) {
     master.waitForBalance(tinfo);
   }
 
   @Override
-  public List<String> getActiveTservers(TInfo tinfo, TCredentials credentials) throws TException {
+  public List<String> getActiveTservers(TInfo tinfo, TCredentials credentials) {
     Set<TServerInstance> tserverInstances = master.onlineTabletServers();
     List<String> servers = new ArrayList<>();
     for (TServerInstance tserverInstance : tserverInstances) {

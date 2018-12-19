@@ -20,7 +20,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -48,47 +47,44 @@ public interface PermissionHandler {
    * Used to initialize security for the root user
    */
   void initializeSecurity(TCredentials credentials, String rootuser)
-      throws AccumuloSecurityException, ThriftSecurityException;
+      throws AccumuloSecurityException;
 
   /**
    * Used to get the system permission for the user
    */
-  boolean hasSystemPermission(String user, SystemPermission permission)
-      throws AccumuloSecurityException;
+  boolean hasSystemPermission(String user, SystemPermission permission);
 
   /**
    * Used to get the system permission for the user, with caching due to high frequency operation.
    * NOTE: At this time, this method is unused but is included just in case we need it in the
    * future.
    */
-  boolean hasCachedSystemPermission(String user, SystemPermission permission)
-      throws AccumuloSecurityException;
+  boolean hasCachedSystemPermission(String user, SystemPermission permission);
 
   /**
    * Used to get the table permission of a user for a table
    */
   boolean hasTablePermission(String user, String table, TablePermission permission)
-      throws AccumuloSecurityException, TableNotFoundException;
+      throws TableNotFoundException;
 
   /**
    * Used to get the table permission of a user for a table, with caching. This method is for high
    * frequency operations
    */
-  boolean hasCachedTablePermission(String user, String table, TablePermission permission)
-      throws AccumuloSecurityException, TableNotFoundException;
+  boolean hasCachedTablePermission(String user, String table, TablePermission permission);
 
   /**
    * Used to get the namespace permission of a user for a namespace
    */
   boolean hasNamespacePermission(String user, Namespace.ID namespace,
-      NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException;
+      NamespacePermission permission) throws NamespaceNotFoundException;
 
   /**
    * Used to get the namespace permission of a user for a namespace, with caching. This method is
    * for high frequency operations
    */
   boolean hasCachedNamespacePermission(String user, Namespace.ID namespace,
-      NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException;
+      NamespacePermission permission);
 
   /**
    * Gives the user the given system permission
@@ -145,7 +141,7 @@ public interface PermissionHandler {
   /**
    * Initializes a new user
    */
-  void initTable(String table) throws AccumuloSecurityException;
+  void initTable(String table);
 
   /**
    * Deletes a user

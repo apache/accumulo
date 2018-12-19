@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -55,7 +53,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
 
   @Override
   public long replicateLog(ClientContext context, String tableName, WalEdits data)
-      throws RemoteReplicationException, AccumuloException, AccumuloSecurityException {
+      throws RemoteReplicationException {
     final LogFileKey key = new LogFileKey();
     final LogFileValue value = new LogFileValue();
     final long memoryInBytes = context.getConfiguration()

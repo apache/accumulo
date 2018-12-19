@@ -132,7 +132,7 @@ public class ZooAuthenticationKeyWatcherTest {
   }
 
   @Test
-  public void testBaseNodeDeleted() throws Exception {
+  public void testBaseNodeDeleted() {
     WatchedEvent event = new WatchedEvent(EventType.NodeDeleted, null, baseNode);
     AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
         key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
@@ -151,7 +151,7 @@ public class ZooAuthenticationKeyWatcherTest {
   }
 
   @Test
-  public void testBaseNodeDataChanged() throws Exception {
+  public void testBaseNodeDataChanged() {
     WatchedEvent event = new WatchedEvent(EventType.NodeDataChanged, null, baseNode);
 
     replay(zk);
@@ -185,7 +185,7 @@ public class ZooAuthenticationKeyWatcherTest {
   }
 
   @Test
-  public void testChildDeleted() throws Exception {
+  public void testChildDeleted() {
     WatchedEvent event = new WatchedEvent(EventType.NodeDeleted, null, baseNode + "/1");
     AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
         key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
@@ -204,7 +204,7 @@ public class ZooAuthenticationKeyWatcherTest {
   }
 
   @Test
-  public void testChildChildrenChanged() throws Exception {
+  public void testChildChildrenChanged() {
     WatchedEvent event = new WatchedEvent(EventType.NodeChildrenChanged, null, baseNode + "/2");
     AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
         key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());

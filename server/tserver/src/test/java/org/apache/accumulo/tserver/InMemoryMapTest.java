@@ -103,7 +103,7 @@ public class InMemoryMapTest {
   public ExpectedException thrown = ExpectedException.none();
 
   @BeforeClass
-  public static void setUp() throws Exception {
+  public static void setUp() {
     // suppress log messages having to do with not having an instance
     Logger.getLogger(ZooConfiguration.class).setLevel(Level.OFF);
   }
@@ -153,7 +153,7 @@ public class InMemoryMapTest {
   }
 
   static void assertEqualsNoNext(SortedKeyValueIterator<Key,Value> dc, String row, String column,
-      int ts, String val) throws IOException {
+      int ts, String val) {
     assertTrue(dc.hasTop());
     assertEquals(newKey(row, column, ts), dc.getTopKey());
     assertEquals(new Value(val.getBytes()), dc.getTopValue());

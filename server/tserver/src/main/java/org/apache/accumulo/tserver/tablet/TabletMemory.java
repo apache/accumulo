@@ -17,7 +17,6 @@
 package org.apache.accumulo.tserver.tablet;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -190,7 +189,7 @@ class TabletMemory implements Closeable {
   }
 
   @Override
-  public void close() throws IOException {
+  public void close() {
     commitSession = null;
   }
 

@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.tserver;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
@@ -81,54 +80,53 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
 
     }
 
     @Override
-    public FSDataOutputStream create(Path dest) throws IOException {
+    public FSDataOutputStream create(Path dest) {
       return null;
     }
 
     @Override
-    public FSDataOutputStream create(Path path, boolean b) throws IOException {
+    public FSDataOutputStream create(Path path, boolean b) {
       return null;
     }
 
     @Override
-    public FSDataOutputStream create(Path path, boolean b, int int1, short int2, long long1)
-        throws IOException {
+    public FSDataOutputStream create(Path path, boolean b, int int1, short int2, long long1) {
       return null;
     }
 
     @Override
-    public boolean createNewFile(Path writable) throws IOException {
+    public boolean createNewFile(Path writable) {
       return false;
     }
 
     @Override
     public FSDataOutputStream createSyncable(Path logPath, int buffersize, short replication,
-        long blockSize) throws IOException {
+        long blockSize) {
       return null;
     }
 
     @Override
-    public boolean delete(Path path) throws IOException {
+    public boolean delete(Path path) {
       return false;
     }
 
     @Override
-    public boolean deleteRecursively(Path path) throws IOException {
+    public boolean deleteRecursively(Path path) {
       return false;
     }
 
     @Override
-    public boolean exists(Path path) throws IOException {
+    public boolean exists(Path path) {
       return false;
     }
 
     @Override
-    public FileStatus getFileStatus(Path path) throws IOException {
+    public FileStatus getFileStatus(Path path) {
       return null;
     }
 
@@ -143,27 +141,27 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public FileStatus[] listStatus(Path path) throws IOException {
+    public FileStatus[] listStatus(Path path) {
       return null;
     }
 
     @Override
-    public boolean mkdirs(Path directory) throws IOException {
+    public boolean mkdirs(Path directory) {
       return false;
     }
 
     @Override
-    public FSDataInputStream open(Path path) throws IOException {
+    public FSDataInputStream open(Path path) {
       return null;
     }
 
     @Override
-    public boolean rename(Path path, Path newPath) throws IOException {
+    public boolean rename(Path path, Path newPath) {
       return false;
     }
 
     @Override
-    public boolean moveToTrash(Path sourcePath) throws IOException {
+    public boolean moveToTrash(Path sourcePath) {
       return false;
     }
 
@@ -173,12 +171,12 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public boolean isReady() throws IOException {
+    public boolean isReady() {
       return false;
     }
 
     @Override
-    public FileStatus[] globStatus(Path path) throws IOException {
+    public FileStatus[] globStatus(Path path) {
       return null;
     }
 
@@ -198,7 +196,7 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public ContentSummary getContentSummary(Path dir) throws IOException {
+    public ContentSummary getContentSummary(Path dir) {
       return null;
     }
 

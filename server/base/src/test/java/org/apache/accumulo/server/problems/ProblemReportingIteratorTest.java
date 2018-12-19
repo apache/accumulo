@@ -45,7 +45,7 @@ public class ProblemReportingIteratorTest {
   private ProblemReportingIterator pri;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     ii = EasyMock.createMock(InterruptibleIterator.class);
     pri = new ProblemReportingIterator(null, TABLE_ID, RESOURCE, false, ii);
   }
@@ -66,7 +66,7 @@ public class ProblemReportingIteratorTest {
   }
 
   @Test(expected = UnsupportedOperationException.class)
-  public void testInit() throws Exception {
+  public void testInit() {
     pri.init(null, null, null);
   }
 

@@ -45,7 +45,6 @@ import org.apache.accumulo.core.clientImpl.Translator;
 import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -81,8 +80,7 @@ public class BulkImporter {
   private static final Logger log = LoggerFactory.getLogger(BulkImporter.class);
 
   public static List<String> bulkLoad(ServerContext context, long tid, String tableId,
-      List<String> files, String errorDir, boolean setTime) throws IOException, AccumuloException,
-      AccumuloSecurityException, ThriftTableOperationException {
+      List<String> files, String errorDir, boolean setTime) throws IOException {
     AssignmentStats stats = new BulkImporter(context, tid, tableId, setTime).importFiles(files,
         new Path(errorDir));
     List<String> result = new ArrayList<>();
@@ -110,8 +108,7 @@ public class BulkImporter {
     this.setTime = setTime;
   }
 
-  public AssignmentStats importFiles(List<String> files, Path failureDir) throws IOException,
-      AccumuloException, AccumuloSecurityException, ThriftTableOperationException {
+  public AssignmentStats importFiles(List<String> files, Path failureDir) throws IOException {
 
     int numThreads = context.getConfiguration().getCount(Property.TSERV_BULK_PROCESS_THREADS);
     int numAssignThreads = context.getConfiguration()

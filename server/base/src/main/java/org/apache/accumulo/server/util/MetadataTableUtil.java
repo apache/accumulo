@@ -290,7 +290,7 @@ public class MetadataTableUtil {
   }
 
   public static SortedMap<FileRef,DataFileValue> getDataFileSizes(KeyExtent extent,
-      ServerContext context) throws IOException {
+      ServerContext context) {
     TreeMap<FileRef,DataFileValue> sizes = new TreeMap<>();
 
     try (Scanner mdScanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
@@ -359,7 +359,7 @@ public class MetadataTableUtil {
   }
 
   public static void addDeleteEntries(KeyExtent extent, Set<FileRef> datafilesToDelete,
-      ServerContext context) throws IOException {
+      ServerContext context) {
 
     Table.ID tableId = extent.getTableId();
 
@@ -371,14 +371,13 @@ public class MetadataTableUtil {
     }
   }
 
-  public static void addDeleteEntry(ServerContext context, Table.ID tableId, String path)
-      throws IOException {
+  public static void addDeleteEntry(ServerContext context, Table.ID tableId, String path) {
     update(context, createDeleteMutation(context, tableId, path),
         new KeyExtent(tableId, null, null));
   }
 
   public static Mutation createDeleteMutation(ServerContext context, Table.ID tableId,
-      String pathToRemove) throws IOException {
+      String pathToRemove) {
     Path path = context.getVolumeManager().getFullPath(tableId, pathToRemove);
     Mutation delFlag = new Mutation(new Text(MetadataSchema.DeletesSection.getRowPrefix() + path));
     delFlag.put(EMPTY_TEXT, EMPTY_TEXT, new Value(new byte[] {}));
@@ -445,7 +444,7 @@ public class MetadataTableUtil {
   }
 
   public static void deleteTable(Table.ID tableId, boolean insertDeletes, ServerContext context,
-      ZooLock lock) throws AccumuloException, IOException {
+      ZooLock lock) throws AccumuloException {
     try (Scanner ms = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY);
         BatchWriter bw = new BatchWriterImpl(context, MetadataTable.ID,
             new BatchWriterConfig().setMaxMemory(1000000)
@@ -686,8 +685,7 @@ public class MetadataTableUtil {
     if (extent.isRootTablet()) {
       retryZooKeeperUpdate(context, zooLock, new ZooOperation() {
         @Override
-        public void run(IZooReaderWriter rw)
-            throws KeeperException, InterruptedException, IOException {
+        public void run(IZooReaderWriter rw) throws KeeperException, InterruptedException {
           String root = getZookeeperLogLocation(context);
           for (LogEntry entry : entries) {
             String path = root + "/" + entry.getUniqueID();
@@ -957,7 +955,7 @@ public class MetadataTableUtil {
   }
 
   public static List<FileRef> getBulkFilesLoaded(ServerContext context, AccumuloClient client,
-      KeyExtent extent, long tid) throws IOException {
+      KeyExtent extent, long tid) {
     List<FileRef> result = new ArrayList<>();
     try (Scanner mscanner = new IsolatedScanner(client.createScanner(
         extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY))) {
@@ -978,7 +976,7 @@ public class MetadataTableUtil {
   }
 
   public static Map<Long,? extends Collection<FileRef>> getBulkFilesLoaded(ServerContext context,
-      KeyExtent extent) throws IOException {
+      KeyExtent extent) {
     Text metadataRow = extent.getMetadataEntry();
     Map<Long,List<FileRef>> result = new HashMap<>();
 
@@ -1024,7 +1022,7 @@ public class MetadataTableUtil {
   /**
    * During an upgrade from 1.6 to 1.7, we need to add the replication table
    */
-  public static void createReplicationTable(ServerContext context) throws IOException {
+  public static void createReplicationTable(ServerContext context) {
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ReplicationTable.ID,
         context);

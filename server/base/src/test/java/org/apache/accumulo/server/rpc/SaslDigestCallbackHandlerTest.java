@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 
 import javax.crypto.KeyGenerator;
 import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.UnsupportedCallbackException;
 
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
@@ -45,7 +44,7 @@ public class SaslDigestCallbackHandlerTest {
    */
   private static class SaslTestDigestCallbackHandler extends SaslDigestCallbackHandler {
     @Override
-    public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+    public void handle(Callback[] callbacks) {
       throw new UnsupportedOperationException();
     }
   }

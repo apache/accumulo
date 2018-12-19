@@ -46,25 +46,25 @@ public class VolumeManagerImplTest {
   }
 
   @Test
-  public void defaultTabletDirWithoutTableId() throws Exception {
+  public void defaultTabletDirWithoutTableId() {
     thrown.expect(IllegalArgumentException.class);
     fs.getFullPath(FileType.TABLE, "/default_tablet/");
   }
 
   @Test
-  public void tabletDirWithoutTableId() throws Exception {
+  public void tabletDirWithoutTableId() {
     thrown.expect(IllegalArgumentException.class);
     fs.getFullPath(FileType.TABLE, "/t-0000001/");
   }
 
   @Test
-  public void defaultTabletFileWithoutTableId() throws Exception {
+  public void defaultTabletFileWithoutTableId() {
     thrown.expect(IllegalArgumentException.class);
     fs.getFullPath(FileType.TABLE, "/default_tablet/C0000001.rf");
   }
 
   @Test
-  public void tabletFileWithoutTableId() throws Exception {
+  public void tabletFileWithoutTableId() {
     thrown.expect(IllegalArgumentException.class);
     fs.getFullPath(FileType.TABLE, "/t-0000001/C0000001.rf");
   }

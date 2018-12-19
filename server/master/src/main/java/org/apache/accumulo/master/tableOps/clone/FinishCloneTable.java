@@ -33,12 +33,12 @@ class FinishCloneTable extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
+  public long isReady(long tid, Master environment) {
     return 0;
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Master> call(long tid, Master environment) {
     // directories are intentionally not created.... this is done because directories should be
     // unique
     // because they occupy a different namespace than normal tablet directories... also some clones
@@ -63,6 +63,6 @@ class FinishCloneTable extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) throws Exception {}
+  public void undo(long tid, Master environment) {}
 
 }

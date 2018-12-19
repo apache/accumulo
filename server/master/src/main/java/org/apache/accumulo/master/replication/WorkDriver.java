@@ -21,8 +21,6 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
@@ -44,7 +42,7 @@ public class WorkDriver extends Daemon {
   private WorkAssigner assigner;
   private String assignerImplName;
 
-  public WorkDriver(Master master) throws AccumuloException, AccumuloSecurityException {
+  public WorkDriver(Master master) {
     super();
     this.master = master;
     this.client = master.getContext();

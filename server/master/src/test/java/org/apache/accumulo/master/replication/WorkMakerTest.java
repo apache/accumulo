@@ -26,7 +26,7 @@ import org.junit.Test;
 public class WorkMakerTest {
 
   @Test
-  public void closedStatusRecordsStillMakeWork() throws Exception {
+  public void closedStatusRecordsStillMakeWork() {
     WorkMaker workMaker = new WorkMaker(null, null);
 
     assertFalse(workMaker.shouldCreateWork(StatusUtil.fileCreated(System.currentTimeMillis())));

@@ -53,7 +53,7 @@ public class ServerConfigurationFactoryTest {
   private static SiteConfiguration siteConfig = new SiteConfiguration();
 
   @BeforeClass
-  public static void setUpClass() throws Exception {
+  public static void setUpClass() {
     zcf = createMock(ZooCacheFactory.class);
     zc = createMock(ZooCache.class);
     expect(zcf.getZooCache(eq(ZK_HOST), eq(ZK_TIMEOUT), anyObject(NamespaceConfWatcher.class)))
@@ -74,7 +74,7 @@ public class ServerConfigurationFactoryTest {
   private ServerConfigurationFactory scf;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     context = createMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(IID).anyTimes();
     expect(context.getProperties()).andReturn(new Properties()).anyTimes();
@@ -83,7 +83,7 @@ public class ServerConfigurationFactoryTest {
   }
 
   @After
-  public void tearDown() throws Exception {
+  public void tearDown() {
     ServerConfigurationFactory.clearCachedConfigurations();
   }
 

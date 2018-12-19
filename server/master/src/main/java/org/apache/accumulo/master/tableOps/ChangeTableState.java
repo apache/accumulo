@@ -49,7 +49,7 @@ public class ChangeTableState extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Master> call(long tid, Master env) {
     TableState ts = TableState.ONLINE;
     if (top == TableOperation.OFFLINE)
       ts = TableState.OFFLINE;
@@ -63,7 +63,7 @@ public class ChangeTableState extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) throws Exception {
+  public void undo(long tid, Master env) {
     Utils.unreserveNamespace(env, namespaceId, tid, false);
     Utils.unreserveTable(env, tableId, tid, true);
   }

@@ -563,8 +563,7 @@ public class Admin implements KeywordExecutable {
     userWriter.close();
   }
 
-  private void printSystemConfiguration(File outputDirectory)
-      throws IOException, AccumuloException, AccumuloSecurityException {
+  private void printSystemConfiguration(File outputDirectory) throws IOException {
     TreeMap<String,String> conf = new TreeMap<>();
     TreeMap<String,String> site = new TreeMap<>(siteConfig);
     for (Entry<String,String> prop : site.entrySet()) {
@@ -591,8 +590,7 @@ public class Admin implements KeywordExecutable {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input")
   private void printTableConfiguration(AccumuloClient accumuloClient, String tableName,
-      File outputDirectory)
-      throws AccumuloException, TableNotFoundException, IOException, AccumuloSecurityException {
+      File outputDirectory) throws AccumuloException, TableNotFoundException, IOException {
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
     FileWriter writer = new FileWriter(tableBackup);
     writer.write(createTableFormat.format(new String[] {tableName}));

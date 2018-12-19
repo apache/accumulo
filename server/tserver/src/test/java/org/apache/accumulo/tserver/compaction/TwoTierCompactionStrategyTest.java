@@ -22,7 +22,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -68,7 +67,7 @@ public class TwoTierCompactionStrategyTest {
   }
 
   @Test
-  public void testDefaultCompaction() throws IOException {
+  public void testDefaultCompaction() {
     ttcs.init(opts);
     conf = DefaultConfiguration.getInstance();
     KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
@@ -88,7 +87,7 @@ public class TwoTierCompactionStrategyTest {
   }
 
   @Test
-  public void testLargeCompaction() throws IOException {
+  public void testLargeCompaction() {
     ttcs.init(opts);
     conf = DefaultConfiguration.getInstance();
     KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
@@ -119,7 +118,7 @@ public class TwoTierCompactionStrategyTest {
   }
 
   @Test
-  public void testFileSubsetCompaction() throws IOException {
+  public void testFileSubsetCompaction() {
     ttcs.init(opts);
     conf = DefaultConfiguration.getInstance();
     KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);

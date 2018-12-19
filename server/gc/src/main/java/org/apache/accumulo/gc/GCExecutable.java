@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.gc;
 
-import java.io.IOException;
-
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
@@ -40,7 +38,7 @@ public class GCExecutable implements KeywordExecutable {
   }
 
   @Override
-  public void execute(final String[] args) throws IOException {
+  public void execute(final String[] args) {
     SimpleGarbageCollector.main(args);
   }
 }

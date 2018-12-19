@@ -118,7 +118,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
 
   }
 
-  public void printProblems() throws Exception {
+  public void printProblems() {
     for (ProblemReport pr : this) {
       System.out.println(pr.getTableId() + " " + pr.getProblemType() + " " + pr.getResource() + " "
           + pr.getException());
@@ -295,7 +295,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     return instance;
   }
 
-  public static void main(String args[]) throws Exception {
+  public static void main(String args[]) {
     ServerContext context = new ServerContext(new SiteConfiguration());
     getInstance(context).printProblems();
   }

@@ -41,12 +41,12 @@ public class AsyncSpanReceiverTest {
     }
 
     @Override
-    protected String createDestination(String o) throws Exception {
+    protected String createDestination(String o) {
       return "DEST";
     }
 
     @Override
-    protected void send(String resource, RemoteSpan span) throws Exception {
+    protected void send(String resource, RemoteSpan span) {
       spansSent.incrementAndGet();
     }
 

@@ -72,14 +72,13 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
   }
 
   @Override
-  public synchronized void put(TraceRunnable e) throws InterruptedException {
+  public synchronized void put(TraceRunnable e) {
     task.add(e);
     notify();
   }
 
   @Override
-  public synchronized boolean offer(TraceRunnable e, long timeout, TimeUnit unit)
-      throws InterruptedException {
+  public synchronized boolean offer(TraceRunnable e, long timeout, TimeUnit unit) {
     task.add(e);
     notify();
     return true;

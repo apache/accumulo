@@ -78,7 +78,7 @@ public class RootTabletStateStoreTest {
     }
 
     @Override
-    public List<String> getChildren(String path) throws DistributedStoreException {
+    public List<String> getChildren(String path) {
       Node node = navigate(path);
       if (node == null)
         return Collections.emptyList();
@@ -89,7 +89,7 @@ public class RootTabletStateStoreTest {
     }
 
     @Override
-    public void put(String path, byte[] bs) throws DistributedStoreException {
+    public void put(String path, byte[] bs) {
       create(path).value = bs;
     }
 
@@ -110,7 +110,7 @@ public class RootTabletStateStoreTest {
     }
 
     @Override
-    public void remove(String path) throws DistributedStoreException {
+    public void remove(String path) {
       String[] parts = path.split("/");
       String[] parentPath = Arrays.copyOf(parts, parts.length - 1);
       Node parent = recurse(root, parentPath, 1);
@@ -122,7 +122,7 @@ public class RootTabletStateStoreTest {
     }
 
     @Override
-    public byte[] get(String path) throws DistributedStoreException {
+    public byte[] get(String path) {
       Node node = navigate(path);
       if (node != null)
         return node.value;

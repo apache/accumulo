@@ -23,7 +23,6 @@ import java.util.Base64;
 import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.ServerContext;
@@ -52,7 +51,7 @@ public class KerberosAuthorizor implements Authorizor {
 
   @Override
   public void initializeSecurity(TCredentials credentials, String rootuser)
-      throws AccumuloSecurityException, ThriftSecurityException {
+      throws AccumuloSecurityException {
     zkAuthorizor.initializeSecurity(credentials,
         Base64.getEncoder().encodeToString(rootuser.getBytes(UTF_8)));
   }
@@ -65,14 +64,13 @@ public class KerberosAuthorizor implements Authorizor {
   }
 
   @Override
-  public Authorizations getCachedUserAuthorizations(String user) throws AccumuloSecurityException {
+  public Authorizations getCachedUserAuthorizations(String user) {
     return zkAuthorizor
         .getCachedUserAuthorizations(Base64.getEncoder().encodeToString(user.getBytes(UTF_8)));
   }
 
   @Override
-  public boolean isValidAuthorizations(String user, List<ByteBuffer> list)
-      throws AccumuloSecurityException {
+  public boolean isValidAuthorizations(String user, List<ByteBuffer> list) {
     return zkAuthorizor
         .isValidAuthorizations(Base64.getEncoder().encodeToString(user.getBytes(UTF_8)), list);
   }

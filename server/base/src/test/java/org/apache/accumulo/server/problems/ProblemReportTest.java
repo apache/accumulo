@@ -53,7 +53,7 @@ public class ProblemReportTest {
   private ProblemReport r;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     context = createMock(ServerContext.class);
     zoorw = createMock(ZooReaderWriter.class);
     expect(context.getZooKeeperRoot()).andReturn("/accumulo/instance");

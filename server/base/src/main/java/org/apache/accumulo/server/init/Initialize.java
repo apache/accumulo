@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Table;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -777,7 +776,7 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static void initSecurity(ServerContext context, Opts opts, String iid, String rootUser)
-      throws AccumuloSecurityException, ThriftSecurityException, IOException {
+      throws AccumuloSecurityException {
     AuditedSecurityOperation.getInstance(context, true).initializeSecurity(context.rpcCreds(),
         rootUser, opts.rootpass);
   }

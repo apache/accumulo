@@ -37,7 +37,6 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -53,7 +52,6 @@ import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TException;
 import org.easymock.EasyMock;
 
 public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
@@ -142,8 +140,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   protected class TestDefaultBalancer extends DefaultLoadBalancer {
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId)
-        throws ThriftSecurityException, TException {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) {
       String tableName = idToTableName(tableId);
       TServerInstance initialLocation = initialTableLocation.get(tableName);
       if (tserver.equals(initialLocation)) {

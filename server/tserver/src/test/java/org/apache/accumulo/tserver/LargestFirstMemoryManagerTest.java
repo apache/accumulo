@@ -59,7 +59,7 @@ public class LargestFirstMemoryManagerTest {
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() {
     LargestFirstMemoryManagerUnderTest mgr = new LargestFirstMemoryManagerUnderTest();
     ServerConfiguration config = new ServerConfiguration() {
       ServerConfigurationFactory delegate = context.getServerConfFactory();
@@ -191,7 +191,7 @@ public class LargestFirstMemoryManagerTest {
   }
 
   @Test
-  public void testDeletedTable() throws Exception {
+  public void testDeletedTable() {
     final String deletedTableId = "1";
     Function<Table.ID,Boolean> existenceCheck = tableId -> !deletedTableId
         .contentEquals(tableId.canonicalID());

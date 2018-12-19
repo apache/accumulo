@@ -427,7 +427,7 @@ public class Monitor implements HighlyAvailableService {
     return result;
   }
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
 
     final String app = "monitor";
     ServerOpts opts = new ServerOpts();

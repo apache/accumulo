@@ -81,7 +81,7 @@ class LoadFiles extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) throws Exception {
+  public long isReady(long tid, Master master) {
     if (master.onlineTabletServers().size() == 0)
       return 500;
     return 0;

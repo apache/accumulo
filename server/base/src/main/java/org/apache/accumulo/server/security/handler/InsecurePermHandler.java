@@ -16,9 +16,6 @@
  */
 package org.apache.accumulo.server.security.handler;
 
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -41,86 +38,73 @@ public class InsecurePermHandler implements PermissionHandler {
   }
 
   @Override
-  public void initializeSecurity(TCredentials token, String rootuser)
-      throws AccumuloSecurityException {}
+  public void initializeSecurity(TCredentials token, String rootuser) {}
 
   @Override
-  public boolean hasSystemPermission(String user, SystemPermission permission)
-      throws AccumuloSecurityException {
+  public boolean hasSystemPermission(String user, SystemPermission permission) {
     return true;
   }
 
   @Override
-  public boolean hasCachedSystemPermission(String user, SystemPermission permission)
-      throws AccumuloSecurityException {
+  public boolean hasCachedSystemPermission(String user, SystemPermission permission) {
     return true;
   }
 
   @Override
-  public boolean hasTablePermission(String user, String table, TablePermission permission)
-      throws AccumuloSecurityException, TableNotFoundException {
+  public boolean hasTablePermission(String user, String table, TablePermission permission) {
     return true;
   }
 
   @Override
-  public boolean hasCachedTablePermission(String user, String table, TablePermission permission)
-      throws AccumuloSecurityException, TableNotFoundException {
+  public boolean hasCachedTablePermission(String user, String table, TablePermission permission) {
     return true;
   }
 
   @Override
-  public void grantSystemPermission(String user, SystemPermission permission)
-      throws AccumuloSecurityException {}
+  public void grantSystemPermission(String user, SystemPermission permission) {}
 
   @Override
-  public void revokeSystemPermission(String user, SystemPermission permission)
-      throws AccumuloSecurityException {}
+  public void revokeSystemPermission(String user, SystemPermission permission) {}
 
   @Override
-  public void grantTablePermission(String user, String table, TablePermission permission)
-      throws AccumuloSecurityException, TableNotFoundException {}
+  public void grantTablePermission(String user, String table, TablePermission permission) {}
 
   @Override
-  public void revokeTablePermission(String user, String table, TablePermission permission)
-      throws AccumuloSecurityException, TableNotFoundException {}
+  public void revokeTablePermission(String user, String table, TablePermission permission) {}
 
   @Override
-  public void cleanTablePermissions(String table)
-      throws AccumuloSecurityException, TableNotFoundException {}
+  public void cleanTablePermissions(String table) {}
 
   @Override
-  public void initUser(String user) throws AccumuloSecurityException {}
+  public void initUser(String user) {}
 
   @Override
-  public void cleanUser(String user) throws AccumuloSecurityException {}
+  public void cleanUser(String user) {}
 
   @Override
-  public void initTable(String table) throws AccumuloSecurityException {}
+  public void initTable(String table) {}
 
   @Override
   public boolean hasNamespacePermission(String user, Namespace.ID namespace,
-      NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException {
+      NamespacePermission permission) {
     return true;
   }
 
   @Override
   public boolean hasCachedNamespacePermission(String user, Namespace.ID namespace,
-      NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException {
+      NamespacePermission permission) {
     return true;
   }
 
   @Override
   public void grantNamespacePermission(String user, Namespace.ID namespace,
-      NamespacePermission permission)
-      throws AccumuloSecurityException, NamespaceNotFoundException {}
+      NamespacePermission permission) {}
 
   @Override
   public void revokeNamespacePermission(String user, Namespace.ID namespace,
-      NamespacePermission permission)
-      throws AccumuloSecurityException, NamespaceNotFoundException {}
+      NamespacePermission permission) {}
 
   @Override
-  public void cleanNamespacePermissions(Namespace.ID namespace)
-      throws AccumuloSecurityException, NamespaceNotFoundException {}
+  public void cleanNamespacePermissions(Namespace.ID namespace) {}
 
 }

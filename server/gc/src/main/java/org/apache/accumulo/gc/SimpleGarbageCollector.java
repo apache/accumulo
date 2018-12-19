@@ -20,7 +20,6 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -34,8 +33,6 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -234,7 +231,7 @@ public class SimpleGarbageCollector implements Iface {
 
     @Override
     public boolean getCandidates(String continuePoint, List<String> result)
-        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+        throws TableNotFoundException {
       // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing
       // them,
       // then will never inspect deletes after N
@@ -264,8 +261,7 @@ public class SimpleGarbageCollector implements Iface {
     }
 
     @Override
-    public Iterator<String> getBlipIterator()
-        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    public Iterator<String> getBlipIterator() throws TableNotFoundException {
       @SuppressWarnings("resource")
       IsolatedScanner scanner = new IsolatedScanner(
           getClient().createScanner(tableName, Authorizations.EMPTY));
@@ -277,8 +273,7 @@ public class SimpleGarbageCollector implements Iface {
     }
 
     @Override
-    public Stream<Reference> getReferences()
-        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    public Stream<Reference> getReferences() {
 
       Stream<TabletMetadata> tabletStream = TabletsMetadata.builder().scanTable(tableName)
           .checkConsistency().fetchDir().fetchFiles().fetchScans().build(getClient()).stream();
@@ -301,8 +296,7 @@ public class SimpleGarbageCollector implements Iface {
     }
 
     @Override
-    public void delete(SortedMap<String,String> confirmedDeletes)
-        throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    public void delete(SortedMap<String,String> confirmedDeletes) throws TableNotFoundException {
 
       if (opts.safeMode) {
         if (opts.verbose)
@@ -482,8 +476,7 @@ public class SimpleGarbageCollector implements Iface {
     }
 
     @Override
-    public Iterator<Entry<String,Status>> getReplicationNeededIterator()
-        throws AccumuloException, AccumuloSecurityException {
+    public Iterator<Entry<String,Status>> getReplicationNeededIterator() {
       AccumuloClient client = getClient();
       try {
         Scanner s = ReplicationTable.getScanner(client);
@@ -664,7 +657,7 @@ public class SimpleGarbageCollector implements Iface {
     }
   }
 
-  private HostAndPort startStatsService() throws UnknownHostException {
+  private HostAndPort startStatsService() {
     Iface rpcProxy = TraceWrap.service(this);
     final Processor<Iface> processor;
     if (context.getThriftServerType() == ThriftServerType.SASL) {

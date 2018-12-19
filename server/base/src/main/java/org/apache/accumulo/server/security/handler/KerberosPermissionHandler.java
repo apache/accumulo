@@ -24,7 +24,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -55,49 +54,46 @@ public class KerberosPermissionHandler implements PermissionHandler {
 
   @Override
   public void initializeSecurity(TCredentials credentials, String rootuser)
-      throws AccumuloSecurityException, ThriftSecurityException {
+      throws AccumuloSecurityException {
     zkPermissionHandler.initializeSecurity(credentials,
         Base64.getEncoder().encodeToString(rootuser.getBytes(UTF_8)));
   }
 
   @Override
-  public boolean hasSystemPermission(String user, SystemPermission permission)
-      throws AccumuloSecurityException {
+  public boolean hasSystemPermission(String user, SystemPermission permission) {
     return zkPermissionHandler
         .hasSystemPermission(Base64.getEncoder().encodeToString(user.getBytes(UTF_8)), permission);
   }
 
   @Override
-  public boolean hasCachedSystemPermission(String user, SystemPermission permission)
-      throws AccumuloSecurityException {
+  public boolean hasCachedSystemPermission(String user, SystemPermission permission) {
     return zkPermissionHandler.hasCachedSystemPermission(
         Base64.getEncoder().encodeToString(user.getBytes(UTF_8)), permission);
   }
 
   @Override
   public boolean hasTablePermission(String user, String table, TablePermission permission)
-      throws AccumuloSecurityException, TableNotFoundException {
+      throws TableNotFoundException {
     return zkPermissionHandler.hasTablePermission(
         Base64.getEncoder().encodeToString(user.getBytes(UTF_8)), table, permission);
   }
 
   @Override
-  public boolean hasCachedTablePermission(String user, String table, TablePermission permission)
-      throws AccumuloSecurityException, TableNotFoundException {
+  public boolean hasCachedTablePermission(String user, String table, TablePermission permission) {
     return zkPermissionHandler.hasCachedTablePermission(
         Base64.getEncoder().encodeToString(user.getBytes(UTF_8)), table, permission);
   }
 
   @Override
   public boolean hasNamespacePermission(String user, Namespace.ID namespace,
-      NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException {
+      NamespacePermission permission) throws NamespaceNotFoundException {
     return zkPermissionHandler.hasNamespacePermission(
         Base64.getEncoder().encodeToString(user.getBytes(UTF_8)), namespace, permission);
   }
 
   @Override
   public boolean hasCachedNamespacePermission(String user, Namespace.ID namespace,
-      NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException {
+      NamespacePermission permission) {
     return zkPermissionHandler.hasCachedNamespacePermission(
         Base64.getEncoder().encodeToString(user.getBytes(UTF_8)), namespace, permission);
   }
@@ -162,7 +158,7 @@ public class KerberosPermissionHandler implements PermissionHandler {
   }
 
   @Override
-  public void initTable(String table) throws AccumuloSecurityException {
+  public void initTable(String table) {
     zkPermissionHandler.initTable(table);
   }
 

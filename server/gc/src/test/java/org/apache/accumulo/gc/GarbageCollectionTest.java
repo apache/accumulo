@@ -32,8 +32,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
@@ -110,8 +108,7 @@ public class GarbageCollectionTest {
     public void incrementInUseStat(long i) {}
 
     @Override
-    public Iterator<Entry<String,Status>> getReplicationNeededIterator()
-        throws AccumuloException, AccumuloSecurityException {
+    public Iterator<Entry<String,Status>> getReplicationNeededIterator() {
       return filesToReplicate.entrySet().iterator();
     }
   }

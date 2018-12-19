@@ -62,7 +62,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
   protected String host = null;
   protected String service = null;
 
-  protected abstract Destination createDestination(SpanKey key) throws Exception;
+  protected abstract Destination createDestination(SpanKey key);
 
   protected abstract void send(Destination resource, RemoteSpan span) throws Exception;
 

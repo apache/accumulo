@@ -25,8 +25,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Table.ID;
@@ -53,7 +51,7 @@ public interface GarbageCollectionEnvironment {
    * @return true if the results are short due to insufficient memory, otherwise false
    */
   boolean getCandidates(String continuePoint, List<String> candidates)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+      throws TableNotFoundException;
 
   /**
    * Fetch a list of paths for all bulk loads in progress (blip) from a given table,
@@ -61,8 +59,7 @@ public interface GarbageCollectionEnvironment {
    *
    * @return The list of files for each bulk load currently in progress.
    */
-  Iterator<String> getBlipIterator()
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+  Iterator<String> getBlipIterator() throws TableNotFoundException;
 
   static class Reference {
     public final ID id;
@@ -83,8 +80,7 @@ public interface GarbageCollectionEnvironment {
    * @return An {@link Iterator} of {@link Entry}&lt;{@link Key}, {@link Value}&gt; which constitute
    *         a reference to a file.
    */
-  Stream<Reference> getReferences()
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+  Stream<Reference> getReferences();
 
   /**
    * Return the set of tableIDs for the given instance this GarbageCollector is running over
@@ -100,8 +96,7 @@ public interface GarbageCollectionEnvironment {
    * @param candidateMap
    *          A Map from relative path to absolute path for files to be deleted.
    */
-  void delete(SortedMap<String,String> candidateMap)
-      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  void delete(SortedMap<String,String> candidateMap) throws TableNotFoundException;
 
   /**
    * Delete a table's directory if it is empty.
@@ -132,6 +127,5 @@ public interface GarbageCollectionEnvironment {
    *
    * @return True if the file still needs to be replicated
    */
-  Iterator<Entry<String,Status>> getReplicationNeededIterator()
-      throws AccumuloException, AccumuloSecurityException;
+  Iterator<Entry<String,Status>> getReplicationNeededIterator();
 }

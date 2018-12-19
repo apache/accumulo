@@ -18,7 +18,6 @@ package org.apache.accumulo.server.master.state;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -37,7 +36,7 @@ public class ZooStore implements DistributedStore {
   private String basePath;
   private ZooCache cache;
 
-  public ZooStore(ServerContext context) throws IOException {
+  public ZooStore(ServerContext context) {
     this.context = context;
     cache = new ZooCache(context.getZooReaderWriter(), null);
     String zkRoot = context.getZooKeeperRoot();

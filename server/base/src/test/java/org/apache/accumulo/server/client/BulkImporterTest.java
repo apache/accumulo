@@ -26,9 +26,6 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
@@ -72,22 +69,20 @@ public class BulkImporterTest {
 
     @Override
     public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-        boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+        boolean retry) {
       return new TabletLocation(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(),
           "localhost", "1");
     }
 
     @Override
     public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
-        Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+        Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
       throw new NotImplementedException();
     }
 
     @Override
     public List<Range> binRanges(ClientContext context, List<Range> ranges,
-        Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+        Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
       throw new NotImplementedException();
     }
 
@@ -177,7 +172,7 @@ public class BulkImporterTest {
   }
 
   @Test
-  public void testSequentialTablets() throws Exception {
+  public void testSequentialTablets() {
     // ACCUMULO-3967 make sure that the startRow we compute in BulkImporter is actually giving
     // a correct startRow so that findOverlappingTablets works as intended.
 

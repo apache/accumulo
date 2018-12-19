@@ -24,7 +24,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -41,8 +40,7 @@ import org.apache.hadoop.io.Text;
 public class CheckForMetadataProblems {
   private static boolean sawProblems = false;
 
-  public static void checkTable(String tablename, TreeSet<KeyExtent> tablets, ServerUtilOpts opts)
-      throws AccumuloSecurityException {
+  public static void checkTable(String tablename, TreeSet<KeyExtent> tablets, ServerUtilOpts opts) {
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
 

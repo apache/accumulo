@@ -42,7 +42,7 @@ public class ParameterValidatorTest {
   }
 
   @Test
-  public void testServerRegex() throws Exception {
+  public void testServerRegex() {
     Pattern p = Pattern.compile(ParameterValidator.HOSTNAME_PORT_REGEX);
     assertTrue("Did not match hostname with dots", p.matcher("ab3cd.12d34.3xyz.net:12").matches());
     assertTrue("Did not match hostname with dash",

@@ -26,7 +26,7 @@ import org.junit.Test;
 public class MemValueTest {
 
   @Test
-  public void testDecodeDoesntModifyInputValue() throws Exception {
+  public void testDecodeDoesntModifyInputValue() {
     Value v = new Value("2.0".getBytes(Charset.forName("UTF-8")));
     Value encodedValue = MemValue.encode(v, 3);
     MemValue m1 = MemValue.decode(encodedValue);

@@ -51,7 +51,7 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
   @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET",
       justification = "insecure, known risk; this is user-configurable to avoid insecure transfer")
   @Override
-  protected Client createDestination(String destination) throws Exception {
+  protected Client createDestination(String destination) {
     if (destination == null)
       return null;
     try {

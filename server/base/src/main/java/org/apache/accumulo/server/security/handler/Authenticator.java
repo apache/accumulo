@@ -20,7 +20,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.ServerContext;
 
@@ -35,13 +34,12 @@ public interface Authenticator {
 
   boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm);
 
-  void initializeSecurity(TCredentials credentials, String principal, byte[] token)
-      throws AccumuloSecurityException, ThriftSecurityException;
+  void initializeSecurity(TCredentials credentials, String principal, byte[] token);
 
   boolean authenticateUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException;
 
-  Set<String> listUsers() throws AccumuloSecurityException;
+  Set<String> listUsers();
 
   /**
    * Creates a user with no initial permissions whatsoever
@@ -55,7 +53,7 @@ public interface Authenticator {
   /**
    * Checks if a user exists
    */
-  boolean userExists(String user) throws AccumuloSecurityException;
+  boolean userExists(String user);
 
   Set<Class<? extends AuthenticationToken>> getSupportedTokenTypes();
 

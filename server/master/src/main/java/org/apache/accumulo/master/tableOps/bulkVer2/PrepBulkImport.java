@@ -95,7 +95,7 @@ public class PrepBulkImport extends MasterRepo {
 
   @VisibleForTesting
   interface TabletIterFactory {
-    Iterator<KeyExtent> newTabletIter(Text startRow) throws Exception;
+    Iterator<KeyExtent> newTabletIter(Text startRow);
   }
 
   private static boolean equals(Function<KeyExtent,Text> extractor, KeyExtent ke1, KeyExtent ke2) {
