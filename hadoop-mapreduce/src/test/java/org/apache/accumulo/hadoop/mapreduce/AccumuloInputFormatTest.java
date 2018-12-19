@@ -39,9 +39,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class AccumuloInputFormatTest {
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
+
   static Properties clientProperties;
 
   @BeforeClass
@@ -57,6 +62,14 @@ public class AccumuloInputFormatTest {
     cp.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), "test-principal");
     cp.setProperty(ClientProperty.AUTH_TOKEN.getKey(), "test-token");
     return cp;
+  }
+
+  @Test
+  public void testMissingTable() throws Exception {
+    Properties clientProps = org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest
+        .setupClientProperties();
+    exception.expect(IllegalArgumentException.class);
+    AccumuloInputFormat.configure().clientProperties(clientProps).store(Job.getInstance());
   }
 
   /**

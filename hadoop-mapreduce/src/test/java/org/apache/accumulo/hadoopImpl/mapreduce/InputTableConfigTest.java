@@ -97,7 +97,7 @@ public class InputTableConfigTest {
     List<IteratorSetting> settings = new ArrayList<>();
     settings.add(new IteratorSetting(50, "iter", "iterclass"));
     settings.add(new IteratorSetting(55, "iter2", "iterclass2"));
-    tableQueryConfig.setIterators(settings);
+    settings.forEach(itr -> tableQueryConfig.addIterator(itr));
     byte[] serialized = serialize(tableQueryConfig);
     InputTableConfig actualConfig = deserialize(serialized);
     assertEquals(actualConfig.getIterators(), settings);

@@ -62,12 +62,18 @@ public interface InputFormatBuilder {
    */
   interface TableParams<T> {
     /**
-     * Sets the name of the input table, over which this job will scan.
+     * Sets the name of the input table, over which this job will scan. At least one table is
+     * required before calling store(Job)
      *
      * @param tableName
      *          the table to use when the tablename is null in the write call
      */
     InputFormatOptions<T> table(String tableName);
+
+    /**
+     * Finish configuring, verify and serialize options into the JobConf or Job
+     */
+    void store(T j) throws AccumuloException, AccumuloSecurityException;
   }
 
   /**
@@ -75,7 +81,7 @@ public interface InputFormatBuilder {
    *
    * @since 2.0
    */
-  interface InputFormatOptions<T> {
+  interface InputFormatOptions<T> extends TableParams<T> {
     /**
      * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorizations.
      * By Default, all of the users auths are set.
@@ -217,10 +223,5 @@ public interface InputFormatBuilder {
      * By default, this feature is <b>disabled</b>.
      */
     InputFormatOptions<T> batchScan(boolean value);
-
-    /**
-     * Finish configuring, verify and serialize options into the JobConf or Job
-     */
-    void store(T j) throws AccumuloException, AccumuloSecurityException;
   }
 }

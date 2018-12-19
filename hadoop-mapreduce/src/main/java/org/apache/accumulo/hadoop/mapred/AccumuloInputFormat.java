@@ -54,7 +54,7 @@ public class AccumuloInputFormat implements InputFormat<Key,Value> {
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
-    return AbstractInputFormat.getSplits(job, numSplits);
+    return AbstractInputFormat.getSplits(job);
   }
 
   @Override
@@ -96,6 +96,6 @@ public class AccumuloInputFormat implements InputFormat<Key,Value> {
    * Sets all the information required for this map reduce job.
    */
   public static InputFormatBuilder.ClientParams<JobConf> configure() {
-    return new InputFormatBuilderImpl<JobConf>(CLASS);
+    return new InputFormatBuilderImpl<>(CLASS);
   }
 }

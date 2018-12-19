@@ -182,35 +182,6 @@ public abstract class AbstractInputFormat {
     return InputConfigurator.getScanAuthorizations(CLASS, context.getConfiguration());
   }
 
-  /**
-   * Fetches all {@link InputTableConfig}s that have been set on the given job.
-   *
-   * @param context
-   *          the Hadoop job instance to be configured
-   * @return the {@link InputTableConfig} objects for the job
-   * @since 1.6.0
-   */
-  public static Map<String,InputTableConfig> getInputTableConfigs(JobContext context) {
-    return InputConfigurator.getInputTableConfigs(CLASS, context.getConfiguration());
-  }
-
-  /**
-   * Fetches a {@link InputTableConfig} that has been set on the configuration for a specific table.
-   *
-   * <p>
-   * null is returned in the event that the table doesn't exist.
-   *
-   * @param context
-   *          the Hadoop job instance to be configured
-   * @param tableName
-   *          the table name for which to grab the config object
-   * @return the {@link InputTableConfig} for the given table
-   * @since 1.6.0
-   */
-  protected static InputTableConfig getInputTableConfig(JobContext context, String tableName) {
-    return InputConfigurator.getInputTableConfig(CLASS, context.getConfiguration(), tableName);
-  }
-
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
   /**
    * Check whether a configuration is fully configured to be used with an Accumulo
@@ -310,7 +281,8 @@ public abstract class AbstractInputFormat {
       // in case the table name changed, we can still use the previous name for terms of
       // configuration,
       // but the scanner will use the table id resolved at job setup time
-      InputTableConfig tableConfig = getInputTableConfig(attempt, split.getTableName());
+      InputTableConfig tableConfig = InputConfigurator.getInputTableConfig(CLASS,
+          attempt.getConfiguration(), split.getTableName());
 
       log.debug("Creating client with user: " + client.whoami());
       log.debug("Creating scanner for table: " + table);
@@ -476,7 +448,8 @@ public abstract class AbstractInputFormat {
     Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
     try (AccumuloClient client = createClient(context)) {
-      Map<String,InputTableConfig> tableConfigs = getInputTableConfigs(context);
+      Map<String,InputTableConfig> tableConfigs = InputConfigurator.getInputTableConfigs(CLASS,
+          context.getConfiguration());
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
 
         String tableName = tableConfigEntry.getKey();

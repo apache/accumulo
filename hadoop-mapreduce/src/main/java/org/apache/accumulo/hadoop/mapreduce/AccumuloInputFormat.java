@@ -49,6 +49,17 @@ import org.slf4j.LoggerFactory;
  *     .store(job);
  * </pre>
  *
+ * Multiple tables can be set by configuring clientProperties once and then calling .table() for
+ * each table. The methods following a call to .table() apply only to that table. For Example:
+ *
+ * <pre>
+ * AccumuloInputFormat.configure().clientProperties(props) // set client props once
+ *     .table(table1).auths(auths1).fetchColumns(cols1).batchScan(true) // options for table1
+ *     .table(table2).ranges(range2).auths(auths2).addIterator(iter2) // options for table2
+ *     .table(table3).ranges(range3).auths(auths3).addIterator(iter3) // options for table3
+ *     .store(job); // store all tables in the job when finished
+ * </pre>
+ *
  * For descriptions of all options see
  * {@link org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder.InputFormatOptions}
  *
