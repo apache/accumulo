@@ -267,10 +267,13 @@ public class InMemoryMapIT {
     assertEquals("Not a LocalityGroupMap with native", InMemoryMap.TYPE_LOCALITY_GROUP_MAP_NATIVE,
         localityGroupMapWithNative.getMapType());
 
-    defaultMap.mutate(mutations);
-    nativeMapWrapper.mutate(mutations);
-    localityGroupMap.mutate(mutations);
-    localityGroupMapWithNative.mutate(mutations);
+    int count = 0;
+    for (Mutation m : mutations)
+      count += m.size();
+    defaultMap.mutate(mutations, count);
+    nativeMapWrapper.mutate(mutations, count);
+    localityGroupMap.mutate(mutations, count);
+    localityGroupMapWithNative.mutate(mutations, count);
 
     // let's use the transitive property to assert all four are equivalent
     assertMutatesEquivalent(mutations, defaultMap, nativeMapWrapper);

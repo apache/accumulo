@@ -127,7 +127,7 @@ public class InMemoryMapTest {
     String[] sa = column.split(":");
     m.putDelete(new Text(sa[0]), new Text(sa[1]), ts);
 
-    imm.mutate(Collections.singletonList(m));
+    imm.mutate(Collections.singletonList(m), 1);
   }
 
   public void mutate(InMemoryMap imm, String row, String column, long ts, String value) {
@@ -135,7 +135,7 @@ public class InMemoryMapTest {
     String[] sa = column.split(":");
     m.put(new Text(sa[0]), new Text(sa[1]), ts, new Value(value.getBytes()));
 
-    imm.mutate(Collections.singletonList(m));
+    imm.mutate(Collections.singletonList(m), 1);
   }
 
   static Key newKey(String row, String column, long ts) {
@@ -492,7 +492,7 @@ public class InMemoryMapTest {
     Mutation m = new Mutation(new Text("r1"));
     m.put(new Text("foo"), new Text("cq"), 3, new Value("v1".getBytes()));
     m.put(new Text("foo"), new Text("cq"), 3, new Value("v2".getBytes()));
-    imm.mutate(Collections.singletonList(m));
+    imm.mutate(Collections.singletonList(m), 2);
 
     MemoryIterator skvi1 = imm.skvIterator(null);
     skvi1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
@@ -529,7 +529,7 @@ public class InMemoryMapTest {
                 Mutation m = new Mutation("row");
                 m.put("cf", "cq", new Value("v".getBytes()));
                 List<Mutation> mutations = Collections.singletonList(m);
-                imm.mutate(mutations);
+                imm.mutate(mutations, 1);
                 counts[threadId]++;
               }
             }
@@ -583,7 +583,7 @@ public class InMemoryMapTest {
     m5.put("cf3", "z", 6, "A");
     m5.put("cf4", "z", 6, "B");
 
-    imm.mutate(Arrays.asList(m1, m2, m3, m4, m5));
+    imm.mutate(Arrays.asList(m1, m2, m3, m4, m5), 10);
 
     MemoryIterator iter1 = imm.skvIterator(null);
 
