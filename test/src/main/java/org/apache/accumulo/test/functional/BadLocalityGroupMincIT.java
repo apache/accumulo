@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -77,10 +77,10 @@ public class BadLocalityGroupMincIT extends AccumuloClusterHarness {
     Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
     Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
 
-    Assert.assertEquals("r1", entry.getKey().getRowData().toString());
-    Assert.assertEquals("acf", entry.getKey().getColumnFamilyData().toString());
-    Assert.assertEquals(tableName, entry.getKey().getColumnQualifierData().toString());
-    Assert.assertEquals("1", entry.getValue().toString());
+    assertEquals("r1", entry.getKey().getRowData().toString());
+    assertEquals("acf", entry.getKey().getColumnFamilyData().toString());
+    assertEquals(tableName, entry.getKey().getColumnQualifierData().toString());
+    assertEquals("1", entry.getValue().toString());
 
     // this should not hang
     c.tableOperations().delete(tableName);

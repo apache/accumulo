@@ -309,8 +309,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
             + "' for namespace '" + namespace
             + "'resulted in bad locality group config. This may be a transient situation since the"
             + " config spreads over multiple properties. Setting properties in a different order "
-            + "may help. Even though this warning was displayed, the property was updated. Please check"
-            + " your config to ensure consistency.", e);
+            + "may help. Even though this warning was displayed, the property was updated. Please "
+            + "check your config to ensure consistency.", e);
       }
     }
   }
