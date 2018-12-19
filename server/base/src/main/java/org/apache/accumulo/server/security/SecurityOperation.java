@@ -134,7 +134,7 @@ public class SecurityOperation {
   }
 
   public void initializeSecurity(TCredentials credentials, String rootPrincipal, byte[] token)
-      throws AccumuloSecurityException, ThriftSecurityException {
+      throws AccumuloSecurityException {
     if (!isSystemUser(credentials))
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
@@ -193,28 +193,23 @@ public class SecurityOperation {
       if (isKerberos) {
         // If we have kerberos credentials for a user from the network but no account
         // in the system, we need to make one before proceeding
-        try {
-          if (!authenticator.userExists(creds.getPrincipal())) {
-            // If we call the normal createUser method, it will loop back into this method
-            // when it tries to check if the user has permission to create users
-            try {
-              _createUser(credentials, creds, Authorizations.EMPTY);
-            } catch (ThriftSecurityException e) {
-              if (e.getCode() != SecurityErrorCode.USER_EXISTS) {
-                // For Kerberos, a user acct is automatically created because there is no notion of
-                // a password
-                // in the traditional sense of Accumulo users. As such, if a user acct already
-                // exists when we
-                // try to automatically create a user account, we should avoid returning this
-                // exception back to the user.
-                // We want to let USER_EXISTS code pass through and continue
-                throw e;
-              }
+        if (!authenticator.userExists(creds.getPrincipal())) {
+          // If we call the normal createUser method, it will loop back into this method
+          // when it tries to check if the user has permission to create users
+          try {
+            _createUser(credentials, creds, Authorizations.EMPTY);
+          } catch (ThriftSecurityException e) {
+            if (e.getCode() != SecurityErrorCode.USER_EXISTS) {
+              // For Kerberos, a user acct is automatically created because there is no notion of
+              // a password
+              // in the traditional sense of Accumulo users. As such, if a user acct already
+              // exists when we
+              // try to automatically create a user account, we should avoid returning this
+              // exception back to the user.
+              // We want to let USER_EXISTS code pass through and continue
+              throw e;
             }
           }
-        } catch (AccumuloSecurityException e) {
-          log.debug("Failed to determine if user exists", e);
-          throw e.asThriftException();
         }
       }
 
@@ -278,11 +273,7 @@ public class SecurityOperation {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
 
-    try {
-      return authorizor.getCachedUserAuthorizations(user);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    return authorizor.getCachedUserAuthorizations(user);
   }
 
   public Authorizations getUserAuthorizations(TCredentials credentials)
@@ -298,18 +289,13 @@ public class SecurityOperation {
   /**
    * Check if an already authenticated user has specified authorizations.
    */
-  public boolean authenticatedUserHasAuthorizations(TCredentials credentials, List<ByteBuffer> list)
-      throws ThriftSecurityException {
+  public boolean authenticatedUserHasAuthorizations(TCredentials credentials,
+      List<ByteBuffer> list) {
     if (isSystemUser(credentials)) {
       // system user doesn't need record-level authorizations for the tables it reads (for now)
       return list.isEmpty();
     }
-
-    try {
-      return authorizor.isValidAuthorizations(credentials.getPrincipal(), list);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    return authorizor.isValidAuthorizations(credentials.getPrincipal(), list);
   }
 
   private boolean hasSystemPermission(TCredentials credentials, SystemPermission permission,
@@ -351,13 +337,9 @@ public class SecurityOperation {
 
     targetUserExists(user);
 
-    try {
-      if (useCached)
-        return permHandle.hasCachedSystemPermission(user, permission);
-      return permHandle.hasSystemPermission(user, permission);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    if (useCached)
+      return permHandle.hasCachedSystemPermission(user, permission);
+    return permHandle.hasSystemPermission(user, permission);
   }
 
   /**
@@ -393,8 +375,6 @@ public class SecurityOperation {
       if (useCached)
         return permHandle.hasCachedTablePermission(user, table.canonicalID(), permission);
       return permHandle.hasTablePermission(user, table.canonicalID(), permission);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
     } catch (TableNotFoundException e) {
       throw new ThriftSecurityException(user, SecurityErrorCode.TABLE_DOESNT_EXIST);
     }
@@ -420,8 +400,6 @@ public class SecurityOperation {
       if (useCached)
         return permHandle.hasCachedNamespacePermission(user, namespace, permission);
       return permHandle.hasNamespacePermission(user, namespace, permission);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
     } catch (NamespaceNotFoundException e) {
       throw new ThriftSecurityException(user, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
     }
@@ -441,12 +419,8 @@ public class SecurityOperation {
   private void targetUserExists(String user) throws ThriftSecurityException {
     if (user.equals(getRootUsername()))
       return;
-    try {
-      if (!authenticator.userExists(user))
-        throw new ThriftSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    if (!authenticator.userExists(user))
+      throw new ThriftSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST);
   }
 
   public boolean canScan(TCredentials credentials, Table.ID tableId, Namespace.ID namespaceId)
@@ -872,11 +846,7 @@ public class SecurityOperation {
 
   public Set<String> listUsers(TCredentials credentials) throws ThriftSecurityException {
     authenticate(credentials);
-    try {
-      return authenticator.listUsers();
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    return authenticator.listUsers();
   }
 
   public void deleteTable(TCredentials credentials, Table.ID tableId, Namespace.ID namespaceId)

@@ -40,7 +40,7 @@ public class ConfigurableCompactionStrategyTest {
   // file selection options are adequately tested by ShellServerIT
 
   @Test
-  public void testOutputOptions() throws Exception {
+  public void testOutputOptions() {
     MajorCompactionRequest mcr = new MajorCompactionRequest(
         new KeyExtent(Table.ID.of("1"), null, null), MajorCompactionReason.USER, null,
         getServerContext());

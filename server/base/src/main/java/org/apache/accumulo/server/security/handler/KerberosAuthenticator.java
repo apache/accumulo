@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -84,8 +83,7 @@ public class KerberosAuthenticator implements Authenticator {
   }
 
   @Override
-  public void initializeSecurity(TCredentials credentials, String principal, byte[] token)
-      throws AccumuloSecurityException, ThriftSecurityException {
+  public void initializeSecurity(TCredentials credentials, String principal, byte[] token) {
     try {
       // remove old settings from zookeeper first, if any
       IZooReaderWriter zoo = context.getZooReaderWriter();
@@ -136,7 +134,7 @@ public class KerberosAuthenticator implements Authenticator {
   }
 
   @Override
-  public Set<String> listUsers() throws AccumuloSecurityException {
+  public Set<String> listUsers() {
     Set<String> base64Users = zkAuthenticator.listUsers();
     Set<String> readableUsers = new HashSet<>();
     for (String base64User : base64Users) {
@@ -178,13 +176,12 @@ public class KerberosAuthenticator implements Authenticator {
   }
 
   @Override
-  public void changePassword(String principal, AuthenticationToken token)
-      throws AccumuloSecurityException {
+  public void changePassword(String principal, AuthenticationToken token) {
     throw new UnsupportedOperationException("Cannot change password with Kerberos authenticaton");
   }
 
   @Override
-  public synchronized boolean userExists(String user) throws AccumuloSecurityException {
+  public synchronized boolean userExists(String user) {
     user = Base64.getEncoder().encodeToString(user.getBytes(UTF_8));
     return zkAuthenticator.userExists(user);
   }

@@ -57,7 +57,7 @@ class TableRangeOpWait extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master env) throws Exception {
+  public long isReady(long tid, Master env) {
     if (!env.getMergeInfo(tableId).getState().equals(MergeState.NONE)) {
       return 50;
     }

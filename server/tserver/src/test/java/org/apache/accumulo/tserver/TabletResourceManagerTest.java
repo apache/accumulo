@@ -32,7 +32,7 @@ public class TabletResourceManagerTest {
   private TableConfiguration conf;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     tsrm = createMock(TabletServerResourceManager.class);
     extent = createMock(KeyExtent.class);
     conf = createMock(TableConfiguration.class);

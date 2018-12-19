@@ -18,7 +18,6 @@ package org.apache.accumulo.master.tableOps.tableExport;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Table;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -30,8 +29,8 @@ public class ExportTable extends MasterRepo {
 
   private final ExportInfo tableInfo;
 
-  public ExportTable(Namespace.ID namespaceId, String tableName, Table.ID tableId, String exportDir)
-      throws ThriftTableOperationException {
+  public ExportTable(Namespace.ID namespaceId, String tableName, Table.ID tableId,
+      String exportDir) {
     tableInfo = new ExportInfo();
     tableInfo.tableName = tableName;
     tableInfo.exportDir = exportDir;
@@ -45,7 +44,7 @@ public class ExportTable extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Master> call(long tid, Master env) {
     return new WriteExportFiles(tableInfo);
   }
 

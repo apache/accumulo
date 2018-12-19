@@ -96,7 +96,7 @@ public class SimpleGarbageCollectorTest {
   }
 
   @Test
-  public void testInit() throws Exception {
+  public void testInit() {
     assertSame(volMgr, gc.getVolumeManager());
     assertEquals(credentials, gc.getContext().getCredentials());
     assertTrue(gc.isUsingTrash());

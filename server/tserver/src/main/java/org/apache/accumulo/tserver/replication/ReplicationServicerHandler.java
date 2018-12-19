@@ -119,8 +119,7 @@ public class ReplicationServicerHandler implements Iface {
   }
 
   @Override
-  public long replicateKeyValues(String tableId, KeyValues data, TCredentials creds)
-      throws RemoteReplicationException, TException {
+  public long replicateKeyValues(String tableId, KeyValues data, TCredentials creds) {
     throw new UnsupportedOperationException();
   }
 

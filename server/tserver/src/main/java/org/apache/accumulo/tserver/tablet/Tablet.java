@@ -1745,7 +1745,7 @@ public class Tablet implements TabletCommitter {
   }
 
   List<FileRef> findChopFiles(KeyExtent extent, Map<FileRef,Pair<Key,Key>> firstAndLastKeys,
-      Collection<FileRef> allFiles) throws IOException {
+      Collection<FileRef> allFiles) {
     List<FileRef> result = new ArrayList<>();
     if (firstAndLastKeys == null) {
       result.addAll(allFiles);

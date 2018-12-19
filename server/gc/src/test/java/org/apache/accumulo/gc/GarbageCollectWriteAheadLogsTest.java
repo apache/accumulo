@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.gc;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -46,7 +45,6 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
@@ -101,13 +99,12 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
-      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates)
-          throws IOException, KeeperException, InterruptedException {
+      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
         return 0;
       }
 
       @Override
-      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+      protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
     };
@@ -131,13 +128,12 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
-      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates)
-          throws IOException, KeeperException, InterruptedException {
+      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
         return 0;
       }
 
       @Override
-      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+      protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
     };
@@ -181,7 +177,7 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
-      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+      protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
     };
@@ -220,7 +216,7 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer2List) {
       @Override
-      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+      protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
     };
@@ -265,7 +261,7 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
-      protected Map<UUID,Path> getSortedWALogs() throws IOException {
+      protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
     };

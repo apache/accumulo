@@ -68,7 +68,7 @@ class CopyFailed extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) throws Exception {
+  public long isReady(long tid, Master master) {
     Set<TServerInstance> finished = new HashSet<>();
     Set<TServerInstance> running = master.onlineTabletServers();
     for (TServerInstance server : running) {

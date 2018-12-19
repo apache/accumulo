@@ -45,7 +45,7 @@ public class ShutdownTServer extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) throws Exception {
+  public long isReady(long tid, Master master) {
     // suppress assignment of tablets to the server
     if (force) {
       return 0;
@@ -96,5 +96,5 @@ public class ShutdownTServer extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master m) throws Exception {}
+  public void undo(long tid, Master m) {}
 }

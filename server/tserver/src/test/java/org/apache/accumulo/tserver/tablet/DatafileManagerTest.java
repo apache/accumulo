@@ -19,7 +19,6 @@ package org.apache.accumulo.tserver.tablet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-import java.io.IOException;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -66,7 +65,7 @@ public class DatafileManagerTest {
    * reserveMergingMinorCompactionFile
    */
   @Test
-  public void testReserveMergingMinorCompactionFile_MaxExceeded() throws IOException {
+  public void testReserveMergingMinorCompactionFile_MaxExceeded() {
     String maxMergeFileSize = "1000B";
     EasyMock.expect(tablet.getTableConfiguration()).andReturn(tableConf);
     EasyMock.expect(tableConf.get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE))
@@ -88,7 +87,7 @@ public class DatafileManagerTest {
    * Test max files not reached (table.file.max) when calling reserveMergingMinorCompactionFile
    */
   @Test
-  public void testReserveMergingMinorCompactionFile_MaxFilesNotReached() throws IOException {
+  public void testReserveMergingMinorCompactionFile_MaxFilesNotReached() {
     EasyMock.replay(tablet, tableConf);
 
     SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallfile", "100B", "file2", "100M",
@@ -106,7 +105,7 @@ public class DatafileManagerTest {
    * Test the smallest file is chosen for merging minor compaction
    */
   @Test
-  public void testReserveMergingMinorCompactionFile() throws IOException {
+  public void testReserveMergingMinorCompactionFile() {
     String maxMergeFileSize = "1000B";
     EasyMock.expect(tablet.getTableConfiguration()).andReturn(tableConf);
     EasyMock.expect(tableConf.get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE))
@@ -128,7 +127,7 @@ public class DatafileManagerTest {
    * Test disabled max file size for merging minor compaction
    */
   @Test
-  public void testReserveMergingMinorCompactionFileDisabled() throws IOException {
+  public void testReserveMergingMinorCompactionFileDisabled() {
     String maxMergeFileSize = "0";
     EasyMock.expect(tablet.getTableConfiguration()).andReturn(tableConf);
     EasyMock.expect(tableConf.get(Property.TABLE_MINC_MAX_MERGE_FILE_SIZE))

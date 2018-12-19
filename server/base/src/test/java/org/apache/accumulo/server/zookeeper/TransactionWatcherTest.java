@@ -70,7 +70,7 @@ public class TransactionWatcherTest {
     }
 
     @Override
-    public synchronized boolean transactionAlive(String txType, long tid) throws Exception {
+    public synchronized boolean transactionAlive(String txType, long tid) {
       List<Long> txids = started.get(txType);
       if (txids == null)
         return false;
@@ -78,7 +78,7 @@ public class TransactionWatcherTest {
     }
 
     @Override
-    public boolean transactionComplete(String txType, long tid) throws Exception {
+    public boolean transactionComplete(String txType, long tid) {
       List<Long> txids = cleanedUp.get(txType);
       if (txids == null)
         return true;

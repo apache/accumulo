@@ -117,8 +117,7 @@ public class ZKPermHandler implements PermissionHandler {
   }
 
   @Override
-  public boolean hasCachedTablePermission(String user, String table, TablePermission permission)
-      throws AccumuloSecurityException, TableNotFoundException {
+  public boolean hasCachedTablePermission(String user, String table, TablePermission permission) {
     byte[] serializedPerms = zooCache.get(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table);
     if (serializedPerms != null) {
       return ZKSecurityTool.convertTablePermissions(serializedPerms).contains(permission);
@@ -170,7 +169,7 @@ public class ZKPermHandler implements PermissionHandler {
 
   @Override
   public boolean hasCachedNamespacePermission(String user, Namespace.ID namespace,
-      NamespacePermission permission) throws AccumuloSecurityException, NamespaceNotFoundException {
+      NamespacePermission permission) {
     byte[] serializedPerms = zooCache
         .get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
     if (serializedPerms != null) {
@@ -491,8 +490,7 @@ public class ZKPermHandler implements PermissionHandler {
   }
 
   @Override
-  public boolean hasSystemPermission(String user, SystemPermission permission)
-      throws AccumuloSecurityException {
+  public boolean hasSystemPermission(String user, SystemPermission permission) {
     byte[] perms;
     try {
       String path = ZKUserPath + "/" + user + ZKUserSysPerms;
@@ -515,8 +513,7 @@ public class ZKPermHandler implements PermissionHandler {
   }
 
   @Override
-  public boolean hasCachedSystemPermission(String user, SystemPermission permission)
-      throws AccumuloSecurityException {
+  public boolean hasCachedSystemPermission(String user, SystemPermission permission) {
     byte[] perms = zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms);
     if (perms == null)
       return false;
@@ -529,7 +526,7 @@ public class ZKPermHandler implements PermissionHandler {
   }
 
   @Override
-  public void initTable(String table) throws AccumuloSecurityException {
+  public void initTable(String table) {
     // All proper housekeeping is done on delete and permission granting, no work needs to be done
     // here
   }

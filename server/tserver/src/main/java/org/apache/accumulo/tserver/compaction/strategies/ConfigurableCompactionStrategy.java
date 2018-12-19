@@ -87,12 +87,8 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
         for (FileRef fref : request.getFiles().keySet()) {
           Map<SummarizerConfiguration,Summary> sMap = new HashMap<>();
           Collection<Summary> summaries;
-          try {
-            summaries = request.getSummaries(Collections.singletonList(fref),
-                conf -> configsSet.contains(conf));
-          } catch (IOException e) {
-            throw new UncheckedIOException(e);
-          }
+          summaries = request.getSummaries(Collections.singletonList(fref),
+              conf -> configsSet.contains(conf));
           for (Summary summary : summaries) {
             sMap.put(summary.getSummarizerConfiguration(), summary);
           }
@@ -327,12 +323,12 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
   }
 
   @Override
-  public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
+  public boolean shouldCompact(MajorCompactionRequest request) {
     return getFilesToCompact(request).size() >= minFiles;
   }
 
   @Override
-  public void gatherInformation(MajorCompactionRequest request) throws IOException {
+  public void gatherInformation(MajorCompactionRequest request) {
     // Gather any information that requires blocking calls here. This is only called before
     // getCompactionPlan() is called.
     for (Test test : tests) {
@@ -341,7 +337,7 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
   }
 
   @Override
-  public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
+  public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
     List<FileRef> filesToCompact = getFilesToCompact(request);
     if (filesToCompact.size() >= minFiles) {
       CompactionPlan plan = new CompactionPlan();

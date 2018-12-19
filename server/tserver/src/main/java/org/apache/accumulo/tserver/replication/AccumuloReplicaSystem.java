@@ -840,7 +840,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return mutationsToSend;
   }
 
-  protected DataInputStream getRFileInputStream(Path p) throws IOException {
+  protected DataInputStream getRFileInputStream(Path p) {
     throw new UnsupportedOperationException("Not yet implemented");
   }
 

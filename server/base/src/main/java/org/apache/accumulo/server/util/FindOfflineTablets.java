@@ -20,7 +20,6 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
@@ -34,7 +33,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
-import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
@@ -53,8 +51,7 @@ public class FindOfflineTablets {
     findOffline(context, null);
   }
 
-  static int findOffline(ServerContext context, String tableName)
-      throws AccumuloException, TableNotFoundException {
+  static int findOffline(ServerContext context, String tableName) throws TableNotFoundException {
 
     final AtomicBoolean scanning = new AtomicBoolean(false);
 
@@ -71,12 +68,7 @@ public class FindOfflineTablets {
     tservers.startListeningForTabletServerChanges();
     scanning.set(true);
 
-    Iterator<TabletLocationState> zooScanner;
-    try {
-      zooScanner = new ZooTabletStateStore(context).iterator();
-    } catch (DistributedStoreException e) {
-      throw new AccumuloException(e);
-    }
+    Iterator<TabletLocationState> zooScanner = new ZooTabletStateStore(context).iterator();
 
     int offline = 0;
 

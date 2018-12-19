@@ -26,7 +26,6 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -36,7 +35,7 @@ import org.junit.Test;
 public class TservConstraintEnvTest {
 
   @Test
-  public void testGetAuthorizationsContainer() throws ThriftSecurityException {
+  public void testGetAuthorizationsContainer() {
     SecurityOperation security = createMock(SecurityOperation.class);
     TCredentials goodCred = createMock(TCredentials.class);
     TCredentials badCred = createMock(TCredentials.class);

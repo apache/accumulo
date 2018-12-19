@@ -32,7 +32,7 @@ class CloneMetadata extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
+  public long isReady(long tid, Master environment) {
     return 0;
   }
 

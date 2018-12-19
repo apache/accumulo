@@ -53,7 +53,7 @@ public class TableRangeOp extends MasterRepo {
   }
 
   public TableRangeOp(MergeInfo.Operation op, Namespace.ID namespaceId, Table.ID tableId,
-      Text startRow, Text endRow) throws AcceptableThriftTableOperationException {
+      Text startRow, Text endRow) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
     this.startRow = TextUtil.getBytes(startRow);

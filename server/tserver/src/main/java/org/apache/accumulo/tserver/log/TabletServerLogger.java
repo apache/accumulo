@@ -171,17 +171,13 @@ public class TabletServerLogger {
       }
 
       @Override
-      void withWriteLock() throws IOException {
-        try {
-          createLogger();
-          result.set(currentLog);
-          if (currentLog != null)
-            logIdOut.set(logId.get());
-          else
-            logIdOut.set(-1);
-        } catch (IOException e) {
-          log.error("Unable to create loggers", e);
-        }
+      void withWriteLock() {
+        createLogger();
+        result.set(currentLog);
+        if (currentLog != null)
+          logIdOut.set(logId.get());
+        else
+          logIdOut.set(-1);
       }
     });
     return result.get();
@@ -204,7 +200,7 @@ public class TabletServerLogger {
     }
   }
 
-  private synchronized void createLogger() throws IOException {
+  private synchronized void createLogger() {
     if (!logIdLock.isWriteLockedByCurrentThread()) {
       throw new IllegalStateException("createLoggers should be called with write lock held!");
     }

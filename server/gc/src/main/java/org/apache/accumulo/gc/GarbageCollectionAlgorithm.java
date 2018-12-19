@@ -29,8 +29,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.trace.Span;
@@ -126,8 +124,7 @@ public class GarbageCollectionAlgorithm {
   }
 
   private void confirmDeletes(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+      SortedMap<String,String> candidateMap) throws TableNotFoundException {
     boolean checkForBulkProcessingFiles = false;
     Iterator<String> relativePaths = candidateMap.keySet().iterator();
     while (!checkForBulkProcessingFiles && relativePaths.hasNext())
@@ -268,8 +265,7 @@ public class GarbageCollectionAlgorithm {
   }
 
   private boolean getCandidates(GarbageCollectionEnvironment gce, String lastCandidate,
-      List<String> candidates)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+      List<String> candidates) throws TableNotFoundException {
     Span candidatesSpan = Trace.start("getCandidates");
     try {
       return gce.getCandidates(lastCandidate, candidates);
@@ -279,8 +275,7 @@ public class GarbageCollectionAlgorithm {
   }
 
   private void confirmDeletesTrace(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+      SortedMap<String,String> candidateMap) throws TableNotFoundException {
     Span confirmDeletesSpan = Trace.start("confirmDeletes");
     try {
       confirmDeletes(gce, candidateMap);
@@ -290,8 +285,7 @@ public class GarbageCollectionAlgorithm {
   }
 
   private void deleteConfirmed(GarbageCollectionEnvironment gce,
-      SortedMap<String,String> candidateMap)
-      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      SortedMap<String,String> candidateMap) throws IOException, TableNotFoundException {
     Span deleteSpan = Trace.start("deleteFiles");
     try {
       gce.delete(candidateMap);
@@ -302,8 +296,7 @@ public class GarbageCollectionAlgorithm {
     cleanUpDeletedTableDirs(gce, candidateMap);
   }
 
-  public void collect(GarbageCollectionEnvironment gce)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException, IOException {
+  public void collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
 
     String lastCandidate = "";
 

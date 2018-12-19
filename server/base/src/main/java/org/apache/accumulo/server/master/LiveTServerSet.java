@@ -72,7 +72,7 @@ public class LiveTServerSet implements Watcher {
   public class TServerConnection {
     private final HostAndPort address;
 
-    public TServerConnection(HostAndPort addr) throws TException {
+    public TServerConnection(HostAndPort addr) {
       address = addr;
     }
 
@@ -295,7 +295,7 @@ public class LiveTServerSet implements Watcher {
 
   private synchronized void checkServer(final Set<TServerInstance> updates,
       final Set<TServerInstance> doomed, final String path, final String zPath)
-      throws TException, InterruptedException, KeeperException {
+      throws InterruptedException, KeeperException {
 
     TServerInfo info = current.get(zPath);
 

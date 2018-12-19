@@ -42,7 +42,7 @@ public class ConfigSanityCheck implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
+  public void execute(String[] args) {
     main(args);
   }
 

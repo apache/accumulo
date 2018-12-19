@@ -344,7 +344,7 @@ class DatafileManager {
   }
 
   void bringMinorCompactionOnline(FileRef tmpDatafile, FileRef newDatafile, FileRef absMergeFile,
-      DataFileValue dfv, CommitSession commitSession, long flushId) throws IOException {
+      DataFileValue dfv, CommitSession commitSession, long flushId) {
 
     IZooReaderWriter zoo = tablet.getContext().getZooReaderWriter();
     if (tablet.getExtent().isRootTablet()) {

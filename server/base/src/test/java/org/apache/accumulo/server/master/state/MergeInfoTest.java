@@ -45,7 +45,7 @@ public class MergeInfoTest {
   private MergeInfo mi;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     keyExtent = createMock(KeyExtent.class);
   }
 
@@ -204,7 +204,7 @@ public class MergeInfoTest {
   }
 
   @Test
-  public void testNeedsToBeChopped() throws Exception {
+  public void testNeedsToBeChopped() {
     MergeInfo info = new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.DELETE);
     assertTrue(info.needsToBeChopped(ke("x", "c", "b")));
     assertTrue(info.overlaps(ke("x", "c", "b")));

@@ -806,9 +806,6 @@ public class TabletServer implements Runnable {
       MultiScanResult result;
       try {
         result = continueMultiScan(tinfo, sid, mss);
-      } catch (NoSuchScanIDException e) {
-        log.error("the impossible happened", e);
-        throw new RuntimeException("the impossible happened", e);
       } finally {
         sessionManager.unreserveSession(sid);
       }
@@ -834,7 +831,7 @@ public class TabletServer implements Runnable {
     }
 
     private MultiScanResult continueMultiScan(TInfo tinfo, long scanID, MultiScanSession session)
-        throws NoSuchScanIDException, TSampleNotPresentException {
+        throws TSampleNotPresentException {
 
       if (session.lookupTask == null) {
         session.lookupTask = new LookupTask(TabletServer.this, scanID);
@@ -1571,7 +1568,7 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public void invalidateConditionalUpdate(TInfo tinfo, long sessID) throws TException {
+    public void invalidateConditionalUpdate(TInfo tinfo, long sessID) {
       // this method should wait for any running conditional update to complete
       // after this method returns a conditional update should not be able to start
 
@@ -1585,7 +1582,7 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public void closeConditionalUpdate(TInfo tinfo, long sessID) throws TException {
+    public void closeConditionalUpdate(TInfo tinfo, long sessID) {
       sessionManager.removeSession(sessID, false);
     }
 
@@ -1621,14 +1618,12 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials)
-        throws ThriftSecurityException, TException {
+    public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) {
       return getStats(sessionManager.getActiveScansPerTable());
     }
 
     @Override
-    public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId)
-        throws ThriftSecurityException, TException {
+    public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId) {
       TreeMap<KeyExtent,Tablet> onlineTabletsCopy;
       synchronized (onlineTablets) {
         onlineTabletsCopy = new TreeMap<>(onlineTablets);
@@ -1850,8 +1845,8 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent)
-        throws TException {
+    public void flushTablet(TInfo tinfo, TCredentials credentials, String lock,
+        TKeyExtent textent) {
       try {
         checkPermission(credentials, lock, "flushTablet");
       } catch (ThriftSecurityException e) {
@@ -1902,8 +1897,7 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials)
-        throws ThriftSecurityException, TException {
+    public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials) {
       return statsKeeper.getTabletStats();
     }
 
@@ -1921,8 +1915,7 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent)
-        throws TException {
+    public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent) {
       try {
         checkPermission(credentials, lock, "chop");
       } catch (ThriftSecurityException e) {
@@ -1940,7 +1933,7 @@ public class TabletServer implements Runnable {
 
     @Override
     public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId,
-        ByteBuffer startRow, ByteBuffer endRow) throws TException {
+        ByteBuffer startRow, ByteBuffer endRow) {
       try {
         checkPermission(credentials, lock, "compact");
       } catch (ThriftSecurityException e) {
@@ -1996,7 +1989,7 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) throws TException {
+    public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
       String log = logger.getLogFile();
       // Might be null if there no active logger
       if (log == null) {
@@ -2006,8 +1999,7 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames)
-        throws TException {
+    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) {
       log.warn("Garbage collector is attempting to remove logs through the tablet server");
       log.warn("This is probably because your file"
           + " Garbage Collector is an older version than your tablet servers.\n"
@@ -2050,8 +2042,8 @@ public class TabletServer implements Runnable {
 
     @Override
     public TSummaries startGetSummaries(TInfo tinfo, TCredentials credentials,
-        TSummaryRequest request) throws ThriftSecurityException, ThriftTableOperationException,
-        NoSuchScanIDException, TException {
+        TSummaryRequest request)
+        throws ThriftSecurityException, ThriftTableOperationException, TException {
       Namespace.ID namespaceId;
       Table.ID tableId = Table.ID.of(request.getTableId());
       try {
@@ -2077,7 +2069,7 @@ public class TabletServer implements Runnable {
     @Override
     public TSummaries startGetSummariesForPartition(TInfo tinfo, TCredentials credentials,
         TSummaryRequest request, int modulus, int remainder)
-        throws ThriftSecurityException, NoSuchScanIDException, TException {
+        throws ThriftSecurityException, TException {
       // do not expect users to call this directly, expect other tservers to call this method
       if (!security.canPerformSystemActions(credentials)) {
         throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -2096,7 +2088,7 @@ public class TabletServer implements Runnable {
     @Override
     public TSummaries startGetSummariesFromFiles(TInfo tinfo, TCredentials credentials,
         TSummaryRequest request, Map<String,List<TRowRange>> files)
-        throws ThriftSecurityException, NoSuchScanIDException, TException {
+        throws ThriftSecurityException, TException {
       // do not expect users to call this directly, expect other tservers to call this method
       if (!security.canPerformSystemActions(credentials)) {
         throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -2593,7 +2585,7 @@ public class TabletServer implements Runnable {
     }
   }
 
-  private void acquireRecoveryMemory(KeyExtent extent) throws InterruptedException {
+  private void acquireRecoveryMemory(KeyExtent extent) {
     if (!extent.isMeta()) {
       recoveryLock.lock();
     }
@@ -2978,7 +2970,7 @@ public class TabletServer implements Runnable {
   }
 
   private static Pair<Text,KeyExtent> verifyRootTablet(ServerContext context, KeyExtent extent,
-      TServerInstance instance) throws DistributedStoreException, AccumuloException {
+      TServerInstance instance) throws AccumuloException {
     ZooTabletStateStore store = new ZooTabletStateStore(context);
     if (!store.iterator().hasNext()) {
       throw new AccumuloException("Illegal state: location is not set in zookeeper");
@@ -3001,8 +2993,7 @@ public class TabletServer implements Runnable {
 
   public static Pair<Text,KeyExtent> verifyTabletInformation(ServerContext context,
       KeyExtent extent, TServerInstance instance, final SortedMap<Key,Value> tabletsKeyValues,
-      String clientAddress, ZooLock lock)
-      throws AccumuloSecurityException, DistributedStoreException, AccumuloException {
+      String clientAddress, ZooLock lock) throws DistributedStoreException, AccumuloException {
     Objects.requireNonNull(tabletsKeyValues);
 
     log.debug("verifying extent {}", extent);
@@ -3048,14 +3039,8 @@ public class TabletServer implements Runnable {
       SortedMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries;
       tabletEntries = MetadataTableUtil.getTabletEntries(tabletsKeyValues, columnsToFetch);
 
-      KeyExtent fke;
-      try {
-        fke = MasterMetadataUtil.fixSplit(context, metadataEntry, tabletEntries.get(metadataEntry),
-            instance, lock);
-      } catch (IOException e) {
-        log.error("Error fixing split {}", metadataEntry);
-        throw new AccumuloException(e.toString());
-      }
+      KeyExtent fke = MasterMetadataUtil.fixSplit(context, metadataEntry,
+          tabletEntries.get(metadataEntry), instance, lock);
 
       if (!fke.equals(extent)) {
         return new Pair<>(null, fke);

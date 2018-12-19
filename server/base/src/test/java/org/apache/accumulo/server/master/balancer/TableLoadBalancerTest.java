@@ -32,7 +32,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.Table;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -48,7 +47,6 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TException;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
@@ -59,7 +57,7 @@ public class TableLoadBalancerTest {
   private static Map<String,String> TABLE_ID_MAP = ImmutableMap.of("t1", "a1", "t2", "b12", "t3",
       "c4");
 
-  private static TServerInstance mkts(String address, String session) throws Exception {
+  private static TServerInstance mkts(String address, String session) {
     return new TServerInstance(HostAndPort.fromParts(address, 1234), session);
   }
 
@@ -107,8 +105,7 @@ public class TableLoadBalancerTest {
     public void init(ServerContext context) {}
 
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId)
-        throws ThriftSecurityException, TException {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) {
       return generateFakeTablets(tserver, tableId);
     }
   }
@@ -124,8 +121,7 @@ public class TableLoadBalancerTest {
 
     // we don't have real tablet servers to ask: invent some online tablets
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId)
-        throws ThriftSecurityException, TException {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) {
       return generateFakeTablets(tserver, tableId);
     }
 
@@ -151,7 +147,7 @@ public class TableLoadBalancerTest {
   }
 
   @Test
-  public void test() throws Exception {
+  public void test() {
     final ServerContext context = createMockContext();
     replay(context);
     ServerConfigurationFactory confFactory = new ServerConfigurationFactory(context,

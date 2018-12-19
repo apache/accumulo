@@ -43,14 +43,14 @@ public class SequentialWorkAssignerTest {
   private SequentialWorkAssigner assigner;
 
   @Before
-  public void init() throws Exception {
+  public void init() {
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
     client = createMock(AccumuloClient.class);
     assigner = new SequentialWorkAssigner(conf, client);
   }
 
   @Test
-  public void basicZooKeeperCleanup() throws Exception {
+  public void basicZooKeeperCleanup() {
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
     ZooCache zooCache = createMock(ZooCache.class);
 

@@ -34,14 +34,14 @@ class FinishCancelCompaction extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Master> call(long tid, Master environment) {
     Utils.unreserveTable(environment, tableId, tid, false);
     Utils.unreserveNamespace(environment, namespaceId, tid, false);
     return null;
   }
 
   @Override
-  public void undo(long tid, Master environment) throws Exception {
+  public void undo(long tid, Master environment) {
 
   }
 }

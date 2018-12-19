@@ -63,7 +63,7 @@ public class CancelCompactions extends MasterRepo {
 
     zoo.mutate(zCancelID, null, null, new Mutator() {
       @Override
-      public byte[] mutate(byte[] currentValue) throws Exception {
+      public byte[] mutate(byte[] currentValue) {
         long cid = Long.parseLong(new String(currentValue, UTF_8));
 
         if (cid < flushID)
@@ -77,7 +77,7 @@ public class CancelCompactions extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) throws Exception {
+  public void undo(long tid, Master env) {
     Utils.unreserveTable(env, tableId, tid, false);
     Utils.unreserveNamespace(env, namespaceId, tid, false);
   }

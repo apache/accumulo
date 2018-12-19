@@ -147,7 +147,7 @@ public class MajorCompactionRequest implements Cloneable {
    * @see WriterOptions#withSummarizers(SummarizerConfiguration...)
    */
   public List<Summary> getSummaries(Collection<FileRef> files,
-      Predicate<SummarizerConfiguration> summarySelector) throws IOException {
+      Predicate<SummarizerConfiguration> summarySelector) {
     Preconditions.checkState(volumeManager != null,
         "Getting summaries is not" + " supported at this time. It's only supported when"
             + " CompactionStrategy.gatherInformation() is called.");

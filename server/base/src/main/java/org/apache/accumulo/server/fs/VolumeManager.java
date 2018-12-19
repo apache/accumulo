@@ -158,7 +158,7 @@ public interface VolumeManager {
   Path getFullPath(Table.ID tableId, String path);
 
   // Given a filename, figure out the qualified path given multiple namespaces
-  Path getFullPath(FileType fileType, String fileName) throws IOException;
+  Path getFullPath(FileType fileType, String fileName);
 
   // forward to the appropriate FileSystem object
   ContentSummary getContentSummary(Path dir) throws IOException;

@@ -151,7 +151,7 @@ public class CompactRange extends MasterRepo {
 
     zoo.mutate(zTablePath, null, null, new Mutator() {
       @Override
-      public byte[] mutate(byte[] currentValue) throws Exception {
+      public byte[] mutate(byte[] currentValue) {
         String cvs = new String(currentValue, UTF_8);
         String[] tokens = cvs.split(",");
         long flushID = Long.parseLong(tokens[0]);

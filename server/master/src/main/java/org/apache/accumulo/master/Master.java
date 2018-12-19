@@ -42,8 +42,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Namespace;
@@ -740,7 +738,7 @@ public class Master
   }
 
   public void setMergeState(MergeInfo info, MergeState state)
-      throws IOException, KeeperException, InterruptedException {
+      throws KeeperException, InterruptedException {
     synchronized (mergeLock) {
       String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + info.getExtent().getTableId()
           + "/merge";
@@ -763,8 +761,7 @@ public class Master
     nextEvent.event("Merge state of %s set to %s", info.getExtent(), state);
   }
 
-  public void clearMergeState(Table.ID tableId)
-      throws IOException, KeeperException, InterruptedException {
+  public void clearMergeState(Table.ID tableId) throws KeeperException, InterruptedException {
     synchronized (mergeLock) {
       String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
       context.getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
@@ -945,7 +942,7 @@ public class Master
      * the metadata table and remove any migrating tablets that no longer exist.
      */
     private void cleanupNonexistentMigrations(final AccumuloClient accumuloClient)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+        throws TableNotFoundException {
       Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       Set<KeyExtent> found = new HashSet<>();
@@ -1085,8 +1082,7 @@ public class Master
       }
     }
 
-    private long updateStatus()
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    private long updateStatus() {
       Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
       tserverStatus = gatherTableInformation(currentServers);
       checkForHeldServer(tserverStatus);
@@ -1401,12 +1397,7 @@ public class Master
     replicationWorkDriver.start();
 
     // Start the daemon to assign work to tservers to replicate to our peers
-    try {
-      replicationWorkAssigner = new WorkDriver(this);
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      log.error("Caught exception trying to initialize replication WorkDriver", e);
-      throw new RuntimeException(e);
-    }
+    replicationWorkAssigner = new WorkDriver(this);
     replicationWorkAssigner.start();
 
     // Advertise that port we used so peers don't have to be told what it is

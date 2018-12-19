@@ -44,12 +44,8 @@ public class ZooTabletStateStore extends TabletStateStore {
     this.store = store;
   }
 
-  public ZooTabletStateStore(ServerContext context) throws DistributedStoreException {
-    try {
-      store = new ZooStore(context);
-    } catch (IOException ex) {
-      throw new DistributedStoreException(ex);
-    }
+  public ZooTabletStateStore(ServerContext context) {
+    store = new ZooStore(context);
   }
 
   @Override
@@ -204,7 +200,7 @@ public class ZooTabletStateStore extends TabletStateStore {
   }
 
   @Override
-  public void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException {
+  public void unsuspend(Collection<TabletLocationState> tablets) {
     // no support for suspending root tablet.
   }
 

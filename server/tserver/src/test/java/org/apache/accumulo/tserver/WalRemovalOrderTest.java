@@ -18,8 +18,6 @@ package org.apache.accumulo.tserver;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -49,12 +47,7 @@ public class WalRemovalOrderTest {
         throw new UnsupportedOperationException();
       }
     };
-
-    try {
-      return new DfsLogger(null, conf, filename, null);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
+    return new DfsLogger(null, conf, filename, null);
   }
 
   private static LinkedHashSet<DfsLogger> mockLoggers(String... logs) {

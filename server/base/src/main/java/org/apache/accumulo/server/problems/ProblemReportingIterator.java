@@ -74,7 +74,7 @@ public class ProblemReportingIterator implements InterruptibleIterator {
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-      IteratorEnvironment env) throws IOException {
+      IteratorEnvironment env) {
     throw new UnsupportedOperationException();
   }
 

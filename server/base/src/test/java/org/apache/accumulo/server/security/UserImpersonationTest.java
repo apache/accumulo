@@ -275,7 +275,7 @@ public class UserImpersonationTest {
   }
 
   @Test
-  public void testSingleUser() throws Exception {
+  public void testSingleUser() {
     final String server = "server/hostname@EXAMPLE.COM", client = "client@EXAMPLE.COM";
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, server + ":" + client);
     cc.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION, "*");

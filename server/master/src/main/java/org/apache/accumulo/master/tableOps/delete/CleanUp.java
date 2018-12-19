@@ -117,7 +117,7 @@ class CleanUp extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Master> call(long tid, Master master) {
 
     master.clearMigrations(tableId);
 
@@ -240,7 +240,7 @@ class CleanUp extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) throws Exception {
+  public void undo(long tid, Master environment) {
     // nothing to do
   }
 

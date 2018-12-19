@@ -31,7 +31,7 @@ public class MapRLogCloser implements LogCloser {
   private static final Logger log = LoggerFactory.getLogger(MapRLogCloser.class);
 
   @Override
-  public long close(AccumuloConfiguration conf, VolumeManager fs, Path path) throws IOException {
+  public long close(AccumuloConfiguration conf, VolumeManager fs, Path path) {
     log.info("Recovering file {} by changing permission to readonly", path);
     FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
     FsPermission roPerm = new FsPermission((short) 0444);

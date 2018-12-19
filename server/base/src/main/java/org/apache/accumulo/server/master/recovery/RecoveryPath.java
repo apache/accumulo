@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.server.master.recovery;
 
-import java.io.IOException;
-
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
@@ -25,7 +23,7 @@ import org.apache.hadoop.fs.Path;
 public class RecoveryPath {
 
   // given a wal path, transform it to a recovery path
-  public static Path getRecoveryPath(VolumeManager fs, Path walPath) throws IOException {
+  public static Path getRecoveryPath(VolumeManager fs, Path walPath) {
     if (walPath.depth() >= 3 && walPath.toUri().getScheme() != null) {
       // its a fully qualified path
       String uuid = walPath.getName();

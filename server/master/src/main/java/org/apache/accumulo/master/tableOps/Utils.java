@@ -102,15 +102,14 @@ public class Utils {
       return 100;
   }
 
-  public static void unreserveTable(Master env, Table.ID tableId, long tid, boolean writeLock)
-      throws Exception {
+  public static void unreserveTable(Master env, Table.ID tableId, long tid, boolean writeLock) {
     getLock(env.getContext(), tableId, tid, writeLock).unlock();
     log.info("table {} ({}) unlocked for ", tableId, Long.toHexString(tid),
         (writeLock ? "write" : "read"));
   }
 
   public static void unreserveNamespace(Master env, Namespace.ID namespaceId, long id,
-      boolean writeLock) throws Exception {
+      boolean writeLock) {
     getLock(env.getContext(), namespaceId, id, writeLock).unlock();
     log.info("namespace {} ({}) unlocked for {}", namespaceId, Long.toHexString(id),
         (writeLock ? "write" : "read"));
@@ -154,8 +153,7 @@ public class Utils {
         String.format("%016x", tid));
   }
 
-  private static Lock getLock(ServerContext context, AbstractId id, long tid, boolean writeLock)
-      throws Exception {
+  private static Lock getLock(ServerContext context, AbstractId id, long tid, boolean writeLock) {
     byte[] lockData = String.format("%016x", tid).getBytes(UTF_8);
     ZooQueueLock qlock = new ZooQueueLock(context.getZooReaderWriter(),
         context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id, false);
@@ -178,7 +176,7 @@ public class Utils {
     return tableNameLock;
   }
 
-  public static Lock getReadLock(Master env, AbstractId tableId, long tid) throws Exception {
+  public static Lock getReadLock(Master env, AbstractId tableId, long tid) {
     return Utils.getLock(env.getContext(), tableId, tid, false);
   }
 

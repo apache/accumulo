@@ -514,7 +514,7 @@ public class AccumuloReplicaSystemTest {
   }
 
   @Test
-  public void testUserPassword() throws Exception {
+  public void testUserPassword() {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ReplicationTarget target = new ReplicationTarget("peer", "peer_table", Table.ID.of("1"));
     String user = "user", password = "password";
@@ -529,7 +529,7 @@ public class AccumuloReplicaSystemTest {
   }
 
   @Test
-  public void testUserKeytab() throws Exception {
+  public void testUserKeytab() {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ReplicationTarget target = new ReplicationTarget("peer", "peer_table", Table.ID.of("1"));
     String user = "user", keytab = "/etc/security/keytabs/replication.keytab";

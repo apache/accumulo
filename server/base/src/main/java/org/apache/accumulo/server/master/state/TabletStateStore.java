@@ -100,8 +100,7 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
         .setLocations(Collections.singletonList(assignment));
   }
 
-  protected static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context)
-      throws DistributedStoreException {
+  protected static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context) {
     if (extent.isRootTablet()) {
       return new ZooTabletStateStore(context);
     } else if (extent.isMeta()) {

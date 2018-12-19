@@ -49,7 +49,7 @@ public class InitializeTest {
 
   @SuppressWarnings("deprecation")
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     conf = createMock(Configuration.class);
     fs = createMock(VolumeManager.class);
     sconf = createMock(SiteConfiguration.class);

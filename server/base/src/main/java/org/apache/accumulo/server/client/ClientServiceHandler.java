@@ -355,7 +355,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean isActive(TInfo tinfo, long tid) throws TException {
+  public boolean isActive(TInfo tinfo, long tid) {
     return transactionWatcher.isActive(tid);
   }
 

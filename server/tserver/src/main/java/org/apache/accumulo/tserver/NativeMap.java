@@ -17,7 +17,6 @@
 package org.apache.accumulo.tserver;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -708,7 +707,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
 
     @Override
-    public void next() throws IOException {
+    public void next() {
 
       if (entry == null)
         throw new IllegalStateException();
@@ -729,8 +728,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
 
     @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
-        throws IOException {
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) {
 
       if (interruptFlag != null && interruptFlag.get())
         throw new IterationInterruptedException();
@@ -760,7 +758,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-        IteratorEnvironment env) throws IOException {
+        IteratorEnvironment env) {
       throw new UnsupportedOperationException();
     }
 

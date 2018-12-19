@@ -39,7 +39,7 @@ public class AccumuloTest {
   private Path path;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     fs = createMock(FileSystem.class);
     path = createMock(Path.class);
   }

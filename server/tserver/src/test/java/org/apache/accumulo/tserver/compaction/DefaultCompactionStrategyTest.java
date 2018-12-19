@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.DataInputStream;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -38,7 +37,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.file.NoSuchMetaStoreException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -92,7 +90,7 @@ public class DefaultCompactionStrategyTest {
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-        IteratorEnvironment env) throws IOException {}
+        IteratorEnvironment env) {}
 
     @Override
     public boolean hasTop() {
@@ -100,11 +98,10 @@ public class DefaultCompactionStrategyTest {
     }
 
     @Override
-    public void next() throws IOException {}
+    public void next() {}
 
     @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
-        throws IOException {}
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) {}
 
     @Override
     public Key getTopKey() {
@@ -122,7 +119,7 @@ public class DefaultCompactionStrategyTest {
     }
 
     @Override
-    public Key getFirstKey() throws IOException {
+    public Key getFirstKey() {
       Pair<Key,Key> pair = fakeFiles.get(filename);
       if (pair == null)
         return null;
@@ -130,7 +127,7 @@ public class DefaultCompactionStrategyTest {
     }
 
     @Override
-    public Key getLastKey() throws IOException {
+    public Key getLastKey() {
       Pair<Key,Key> pair = fakeFiles.get(filename);
       if (pair == null)
         return null;
@@ -138,15 +135,15 @@ public class DefaultCompactionStrategyTest {
     }
 
     @Override
-    public DataInputStream getMetaStore(String name) throws IOException, NoSuchMetaStoreException {
+    public DataInputStream getMetaStore(String name) {
       return null;
     }
 
     @Override
-    public void closeDeepCopies() throws IOException {}
+    public void closeDeepCopies() {}
 
     @Override
-    public void close() throws IOException {}
+    public void close() {}
 
     @Override
     public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
@@ -159,7 +156,7 @@ public class DefaultCompactionStrategyTest {
 
   private static class TestCompactionRequest extends MajorCompactionRequest {
     @Override
-    public FileSKVIterator openReader(FileRef ref) throws IOException {
+    public FileSKVIterator openReader(FileRef ref) {
       return new TestFileSKVIterator(ref.toString());
     }
 
@@ -171,13 +168,12 @@ public class DefaultCompactionStrategyTest {
 
   }
 
-  private MajorCompactionRequest createRequest(MajorCompactionReason reason, Object... objs)
-      throws IOException {
+  private MajorCompactionRequest createRequest(MajorCompactionReason reason, Object... objs) {
     return createRequest(new KeyExtent(Table.ID.of("0"), null, null), reason, objs);
   }
 
   private MajorCompactionRequest createRequest(KeyExtent extent, MajorCompactionReason reason,
-      Object... objs) throws IOException {
+      Object... objs) {
     Map<FileRef,DataFileValue> files = new HashMap<>();
     for (int i = 0; i < objs.length; i += 2) {
       files.put(new FileRef("hdfs://nn1/accumulo/tables/5/t-0001/" + objs[i]),

@@ -72,7 +72,6 @@ import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
@@ -98,7 +97,7 @@ public class TraceServer implements Watcher, AutoCloseable {
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() {
     if (accumuloClient != null) {
       accumuloClient.close();
     }
@@ -113,7 +112,7 @@ public class TraceServer implements Watcher, AutoCloseable {
     }
 
     @Override
-    public void open() throws TTransportException {}
+    public void open() {}
 
     @Override
     public void close() {}
@@ -124,7 +123,7 @@ public class TraceServer implements Watcher, AutoCloseable {
     }
 
     @Override
-    public void write(byte[] buf, int off, int len) throws TTransportException {
+    public void write(byte[] buf, int off, int len) {
       out.write(buf, off, len);
     }
 
@@ -303,7 +302,7 @@ public class TraceServer implements Watcher, AutoCloseable {
     return accumuloClient;
   }
 
-  public void run() throws Exception {
+  public void run() {
     SimpleTimer.getInstance(serverConfiguration.getSystemConfiguration()).schedule(() -> flush(),
         SCHEDULE_DELAY, SCHEDULE_PERIOD);
     server.serve();

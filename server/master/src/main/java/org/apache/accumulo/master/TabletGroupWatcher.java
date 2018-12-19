@@ -676,7 +676,7 @@ abstract class TabletGroupWatcher extends Daemon {
             new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir,
             master.getContext(), timeType, this.master.masterLock);
       }
-    } catch (RuntimeException | IOException | TableNotFoundException ex) {
+    } catch (RuntimeException | TableNotFoundException ex) {
       throw new AccumuloException(ex);
     }
   }
