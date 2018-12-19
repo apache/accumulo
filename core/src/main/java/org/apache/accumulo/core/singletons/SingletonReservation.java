@@ -30,6 +30,12 @@ public class SingletonReservation implements AutoCloseable {
 
   private static Logger log = LoggerFactory.getLogger(SingletonReservation.class);
 
+  private final Exception e;
+
+  public SingletonReservation() {
+    e = new Exception();
+  }
+
   @Override
   public synchronized void close() {
     if (closed) {
@@ -43,7 +49,7 @@ public class SingletonReservation implements AutoCloseable {
   protected void finalize() throws Throwable {
     try {
       if (!closed) {
-        log.warn("An Accumulo Client was garbage collected without being closed.");
+        log.warn("An Accumulo Client was garbage collected without being closed.", e);
       }
     } finally {
       super.finalize();

@@ -94,7 +94,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
     assertTrue(token.isDestroyed());
     try (AccumuloClient ignored = Accumulo.newClient().from(getClientInfo().getProperties())
         .as("non_existent_user", token).build()) {
-      fail();
+      fail("should ignore " + ignored);
     } catch (IllegalArgumentException e) {
       assertEquals(e.getMessage(), "AuthenticationToken has been destroyed");
     }

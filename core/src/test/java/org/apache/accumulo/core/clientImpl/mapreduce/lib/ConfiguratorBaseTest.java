@@ -27,6 +27,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Level;
@@ -74,8 +75,10 @@ public class ConfiguratorBaseTest {
         new PasswordToken("testPass"));
     assertTrue(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
     assertEquals("testUser", ConfiguratorBase.getPrincipal(this.getClass(), conf));
-    assertEquals("testPass", new String(((PasswordToken) ConfiguratorBase
-        .getClientInfo(this.getClass(), conf).getAuthenticationToken()).getPassword()));
+    assertEquals("testPass",
+        new String(((PasswordToken) ClientInfo
+            .from(ConfiguratorBase.getClientProperties(this.getClass(), conf))
+            .getAuthenticationToken()).getPassword()));
   }
 
   @Test
@@ -91,7 +94,7 @@ public class ConfiguratorBaseTest {
     assertEquals("testInstanceName", clientConf
         .get(org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME));
 
-    Properties props = ConfiguratorBase.getClientInfo(this.getClass(), conf).getProperties();
+    Properties props = ConfiguratorBase.getClientProperties(this.getClass(), conf);
     assertEquals("testInstanceName", props.getProperty(ClientProperty.INSTANCE_NAME.getKey()));
     assertEquals("testZooKeepers", props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey()));
     assertEquals("true", props.getProperty(ClientProperty.SSL_ENABLED.getKey()));

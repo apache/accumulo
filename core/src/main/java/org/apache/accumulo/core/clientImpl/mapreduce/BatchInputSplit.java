@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -37,7 +36,7 @@ import org.apache.accumulo.core.data.Range;
  * @deprecated since 2.0.0
  */
 @Deprecated
-public class BatchInputSplit extends RangeInputSplit {
+public class BatchInputSplit extends org.apache.accumulo.core.client.mapreduce.RangeInputSplit {
   private Collection<Range> ranges;
   private float[] rangeProgress = null;
 

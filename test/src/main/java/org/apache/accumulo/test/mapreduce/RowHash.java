@@ -25,14 +25,8 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
-import org.apache.accumulo.core.client.mapreduce.AbstractInputFormat;
-import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
-import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
-import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -88,14 +82,19 @@ public class RowHash extends Configured implements Tool {
     }
 
     public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
-      InputConfigurator.setClientProperties(AccumuloInputFormat.class, job.getConfiguration(),
-          this.getClientProperties());
-      OutputConfigurator.setClientProperties(AccumuloOutputFormat.class, job.getConfiguration(),
-          this.getClientProperties());
-      InputFormatBase.setInputTableName(job, getTableName());
-      AbstractInputFormat.setScanAuthorizations(job, auths);
-      AccumuloOutputFormat.setCreateTables(job, true);
-      AccumuloOutputFormat.setDefaultTableName(job, getTableName());
+      org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator.setClientProperties(
+          org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.class,
+          job.getConfiguration(), this.getClientProperties());
+      org.apache.accumulo.core.clientImpl.mapreduce.lib.OutputConfigurator.setClientProperties(
+          org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.class,
+          job.getConfiguration(), this.getClientProperties());
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setInputTableName(job,
+          getTableName());
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanAuthorizations(job,
+          auths);
+      org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setCreateTables(job, true);
+      org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setDefaultTableName(job,
+          getTableName());
     }
 
     @Override
@@ -153,7 +152,7 @@ public class RowHash extends Configured implements Tool {
     job.setJarByClass(this.getClass());
     Opts opts = new Opts();
     opts.parseArgs(RowHash.class.getName(), args);
-    job.setInputFormatClass(AccumuloInputFormat.class);
+    job.setInputFormatClass(org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.class);
     opts.setAccumuloConfigs(job);
 
     String col = opts.column;
@@ -161,7 +160,8 @@ public class RowHash extends Configured implements Tool {
     Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
     Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
     if (cf.getLength() > 0)
-      InputFormatBase.fetchColumns(job, Collections.singleton(new Pair<>(cf, cq)));
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.fetchColumns(job,
+          Collections.singleton(new Pair<>(cf, cq)));
 
     job.setMapperClass(HashDataMapper.class);
     job.setMapOutputKeyClass(Text.class);
@@ -169,7 +169,7 @@ public class RowHash extends Configured implements Tool {
 
     job.setNumReduceTasks(0);
 
-    job.setOutputFormatClass(AccumuloOutputFormat.class);
+    job.setOutputFormatClass(org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.class);
 
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

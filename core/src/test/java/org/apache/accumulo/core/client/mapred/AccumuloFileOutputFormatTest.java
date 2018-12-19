@@ -22,7 +22,6 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.FileOutputConfigurator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -55,7 +54,7 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setCompressionType(job, e);
     AccumuloFileOutputFormat.setSampler(job, samplerConfig);
 
-    AccumuloConfiguration acuconf = FileOutputConfigurator
+    AccumuloConfiguration acuconf = org.apache.accumulo.core.clientImpl.mapreduce.lib.FileOutputConfigurator
         .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
 
     assertEquals(7, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
@@ -83,7 +82,8 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setCompressionType(job, e);
     AccumuloFileOutputFormat.setSampler(job, samplerConfig);
 
-    acuconf = FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
+    acuconf = org.apache.accumulo.core.clientImpl.mapreduce.lib.FileOutputConfigurator
+        .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
 
     assertEquals(17, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(1300L, acuconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE));

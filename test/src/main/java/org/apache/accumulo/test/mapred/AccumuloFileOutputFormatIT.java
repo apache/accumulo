@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.accumulo.test.mapred;
 
 import static org.junit.Assert.assertEquals;
@@ -29,12 +28,9 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.mapred.AccumuloFileOutputFormat;
-import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
@@ -108,7 +104,6 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   private static class MRTester extends Configured implements Tool {
     private static class BadKeyMapper implements Mapper<Key,Value,Key,Value> {
-
       int index = 0;
 
       @Override
@@ -155,21 +150,26 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
-      OutputConfigurator.setVisibilityCacheSize(job, JOB_VISIBILITY_CACHE_SIZE);
+      org.apache.accumulo.core.clientImpl.mapreduce.lib.OutputConfigurator
+          .setVisibilityCacheSize(job, JOB_VISIBILITY_CACHE_SIZE);
 
-      job.setInputFormat(AccumuloInputFormat.class);
+      job.setInputFormat(org.apache.accumulo.core.client.mapred.AccumuloInputFormat.class);
 
       ClientInfo ci = getClientInfo();
-      AccumuloInputFormat.setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
-      AccumuloInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
-      AccumuloInputFormat.setInputTableName(job, table);
-      AccumuloFileOutputFormat.setOutputPath(job, new Path(args[1]));
-      AccumuloFileOutputFormat.setSampler(job, SAMPLER_CONFIG);
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setZooKeeperInstance(job,
+          ci.getInstanceName(), ci.getZooKeepers());
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setConnectorInfo(job,
+          ci.getPrincipal(), ci.getAuthenticationToken());
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setInputTableName(job, table);
+      org.apache.accumulo.core.client.mapred.AccumuloFileOutputFormat.setOutputPath(job,
+          new Path(args[1]));
+      org.apache.accumulo.core.client.mapred.AccumuloFileOutputFormat.setSampler(job,
+          SAMPLER_CONFIG);
 
       job.setMapperClass(BAD_TABLE.equals(table) ? BadKeyMapper.class : IdentityMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
-      job.setOutputFormat(AccumuloFileOutputFormat.class);
+      job.setOutputFormat(org.apache.accumulo.core.client.mapred.AccumuloFileOutputFormat.class);
 
       job.setNumReduceTasks(0);
 

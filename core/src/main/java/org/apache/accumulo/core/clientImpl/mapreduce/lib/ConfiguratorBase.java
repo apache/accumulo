@@ -32,18 +32,14 @@ import java.util.Scanner;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
-import org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -60,7 +56,9 @@ import org.apache.log4j.Logger;
 
 /**
  * @since 1.6.0
+ * @deprecated since 2.0.0
  */
+@Deprecated
 public class ConfiguratorBase {
 
   protected static final Logger log = Logger.getLogger(ConfiguratorBase.class);
@@ -159,23 +157,6 @@ public class ConfiguratorBase {
       credentials.addToken(hadoopToken.getService(), hadoopToken);
     }
     return result;
-  }
-
-  public static ClientInfo getClientInfo(Class<?> implementingClass, Configuration conf) {
-    Properties props = getClientProperties(implementingClass, conf);
-    return new ClientInfoImpl(props);
-  }
-
-  public static void setClientPropertiesFile(Class<?> implementingClass, Configuration conf,
-      String clientPropertiesFile) {
-    try {
-      DistributedCacheHelper.addCacheFile(new URI(clientPropertiesFile), conf);
-    } catch (URISyntaxException e) {
-      throw new IllegalStateException("Unable to add client properties file \""
-          + clientPropertiesFile + "\" to distributed cache.");
-    }
-    conf.set(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS_FILE), clientPropertiesFile);
-    conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
   }
 
   public static void setClientProperties(Class<?> implementingClass, Configuration conf,
@@ -384,25 +365,9 @@ public class ConfiguratorBase {
    */
   public static org.apache.accumulo.core.client.Instance getInstance(Class<?> implementingClass,
       Configuration conf) {
-    try {
-      return org.apache.accumulo.core.client.Connector.from(getClient(implementingClass, conf))
-          .getInstance();
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  /**
-   * Creates an Accumulo {@link AccumuloClient} based on the configuration
-   *
-   * @param implementingClass
-   *          class whose name will be used as a prefix for the property configuration
-   * @param conf
-   *          Hadoop configuration object
-   * @return Accumulo connector
-   */
-  public static AccumuloClient getClient(Class<?> implementingClass, Configuration conf) {
-    return Accumulo.newClient().from(getClientProperties(implementingClass, conf)).build();
+    ClientInfo info = ClientInfo.from(getClientProperties(implementingClass, conf));
+    return new org.apache.accumulo.core.client.ZooKeeperInstance(info.getZooKeepers(),
+        info.getZooKeepers());
   }
 
   /**
@@ -416,9 +381,9 @@ public class ConfiguratorBase {
    * @return A ClientConfiguration
    * @since 1.7.0
    */
-  public static ClientConfiguration getClientConfiguration(Class<?> implementingClass,
-      Configuration conf) {
-    return ClientConfConverter.toClientConf(getClientInfo(implementingClass, conf).getProperties());
+  public static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
+      Class<?> implementingClass, Configuration conf) {
+    return ClientConfConverter.toClientConf(getClientProperties(implementingClass, conf));
   }
 
   /**
@@ -480,7 +445,8 @@ public class ConfiguratorBase {
 
   /**
    * Unwraps the provided {@link AuthenticationToken} if it is an instance of
-   * {@link DelegationTokenStub}, reconstituting it from the provided {@link JobConf}.
+   * {@link org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub}, reconstituting it
+   * from the provided {@link JobConf}.
    *
    * @param job
    *          The job
@@ -491,8 +457,8 @@ public class ConfiguratorBase {
       AuthenticationToken token) {
     requireNonNull(job);
     requireNonNull(token);
-    if (token instanceof DelegationTokenStub) {
-      DelegationTokenStub delTokenStub = (DelegationTokenStub) token;
+    if (token instanceof org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub) {
+      org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub delTokenStub = (org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub) token;
       Token<? extends TokenIdentifier> hadoopToken = job.getCredentials()
           .getToken(new Text(delTokenStub.getServiceName()));
       AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
@@ -510,7 +476,8 @@ public class ConfiguratorBase {
 
   /**
    * Unwraps the provided {@link AuthenticationToken} if it is an instance of
-   * {@link DelegationTokenStub}, reconstituting it from the provided {@link JobConf}.
+   * {@link org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub}, reconstituting it
+   * from the provided {@link JobConf}.
    *
    * @param job
    *          The job
@@ -521,8 +488,8 @@ public class ConfiguratorBase {
       AuthenticationToken token) {
     requireNonNull(job);
     requireNonNull(token);
-    if (token instanceof DelegationTokenStub) {
-      DelegationTokenStub delTokenStub = (DelegationTokenStub) token;
+    if (token instanceof org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub) {
+      org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub delTokenStub = (org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub) token;
       Token<? extends TokenIdentifier> hadoopToken = job.getCredentials()
           .getToken(new Text(delTokenStub.getServiceName()));
       AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();

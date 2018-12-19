@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.mapred.AccumuloRowInputFormat;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
@@ -162,12 +161,14 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
 
-      job.setInputFormat(AccumuloRowInputFormat.class);
+      job.setInputFormat(org.apache.accumulo.core.client.mapred.AccumuloRowInputFormat.class);
 
       ClientInfo ci = getClientInfo();
-      AccumuloRowInputFormat.setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
-      AccumuloRowInputFormat.setConnectorInfo(job, ci.getPrincipal(), ci.getAuthenticationToken());
-      AccumuloRowInputFormat.setInputTableName(job, table);
+      org.apache.accumulo.core.client.mapred.AccumuloRowInputFormat.setZooKeeperInstance(job,
+          ci.getInstanceName(), ci.getZooKeepers());
+      org.apache.accumulo.core.client.mapred.AccumuloRowInputFormat.setConnectorInfo(job,
+          ci.getPrincipal(), ci.getAuthenticationToken());
+      org.apache.accumulo.core.client.mapred.AccumuloRowInputFormat.setInputTableName(job, table);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);

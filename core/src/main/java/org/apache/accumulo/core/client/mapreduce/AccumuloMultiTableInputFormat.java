@@ -24,7 +24,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -67,7 +66,8 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
    */
   public static void setInputTableConfigs(Job job, Map<String,InputTableConfig> configs) {
     requireNonNull(configs);
-    InputConfigurator.setInputTableConfigs(CLASS, job.getConfiguration(), configs);
+    org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator.setInputTableConfigs(CLASS,
+        job.getConfiguration(), configs);
   }
 
   @Override

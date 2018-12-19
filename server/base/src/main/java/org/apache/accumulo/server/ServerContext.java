@@ -79,7 +79,7 @@ public class ServerContext extends ClientContext {
     this(siteConfig, ClientInfo.from(clientProps));
   }
 
-  public ServerContext(SiteConfiguration siteConfig, ClientInfo info) {
+  private ServerContext(SiteConfiguration siteConfig, ClientInfo info) {
     this(new ServerInfo(siteConfig, info.getInstanceName(), info.getZooKeepers(),
         info.getZooKeepersSessionTimeOut()));
   }

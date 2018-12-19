@@ -29,16 +29,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
-import org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -62,7 +56,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
   private Range range;
   private String[] locations;
   private String tableId, tableName, instanceName, zooKeepers, principal;
-  private TokenSource tokenSource;
+  private org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource tokenSource;
   private String tokenFile;
   private AuthenticationToken token;
   private Boolean offline, isolatedScan, localIterators;
@@ -98,7 +92,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   public static float getProgress(ByteSequence start, ByteSequence end, ByteSequence position) {
-    return SplitUtils.getProgress(start, end, position);
+    return org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils.getProgress(start, end,
+        position);
   }
 
   public float getProgress(Key currentKey) {
@@ -132,7 +127,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
    */
   @Override
   public long getLength() throws IOException {
-    return SplitUtils.getRangeLength(range);
+    return org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils.getRangeLength(range);
   }
 
   @Override
@@ -169,7 +164,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
         columns.add(in.readUTF());
       }
 
-      fetchedColumns = InputConfigurator.deserializeFetchedColumns(columns);
+      fetchedColumns = org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator
+          .deserializeFetchedColumns(columns);
     }
 
     if (in.readBoolean()) {
@@ -183,7 +179,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
     if (in.readBoolean()) {
       int ordinal = in.readInt();
-      this.tokenSource = TokenSource.values()[ordinal];
+      this.tokenSource = org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource
+          .values()[ordinal];
 
       switch (this.tokenSource) {
         case INLINE:
@@ -254,7 +251,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
     out.writeBoolean(fetchedColumns != null);
     if (fetchedColumns != null) {
-      String[] cols = InputConfigurator.serializeColumns(fetchedColumns);
+      String[] cols = org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator
+          .serializeColumns(fetchedColumns);
       out.writeInt(cols.length);
       for (String col : cols) {
         out.writeUTF(col);
@@ -353,15 +351,16 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   /**
-   * @see #getInstance(ClientConfiguration)
+   * @see #getInstance(org.apache.accumulo.core.client.ClientConfiguration)
    * @deprecated since 1.7.0, use getInstance(ClientConfiguration) instead.
    */
   @Deprecated
-  public Instance getInstance() {
-    return getInstance(ClientConfiguration.loadDefault());
+  public org.apache.accumulo.core.client.Instance getInstance() {
+    return getInstance(org.apache.accumulo.core.client.ClientConfiguration.loadDefault());
   }
 
-  public Instance getInstance(ClientConfiguration base) {
+  public org.apache.accumulo.core.client.Instance getInstance(
+      org.apache.accumulo.core.client.ClientConfiguration base) {
     if (null == instanceName) {
       return null;
     }
@@ -370,7 +369,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
       return null;
     }
 
-    return new ZooKeeperInstance(base.withInstance(getInstanceName()).withZkHosts(getZooKeepers()));
+    return new org.apache.accumulo.core.client.ZooKeeperInstance(
+        base.withInstance(getInstanceName()).withZkHosts(getZooKeepers()));
   }
 
   public String getInstanceName() {
@@ -402,12 +402,12 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   public void setToken(AuthenticationToken token) {
-    this.tokenSource = TokenSource.INLINE;
+    this.tokenSource = org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.INLINE;
     this.token = token;
   }
 
   public void setToken(String tokenFile) {
-    this.tokenSource = TokenSource.FILE;
+    this.tokenSource = org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.FILE;
     this.tokenFile = tokenFile;
   }
 

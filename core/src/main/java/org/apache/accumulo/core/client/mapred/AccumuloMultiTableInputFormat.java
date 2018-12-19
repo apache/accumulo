@@ -19,11 +19,7 @@ package org.apache.accumulo.core.client.mapred;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.mapred.InputFormatBase.RecordReaderBase;
-import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -41,10 +37,10 @@ import org.apache.hadoop.mapred.Reporter;
  * The user must specify the following via static configurator methods:
  *
  * <ul>
- * <li>{@link AccumuloInputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)}
- * <li>{@link AccumuloInputFormat#setConnectorInfo(JobConf, String, String)}
- * <li>{@link AccumuloInputFormat#setScanAuthorizations(JobConf, Authorizations)}
- * <li>{@link AccumuloInputFormat#setZooKeeperInstance(JobConf, ClientConfiguration)}
+ * <li>{@link AccumuloMultiTableInputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)}
+ * <li>{@link AccumuloMultiTableInputFormat#setConnectorInfo(JobConf, String, String)}
+ * <li>{@link AccumuloMultiTableInputFormat#setScanAuthorizations(JobConf, Authorizations)}
+ * <li>{@link AccumuloMultiTableInputFormat#setZooKeeperInstance(JobConf, org.apache.accumulo.core.client.ClientConfiguration)}
  * <li>{@link AccumuloMultiTableInputFormat#setInputTableConfigs(org.apache.hadoop.mapred.JobConf, java.util.Map)}
  * </ul>
  *
@@ -57,7 +53,8 @@ import org.apache.hadoop.mapred.Reporter;
 public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value> {
 
   /**
-   * Sets the {@link InputTableConfig} objects on the given Hadoop configuration
+   * Sets the {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} objects on the
+   * given Hadoop configuration
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -65,15 +62,17 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
    *          the table query configs to be set on the configuration.
    * @since 1.6.0
    */
-  public static void setInputTableConfigs(JobConf job, Map<String,InputTableConfig> configs) {
-    InputConfigurator.setInputTableConfigs(CLASS, job, configs);
+  public static void setInputTableConfigs(JobConf job,
+      Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> configs) {
+    org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator.setInputTableConfigs(CLASS,
+        job, configs);
   }
 
   @Override
   public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter)
       throws IOException {
     log.setLevel(getLogLevel(job));
-    RecordReaderBase<Key,Value> recordReader = new RecordReaderBase<Key,Value>() {
+    InputFormatBase.RecordReaderBase<Key,Value> recordReader = new InputFormatBase.RecordReaderBase<Key,Value>() {
 
       @Override
       public boolean next(Key key, Value value) throws IOException {

@@ -21,8 +21,6 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.FileOutputConfigurator;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -56,6 +54,10 @@ import org.apache.log4j.Logger;
 @Deprecated
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
+  // static wrapper class to make references to deprecated configurator easier
+  private static class Configurator
+      extends org.apache.accumulo.core.clientImpl.mapreduce.lib.FileOutputConfigurator {}
+
   private static final Class<?> CLASS = AccumuloFileOutputFormat.class;
   protected static final Logger log = Logger.getLogger(CLASS);
 
@@ -70,7 +72,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @since 1.5.0
    */
   public static void setCompressionType(JobConf job, String compressionType) {
-    FileOutputConfigurator.setCompressionType(CLASS, job, compressionType);
+    Configurator.setCompressionType(CLASS, job, compressionType);
   }
 
   /**
@@ -89,7 +91,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @since 1.5.0
    */
   public static void setDataBlockSize(JobConf job, long dataBlockSize) {
-    FileOutputConfigurator.setDataBlockSize(CLASS, job, dataBlockSize);
+    Configurator.setDataBlockSize(CLASS, job, dataBlockSize);
   }
 
   /**
@@ -103,7 +105,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @since 1.5.0
    */
   public static void setFileBlockSize(JobConf job, long fileBlockSize) {
-    FileOutputConfigurator.setFileBlockSize(CLASS, job, fileBlockSize);
+    Configurator.setFileBlockSize(CLASS, job, fileBlockSize);
   }
 
   /**
@@ -118,7 +120,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @since 1.5.0
    */
   public static void setIndexBlockSize(JobConf job, long indexBlockSize) {
-    FileOutputConfigurator.setIndexBlockSize(CLASS, job, indexBlockSize);
+    Configurator.setIndexBlockSize(CLASS, job, indexBlockSize);
   }
 
   /**
@@ -132,7 +134,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @since 1.5.0
    */
   public static void setReplication(JobConf job, int replication) {
-    FileOutputConfigurator.setReplication(CLASS, job, replication);
+    Configurator.setReplication(CLASS, job, replication);
   }
 
   /**
@@ -147,7 +149,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    */
 
   public static void setSampler(JobConf job, SamplerConfiguration samplerConfig) {
-    FileOutputConfigurator.setSampler(CLASS, job, samplerConfig);
+    Configurator.setSampler(CLASS, job, samplerConfig);
   }
 
   @Override
@@ -155,13 +157,12 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
       Progressable progress) throws IOException {
     // get the path of the temporary output file
     final Configuration conf = job;
-    final AccumuloConfiguration acuConf = FileOutputConfigurator.getAccumuloConfiguration(CLASS,
-        job);
+    final AccumuloConfiguration acuConf = Configurator.getAccumuloConfiguration(CLASS, job);
 
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);
     final Path file = new Path(getWorkOutputPath(job),
         getUniqueName(job, "part") + "." + extension);
-    final int visCacheSize = OutputConfigurator.getVisibilityCacheSize(conf);
+    final int visCacheSize = Configurator.getVisibilityCacheSize(conf);
 
     return new RecordWriter<Key,Value>() {
       RFileWriter out = null;
@@ -183,5 +184,4 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
       }
     };
   }
-
 }
