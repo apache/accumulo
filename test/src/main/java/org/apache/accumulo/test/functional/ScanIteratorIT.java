@@ -27,8 +27,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -189,7 +187,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     }
   }
 
-  private void setupIter(ScannerBase scanner) throws Exception {
+  private void setupIter(ScannerBase scanner) {
     IteratorSetting dropMod = new IteratorSetting(50, "dropMod",
         "org.apache.accumulo.test.functional.DropModIter");
     dropMod.addOption("mod", "2");
@@ -212,8 +210,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     runTest(Authorizations.EMPTY, true);
   }
 
-  private void runTest(ScannerBase scanner, Authorizations auths, boolean shouldFail)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  private void runTest(ScannerBase scanner, Authorizations auths, boolean shouldFail) {
     int count = 0;
     for (Map.Entry<Key,Value> entry : scanner) {
       assertEquals(shouldFail ? AuthsIterator.FAIL : AuthsIterator.SUCCESS,

@@ -39,7 +39,6 @@ import java.util.Enumeration;
 import java.util.List;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.commons.io.FileExistsException;
@@ -191,8 +190,8 @@ public class CertUtils {
   public void createAll(File rootKeystoreFile, File localKeystoreFile, File trustStoreFile,
       String keyNamePrefix, String rootKeystorePassword, String keystorePassword,
       String truststorePassword) throws KeyStoreException, CertificateException,
-      NoSuchAlgorithmException, IOException, OperatorCreationException, AccumuloSecurityException,
-      NoSuchProviderException, UnrecoverableKeyException, FileNotFoundException {
+      NoSuchAlgorithmException, IOException, OperatorCreationException, NoSuchProviderException,
+      UnrecoverableKeyException, FileNotFoundException {
     createSelfSignedCert(rootKeystoreFile, keyNamePrefix + "-root", rootKeystorePassword);
     createSignedCert(localKeystoreFile, keyNamePrefix + "-local", keystorePassword,
         rootKeystoreFile.getAbsolutePath(), rootKeystorePassword);
@@ -202,9 +201,8 @@ public class CertUtils {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public void createPublicCert(File targetKeystoreFile, String keyName, String rootKeystorePath,
-      String rootKeystorePassword, String truststorePassword)
-      throws NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException,
-      KeyStoreException, UnrecoverableKeyException {
+      String rootKeystorePassword, String truststorePassword) throws NoSuchAlgorithmException,
+      CertificateException, FileNotFoundException, IOException, KeyStoreException {
     KeyStore signerKeystore = KeyStore.getInstance(keystoreType);
     char[] signerPasswordArray = rootKeystorePassword.toCharArray();
     try (FileInputStream fis = new FileInputStream(rootKeystorePath)) {
@@ -222,9 +220,9 @@ public class CertUtils {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public void createSignedCert(File targetKeystoreFile, String keyName, String keystorePassword,
-      String signerKeystorePath, String signerKeystorePassword) throws KeyStoreException,
-      CertificateException, NoSuchAlgorithmException, IOException, OperatorCreationException,
-      AccumuloSecurityException, UnrecoverableKeyException, NoSuchProviderException {
+      String signerKeystorePath, String signerKeystorePassword)
+      throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException,
+      OperatorCreationException, UnrecoverableKeyException {
     KeyStore signerKeystore = KeyStore.getInstance(keystoreType);
     char[] signerPasswordArray = signerKeystorePassword.toCharArray();
     try (FileInputStream fis = new FileInputStream(signerKeystorePath)) {
@@ -249,7 +247,7 @@ public class CertUtils {
 
   public void createSelfSignedCert(File targetKeystoreFile, String keyName, String keystorePassword)
       throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException,
-      OperatorCreationException, AccumuloSecurityException, NoSuchProviderException {
+      OperatorCreationException {
     if (targetKeystoreFile.exists()) {
       throw new FileExistsException(targetKeystoreFile);
     }
@@ -268,7 +266,7 @@ public class CertUtils {
     }
   }
 
-  private KeyPair generateKeyPair() throws NoSuchAlgorithmException, NoSuchProviderException {
+  private KeyPair generateKeyPair() throws NoSuchAlgorithmException {
     KeyPairGenerator gen = KeyPairGenerator.getInstance(encryptionAlgorithm);
     gen.initialize(keysize);
     return gen.generateKeyPair();

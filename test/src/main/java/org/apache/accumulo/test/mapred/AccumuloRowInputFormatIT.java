@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -111,7 +110,7 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
 
       @Override
       public void map(Text k, PeekingIterator<Entry<Key,Value>> v,
-          OutputCollector<Key,Value> output, Reporter reporter) throws IOException {
+          OutputCollector<Key,Value> output, Reporter reporter) {
         try {
           switch (count) {
             case 0:
@@ -139,7 +138,7 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
       public void configure(JobConf job) {}
 
       @Override
-      public void close() throws IOException {
+      public void close() {
         try {
           assertEquals(3, count);
         } catch (AssertionError e) {

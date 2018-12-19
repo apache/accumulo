@@ -23,7 +23,6 @@ import java.util.Collections;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -81,7 +80,7 @@ public class RowHash extends Configured implements Tool {
       return tableName;
     }
 
-    public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
+    public void setAccumuloConfigs(Job job) {
       org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator.setClientProperties(
           org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.class,
           job.getConfiguration(), this.getClientProperties());

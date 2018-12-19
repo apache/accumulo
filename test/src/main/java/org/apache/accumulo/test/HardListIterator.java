@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -57,7 +56,7 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-      IteratorEnvironment env) throws IOException {
+      IteratorEnvironment env) {
     if (source != null)
       log.info("HardListIterator ignores/replaces parent source passed in init(): " + source);
 
@@ -93,13 +92,12 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
   }
 
   @Override
-  public void next() throws IOException {
+  public void next() {
     inner.next();
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
-      throws IOException {
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) {
     seekRng = range;
     // seek to first entry inside range
     if (range.isInfiniteStartKey())

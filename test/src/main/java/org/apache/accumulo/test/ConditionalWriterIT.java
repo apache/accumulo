@@ -24,7 +24,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -618,7 +617,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-        IteratorEnvironment env) throws IOException {
+        IteratorEnvironment env) {
       this.setSource(source);
       amount = Long.parseLong(options.get("amount"));
     }
@@ -637,7 +636,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-        IteratorEnvironment env) throws IOException {
+        IteratorEnvironment env) {
       this.setSource(source);
       amount = Long.parseLong(options.get("amount"));
     }

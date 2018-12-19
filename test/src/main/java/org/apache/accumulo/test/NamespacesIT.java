@@ -102,7 +102,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
   }
 
   @Before
-  public void setupConnectorAndNamespace() throws Exception {
+  public void setupConnectorAndNamespace() {
     Assume.assumeTrue(getClusterType() == ClusterType.MINI);
 
     // prepare a unique namespace and get a new root client for each test
@@ -133,7 +133,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void checkReservedNamespaces() throws Exception {
+  public void checkReservedNamespaces() {
     assertEquals(c.namespaceOperations().defaultNamespace(), Namespace.DEFAULT);
     assertEquals(c.namespaceOperations().systemNamespace(), Namespace.ACCUMULO);
   }

@@ -54,7 +54,7 @@ public class KerberosTokenEmbeddedKDCTest {
   }
 
   @AfterClass
-  public static void stopKdc() throws Exception {
+  public static void stopKdc() {
     if (null != kdc) {
       kdc.stop();
     }

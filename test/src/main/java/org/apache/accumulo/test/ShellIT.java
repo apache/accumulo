@@ -61,7 +61,7 @@ public class ShellIT extends SharedMiniClusterBase {
   }
 
   @AfterClass
-  public static void teardown() throws Exception {
+  public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
@@ -71,7 +71,7 @@ public class ShellIT extends SharedMiniClusterBase {
     StringBuilder sb = new StringBuilder();
 
     @Override
-    public void write(int b) throws IOException {
+    public void write(int b) {
       sb.append((char) (0xff & b));
     }
 
@@ -89,7 +89,7 @@ public class ShellIT extends SharedMiniClusterBase {
     private int offset = 0;
 
     @Override
-    public int read() throws IOException {
+    public int read() {
       if (offset == source.length())
         return '\n';
       else
@@ -280,7 +280,7 @@ public class ShellIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void userTest() throws Exception {
+  public void userTest() {
     Shell.log.debug("Starting user test --------------------------");
     // Test cannot be done via junit because createuser only prompts for password
     // exec("createuser root", false, "user exists");

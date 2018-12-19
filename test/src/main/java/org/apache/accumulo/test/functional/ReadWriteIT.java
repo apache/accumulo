@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
 import java.security.SecureRandom;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -127,7 +126,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   }
 
   @Test(expected = RuntimeException.class)
-  public void invalidInstanceName() throws Exception {
+  public void invalidInstanceName() {
     try (AccumuloClient client = Accumulo.newClient()
         .to("fake_instance_name", cluster.getZooKeepers()).as(getAdminPrincipal(), getAdminToken())
         .build()) {
@@ -538,12 +537,10 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       justification = "trust manager is okay for testing")
   private static class TestTrustManager implements X509TrustManager {
     @Override
-    public void checkClientTrusted(X509Certificate[] arg0, String arg1)
-        throws CertificateException {}
+    public void checkClientTrusted(X509Certificate[] arg0, String arg1) {}
 
     @Override
-    public void checkServerTrusted(X509Certificate[] arg0, String arg1)
-        throws CertificateException {}
+    public void checkServerTrusted(X509Certificate[] arg0, String arg1) {}
 
     @Override
     public X509Certificate[] getAcceptedIssuers() {

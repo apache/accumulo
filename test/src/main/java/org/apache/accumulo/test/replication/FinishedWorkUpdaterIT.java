@@ -49,7 +49,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
   private FinishedWorkUpdater updater;
 
   @Before
-  public void configureUpdater() throws Exception {
+  public void configureUpdater() {
     client = createClient();
     updater = new FinishedWorkUpdater(client);
   }

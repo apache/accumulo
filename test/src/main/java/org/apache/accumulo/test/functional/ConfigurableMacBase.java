@@ -67,7 +67,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
 
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {}
 
-  protected void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {}
+  protected void beforeClusterStart(MiniAccumuloConfigImpl cfg) {}
 
   protected static final String ROOT_PASSWORD = "testRootPassword1";
 
@@ -176,7 +176,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
   }
 
   @After
-  public void tearDown() throws Exception {
+  public void tearDown() {
     if (cluster != null) {
       try {
         cluster.stop();

@@ -117,19 +117,19 @@ public class IntegrationTestMapReduce extends Configured implements Tool {
       core.addListener(new RunListener() {
 
         @Override
-        public void testStarted(Description description) throws Exception {
+        public void testStarted(Description description) {
           log.info("Starting {}", description);
           context.progress();
         }
 
         @Override
-        public void testFinished(Description description) throws Exception {
+        public void testFinished(Description description) {
           log.info("Finished {}", description);
           context.progress();
         }
 
         @Override
-        public void testFailure(Failure failure) throws Exception {
+        public void testFailure(Failure failure) {
           log.info("Test failed: {}", failure.getDescription(), failure.getException());
           failures.add(failure.getDescription().getMethodName());
           context.progress();

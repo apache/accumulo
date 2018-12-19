@@ -62,7 +62,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -92,7 +91,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
   @Test
   public void getDiskUsageErrors() throws TableExistsException, AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, TException {
+      AccumuloSecurityException, TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
     accumuloClient.tableOperations().create(tableName);
     List<DiskUsage> diskUsage = accumuloClient.tableOperations()
@@ -117,7 +116,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
   @Test
   public void getDiskUsage() throws TableExistsException, AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, TException {
+      AccumuloSecurityException, TableNotFoundException {
     final String[] names = getUniqueNames(2);
     String tableName = names[0];
     accumuloClient.tableOperations().create(tableName);

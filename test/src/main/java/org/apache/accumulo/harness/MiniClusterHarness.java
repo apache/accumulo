@@ -239,7 +239,7 @@ public class MiniClusterHarness {
   }
 
   protected void configureForKerberos(MiniAccumuloConfigImpl cfg, File folder,
-      Configuration coreSite, TestingKdc kdc) throws Exception {
+      Configuration coreSite, TestingKdc kdc) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     if (TRUE.equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
       throw new RuntimeException("Cannot use both SSL and SASL/Kerberos");

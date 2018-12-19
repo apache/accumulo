@@ -54,7 +54,7 @@ public class ValueReversingIterator implements SortedKeyValueIterator<Key,Value>
   }
 
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-      IteratorEnvironment env) throws IOException {
+      IteratorEnvironment env) {
     this.source = source;
   }
 

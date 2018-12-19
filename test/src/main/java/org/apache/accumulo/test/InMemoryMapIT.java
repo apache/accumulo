@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -91,7 +90,7 @@ public class InMemoryMapIT {
       new File(System.getProperty("user.dir") + "/target"));
 
   @BeforeClass
-  public static void ensureNativeLibrary() throws FileNotFoundException {
+  public static void ensureNativeLibrary() {
     File nativeMapLocation = NativeMapIT.nativeMapLocation();
     System.setProperty("accumulo.native.lib.path", nativeMapLocation.getAbsolutePath());
     if (!NativeMap.isLoaded()) {
@@ -119,7 +118,7 @@ public class InMemoryMapIT {
   }
 
   @Test
-  public void testOneMutationManyKeys() throws IOException {
+  public void testOneMutationManyKeys() {
     Mutation m = new Mutation("a");
     for (int i = 1; i < 6; i++) {
       m.put(new Text("2cf" + i), new Text("2cq" + i), new Value(Integer.toString(i).getBytes()));

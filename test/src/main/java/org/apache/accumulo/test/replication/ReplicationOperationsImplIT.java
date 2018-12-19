@@ -26,15 +26,11 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ReplicationOperationsImpl;
 import org.apache.accumulo.core.clientImpl.Table;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -84,15 +80,14 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   /**
    * Spoof out the Master so we can call the implementation without starting a full instance.
    */
-  private ReplicationOperationsImpl getReplicationOperations() throws Exception {
+  private ReplicationOperationsImpl getReplicationOperations() {
     Master master = EasyMock.createMock(Master.class);
     EasyMock.expect(master.getContext()).andReturn(serverContext).anyTimes();
     EasyMock.replay(master);
 
     final MasterClientServiceHandler mcsh = new MasterClientServiceHandler(master) {
       @Override
-      protected Table.ID getTableId(ClientContext context, String tableName)
-          throws ThriftTableOperationException {
+      protected Table.ID getTableId(ClientContext context, String tableName) {
         try {
           return Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
         } catch (Exception e) {
@@ -105,8 +100,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     return new ReplicationOperationsImpl(context) {
       @Override
       protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds,
-          final String tableName, final Set<String> wals)
-          throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+          final String tableName, final Set<String> wals) {
         try {
           return mcsh.drainReplicationTable(tinfo, rpcCreds, tableName, wals);
         } catch (TException e) {

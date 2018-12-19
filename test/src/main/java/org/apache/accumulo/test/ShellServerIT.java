@@ -321,7 +321,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @AfterClass
-  public static void tearDownAfterClass() throws Exception {
+  public static void tearDownAfterClass() {
     if (traceProcess != null) {
       traceProcess.destroy();
     }

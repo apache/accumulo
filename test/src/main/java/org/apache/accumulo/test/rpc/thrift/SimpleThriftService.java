@@ -210,7 +210,7 @@ public class SimpleThriftService {
 
     public static class echoPass_call extends org.apache.thrift.async.TAsyncMethodCall<java.lang.String> {
       private java.lang.String value;
-      public echoPass_call(java.lang.String value, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public echoPass_call(java.lang.String value, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) {
         super(client, protocolFactory, transport, resultHandler, false);
         this.value = value;
       }
@@ -242,7 +242,7 @@ public class SimpleThriftService {
 
     public static class onewayPass_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
       private java.lang.String value;
-      public onewayPass_call(java.lang.String value, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public onewayPass_call(java.lang.String value, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) {
         super(client, protocolFactory, transport, resultHandler, true);
         this.value = value;
       }
@@ -255,7 +255,7 @@ public class SimpleThriftService {
         prot.writeMessageEnd();
       }
 
-      public Void getResult() throws org.apache.thrift.TException {
+      public Void getResult() {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -274,7 +274,7 @@ public class SimpleThriftService {
 
     public static class echoFail_call extends org.apache.thrift.async.TAsyncMethodCall<java.lang.String> {
       private java.lang.String value;
-      public echoFail_call(java.lang.String value, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public echoFail_call(java.lang.String value, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) {
         super(client, protocolFactory, transport, resultHandler, false);
         this.value = value;
       }
@@ -306,7 +306,7 @@ public class SimpleThriftService {
 
     public static class onewayFail_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
       private java.lang.String value;
-      public onewayFail_call(java.lang.String value, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public onewayFail_call(java.lang.String value, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) {
         super(client, protocolFactory, transport, resultHandler, true);
         this.value = value;
       }
@@ -319,7 +319,7 @@ public class SimpleThriftService {
         prot.writeMessageEnd();
       }
 
-      public Void getResult() throws org.apache.thrift.TException {
+      public Void getResult() {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -338,7 +338,7 @@ public class SimpleThriftService {
 
     public static class echoRuntimeFail_call extends org.apache.thrift.async.TAsyncMethodCall<java.lang.String> {
       private java.lang.String value;
-      public echoRuntimeFail_call(java.lang.String value, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public echoRuntimeFail_call(java.lang.String value, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) {
         super(client, protocolFactory, transport, resultHandler, false);
         this.value = value;
       }
@@ -370,7 +370,7 @@ public class SimpleThriftService {
 
     public static class onewayRuntimeFail_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
       private java.lang.String value;
-      public onewayRuntimeFail_call(java.lang.String value, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public onewayRuntimeFail_call(java.lang.String value, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) {
         super(client, protocolFactory, transport, resultHandler, true);
         this.value = value;
       }
@@ -383,7 +383,7 @@ public class SimpleThriftService {
         prot.writeMessageEnd();
       }
 
-      public Void getResult() throws org.apache.thrift.TException {
+      public Void getResult() {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -1123,7 +1123,7 @@ public class SimpleThriftService {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift.TException {
+    public void validate() {
       // check for required fields
       // check for sub-struct validity
     }
@@ -1136,7 +1136,7 @@ public class SimpleThriftService {
       }
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException {
       try {
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
@@ -1485,7 +1485,7 @@ public class SimpleThriftService {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift.TException {
+    public void validate() {
       // check for required fields
       // check for sub-struct validity
     }
@@ -1498,7 +1498,7 @@ public class SimpleThriftService {
       }
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException {
       try {
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
@@ -1847,7 +1847,7 @@ public class SimpleThriftService {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift.TException {
+    public void validate() {
       // check for required fields
       // check for sub-struct validity
     }
@@ -1860,7 +1860,7 @@ public class SimpleThriftService {
       }
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException {
       try {
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
@@ -2209,7 +2209,7 @@ public class SimpleThriftService {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift.TException {
+    public void validate() {
       // check for required fields
       // check for sub-struct validity
     }
@@ -2222,7 +2222,7 @@ public class SimpleThriftService {
       }
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException {
       try {
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
@@ -2571,7 +2571,7 @@ public class SimpleThriftService {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift.TException {
+    public void validate() {
       // check for required fields
       // check for sub-struct validity
     }
@@ -2584,7 +2584,7 @@ public class SimpleThriftService {
       }
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException {
       try {
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
@@ -2933,7 +2933,7 @@ public class SimpleThriftService {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift.TException {
+    public void validate() {
       // check for required fields
       // check for sub-struct validity
     }
@@ -2946,7 +2946,7 @@ public class SimpleThriftService {
       }
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException {
       try {
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
@@ -3295,7 +3295,7 @@ public class SimpleThriftService {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift.TException {
+    public void validate() {
       // check for required fields
       // check for sub-struct validity
     }
@@ -3308,7 +3308,7 @@ public class SimpleThriftService {
       }
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException {
       try {
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
@@ -3657,7 +3657,7 @@ public class SimpleThriftService {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift.TException {
+    public void validate() {
       // check for required fields
       // check for sub-struct validity
     }
@@ -3670,7 +3670,7 @@ public class SimpleThriftService {
       }
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException {
       try {
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
@@ -4019,7 +4019,7 @@ public class SimpleThriftService {
       return sb.toString();
     }
 
-    public void validate() throws org.apache.thrift.TException {
+    public void validate() {
       // check for required fields
       // check for sub-struct validity
     }
@@ -4032,7 +4032,7 @@ public class SimpleThriftService {
       }
     }
 
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException {
       try {
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {

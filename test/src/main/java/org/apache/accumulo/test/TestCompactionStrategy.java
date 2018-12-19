@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test;
 
-import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.server.fs.FileRef;
@@ -41,7 +40,7 @@ public class TestCompactionStrategy extends CompactionStrategy {
   }
 
   @Override
-  public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
+  public boolean shouldCompact(MajorCompactionRequest request) {
     if (shouldCompact)
       return true;
 
@@ -56,7 +55,7 @@ public class TestCompactionStrategy extends CompactionStrategy {
   }
 
   @Override
-  public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
+  public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
     CompactionPlan plan = new CompactionPlan();
 
     for (FileRef fref : request.getFiles().keySet()) {

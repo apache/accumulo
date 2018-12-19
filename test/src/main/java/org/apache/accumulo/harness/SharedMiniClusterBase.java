@@ -146,7 +146,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   /**
    * Stops the MiniAccumuloCluster and related services if they are running.
    */
-  public static void stopMiniCluster() throws Exception {
+  public static void stopMiniCluster() {
     if (cluster != null) {
       try {
         cluster.stop();

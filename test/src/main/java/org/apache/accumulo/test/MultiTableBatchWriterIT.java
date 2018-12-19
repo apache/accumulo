@@ -26,8 +26,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -57,7 +55,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
   }
 
   @Before
-  public void setUpArgs() throws AccumuloException, AccumuloSecurityException {
+  public void setUpArgs() {
     accumuloClient = createAccumuloClient();
     mtbw = getMultiTableBatchWriter();
   }

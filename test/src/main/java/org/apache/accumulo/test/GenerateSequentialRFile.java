@@ -81,7 +81,7 @@ public class GenerateSequentialRFile implements Runnable {
     }
   }
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     Opts opts = new Opts();
     opts.parseArgs(GenerateSequentialRFile.class.getName(), args);
     new GenerateSequentialRFile(opts).run();

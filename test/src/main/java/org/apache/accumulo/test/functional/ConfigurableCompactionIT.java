@@ -75,13 +75,13 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     int count = 3;
 
     @Override
-    public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
+    public boolean shouldCompact(MajorCompactionRequest request) {
       return request.getFiles().size() == count;
 
     }
 
     @Override
-    public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
+    public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
       CompactionPlan result = new CompactionPlan();
       result.inputFiles.addAll(request.getFiles().keySet());
       return result;
