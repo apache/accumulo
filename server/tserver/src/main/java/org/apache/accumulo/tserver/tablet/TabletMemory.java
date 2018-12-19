@@ -146,8 +146,8 @@ class TabletMemory implements Closeable {
     }
   }
 
-  public void mutate(CommitSession cm, List<Mutation> mutations) {
-    cm.mutate(mutations);
+  public void mutate(CommitSession cm, List<Mutation> mutations, int count) {
+    cm.mutate(mutations, count);
   }
 
   public void updateMemoryUsageStats() {

@@ -445,7 +445,7 @@ public class Tablet implements TabletCommitter {
                     maxTime.set(Math.max(maxTime.get(), columnUpdate.getTimestamp()));
                   }
                 }
-                getTabletMemory().mutate(commitSession, Collections.singletonList(m));
+                getTabletMemory().mutate(commitSession, Collections.singletonList(m), 1);
                 entriesUsedOnTablet.incrementAndGet();
               }
             });
@@ -1284,7 +1284,7 @@ public class Tablet implements TabletCommitter {
       totalBytes += mutation.numBytes();
     }
 
-    getTabletMemory().mutate(commitSession, mutations);
+    getTabletMemory().mutate(commitSession, mutations, totalCount);
 
     synchronized (this) {
       if (writesInProgress < 1) {

@@ -111,7 +111,7 @@ public class CommitSession {
     return maxCommittedTime;
   }
 
-  public void mutate(List<Mutation> mutations) {
-    memTable.mutate(mutations);
+  public void mutate(List<Mutation> mutations, int count) {
+    memTable.mutate(mutations, count);
   }
 }
