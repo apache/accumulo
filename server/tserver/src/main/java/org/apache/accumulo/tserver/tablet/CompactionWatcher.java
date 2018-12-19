@@ -28,9 +28,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class CompactionWatcher implements Runnable {
   private final Map<List<Long>,ObservedCompactionInfo> observedCompactions = new HashMap<>();
   private final AccumuloConfiguration config;

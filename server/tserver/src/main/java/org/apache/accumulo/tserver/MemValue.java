@@ -18,9 +18,6 @@ package org.apache.accumulo.tserver;
 
 import org.apache.accumulo.core.data.Value;
 
-/**
- *
- */
 public class MemValue {
 
   Value value;

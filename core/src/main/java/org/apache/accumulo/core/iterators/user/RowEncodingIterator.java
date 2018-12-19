@@ -37,7 +37,6 @@ import org.apache.commons.collections.BufferOverflowException;
 import org.apache.hadoop.io.Text;
 
 /**
- *
  * The RowEncodingIterator is designed to provide row-isolation so that queries see mutations as
  * atomic. It does so by encapsulating an entire row of key/value pairs into a single key/value
  * pair, which is returned through the client as an atomic operation. This is an abstract class,

@@ -28,9 +28,6 @@ import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableCounterLong;
 import org.apache.hadoop.metrics2.lib.MutableStat;
 
-/**
- *
- */
 public class Metrics2TabletServerUpdateMetrics
     implements Metrics, MetricsSource, TabletServerUpdateMetricsKeys {
   public static final String NAME = TSERVER_NAME + ",sub=Updates",

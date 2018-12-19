@@ -30,10 +30,8 @@ import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.tserver.tablet.CountingIterator;
 import org.junit.Test;
 
-/**
- *
- */
 public class CountingIteratorTest {
+
   @Test
   public void testDeepCopyCount() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();

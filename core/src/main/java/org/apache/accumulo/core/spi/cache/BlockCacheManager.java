@@ -23,7 +23,6 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.Property;
 
 /**
- *
  * @since 2.0.0
  */
 public abstract class BlockCacheManager {

@@ -29,9 +29,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.tserver.ConditionalMutationSet.DeferFilter;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 
-/**
- *
- */
 class RowLocks {
 
   private Map<ByteSequence,RowLock> rowLocks = new HashMap<>();

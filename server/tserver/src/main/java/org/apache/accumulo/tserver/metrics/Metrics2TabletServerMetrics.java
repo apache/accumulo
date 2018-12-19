@@ -28,9 +28,6 @@ import org.apache.hadoop.metrics2.lib.Interns;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableGaugeLong;
 
-/**
- *
- */
 public class Metrics2TabletServerMetrics
     implements Metrics, MetricsSource, TabletServerMetricsKeys {
   public static final String NAME = TSERVER_NAME + ",sub=General",

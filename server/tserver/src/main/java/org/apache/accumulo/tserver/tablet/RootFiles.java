@@ -32,9 +32,6 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class RootFiles {
 
   private static final Logger log = LoggerFactory.getLogger(RootFiles.class);

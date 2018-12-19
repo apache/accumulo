@@ -34,9 +34,6 @@ import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
-/**
- *
- */
 public class TabletTest {
 
   @Test
