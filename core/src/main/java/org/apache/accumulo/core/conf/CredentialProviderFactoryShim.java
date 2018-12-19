@@ -352,8 +352,7 @@ public class CredentialProviderFactoryShim {
    * @throws IOException
    *           On errors reading a CredentialProvider
    */
-  public static char[] getValueFromCredentialProvider(Configuration conf, String alias)
-      throws IOException {
+  public static char[] getValueFromCredentialProvider(Configuration conf, String alias) {
     requireNonNull(conf);
     requireNonNull(alias);
 
