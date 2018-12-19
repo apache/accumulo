@@ -60,8 +60,8 @@ public class SiteConfigurationTest {
     assertNotNull(keystore);
     String credProvPath = "jceks://file" + new File(keystore.getFile()).getAbsolutePath();
 
-    SiteConfiguration config = new SiteConfiguration(ImmutableMap.of(
-        Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvPath));
+    SiteConfiguration config = new SiteConfiguration(ImmutableMap
+        .of(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvPath));
 
     assertEquals("mysecret", config.get(Property.INSTANCE_SECRET));
     assertNull(config.get("ignored.property"));

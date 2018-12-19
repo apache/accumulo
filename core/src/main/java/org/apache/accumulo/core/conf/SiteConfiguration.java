@@ -27,13 +27,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -77,12 +78,12 @@ public class SiteConfiguration extends AccumuloConfiguration {
     this(accumuloPropsLocation, Collections.emptyMap());
   }
 
-  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
-      justification = "location of props is specified by an admin")
   public SiteConfiguration(URL accumuloPropsLocation, Map<String,String> overrides) {
     config = createMap(accumuloPropsLocation, overrides);
   }
 
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
+      justification = "location of props is specified by an admin")
   private static ImmutableMap<String,String> createMap(URL accumuloPropsLocation,
       Map<String,String> overrides) {
     CompositeConfiguration config = new CompositeConfiguration();
@@ -104,7 +105,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     config.getKeys().forEachRemaining(key -> result.put(key, config.getString(key)));
 
     // Add all overrides
-    overrides.keySet().forEach(key -> result.put(key, overrides.get(key)));
+    overrides.forEach(result::put);
 
     // Add sensitive properties from credential provider (if set)
     String credProvider = result.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
