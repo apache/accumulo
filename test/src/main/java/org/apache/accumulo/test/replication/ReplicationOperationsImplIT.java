@@ -66,10 +66,12 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplIT.class);
 
   private AccumuloClient client;
+  private ServerContext serverContext;
 
   @Before
   public void configureInstance() throws Exception {
     client = createClient();
+    serverContext = getServerContext();
     ReplicationTable.setOnline(client);
     client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
@@ -84,8 +86,6 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
    */
   private ReplicationOperationsImpl getReplicationOperations() throws Exception {
     Master master = EasyMock.createMock(Master.class);
-    ServerContext serverContext = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect((AccumuloClient) master.getContext()).andReturn(client).anyTimes();
     EasyMock.expect(master.getContext()).andReturn(serverContext).anyTimes();
     EasyMock.replay(master);
 
@@ -152,17 +152,14 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
     final ReplicationOperationsImpl roi = getReplicationOperations();
-    Thread t = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          roi.drain("foo");
-        } catch (Exception e) {
-          log.error("Got error", e);
-          exception.set(true);
-        }
-        done.set(true);
+    Thread t = new Thread(() -> {
+      try {
+        roi.drain("foo");
+      } catch (Exception e) {
+        log.error("Got error", e);
+        exception.set(true);
       }
+      done.set(true);
     });
 
     t.start();
@@ -253,17 +250,14 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     final ReplicationOperationsImpl roi = getReplicationOperations();
 
-    Thread t = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          roi.drain("foo");
-        } catch (Exception e) {
-          log.error("Got error", e);
-          exception.set(true);
-        }
-        done.set(true);
+    Thread t = new Thread(() -> {
+      try {
+        roi.drain("foo");
+      } catch (Exception e) {
+        log.error("Got error", e);
+        exception.set(true);
       }
+      done.set(true);
     });
 
     t.start();
@@ -332,17 +326,14 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
     final ReplicationOperationsImpl roi = getReplicationOperations();
-    Thread t = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          roi.drain("foo");
-        } catch (Exception e) {
-          log.error("Got error", e);
-          exception.set(true);
-        }
-        done.set(true);
+    Thread t = new Thread(() -> {
+      try {
+        roi.drain("foo");
+      } catch (Exception e) {
+        log.error("Got error", e);
+        exception.set(true);
       }
+      done.set(true);
     });
 
     t.start();
@@ -410,17 +401,14 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     final AtomicBoolean done = new AtomicBoolean(false);
     final AtomicBoolean exception = new AtomicBoolean(false);
     final ReplicationOperationsImpl roi = getReplicationOperations();
-    Thread t = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          roi.drain("foo");
-        } catch (Exception e) {
-          log.error("Got error", e);
-          exception.set(true);
-        }
-        done.set(true);
+    Thread t = new Thread(() -> {
+      try {
+        roi.drain("foo");
+      } catch (Exception e) {
+        log.error("Got error", e);
+        exception.set(true);
       }
+      done.set(true);
     });
 
     t.start();
