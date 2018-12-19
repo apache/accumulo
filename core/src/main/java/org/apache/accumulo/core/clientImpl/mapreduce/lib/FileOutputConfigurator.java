@@ -32,7 +32,9 @@ import org.apache.hadoop.conf.Configuration;
 
 /**
  * @since 1.6.0
+ * @deprecated since 2.0.0
  */
+@Deprecated
 public class FileOutputConfigurator extends ConfiguratorBase {
 
   /**

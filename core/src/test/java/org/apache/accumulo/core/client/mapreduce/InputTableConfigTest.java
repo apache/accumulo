@@ -36,8 +36,10 @@ import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-
+/**
+ * @deprecated since 2.0.0
+ */
+@Deprecated
 public class InputTableConfigTest {
 
   private InputTableConfig tableQueryConfig;
@@ -111,13 +113,6 @@ public class InputTableConfigTest {
     tableQueryConfig.setSamplerConfiguration(sc);
     InputTableConfig actualConfig = deserialize(serialize(tableQueryConfig));
     assertEquals(sc, actualConfig.getSamplerConfiguration());
-  }
-
-  @Test
-  public void testExecutionHints() throws IOException {
-    tableQueryConfig.setExecutionHints(ImmutableMap.of("priority", "9"));
-    InputTableConfig actualConfig = deserialize(serialize(tableQueryConfig));
-    assertEquals(ImmutableMap.of("priority", "9"), actualConfig.getExecutionHints());
   }
 
   private byte[] serialize(InputTableConfig tableQueryConfig) throws IOException {

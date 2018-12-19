@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.RowIterator;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -40,13 +41,18 @@ import org.apache.hadoop.mapred.Reporter;
  * The user must specify the following via static configurator methods:
  *
  * <ul>
- * <li>{@link AccumuloRowInputFormat#setClientProperties(JobConf, java.util.Properties)}
+ * <li>{@link AccumuloRowInputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)}
  * <li>{@link AccumuloRowInputFormat#setInputTableName(JobConf, String)}
  * <li>{@link AccumuloRowInputFormat#setScanAuthorizations(JobConf, Authorizations)}
+ * <li>{@link AccumuloRowInputFormat#setZooKeeperInstance(JobConf, org.apache.accumulo.core.client.ClientConfiguration)}
  * </ul>
  *
  * Other static methods are optional.
+ *
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated
 public class AccumuloRowInputFormat
     extends InputFormatBase<Text,PeekingIterator<Entry<Key,Value>>> {
   @Override

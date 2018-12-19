@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.mapred.AccumuloRowInputFormat;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Mutation;
@@ -53,6 +53,10 @@ import org.apache.hadoop.util.ToolRunner;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated
 public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
 
   private static final String ROW1 = "row1";
@@ -157,10 +161,14 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
 
-      job.setInputFormat(AccumuloRowInputFormat.class);
+      job.setInputFormat(org.apache.accumulo.core.client.mapred.AccumuloRowInputFormat.class);
 
-      AccumuloRowInputFormat.setClientProperties(job, getClientProperties());
-      AccumuloRowInputFormat.setInputTableName(job, table);
+      ClientInfo ci = getClientInfo();
+      org.apache.accumulo.core.client.mapred.AccumuloRowInputFormat.setZooKeeperInstance(job,
+          ci.getInstanceName(), ci.getZooKeepers());
+      org.apache.accumulo.core.client.mapred.AccumuloRowInputFormat.setConnectorInfo(job,
+          ci.getPrincipal(), ci.getAuthenticationToken());
+      org.apache.accumulo.core.client.mapred.AccumuloRowInputFormat.setInputTableName(job, table);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);

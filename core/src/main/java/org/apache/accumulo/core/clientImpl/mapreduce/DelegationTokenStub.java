@@ -30,7 +30,10 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 /**
  * An internal stub class for passing DelegationToken information out of the Configuration back up
  * to the appropriate implementation for mapreduce or mapred.
+ *
+ * @deprecated since 2.0.0
  */
+@Deprecated
 public class DelegationTokenStub implements AuthenticationToken {
 
   private String serviceName;

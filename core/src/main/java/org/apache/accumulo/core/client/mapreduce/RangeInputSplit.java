@@ -16,28 +16,29 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -46,17 +47,24 @@ import org.apache.log4j.Level;
 
 /**
  * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
+ *
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated
 public class RangeInputSplit extends InputSplit implements Writable {
   private Range range;
   private String[] locations;
-  private String tableId, tableName;
+  private String tableId, tableName, instanceName, zooKeepers, principal;
+  private org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource tokenSource;
+  private String tokenFile;
+  private AuthenticationToken token;
   private Boolean offline, isolatedScan, localIterators;
+  private Authorizations auths;
   private Set<Pair<Text,Text>> fetchedColumns;
   private List<IteratorSetting> iterators;
   private SamplerConfiguration samplerConfig;
   private Level level;
-  private Map<String,String> executionHints;
 
   public RangeInputSplit() {
     range = new Range();
@@ -84,7 +92,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   public static float getProgress(ByteSequence start, ByteSequence end, ByteSequence position) {
-    return SplitUtils.getProgress(start, end, position);
+    return org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils.getProgress(start, end,
+        position);
   }
 
   public float getProgress(Key currentKey) {
@@ -118,7 +127,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
    */
   @Override
   public long getLength() throws IOException {
-    return SplitUtils.getRangeLength(range);
+    return org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils.getRangeLength(range);
   }
 
   @Override
@@ -155,7 +164,48 @@ public class RangeInputSplit extends InputSplit implements Writable {
         columns.add(in.readUTF());
       }
 
-      fetchedColumns = InputConfigurator.deserializeFetchedColumns(columns);
+      fetchedColumns = org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator
+          .deserializeFetchedColumns(columns);
+    }
+
+    if (in.readBoolean()) {
+      String strAuths = in.readUTF();
+      auths = new Authorizations(strAuths.getBytes(UTF_8));
+    }
+
+    if (in.readBoolean()) {
+      principal = in.readUTF();
+    }
+
+    if (in.readBoolean()) {
+      int ordinal = in.readInt();
+      this.tokenSource = org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource
+          .values()[ordinal];
+
+      switch (this.tokenSource) {
+        case INLINE:
+          String tokenClass = in.readUTF();
+          byte[] base64TokenBytes = in.readUTF().getBytes(UTF_8);
+          byte[] tokenBytes = Base64.getDecoder().decode(base64TokenBytes);
+
+          this.token = AuthenticationTokenSerializer.deserialize(tokenClass, tokenBytes);
+          break;
+
+        case FILE:
+          this.tokenFile = in.readUTF();
+
+          break;
+        default:
+          throw new IOException("Cannot parse unknown TokenSource ordinal");
+      }
+    }
+
+    if (in.readBoolean()) {
+      instanceName = in.readUTF();
+    }
+
+    if (in.readBoolean()) {
+      zooKeepers = in.readUTF();
     }
 
     if (in.readBoolean()) {
@@ -172,14 +222,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
     if (in.readBoolean()) {
       samplerConfig = new SamplerConfigurationImpl(in).toSamplerConfiguration();
-    }
-
-    executionHints = new HashMap<>();
-    int numHints = in.readInt();
-    for (int i = 0; i < numHints; i++) {
-      String k = in.readUTF();
-      String v = in.readUTF();
-      executionHints.put(k, v);
     }
   }
 
@@ -209,11 +251,48 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
     out.writeBoolean(fetchedColumns != null);
     if (fetchedColumns != null) {
-      String[] cols = InputConfigurator.serializeColumns(fetchedColumns);
+      String[] cols = org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator
+          .serializeColumns(fetchedColumns);
       out.writeInt(cols.length);
       for (String col : cols) {
         out.writeUTF(col);
       }
+    }
+
+    out.writeBoolean(auths != null);
+    if (auths != null) {
+      out.writeUTF(auths.serialize());
+    }
+
+    out.writeBoolean(principal != null);
+    if (principal != null) {
+      out.writeUTF(principal);
+    }
+
+    out.writeBoolean(tokenSource != null);
+    if (tokenSource != null) {
+      out.writeInt(tokenSource.ordinal());
+
+      if (token != null && tokenFile != null) {
+        throw new IOException(
+            "Cannot use both inline AuthenticationToken and file-based AuthenticationToken");
+      } else if (token != null) {
+        out.writeUTF(token.getClass().getName());
+        out.writeUTF(
+            Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(token)));
+      } else {
+        out.writeUTF(tokenFile);
+      }
+    }
+
+    out.writeBoolean(instanceName != null);
+    if (instanceName != null) {
+      out.writeUTF(instanceName);
+    }
+
+    out.writeBoolean(zooKeepers != null);
+    if (zooKeepers != null) {
+      out.writeUTF(zooKeepers);
     }
 
     out.writeBoolean(iterators != null);
@@ -233,20 +312,30 @@ public class RangeInputSplit extends InputSplit implements Writable {
     if (samplerConfig != null) {
       new SamplerConfigurationImpl(samplerConfig).write(out);
     }
+  }
 
-    if (executionHints == null || executionHints.size() == 0) {
-      out.writeInt(0);
-    } else {
-      out.writeInt(executionHints.size());
-      for (Entry<String,String> entry : executionHints.entrySet()) {
-        out.writeUTF(entry.getKey());
-        out.writeUTF(entry.getValue());
-      }
-    }
+  /**
+   * Use {@link #getTableName}
+   *
+   * @deprecated since 1.6.1, use getTableName() instead.
+   */
+  @Deprecated
+  public String getTable() {
+    return getTableName();
   }
 
   public String getTableName() {
     return tableName;
+  }
+
+  /**
+   * Use {@link #setTableName}
+   *
+   * @deprecated since 1.6.1, use setTableName() instead.
+   */
+  @Deprecated
+  public void setTable(String table) {
+    setTableName(table);
   }
 
   public void setTableName(String table) {
@@ -259,6 +348,67 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   public String getTableId() {
     return tableId;
+  }
+
+  /**
+   * @see #getInstance(org.apache.accumulo.core.client.ClientConfiguration)
+   * @deprecated since 1.7.0, use getInstance(ClientConfiguration) instead.
+   */
+  @Deprecated
+  public org.apache.accumulo.core.client.Instance getInstance() {
+    return getInstance(org.apache.accumulo.core.client.ClientConfiguration.loadDefault());
+  }
+
+  public org.apache.accumulo.core.client.Instance getInstance(
+      org.apache.accumulo.core.client.ClientConfiguration base) {
+    if (null == instanceName) {
+      return null;
+    }
+
+    if (null == zooKeepers) {
+      return null;
+    }
+
+    return new org.apache.accumulo.core.client.ZooKeeperInstance(
+        base.withInstance(getInstanceName()).withZkHosts(getZooKeepers()));
+  }
+
+  public String getInstanceName() {
+    return instanceName;
+  }
+
+  public void setInstanceName(String instanceName) {
+    this.instanceName = instanceName;
+  }
+
+  public String getZooKeepers() {
+    return zooKeepers;
+  }
+
+  public void setZooKeepers(String zooKeepers) {
+    this.zooKeepers = zooKeepers;
+  }
+
+  public String getPrincipal() {
+    return principal;
+  }
+
+  public void setPrincipal(String principal) {
+    this.principal = principal;
+  }
+
+  public AuthenticationToken getToken() {
+    return token;
+  }
+
+  public void setToken(AuthenticationToken token) {
+    this.tokenSource = org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.INLINE;
+    this.token = token;
+  }
+
+  public void setToken(String tokenFile) {
+    this.tokenSource = org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.FILE;
+    this.tokenFile = tokenFile;
   }
 
   public Boolean isOffline() {
@@ -279,6 +429,14 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   public void setIsolatedScan(Boolean isolatedScan) {
     this.isolatedScan = isolatedScan;
+  }
+
+  public Authorizations getAuths() {
+    return auths;
+  }
+
+  public void setAuths(Authorizations auths) {
+    this.auths = auths;
   }
 
   public void setRange(Range range) {
@@ -331,6 +489,13 @@ public class RangeInputSplit extends InputSplit implements Writable {
     sb.append(" Locations: ").append(Arrays.asList(locations));
     sb.append(" Table: ").append(tableName);
     sb.append(" TableID: ").append(tableId);
+    sb.append(" InstanceName: ").append(instanceName);
+    sb.append(" zooKeepers: ").append(zooKeepers);
+    sb.append(" principal: ").append(principal);
+    sb.append(" tokenSource: ").append(tokenSource);
+    sb.append(" authenticationToken: ").append(token);
+    sb.append(" authenticationTokenFile: ").append(tokenFile);
+    sb.append(" Authorizations: ").append(auths);
     sb.append(" offlineScan: ").append(offline);
     sb.append(" isolatedScan: ").append(isolatedScan);
     sb.append(" localIterators: ").append(localIterators);
@@ -338,7 +503,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     sb.append(" iterators: ").append(iterators);
     sb.append(" logLevel: ").append(level);
     sb.append(" samplerConfig: ").append(samplerConfig);
-    sb.append(" executionHints: ").append(executionHints);
     return sb.toString();
   }
 
@@ -348,13 +512,5 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   public SamplerConfiguration getSamplerConfiguration() {
     return samplerConfig;
-  }
-
-  public void setExecutionHints(Map<String,String> executionHints) {
-    this.executionHints = executionHints;
-  }
-
-  public Map<String,String> getExecutionHints() {
-    return executionHints;
   }
 }

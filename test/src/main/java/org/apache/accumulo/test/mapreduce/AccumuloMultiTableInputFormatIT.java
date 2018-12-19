@@ -27,9 +27,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.mapreduce.AccumuloMultiTableInputFormat;
-import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
-import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -44,6 +42,10 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated
 public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
 
   private static AssertionError e1 = null;
@@ -58,7 +60,8 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
       @Override
       protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
         try {
-          String tableName = ((RangeInputSplit) context.getInputSplit()).getTableName();
+          String tableName = ((org.apache.accumulo.core.client.mapreduce.RangeInputSplit) context
+              .getInputSplit()).getTableName();
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
           assertEquals(new Text(String.format("%s_%09x", tableName, count + 1)), k.getRow());
@@ -95,18 +98,24 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
           this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
-      job.setInputFormatClass(AccumuloMultiTableInputFormat.class);
+      job.setInputFormatClass(
+          org.apache.accumulo.core.client.mapreduce.AccumuloMultiTableInputFormat.class);
 
-      AccumuloMultiTableInputFormat.setClientProperties(job, getClientProperties());
+      ClientInfo ci = getClientInfo();
+      org.apache.accumulo.core.client.mapreduce.AccumuloMultiTableInputFormat
+          .setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
+      org.apache.accumulo.core.client.mapreduce.AccumuloMultiTableInputFormat.setConnectorInfo(job,
+          ci.getPrincipal(), ci.getAuthenticationToken());
 
-      InputTableConfig tableConfig1 = new InputTableConfig();
-      InputTableConfig tableConfig2 = new InputTableConfig();
+      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig1 = new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
+      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig2 = new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
 
-      Map<String,InputTableConfig> configMap = new HashMap<>();
+      Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> configMap = new HashMap<>();
       configMap.put(table1, tableConfig1);
       configMap.put(table2, tableConfig2);
 
-      AccumuloMultiTableInputFormat.setInputTableConfigs(job, configMap);
+      org.apache.accumulo.core.client.mapreduce.AccumuloMultiTableInputFormat
+          .setInputTableConfigs(job, configMap);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);

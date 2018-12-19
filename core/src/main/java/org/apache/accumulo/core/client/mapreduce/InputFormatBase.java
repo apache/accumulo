@@ -19,22 +19,21 @@ package org.apache.accumulo.core.client.mapreduce;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -54,8 +53,16 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * the desired generic types K,V.
  * <p>
  * See {@link AccumuloInputFormat} for an example implementation.
+ *
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated
 public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
+
+  // static wrapper class to make references to deprecated configurator easier
+  private static class Configurator
+      extends org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator {}
 
   /**
    * Gets the table name from the configuration.
@@ -67,7 +74,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setInputTableName(Job, String)
    */
   protected static String getInputTableName(JobContext context) {
-    return InputConfigurator.getInputTableName(CLASS, context.getConfiguration());
+    return Configurator.getInputTableName(CLASS, context.getConfiguration());
   }
 
   /**
@@ -80,7 +87,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @since 1.5.0
    */
   public static void setInputTableName(Job job, String tableName) {
-    InputConfigurator.setInputTableName(CLASS, job.getConfiguration(), tableName);
+    Configurator.setInputTableName(CLASS, job.getConfiguration(), tableName);
   }
 
   /**
@@ -94,7 +101,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @since 1.5.0
    */
   public static void setRanges(Job job, Collection<Range> ranges) {
-    InputConfigurator.setRanges(CLASS, job.getConfiguration(), ranges);
+    Configurator.setRanges(CLASS, job.getConfiguration(), ranges);
   }
 
   /**
@@ -107,7 +114,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setRanges(Job, Collection)
    */
   protected static List<Range> getRanges(JobContext context) throws IOException {
-    return InputConfigurator.getRanges(CLASS, context.getConfiguration());
+    return Configurator.getRanges(CLASS, context.getConfiguration());
   }
 
   /**
@@ -123,7 +130,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    */
   public static void fetchColumns(Job job,
       Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
-    InputConfigurator.fetchColumns(CLASS, job.getConfiguration(), columnFamilyColumnQualifierPairs);
+    Configurator.fetchColumns(CLASS, job.getConfiguration(), columnFamilyColumnQualifierPairs);
   }
 
   /**
@@ -136,7 +143,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #fetchColumns(Job, Collection)
    */
   protected static Set<Pair<Text,Text>> getFetchedColumns(JobContext context) {
-    return InputConfigurator.getFetchedColumns(CLASS, context.getConfiguration());
+    return Configurator.getFetchedColumns(CLASS, context.getConfiguration());
   }
 
   /**
@@ -149,7 +156,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @since 1.5.0
    */
   public static void addIterator(Job job, IteratorSetting cfg) {
-    InputConfigurator.addIterator(CLASS, job.getConfiguration(), cfg);
+    Configurator.addIterator(CLASS, job.getConfiguration(), cfg);
   }
 
   /**
@@ -163,7 +170,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #addIterator(Job, IteratorSetting)
    */
   protected static List<IteratorSetting> getIterators(JobContext context) {
-    return InputConfigurator.getIterators(CLASS, context.getConfiguration());
+    return Configurator.getIterators(CLASS, context.getConfiguration());
   }
 
   /**
@@ -182,7 +189,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @since 1.5.0
    */
   public static void setAutoAdjustRanges(Job job, boolean enableFeature) {
-    InputConfigurator.setAutoAdjustRanges(CLASS, job.getConfiguration(), enableFeature);
+    Configurator.setAutoAdjustRanges(CLASS, job.getConfiguration(), enableFeature);
   }
 
   /**
@@ -196,7 +203,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setAutoAdjustRanges(Job, boolean)
    */
   protected static boolean getAutoAdjustRanges(JobContext context) {
-    return InputConfigurator.getAutoAdjustRanges(CLASS, context.getConfiguration());
+    return Configurator.getAutoAdjustRanges(CLASS, context.getConfiguration());
   }
 
   /**
@@ -212,7 +219,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @since 1.5.0
    */
   public static void setScanIsolation(Job job, boolean enableFeature) {
-    InputConfigurator.setScanIsolation(CLASS, job.getConfiguration(), enableFeature);
+    Configurator.setScanIsolation(CLASS, job.getConfiguration(), enableFeature);
   }
 
   /**
@@ -225,7 +232,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setScanIsolation(Job, boolean)
    */
   protected static boolean isIsolated(JobContext context) {
-    return InputConfigurator.isIsolated(CLASS, context.getConfiguration());
+    return Configurator.isIsolated(CLASS, context.getConfiguration());
   }
 
   /**
@@ -244,7 +251,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @since 1.5.0
    */
   public static void setLocalIterators(Job job, boolean enableFeature) {
-    InputConfigurator.setLocalIterators(CLASS, job.getConfiguration(), enableFeature);
+    Configurator.setLocalIterators(CLASS, job.getConfiguration(), enableFeature);
   }
 
   /**
@@ -257,7 +264,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setLocalIterators(Job, boolean)
    */
   protected static boolean usesLocalIterators(JobContext context) {
-    return InputConfigurator.usesLocalIterators(CLASS, context.getConfiguration());
+    return Configurator.usesLocalIterators(CLASS, context.getConfiguration());
   }
 
   /**
@@ -296,7 +303,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @since 1.5.0
    */
   public static void setOfflineTableScan(Job job, boolean enableFeature) {
-    InputConfigurator.setOfflineTableScan(CLASS, job.getConfiguration(), enableFeature);
+    Configurator.setOfflineTableScan(CLASS, job.getConfiguration(), enableFeature);
   }
 
   /**
@@ -309,14 +316,14 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setOfflineTableScan(Job, boolean)
    */
   protected static boolean isOfflineScan(JobContext context) {
-    return InputConfigurator.isOfflineScan(CLASS, context.getConfiguration());
+    return Configurator.isOfflineScan(CLASS, context.getConfiguration());
   }
 
   /**
-   * Controls the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job. Using
-   * this feature will group Ranges by their source tablet, producing an InputSplit per tablet
-   * rather than per Range. This batching helps to reduce overhead when querying a large number of
-   * small ranges. (ex: when doing quad-tree decomposition for spatial queries)
+   * Controls the use of the {@link BatchScanner} in this job. Using this feature will group Ranges
+   * by their source tablet, producing an InputSplit per tablet rather than per Range. This batching
+   * helps to reduce overhead when querying a large number of small ranges. (ex: when doing
+   * quad-tree decomposition for spatial queries)
    * <p>
    * In order to achieve good locality of InputSplits this option always clips the input Ranges to
    * tablet boundaries. This may result in one input Range contributing to several InputSplits.
@@ -340,12 +347,11 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @since 1.7.0
    */
   public static void setBatchScan(Job job, boolean enableFeature) {
-    InputConfigurator.setBatchScan(CLASS, job.getConfiguration(), enableFeature);
+    Configurator.setBatchScan(CLASS, job.getConfiguration(), enableFeature);
   }
 
   /**
-   * Determines whether a configuration has the {@link org.apache.accumulo.core.client.BatchScanner}
-   * feature enabled.
+   * Determines whether a configuration has the {@link BatchScanner} feature enabled.
    *
    * @param context
    *          the Hadoop context for the configured job
@@ -353,7 +359,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see #setBatchScan(Job, boolean)
    */
   public static boolean isBatchScan(JobContext context) {
-    return InputConfigurator.isBatchScan(CLASS, context.getConfiguration());
+    return Configurator.isBatchScan(CLASS, context.getConfiguration());
   }
 
   /**
@@ -372,17 +378,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
    */
   public static void setSamplerConfiguration(Job job, SamplerConfiguration samplerConfig) {
-    InputConfigurator.setSamplerConfiguration(CLASS, job.getConfiguration(), samplerConfig);
-  }
-
-  /**
-   * Set these execution hints on scanners created for input splits. See
-   * {@link ScannerBase#setExecutionHints(java.util.Map)}
-   *
-   * @since 2.0.0
-   */
-  public static void setExecutionHints(JobConf job, Map<String,String> hints) {
-    InputConfigurator.setExecutionHints(CLASS, job, hints);
+    Configurator.setSamplerConfiguration(CLASS, job.getConfiguration(), samplerConfig);
   }
 
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
@@ -390,6 +386,32 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
     @Override
     protected List<IteratorSetting> contextIterators(TaskAttemptContext context, String tableName) {
       return getIterators(context);
+    }
+
+    /**
+     * Apply the configured iterators from the configuration to the scanner.
+     *
+     * @param context
+     *          the Hadoop context for the configured job
+     * @param scanner
+     *          the scanner to configure
+     * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
+     */
+    @Deprecated
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
+      // tableName is given as null as it will be ignored in eventual call to #contextIterators
+      setupIterators(context, scanner, null, null);
+    }
+
+    /**
+     * Initialize a scanner over the given input split using this task attempt configuration.
+     *
+     * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
+     */
+    @Deprecated
+    protected void setupIterators(TaskAttemptContext context, Scanner scanner,
+        org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
+      setupIterators(context, scanner, null, split);
     }
   }
 }

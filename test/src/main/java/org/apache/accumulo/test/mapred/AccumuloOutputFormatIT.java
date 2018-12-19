@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -36,8 +35,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
-import org.apache.accumulo.core.client.mapred.AccumuloOutputFormat;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -59,6 +57,10 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated
 public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
   @Override
@@ -82,9 +84,14 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       batchConfig.setMaxWriteThreads(1);
       // set the max memory so that we ensure we don't flush on the write.
       batchConfig.setMaxMemory(Long.MAX_VALUE);
-      AccumuloOutputFormat outputFormat = new AccumuloOutputFormat();
-      AccumuloOutputFormat.setClientProperties(job, getClientProperties());
-      AccumuloOutputFormat.setBatchWriterOptions(job, batchConfig);
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat outputFormat = new org.apache.accumulo.core.client.mapred.AccumuloOutputFormat();
+      ClientInfo ci = getClientInfo();
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setZooKeeperInstance(job,
+          ci.getInstanceName(), ci.getZooKeepers());
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setConnectorInfo(job,
+          ci.getPrincipal(), ci.getAuthenticationToken());
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setBatchWriterOptions(job,
+          batchConfig);
       RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(null, job, "Test", null);
 
       try {
@@ -167,24 +174,30 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
 
-      job.setInputFormat(AccumuloInputFormat.class);
+      job.setInputFormat(org.apache.accumulo.core.client.mapred.AccumuloInputFormat.class);
 
-      Properties clientProps = Accumulo.newClientProperties().to(instanceName, zooKeepers)
-          .as(user, pass).build();
+      ClientInfo info = ClientInfo
+          .from(Accumulo.newClientProperties().to(instanceName, zooKeepers).as(user, pass).build());
 
-      AccumuloInputFormat.setClientProperties(job, clientProps);
-      AccumuloInputFormat.setInputTableName(job, table1);
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setZooKeeperInstance(job,
+          info.getInstanceName(), info.getZooKeepers());
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setConnectorInfo(job,
+          info.getPrincipal(), info.getAuthenticationToken());
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setInputTableName(job, table1);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
-      job.setOutputFormat(AccumuloOutputFormat.class);
+      job.setOutputFormat(org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.class);
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.setClientProperties(job, clientProps);
-      AccumuloOutputFormat.setCreateTables(job, false);
-      AccumuloOutputFormat.setDefaultTableName(job, table2);
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setZooKeeperInstance(job,
+          info.getInstanceName(), info.getZooKeepers());
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setConnectorInfo(job,
+          info.getPrincipal(), info.getAuthenticationToken());
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setCreateTables(job, false);
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setDefaultTableName(job, table2);
 
       job.setNumReduceTasks(0);
 

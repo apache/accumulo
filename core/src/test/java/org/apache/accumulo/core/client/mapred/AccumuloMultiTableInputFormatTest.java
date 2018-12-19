@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -33,13 +32,18 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
+/**
+ * @deprecated since 2.0.0
+ */
+@Deprecated
 public class AccumuloMultiTableInputFormatTest {
 
   @Rule
   public TestName testName = new TestName();
 
   /**
-   * Verify {@link InputTableConfig} objects get correctly serialized in the JobContext.
+   * Verify {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} objects get correctly
+   * serialized in the JobContext.
    */
   @Test
   public void testTableQueryConfigSerialization() throws IOException {
@@ -47,17 +51,17 @@ public class AccumuloMultiTableInputFormatTest {
     String table2Name = testName.getMethodName() + "2";
     JobConf job = new JobConf();
 
-    InputTableConfig table1 = new InputTableConfig()
+    org.apache.accumulo.core.client.mapreduce.InputTableConfig table1 = new org.apache.accumulo.core.client.mapreduce.InputTableConfig()
         .setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
 
-    InputTableConfig table2 = new InputTableConfig()
+    org.apache.accumulo.core.client.mapreduce.InputTableConfig table2 = new org.apache.accumulo.core.client.mapreduce.InputTableConfig()
         .setRanges(Collections.singletonList(new Range("a", "b")))
         .fetchColumns(Collections.singleton(new Pair<>(new Text("CF1"), new Text("CQ1"))))
         .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
 
-    Map<String,InputTableConfig> configMap = new HashMap<>();
+    Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> configMap = new HashMap<>();
     configMap.put(table1Name, table1);
     configMap.put(table2Name, table2);
     AccumuloMultiTableInputFormat.setInputTableConfigs(job, configMap);

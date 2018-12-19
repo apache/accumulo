@@ -40,8 +40,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-
+/**
+ * @deprecated since 2.0.0
+ */
+@Deprecated
 public class RangeInputSplitTest {
 
   @Test
@@ -89,7 +91,6 @@ public class RangeInputSplitTest {
     split.setFetchedColumns(fetchedColumns);
     split.setIterators(iterators);
     split.setLogLevel(Level.WARN);
-    split.setExecutionHints(ImmutableMap.of("priority", "9"));
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
@@ -110,7 +111,6 @@ public class RangeInputSplitTest {
     assertEquals(split.getFetchedColumns(), newSplit.getFetchedColumns());
     assertEquals(split.getIterators(), newSplit.getIterators());
     assertEquals(split.getLogLevel(), newSplit.getLogLevel());
-    assertEquals(split.getExecutionHints(), newSplit.getExecutionHints());
   }
 
 }

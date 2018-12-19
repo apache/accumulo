@@ -21,13 +21,11 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.ClientSideIteratorScanner;
+import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -40,7 +38,11 @@ import org.apache.hadoop.io.Writable;
 /**
  * This class to holds a batch scan configuration for a table. It contains all the properties needed
  * to specify how rows should be returned from the table.
+ *
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated
 public class InputTableConfig implements Writable {
 
   private List<IteratorSetting> iterators;
@@ -52,7 +54,6 @@ public class InputTableConfig implements Writable {
   private boolean useIsolatedScanners = false;
   private boolean offlineScan = false;
   private SamplerConfiguration samplerConfig = null;
-  private Map<String,String> executionHints = Collections.emptyMap();
 
   public InputTableConfig() {}
 
@@ -156,10 +157,10 @@ public class InputTableConfig implements Writable {
   }
 
   /**
-   * Controls the use of the {@link org.apache.accumulo.core.client.ClientSideIteratorScanner} in
-   * this job. Enabling this feature will cause the iterator stack to be constructed within the Map
-   * task, rather than within the Accumulo TServer. To use this feature, all classes needed for
-   * those iterators must be available on the classpath for the task.
+   * Controls the use of the {@link ClientSideIteratorScanner} in this job. Enabling this feature
+   * will cause the iterator stack to be constructed within the Map task, rather than within the
+   * Accumulo TServer. To use this feature, all classes needed for those iterators must be available
+   * on the classpath for the task.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -236,7 +237,7 @@ public class InputTableConfig implements Writable {
   }
 
   /**
-   * Controls the use of the {@link org.apache.accumulo.core.client.IsolatedScanner} in this job.
+   * Controls the use of the {@link IsolatedScanner} in this job.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -282,22 +283,6 @@ public class InputTableConfig implements Writable {
     return samplerConfig;
   }
 
-  /**
-   * The execution hints to set on created scanners. See {@link ScannerBase#setExecutionHints(Map)}
-   *
-   * @since 2.0.0
-   */
-  public void setExecutionHints(Map<String,String> executionHints) {
-    this.executionHints = executionHints;
-  }
-
-  /**
-   * @since 2.0.0
-   */
-  public Map<String,String> getExecutionHints() {
-    return executionHints;
-  }
-
   @Override
   public void write(DataOutput dataOutput) throws IOException {
     if (iterators != null) {
@@ -338,16 +323,6 @@ public class InputTableConfig implements Writable {
     } else {
       dataOutput.writeBoolean(true);
       new SamplerConfigurationImpl(samplerConfig).write(dataOutput);
-    }
-
-    if (executionHints == null || executionHints.size() == 0) {
-      dataOutput.writeInt(0);
-    } else {
-      dataOutput.writeInt(executionHints.size());
-      for (Entry<String,String> entry : executionHints.entrySet()) {
-        dataOutput.writeUTF(entry.getKey());
-        dataOutput.writeUTF(entry.getValue());
-      }
     }
   }
 
@@ -392,14 +367,6 @@ public class InputTableConfig implements Writable {
     if (dataInput.readBoolean()) {
       samplerConfig = new SamplerConfigurationImpl(dataInput).toSamplerConfiguration();
     }
-
-    executionHints = new HashMap<>();
-    int numHints = dataInput.readInt();
-    for (int i = 0; i < numHints; i++) {
-      String k = dataInput.readUTF();
-      String v = dataInput.readUTF();
-      executionHints.put(k, v);
-    }
   }
 
   @Override
@@ -425,11 +392,10 @@ public class InputTableConfig implements Writable {
       return false;
     if (ranges != null ? !ranges.equals(that.ranges) : that.ranges != null)
       return false;
-    if (executionHints != null ? !executionHints.equals(that.executionHints)
-        : that.executionHints != null)
+    if (samplerConfig != null ? !samplerConfig.equals(that.samplerConfig)
+        : that.samplerConfig != null)
       return false;
-    return samplerConfig != null ? samplerConfig.equals(that.samplerConfig)
-        : that.samplerConfig == null;
+    return true;
   }
 
   @Override
@@ -442,7 +408,6 @@ public class InputTableConfig implements Writable {
     result = 31 * result + (useIsolatedScanners ? 1 : 0);
     result = 31 * result + (offlineScan ? 1 : 0);
     result = 31 * result + (samplerConfig == null ? 0 : samplerConfig.hashCode());
-    result = 31 * result + (executionHints == null ? 0 : executionHints.hashCode());
     return result;
   }
 }

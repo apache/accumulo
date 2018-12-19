@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.mapreduce;
 import java.io.IOException;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -37,13 +38,18 @@ import org.apache.log4j.Level;
  * The user must specify the following via static configurator methods:
  *
  * <ul>
- * <li>{@link AccumuloInputFormat#setClientProperties(Job, java.util.Properties)}
+ * <li>{@link AccumuloInputFormat#setConnectorInfo(Job, String, AuthenticationToken)}
+ * <li>{@link AccumuloInputFormat#setConnectorInfo(Job, String, String)}
  * <li>{@link AccumuloInputFormat#setInputTableName(Job, String)}
  * <li>{@link AccumuloInputFormat#setScanAuthorizations(Job, Authorizations)}
  * </ul>
  *
  * Other static methods are optional.
+ *
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated
 public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
 
   @Override

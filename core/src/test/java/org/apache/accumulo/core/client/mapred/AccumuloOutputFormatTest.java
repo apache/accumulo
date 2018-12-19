@@ -27,6 +27,10 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Test;
 
+/**
+ * @deprecated since 2.0.0
+ */
+@Deprecated
 public class AccumuloOutputFormatTest {
 
   @Test

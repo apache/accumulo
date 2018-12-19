@@ -21,10 +21,6 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.client.summary.Summarizer;
-import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.FileOutputConfigurator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -49,8 +45,16 @@ import org.apache.log4j.Logger;
  * are not supported and may be ignored or cause failures. Using other Hadoop configuration options
  * that affect the behavior of the underlying files directly in the Job's configuration may work,
  * but are not directly supported at this time.
+ *
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
+
+  // static wrapper class to make references to deprecated configurator easier
+  private static class Configurator
+      extends org.apache.accumulo.core.clientImpl.mapreduce.lib.FileOutputConfigurator {}
 
   private static final Class<?> CLASS = AccumuloFileOutputFormat.class;
   protected static final Logger log = Logger.getLogger(CLASS);
@@ -66,7 +70,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @since 1.5.0
    */
   public static void setCompressionType(Job job, String compressionType) {
-    FileOutputConfigurator.setCompressionType(CLASS, job.getConfiguration(), compressionType);
+    Configurator.setCompressionType(CLASS, job.getConfiguration(), compressionType);
   }
 
   /**
@@ -85,7 +89,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @since 1.5.0
    */
   public static void setDataBlockSize(Job job, long dataBlockSize) {
-    FileOutputConfigurator.setDataBlockSize(CLASS, job.getConfiguration(), dataBlockSize);
+    Configurator.setDataBlockSize(CLASS, job.getConfiguration(), dataBlockSize);
   }
 
   /**
@@ -99,7 +103,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @since 1.5.0
    */
   public static void setFileBlockSize(Job job, long fileBlockSize) {
-    FileOutputConfigurator.setFileBlockSize(CLASS, job.getConfiguration(), fileBlockSize);
+    Configurator.setFileBlockSize(CLASS, job.getConfiguration(), fileBlockSize);
   }
 
   /**
@@ -114,7 +118,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @since 1.5.0
    */
   public static void setIndexBlockSize(Job job, long indexBlockSize) {
-    FileOutputConfigurator.setIndexBlockSize(CLASS, job.getConfiguration(), indexBlockSize);
+    Configurator.setIndexBlockSize(CLASS, job.getConfiguration(), indexBlockSize);
   }
 
   /**
@@ -128,7 +132,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @since 1.5.0
    */
   public static void setReplication(Job job, int replication) {
-    FileOutputConfigurator.setReplication(CLASS, job.getConfiguration(), replication);
+    Configurator.setReplication(CLASS, job.getConfiguration(), replication);
   }
 
   /**
@@ -143,33 +147,19 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    */
 
   public static void setSampler(Job job, SamplerConfiguration samplerConfig) {
-    FileOutputConfigurator.setSampler(CLASS, job.getConfiguration(), samplerConfig);
-  }
-
-  /**
-   * Specifies a list of summarizer configurations to create summary data in the output file. Each
-   * Key Value written will be passed to the configured {@link Summarizer}'s.
-   *
-   * @param job
-   *          The Hadoop job instance to be configured
-   * @param summarizerConfigs
-   *          summarizer configurations
-   * @since 2.0.0
-   */
-  public static void setSummarizers(Job job, SummarizerConfiguration... summarizerConfigs) {
-    FileOutputConfigurator.setSummarizers(CLASS, job.getConfiguration(), summarizerConfigs);
+    Configurator.setSampler(CLASS, job.getConfiguration(), samplerConfig);
   }
 
   @Override
   public RecordWriter<Key,Value> getRecordWriter(TaskAttemptContext context) throws IOException {
     // get the path of the temporary output file
     final Configuration conf = context.getConfiguration();
-    final AccumuloConfiguration acuConf = FileOutputConfigurator.getAccumuloConfiguration(CLASS,
+    final AccumuloConfiguration acuConf = Configurator.getAccumuloConfiguration(CLASS,
         context.getConfiguration());
 
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);
     final Path file = this.getDefaultWorkFile(context, "." + extension);
-    final int visCacheSize = ConfiguratorBase.getVisibilityCacheSize(conf);
+    final int visCacheSize = Configurator.getVisibilityCacheSize(conf);
 
     return new RecordWriter<Key,Value>() {
       RFileWriter out = null;

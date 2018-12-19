@@ -25,6 +25,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.junit.Test;
 
+/**
+ * @deprecated since 2.0.0
+ */
+@Deprecated
 public class RangePartitionerTest {
 
   private static Text[] cutArray = {new Text("A"), new Text("B"), new Text("C")};

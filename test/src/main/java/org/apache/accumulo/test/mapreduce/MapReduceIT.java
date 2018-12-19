@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.test.functional;
+package org.apache.accumulo.test.mapreduce;
 
 import static org.junit.Assert.assertEquals;
 
@@ -40,12 +40,16 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.test.mapreduce.RowHash;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated
 public class MapReduceIT extends ConfigurableMacBase {
 
   @Override
@@ -71,9 +75,10 @@ public class MapReduceIT extends ConfigurableMacBase {
   }
 
   @SuppressFBWarnings(value = "WEAK_MESSAGE_DIGEST_MD5", justification = "md5 is okay for testing")
-  static void runTest(AccumuloClient c, MiniAccumuloClusterImpl cluster) throws AccumuloException,
-      AccumuloSecurityException, TableExistsException, TableNotFoundException,
-      MutationsRejectedException, IOException, InterruptedException, NoSuchAlgorithmException {
+  public static void runTest(AccumuloClient c, MiniAccumuloClusterImpl cluster)
+      throws AccumuloException, AccumuloSecurityException, TableExistsException,
+      TableNotFoundException, MutationsRejectedException, IOException, InterruptedException,
+      NoSuchAlgorithmException {
     c.tableOperations().create(tablename);
     BatchWriter bw = c.createBatchWriter(tablename, new BatchWriterConfig());
     for (int i = 0; i < 10; i++) {
