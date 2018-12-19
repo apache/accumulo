@@ -48,6 +48,7 @@ import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
 import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.cryptoImpl.NoCryptoService;
+import org.apache.accumulo.core.cryptoImpl.NoFileEncrypter;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
@@ -130,16 +131,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
       return originalInput;
     }
 
-    public void setOriginalInput(FSDataInputStream originalInput) {
-      this.originalInput = originalInput;
-    }
-
     public DataInputStream getDecryptingInputStream() {
       return decryptingInputStream;
-    }
-
-    public void setDecryptingInputStream(DataInputStream decryptingInputStream) {
-      this.decryptingInputStream = decryptingInputStream;
     }
   }
 
@@ -443,8 +436,16 @@ public class DfsLogger implements Comparable<DfsLogger> {
       byte[] cryptoParams = encrypter.getDecryptionParameters();
       CryptoUtils.writeParams(cryptoParams, logFile);
 
-      encryptingLogFile = new DataOutputStream(
-          encrypter.encryptStream(new NoFlushOutputStream(logFile)));
+      /** Always wrap the WAL in a NoFlushOutputStream to prevent extra flushing to HDFS.
+       * The {@link #write(LogFileKey, LogFileValue)} method will flush crypto data or do nothing
+       * when crypto is not enabled.
+       **/
+      OutputStream encryptedStream = encrypter.encryptStream(new NoFlushOutputStream(logFile));
+      if (encryptedStream instanceof NoFlushOutputStream) {
+        encryptingLogFile = (NoFlushOutputStream)encryptedStream;
+      } else {
+        encryptingLogFile = new DataOutputStream(encryptedStream);
+      }
 
       LogFileKey key = new LogFileKey();
       key.event = OPEN;
