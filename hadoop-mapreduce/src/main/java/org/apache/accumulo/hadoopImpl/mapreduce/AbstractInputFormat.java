@@ -449,7 +449,7 @@ public abstract class AbstractInputFormat {
     LinkedList<InputSplit> splits = new LinkedList<>();
     try (AccumuloClient client = createClient(context)) {
       Map<String,InputTableConfig> tableConfigs = InputConfigurator.getInputTableConfigs(CLASS,
-        context.getConfiguration());
+          context.getConfiguration());
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
 
         String tableName = tableConfigEntry.getKey();

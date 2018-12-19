@@ -24,6 +24,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -46,7 +48,8 @@ import org.apache.hadoop.io.Writable;
  */
 public class InputTableConfig implements Writable {
 
-  private List<IteratorSetting> iterators = Collections.emptyList();
+  // store iterators by name to prevent duplicates for addIterator
+  private Map<String,IteratorSetting> iterators = Collections.emptyMap();
   private List<Range> ranges = Collections.emptyList();
   private Collection<IteratorSetting.Column> columns = Collections.emptyList();
 
@@ -114,23 +117,17 @@ public class InputTableConfig implements Writable {
     return columns != null ? columns : new HashSet<>();
   }
 
-  /**
-   * Set iterators on to be used in the query.
-   *
-   * @param iterators
-   *          the configurations for the iterators
-   * @since 1.6.0
-   */
-  public InputTableConfig setIterators(List<IteratorSetting> iterators) {
-    this.iterators = iterators;
-    return this;
+  public void addIterator(IteratorSetting cfg) {
+    if (this.iterators.isEmpty())
+      this.iterators = new LinkedHashMap<>();
+    this.iterators.put(cfg.getName(), cfg);
   }
 
   /**
    * Returns the iterators to be set on this configuration
    */
   public List<IteratorSetting> getIterators() {
-    return iterators;
+    return new LinkedList<>(iterators.values());
   }
 
   /**
@@ -319,7 +316,7 @@ public class InputTableConfig implements Writable {
   public void write(DataOutput dataOutput) throws IOException {
     if (iterators != null) {
       dataOutput.writeInt(iterators.size());
-      for (IteratorSetting setting : iterators)
+      for (IteratorSetting setting : getIterators())
         setting.write(dataOutput);
     } else {
       dataOutput.writeInt(0);
@@ -373,9 +370,11 @@ public class InputTableConfig implements Writable {
     // load iterators
     long iterSize = dataInput.readInt();
     if (iterSize > 0)
-      iterators = new ArrayList<>();
-    for (int i = 0; i < iterSize; i++)
-      iterators.add(new IteratorSetting(dataInput));
+      iterators = new LinkedHashMap<>();
+    for (int i = 0; i < iterSize; i++) {
+      IteratorSetting newIter = new IteratorSetting(dataInput);
+      iterators.put(newIter.getName(), newIter);
+    }
     // load ranges
     long rangeSize = dataInput.readInt();
     if (rangeSize > 0)

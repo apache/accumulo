@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -50,7 +49,6 @@ public class InputFormatBuilderImpl<T>
   ClientInfo clientInfo;
 
   String currentTable;
-  Map<String,IteratorSetting> iterators = Collections.emptyMap();
   Map<String,InputTableConfig> tableConfigMap = Collections.emptyMap();
 
   public InputFormatBuilderImpl(Class<?> callingClass) {
@@ -69,7 +67,6 @@ public class InputFormatBuilderImpl<T>
     this.currentTable = Objects.requireNonNull(tableName, "Table name must not be null");
     if (tableConfigMap.isEmpty())
       tableConfigMap = new LinkedHashMap<>();
-    this.iterators = new LinkedHashMap<>();
     tableConfigMap.put(currentTable, new InputTableConfig());
     return this;
   }
@@ -112,8 +109,7 @@ public class InputFormatBuilderImpl<T>
   public InputFormatBuilder.InputFormatOptions<T> addIterator(IteratorSetting cfg) {
     // store iterators by name to prevent duplicates
     Objects.requireNonNull(cfg, "IteratorSetting must not be null.");
-    this.iterators.put(cfg.getName(), cfg);
-    tableConfigMap.get(currentTable).setIterators(new ArrayList<>(this.iterators.values()));
+    tableConfigMap.get(currentTable).addIterator(cfg);
     return this;
   }
 

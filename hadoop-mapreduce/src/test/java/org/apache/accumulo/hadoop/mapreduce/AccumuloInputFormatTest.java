@@ -69,7 +69,7 @@ public class AccumuloInputFormatTest {
     Properties clientProps = org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest
         .setupClientProperties();
     exception.expect(IllegalArgumentException.class);
-    AccumuloInputFormat.configure().clientProperties(clientProps).store(new Job());
+    AccumuloInputFormat.configure().clientProperties(clientProps).store(Job.getInstance());
   }
 
   /**

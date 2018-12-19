@@ -76,11 +76,11 @@ public class MultiTableInputFormatTest {
     // @formatter:on
 
     InputTableConfig table1 = new InputTableConfig();
-    table1.setScanAuths(auths).setRanges(ranges).fetchColumns(cols).setIterators(allIters)
-        .setUseLocalIterators(true).setOfflineScan(true);
+    table1.setScanAuths(auths).setRanges(ranges).fetchColumns(cols).setUseLocalIterators(true)
+        .setOfflineScan(true);
+    allIters.forEach(itr -> table1.addIterator(itr));
     InputTableConfig table2 = new InputTableConfig();
-    table2.setScanAuths(auths).setRanges(ranges).fetchColumns(cols)
-        .setIterators(singletonList(iter2));
+    table2.setScanAuths(auths).setRanges(ranges).fetchColumns(cols).addIterator(iter2);
 
     assertEquals(table1, InputConfigurator.getInputTableConfig(CLASS, job, table1Name));
     assertEquals(table2, InputConfigurator.getInputTableConfig(CLASS, job, table2Name));
@@ -116,7 +116,7 @@ public class MultiTableInputFormatTest {
       List<Range> ranges = singletonList(new Range("a" + i, "b" + i));
       Set<Column> cols = singleton(new Column(new Text("CF" + i), new Text("CQ" + i)));
       IteratorSetting iter = new IteratorSetting(50, "iter" + i, "iterclass" + i);
-      t.setScanAuths(auths).setRanges(ranges).fetchColumns(cols).setIterators(singletonList(iter));
+      t.setScanAuths(auths).setRanges(ranges).fetchColumns(cols).addIterator(iter);
       assertEquals(t, configs.get("table" + i));
     }
   }
