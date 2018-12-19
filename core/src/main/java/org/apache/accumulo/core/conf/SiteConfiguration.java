@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.ConfigurationException;
@@ -54,7 +55,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   private static final AccumuloConfiguration parent = DefaultConfiguration.getInstance();
 
-  private final Map<String,String> config;
+  private final ImmutableMap<String,String> config;
 
   public SiteConfiguration() {
     this(getAccumuloPropsLocation());
@@ -82,7 +83,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     config = createMap(accumuloPropsLocation, overrides);
   }
 
-  private static Map<String,String> createMap(URL accumuloPropsLocation,
+  private static ImmutableMap<String,String> createMap(URL accumuloPropsLocation,
       Map<String,String> overrides) {
     CompositeConfiguration config = new CompositeConfiguration();
     config.setThrowExceptionOnMissing(false);
@@ -121,7 +122,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
         }
       }
     }
-    return result;
+    return ImmutableMap.copyOf(result);
   }
 
   private static URL toURL(File f) {
@@ -201,29 +202,5 @@ public class SiteConfiguration extends AccumuloConfiguration {
       if (filter.test(k))
         props.put(k, config.get(k));
     });
-  }
-
-  /**
-   * Sets a property. This method supports testing and should not be called.
-   *
-   * @param property
-   *          property to set
-   * @param value
-   *          property value
-   */
-  public void set(Property property, String value) {
-    set(property.getKey(), value);
-  }
-
-  /**
-   * Sets a property. This method supports testing and should not be called.
-   *
-   * @param key
-   *          key of property to set
-   * @param value
-   *          property value
-   */
-  public void set(String key, String value) {
-    config.put(key, value);
   }
 }

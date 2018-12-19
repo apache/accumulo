@@ -22,7 +22,6 @@ import static org.junit.Assert.assertNull;
 
 import java.io.File;
 import java.net.URL;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,8 +60,8 @@ public class SiteConfigurationTest {
     assertNotNull(keystore);
     String credProvPath = "jceks://file" + new File(keystore.getFile()).getAbsolutePath();
 
-    SiteConfiguration config = new SiteConfiguration(Collections
-        .singletonMap(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvPath));
+    SiteConfiguration config = new SiteConfiguration(ImmutableMap.of(
+        Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvPath));
 
     assertEquals("mysecret", config.get(Property.INSTANCE_SECRET));
     assertNull(config.get("ignored.property"));
@@ -92,23 +91,6 @@ public class SiteConfigurationTest {
     assertEquals("123s", conf.get(Property.GENERAL_RPC_TIMEOUT));
     assertEquals("256M", conf.get(Property.TSERV_WALOG_MAX_SIZE));
     assertEquals("DummyService", conf.get(Property.INSTANCE_CRYPTO_SERVICE));
-  }
-
-  @Test
-  public void testSetAndGet() {
-    SiteConfiguration conf = new SiteConfiguration();
-    conf.set(Property.INSTANCE_ZK_HOST, "host5");
-    conf.set(Property.INSTANCE_SECRET, "secret5");
-    conf.set(Property.INSTANCE_VOLUMES, "volume5");
-    conf.set(Property.GENERAL_RPC_TIMEOUT, "5s");
-    conf.set(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    conf.set(Property.INSTANCE_CRYPTO_SERVICE, "crypto5");
-    assertEquals("host5", conf.get(Property.INSTANCE_ZK_HOST));
-    assertEquals("secret5", conf.get(Property.INSTANCE_SECRET));
-    assertEquals("volume5", conf.get(Property.INSTANCE_VOLUMES));
-    assertEquals("5s", conf.get(Property.GENERAL_RPC_TIMEOUT));
-    assertEquals("5M", conf.get(Property.TSERV_WALOG_MAX_SIZE));
-    assertEquals("crypto5", conf.get(Property.INSTANCE_CRYPTO_SERVICE));
   }
 
   @Test
