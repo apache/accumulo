@@ -213,7 +213,7 @@ public class ReplicationIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void replicationTableCreated() throws AccumuloException, AccumuloSecurityException {
+  public void replicationTableCreated() {
     try (AccumuloClient client = createClient()) {
       assertTrue(client.tableOperations().exists(ReplicationTable.NAME));
       assertEquals(ReplicationTable.ID.canonicalID(),

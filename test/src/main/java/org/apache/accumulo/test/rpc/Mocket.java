@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 
 import com.google.common.base.Preconditions;
 
@@ -139,7 +138,7 @@ public class Mocket {
     }
 
     @Override
-    public void listen() throws TTransportException {}
+    public void listen() {}
 
     @Override
     public void close() {
@@ -169,17 +168,17 @@ public class Mocket {
     }
 
     @Override
-    public void write(byte[] buf, int off, int len) throws TTransportException {
+    public void write(byte[] buf, int off, int len) {
       output.write(buf, off, len);
     }
 
     @Override
-    public int read(byte[] buf, int off, int len) throws TTransportException {
+    public int read(byte[] buf, int off, int len) {
       return input.read(buf, off, len);
     }
 
     @Override
-    public void open() throws TTransportException {}
+    public void open() {}
 
     @Override
     public boolean isOpen() {

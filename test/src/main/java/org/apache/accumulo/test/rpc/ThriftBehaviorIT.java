@@ -124,7 +124,7 @@ public class ThriftBehaviorIT {
   }
 
   @Test
-  public void echoRuntimeFailHandler() throws TException {
+  public void echoRuntimeFailHandler() {
     exception.expect(UnsupportedOperationException.class);
     handler.echoRuntimeFail(KITTY_MSG);
   }
@@ -166,7 +166,7 @@ public class ThriftBehaviorIT {
   }
 
   @Test
-  public void onewayRuntimeFailHandler() throws TException {
+  public void onewayRuntimeFailHandler() {
     exception.expect(UnsupportedOperationException.class);
     handler.onewayRuntimeFail(KITTY_MSG);
   }

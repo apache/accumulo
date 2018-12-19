@@ -149,7 +149,7 @@ public class TestingKdc {
     started = true;
   }
 
-  public synchronized void stop() throws Exception {
+  public synchronized void stop() {
     checkArgument(started, "KDC is not started");
     kdc.stop();
     started = false;

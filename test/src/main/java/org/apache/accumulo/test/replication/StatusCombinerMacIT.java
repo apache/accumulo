@@ -64,7 +64,7 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
   }
 
   @AfterClass
-  public static void teardown() throws Exception {
+  public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
 

@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -128,8 +127,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
   }
 
   private void insertData(AccumuloClient client, String tableName, long ts)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      MutationsRejectedException {
+      throws AccumuloException, TableNotFoundException, MutationsRejectedException {
     BatchWriter bw = client.createBatchWriter(tableName, null);
 
     for (int i = 0; i < 10000; i++) {

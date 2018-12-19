@@ -70,7 +70,7 @@ public class RestartStressIT extends AccumuloClusterHarness {
   private ExecutorService svc;
 
   @Before
-  public void setup() throws Exception {
+  public void setup() {
     svc = Executors.newFixedThreadPool(1);
   }
 

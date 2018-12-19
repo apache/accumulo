@@ -47,7 +47,7 @@ import com.google.common.collect.Table;
 public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
   @Override
-  public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {
+  public void beforeClusterStart(MiniAccumuloConfigImpl cfg) {
     cfg.setNumTservers(4);
   }
 

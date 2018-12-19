@@ -83,7 +83,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
   }
 
   @Override
-  public void beforeClusterStart(MiniAccumuloConfigImpl cfg) throws Exception {
+  public void beforeClusterStart(MiniAccumuloConfigImpl cfg) {
     cfg.setNumTservers(1);
   }
 
@@ -199,7 +199,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   @Test
   public void testTableOperationsAudits() throws AccumuloException, AccumuloSecurityException,
-      TableExistsException, TableNotFoundException, IOException, InterruptedException {
+      TableExistsException, TableNotFoundException, IOException {
 
     client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     client.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
@@ -238,8 +238,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void testUserOperationsAudits() throws AccumuloSecurityException, AccumuloException,
-      TableExistsException, InterruptedException, IOException {
+  public void testUserOperationsAudits()
+      throws AccumuloSecurityException, AccumuloException, TableExistsException, IOException {
 
     client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     client.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
@@ -293,9 +293,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
   @Test
-  public void testImportExportOperationsAudits()
-      throws AccumuloSecurityException, AccumuloException, TableExistsException,
-      TableNotFoundException, IOException, InterruptedException {
+  public void testImportExportOperationsAudits() throws AccumuloSecurityException,
+      AccumuloException, TableExistsException, TableNotFoundException, IOException {
 
     client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     client.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
@@ -384,7 +383,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   @Test
   public void testDataOperationsAudits() throws AccumuloSecurityException, AccumuloException,
-      TableExistsException, TableNotFoundException, IOException, InterruptedException {
+      TableExistsException, TableNotFoundException, IOException {
 
     client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     client.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
@@ -443,7 +442,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   @Test
   public void testDeniedAudits() throws AccumuloSecurityException, AccumuloException,
-      TableExistsException, TableNotFoundException, IOException, InterruptedException {
+      TableExistsException, TableNotFoundException, IOException {
 
     // Create our user with no privs
     client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
@@ -513,8 +512,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void testFailedAudits() throws AccumuloSecurityException, AccumuloException,
-      TableExistsException, TableNotFoundException, IOException, InterruptedException {
+  public void testFailedAudits() throws AccumuloException, IOException {
 
     // Start testing activities
     // Test that we get a few "failed" audit messages come through when we tell it to do dumb stuff

@@ -52,7 +52,7 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
   private static SortedSet<Text> splits;
 
   @BeforeClass
-  public static void createData() throws Exception {
+  public static void createData() {
     splits = new TreeSet<>();
 
     for (int i = 1; i < 256; i++) {

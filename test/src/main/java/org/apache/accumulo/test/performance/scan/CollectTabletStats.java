@@ -387,8 +387,7 @@ public class CollectTabletStats {
     return tabletsToTest;
   }
 
-  private static List<FileRef> getTabletFiles(ServerContext context, KeyExtent ke)
-      throws IOException {
+  private static List<FileRef> getTabletFiles(ServerContext context, KeyExtent ke) {
     return new ArrayList<>(MetadataTableUtil.getDataFileSizes(ke, context).keySet());
   }
 

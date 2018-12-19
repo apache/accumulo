@@ -371,7 +371,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
   }
 
   private void verifyMetadata(AccumuloClient client, String tableName,
-      Map<String,Set<String>> expectedHashes) throws Exception {
+      Map<String,Set<String>> expectedHashes) {
 
     Set<String> endRowsSeen = new HashSet<>();
 

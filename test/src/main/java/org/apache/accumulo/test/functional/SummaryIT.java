@@ -33,7 +33,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collection;
@@ -448,12 +447,12 @@ public class SummaryIT extends AccumuloClusterHarness {
     private boolean compact = false;
 
     @Override
-    public boolean shouldCompact(MajorCompactionRequest request) throws IOException {
+    public boolean shouldCompact(MajorCompactionRequest request) {
       return true;
     }
 
     @Override
-    public void gatherInformation(MajorCompactionRequest request) throws IOException {
+    public void gatherInformation(MajorCompactionRequest request) {
       List<Summary> summaries = request.getSummaries(request.getFiles().keySet(),
           conf -> conf.getClassName().contains("FooCounter"));
       if (summaries.size() == 1) {
@@ -466,7 +465,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     }
 
     @Override
-    public CompactionPlan getCompactionPlan(MajorCompactionRequest request) throws IOException {
+    public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
       if (compact) {
         CompactionPlan cp = new CompactionPlan();
         cp.inputFiles.addAll(request.getFiles().keySet());

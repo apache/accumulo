@@ -97,7 +97,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   }
 
   @AfterClass
-  public static void tearDownHarness() throws Exception {
+  public static void tearDownHarness() {
     if (krb != null) {
       krb.stop();
     }
@@ -381,7 +381,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
    *
    * @return A directory which can be expected to exist on the Cluster's FileSystem
    */
-  public Path getUsableDir() throws IllegalArgumentException, IOException {
+  public Path getUsableDir() throws IllegalArgumentException {
     return cluster.getTemporaryPath();
   }
 }

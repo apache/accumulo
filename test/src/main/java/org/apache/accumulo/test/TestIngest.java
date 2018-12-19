@@ -183,7 +183,7 @@ public class TestIngest {
     }
   }
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
 
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();

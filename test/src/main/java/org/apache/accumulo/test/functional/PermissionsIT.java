@@ -38,7 +38,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -714,8 +713,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
   }
 
   private void testGrantedTablePermission(AccumuloClient test_user_client, ClusterUser normalUser,
-      TablePermission perm, String tableName) throws AccumuloException, TableExistsException,
-      AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
+      TablePermission perm, String tableName) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, MutationsRejectedException {
     BatchWriter writer;
     Mutation m;
     log.debug("Confirming that the presence of the {} permission properly permits the user", perm);

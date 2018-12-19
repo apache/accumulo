@@ -39,7 +39,7 @@ public class RegExTest {
   private static TreeMap<Key,Value> data = new TreeMap<>();
 
   @BeforeClass
-  public static void setupTests() throws Exception {
+  public static void setupTests() {
 
     ArrayList<Character> chars = new ArrayList<>();
     for (char c = 'a'; c <= 'z'; c++)

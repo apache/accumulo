@@ -90,7 +90,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
   }
 
   @AfterClass
-  public static void stopKdc() throws Exception {
+  public static void stopKdc() {
     if (kdc != null) {
       kdc.stop();
     }

@@ -313,7 +313,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       }
     }
 
-    private void scan(ClientContext ctx, String tableName) throws Exception {
+    private void scan(ClientContext ctx, String tableName) {
       Map<String,String> idMap = ctx.tableOperations().tableIdMap();
       String tableId = Objects.requireNonNull(idMap.get(tableName));
       try (MetaDataTableScanner scanner = new MetaDataTableScanner(ctx, new Range())) {

@@ -23,7 +23,6 @@ import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Map;
 
@@ -65,12 +64,10 @@ public class MonitorSslIT extends ConfigurableMacBase {
       justification = "trust manager is okay for testing")
   private static class TestTrustManager implements X509TrustManager {
     @Override
-    public void checkClientTrusted(X509Certificate[] arg0, String arg1)
-        throws CertificateException {}
+    public void checkClientTrusted(X509Certificate[] arg0, String arg1) {}
 
     @Override
-    public void checkServerTrusted(X509Certificate[] arg0, String arg1)
-        throws CertificateException {}
+    public void checkServerTrusted(X509Certificate[] arg0, String arg1) {}
 
     @Override
     public X509Certificate[] getAcceptedIssuers() {

@@ -45,7 +45,7 @@ public class DeletedTablesDontFlushIT extends SharedMiniClusterBase {
   }
 
   @AfterClass
-  public static void teardown() throws Exception {
+  public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
