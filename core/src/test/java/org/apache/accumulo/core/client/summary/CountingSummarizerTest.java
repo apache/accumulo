@@ -43,7 +43,7 @@ public class CountingSummarizerTest {
   public static class MultiSummarizer extends CountingSummarizer<String> {
     @Override
     protected Converter<String> converter() {
-      return (k, c) -> {
+      return (k, v, c) -> {
         c.accept("rp:" + k.getRowData().subSequence(0, 2));
         c.accept("fp:" + k.getColumnFamilyData().subSequence(0, 2));
         c.accept("qp:" + k.getColumnQualifierData().subSequence(0, 2));

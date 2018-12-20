@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.summary.CountingSummarizer;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.ColumnVisibility.Node;
 
@@ -74,7 +75,7 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
     };
 
     @Override
-    public void convert(Key k, Consumer<ByteSequence> consumer) {
+    public void convert(Key k, Value v, Consumer<ByteSequence> consumer) {
       ByteSequence vis = k.getColumnVisibilityData();
 
       if (vis.length() > 0) {

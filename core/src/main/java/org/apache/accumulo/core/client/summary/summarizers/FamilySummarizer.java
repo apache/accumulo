@@ -43,6 +43,6 @@ public class FamilySummarizer extends CountingSummarizer<ByteSequence> {
 
   @Override
   protected Converter<ByteSequence> converter() {
-    return (k, c) -> c.accept(k.getColumnFamilyData());
+    return (k, v, c) -> c.accept(k.getColumnFamilyData());
   }
 }
