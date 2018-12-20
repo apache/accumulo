@@ -66,27 +66,13 @@ public class AuthenticationKey implements Writable {
     return authKey.getCreationDate();
   }
 
-  public void setCreationDate(long creationDate) {
-    requireNonNull(authKey);
-    authKey.setCreationDate(creationDate);
-  }
-
   public long getExpirationDate() {
     requireNonNull(authKey);
     return authKey.getExpirationDate();
   }
 
-  public void setExpirationDate(long expirationDate) {
-    requireNonNull(authKey);
-    authKey.setExpirationDate(expirationDate);
-  }
-
   SecretKey getKey() {
     return secret;
-  }
-
-  void setKey(SecretKey secret) {
-    this.secret = secret;
   }
 
   @Override

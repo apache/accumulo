@@ -56,7 +56,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.StopWatch;
@@ -65,7 +64,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.util.FileUtil;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -115,7 +113,6 @@ public class BulkImporter {
     timer = new StopWatch<>(Timers.class);
     timer.start(Timers.TOTAL);
 
-    Configuration conf = CachedConfiguration.getInstance();
     VolumeManagerImpl.get(context.getConfiguration());
     final VolumeManager fs = VolumeManagerImpl.get(context.getConfiguration());
 

@@ -533,16 +533,6 @@ public abstract class FileOperations {
       return this;
     }
 
-    /** The range over which this reader should scan. */
-    public Range getRange() {
-      return range;
-    }
-
-    /** The column families which this reader should scan. */
-    public Set<ByteSequence> getColumnFamilies() {
-      return columnFamilies;
-    }
-
     /** Execute the operation, constructing a scan iterator. */
     public FileSKVIterator build() throws IOException {
       return openScanReader(toScanReaderBuilderOptions(range, columnFamilies, inclusive));

@@ -23,7 +23,6 @@ import org.apache.commons.configuration.AbstractFileConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.EnvironmentConfiguration;
-import org.apache.commons.configuration.SystemConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.event.ConfigurationEvent;
 import org.apache.commons.configuration.event.ConfigurationListener;
@@ -40,8 +39,6 @@ public class MetricsConfiguration {
   private boolean notFound = false;
 
   private int notFoundCount = 0;
-
-  private static SystemConfiguration sysConfig = null;
 
   private static EnvironmentConfiguration envConfig = null;
 
@@ -112,14 +109,6 @@ public class MetricsConfiguration {
       if (envConfig == null)
         envConfig = new EnvironmentConfiguration();
       return envConfig;
-    }
-  }
-
-  public Configuration getSystemConfiguration() {
-    synchronized (MetricsConfiguration.class) {
-      if (sysConfig == null)
-        sysConfig = new SystemConfiguration();
-      return sysConfig;
     }
   }
 

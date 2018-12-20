@@ -93,19 +93,6 @@ public class AccumuloOutputFormatImpl {
   }
 
   /**
-   * Set Accumulo client properties file used to connect to Accumulo
-   *
-   * @param job
-   *          Hadoop job to be configured
-   * @param clientPropsFile
-   *          URL to Accumulo client properties file
-   * @since 2.0.0
-   */
-  protected static void setClientPropertiesFile(Job job, String clientPropsFile) {
-    OutputConfigurator.setClientPropertiesFile(CLASS, job.getConfiguration(), clientPropsFile);
-  }
-
-  /**
    * Sets the default table name to use if one emits a null in place of a table name for a given
    * mutation. Table names can only be alpha-numeric and underscores.
    *

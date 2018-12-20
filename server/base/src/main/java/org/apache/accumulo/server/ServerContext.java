@@ -123,16 +123,6 @@ public class ServerContext extends ClientContext {
     DistributedTrace.disable();
   }
 
-  public String getApplicationName() {
-    Objects.requireNonNull(applicationName);
-    return applicationName;
-  }
-
-  public String getApplicationClassName() {
-    Objects.requireNonNull(applicationClassName);
-    return applicationName;
-  }
-
   public String getHostname() {
     Objects.requireNonNull(hostname);
     return hostname;

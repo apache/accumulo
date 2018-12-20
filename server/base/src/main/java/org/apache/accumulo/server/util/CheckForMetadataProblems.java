@@ -34,7 +34,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.io.Text;
 
 public class CheckForMetadataProblems {
@@ -167,8 +166,6 @@ public class CheckForMetadataProblems {
   public static void main(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
     opts.parseArgs(CheckForMetadataProblems.class.getName(), args);
-
-    VolumeManager fs = opts.getServerContext().getVolumeManager();
 
     checkMetadataAndRootTableEntries(RootTable.NAME, opts);
     checkMetadataAndRootTableEntries(MetadataTable.NAME, opts);

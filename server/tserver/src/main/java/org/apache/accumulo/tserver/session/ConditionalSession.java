@@ -29,16 +29,14 @@ public class ConditionalSession extends Session {
   public final Table.ID tableId;
   public final AtomicBoolean interruptFlag = new AtomicBoolean();
   public final Durability durability;
-  public final String classLoaderContext;
 
   public ConditionalSession(TCredentials credentials, Authorizations authorizations,
-      Table.ID tableId, Durability durability, String classLoaderContext) {
+      Table.ID tableId, Durability durability) {
     super(credentials);
     this.credentials = credentials;
     this.auths = authorizations;
     this.tableId = tableId;
     this.durability = durability;
-    this.classLoaderContext = classLoaderContext;
   }
 
   @Override

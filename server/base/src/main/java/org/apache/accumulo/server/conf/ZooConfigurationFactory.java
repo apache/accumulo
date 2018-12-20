@@ -68,17 +68,4 @@ class ZooConfigurationFactory {
     return config;
   }
 
-  /**
-   * Gets a configuration object for the given instance with the given parent. Repeated calls will
-   * return the same object.
-   *
-   * @param context
-   *          ServerContext; if null, instance ID is determined from HDFS
-   * @param parent
-   *          parent configuration (required)
-   * @return configuration
-   */
-  public ZooConfiguration getInstance(ServerContext context, AccumuloConfiguration parent) {
-    return getInstance(context, new ZooCacheFactory(), parent);
-  }
 }

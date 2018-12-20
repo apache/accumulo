@@ -19,7 +19,6 @@ package org.apache.accumulo.start.classloader.vfs;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -195,10 +194,6 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     this(uris, vfs, parent, DEFAULT_TIMEOUT, preDelegate);
   }
 
-  public synchronized FileObject[] getFiles() {
-    return Arrays.copyOf(this.files, this.files.length);
-  }
-
   /**
    * Should be ok if this is not called because the thread started by DefaultFileMonitor is a daemon
    * thread
@@ -248,14 +243,6 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   // dependency
   void setMaxRetries(long maxRetries) {
     this.maxRetries = maxRetries;
-  }
-
-  long getMaxRetries() {
-    return maxRetries;
-  }
-
-  long getMaxWaitInterval() {
-    return maxWaitInterval;
   }
 
   private boolean retryPermitted(long retries) {

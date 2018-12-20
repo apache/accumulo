@@ -58,15 +58,6 @@ public class ZooConfiguration extends AccumuloConfiguration {
       propCache.clear();
   }
 
-  /**
-   * Gets the parent configuration of this configuration.
-   *
-   * @return parent configuration
-   */
-  public AccumuloConfiguration getParentConfiguration() {
-    return parent;
-  }
-
   private String _get(Property property) {
     String key = property.getKey();
     String value = null;
