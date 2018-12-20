@@ -238,11 +238,9 @@ public abstract class AbstractInputFormat {
      *          the Hadoop job configuration
      * @param scanner
      *          the scanner for which to configure the iterators
-     * @param tableName
-     *          the table name for which the scanner is configured
      * @since 1.7.0
      */
-    private void setupIterators(JobConf job, ScannerBase scanner, String tableName,
+    private void setupIterators(JobConf job, ScannerBase scanner,
         org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit split) {
       List<IteratorSetting> iterators = null;
 
@@ -291,7 +289,7 @@ public abstract class AbstractInputFormat {
           int scanThreads = 1;
           scanner = context.createBatchScanner(baseSplit.getTableName(), authorizations,
               scanThreads);
-          setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
+          setupIterators(job, scanner, baseSplit);
           if (classLoaderContext != null) {
             scanner.setClassLoaderContext(classLoaderContext);
           }
@@ -336,7 +334,7 @@ public abstract class AbstractInputFormat {
             log.info("Using local iterators");
             scanner = new ClientSideIteratorScanner(scanner);
           }
-          setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
+          setupIterators(job, scanner, baseSplit);
         } catch (Exception e) {
           throw new IOException(e);
         }

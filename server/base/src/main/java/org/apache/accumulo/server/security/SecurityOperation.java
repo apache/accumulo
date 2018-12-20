@@ -595,7 +595,7 @@ public class SecurityOperation {
         || hasTablePermission(c, tableId, namespaceId, TablePermission.GRANT, false);
   }
 
-  public boolean canGrantNamespace(TCredentials c, String user, Namespace.ID namespace)
+  public boolean canGrantNamespace(TCredentials c, Namespace.ID namespace)
       throws ThriftSecurityException {
     return canModifyNamespacePermission(c, namespace);
   }
@@ -631,7 +631,7 @@ public class SecurityOperation {
         || hasTablePermission(c, tableId, namespaceId, TablePermission.GRANT, false);
   }
 
-  public boolean canRevokeNamespace(TCredentials c, String user, Namespace.ID namespace)
+  public boolean canRevokeNamespace(TCredentials c, Namespace.ID namespace)
       throws ThriftSecurityException {
     return canModifyNamespacePermission(c, namespace);
   }
@@ -748,7 +748,7 @@ public class SecurityOperation {
 
   public void grantNamespacePermission(TCredentials c, String user, Namespace.ID namespace,
       NamespacePermission permission) throws ThriftSecurityException {
-    if (!canGrantNamespace(c, user, namespace))
+    if (!canGrantNamespace(c, namespace))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     targetUserExists(user);
@@ -803,7 +803,7 @@ public class SecurityOperation {
 
   public void revokeNamespacePermission(TCredentials c, String user, Namespace.ID namespace,
       NamespacePermission permission) throws ThriftSecurityException {
-    if (!canRevokeNamespace(c, user, namespace))
+    if (!canRevokeNamespace(c, namespace))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     targetUserExists(user);

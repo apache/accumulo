@@ -238,15 +238,13 @@ public abstract class AbstractInputFormat {
      *
      * @param context
      *          the Hadoop context for the configured job
-     * @param tableName
-     *          the table name for which the scanner is configured
      * @param scanner
      *          the scanner for which to configure the iterators
      * @param split
      *          InputSplit containing configurations
      * @since 1.7.0
      */
-    private void setupIterators(TaskAttemptContext context, ScannerBase scanner, String tableName,
+    private void setupIterators(TaskAttemptContext context, ScannerBase scanner,
         RangeInputSplit split) {
       List<IteratorSetting> iterators = null;
 
@@ -294,7 +292,7 @@ public abstract class AbstractInputFormat {
           // will not span tablets
           int scanThreads = 1;
           scanner = context.createBatchScanner(split.getTableName(), authorizations, scanThreads);
-          setupIterators(attempt, scanner, split.getTableName(), split);
+          setupIterators(attempt, scanner, split);
           if (classLoaderContext != null) {
             scanner.setClassLoaderContext(classLoaderContext);
           }
@@ -340,7 +338,7 @@ public abstract class AbstractInputFormat {
             scanner = new ClientSideIteratorScanner(scanner);
           }
 
-          setupIterators(attempt, scanner, split.getTableName(), split);
+          setupIterators(attempt, scanner, split);
         } catch (Exception e) {
           throw new IOException(e);
         }

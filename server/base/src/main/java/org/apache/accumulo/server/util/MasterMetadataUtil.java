@@ -98,8 +98,7 @@ public class MasterMetadataUtil {
   }
 
   public static KeyExtent fixSplit(ServerContext context, Text metadataEntry,
-      SortedMap<ColumnFQ,Value> columns, TServerInstance tserver, ZooLock lock)
-      throws AccumuloException {
+      SortedMap<ColumnFQ,Value> columns, ZooLock lock) throws AccumuloException {
     log.info("Incomplete split {} attempting to fix", metadataEntry);
 
     Value oper = columns.get(TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN);

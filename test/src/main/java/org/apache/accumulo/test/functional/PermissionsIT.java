@@ -713,8 +713,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
   }
 
   private void testGrantedTablePermission(AccumuloClient test_user_client, TablePermission perm,
-      String tableName) throws AccumuloException,  AccumuloSecurityException,
-      TableNotFoundException, MutationsRejectedException {
+      String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      MutationsRejectedException {
     BatchWriter writer;
     Mutation m;
     log.debug("Confirming that the presence of the {} permission properly permits the user", perm);

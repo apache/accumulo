@@ -40,7 +40,7 @@ public class InsecureAuthenticator implements Authenticator {
   }
 
   @Override
-  public void initializeSecurity(String principal, byte[] token)  {}
+  public void initializeSecurity(String principal, byte[] token) {}
 
   @Override
   public boolean authenticateUser(String principal, AuthenticationToken token) {

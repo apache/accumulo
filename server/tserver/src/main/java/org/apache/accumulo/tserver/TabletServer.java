@@ -1087,7 +1087,7 @@ public class TabletServer implements Runnable {
       updateAvgPrepTime(pt2 - pt1, us.queuedMutations.size());
 
       if (error != null) {
-        sendables.forEach(CommitSession::abortCommit);
+        sendables.forEach((commitSession, value) -> commitSession.abortCommit());
         throw new RuntimeException(error);
       }
       try {
@@ -3039,7 +3039,7 @@ public class TabletServer implements Runnable {
       tabletEntries = MetadataTableUtil.getTabletEntries(tabletsKeyValues, columnsToFetch);
 
       KeyExtent fke = MasterMetadataUtil.fixSplit(context, metadataEntry,
-          tabletEntries.get(metadataEntry), instance, lock);
+          tabletEntries.get(metadataEntry), lock);
 
       if (!fke.equals(extent)) {
         return new Pair<>(null, fke);
@@ -3343,11 +3343,10 @@ public class TabletServer implements Runnable {
     return DurabilityImpl.fromString(conf.get(Property.TABLE_DURABILITY));
   }
 
-  public void minorCompactionFinished(CommitSession tablet, String newDatafile, long walogSeq)
-      throws IOException {
+  public void minorCompactionFinished(CommitSession tablet, long walogSeq) throws IOException {
     Durability durability = getMincEventDurability(tablet.getExtent());
     totalMinorCompactions.incrementAndGet();
-    logger.minorCompactionFinished(tablet, newDatafile, walogSeq, durability);
+    logger.minorCompactionFinished(tablet, walogSeq, durability);
     markUnusedWALs();
   }
 
@@ -3508,10 +3507,10 @@ public class TabletServer implements Runnable {
     ReferencedRemover refRemover = new ReferencedRemover() {
       @Override
       public void removeInUse(Set<DfsLogger> candidates) {
-      for (Tablet tablet : getOnlineTablets()) {
-        tablet.removeInUseLogs(candidates);
-        if (candidates.isEmpty()) {
-          break;
+        for (Tablet tablet : getOnlineTablets()) {
+          tablet.removeInUseLogs(candidates);
+          if (candidates.isEmpty()) {
+            break;
           }
         }
       }
@@ -3557,7 +3556,8 @@ public class TabletServer implements Runnable {
 
   private static final String MAJC_READ_LIMITER_KEY = "tserv_majc_read";
   private static final String MAJC_WRITE_LIMITER_KEY = "tserv_majc_write";
-  private final RateProvider rateProvider = () -> getConfiguration().getAsBytes(Property.TSERV_MAJC_THROUGHPUT);
+  private final RateProvider rateProvider = () -> getConfiguration()
+      .getAsBytes(Property.TSERV_MAJC_THROUGHPUT);
 
   /**
    * Get the {@link RateLimiter} for reads during major compactions on this tserver. All writes

@@ -225,8 +225,7 @@ public class CloneIT extends AccumuloClusterHarness {
     }
   }
 
-  private static Mutation deleteTablet(String tid, String endRow, String prevRow, String file)
-       {
+  private static Mutation deleteTablet(String tid, String endRow, String prevRow, String file) {
     KeyExtent ke = new KeyExtent(Table.ID.of(tid), endRow == null ? null : new Text(endRow),
         prevRow == null ? null : new Text(prevRow));
     Mutation mut = new Mutation(ke.getMetadataEntry());

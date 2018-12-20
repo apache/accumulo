@@ -457,8 +457,7 @@ class DatafileManager {
         // is because the new one will reference the logs used by current memory...
 
         tablet.getTabletServer().minorCompactionFinished(
-            tablet.getTabletMemory().getCommitSession(), newDatafile.toString(),
-            commitSession.getWALogSeq() + 2);
+            tablet.getTabletMemory().getCommitSession(), commitSession.getWALogSeq() + 2);
         break;
       } catch (IOException e) {
         log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);

@@ -60,7 +60,7 @@ public final class ZKAuthenticator implements Authenticator {
   }
 
   @Override
-  public void initializeSecurity(String principal, byte[] token)  {
+  public void initializeSecurity(String principal, byte[] token) {
     try {
       // remove old settings from zookeeper first, if any
       IZooReaderWriter zoo = context.getZooReaderWriter();

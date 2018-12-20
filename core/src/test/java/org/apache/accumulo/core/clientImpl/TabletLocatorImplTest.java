@@ -175,7 +175,7 @@ public class TabletLocatorImplTest {
     replay(context);
   }
 
-  private void runTest(Text tableName, List<Range> ranges, TabletLocatorImpl tab1TabletCache,
+  private void runTest(List<Range> ranges, TabletLocatorImpl tab1TabletCache,
       Map<String,Map<KeyExtent,List<Range>>> expected) throws Exception {
     List<Range> failures = Collections.emptyList();
     runTest(ranges, tab1TabletCache, expected, failures);
@@ -802,21 +802,21 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     ranges = nrl(nr("a", null));
     expected = createExpectedBinnings("l1", nol(nke("foo", null, null), nrl(nr("a", null)))
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     ranges = nrl(nr(null, "b"));
     expected = createExpectedBinnings("l1", nol(nke("foo", null, null), nrl(nr(null, "b")))
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
   }
 
   @Test
@@ -834,7 +834,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
   }
 
   @Test
@@ -853,7 +853,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     // test with three tablets where one range falls within the first tablet and last two ranges
     // fall within the last tablet
@@ -863,7 +863,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     // test is same as above, but has an additional range that spans the first two tablets
     ranges = nrl(nr(null, "c"), nr("f", "i"), nr("s", "y"), nr("z", null));
@@ -874,7 +874,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     // test where start of range is not inclusive and same as tablet endRow
     ranges = nrl(nr("g", false, "m", true));
@@ -883,7 +883,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     // test where start of range is inclusive and same as tablet endRow
     ranges = nrl(nr("g", true, "m", true));
@@ -893,7 +893,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     ranges = nrl(nr("g", true, "m", false));
     expected = createExpectedBinnings("l1",
@@ -902,7 +902,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     ranges = nrl(nr("g", false, "m", false));
     expected = createExpectedBinnings("l2",
@@ -910,7 +910,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
   }
 
   @Test
@@ -927,7 +927,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     Key rowColKey = new Key(new Text("3"), new Text("cf1"), new Text("cq1"));
     Range range = new Range(rowColKey, true, new Key(new Text("3")).followingKey(PartialKey.ROW),
@@ -999,7 +999,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected1);
+    runTest(ranges, metaCache, expected1);
 
     ranges = nrl(new Range(new Text("2")), new Range(new Text("11")));
     Map<String,Map<KeyExtent,List<Range>>> expected2 = createExpectedBinnings();
@@ -1166,7 +1166,7 @@ public class TabletLocatorImplTest {
       );
 
       if (i == 1 || i == 2)
-        runTest(new Text("foo"), ranges, metaCache, expected1);
+        runTest(ranges, metaCache, expected1);
 
       KeyExtent ke11 = nke("foo", "n", null);
       KeyExtent ke12 = nke("foo", null, "n");
@@ -1200,7 +1200,7 @@ public class TabletLocatorImplTest {
       );
 
       if (i == 1 || i == 2)
-        runTest(new Text("foo"), ranges, metaCache, expected3);
+        runTest(ranges, metaCache, expected3);
     }
   }
 
@@ -1415,7 +1415,7 @@ public class TabletLocatorImplTest {
         nol(ke11, nrl(new Range("a"), nr("b", "o"))), "L2",
         nol(ke12, nrl(nr("b", "o"), nr("r", "z"))));
 
-    runTest(null, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     activeLocks.remove("L2:9");
 
@@ -1443,7 +1443,7 @@ public class TabletLocatorImplTest {
 
     expected = createExpectedBinnings("L3", nol(ke11, nrl(new Range("a"), nr("b", "o"))), "L4",
         nol(ke12, nrl(nr("b", "o"), nr("r", "z"))));
-    runTest(null, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
   }
 
 }

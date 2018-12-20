@@ -73,7 +73,7 @@ public class CommitSession {
     }
   }
 
-  public void abortCommit(List<Mutation> value) {
+  public void abortCommit() {
     committer.abortCommit(this);
   }
 
