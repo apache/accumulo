@@ -183,7 +183,7 @@ public class TabletServerBatchWriter {
       }
     }
 
-    void errorOccured(Exception e) {
+    void errorOccured() {
       wroteNothing();
     }
 
@@ -612,7 +612,7 @@ public class TabletServerBatchWriter {
       init().addAll(failures);
     }
 
-    synchronized void add(String location, TabletServerMutations<Mutation> tsm) {
+    synchronized void add(TabletServerMutations<Mutation> tsm) {
       init();
       for (Entry<KeyExtent,List<Mutation>> entry : tsm.getMutations().entrySet()) {
         recentFailures.addAll(entry.getKey().getTableId(), entry.getValue());
@@ -898,7 +898,7 @@ public class TabletServerBatchWriter {
           for (Table.ID table : tables)
             getLocator(table).invalidateCache(context, location);
 
-          failedMutations.add(location, tsm);
+          failedMutations.add(tsm);
         } finally {
           Thread.currentThread().setName(oldName);
         }
@@ -1000,7 +1000,7 @@ public class TabletServerBatchWriter {
           ThriftUtil.returnClient((TServiceClient) client);
         }
       } catch (TTransportException e) {
-        timeoutTracker.errorOccured(e);
+        timeoutTracker.errorOccured();
         throw new IOException(e);
       } catch (TApplicationException tae) {
         updateServerErrors(location, tae);

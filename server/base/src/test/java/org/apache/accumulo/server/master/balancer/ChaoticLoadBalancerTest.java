@@ -44,7 +44,7 @@ public class ChaoticLoadBalancerTest {
   class FakeTServer {
     List<KeyExtent> extents = new ArrayList<>();
 
-    TabletServerStatus getStatus(TServerInstance server) {
+    TabletServerStatus getStatus() {
       TabletServerStatus result = new TabletServerStatus();
       result.tableMap = new HashMap<>();
       for (KeyExtent extent : extents) {
@@ -104,7 +104,7 @@ public class ChaoticLoadBalancerTest {
 
     SortedMap<TServerInstance,TabletServerStatus> current = new TreeMap<>();
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
-      current.put(entry.getKey(), entry.getValue().getStatus(entry.getKey()));
+      current.put(entry.getKey(), entry.getValue().getStatus());
     }
 
     Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
@@ -117,7 +117,7 @@ public class ChaoticLoadBalancerTest {
       Map<TServerInstance,FakeTServer> servers) {
     SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<>();
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
-      result.put(entry.getKey(), entry.getValue().getStatus(entry.getKey()));
+      result.put(entry.getKey(), entry.getValue().getStatus());
     }
     return result;
   }

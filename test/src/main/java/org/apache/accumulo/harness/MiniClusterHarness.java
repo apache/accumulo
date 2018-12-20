@@ -151,8 +151,7 @@ public class MiniClusterHarness {
     Configuration coreSite = new Configuration(false);
 
     // Setup SSL and credential providers if the properties request such
-    configureForEnvironment(cfg, getClass(), AccumuloClusterHarness.getSslDir(baseDir), coreSite,
-        kdc);
+    configureForEnvironment(cfg, AccumuloClusterHarness.getSslDir(baseDir), coreSite, kdc);
 
     // Invoke the callback for tests to configure MAC before it starts
     configCallback.configureMiniCluster(cfg, coreSite);
@@ -175,8 +174,8 @@ public class MiniClusterHarness {
     return miniCluster;
   }
 
-  protected void configureForEnvironment(MiniAccumuloConfigImpl cfg, Class<?> testClass,
-      File folder, Configuration coreSite, TestingKdc kdc) {
+  protected void configureForEnvironment(MiniAccumuloConfigImpl cfg, File folder,
+      Configuration coreSite, TestingKdc kdc) {
     if (TRUE.equals(System.getProperty(USE_SSL_FOR_IT_OPTION))) {
       configureForSsl(cfg, folder);
     }
@@ -190,7 +189,7 @@ public class MiniClusterHarness {
       }
 
       try {
-        configureForKerberos(cfg, folder, coreSite, kdc);
+        configureForKerberos(cfg, coreSite, kdc);
       } catch (Exception e) {
         throw new RuntimeException("Failed to initialize KDC", e);
       }
@@ -238,8 +237,8 @@ public class MiniClusterHarness {
     cfg.setClientProperty(ClientProperty.SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
   }
 
-  protected void configureForKerberos(MiniAccumuloConfigImpl cfg, File folder,
-      Configuration coreSite, TestingKdc kdc) {
+  protected void configureForKerberos(MiniAccumuloConfigImpl cfg, Configuration coreSite,
+      TestingKdc kdc) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     if (TRUE.equals(siteConfig.get(Property.INSTANCE_RPC_SSL_ENABLED.getKey()))) {
       throw new RuntimeException("Cannot use both SSL and SASL/Kerberos");

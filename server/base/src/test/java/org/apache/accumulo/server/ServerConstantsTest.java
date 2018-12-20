@@ -66,7 +66,7 @@ public class ServerConstantsTest {
         ServerConstants.DATA_VERSION, ServerConstants.DATA_VERSION, ServerConstants.DATA_VERSION)));
 
     verifySomePass(init(folder.newFolder(), Arrays.asList(uuid1, uuid1, null),
-        Arrays.asList(ServerConstants.DATA_VERSION, ServerConstants.DATA_VERSION, null)), 2);
+        Arrays.asList(ServerConstants.DATA_VERSION, ServerConstants.DATA_VERSION, null)));
   }
 
   private void verifyAllPass(ArrayList<String> paths) {
@@ -76,7 +76,7 @@ public class ServerConstantsTest {
         ServerConstants.checkBaseUris(conf, paths.toArray(new String[paths.size()]), false)));
   }
 
-  private void verifySomePass(ArrayList<String> paths, int numExpected) {
+  private void verifySomePass(ArrayList<String> paths) {
     assertEquals(paths.subList(0, 2), Arrays.asList(
         ServerConstants.checkBaseUris(conf, paths.toArray(new String[paths.size()]), true)));
     try {

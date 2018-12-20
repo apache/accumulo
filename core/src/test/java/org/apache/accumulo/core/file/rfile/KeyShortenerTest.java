@@ -35,7 +35,7 @@ public class KeyShortenerTest {
     assertTrue(s.compareTo(c) < 0);
   }
 
-  private void testKeys(Key prev, Key current, Key expected) {
+  private void testKeys(Key prev, Key current) {
     Key sk = KeyShortener.shorten(prev, current);
     assertBetween(prev, sk, current);
   }
@@ -72,32 +72,30 @@ public class KeyShortenerTest {
   public void testOneCharacterDifference() {
     // row has char that differs by one byte
     testKeys(new Key("r321hahahaha", "f89222", "q90232e"),
-        new Key("r321hbhahaha", "f89222", "q90232e"), newKey(apendFF("r321ha"), E, E, 0));
+        new Key("r321hbhahaha", "f89222", "q90232e"));
 
     // family has char that differs by one byte
     testKeys(new Key("r321hahahaha", "f89222", "q90232e"),
-        new Key("r321hahahaha", "f89322", "q90232e"),
-        newKey("r321hahahaha", apendFF("f892"), E, 0));
+        new Key("r321hahahaha", "f89322", "q90232e"));
 
     // qualifier has char that differs by one byte
     testKeys(new Key("r321hahahaha", "f89222", "q90232e"),
-        new Key("r321hahahaha", "f89222", "q91232e"),
-        newKey("r321hahahaha", "f89222", apendFF("q90"), 0));
+        new Key("r321hahahaha", "f89222", "q91232e"));
   }
 
   @Test
   public void testMultiCharacterDifference() {
     // row has char that differs by two bytes
     testKeys(new Key("r321hahahaha", "f89222", "q90232e"),
-        new Key("r321hchahaha", "f89222", "q90232e"), newKey("r321hb", E, E, 0));
+        new Key("r321hchahaha", "f89222", "q90232e"));
 
     // family has char that differs by two bytes
     testKeys(new Key("r321hahahaha", "f89222", "q90232e"),
-        new Key("r321hahahaha", "f89422", "q90232e"), newKey("r321hahahaha", "f893", E, 0));
+        new Key("r321hahahaha", "f89422", "q90232e"));
 
     // qualifier has char that differs by two bytes
     testKeys(new Key("r321hahahaha", "f89222", "q90232e"),
-        new Key("r321hahahaha", "f89222", "q92232e"), newKey("r321hahahaha", "f89222", "q91", 0));
+        new Key("r321hahahaha", "f89222", "q92232e"));
   }
 
   @Test
@@ -108,42 +106,31 @@ public class KeyShortenerTest {
     byte[] eff1 = Bytes.concat(apendFF("mop"), FF, FF);
     byte[] eff2 = Bytes.concat(apendFF("mop"), FF, FF, FF);
 
-    testKeys(newKey(ff1, "f89222", "q90232e", 34), new Key("mor56", "f89222", "q90232e"),
-        newKey(eff1, E, E, 0));
-    testKeys(newKey("r1", ff1, "q90232e", 34), new Key("r1", "mor56", "q90232e"),
-        newKey("r1", eff1, E, 0));
-    testKeys(newKey("r1", "f1", ff1, 34), new Key("r1", "f1", "mor56"),
-        newKey("r1", "f1", eff1, 0));
+    testKeys(newKey(ff1, "f89222", "q90232e", 34), new Key("mor56", "f89222", "q90232e"));
+    testKeys(newKey("r1", ff1, "q90232e", 34), new Key("r1", "mor56", "q90232e"));
+    testKeys(newKey("r1", "f1", ff1, 34), new Key("r1", "f1", "mor56"));
 
-    testKeys(newKey(ff2, "f89222", "q90232e", 34), new Key("mor56", "f89222", "q90232e"),
-        newKey(eff2, E, E, 0));
-    testKeys(newKey("r1", ff2, "q90232e", 34), new Key("r1", "mor56", "q90232e"),
-        newKey("r1", eff2, E, 0));
-    testKeys(newKey("r1", "f1", ff2, 34), new Key("r1", "f1", "mor56"),
-        newKey("r1", "f1", eff2, 0));
+    testKeys(newKey(ff2, "f89222", "q90232e", 34), new Key("mor56", "f89222", "q90232e"));
+    testKeys(newKey("r1", ff2, "q90232e", 34), new Key("r1", "mor56", "q90232e"));
+    testKeys(newKey("r1", "f1", ff2, 34), new Key("r1", "f1", "mor56"));
 
   }
 
   @Test
   public void testOneCharacterDifferenceAtEnd() {
     testKeys(new Key("r321hahahaha", "f89222", "q90232e"),
-        new Key("r321hahahahb", "f89222", "q90232e"), newKey(append00("r321hahahaha"), E, E, 0));
+        new Key("r321hahahahb", "f89222", "q90232e"));
     testKeys(new Key("r321hahahaha", "f89222", "q90232e"),
-        new Key("r321hahahaha", "f89223", "q90232e"),
-        newKey("r321hahahaha", append00("f89222"), E, 0));
+        new Key("r321hahahaha", "f89223", "q90232e"));
     testKeys(new Key("r321hahahaha", "f89222", "q90232e"),
-        new Key("r321hahahaha", "f89222", "q90232f"),
-        newKey("r321hahahaha", "f89222", append00("q90232e"), 0));
+        new Key("r321hahahaha", "f89222", "q90232f"));
   }
 
   @Test
   public void testSamePrefix() {
-    testKeys(new Key("r3boot4", "f89222", "q90232e"), new Key("r3boot452", "f89222", "q90232e"),
-        newKey(append00("r3boot4"), E, E, 0));
-    testKeys(new Key("r3boot4", "f892", "q90232e"), new Key("r3boot4", "f89222", "q90232e"),
-        newKey("r3boot4", append00("f892"), E, 0));
-    testKeys(new Key("r3boot4", "f89222", "q902"), new Key("r3boot4", "f89222", "q90232e"),
-        newKey("r3boot4", "f89222", append00("q902"), 0));
+    testKeys(new Key("r3boot4", "f89222", "q90232e"), new Key("r3boot452", "f89222", "q90232e"));
+    testKeys(new Key("r3boot4", "f892", "q90232e"), new Key("r3boot4", "f89222", "q90232e"));
+    testKeys(new Key("r3boot4", "f89222", "q902"), new Key("r3boot4", "f89222", "q90232e"));
   }
 
   @Test

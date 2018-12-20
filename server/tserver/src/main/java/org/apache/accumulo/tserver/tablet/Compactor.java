@@ -278,7 +278,7 @@ public class Compactor implements Callable<CompactionStats> {
     }
   }
 
-  private List<SortedKeyValueIterator<Key,Value>> openMapDataFiles(String lgName,
+  private List<SortedKeyValueIterator<Key,Value>> openMapDataFiles(
       ArrayList<FileSKVIterator> readers) throws IOException {
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
@@ -338,7 +338,7 @@ public class Compactor implements Callable<CompactionStats> {
     Span span = Trace.start("compact");
     try {
       long entriesCompacted = 0;
-      List<SortedKeyValueIterator<Key,Value>> iters = openMapDataFiles(lgName, readers);
+      List<SortedKeyValueIterator<Key,Value>> iters = openMapDataFiles(readers);
 
       if (imm != null) {
         iters.add(imm.compactionIterator());

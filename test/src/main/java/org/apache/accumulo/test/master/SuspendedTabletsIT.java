@@ -230,7 +230,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       // Restart the first tablet server, making sure it ends up on the same port
       HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
       log.info("Restarting " + restartedServer);
-      getCluster().getClusterControl().start(ServerType.TABLET_SERVER, null,
+      getCluster().getClusterControl().start(ServerType.TABLET_SERVER,
           ImmutableMap.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
               Property.TSERV_PORTSEARCH.getKey(), "false"),
           1);

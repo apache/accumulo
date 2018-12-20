@@ -31,7 +31,7 @@ import org.apache.accumulo.tserver.log.DfsLogger;
  */
 public interface TabletCommitter {
 
-  void abortCommit(CommitSession commitSession, List<Mutation> value);
+  void abortCommit(CommitSession commitSession);
 
   void commit(CommitSession commitSession, List<Mutation> mutations);
 

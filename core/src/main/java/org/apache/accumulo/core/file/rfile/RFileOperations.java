@@ -130,7 +130,7 @@ public class RFileOperations extends FileOperations {
     }
 
     BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
-        conf, acuconf, options.cryptoService);
+        conf, options.cryptoService);
 
     return new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
   }

@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.cryptoImpl.NoFileDecrypter;
@@ -314,8 +313,7 @@ public final class BCFile {
      * @see Compression#getSupportedAlgorithms
      */
     public Writer(FSDataOutputStream fout, RateLimiter writeLimiter, String compressionName,
-        Configuration conf, AccumuloConfiguration aconf, CryptoService cryptoService)
-        throws IOException {
+        Configuration conf, CryptoService cryptoService) throws IOException {
       if (fout.getPos() != 0) {
         throw new IOException("Output file not at zero offset.");
       }
@@ -597,17 +595,8 @@ public final class BCFile {
       }
     }
 
-    /**
-     * Constructor
-     *
-     * @param fin
-     *          FS input stream.
-     * @param fileLength
-     *          Length of the corresponding file
-     */
     public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fin,
-        long fileLength, Configuration conf, AccumuloConfiguration aconf,
-        CryptoService cryptoService) throws IOException {
+        long fileLength, Configuration conf, CryptoService cryptoService) throws IOException {
       this.in = new SeekableDataInputStream(fin);
       this.conf = conf;
 
@@ -661,8 +650,7 @@ public final class BCFile {
     }
 
     public <InputStreamType extends InputStream & Seekable> Reader(byte[] serializedMetadata,
-        InputStreamType fin, Configuration conf, AccumuloConfiguration aconf,
-        CryptoService cryptoService) throws IOException {
+        InputStreamType fin, Configuration conf, CryptoService cryptoService) throws IOException {
       this.in = new SeekableDataInputStream(fin);
       this.conf = conf;
 

@@ -318,7 +318,7 @@ public abstract class InputFormatBase extends AbstractInputFormat {
   public abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
-    protected List<IteratorSetting> contextIterators(TaskAttemptContext context, String tableName) {
+    protected List<IteratorSetting> contextIterators(TaskAttemptContext context) {
       return getIterators(context);
     }
   }

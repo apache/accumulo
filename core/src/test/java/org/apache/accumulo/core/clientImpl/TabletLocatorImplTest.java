@@ -175,13 +175,13 @@ public class TabletLocatorImplTest {
     replay(context);
   }
 
-  private void runTest(Text tableName, List<Range> ranges, TabletLocatorImpl tab1TabletCache,
+  private void runTest(List<Range> ranges, TabletLocatorImpl tab1TabletCache,
       Map<String,Map<KeyExtent,List<Range>>> expected) throws Exception {
     List<Range> failures = Collections.emptyList();
-    runTest(tableName, ranges, tab1TabletCache, expected, failures);
+    runTest(ranges, tab1TabletCache, expected, failures);
   }
 
-  private void runTest(Text tableName, List<Range> ranges, TabletLocatorImpl tab1TabletCache,
+  private void runTest(List<Range> ranges, TabletLocatorImpl tab1TabletCache,
       Map<String,Map<KeyExtent,List<Range>>> expected, List<Range> efailures) throws Exception {
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
@@ -792,7 +792,6 @@ public class TabletLocatorImplTest {
 
   @Test
   public void testBinRanges1() throws Exception {
-    Text tableName = new Text("foo");
 
     TabletLocatorImpl metaCache = createLocators("foo", nke("foo", null, null), "l1");
 
@@ -802,27 +801,25 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     ranges = nrl(nr("a", null));
     expected = createExpectedBinnings("l1", nol(nke("foo", null, null), nrl(nr("a", null)))
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     ranges = nrl(nr(null, "b"));
     expected = createExpectedBinnings("l1", nol(nke("foo", null, null), nrl(nr(null, "b")))
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
   }
 
   @Test
   public void testBinRanges2() throws Exception {
-
-    Text tableName = new Text("foo");
 
     List<Range> ranges = nrl(nr(null, null));
     TabletLocatorImpl metaCache = createLocators("foo", nke("foo", "g", null), "l1",
@@ -834,13 +831,11 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
   }
 
   @Test
   public void testBinRanges3() throws Exception {
-
-    Text tableName = new Text("foo");
 
     // test with three tablets and a range that covers the whole table
     List<Range> ranges = nrl(nr(null, null));
@@ -853,7 +848,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     // test with three tablets where one range falls within the first tablet and last two ranges
     // fall within the last tablet
@@ -863,7 +858,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     // test is same as above, but has an additional range that spans the first two tablets
     ranges = nrl(nr(null, "c"), nr("f", "i"), nr("s", "y"), nr("z", null));
@@ -874,7 +869,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     // test where start of range is not inclusive and same as tablet endRow
     ranges = nrl(nr("g", false, "m", true));
@@ -883,7 +878,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     // test where start of range is inclusive and same as tablet endRow
     ranges = nrl(nr("g", true, "m", true));
@@ -893,7 +888,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     ranges = nrl(nr("g", true, "m", false));
     expected = createExpectedBinnings("l1",
@@ -902,7 +897,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     ranges = nrl(nr("g", false, "m", false));
     expected = createExpectedBinnings("l2",
@@ -910,12 +905,11 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
   }
 
   @Test
   public void testBinRanges4() throws Exception {
-    Text tableName = new Text("foo");
 
     List<Range> ranges = nrl(new Range(new Text("1")));
     TabletLocatorImpl metaCache = createLocators("foo", nke("foo", "0", null), "l1",
@@ -927,7 +921,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     Key rowColKey = new Key(new Text("3"), new Text("cf1"), new Text("cq1"));
     Range range = new Range(rowColKey, true, new Key(new Text("3")).followingKey(PartialKey.ROW),
@@ -939,7 +933,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected4, nrl());
+    runTest(ranges, metaCache, expected4, nrl());
 
     range = new Range(rowColKey, true, new Key(new Text("3")).followingKey(PartialKey.ROW), true);
 
@@ -949,7 +943,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected5, nrl());
+    runTest(ranges, metaCache, expected5, nrl());
 
     range = new Range(new Text("2"), false, new Text("3"), false);
     ranges = nrl(range);
@@ -957,7 +951,7 @@ public class TabletLocatorImplTest {
         nol(nke("foo", "3", "2"), nrl(range))
 
     );
-    runTest(tableName, ranges, metaCache, expected6, nrl());
+    runTest(ranges, metaCache, expected6, nrl());
 
     range = new Range(new Text("2"), true, new Text("3"), false);
     ranges = nrl(range);
@@ -965,7 +959,7 @@ public class TabletLocatorImplTest {
         nol(nke("foo", "2", "1"), nrl(range)), "l4", nol(nke("foo", "3", "2"), nrl(range))
 
     );
-    runTest(tableName, ranges, metaCache, expected7, nrl());
+    runTest(ranges, metaCache, expected7, nrl());
 
     range = new Range(new Text("2"), false, new Text("3"), true);
     ranges = nrl(range);
@@ -973,7 +967,7 @@ public class TabletLocatorImplTest {
         nol(nke("foo", "3", "2"), nrl(range))
 
     );
-    runTest(tableName, ranges, metaCache, expected8, nrl());
+    runTest(ranges, metaCache, expected8, nrl());
 
     range = new Range(new Text("2"), true, new Text("3"), true);
     ranges = nrl(range);
@@ -981,14 +975,13 @@ public class TabletLocatorImplTest {
         nol(nke("foo", "2", "1"), nrl(range)), "l4", nol(nke("foo", "3", "2"), nrl(range))
 
     );
-    runTest(tableName, ranges, metaCache, expected9, nrl());
+    runTest(ranges, metaCache, expected9, nrl());
 
   }
 
   @Test
   public void testBinRanges5() throws Exception {
     // Test binning when there is a hole in the metadata
-    Text tableName = new Text("foo");
 
     List<Range> ranges = nrl(new Range(new Text("1")));
     TabletLocatorImpl metaCache = createLocators("foo", nke("foo", "0", null), "l1",
@@ -999,16 +992,16 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected1);
+    runTest(ranges, metaCache, expected1);
 
     ranges = nrl(new Range(new Text("2")), new Range(new Text("11")));
     Map<String,Map<KeyExtent,List<Range>>> expected2 = createExpectedBinnings();
 
-    runTest(tableName, ranges, metaCache, expected2, ranges);
+    runTest(ranges, metaCache, expected2, ranges);
 
     ranges = nrl(new Range(new Text("1")), new Range(new Text("2")));
 
-    runTest(tableName, ranges, metaCache, expected1, nrl(new Range(new Text("2"))));
+    runTest(ranges, metaCache, expected1, nrl(new Range(new Text("2"))));
 
     ranges = nrl(nr("0", "2"), nr("3", "4"));
     Map<String,Map<KeyExtent,List<Range>>> expected3 = createExpectedBinnings("l4",
@@ -1017,7 +1010,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected3, nrl(nr("0", "2")));
+    runTest(ranges, metaCache, expected3, nrl(nr("0", "2")));
 
     ranges = nrl(nr("0", "1"), nr("0", "11"), nr("1", "2"), nr("0", "4"), nr("2", "4"),
         nr("21", "4"));
@@ -1029,7 +1022,7 @@ public class TabletLocatorImplTest {
 
     );
 
-    runTest(tableName, ranges, metaCache, expected4,
+    runTest(ranges, metaCache, expected4,
         nrl(nr("0", "11"), nr("1", "2"), nr("0", "4"), nr("2", "4")));
   }
 
@@ -1166,7 +1159,7 @@ public class TabletLocatorImplTest {
       );
 
       if (i == 1 || i == 2)
-        runTest(new Text("foo"), ranges, metaCache, expected1);
+        runTest(ranges, metaCache, expected1);
 
       KeyExtent ke11 = nke("foo", "n", null);
       KeyExtent ke12 = nke("foo", null, "n");
@@ -1185,7 +1178,7 @@ public class TabletLocatorImplTest {
       );
 
       if (i == 1 || i == 2)
-        runTest(new Text("foo"), ranges, metaCache, expected2,
+        runTest(ranges, metaCache, expected2,
             nrl(new Range(new Text("a")), new Range(new Text("m"))));
 
       setLocation(tservers, "tserver2", MTE, ke11, "l3");
@@ -1200,7 +1193,7 @@ public class TabletLocatorImplTest {
       );
 
       if (i == 1 || i == 2)
-        runTest(new Text("foo"), ranges, metaCache, expected3);
+        runTest(ranges, metaCache, expected3);
     }
   }
 
@@ -1415,35 +1408,35 @@ public class TabletLocatorImplTest {
         nol(ke11, nrl(new Range("a"), nr("b", "o"))), "L2",
         nol(ke12, nrl(nr("b", "o"), nr("r", "z"))));
 
-    runTest(null, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
 
     activeLocks.remove("L2:9");
 
     expected = createExpectedBinnings("L1", nol(ke11, nrl(new Range("a"))));
-    runTest(null, ranges, metaCache, expected, nrl(nr("b", "o"), nr("r", "z")));
+    runTest(ranges, metaCache, expected, nrl(nr("b", "o"), nr("r", "z")));
 
     activeLocks.clear();
 
     expected = createExpectedBinnings();
-    runTest(null, ranges, metaCache, expected, nrl(new Range("a"), nr("b", "o"), nr("r", "z")));
+    runTest(ranges, metaCache, expected, nrl(new Range("a"), nr("b", "o"), nr("r", "z")));
 
     clearLocation(tservers, "tserver2", MTE, ke11, "8");
     clearLocation(tservers, "tserver2", MTE, ke12, "9");
     setLocation(tservers, "tserver2", MTE, ke11, "L3", "10");
     setLocation(tservers, "tserver2", MTE, ke12, "L4", "11");
 
-    runTest(null, ranges, metaCache, expected, nrl(new Range("a"), nr("b", "o"), nr("r", "z")));
+    runTest(ranges, metaCache, expected, nrl(new Range("a"), nr("b", "o"), nr("r", "z")));
 
     activeLocks.add("L3:10");
 
     expected = createExpectedBinnings("L3", nol(ke11, nrl(new Range("a"))));
-    runTest(null, ranges, metaCache, expected, nrl(nr("b", "o"), nr("r", "z")));
+    runTest(ranges, metaCache, expected, nrl(nr("b", "o"), nr("r", "z")));
 
     activeLocks.add("L4:11");
 
     expected = createExpectedBinnings("L3", nol(ke11, nrl(new Range("a"), nr("b", "o"))), "L4",
         nol(ke12, nrl(nr("b", "o"), nr("r", "z"))));
-    runTest(null, ranges, metaCache, expected);
+    runTest(ranges, metaCache, expected);
   }
 
 }

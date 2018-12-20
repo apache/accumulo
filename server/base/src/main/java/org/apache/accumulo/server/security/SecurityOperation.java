@@ -124,7 +124,7 @@ public class SecurityOperation {
     permHandle = pm;
 
     if (!authorizor.validSecurityHandlers(authenticator, pm)
-        || !authenticator.validSecurityHandlers(authorizor, pm)
+        || !authenticator.validSecurityHandlers()
         || !permHandle.validSecurityHandlers(authent, author))
       throw new RuntimeException(authorizor + ", " + authenticator + ", and " + pm
           + " do not play nice with eachother. Please choose authentication and"
@@ -139,7 +139,7 @@ public class SecurityOperation {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
 
-    authenticator.initializeSecurity(credentials, rootPrincipal, token);
+    authenticator.initializeSecurity(rootPrincipal, token);
     authorizor.initializeSecurity(credentials, rootPrincipal);
     permHandle.initializeSecurity(credentials, rootPrincipal);
     try {
@@ -197,7 +197,7 @@ public class SecurityOperation {
           // If we call the normal createUser method, it will loop back into this method
           // when it tries to check if the user has permission to create users
           try {
-            _createUser(credentials, creds, Authorizations.EMPTY);
+            _createUser(credentials, creds);
           } catch (ThriftSecurityException e) {
             if (e.getCode() != SecurityErrorCode.USER_EXISTS) {
               // For Kerberos, a user acct is automatically created because there is no notion of
@@ -450,7 +450,7 @@ public class SecurityOperation {
   }
 
   public boolean canConditionallyUpdate(TCredentials credentials, Table.ID tableID,
-      Namespace.ID namespaceId, List<ByteBuffer> authorizations) throws ThriftSecurityException {
+      Namespace.ID namespaceId) throws ThriftSecurityException {
 
     authenticate(credentials);
 
@@ -595,12 +595,12 @@ public class SecurityOperation {
         || hasTablePermission(c, tableId, namespaceId, TablePermission.GRANT, false);
   }
 
-  public boolean canGrantNamespace(TCredentials c, String user, Namespace.ID namespace)
+  public boolean canGrantNamespace(TCredentials c, Namespace.ID namespace)
       throws ThriftSecurityException {
-    return canModifyNamespacePermission(c, user, namespace);
+    return canModifyNamespacePermission(c, namespace);
   }
 
-  private boolean canModifyNamespacePermission(TCredentials c, String user, Namespace.ID namespace)
+  private boolean canModifyNamespacePermission(TCredentials c, Namespace.ID namespace)
       throws ThriftSecurityException {
     authenticate(c);
     // The one case where Table/SystemPermission -> NamespacePermission breaks down. The alternative
@@ -631,9 +631,9 @@ public class SecurityOperation {
         || hasTablePermission(c, tableId, namespaceId, TablePermission.GRANT, false);
   }
 
-  public boolean canRevokeNamespace(TCredentials c, String user, Namespace.ID namespace)
+  public boolean canRevokeNamespace(TCredentials c, Namespace.ID namespace)
       throws ThriftSecurityException {
-    return canModifyNamespacePermission(c, user, namespace);
+    return canModifyNamespacePermission(c, namespace);
   }
 
   public void changeAuthorizations(TCredentials credentials, String user,
@@ -673,7 +673,7 @@ public class SecurityOperation {
     if (!canCreateUser(credentials, newUser.getPrincipal()))
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
-    _createUser(credentials, newUser, authorizations);
+    _createUser(credentials, newUser);
     if (canChangeAuthorizations(credentials, newUser.getPrincipal())) {
       try {
         authorizor.changeAuthorizations(newUser.getPrincipal(), authorizations);
@@ -683,8 +683,8 @@ public class SecurityOperation {
     }
   }
 
-  protected void _createUser(TCredentials credentials, Credentials newUser,
-      Authorizations authorizations) throws ThriftSecurityException {
+  protected void _createUser(TCredentials credentials, Credentials newUser)
+      throws ThriftSecurityException {
     try {
       AuthenticationToken token = newUser.getToken();
       authenticator.createUser(newUser.getPrincipal(), token);
@@ -748,7 +748,7 @@ public class SecurityOperation {
 
   public void grantNamespacePermission(TCredentials c, String user, Namespace.ID namespace,
       NamespacePermission permission) throws ThriftSecurityException {
-    if (!canGrantNamespace(c, user, namespace))
+    if (!canGrantNamespace(c, namespace))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     targetUserExists(user);
@@ -803,7 +803,7 @@ public class SecurityOperation {
 
   public void revokeNamespacePermission(TCredentials c, String user, Namespace.ID namespace,
       NamespacePermission permission) throws ThriftSecurityException {
-    if (!canRevokeNamespace(c, user, namespace))
+    if (!canRevokeNamespace(c, namespace))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
     targetUserExists(user);
@@ -913,8 +913,8 @@ public class SecurityOperation {
         namespaceId, false);
   }
 
-  public boolean canRenameNamespace(TCredentials credentials, Namespace.ID namespaceId,
-      String oldName, String newName) throws ThriftSecurityException {
+  public boolean canRenameNamespace(TCredentials credentials, Namespace.ID namespaceId)
+      throws ThriftSecurityException {
     authenticate(credentials);
     return hasSystemPermissionWithNamespaceId(credentials, SystemPermission.ALTER_NAMESPACE,
         namespaceId, false);

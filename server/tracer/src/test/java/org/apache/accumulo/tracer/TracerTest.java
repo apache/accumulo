@@ -38,7 +38,6 @@ import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.accumulo.tracer.thrift.TestService;
 import org.apache.accumulo.tracer.thrift.TestService.Iface;
 import org.apache.accumulo.tracer.thrift.TestService.Processor;
-import org.apache.htrace.HTraceConfiguration;
 import org.apache.htrace.Sampler;
 import org.apache.htrace.SpanReceiver;
 import org.apache.htrace.wrappers.TraceProxy;
@@ -84,8 +83,6 @@ public class TracerTest {
     public Map<Long,List<SpanStruct>> traces = new HashMap<>();
 
     public TestReceiver() {}
-
-    public TestReceiver(HTraceConfiguration conf) {}
 
     @Override
     public void receiveSpan(org.apache.htrace.Span s) {

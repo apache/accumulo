@@ -237,7 +237,7 @@ public class FileUtil {
 
       long numKeys = 0;
 
-      numKeys = countIndexEntries(context, prevEndRow, endRow, mapFiles, true, conf, readers);
+      numKeys = countIndexEntries(context, prevEndRow, endRow, mapFiles, true, readers);
 
       if (numKeys == 0) {
         // not enough info in the index to answer the question, so instead of going to
@@ -323,7 +323,7 @@ public class FileUtil {
       long numKeys = 0;
 
       numKeys = countIndexEntries(context, prevEndRow, endRow, mapFiles,
-          tmpDir == null ? useIndex : false, conf, readers);
+          tmpDir == null ? useIndex : false, readers);
 
       if (numKeys == 0) {
         if (useIndex) {
@@ -423,8 +423,8 @@ public class FileUtil {
   }
 
   private static long countIndexEntries(ServerContext context, Text prevEndRow, Text endRow,
-      Collection<String> mapFiles, boolean useIndex, Configuration conf,
-      ArrayList<FileSKVIterator> readers) throws IOException {
+      Collection<String> mapFiles, boolean useIndex, ArrayList<FileSKVIterator> readers)
+      throws IOException {
 
     AccumuloConfiguration acuConf = context.getConfiguration();
 
@@ -559,7 +559,7 @@ public class FileUtil {
   }
 
   public static Map<KeyExtent,Long> estimateSizes(ServerContext context, Path mapFile,
-      long fileSize, List<KeyExtent> extents, Configuration conf) throws IOException {
+      long fileSize, List<KeyExtent> extents) throws IOException {
 
     FileSystem ns = context.getVolumeManager().getVolumeByPath(mapFile).getFileSystem();
     return BulkImport.estimateSizes(context.getConfiguration(), mapFile, fileSize, extents, ns,

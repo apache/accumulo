@@ -54,7 +54,7 @@ public class MapFileIterator implements FileSKVIterator {
 
   public MapFileIterator(AccumuloConfiguration acuconf, FileSystem fs, String dir,
       Configuration conf) throws IOException {
-    this.reader = MapFileUtil.openMapFile(acuconf, fs, dir, conf);
+    this.reader = MapFileUtil.openMapFile(fs, dir, conf);
     this.fs = fs;
     this.dirName = dir;
   }

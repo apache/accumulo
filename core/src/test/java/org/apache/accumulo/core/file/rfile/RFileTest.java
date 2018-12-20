@@ -242,7 +242,7 @@ public class RFileTest {
     public void openWriter(boolean startDLG, int blockSize) throws IOException {
       baos = new ByteArrayOutputStream();
       dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
-      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, accumuloConfiguration,
+      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf,
           CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
 
       SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl

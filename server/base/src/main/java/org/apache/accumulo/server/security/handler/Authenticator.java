@@ -20,7 +20,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.ServerContext;
 
 /**
@@ -32,9 +31,9 @@ public interface Authenticator {
 
   void initialize(ServerContext context, boolean initialize);
 
-  boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm);
+  boolean validSecurityHandlers();
 
-  void initializeSecurity(TCredentials credentials, String principal, byte[] token);
+  void initializeSecurity(String principal, byte[] token);
 
   boolean authenticateUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException;

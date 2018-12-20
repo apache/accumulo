@@ -18,7 +18,6 @@ package org.apache.accumulo.core.file.map;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -26,8 +25,8 @@ import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.SequenceFile;
 
 public class MapFileUtil {
-  public static MapFile.Reader openMapFile(AccumuloConfiguration acuconf, FileSystem fs,
-      String dirName, Configuration conf) throws IOException {
+  public static MapFile.Reader openMapFile(FileSystem fs, String dirName, Configuration conf)
+      throws IOException {
     MapFile.Reader mfr = null;
     try {
       mfr = new MapFile.Reader(fs.makeQualified(new Path(dirName)), conf);

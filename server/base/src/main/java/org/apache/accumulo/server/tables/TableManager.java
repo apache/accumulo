@@ -266,7 +266,7 @@ public class TableManager {
   public boolean addObserver(TableObserver to) {
     synchronized (observers) {
       synchronized (tableStateCache) {
-        to.initialize(Collections.unmodifiableMap(tableStateCache));
+        to.initialize();
         return observers.add(to);
       }
     }

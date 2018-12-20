@@ -22,7 +22,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.NullToken;
-import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.ServerContext;
 
 /**
@@ -36,12 +35,12 @@ public class InsecureAuthenticator implements Authenticator {
   public void initialize(ServerContext context, boolean initialize) {}
 
   @Override
-  public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm) {
+  public boolean validSecurityHandlers() {
     return true;
   }
 
   @Override
-  public void initializeSecurity(TCredentials credentials, String principal, byte[] token) {}
+  public void initializeSecurity(String principal, byte[] token) {}
 
   @Override
   public boolean authenticateUser(String principal, AuthenticationToken token) {

@@ -75,7 +75,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
-import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
@@ -1644,7 +1643,7 @@ public class Master
   }
 
   @Override
-  public void initialize(Map<Table.ID,TableState> tableIdToStateMap) {}
+  public void initialize() {}
 
   @Override
   public void sessionExpired() {}
@@ -1718,7 +1717,7 @@ public class Master
   }
 
   @SuppressFBWarnings(value = "UW_UNCOND_WAIT", justification = "TODO needs triage")
-  public void waitForBalance(TInfo tinfo) {
+  public void waitForBalance() {
     synchronized (balancedNotifier) {
       long eventCounter;
       do {

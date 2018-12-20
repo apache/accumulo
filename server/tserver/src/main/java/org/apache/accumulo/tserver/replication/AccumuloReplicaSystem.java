@@ -289,7 +289,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             span = Trace.start("RFile replication");
             try {
               finalStatus = replicateRFiles(peerContext, peerTserver, target, p, status, sizeLimit,
-                  remoteTableId, peerContext.rpcCreds(), helper, timeout);
+                  remoteTableId, peerContext.rpcCreds(), timeout);
             } finally {
               span.stop();
             }
@@ -325,9 +325,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
   protected Status replicateRFiles(ClientContext peerContext, final HostAndPort peerTserver,
       final ReplicationTarget target, final Path p, final Status status, final long sizeLimit,
-      final String remoteTableId, final TCredentials tcreds, final ReplicaSystemHelper helper,
-      long timeout) throws TTransportException, AccumuloException, AccumuloSecurityException {
-    try (final DataInputStream input = getRFileInputStream(p)) {
+      final String remoteTableId, final TCredentials tcreds, long timeout)
+      throws TTransportException, AccumuloException, AccumuloSecurityException {
+    try (final DataInputStream input = getRFileInputStream()) {
       Status lastStatus = status, currentStatus = status;
       while (true) {
         // Read and send a batch of mutations
@@ -390,7 +390,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         // message,
         // building a Set of tids from DEFINE_TABLET events which correspond to table ids for future
         // mutations
-        tids = consumeWalPrefix(target, input, p, status, sizeLimit);
+        tids = consumeWalPrefix(target, input, status);
       } catch (IOException e) {
         log.warn("Unexpected error consuming file.");
         return status;
@@ -612,7 +612,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     @Override
     public ReplicationStats execute(Client client) throws Exception {
-      RFileReplication kvs = getKeyValues(target, input, p, status, sizeLimit);
+      RFileReplication kvs = getKeyValues();
       if (kvs.keyValues.getKeyValuesSize() > 0) {
         long entriesReplicated = client.replicateKeyValues(remoteTableId, kvs.keyValues, tcreds);
         if (entriesReplicated != kvs.keyValues.getKeyValuesSize()) {
@@ -690,14 +690,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return new ClientContext(ClientInfo.from(properties, token), localConf);
   }
 
-  protected RFileReplication getKeyValues(ReplicationTarget target, DataInputStream input, Path p,
-      Status status, long sizeLimit) {
+  protected RFileReplication getKeyValues() {
     // TODO ACCUMULO-2580 Implement me
     throw new UnsupportedOperationException();
   }
 
-  protected Set<Integer> consumeWalPrefix(ReplicationTarget target, DataInputStream wal, Path p,
-      Status status, long sizeLimit) throws IOException {
+  protected Set<Integer> consumeWalPrefix(ReplicationTarget target, DataInputStream wal,
+      Status status) throws IOException {
     Set<Integer> tids = new HashSet<>();
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
@@ -840,7 +839,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return mutationsToSend;
   }
 
-  protected DataInputStream getRFileInputStream(Path p) {
+  protected DataInputStream getRFileInputStream() {
     throw new UnsupportedOperationException("Not yet implemented");
   }
 

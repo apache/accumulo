@@ -98,8 +98,7 @@ public class MasterMetadataUtil {
   }
 
   public static KeyExtent fixSplit(ServerContext context, Text metadataEntry,
-      SortedMap<ColumnFQ,Value> columns, TServerInstance tserver, ZooLock lock)
-      throws AccumuloException {
+      SortedMap<ColumnFQ,Value> columns, ZooLock lock) throws AccumuloException {
     log.info("Incomplete split {} attempting to fix", metadataEntry);
 
     Value oper = columns.get(TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN);
@@ -140,13 +139,12 @@ public class MasterMetadataUtil {
 
     Table.ID tableId = (new KeyExtent(metadataEntry, (Text) null)).getTableId();
 
-    return fixSplit(context, tableId, metadataEntry, metadataPrevEndRow, oper, splitRatio, tserver,
-        time.toString(), initFlushID, initCompactID, lock);
+    return fixSplit(context, tableId, metadataEntry, metadataPrevEndRow, oper, splitRatio, lock);
   }
 
   private static KeyExtent fixSplit(ServerContext context, Table.ID tableId, Text metadataEntry,
-      Text metadataPrevEndRow, Value oper, double splitRatio, TServerInstance tserver, String time,
-      long initFlushID, long initCompactID, ZooLock lock) throws AccumuloException {
+      Text metadataPrevEndRow, Value oper, double splitRatio, ZooLock lock)
+      throws AccumuloException {
     if (metadataPrevEndRow == null)
       // something is wrong, this should not happen... if a tablet is split, it will always have a
       // prev end row....
@@ -265,8 +263,7 @@ public class MasterMetadataUtil {
       long flushId) {
     if (extent.isRootTablet()) {
       if (unusedWalLogs != null) {
-        updateRootTabletDataFile(context, extent, path, mergeFile, dfv, time, filesInUseByScans,
-            address, zooLock, unusedWalLogs, lastLocation, flushId);
+        updateRootTabletDataFile(context, unusedWalLogs);
       }
       return;
     }
@@ -278,10 +275,7 @@ public class MasterMetadataUtil {
   /**
    * Update the data file for the root tablet
    */
-  private static void updateRootTabletDataFile(ServerContext context, KeyExtent extent,
-      FileRef path, FileRef mergeFile, DataFileValue dfv, String time,
-      Set<FileRef> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs,
-      TServerInstance lastLocation, long flushId) {
+  private static void updateRootTabletDataFile(ServerContext context, Set<String> unusedWalLogs) {
     IZooReaderWriter zk = context.getZooReaderWriter();
     String root = MetadataTableUtil.getZookeeperLogLocation(context);
     for (String entry : unusedWalLogs) {

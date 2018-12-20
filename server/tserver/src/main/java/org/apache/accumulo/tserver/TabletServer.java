@@ -805,7 +805,7 @@ public class TabletServer implements Runnable {
 
       MultiScanResult result;
       try {
-        result = continueMultiScan(tinfo, sid, mss);
+        result = continueMultiScan(sid, mss);
       } finally {
         sessionManager.unreserveSession(sid);
       }
@@ -824,13 +824,13 @@ public class TabletServer implements Runnable {
       }
 
       try {
-        return continueMultiScan(tinfo, scanID, session);
+        return continueMultiScan(scanID, session);
       } finally {
         sessionManager.unreserveSession(session);
       }
     }
 
-    private MultiScanResult continueMultiScan(TInfo tinfo, long scanID, MultiScanSession session)
+    private MultiScanResult continueMultiScan(long scanID, MultiScanSession session)
         throws TSampleNotPresentException {
 
       if (session.lookupTask == null) {
@@ -1087,7 +1087,7 @@ public class TabletServer implements Runnable {
       updateAvgPrepTime(pt2 - pt1, us.queuedMutations.size());
 
       if (error != null) {
-        sendables.forEach(CommitSession::abortCommit);
+        sendables.forEach((commitSession, value) -> commitSession.abortCommit());
         throw new RuntimeException(error);
       }
       try {
@@ -1498,7 +1498,7 @@ public class TabletServer implements Runnable {
       Table.ID tableId = Table.ID.of(tableIdStr);
       Authorizations userauths = null;
       Namespace.ID namespaceId = getNamespaceId(credentials, tableId);
-      if (!security.canConditionallyUpdate(credentials, tableId, namespaceId, authorizations))
+      if (!security.canConditionallyUpdate(credentials, tableId, namespaceId))
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED);
 
@@ -2227,10 +2227,10 @@ public class TabletServer implements Runnable {
         tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL);
       }
     } catch (IOException e) {
-      statsKeeper.updateTime(Operation.SPLIT, 0, 0, true);
+      statsKeeper.updateTime(Operation.SPLIT, 0, true);
       log.error("split failed: {} for tablet {}", e.getMessage(), tablet.getExtent(), e);
     } catch (Exception e) {
-      statsKeeper.updateTime(Operation.SPLIT, 0, 0, true);
+      statsKeeper.updateTime(Operation.SPLIT, 0, true);
       log.error("Unknown error on split:", e);
     }
   }
@@ -2275,7 +2275,7 @@ public class TabletServer implements Runnable {
         new Text("/" + newTablets[0].getLocation().getName()), newTablets[1].getExtent(),
         new Text("/" + newTablets[1].getLocation().getName())));
 
-    statsKeeper.updateTime(Operation.SPLIT, start, 0, false);
+    statsKeeper.updateTime(Operation.SPLIT, start, false);
     long t2 = System.currentTimeMillis();
     log.info("Tablet split: {} size0 {} size1 {} time {}ms", tablet.getExtent(),
         newTablets[0].estimateTabletSize(), newTablets[1].estimateTabletSize(), (t2 - t1));
@@ -2498,10 +2498,9 @@ public class TabletServer implements Runnable {
             getTableConfiguration(extent));
         TabletData data;
         if (extent.isRootTablet()) {
-          data = new TabletData(context, fs, context.getZooReaderWriter(),
-              getTableConfiguration(extent));
+          data = new TabletData(context, fs, getTableConfiguration(extent));
         } else {
-          data = new TabletData(context, extent, fs, tabletsKeyValues.entrySet().iterator());
+          data = new TabletData(extent, fs, tabletsKeyValues.entrySet().iterator());
         }
 
         tablet = new Tablet(TabletServer.this, extent, trm, data);
@@ -2969,7 +2968,7 @@ public class TabletServer implements Runnable {
     }
   }
 
-  private static Pair<Text,KeyExtent> verifyRootTablet(ServerContext context, KeyExtent extent,
+  private static Pair<Text,KeyExtent> verifyRootTablet(ServerContext context,
       TServerInstance instance) throws AccumuloException {
     ZooTabletStateStore store = new ZooTabletStateStore(context);
     if (!store.iterator().hasNext()) {
@@ -2998,7 +2997,7 @@ public class TabletServer implements Runnable {
 
     log.debug("verifying extent {}", extent);
     if (extent.isRootTablet()) {
-      return verifyRootTablet(context, extent, instance);
+      return verifyRootTablet(context, instance);
     }
     Table.ID tableToVerify = MetadataTable.ID;
     if (extent.isMeta())
@@ -3040,7 +3039,7 @@ public class TabletServer implements Runnable {
       tabletEntries = MetadataTableUtil.getTabletEntries(tabletsKeyValues, columnsToFetch);
 
       KeyExtent fke = MasterMetadataUtil.fixSplit(context, metadataEntry,
-          tabletEntries.get(metadataEntry), instance, lock);
+          tabletEntries.get(metadataEntry), lock);
 
       if (!fke.equals(extent)) {
         return new Pair<>(null, fke);
@@ -3344,11 +3343,10 @@ public class TabletServer implements Runnable {
     return DurabilityImpl.fromString(conf.get(Property.TABLE_DURABILITY));
   }
 
-  public void minorCompactionFinished(CommitSession tablet, String newDatafile, long walogSeq)
-      throws IOException {
+  public void minorCompactionFinished(CommitSession tablet, long walogSeq) throws IOException {
     Durability durability = getMincEventDurability(tablet.getExtent());
     totalMinorCompactions.incrementAndGet();
-    logger.minorCompactionFinished(tablet, newDatafile, walogSeq, durability);
+    logger.minorCompactionFinished(tablet, walogSeq, durability);
     markUnusedWALs();
   }
 
@@ -3358,16 +3356,14 @@ public class TabletServer implements Runnable {
     logger.minorCompactionStarted(tablet, lastUpdateSequence, newMapfileLocation, durability);
   }
 
-  public void recover(VolumeManager fs, KeyExtent extent, TableConfiguration tconf,
-      List<LogEntry> logEntries, Set<String> tabletFiles, MutationReceiver mutationReceiver)
-      throws IOException {
+  public void recover(VolumeManager fs, KeyExtent extent, List<LogEntry> logEntries,
+      Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
     List<Path> recoveryLogs = new ArrayList<>();
     List<LogEntry> sorted = new ArrayList<>(logEntries);
     Collections.sort(sorted, (e1, e2) -> (int) (e1.timestamp - e2.timestamp));
     for (LogEntry entry : sorted) {
       Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(fs,
-          fs.getFullPath(FileType.WAL, entry.filename));
+      Path finished = RecoveryPath.getRecoveryPath(fs.getFullPath(FileType.WAL, entry.filename));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.info("Looking for " + finished);
       if (fs.exists(finished)) {
@@ -3560,12 +3556,8 @@ public class TabletServer implements Runnable {
 
   private static final String MAJC_READ_LIMITER_KEY = "tserv_majc_read";
   private static final String MAJC_WRITE_LIMITER_KEY = "tserv_majc_write";
-  private final RateProvider rateProvider = new RateProvider() {
-    @Override
-    public long getDesiredRate() {
-      return getConfiguration().getAsBytes(Property.TSERV_MAJC_THROUGHPUT);
-    }
-  };
+  private final RateProvider rateProvider = () -> getConfiguration()
+      .getAsBytes(Property.TSERV_MAJC_THROUGHPUT);
 
   /**
    * Get the {@link RateLimiter} for reads during major compactions on this tserver. All writes

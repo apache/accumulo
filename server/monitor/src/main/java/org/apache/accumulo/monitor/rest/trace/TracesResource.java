@@ -223,8 +223,8 @@ public class TracesResource {
       traces.addStartTime(start);
 
       final long finalStart = start;
-      Set<Long> visited = tree.visit((level, parent, node, children) -> traces
-          .addTrace(addTraceInformation(level, node, finalStart)));
+      Set<Long> visited = tree
+          .visit((level, node) -> traces.addTrace(addTraceInformation(level, node, finalStart)));
       tree.nodes.keySet().removeAll(visited);
       if (!tree.nodes.isEmpty()) {
         for (RemoteSpan span : TraceDump.sortByStart(tree.nodes.values())) {

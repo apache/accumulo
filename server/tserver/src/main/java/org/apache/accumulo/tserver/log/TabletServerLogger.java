@@ -484,15 +484,13 @@ public class TabletServerLogger {
     }
   }
 
-  public void minorCompactionFinished(final CommitSession commitSession,
-      final String fullyQualifiedFileName, final long walogSeq, final Durability durability)
-      throws IOException {
+  public void minorCompactionFinished(final CommitSession commitSession, final long walogSeq,
+      final Durability durability) throws IOException {
 
     long t1 = System.currentTimeMillis();
 
-    write(
-        singletonList(commitSession), true, logger -> logger.minorCompactionFinished(walogSeq,
-            commitSession.getLogId(), fullyQualifiedFileName, durability),
+    write(singletonList(commitSession), true,
+        logger -> logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), durability),
         writeRetryFactory.createRetry());
 
     long t2 = System.currentTimeMillis();

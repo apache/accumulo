@@ -63,7 +63,7 @@ public class SummaryWriter implements FileSKVWriter {
   public void startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies)
       throws IOException {
     for (SummarySerializer.Builder ssb : summaryStores) {
-      ssb.startNewLocalityGroup(name, columnFamilies);
+      ssb.startNewLocalityGroup(name);
     }
 
     writer.startNewLocalityGroup(name, columnFamilies);

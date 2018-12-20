@@ -32,7 +32,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.replication.AccumuloReplicationReplayer;
-import org.apache.accumulo.core.replication.thrift.KeyValues;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationErrorCode;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
@@ -170,7 +169,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
   }
 
   @Override
-  public long replicateKeyValues(ClientContext context, String tableName, KeyValues kvs) {
+  public long replicateKeyValues() {
     // TODO Implement me
     throw new UnsupportedOperationException();
   }

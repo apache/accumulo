@@ -33,7 +33,6 @@ import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.Summarizer.Collector;
 import org.apache.accumulo.core.client.summary.Summarizer.Combiner;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.summary.Gatherer.RowRange;
@@ -360,7 +359,7 @@ class SummarySerializer {
       }
     }
 
-    public void startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies) {
+    public void startNewLocalityGroup(String name) {
       if (lgb != null) {
         lgb.finish();
         locGroups.add(lgb);

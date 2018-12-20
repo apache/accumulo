@@ -511,7 +511,7 @@ abstract class TabletGroupWatcher extends Daemon {
           conn = this.master.tserverSet.getConnection(tls.current);
           if (conn != null) {
             Master.log.info("Asking {} to split {} at {}", tls.current, tls.extent, splitPoint);
-            conn.splitTablet(this.master.masterLock, tls.extent, splitPoint);
+            conn.splitTablet(tls.extent, splitPoint);
           } else {
             Master.log.warn("Not connected to server {}", tls.current);
           }

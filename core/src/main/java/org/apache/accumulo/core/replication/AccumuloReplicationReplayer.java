@@ -19,7 +19,6 @@ package org.apache.accumulo.core.replication;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.replication.thrift.KeyValues;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 
@@ -28,7 +27,6 @@ public interface AccumuloReplicationReplayer {
   long replicateLog(ClientContext context, String tableName, WalEdits data)
       throws RemoteReplicationException, AccumuloException, AccumuloSecurityException;
 
-  long replicateKeyValues(ClientContext context, String tableName, KeyValues kvs)
-      throws RemoteReplicationException;
+  long replicateKeyValues() throws RemoteReplicationException;
 
 }

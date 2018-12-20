@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -61,7 +60,7 @@ public final class ZKAuthenticator implements Authenticator {
   }
 
   @Override
-  public void initializeSecurity(TCredentials credentials, String principal, byte[] token) {
+  public void initializeSecurity(String principal, byte[] token) {
     try {
       // remove old settings from zookeeper first, if any
       IZooReaderWriter zoo = context.getZooReaderWriter();
@@ -176,7 +175,7 @@ public final class ZKAuthenticator implements Authenticator {
   }
 
   @Override
-  public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm) {
+  public boolean validSecurityHandlers() {
     return true;
   }
 

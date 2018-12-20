@@ -45,12 +45,11 @@ public class SpanTree {
     RemoteSpan rootSpan = nodes.get(root.iterator().next());
     if (rootSpan == null)
       return visited;
-    recurse(0, null, rootSpan, visitor, visited);
+    recurse(0, rootSpan, visitor, visited);
     return visited;
   }
 
-  private void recurse(int level, RemoteSpan parent, RemoteSpan node, SpanTreeVisitor visitor,
-      Set<Long> visited) {
+  private void recurse(int level, RemoteSpan node, SpanTreeVisitor visitor, Set<Long> visited) {
     // improbable case: duplicate spanId in a trace tree: prevent
     // infinite recursion
     if (visited.contains(node.spanId))
@@ -67,9 +66,9 @@ public class SpanTree {
       }
     }
     children = TraceDump.sortByStart(children);
-    visitor.visit(level, parent, node, children);
+    visitor.visit(level, node);
     for (RemoteSpan child : children) {
-      recurse(level + 1, node, child, visitor, visited);
+      recurse(level + 1, child, visitor, visited);
     }
   }
 }

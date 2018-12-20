@@ -127,7 +127,7 @@ class FateServiceHandler implements FateService.Iface {
 
         Namespace.ID namespaceId = ClientServiceHandler.checkNamespaceId(master.getContext(),
             oldName, tableOp);
-        if (!master.security.canRenameNamespace(c, namespaceId, oldName, newName))
+        if (!master.security.canRenameNamespace(c, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
         master.fate.seedTransaction(opid,

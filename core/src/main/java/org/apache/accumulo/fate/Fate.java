@@ -74,7 +74,7 @@ public class Fate<T> {
                 continue;
 
             } catch (Exception e) {
-              transitionToFailed(tid, op, e);
+              transitionToFailed(tid, e);
               continue;
             }
 
@@ -92,7 +92,7 @@ public class Fate<T> {
                 // the op that failed to push onto the stack was never executed, so no need to undo
                 // it
                 // just transition to failed and undo the ops that executed
-                transitionToFailed(tid, op, e);
+                transitionToFailed(tid, e);
                 continue;
               }
             }
@@ -108,7 +108,7 @@ public class Fate<T> {
       }
     }
 
-    private void transitionToFailed(long tid, Repo<T> op, Exception e) {
+    private void transitionToFailed(long tid, Exception e) {
       String tidStr = String.format("%016x", tid);
       final String msg = "Failed to execute Repo, tid=" + tidStr;
       // Certain FATE ops that throw exceptions don't need to be propagated up to the Monitor
