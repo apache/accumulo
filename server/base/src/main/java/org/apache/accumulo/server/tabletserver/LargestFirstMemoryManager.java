@@ -292,7 +292,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
   }
 
   @Override
-  public void tabletClosed() {}
+  public void tabletClosed(KeyExtent extent) {}
 
   // The load function: memory times the idle time, doubling every 15 mins
   static long timeMemoryLoad(long mem, long time) {

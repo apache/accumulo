@@ -857,7 +857,7 @@ public class RFile {
       val.readFields(currBlock);
 
       if (metricsGatherer != null)
-        metricsGatherer.addMetric(rk.getKey());
+        metricsGatherer.addMetric(rk.getKey(), val);
 
       entriesLeft--;
       if (checkRange)
@@ -1069,7 +1069,7 @@ public class RFile {
 
       if (metricsGatherer != null) {
         metricsGatherer.startLocalityGroup(rk.getKey().getColumnFamily());
-        metricsGatherer.addMetric(rk.getKey());
+        metricsGatherer.addMetric(rk.getKey(), val);
       }
     }
 

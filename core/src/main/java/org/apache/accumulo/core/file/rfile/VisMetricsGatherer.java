@@ -30,6 +30,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.util.concurrent.AtomicLongMap;
@@ -91,7 +92,7 @@ public class VisMetricsGatherer
   }
 
   @Override
-  public void addMetric(Key key) {
+  public void addMetric(Key key, Value val) {
     String myMetric = key.getColumnVisibility().toString();
     String currLG = localityGroups.get(numLG - 1);
     if (metric.get(currLG).containsKey(myMetric)) {
