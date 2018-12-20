@@ -33,10 +33,8 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
 import org.junit.Test;
 
-/**
- *
- */
 public class SizeLimitCompactionStrategyTest {
+
   private Map<FileRef,DataFileValue> nfl(String... sa) {
 
     HashMap<FileRef,DataFileValue> ret = new HashMap<>();

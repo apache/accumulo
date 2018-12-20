@@ -163,9 +163,7 @@ import com.google.common.collect.ImmutableSet.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- *
  * Provide access to a single row range in a living TabletServer.
- *
  */
 public class Tablet implements TabletCommitter {
   private static final Logger log = LoggerFactory.getLogger(Tablet.class);

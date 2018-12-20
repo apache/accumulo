@@ -23,9 +23,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TCondition;
 import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
 import org.apache.accumulo.server.data.ServerMutation;
 
-/**
- *
- */
 public class ServerConditionalMutation extends ServerMutation {
 
   public static class TCMTranslator

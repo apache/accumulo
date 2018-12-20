@@ -25,9 +25,6 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
 
-/**
- *
- */
 public class SizeLimitCompactionStrategy extends DefaultCompactionStrategy {
   public static final String SIZE_LIMIT_OPT = "sizeLimit";
 

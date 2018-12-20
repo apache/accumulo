@@ -24,9 +24,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class ActiveAssignmentRunnable implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(ActiveAssignmentRunnable.class);
 

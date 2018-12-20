@@ -27,9 +27,6 @@ import org.apache.hadoop.metrics2.lib.Interns;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableStat;
 
-/**
- *
- */
 public class Metrics2TabletServerScanMetrics
     implements Metrics, MetricsSource, TabletServerScanMetricsKeys {
   public static final String NAME = TSERVER_NAME + ",sub=Scans",
