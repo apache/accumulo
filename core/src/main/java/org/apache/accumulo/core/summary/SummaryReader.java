@@ -179,7 +179,7 @@ public class SummaryReader {
       SummarizerFactory factory, CryptoService cryptoService) throws IOException {
     // @formatter:off
     org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.Reader bcReader =
-      new CachableBlockFile.Reader((InputStream & Seekable) inputStream, length, conf, aConf,
+      new CachableBlockFile.Reader((InputStream & Seekable) inputStream, length, conf,
               cryptoService);
     // @formatter:on
     return load(bcReader, summarySelector, factory);
@@ -196,7 +196,7 @@ public class SummaryReader {
       // only summary data is wanted.
       CompositeCache compositeCache = new CompositeCache(summaryCache, indexCache);
       bcReader = new CachableBlockFile.Reader(fs, file, conf, fileLenCache, null, compositeCache,
-          null, aConf, cryptoService);
+          null, cryptoService);
       return load(bcReader, summarySelector, factory);
     } catch (FileNotFoundException fne) {
       SummaryReader sr = new SummaryReader();

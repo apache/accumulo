@@ -48,7 +48,7 @@ public class RFileOperations extends FileOperations {
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(options.getFileSystem(),
         new Path(options.getFilename()), options.getConfiguration(), options.getFileLenCache(),
         options.getDataCache(), options.getIndexCache(), options.getRateLimiter(),
-        options.getTableConfiguration(), options.getCryptoService());
+        options.getCryptoService());
     return new RFile.Reader(_cbr);
   }
 

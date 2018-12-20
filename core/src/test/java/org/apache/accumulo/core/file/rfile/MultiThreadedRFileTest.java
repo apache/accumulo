@@ -187,7 +187,7 @@ public class MultiThreadedRFileTest {
 
       // the caches used to obfuscate the multithreaded issues
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, path, conf, null, null,
-          defaultConf, CryptoServiceFactory.newInstance(defaultConf, ClassloaderType.JAVA));
+          CryptoServiceFactory.newInstance(defaultConf, ClassloaderType.JAVA));
       reader = new RFile.Reader(_cbr);
       iter = new ColumnFamilySkippingIterator(reader);
 

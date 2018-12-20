@@ -66,7 +66,7 @@ public class SplitLarge {
       CryptoService cryptoService = ConfigurationTypeHelper.getClassInstance(null, opts.cryptoClass,
           CryptoService.class, CryptoServiceFactory.newDefaultInstance());
       Path path = new Path(file);
-      CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null, aconf,
+      CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
           cryptoService);
       try (Reader iter = new RFile.Reader(rdr)) {
 

@@ -28,7 +28,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
@@ -80,7 +79,6 @@ public class CachableBlockFile {
     private volatile InputStream fin = null;
     private boolean closed = false;
     private final Configuration conf;
-    private final AccumuloConfiguration accumuloConfiguration;
     private final CryptoService cryptoService;
 
     private final IoeSupplier<InputStream> inputSupplier;
@@ -304,7 +302,7 @@ public class CachableBlockFile {
     private Reader(String cacheId, IoeSupplier<InputStream> inputSupplier,
         IoeSupplier<Long> lenghtSupplier, Cache<String,Long> fileLenCache, BlockCache data,
         BlockCache index, RateLimiter readLimiter, Configuration conf,
-        AccumuloConfiguration accumuloConfiguration, CryptoService cryptoService) {
+        CryptoService cryptoService) {
       Preconditions.checkArgument(cacheId != null || (data == null && index == null));
       this.cacheId = cacheId;
       this.inputSupplier = inputSupplier;
@@ -314,36 +312,30 @@ public class CachableBlockFile {
       this._iCache = index;
       this.readLimiter = readLimiter;
       this.conf = conf;
-      this.accumuloConfiguration = accumuloConfiguration;
       this.cryptoService = Objects.requireNonNull(cryptoService);
     }
 
     public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data,
-        BlockCache index, AccumuloConfiguration accumuloConfiguration,
-        CryptoService cryptoService) {
-      this(fs, dataFile, conf, null, data, index, null, accumuloConfiguration, cryptoService);
+        BlockCache index, CryptoService cryptoService) {
+      this(fs, dataFile, conf, null, data, index, null, cryptoService);
     }
 
     public Reader(FileSystem fs, Path dataFile, Configuration conf, Cache<String,Long> fileLenCache,
-        BlockCache data, BlockCache index, RateLimiter readLimiter,
-        AccumuloConfiguration accumuloConfiguration, CryptoService cryptoService) {
+        BlockCache data, BlockCache index, RateLimiter readLimiter, CryptoService cryptoService) {
       this(pathToCacheId(dataFile), () -> fs.open(dataFile),
           () -> fs.getFileStatus(dataFile).getLen(), fileLenCache, data, index, readLimiter, conf,
-          accumuloConfiguration, cryptoService);
+          cryptoService);
     }
 
     public <InputStreamType extends InputStream & Seekable> Reader(String cacheId,
         InputStreamType fsin, long len, Configuration conf, BlockCache data, BlockCache index,
-        AccumuloConfiguration accumuloConfiguration, CryptoService cryptoService) {
-      this(cacheId, () -> fsin, () -> len, null, data, index, null, conf, accumuloConfiguration,
-          cryptoService);
+        CryptoService cryptoService) {
+      this(cacheId, () -> fsin, () -> len, null, data, index, null, conf, cryptoService);
     }
 
     public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fsin, long len,
-        Configuration conf, AccumuloConfiguration accumuloConfiguration,
-        CryptoService cryptoService) {
-      this(null, () -> fsin, () -> len, null, null, null, null, conf, accumuloConfiguration,
-          cryptoService);
+        Configuration conf, CryptoService cryptoService) {
+      this(null, () -> fsin, () -> len, null, null, null, null, conf, cryptoService);
     }
 
     /**
