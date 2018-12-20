@@ -48,7 +48,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -81,8 +80,7 @@ public class TabletData {
   private String directory = null;
 
   // Read tablet data from metadata tables
-  public TabletData(ServerContext context, KeyExtent extent, VolumeManager fs,
-      Iterator<Entry<Key,Value>> entries) {
+  public TabletData(KeyExtent extent, VolumeManager fs, Iterator<Entry<Key,Value>> entries) {
     final Text family = new Text();
     Text rowName = extent.getMetadataEntry();
     while (entries.hasNext()) {
@@ -134,8 +132,8 @@ public class TabletData {
   }
 
   // Read basic root table metadata from zookeeper
-  public TabletData(ServerContext context, VolumeManager fs, ZooReader rdr,
-      AccumuloConfiguration conf) throws IOException {
+  public TabletData(ServerContext context, VolumeManager fs, AccumuloConfiguration conf)
+      throws IOException {
     directory = VolumeUtil.switchRootTableVolume(context,
         MetadataTableUtil.getRootTabletDir(context));
 

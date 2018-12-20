@@ -112,7 +112,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
       assertEquals(1, count(tableName, client));
       for (String table : new String[] {MetadataTable.NAME, RootTable.NAME}) {
         log.debug("Checking logs for {}", table);
-        assertEquals("Found logs for " + table, 0, countLogs(table, client));
+        assertEquals("Found logs for " + table, 0, countLogs(client));
       }
 
       bw = client.createBatchWriter(tableName, new BatchWriterConfig());
@@ -134,7 +134,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
     }
   }
 
-  private int countLogs(String tableName, AccumuloClient client) throws TableNotFoundException {
+  private int countLogs(AccumuloClient client) throws TableNotFoundException {
     int count = 0;
     try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);

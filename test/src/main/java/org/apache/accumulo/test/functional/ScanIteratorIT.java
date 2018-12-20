@@ -210,7 +210,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     runTest(Authorizations.EMPTY, true);
   }
 
-  private void runTest(ScannerBase scanner, Authorizations auths, boolean shouldFail) {
+  private void runTest(ScannerBase scanner, boolean shouldFail) {
     int count = 0;
     for (Map.Entry<Key,Value> entry : scanner) {
       assertEquals(shouldFail ? AuthsIterator.FAIL : AuthsIterator.SUCCESS,
@@ -236,8 +236,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
       batchScanner.setRanges(Collections.singleton(new Range("1")));
       batchScanner.addScanIterator(setting);
 
-      runTest(scanner, auths, shouldFail);
-      runTest(batchScanner, auths, shouldFail);
+      runTest(scanner, shouldFail);
+      runTest(batchScanner, shouldFail);
     }
   }
 

@@ -490,9 +490,8 @@ public class TabletServerLogger {
 
     long t1 = System.currentTimeMillis();
 
-    write(
-        singletonList(commitSession), true, logger -> logger.minorCompactionFinished(walogSeq,
-            commitSession.getLogId(), fullyQualifiedFileName, durability),
+    write(singletonList(commitSession), true,
+        logger -> logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), durability),
         writeRetryFactory.createRetry());
 
     long t2 = System.currentTimeMillis();

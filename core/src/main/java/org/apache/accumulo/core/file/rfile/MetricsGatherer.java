@@ -22,7 +22,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -55,12 +54,8 @@ public interface MetricsGatherer<T> {
    *
    * @param key
    *          Key object of the entry you are collecting metrics from
-   *
-   * @param val
-   *          Value object of the entry you are collecting metrics from
-   *
    */
-  void addMetric(Key key, Value val);
+  void addMetric(Key key);
 
   /**
    * Start a new block within a LocalityGroup. This method is used when the RFile moves on the the

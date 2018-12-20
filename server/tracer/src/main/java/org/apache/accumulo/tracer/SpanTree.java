@@ -67,7 +67,7 @@ public class SpanTree {
       }
     }
     children = TraceDump.sortByStart(children);
-    visitor.visit(level, parent, node, children);
+    visitor.visit(level, node);
     for (RemoteSpan child : children) {
       recurse(level + 1, node, child, visitor, visited);
     }

@@ -597,7 +597,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       firstErrorTime = null;
     }
 
-    void errorOccured(Exception e) {
+    void errorOccured() {
       if (firstErrorTime == null) {
         firstErrorTime = activityTime;
       } else if (System.currentTimeMillis() - firstErrorTime > timeOut) {
@@ -748,7 +748,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       }
     } catch (TTransportException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage());
-      timeoutTracker.errorOccured(e);
+      timeoutTracker.errorOccured();
       throw new IOException(e);
     } catch (ThriftSecurityException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
@@ -770,7 +770,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       throw new SampleNotPresentException(message, e);
     } catch (TException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
-      timeoutTracker.errorOccured(e);
+      timeoutTracker.errorOccured();
       throw new IOException(e);
     } finally {
       ThriftTransportPool.getInstance().returnTransport(transport);

@@ -18,7 +18,6 @@ package org.apache.accumulo.server.tabletserver;
 
 import java.util.List;
 
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 
 /**
@@ -49,5 +48,5 @@ public interface MemoryManager {
    * This method is called when a tablet is closed. A memory manger can clean up any per tablet
    * state it is keeping when this is called.
    */
-  void tabletClosed(KeyExtent extent);
+  void tabletClosed();
 }

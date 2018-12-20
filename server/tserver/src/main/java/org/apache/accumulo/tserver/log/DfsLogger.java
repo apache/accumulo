@@ -625,8 +625,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     }
   }
 
-  public LoggerOperation minorCompactionFinished(long seq, int tid, String fqfn,
-      Durability durability) throws IOException {
+  public LoggerOperation minorCompactionFinished(long seq, int tid, Durability durability)
+      throws IOException {
     LogFileKey key = new LogFileKey();
     key.event = COMPACTION_FINISH;
     key.seq = seq;

@@ -182,7 +182,7 @@ public class ThriftTransportPool {
     int ioCount = 0;
     int lastIoCount = -1;
 
-    private void sawError(Exception e) {
+    private void sawError() {
       sawError = true;
     }
 
@@ -264,7 +264,7 @@ public class ThriftTransportPool {
         ioCount++;
         wrappedTransport.open();
       } catch (TTransportException tte) {
-        sawError(tte);
+        sawError();
         throw tte;
       } finally {
         ioCount++;
@@ -277,7 +277,7 @@ public class ThriftTransportPool {
         ioCount++;
         return wrappedTransport.read(arg0, arg1, arg2);
       } catch (TTransportException tte) {
-        sawError(tte);
+        sawError();
         throw tte;
       } finally {
         ioCount++;
@@ -290,7 +290,7 @@ public class ThriftTransportPool {
         ioCount++;
         return wrappedTransport.readAll(arg0, arg1, arg2);
       } catch (TTransportException tte) {
-        sawError(tte);
+        sawError();
         throw tte;
       } finally {
         ioCount++;
@@ -303,7 +303,7 @@ public class ThriftTransportPool {
         ioCount++;
         wrappedTransport.write(arg0, arg1, arg2);
       } catch (TTransportException tte) {
-        sawError(tte);
+        sawError();
         throw tte;
       } finally {
         ioCount++;
@@ -316,7 +316,7 @@ public class ThriftTransportPool {
         ioCount++;
         wrappedTransport.write(arg0);
       } catch (TTransportException tte) {
-        sawError(tte);
+        sawError();
         throw tte;
       } finally {
         ioCount++;
@@ -340,7 +340,7 @@ public class ThriftTransportPool {
         ioCount++;
         wrappedTransport.flush();
       } catch (TTransportException tte) {
-        sawError(tte);
+        sawError();
         throw tte;
       } finally {
         ioCount++;

@@ -62,7 +62,7 @@ public class MultiLevelIndexTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
     BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", CachedConfiguration.getInstance(),
-        aconf, CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
+        CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
 
     BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
 

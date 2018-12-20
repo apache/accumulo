@@ -223,15 +223,13 @@ public class ReplicationUtil {
   /**
    * Fetches the absolute path of the file to be replicated.
    *
-   * @param client
-   *          Accumulo Client
    * @param workQueuePath
    *          Root path for the Replication WorkQueue
    * @param queueKey
    *          The Replication work queue key
    * @return The absolute path for the file, or null if the key is no longer in ZooKeeper
    */
-  public String getAbsolutePath(AccumuloClient client, String workQueuePath, String queueKey) {
+  public String getAbsolutePath(String workQueuePath, String queueKey) {
     byte[] data = zooCache.get(workQueuePath + "/" + queueKey);
     if (data != null) {
       return new String(data, UTF_8);

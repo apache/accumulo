@@ -60,7 +60,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
   }
 
   public TServerInstance getAssignment(SortedMap<TServerInstance,TabletServerStatus> locations,
-      KeyExtent extent, TServerInstance last) {
+      TServerInstance last) {
     if (locations.size() == 0)
       return null;
 
@@ -257,7 +257,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
         log.error("Unable to select a tablet to move", ex);
         return result;
       }
-      KeyExtent extent = selectTablet(tooMuch.server, onlineTabletsForTable);
+      KeyExtent extent = selectTablet(onlineTabletsForTable);
       onlineTabletsForTable.remove(extent);
       if (extent == null)
         return result;
@@ -290,7 +290,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
     return result;
   }
 
-  static KeyExtent selectTablet(TServerInstance tserver, Map<KeyExtent,TabletStats> extents) {
+  static KeyExtent selectTablet(Map<KeyExtent,TabletStats> extents) {
     if (extents.size() == 0)
       return null;
     KeyExtent mostRecentlySplit = null;
@@ -322,7 +322,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments) {
     for (Entry<KeyExtent,TServerInstance> entry : unassigned.entrySet()) {
-      assignments.put(entry.getKey(), getAssignment(current, entry.getKey(), entry.getValue()));
+      assignments.put(entry.getKey(), getAssignment(current, entry.getValue()));
     }
   }
 

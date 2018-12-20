@@ -78,10 +78,12 @@ public class SplitLarge {
 
         int blockSize = (int) aconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE);
         try (
-            Writer small = new RFile.Writer(new BCFile.Writer(fs.create(new Path(smallName)), null,
-                "gz", conf, aconf, cryptoService), blockSize);
-            Writer large = new RFile.Writer(new BCFile.Writer(fs.create(new Path(largeName)), null,
-                "gz", conf, aconf, cryptoService), blockSize)) {
+            Writer small = new RFile.Writer(
+                new BCFile.Writer(fs.create(new Path(smallName)), null, "gz", conf, cryptoService),
+                blockSize);
+            Writer large = new RFile.Writer(
+                new BCFile.Writer(fs.create(new Path(largeName)), null, "gz", conf, cryptoService),
+                blockSize)) {
           small.startDefaultLocalityGroup();
           large.startDefaultLocalityGroup();
 

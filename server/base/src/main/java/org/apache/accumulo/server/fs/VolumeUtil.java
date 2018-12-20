@@ -291,7 +291,7 @@ public class VolumeUtil {
 
       if (!same(fs1, dir, fs2, newDir)) {
         if (fs2.exists(newDir)) {
-          Path newDirBackup = getBackupName(fs2, newDir);
+          Path newDirBackup = getBackupName(newDir);
           // never delete anything because were dealing with the root tablet
           // one reason this dir may exist is because this method failed previously
           log.info("renaming {} to {}", newDir, newDirBackup);
@@ -313,7 +313,7 @@ public class VolumeUtil {
         // rename the old dir to avoid confusion when someone looks at filesystem... its ok if we
         // fail here and this does not happen because the location in
         // zookeeper is the authority
-        Path dirBackup = getBackupName(fs1, dir);
+        Path dirBackup = getBackupName(dir);
         log.info("renaming {} to {}", dir, dirBackup);
         fs1.rename(dir, dirBackup);
 
@@ -378,7 +378,7 @@ public class VolumeUtil {
 
   }
 
-  private static Path getBackupName(FileSystem fs, Path path) {
+  private static Path getBackupName(Path path) {
     return new Path(path.getParent(), path.getName() + "_" + System.currentTimeMillis() + "_"
         + (rand.nextInt(Integer.MAX_VALUE) + 1) + ".bak");
   }

@@ -16,10 +16,8 @@
  */
 package org.apache.accumulo.tracer;
 
-import java.util.Collection;
-
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 
 public interface SpanTreeVisitor {
-  void visit(int level, RemoteSpan parent, RemoteSpan node, Collection<RemoteSpan> children);
+  void visit(int level, RemoteSpan node);
 }

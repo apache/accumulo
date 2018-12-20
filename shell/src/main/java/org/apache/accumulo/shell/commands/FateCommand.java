@@ -145,7 +145,7 @@ public class FateCommand extends Command {
       }
       for (int i = 1; i < args.length; i++) {
         if (admin.prepDelete(zs, zk, masterPath, args[i])) {
-          admin.deleteLocks(zs, zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, args[i]);
+          admin.deleteLocks(zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, args[i]);
         } else {
           System.out.printf("Could not delete transaction: %s%n", args[i]);
           failedCommand = true;

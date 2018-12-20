@@ -71,8 +71,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
 
   protected static final String ROOT_PASSWORD = "testRootPassword1";
 
-  public static void configureForEnvironment(MiniAccumuloConfigImpl cfg, Class<?> testClass,
-      File folder) {
+  public static void configureForEnvironment(MiniAccumuloConfigImpl cfg, File folder) {
     if ("true".equals(System.getProperty("org.apache.accumulo.test.functional.useSslForIT"))) {
       configureForSsl(cfg, folder);
     }
@@ -159,7 +158,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     Configuration coreSite = new Configuration(false);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
     configure(cfg, coreSite);
-    configureForEnvironment(cfg, getClass(), getSslDir(baseDir));
+    configureForEnvironment(cfg, getSslDir(baseDir));
     cluster = new MiniAccumuloClusterImpl(cfg);
     if (coreSite.size() > 0) {
       File csFile = new File(cluster.getConfig().getConfDir(), "core-site.xml");

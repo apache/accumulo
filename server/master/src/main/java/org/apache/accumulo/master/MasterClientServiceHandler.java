@@ -451,7 +451,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
   @Override
   public void waitForBalance(TInfo tinfo) {
-    master.waitForBalance(tinfo);
+    master.waitForBalance();
   }
 
   @Override

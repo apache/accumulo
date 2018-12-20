@@ -264,8 +264,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException;
   }
 
-  public static List<KeyExtent> findOverlappingTablets(ClientContext context,
-      KeyExtentCache extentCache, FileSKVIterator reader)
+  public static List<KeyExtent> findOverlappingTablets(KeyExtentCache extentCache,
+      FileSKVIterator reader)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     Text startRow = null;
@@ -311,7 +311,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         .forFile(file.toString(), fs, fs.getConf(), cs)
         .withTableConfiguration(context.getConfiguration()).withFileLenCache(fileLenCache)
         .seekToBeginning().build()) {
-      return findOverlappingTablets(context, extentCache, reader);
+      return findOverlappingTablets(extentCache, reader);
     }
   }
 

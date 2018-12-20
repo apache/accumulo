@@ -226,12 +226,10 @@ public abstract class AbstractInputFormat {
      *
      * @param job
      *          the Hadoop job configuration
-     * @param tableName
-     *          the table name for which the scanner is configured
      * @return List of iterator settings for given table
      * @since 1.7.0
      */
-    protected abstract List<IteratorSetting> jobIterators(JobConf job, String tableName);
+    protected abstract List<IteratorSetting> jobIterators(JobConf job);
 
     /**
      * Configures the iterators on a scanner for the given table name.
@@ -249,11 +247,11 @@ public abstract class AbstractInputFormat {
       List<IteratorSetting> iterators = null;
 
       if (split == null) {
-        iterators = jobIterators(job, tableName);
+        iterators = jobIterators(job);
       } else {
         iterators = split.getIterators();
         if (iterators == null) {
-          iterators = jobIterators(job, tableName);
+          iterators = jobIterators(job);
         }
       }
 

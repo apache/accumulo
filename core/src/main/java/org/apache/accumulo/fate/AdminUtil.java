@@ -385,7 +385,7 @@ public class AdminUtil<T> {
     return state;
   }
 
-  public void deleteLocks(TStore<T> zs, IZooReaderWriter zk, String path, String txidStr)
+  public void deleteLocks(IZooReaderWriter zk, String path, String txidStr)
       throws KeeperException, InterruptedException {
     // delete any locks assoc w/ fate operation
     List<String> lockedIds = zk.getChildren(path);

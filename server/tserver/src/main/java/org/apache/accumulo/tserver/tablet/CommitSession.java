@@ -74,7 +74,7 @@ public class CommitSession {
   }
 
   public void abortCommit(List<Mutation> value) {
-    committer.abortCommit(this, value);
+    committer.abortCommit(this);
   }
 
   public void commit(List<Mutation> mutations) {

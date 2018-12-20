@@ -51,7 +51,7 @@ public class ZooSession {
   private static final Logger log = LoggerFactory.getLogger(ZooSession.class);
 
   private static class ZooSessionInfo {
-    public ZooSessionInfo(ZooKeeper zooKeeper, ZooWatcher watcher) {
+    public ZooSessionInfo(ZooKeeper zooKeeper) {
       this.zooKeeper = zooKeeper;
     }
 
@@ -198,7 +198,7 @@ public class ZooSession {
     if (zsi == null) {
       ZooWatcher watcher = new ZooWatcher();
       log.debug("Connecting to {} with timeout {} with auth", zooKeepers, timeout);
-      zsi = new ZooSessionInfo(connect(zooKeepers, timeout, scheme, auth, watcher), watcher);
+      zsi = new ZooSessionInfo(connect(zooKeepers, timeout, scheme, auth, watcher));
       sessions.put(sessionKey, zsi);
       if (auth != null && !sessions.containsKey(readOnlySessionKey))
         sessions.put(readOnlySessionKey, zsi);

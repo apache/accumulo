@@ -159,8 +159,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     bw.close();
   }
 
-  public static void verifyVolumes(AccumuloClient accumuloClient, String tableName,
-      Range tableRange, String vol) throws Exception {
+  public static void verifyVolumes(AccumuloClient accumuloClient, Range tableRange, String vol)
+      throws Exception {
     // Verify the new files are written to the Volumes specified
     ArrayList<String> volumes = new ArrayList<>();
     for (String s : vol.split(","))
@@ -191,8 +191,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     assertEquals("Wrong number of files", 26, fileCount);
   }
 
-  public static void verifyNoVolumes(AccumuloClient accumuloClient, String tableName,
-      Range tableRange) throws Exception {
+  public static void verifyNoVolumes(AccumuloClient accumuloClient, Range tableRange)
+      throws Exception {
     try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -224,7 +224,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     // Write some data to the table
     writeAndReadData(accumuloClient, tableName);
     // Verify the new files are written to the Volumes specified
-    verifyVolumes(accumuloClient, tableName, TabletsSection.getRange(tableID), expectedVolumes);
+    verifyVolumes(accumuloClient, TabletsSection.getRange(tableID), expectedVolumes);
   }
 
   public static void verifyWaLogVolumes(AccumuloClient accumuloClient, Range tableRange, String vol)
@@ -309,8 +309,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       writeAndReadData(accumuloClient, tableName);
       // Verify the new files are written to the Volumes specified
 
-      verifyVolumes(accumuloClient, tableName, TabletsSection.getRange(tableID),
-          v1 + "," + v2 + "," + v4);
+      verifyVolumes(accumuloClient, TabletsSection.getRange(tableID), v1 + "," + v2 + "," + v4);
 
       accumuloClient.namespaceOperations().create(namespace2);
 
@@ -329,8 +328,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       // Write some data to the table
       writeAndReadData(accumuloClient, tableName2);
       // Verify the new files are written to the Volumes specified
-      verifyVolumes(accumuloClient, tableName2, TabletsSection.getRange(tableID2),
-          v1 + "," + v2 + "," + v4);
+      verifyVolumes(accumuloClient, TabletsSection.getRange(tableID2), v1 + "," + v2 + "," + v4);
     }
   }
 

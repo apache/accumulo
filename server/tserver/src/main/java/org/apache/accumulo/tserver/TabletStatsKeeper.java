@@ -59,7 +59,7 @@ public class TabletStatsKeeper {
 
   }
 
-  public void updateTime(Operation operation, long start, long count, boolean failed) {
+  public void updateTime(Operation operation, long start, boolean failed) {
     try {
       ActionStats data = map[operation.ordinal()];
       if (failed) {

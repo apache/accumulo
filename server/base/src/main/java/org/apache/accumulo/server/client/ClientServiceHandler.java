@@ -342,7 +342,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
         bulkImportStatus.updateBulkImportStatus(files, BulkImportState.PROCESSING);
         try {
-          return BulkImporter.bulkLoad(context, tid, tableId, files, errorDir, setTime);
+          return BulkImporter.bulkLoad(context, tid, tableId, files, setTime);
         } finally {
           bulkImportStatus.removeBulkImportStatus(files);
         }

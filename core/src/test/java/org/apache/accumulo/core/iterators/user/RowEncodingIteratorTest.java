@@ -58,7 +58,7 @@ public class RowEncodingIteratorTest {
 
   private static final class RowEncodingIteratorImpl extends RowEncodingIterator {
 
-    public static SortedMap<Key,Value> decodeRow(Key rowKey, Value rowValue) throws IOException {
+    public static SortedMap<Key,Value> decodeRow(Value rowValue) throws IOException {
       DataInputStream dis = new DataInputStream(new ByteArrayInputStream(rowValue.get()));
       int numKeys = dis.readInt();
       List<Key> decodedKeys = new ArrayList<>();
@@ -86,7 +86,7 @@ public class RowEncodingIteratorTest {
 
     @Override
     public SortedMap<Key,Value> rowDecoder(Key rowKey, Value rowValue) throws IOException {
-      return decodeRow(rowKey, rowValue);
+      return decodeRow(rowValue);
     }
 
     @Override
@@ -141,7 +141,7 @@ public class RowEncodingIteratorTest {
     iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
-    assertEquals(map1, RowEncodingIteratorImpl.decodeRow(iter.getTopKey(), iter.getTopValue()));
+    assertEquals(map1, RowEncodingIteratorImpl.decodeRow(iter.getTopValue()));
 
     // simulate something continuing using the last key from the iterator
     // this is what client and server code will do
@@ -149,7 +149,7 @@ public class RowEncodingIteratorTest {
     iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
-    assertEquals(map2, RowEncodingIteratorImpl.decodeRow(iter.getTopKey(), iter.getTopValue()));
+    assertEquals(map2, RowEncodingIteratorImpl.decodeRow(iter.getTopValue()));
 
     iter.next();
 

@@ -16,13 +16,11 @@
  */
 package org.apache.accumulo.server.tables;
 
-import java.util.Map;
-
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.master.state.tables.TableState;
 
 public interface TableObserver {
-  void initialize(Map<Table.ID,TableState> tableIdToStateMap);
+  void initialize();
 
   void stateChanged(Table.ID tableId, TableState tState);
 

@@ -70,7 +70,7 @@ public class DeleteTableCommand extends TableOperation {
   }
 
   @Override
-  protected void pruneTables(String pattern, Set<String> tables) {
+  protected void pruneTables(Set<String> tables) {
     Iterator<String> tableNames = tables.iterator();
     while (tableNames.hasNext()) {
       String table = tableNames.next();

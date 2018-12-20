@@ -189,9 +189,9 @@ public class TServerUtils {
    * Create a NonBlockingServer with a custom thread pool that can dynamically resize itself.
    */
   public static ServerAddress createNonBlockingServer(HostAndPort address, TProcessor processor,
-      TProtocolFactory protocolFactory, final String serverName, String threadName,
-      final int numThreads, final int numSTThreads, long timeBetweenThreadChecks,
-      long maxMessageSize) throws TTransportException {
+      TProtocolFactory protocolFactory, final String serverName, final int numThreads,
+      final int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize)
+      throws TTransportException {
 
     final TNonblockingServerSocket transport = new TNonblockingServerSocket(
         new InetSocketAddress(address.getHost(), address.getPort()));
@@ -426,7 +426,7 @@ public class TServerUtils {
 
   public static ServerAddress createSaslThreadPoolServer(HostAndPort address, TProcessor processor,
       TProtocolFactory protocolFactory, long socketTimeout, SaslServerConnectionParams params,
-      final String serverName, String threadName, final int numThreads, final int numSTThreads,
+      final String serverName, final int numThreads, final int numSTThreads,
       long timeBetweenThreadChecks) throws TTransportException {
     // We'd really prefer to use THsHaServer (or similar) to avoid 1 RPC == 1 Thread that the
     // TThreadPoolServer does,
@@ -579,7 +579,7 @@ public class TServerUtils {
           case SASL:
             log.debug("Instantiating SASL Thrift server");
             serverAddress = createSaslThreadPoolServer(address, processor, protocolFactory,
-                serverSocketTimeout, saslParams, serverName, threadName, numThreads, numSTThreads,
+                serverSocketTimeout, saslParams, serverName, numThreads, numSTThreads,
                 timeBetweenThreadChecks);
             break;
           case THREADPOOL:
@@ -592,7 +592,7 @@ public class TServerUtils {
           default:
             log.debug("Instantiating default, unsecure custom half-async Thrift server");
             serverAddress = createNonBlockingServer(address, processor, protocolFactory, serverName,
-                threadName, numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
+                numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
         }
         break;
       } catch (TTransportException e) {

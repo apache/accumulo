@@ -52,7 +52,7 @@ public abstract class TableOperation extends Command {
         if (table.matches(tablePattern)) {
           tableSet.add(table);
         }
-      pruneTables(tablePattern, tableSet);
+      pruneTables(tableSet);
     } else if (cl.hasOption(optTableName.getOpt())) {
       tableSet.add(cl.getOptionValue(optTableName.getOpt()));
     } else if (cl.hasOption(optNamespace.getOpt())) {
@@ -101,12 +101,10 @@ public abstract class TableOperation extends Command {
   /**
    * Allows implementation to remove certain tables from the set of tables to be operated on.
    *
-   * @param pattern
-   *          The pattern which tables were selected using
    * @param tables
    *          A reference to the Set of tables to be operated on
    */
-  protected void pruneTables(String pattern, Set<String> tables) {
+  protected void pruneTables(Set<String> tables) {
     // Default no pruning
   }
 

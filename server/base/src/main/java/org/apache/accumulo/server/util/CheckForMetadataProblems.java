@@ -40,7 +40,7 @@ import org.apache.hadoop.io.Text;
 public class CheckForMetadataProblems {
   private static boolean sawProblems = false;
 
-  public static void checkTable(String tablename, TreeSet<KeyExtent> tablets, ServerUtilOpts opts) {
+  public static void checkTable(String tablename, TreeSet<KeyExtent> tablets) {
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
 
@@ -91,8 +91,8 @@ public class CheckForMetadataProblems {
       sawProblems = true;
   }
 
-  public static void checkMetadataAndRootTableEntries(String tableNameToCheck, ServerUtilOpts opts,
-      VolumeManager fs) throws Exception {
+  public static void checkMetadataAndRootTableEntries(String tableNameToCheck, ServerUtilOpts opts)
+      throws Exception {
     System.out.println("Checking table: " + tableNameToCheck);
     Map<String,TreeSet<KeyExtent>> tables = new HashMap<>();
 
@@ -124,7 +124,7 @@ public class CheckForMetadataProblems {
           Set<Entry<String,TreeSet<KeyExtent>>> es = tables.entrySet();
 
           for (Entry<String,TreeSet<KeyExtent>> entry2 : es) {
-            checkTable(entry2.getKey(), entry2.getValue(), opts);
+            checkTable(entry2.getKey(), entry2.getValue());
           }
 
           tables.clear();
@@ -155,7 +155,7 @@ public class CheckForMetadataProblems {
     Set<Entry<String,TreeSet<KeyExtent>>> es = tables.entrySet();
 
     for (Entry<String,TreeSet<KeyExtent>> entry : es) {
-      checkTable(entry.getKey(), entry.getValue(), opts);
+      checkTable(entry.getKey(), entry.getValue());
     }
 
     if (!sawProblems) {
@@ -170,8 +170,8 @@ public class CheckForMetadataProblems {
 
     VolumeManager fs = opts.getServerContext().getVolumeManager();
 
-    checkMetadataAndRootTableEntries(RootTable.NAME, opts, fs);
-    checkMetadataAndRootTableEntries(MetadataTable.NAME, opts, fs);
+    checkMetadataAndRootTableEntries(RootTable.NAME, opts);
+    checkMetadataAndRootTableEntries(MetadataTable.NAME, opts);
     opts.stopTracing();
     if (sawProblems)
       throw new RuntimeException();

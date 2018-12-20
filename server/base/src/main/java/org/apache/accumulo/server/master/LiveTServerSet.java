@@ -185,7 +185,7 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void splitTablet(ZooLock lock, KeyExtent extent, Text splitPoint)
+    public void splitTablet(KeyExtent extent, Text splitPoint)
         throws TException, ThriftSecurityException, NotServingTabletException {
       TabletClientService.Client client = ThriftUtil
           .getClient(new TabletClientService.Client.Factory(), address, context);

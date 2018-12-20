@@ -104,8 +104,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
       boolean more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent,
           src.tablet_location, encodedResults, locCols, serverSideIteratorList,
-          serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, 0L,
-          null);
+          serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
       decodeRows(encodedResults, results);
 
@@ -115,8 +114,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         encodedResults.clear();
         more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent,
             src.tablet_location, encodedResults, locCols, serverSideIteratorList,
-            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, 0L,
-            null);
+            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, 0L, null);
 
         decodeRows(encodedResults, results);
       }

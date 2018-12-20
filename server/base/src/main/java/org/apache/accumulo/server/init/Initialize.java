@@ -427,7 +427,7 @@ public class Initialize implements KeywordExecutable {
       }
 
       try {
-        initSecurity(context, opts, uuid.toString(), rootUser);
+        initSecurity(context, opts, rootUser);
       } catch (Exception e) {
         log.error("FATAL: Failed to initialize security", e);
         return false;
@@ -775,7 +775,7 @@ public class Initialize implements KeywordExecutable {
     return optionalWarning;
   }
 
-  private static void initSecurity(ServerContext context, Opts opts, String iid, String rootUser)
+  private static void initSecurity(ServerContext context, Opts opts, String rootUser)
       throws AccumuloSecurityException {
     AuditedSecurityOperation.getInstance(context, true).initializeSecurity(context.rpcCreds(),
         rootUser, opts.rootpass);
@@ -953,7 +953,7 @@ public class Initialize implements KeywordExecutable {
 
             final String rootUser = getRootUserName(siteConfig, opts);
             opts.rootpass = getRootPassword(siteConfig, opts, rootUser);
-            initSecurity(context, opts, context.getInstanceID(), rootUser);
+            initSecurity(context, opts, rootUser);
           } else {
             log.error("FATAL: Attempted to reset security on accumulo before it was initialized");
           }

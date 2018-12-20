@@ -48,7 +48,7 @@ public class DefaultLoadBalancerTest {
   class FakeTServer {
     List<KeyExtent> extents = new ArrayList<>();
 
-    TabletServerStatus getStatus(TServerInstance server) {
+    TabletServerStatus getStatus() {
       TabletServerStatus result = new TabletServerStatus();
       result.tableMap = new HashMap<>();
       for (KeyExtent extent : extents) {
@@ -115,7 +115,7 @@ public class DefaultLoadBalancerTest {
 
     SortedMap<TServerInstance,TabletServerStatus> current = new TreeMap<>();
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
-      current.put(entry.getKey(), entry.getValue().getStatus(entry.getKey()));
+      current.put(entry.getKey(), entry.getValue().getStatus());
     }
     assignTablets(metadataTable, servers, current, balancer);
 
@@ -128,7 +128,7 @@ public class DefaultLoadBalancerTest {
 
     // Rebalance once
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
-      current.put(entry.getKey(), entry.getValue().getStatus(entry.getKey()));
+      current.put(entry.getKey(), entry.getValue().getStatus());
     }
 
     // Nothing should happen, we are balanced
@@ -151,7 +151,7 @@ public class DefaultLoadBalancerTest {
       SortedMap<TServerInstance,TabletServerStatus> status, TestDefaultLoadBalancer balancer) {
     // Assign tablets
     for (KeyExtent extent : metadataTable) {
-      TServerInstance assignment = balancer.getAssignment(status, extent, last.get(extent));
+      TServerInstance assignment = balancer.getAssignment(status, last.get(extent));
       assertNotNull(assignment);
       assertFalse(servers.get(assignment).extents.contains(extent));
       servers.get(assignment).extents.add(extent);
@@ -163,7 +163,7 @@ public class DefaultLoadBalancerTest {
       Map<TServerInstance,FakeTServer> servers) {
     SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<>();
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
-      result.put(entry.getKey(), entry.getValue().getStatus(entry.getKey()));
+      result.put(entry.getKey(), entry.getValue().getStatus());
     }
     return result;
   }

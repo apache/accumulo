@@ -95,7 +95,7 @@ public class FateAdmin {
           if (!admin.prepDelete(zs, zk, masterPath, txid)) {
             System.exit(1);
           }
-          admin.deleteLocks(zs, zk, zkRoot + Constants.ZTABLE_LOCKS, txid);
+          admin.deleteLocks(zk, zkRoot + Constants.ZTABLE_LOCKS, txid);
         }
       } else if (jc.getParsedCommand().equals("print")) {
         admin.print(new ReadOnlyStore<>(zs), zk, zkRoot + Constants.ZTABLE_LOCKS);

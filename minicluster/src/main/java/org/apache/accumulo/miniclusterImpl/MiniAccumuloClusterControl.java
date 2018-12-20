@@ -135,11 +135,11 @@ public class MiniAccumuloClusterControl implements ClusterControl {
 
   @Override
   public synchronized void start(ServerType server, String hostname) throws IOException {
-    start(server, hostname, Collections.emptyMap(), Integer.MAX_VALUE);
+    start(server, Collections.emptyMap(), Integer.MAX_VALUE);
   }
 
-  public synchronized void start(ServerType server, String hostname,
-      Map<String,String> configOverrides, int limit) throws IOException {
+  public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit)
+      throws IOException {
     if (limit <= 0) {
       return;
     }

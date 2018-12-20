@@ -226,13 +226,10 @@ public abstract class AbstractInputFormat {
      *
      * @param context
      *          the Hadoop context for the configured job
-     * @param tableName
-     *          the table name for which the scanner is configured
      * @return List of iterator settings for given table
      * @since 1.7.0
      */
-    protected abstract List<IteratorSetting> contextIterators(TaskAttemptContext context,
-        String tableName);
+    protected abstract List<IteratorSetting> contextIterators(TaskAttemptContext context);
 
     /**
      * Configures the iterators on a scanner for the given table name. Will attempt to use
@@ -254,11 +251,11 @@ public abstract class AbstractInputFormat {
       List<IteratorSetting> iterators = null;
 
       if (split == null) {
-        iterators = contextIterators(context, tableName);
+        iterators = contextIterators(context);
       } else {
         iterators = split.getIterators();
         if (iterators == null) {
-          iterators = contextIterators(context, tableName);
+          iterators = contextIterators(context);
         }
       }
 

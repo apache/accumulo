@@ -16,14 +16,13 @@
  */
 package org.apache.accumulo.server.master.recovery;
 
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
 
 public class RecoveryPath {
 
   // given a wal path, transform it to a recovery path
-  public static Path getRecoveryPath(VolumeManager fs, Path walPath) {
+  public static Path getRecoveryPath(Path walPath) {
     if (walPath.depth() >= 3 && walPath.toUri().getScheme() != null) {
       // its a fully qualified path
       String uuid = walPath.getName();

@@ -137,7 +137,7 @@ public class ContinuousIngest {
           firstColFams[index] = cf;
           firstColQuals[index] = cq;
 
-          Mutation m = genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null, r,
+          Mutation m = genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null,
               opts.checksum);
           count++;
           bw.addMutation(m);
@@ -154,7 +154,7 @@ public class ContinuousIngest {
             byte[] prevRow = genRow(prevRows[index]);
             prevRows[index] = rowLong;
             Mutation m = genMutation(rowLong, r.nextInt(opts.maxColF), r.nextInt(opts.maxColQ), cv,
-                ingestInstanceId, count, prevRow, r, opts.checksum);
+                ingestInstanceId, count, prevRow, opts.checksum);
             count++;
             bw.addMutation(m);
           }
@@ -168,7 +168,7 @@ public class ContinuousIngest {
         // point to something
         for (int index = 0; index < flushInterval - 1; index++) {
           Mutation m = genMutation(firstRows[index], firstColFams[index], firstColQuals[index], cv,
-              ingestInstanceId, count, genRow(prevRows[index + 1]), r, opts.checksum);
+              ingestInstanceId, count, genRow(prevRows[index + 1]), opts.checksum);
           count++;
           bw.addMutation(m);
         }
@@ -194,7 +194,7 @@ public class ContinuousIngest {
   }
 
   public static Mutation genMutation(long rowLong, int cfInt, int cqInt, ColumnVisibility cv,
-      byte[] ingestInstanceId, long count, byte[] prevRow, Random r, boolean checksum) {
+      byte[] ingestInstanceId, long count, byte[] prevRow, boolean checksum) {
     // Adler32 is supposed to be faster, but according to wikipedia is not good for small data....
     // so used CRC32 instead
     CRC32 cksum = null;

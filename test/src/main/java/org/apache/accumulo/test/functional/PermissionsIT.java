@@ -588,12 +588,12 @@ public class PermissionsIT extends AccumuloClusterHarness {
           // test permission before and after granting it
           createTestTable(c, principal, tableName);
           loginAs(testUser);
-          testMissingTablePermission(test_user_client, testUser, perm, tableName);
+          testMissingTablePermission(test_user_client, perm, tableName);
           loginAs(rootUser);
           c.securityOperations().grantTablePermission(principal, tableName, perm);
           verifyHasOnlyTheseTablePermissions(c, principal, tableName, perm);
           loginAs(testUser);
-          testGrantedTablePermission(test_user_client, testUser, perm, tableName);
+          testGrantedTablePermission(test_user_client, perm, tableName);
 
           loginAs(rootUser);
           createTestTable(c, principal, tableName);
@@ -623,8 +623,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void testMissingTablePermission(AccumuloClient test_user_client, ClusterUser testUser,
-      TablePermission perm, String tableName) throws Exception {
+  private void testMissingTablePermission(AccumuloClient test_user_client, TablePermission perm,
+      String tableName) throws Exception {
     BatchWriter writer;
     Mutation m;
     log.debug("Confirming that the lack of the {} permission properly restricts the user", perm);
@@ -712,8 +712,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
   }
 
-  private void testGrantedTablePermission(AccumuloClient test_user_client, ClusterUser normalUser,
-      TablePermission perm, String tableName) throws AccumuloException, AccumuloSecurityException,
+  private void testGrantedTablePermission(AccumuloClient test_user_client, TablePermission perm,
+      String tableName) throws AccumuloException,  AccumuloSecurityException,
       TableNotFoundException, MutationsRejectedException {
     BatchWriter writer;
     Mutation m;

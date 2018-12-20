@@ -900,7 +900,7 @@ public class TabletServerResourceManager {
             throw new IOException("tired to close files while open files reserved");
 
           memMgmt.tabletClosed(extent);
-          memoryManager.tabletClosed(extent);
+          memoryManager.tabletClosed();
 
           closed = true;
         }

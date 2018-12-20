@@ -432,8 +432,8 @@ public class Tablet implements TabletCommitter {
         for (FileRef ref : datafiles.keySet())
           absPaths.add(ref.path().toString());
 
-        tabletServer.recover(this.getTabletServer().getFileSystem(), extent, tableConfiguration,
-            logEntries, absPaths, new MutationReceiver() {
+        tabletServer.recover(this.getTabletServer().getFileSystem(), extent, logEntries, absPaths,
+            new MutationReceiver() {
               @Override
               public void receive(Mutation m) {
                 // LogReader.printMutation(m);
@@ -895,9 +895,9 @@ public class Tablet implements TabletCommitter {
     return new Scanner(this, range, opts);
   }
 
-  DataFileValue minorCompact(VolumeManager fs, InMemoryMap memTable, FileRef tmpDatafile,
-      FileRef newDatafile, FileRef mergeFile, boolean hasQueueTime, long queued,
-      CommitSession commitSession, long flushId, MinorCompactionReason mincReason) {
+  DataFileValue minorCompact(InMemoryMap memTable, FileRef tmpDatafile, FileRef newDatafile,
+      FileRef mergeFile, boolean hasQueueTime, long queued, CommitSession commitSession,
+      long flushId, MinorCompactionReason mincReason) {
     boolean failed = false;
     long start = System.currentTimeMillis();
     timer.incrementStatusMinor();
@@ -953,7 +953,7 @@ public class Tablet implements TabletCommitter {
         if (minCMetrics.isEnabled())
           minCMetrics.add(TabletServerMinCMetrics.QUEUE, (start - queued));
       } else
-        timer.updateTime(Operation.MINOR, start, count, failed);
+        timer.updateTime(Operation.MINOR, start, failed);
     }
   }
 
@@ -1257,7 +1257,7 @@ public class Tablet implements TabletCommitter {
   }
 
   @Override
-  public synchronized void abortCommit(CommitSession commitSession, List<Mutation> value) {
+  public synchronized void abortCommit(CommitSession commitSession) {
     if (writesInProgress <= 0) {
       throw new IllegalStateException("waitingForLogs <= 0 " + writesInProgress);
     }

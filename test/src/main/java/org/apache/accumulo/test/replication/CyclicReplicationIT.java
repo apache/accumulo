@@ -170,7 +170,7 @@ public class CyclicReplicationIT {
       master1Cfg.setInstanceName("master1");
 
       // Set up SSL if needed
-      ConfigurableMacBase.configureForEnvironment(master1Cfg, this.getClass(),
+      ConfigurableMacBase.configureForEnvironment(master1Cfg,
           ConfigurableMacBase.getSslDir(master1Dir));
 
       master1Cfg.setProperty(Property.REPLICATION_NAME, master1Cfg.getInstanceName());

@@ -90,7 +90,7 @@ public class ThriftScanner {
       String server, SortedMap<Key,Value> results, SortedSet<Column> fetchedColumns,
       List<IterInfo> serverSideIteratorList,
       Map<String,Map<String,String>> serverSideIteratorOptions, int size,
-      Authorizations authorizations, boolean retry, long batchTimeOut, String classLoaderContext)
+      Authorizations authorizations, long batchTimeOut, String classLoaderContext)
       throws AccumuloException, AccumuloSecurityException, NotServingTabletException {
     if (server == null)
       throw new AccumuloException(new IOException());
