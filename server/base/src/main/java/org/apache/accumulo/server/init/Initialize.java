@@ -43,6 +43,7 @@ import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -929,6 +930,7 @@ public class Initialize implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs("accumulo init", args);
     SiteConfiguration siteConfig = new SiteConfiguration();
+    ConfigSanityCheck.validate(siteConfig);
 
     try {
       setZooReaderWriter(new ZooReaderWriter(siteConfig));
