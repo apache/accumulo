@@ -45,6 +45,6 @@ public class VisibilitySummarizer extends CountingSummarizer<ByteSequence> {
 
   @Override
   protected Converter<ByteSequence> converter() {
-    return (k, v, c) -> c.accept(k.getColumnVisibilityData());
+    return (k, c) -> c.accept(k.getColumnVisibilityData());
   }
 }

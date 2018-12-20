@@ -179,7 +179,7 @@ public abstract class CountingSummarizer<K> implements Summarizer {
      * @param consumer
      *          emit counter objects derived from key and value to this consumer
      */
-    void convert(Key k, Value v, Consumer<K> consumer);
+    void convert(Key k, Consumer<K> consumer);
   }
 
   /**
@@ -256,7 +256,7 @@ public abstract class CountingSummarizer<K> implements Summarizer {
         if (ignoreDeletes && k.isDeleted()) {
           deleted++;
         } else {
-          converter.convert(k, v, this::incrementCounter);
+          converter.convert(k, this::incrementCounter);
         }
       }
 
