@@ -792,7 +792,6 @@ public class TabletLocatorImplTest {
 
   @Test
   public void testBinRanges1() throws Exception {
-    Text tableName = new Text("foo");
 
     TabletLocatorImpl metaCache = createLocators("foo", nke("foo", null, null), "l1");
 
@@ -822,8 +821,6 @@ public class TabletLocatorImplTest {
   @Test
   public void testBinRanges2() throws Exception {
 
-    Text tableName = new Text("foo");
-
     List<Range> ranges = nrl(nr(null, null));
     TabletLocatorImpl metaCache = createLocators("foo", nke("foo", "g", null), "l1",
         nke("foo", null, "g"), "l2");
@@ -839,8 +836,6 @@ public class TabletLocatorImplTest {
 
   @Test
   public void testBinRanges3() throws Exception {
-
-    Text tableName = new Text("foo");
 
     // test with three tablets and a range that covers the whole table
     List<Range> ranges = nrl(nr(null, null));
@@ -915,7 +910,6 @@ public class TabletLocatorImplTest {
 
   @Test
   public void testBinRanges4() throws Exception {
-    Text tableName = new Text("foo");
 
     List<Range> ranges = nrl(new Range(new Text("1")));
     TabletLocatorImpl metaCache = createLocators("foo", nke("foo", "0", null), "l1",
@@ -988,7 +982,6 @@ public class TabletLocatorImplTest {
   @Test
   public void testBinRanges5() throws Exception {
     // Test binning when there is a hole in the metadata
-    Text tableName = new Text("foo");
 
     List<Range> ranges = nrl(new Range(new Text("1")));
     TabletLocatorImpl metaCache = createLocators("foo", nke("foo", "0", null), "l1",
