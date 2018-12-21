@@ -368,8 +368,6 @@ public class CredentialProviderFactoryShim {
    *          Configuration for the CredentialProvider
    * @return A list of aliases. An empty list if no CredentialProviders are configured, or the
    *         providers are empty.
-   * @throws IOException
-   *           On errors reading a CredentialProvider
    */
   public static List<String> getKeys(Configuration conf) {
     requireNonNull(conf);
