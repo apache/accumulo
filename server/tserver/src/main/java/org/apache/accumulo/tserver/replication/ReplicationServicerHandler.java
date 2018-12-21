@@ -48,7 +48,7 @@ public class ReplicationServicerHandler implements Iface {
 
   @Override
   public long replicateLog(String tableIdStr, WalEdits data, TCredentials tcreds)
-      throws RemoteReplicationException, TException {
+      throws TException {
     Table.ID tableId = Table.ID.of(tableIdStr);
     log.debug("Got replication request to tableID {} with {} edits", tableId, data.getEditsSize());
     tabletServer.getSecurityOperation().authenticateUser(tabletServer.getContext().rpcCreds(),

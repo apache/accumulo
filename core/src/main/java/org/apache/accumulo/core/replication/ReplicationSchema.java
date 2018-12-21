@@ -61,10 +61,6 @@ public class ReplicationSchema {
       _getFile(k, buff);
     }
 
-    public static ReplicationTarget getTarget(Key k) {
-      return getTarget(k, new Text());
-    }
-
     public static ReplicationTarget getTarget(Key k, Text buff) {
       checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()),
           "Given replication work key with incorrect colfam");
@@ -158,19 +154,6 @@ public class ReplicationSchema {
     public static final Text NAME = new Text("order");
     public static final Text ROW_SEPARATOR = new Text(new byte[] {0});
     private static final ULongLexicoder longEncoder = new ULongLexicoder();
-
-    /**
-     * Extract the table ID from the given key (inefficiently if called repeatedly)
-     *
-     * @param k
-     *          OrderSection Key
-     * @return source table id
-     */
-    public static String getTableId(Key k) {
-      Text buff = new Text();
-      getTableId(k, buff);
-      return buff.toString();
-    }
 
     /**
      * Extract the table ID from the given key
