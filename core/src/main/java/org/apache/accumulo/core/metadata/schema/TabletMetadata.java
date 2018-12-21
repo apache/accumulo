@@ -233,7 +233,7 @@ public class TabletMetadata {
     return keyValues;
   }
 
-  private static TabletMetadata convertRow(Iterator<Entry<Key,Value>> rowIter,
+  static TabletMetadata convertRow(Iterator<Entry<Key,Value>> rowIter,
       EnumSet<FetchedColumns> fetchedColumns, boolean buildKeyValueMap) {
     Objects.requireNonNull(rowIter);
 
