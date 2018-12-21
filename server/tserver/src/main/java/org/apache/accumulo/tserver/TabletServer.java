@@ -1509,8 +1509,7 @@ public class TabletServer implements Runnable {
               SecurityErrorCode.BAD_AUTHORIZATIONS);
 
       ConditionalSession cs = new ConditionalSession(credentials,
-          new Authorizations(authorizations), tableId, DurabilityImpl.fromThrift(tdurabilty),
-          classLoaderContext);
+          new Authorizations(authorizations), tableId, DurabilityImpl.fromThrift(tdurabilty));
 
       long sid = sessionManager.createSession(cs, false);
       return new TConditionalSession(sid, lockID, sessionManager.getMaxIdleTime());
@@ -3436,13 +3435,6 @@ public class TabletServer implements Runnable {
 
   // avoid unnecessary redundant markings to meta
   final ConcurrentHashMap<DfsLogger,EnumSet<TabletLevel>> metadataTableLogs = new ConcurrentHashMap<>();
-  final Object levelLocks[] = new Object[TabletLevel.values().length];
-
-  {
-    for (int i = 0; i < levelLocks.length; i++) {
-      levelLocks[i] = new Object();
-    }
-  }
 
   // This is a set of WALs that are closed but may still be referenced by tablets. A LinkedHashSet
   // is used because its very import to know the order in which WALs were closed when deciding if a

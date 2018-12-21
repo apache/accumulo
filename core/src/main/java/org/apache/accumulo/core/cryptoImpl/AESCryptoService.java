@@ -144,10 +144,6 @@ public class AESCryptoService implements CryptoService {
     String kekId;
     byte[] encFek;
 
-    public String getCryptoServiceName() {
-      return cryptoServiceName;
-    }
-
     public void setCryptoServiceName(String cryptoServiceName) {
       this.cryptoServiceName = cryptoServiceName;
     }

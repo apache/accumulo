@@ -16,19 +16,14 @@
  */
 package org.apache.accumulo.server.replication;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
@@ -42,20 +37,15 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
-import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
-import com.google.protobuf.InvalidProtocolBufferException;
 
 public class ReplicationUtil {
   private static final Logger log = LoggerFactory.getLogger(ReplicationUtil.class);
@@ -218,93 +208,6 @@ public class ReplicationUtil {
     }
 
     return paths;
-  }
-
-  /**
-   * Fetches the absolute path of the file to be replicated.
-   *
-   * @param workQueuePath
-   *          Root path for the Replication WorkQueue
-   * @param queueKey
-   *          The Replication work queue key
-   * @return The absolute path for the file, or null if the key is no longer in ZooKeeper
-   */
-  public String getAbsolutePath(String workQueuePath, String queueKey) {
-    byte[] data = zooCache.get(workQueuePath + "/" + queueKey);
-    if (data != null) {
-      return new String(data, UTF_8);
-    }
-
-    return null;
-  }
-
-  /**
-   * Compute a progress string for the replication of the given WAL
-   *
-   * @param client
-   *          Accumulo Client
-   * @param path
-   *          Absolute path to a WAL, or null
-   * @param target
-   *          ReplicationTarget the WAL is being replicated to
-   * @return A status message for a file being replicated
-   */
-  public String getProgress(AccumuloClient client, String path, ReplicationTarget target) {
-    // We could try to grep over the table, but without knowing the full file path, we
-    // can't find the status quickly
-    String status = "Unknown";
-    if (path != null) {
-      Scanner s;
-      try {
-        s = ReplicationTable.getScanner(client);
-      } catch (ReplicationTableOfflineException e) {
-        log.debug("Replication table no longer online", e);
-        return status;
-      }
-
-      s.setRange(Range.exact(path));
-      s.fetchColumn(WorkSection.NAME, target.toText());
-
-      // Fetch the work entry for this item
-      Entry<Key,Value> kv = null;
-      try {
-        kv = Iterables.getOnlyElement(s);
-      } catch (NoSuchElementException e) {
-        log.trace("Could not find status of {} replicating to {}", path, target);
-        status = "Unknown";
-      } finally {
-        s.close();
-      }
-
-      // If we found the work entry for it, try to compute some progress
-      if (kv != null) {
-        try {
-          Status stat = Status.parseFrom(kv.getValue().get());
-          if (StatusUtil.isFullyReplicated(stat)) {
-            status = "Finished";
-          } else {
-            if (stat.getInfiniteEnd()) {
-              status = stat.getBegin() + "/&infin; records";
-            } else {
-              status = stat.getBegin() + "/" + stat.getEnd() + " records";
-            }
-          }
-        } catch (InvalidProtocolBufferException e) {
-          log.warn("Could not deserialize protobuf for {}", kv.getKey(), e);
-          status = "Unknown";
-        }
-      }
-    }
-
-    return status;
-  }
-
-  public Map<String,String> invert(Map<String,String> map) {
-    Map<String,String> newMap = new HashMap<>(map.size());
-    for (Entry<String,String> entry : map.entrySet()) {
-      newMap.put(entry.getValue(), entry.getKey());
-    }
-    return newMap;
   }
 
 }

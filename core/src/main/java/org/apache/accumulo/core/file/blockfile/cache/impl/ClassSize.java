@@ -20,9 +20,6 @@ package org.apache.accumulo.core.file.blockfile.cache.impl;
 
 import java.util.Properties;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 /**
  * Class for determining the "size" of a class, an attempt to calculate the actual bytes that an
  * object of this class will occupy in memory
@@ -30,22 +27,12 @@ import org.apache.commons.logging.LogFactory;
  * The core of this class is taken from the Derby project
  */
 public class ClassSize {
-  static final Log LOG = LogFactory.getLog(ClassSize.class);
 
   /** Array overhead */
   public static final int ARRAY;
 
-  /** Overhead for ArrayList(0) */
-  public static final int ARRAYLIST;
-
   /** Overhead for ByteBuffer */
   public static final int BYTE_BUFFER;
-
-  /** Overhead for an Integer */
-  public static final int INTEGER;
-
-  /** Overhead for entry in map */
-  public static final int MAP_ENTRY;
 
   /** Object overhead is minimum 2 * reference size (8 bytes on 64-bit) */
   public static final int OBJECT;
@@ -56,9 +43,6 @@ public class ClassSize {
   /** String overhead */
   public static final int STRING;
 
-  /** Overhead for TreeMap */
-  public static final int TREEMAP;
-
   /** Overhead for ConcurrentHashMap */
   public static final int CONCURRENT_HASHMAP;
 
@@ -68,29 +52,8 @@ public class ClassSize {
   /** Overhead for ConcurrentHashMap.Segment */
   public static final int CONCURRENT_HASHMAP_SEGMENT;
 
-  /** Overhead for ConcurrentSkipListMap */
-  public static final int CONCURRENT_SKIPLISTMAP;
-
-  /** Overhead for ConcurrentSkipListMap Entry */
-  public static final int CONCURRENT_SKIPLISTMAP_ENTRY;
-
-  /** Overhead for ReentrantReadWriteLock */
-  public static final int REENTRANT_LOCK;
-
-  /** Overhead for AtomicLong */
-  public static final int ATOMIC_LONG;
-
   /** Overhead for AtomicInteger */
   public static final int ATOMIC_INTEGER;
-
-  /** Overhead for AtomicBoolean */
-  public static final int ATOMIC_BOOLEAN;
-
-  /** Overhead for CopyOnWriteArraySet */
-  public static final int COPYONWRITE_ARRAYSET;
-
-  /** Overhead for CopyOnWriteArrayList */
-  public static final int COPYONWRITE_ARRAYLIST;
 
   private static final String THIRTY_TWO = "32";
 
@@ -110,16 +73,8 @@ public class ClassSize {
 
     ARRAY = 3 * REFERENCE;
 
-    ARRAYLIST = align(OBJECT + align(REFERENCE) + align(ARRAY) + (2 * SizeConstants.SIZEOF_INT));
-
     BYTE_BUFFER = align(OBJECT + align(REFERENCE) + align(ARRAY) + (5 * SizeConstants.SIZEOF_INT)
         + (3 * SizeConstants.SIZEOF_BOOLEAN) + SizeConstants.SIZEOF_LONG);
-
-    INTEGER = align(OBJECT + SizeConstants.SIZEOF_INT);
-
-    MAP_ENTRY = align(OBJECT + 5 * REFERENCE + SizeConstants.SIZEOF_BOOLEAN);
-
-    TREEMAP = align(OBJECT + (2 * SizeConstants.SIZEOF_INT) + align(7 * REFERENCE));
 
     STRING = align(OBJECT + ARRAY + REFERENCE + 3 * SizeConstants.SIZEOF_INT);
 
@@ -131,22 +86,7 @@ public class ClassSize {
     CONCURRENT_HASHMAP_SEGMENT = align(
         REFERENCE + OBJECT + (3 * SizeConstants.SIZEOF_INT) + SizeConstants.SIZEOF_FLOAT + ARRAY);
 
-    CONCURRENT_SKIPLISTMAP = align(SizeConstants.SIZEOF_INT + OBJECT + (8 * REFERENCE));
-
-    CONCURRENT_SKIPLISTMAP_ENTRY = align(align(OBJECT + (3 * REFERENCE)) + /* one node per entry */
-        align((OBJECT + (3 * REFERENCE)) / 2)); /* one index per two entries */
-
-    REENTRANT_LOCK = align(OBJECT + (3 * REFERENCE));
-
-    ATOMIC_LONG = align(OBJECT + SizeConstants.SIZEOF_LONG);
-
     ATOMIC_INTEGER = align(OBJECT + SizeConstants.SIZEOF_INT);
-
-    ATOMIC_BOOLEAN = align(OBJECT + SizeConstants.SIZEOF_BOOLEAN);
-
-    COPYONWRITE_ARRAYSET = align(OBJECT + REFERENCE);
-
-    COPYONWRITE_ARRAYLIST = align(OBJECT + (2 * REFERENCE) + ARRAY);
   }
 
   /**

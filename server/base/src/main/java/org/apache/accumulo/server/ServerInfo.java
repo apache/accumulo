@@ -111,10 +111,6 @@ public class ServerInfo implements ClientInfo {
     return instanceID;
   }
 
-  public String getZooKeeperRoot() {
-    return zooKeeperRoot;
-  }
-
   @Override
   public String getZooKeepers() {
     return zooKeepers;

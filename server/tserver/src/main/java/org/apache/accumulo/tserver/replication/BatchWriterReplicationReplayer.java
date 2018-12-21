@@ -168,10 +168,4 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
     return mutationsApplied;
   }
 
-  @Override
-  public long replicateKeyValues() {
-    // TODO Implement me
-    throw new UnsupportedOperationException();
-  }
-
 }

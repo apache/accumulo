@@ -50,7 +50,6 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -212,31 +211,6 @@ class CleanUp extends MasterRepo {
     LoggerFactory.getLogger(CleanUp.class).debug("Deleted table " + tableId);
 
     return null;
-  }
-
-  protected void merge(VolumeManager fs, Path src, Path dest) throws IOException {
-    for (FileStatus child : fs.listStatus(src)) {
-      final String childName = child.getPath().getName();
-      final Path childInSrc = new Path(src, childName), childInDest = new Path(dest, childName);
-
-      if (child.isFile()) {
-        if (fs.exists(childInDest)) {
-          log.warn("File already exists in archive, ignoring. " + childInDest);
-        } else {
-          fs.rename(childInSrc, childInDest);
-        }
-      } else if (child.isDirectory()) {
-        if (fs.exists(childInDest)) {
-          // Recurse
-          merge(fs, childInSrc, childInDest);
-        } else {
-          fs.rename(childInSrc, childInDest);
-        }
-      } else {
-        // Symlinks shouldn't exist in table directories..
-        log.warn("Ignoring archiving of non file/directory: " + child);
-      }
-    }
   }
 
   @Override

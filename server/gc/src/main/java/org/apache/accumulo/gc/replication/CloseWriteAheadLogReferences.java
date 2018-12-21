@@ -18,7 +18,6 @@ package org.apache.accumulo.gc.replication;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -33,18 +32,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
-import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -53,7 +47,6 @@ import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -221,74 +214,4 @@ public class CloseWriteAheadLogReferences implements Runnable {
     bw.addMutation(m);
   }
 
-  private HostAndPort getMasterAddress() {
-    try {
-      List<String> locations = context.getMasterLocations();
-      if (locations.size() == 0)
-        return null;
-      return HostAndPort.fromString(locations.get(0));
-    } catch (Exception e) {
-      log.warn("Failed to obtain master host", e);
-    }
-
-    return null;
-  }
-
-  private MasterClientService.Client getMasterConnection() {
-    final HostAndPort address = getMasterAddress();
-    try {
-      if (address == null) {
-        log.warn("Could not fetch Master address");
-        return null;
-      }
-      return ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, context);
-    } catch (Exception e) {
-      log.warn("Issue with masterConnection (" + address + ") " + e, e);
-    }
-    return null;
-  }
-
-  /**
-   * Get the active tabletservers as seen by the master.
-   *
-   * @return The active tabletservers, null if they can't be computed.
-   */
-  protected List<String> getActiveTservers(TInfo tinfo) {
-    MasterClientService.Client client = null;
-
-    List<String> tservers = null;
-    try {
-      client = getMasterConnection();
-
-      // Could do this through InstanceOperations, but that would set a bunch of new Watchers via ZK
-      // on every tserver
-      // node. The master is already tracking all of this info, so hopefully this is less overall
-      // work.
-      if (client != null) {
-        tservers = client.getActiveTservers(tinfo, context.rpcCreds());
-      }
-    } catch (TException e) {
-      // If we can't fetch the tabletservers, we can't fetch any active WALs
-      log.warn("Failed to fetch active tabletservers from the master", e);
-      return null;
-    } finally {
-      ThriftUtil.returnClient(client);
-    }
-
-    return tservers;
-  }
-
-  protected List<String> getActiveWalsForServer(TInfo tinfo, HostAndPort server) {
-    TabletClientService.Client tserverClient = null;
-    try {
-      tserverClient = ThriftUtil.getClient(new TabletClientService.Client.Factory(), server,
-          context);
-      return tserverClient.getActiveLogs(tinfo, context.rpcCreds());
-    } catch (TException e) {
-      log.warn("Failed to fetch active write-ahead logs from " + server, e);
-      return null;
-    } finally {
-      ThriftUtil.returnClient(tserverClient);
-    }
-  }
 }

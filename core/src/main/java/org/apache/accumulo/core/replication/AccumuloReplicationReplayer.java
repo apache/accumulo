@@ -26,7 +26,4 @@ public interface AccumuloReplicationReplayer {
 
   long replicateLog(ClientContext context, String tableName, WalEdits data)
       throws RemoteReplicationException, AccumuloException, AccumuloSecurityException;
-
-  long replicateKeyValues() throws RemoteReplicationException;
-
 }

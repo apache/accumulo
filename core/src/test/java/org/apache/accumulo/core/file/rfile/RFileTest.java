@@ -305,7 +305,7 @@ public class RFileTest {
       LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
 
       CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader("source-1", in, fileLength, conf,
-          dataCache, indexCache, accumuloConfiguration,
+          dataCache, indexCache,
           CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
       reader = new RFile.Reader(_cbr);
       if (cfsi)
@@ -1736,7 +1736,7 @@ public class RFileTest {
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in2 = new FSDataInputStream(bais);
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in2, data.length,
-        CachedConfiguration.getInstance(), aconf,
+        CachedConfiguration.getInstance(),
         CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
     Reader reader = new RFile.Reader(_cbr);
     checkIndex(reader);

@@ -81,10 +81,6 @@ public class CommitSession {
     committer.commit(this, mutations);
   }
 
-  public TabletCommitter getTablet() {
-    return committer;
-  }
-
   public boolean beginUpdatingLogsUsed(DfsLogger copy, boolean mincFinish) {
     return committer.beginUpdatingLogsUsed(memTable, copy, mincFinish);
   }
