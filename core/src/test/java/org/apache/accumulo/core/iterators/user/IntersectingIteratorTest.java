@@ -103,8 +103,7 @@ public class IntersectingIteratorTest {
   }
 
   private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows,
-      int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies, HashSet<Text> docs)
-      throws IOException {
+      int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies, HashSet<Text> docs) {
     Text nullText[] = new Text[0];
     return createIteratorStack(hitRatio, numRows, numDocsPerRow, columnFamilies,
         otherColumnFamilies, docs, nullText);
@@ -112,13 +111,13 @@ public class IntersectingIteratorTest {
 
   private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows,
       int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies, HashSet<Text> docs,
-      Text[] negatedColumns) throws IOException {
+      Text[] negatedColumns) {
     TreeMap<Key,Value> inMemoryMap = createSortedMap(hitRatio, numRows, numDocsPerRow,
         columnFamilies, otherColumnFamilies, docs, negatedColumns);
     return new SortedMapIterator(inMemoryMap);
   }
 
-  private void cleanup() throws IOException {
+  private void cleanup() {
     docid = 0;
   }
 

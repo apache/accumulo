@@ -52,7 +52,7 @@ public class RateLimitedOutputStream extends DataOutputStream {
     out.close();
   }
 
-  public long position() throws IOException {
+  public long position() {
     return ((FSDataOutputStream) out).getPos();
   }
 }

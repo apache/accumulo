@@ -47,7 +47,6 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TableDeletedException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
@@ -678,7 +677,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
    * to finish... unless this exceeds timeout.
    */
   private void invalidateSession(SessionID sessionId, HostAndPort location)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException {
 
     long sleepTime = 50;
 

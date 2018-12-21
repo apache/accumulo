@@ -26,7 +26,7 @@ import org.junit.Test;
 public class ConfigurationTypeHelperTest {
 
   @Test
-  public void testGetMemoryInBytes() throws Exception {
+  public void testGetMemoryInBytes() {
     Arrays.<Function<String,Long>> asList(ConfigurationTypeHelper::getFixedMemoryAsBytes,
         ConfigurationTypeHelper::getMemoryAsBytes).stream().forEach(memFunc -> {
           assertEquals(42L, memFunc.apply("42").longValue());
@@ -46,27 +46,27 @@ public class ConfigurationTypeHelperTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void testGetFixedMemoryAsBytesFailureCases1() throws Exception {
+  public void testGetFixedMemoryAsBytesFailureCases1() {
     ConfigurationTypeHelper.getFixedMemoryAsBytes("42x");
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void testGetFixedMemoryAsBytesFailureCases2() throws Exception {
+  public void testGetFixedMemoryAsBytesFailureCases2() {
     ConfigurationTypeHelper.getFixedMemoryAsBytes("FooBar");
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void testGetFixedMemoryAsBytesFailureCases3() throws Exception {
+  public void testGetFixedMemoryAsBytesFailureCases3() {
     ConfigurationTypeHelper.getFixedMemoryAsBytes("40%");
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void testGetMemoryAsBytesFailureCases1() throws Exception {
+  public void testGetMemoryAsBytesFailureCases1() {
     ConfigurationTypeHelper.getMemoryAsBytes("42x");
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void testGetMemoryAsBytesFailureCases2() throws Exception {
+  public void testGetMemoryAsBytesFailureCases2() {
     ConfigurationTypeHelper.getMemoryAsBytes("FooBar");
   }
 

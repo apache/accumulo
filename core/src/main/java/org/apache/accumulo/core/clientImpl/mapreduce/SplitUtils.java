@@ -17,7 +17,6 @@
 
 package org.apache.accumulo.core.clientImpl.mapreduce;
 
-import java.io.IOException;
 import java.math.BigInteger;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -52,7 +51,7 @@ public class SplitUtils {
         / endBI.subtract(startBI).doubleValue());
   }
 
-  public static long getRangeLength(Range range) throws IOException {
+  public static long getRangeLength(Range range) {
     Text startRow = range.isInfiniteStartKey() ? new Text(new byte[] {Byte.MIN_VALUE})
         : range.getStartKey().getRow();
     Text stopRow = range.isInfiniteStopKey() ? new Text(new byte[] {Byte.MAX_VALUE})

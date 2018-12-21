@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -91,7 +90,7 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
 
   @Override
   public KeyExtent lookup(Text row)
-      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     while (true) {
       KeyExtent ke = getFromCache(row);
       if (ke != null)

@@ -24,7 +24,7 @@ import org.junit.Test;
 public class DateLexicoderTest extends AbstractLexicoderTest {
 
   @Test
-  public void testDecode() throws Exception {
+  public void testDecode() {
     assertDecodes(new DateLexicoder(), new Date());
     assertDecodes(new DateLexicoder(), new Date(0));
     assertDecodes(new DateLexicoder(), new Date(Long.MAX_VALUE));

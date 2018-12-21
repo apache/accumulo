@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocations;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
@@ -415,7 +414,7 @@ public class TabletLocatorImplTest {
 
     @Override
     public TabletLocations lookupTablet(ClientContext context, TabletLocation src, Text row,
-        Text stopRow, TabletLocator parent) throws AccumuloSecurityException {
+        Text stopRow, TabletLocator parent) {
 
       // System.out.println("lookupTablet("+src+","+row+","+stopRow+","+ parent+")");
       // System.out.println(tservers);
@@ -447,7 +446,7 @@ public class TabletLocatorImplTest {
 
     @Override
     public List<TabletLocation> lookupTablets(ClientContext context, String tserver,
-        Map<KeyExtent,List<Range>> map, TabletLocator parent) throws AccumuloSecurityException {
+        Map<KeyExtent,List<Range>> map, TabletLocator parent) {
 
       ArrayList<TabletLocation> list = new ArrayList<>();
 
@@ -1292,7 +1291,7 @@ public class TabletLocatorImplTest {
   }
 
   @Test
-  public void testAccumulo1248() throws Exception {
+  public void testAccumulo1248() {
     TServers tservers = new TServers();
     TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
 

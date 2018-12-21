@@ -25,8 +25,6 @@ import java.util.HashMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Table;
@@ -42,7 +40,7 @@ public class MetadataServicerTest {
   private static ClientContext context;
 
   @BeforeClass
-  public static void setupContext() throws Exception {
+  public static void setupContext() {
     HashMap<String,String> tableNameToIdMap = new HashMap<>();
     tableNameToIdMap.put(RootTable.NAME, RootTable.ID.canonicalID());
     tableNameToIdMap.put(MetadataTable.NAME, MetadataTable.ID.canonicalID());
@@ -63,8 +61,7 @@ public class MetadataServicerTest {
   }
 
   @Test
-  public void testGetCorrectServicer() throws AccumuloException, AccumuloSecurityException,
-      TableExistsException, TableNotFoundException {
+  public void testGetCorrectServicer() throws AccumuloException, AccumuloSecurityException {
     MetadataServicer ms = MetadataServicer.forTableId(context, RootTable.ID);
     assertTrue(ms instanceof ServicerForRootTable);
     assertFalse(ms instanceof TableMetadataServicer);

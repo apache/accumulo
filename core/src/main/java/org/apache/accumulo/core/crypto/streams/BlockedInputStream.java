@@ -147,7 +147,7 @@ public class BlockedInputStream extends InputStream {
   }
 
   @Override
-  public long skip(long n) throws IOException {
+  public long skip(long n) {
     throw new UnsupportedOperationException();
     // available(n);
     // bb.position(bb.position()+(int)n);

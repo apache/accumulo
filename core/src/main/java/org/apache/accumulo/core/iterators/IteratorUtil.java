@@ -448,7 +448,7 @@ public class IteratorUtil {
 
   public static SortedKeyValueIterator<Key,Value> setupSystemScanIterators(
       SortedKeyValueIterator<Key,Value> source, Set<Column> cols, Authorizations auths,
-      byte[] defaultVisibility, AccumuloConfiguration conf) throws IOException {
+      byte[] defaultVisibility, AccumuloConfiguration conf) {
     SortedKeyValueIterator<Key,Value> delIter = DeletingIterator.wrap(source, false,
         DeletingIterator.getBehavior(conf));
     ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);

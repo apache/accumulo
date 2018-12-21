@@ -18,8 +18,6 @@ package org.apache.accumulo.core.client.mapred;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -35,7 +33,7 @@ import org.junit.Test;
 public class AccumuloFileOutputFormatTest {
 
   @Test
-  public void validateConfiguration() throws IOException, InterruptedException {
+  public void validateConfiguration() {
 
     int a = 7;
     long b = 300L;

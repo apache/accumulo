@@ -106,7 +106,7 @@ public class BatchInputSplit extends org.apache.accumulo.core.client.mapreduce.R
    * have your code rely on this return value.
    */
   @Override
-  public long getLength() throws IOException {
+  public long getLength() {
     long sum = 0;
     for (Range range : ranges)
       sum += SplitUtils.getRangeLength(range);

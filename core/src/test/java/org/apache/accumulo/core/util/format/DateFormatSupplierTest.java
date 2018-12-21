@@ -44,14 +44,14 @@ public class DateFormatSupplierTest {
   }
 
   @Test
-  public void testCreateDefaultFormatSupplier() throws Exception {
+  public void testCreateDefaultFormatSupplier() {
     ThreadLocal<DateFormat> supplierA = DateFormatSupplier.createDefaultFormatSupplier();
     ThreadLocal<DateFormat> supplierB = DateFormatSupplier.createDefaultFormatSupplier();
     assertSuppliersIndependent(supplierA, supplierB);
   }
 
   @Test
-  public void testCreateSimpleFormatSupplier() throws Exception {
+  public void testCreateSimpleFormatSupplier() {
     final String format = DateFormatSupplier.HUMAN_READABLE_FORMAT;
     DateFormatSupplier supplierA = DateFormatSupplier.createSimpleFormatSupplier(format);
     DateFormatSupplier supplierB = DateFormatSupplier.createSimpleFormatSupplier(format);

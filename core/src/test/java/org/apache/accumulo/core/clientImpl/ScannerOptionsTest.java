@@ -37,7 +37,7 @@ public class ScannerOptionsTest {
    * Test that you properly add and remove iterators from a scanner
    */
   @Test
-  public void testAddRemoveIterator() throws Throwable {
+  public void testAddRemoveIterator() {
     try (ScannerOptions options = new ScannerOptions()) {
       options.addScanIterator(new IteratorSetting(1, "NAME", WholeRowIterator.class));
       assertEquals(1, options.serverSideIteratorList.size());

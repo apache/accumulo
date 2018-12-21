@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -80,7 +79,7 @@ public class CompressionTest {
   }
 
   @Test
-  public void testSingle() throws IOException {
+  public void testSingle() {
 
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al)) {
@@ -96,7 +95,7 @@ public class CompressionTest {
   }
 
   @Test
-  public void testSingleNoSideEffect() throws IOException {
+  public void testSingleNoSideEffect() {
 
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al)) {
@@ -115,7 +114,7 @@ public class CompressionTest {
   }
 
   @Test(timeout = 60 * 1000)
-  public void testManyStartNotNull() throws IOException, InterruptedException, ExecutionException {
+  public void testManyStartNotNull() throws InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al)) {
@@ -157,8 +156,7 @@ public class CompressionTest {
 
   // don't start until we have created the codec
   @Test(timeout = 60 * 1000)
-  public void testManyDontStartUntilThread()
-      throws IOException, InterruptedException, ExecutionException {
+  public void testManyDontStartUntilThread() throws InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al)) {
@@ -194,7 +192,7 @@ public class CompressionTest {
   }
 
   @Test(timeout = 60 * 1000)
-  public void testThereCanBeOnlyOne() throws IOException, InterruptedException, ExecutionException {
+  public void testThereCanBeOnlyOne() throws InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
       if (isSupported.get(al) != null && isSupported.get(al)) {

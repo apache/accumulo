@@ -27,7 +27,7 @@ import org.junit.Test;
 public class TestCachedBlockQueue {
 
   @Test
-  public void testQueue() throws Exception {
+  public void testQueue() {
 
     CachedBlock cb1 = new CachedBlock(1000, "cb1", 1);
     CachedBlock cb2 = new CachedBlock(1500, "cb2", 2);
@@ -73,7 +73,7 @@ public class TestCachedBlockQueue {
   }
 
   @Test
-  public void testQueueSmallBlockEdgeCase() throws Exception {
+  public void testQueueSmallBlockEdgeCase() {
 
     CachedBlock cb1 = new CachedBlock(1000, "cb1", 1);
     CachedBlock cb2 = new CachedBlock(1500, "cb2", 2);

@@ -26,7 +26,7 @@ import org.junit.Test;
 public class BlockCacheManagerTest {
 
   @Test
-  public void testGetPropertyPrefix() throws Exception {
+  public void testGetPropertyPrefix() {
     assertEquals("tserver.cache.config.lru.data.",
         BlockCacheManager.getFullyQualifiedPropertyPrefix("lru", CacheType.DATA));
     assertEquals("tserver.cache.config.lru.index.",

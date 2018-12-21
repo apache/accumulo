@@ -18,9 +18,6 @@ package org.apache.accumulo.core.metadata;
 
 import java.util.SortedMap;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -43,8 +40,7 @@ class ServicerForRootTable extends MetadataServicer {
   }
 
   @Override
-  public void getTabletLocations(SortedMap<KeyExtent,String> tablets)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public void getTabletLocations(SortedMap<KeyExtent,String> tablets) {
     tablets.put(RootTable.EXTENT, context.getRootTabletLocation());
   }
 }

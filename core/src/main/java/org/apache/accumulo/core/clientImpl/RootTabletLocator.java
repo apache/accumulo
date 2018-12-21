@@ -25,9 +25,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -49,8 +46,7 @@ public class RootTabletLocator extends TabletLocator {
 
   @Override
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
-      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
       TabletServerMutations<T> tsm = new TabletServerMutations<>(rootTabletLocation.tablet_session);
@@ -65,8 +61,7 @@ public class RootTabletLocator extends TabletLocator {
 
   @Override
   public List<Range> binRanges(ClientContext context, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
 
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
@@ -132,7 +127,7 @@ public class RootTabletLocator extends TabletLocator {
 
   @Override
   public TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
-      boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      boolean retry) {
     TabletLocation location = getRootTabletLocation(context);
     // Always retry when finding the root tablet
     while (retry && location == null) {

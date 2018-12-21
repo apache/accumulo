@@ -18,7 +18,6 @@ package org.apache.accumulo.core.file.streams;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.security.SecureRandom;
 import java.util.Random;
@@ -48,26 +47,26 @@ public class RateLimitedInputStreamTest {
     private final Random r = new SecureRandom();
 
     @Override
-    public int read() throws IOException {
+    public int read() {
       return r.nextInt() & 0xff;
     }
 
     @Override
-    public void seek(long pos) throws IOException {
+    public void seek(long pos) {
       throw new UnsupportedOperationException("Not supported yet."); // To change body of generated
                                                                      // methods, choose Tools |
                                                                      // Templates.
     }
 
     @Override
-    public long getPos() throws IOException {
+    public long getPos() {
       throw new UnsupportedOperationException("Not supported yet."); // To change body of generated
                                                                      // methods, choose Tools |
                                                                      // Templates.
     }
 
     @Override
-    public boolean seekToNewSource(long targetPos) throws IOException {
+    public boolean seekToNewSource(long targetPos) {
       throw new UnsupportedOperationException("Not supported yet."); // To change body of generated
                                                                      // methods, choose Tools |
                                                                      // Templates.

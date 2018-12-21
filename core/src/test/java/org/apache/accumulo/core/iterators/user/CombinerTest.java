@@ -943,7 +943,7 @@ public class CombinerTest {
    * generate error.
    */
   @Test
-  public void testLossyOption() throws IOException, IllegalAccessException, InstantiationException {
+  public void testLossyOption() throws IOException {
     Encoder<List<Long>> encoder = new SummingArrayCombiner.VarLongArrayEncoder();
 
     TreeMap<Key,Value> tm1 = new TreeMap<>();

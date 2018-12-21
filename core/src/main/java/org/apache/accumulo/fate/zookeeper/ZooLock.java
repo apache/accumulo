@@ -464,8 +464,7 @@ public class ZooLock implements Watcher {
     return zc.get(path + "/" + lockNode, stat);
   }
 
-  public static long getSessionId(ZooCache zc, String path)
-      throws KeeperException, InterruptedException {
+  public static long getSessionId(ZooCache zc, String path) {
     List<String> children = zc.getChildren(path);
 
     if (children == null || children.size() == 0) {

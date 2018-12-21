@@ -19,7 +19,6 @@ package org.apache.accumulo.core.clientImpl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -94,8 +93,7 @@ public class ConcurrentKeyExtentCacheTest {
       KeyExtent extent = tc.lookup(lookupRow);
       assertTrue(extent.contains(lookupRow));
       assertTrue(extentsSet.contains(extent));
-    } catch (IOException | AccumuloException | AccumuloSecurityException
-        | TableNotFoundException e) {
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
       throw new RuntimeException(e);
     }
   }
@@ -118,7 +116,7 @@ public class ConcurrentKeyExtentCacheTest {
   }
 
   @Test
-  public void testRandom() throws Exception {
+  public void testRandom() {
     TestCache tc = new TestCache();
 
     Random rand = new SecureRandom();

@@ -22,7 +22,7 @@ import org.junit.Test;
 public class StringLexicoderTest extends AbstractLexicoderTest {
 
   @Test
-  public void testDecode() throws Exception {
+  public void testDecode() {
     assertDecodes(new StringLexicoder(), "");
     assertDecodes(new StringLexicoder(), "0");
     assertDecodes(new StringLexicoder(), "accumulo");

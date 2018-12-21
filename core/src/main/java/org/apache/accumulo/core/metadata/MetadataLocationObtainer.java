@@ -53,7 +53,6 @@ import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
@@ -135,11 +134,6 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         log.trace("{} lookup failed, {} server side exception", src.tablet_extent.getTableId(),
             src.tablet_location);
       throw ase;
-    } catch (NotServingTabletException e) {
-      if (log.isTraceEnabled())
-        log.trace("{} lookup failed, {} not serving {}", src.tablet_extent.getTableId(),
-            src.tablet_location, src.tablet_extent);
-      parent.invalidateCache(src.tablet_extent);
     } catch (AccumuloException e) {
       if (log.isTraceEnabled())
         log.trace("{} lookup failed", src.tablet_extent.getTableId(), e);

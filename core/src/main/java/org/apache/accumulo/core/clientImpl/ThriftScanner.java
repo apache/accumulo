@@ -91,7 +91,7 @@ public class ThriftScanner {
       List<IterInfo> serverSideIteratorList,
       Map<String,Map<String,String>> serverSideIteratorOptions, int size,
       Authorizations authorizations, long batchTimeOut, String classLoaderContext)
-      throws AccumuloException, AccumuloSecurityException, NotServingTabletException {
+      throws AccumuloException, AccumuloSecurityException {
     if (server == null)
       throw new AccumuloException(new IOException());
 

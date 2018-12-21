@@ -226,12 +226,7 @@ public class TabletServerBatchWriter {
     if (mutations.getMemoryUsed() == 0)
       return;
     lastProcessingStartTime = System.currentTimeMillis();
-    try {
-      writer.queueMutations(mutations);
-    } catch (InterruptedException e) {
-      log.warn("Mutations rejected from binning thread, retrying...");
-      failedMutations.add(mutations);
-    }
+    writer.queueMutations(mutations);
     mutations = new MutationSet();
   }
 
@@ -580,7 +575,7 @@ public class TabletServerBatchWriter {
   /**
    * Add mutations that previously failed back into the mix
    */
-  private synchronized void addFailedMutations(MutationSet failedMutations) throws Exception {
+  private synchronized void addFailedMutations(MutationSet failedMutations) {
     mutations.addAll(failedMutations);
     if (mutations.getMemoryUsed() >= maxMem / 2 || closed || flushing) {
       startProcessing();
@@ -723,7 +718,7 @@ public class TabletServerBatchWriter {
 
     }
 
-    void queueMutations(final MutationSet mutationsToSend) throws InterruptedException {
+    void queueMutations(final MutationSet mutationsToSend) {
       if (mutationsToSend == null)
         return;
       binningThreadPool.execute(Trace.wrap(() -> {

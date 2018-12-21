@@ -89,7 +89,7 @@ public class CredentialProviderTokenTest {
   }
 
   @Test
-  public void testMissingClassesThrowsException() throws Exception {
+  public void testMissingClassesThrowsException() {
     if (isCredentialProviderAvailable) {
       return;
     }
@@ -116,13 +116,13 @@ public class CredentialProviderTokenTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void missingProperties() throws Exception {
+  public void missingProperties() {
     CredentialProviderToken token = new CredentialProviderToken();
     token.init(new Properties());
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void missingNameProperty() throws Exception {
+  public void missingNameProperty() {
     CredentialProviderToken token = new CredentialProviderToken();
     Properties props = new Properties();
     props.put(CredentialProviderToken.NAME_PROPERTY, "root.password");
@@ -130,7 +130,7 @@ public class CredentialProviderTokenTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void missingProviderProperty() throws Exception {
+  public void missingProviderProperty() {
     CredentialProviderToken token = new CredentialProviderToken();
     Properties props = new Properties();
     props.put(CredentialProviderToken.CREDENTIAL_PROVIDERS_PROPERTY, keystorePath);

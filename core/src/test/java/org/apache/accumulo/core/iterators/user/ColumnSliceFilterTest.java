@@ -68,7 +68,7 @@ public class ColumnSliceFilterTest {
   }
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     columnSliceFilter.describeOptions();
     iteratorEnvironment = new DefaultIteratorEnvironment();
     is = new IteratorSetting(1, ColumnSliceFilter.class);
@@ -233,7 +233,7 @@ public class ColumnSliceFilterTest {
   }
 
   @Test
-  public void testStartAfterEnd() throws IOException {
+  public void testStartAfterEnd() {
     try {
       ColumnSliceFilter.setSlice(is, "20080204", "20080202");
       fail("IllegalArgumentException expected but not thrown");
@@ -243,7 +243,7 @@ public class ColumnSliceFilterTest {
   }
 
   @Test
-  public void testStartEqualToEndStartInclusiveEndExclusive() throws IOException {
+  public void testStartEqualToEndStartInclusiveEndExclusive() {
     try {
       ColumnSliceFilter.setSlice(is, "20080202", "20080202");
       fail("IllegalArgumentException expected but not thrown");
@@ -253,7 +253,7 @@ public class ColumnSliceFilterTest {
   }
 
   @Test
-  public void testStartEqualToEndStartExclusiveEndInclusive() throws IOException {
+  public void testStartEqualToEndStartExclusiveEndInclusive() {
     try {
       ColumnSliceFilter.setSlice(is, "20080202", false, "20080202", true);
       fail("IllegalArgumentException expected but not thrown");

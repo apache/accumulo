@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -47,7 +46,7 @@ public class ReverseLexicoderTest extends AbstractLexicoderTest {
    * Just a simple test verifying reverse indexed dates
    */
   @Test
-  public void testReverseSortDates() throws UnsupportedEncodingException {
+  public void testReverseSortDates() {
 
     ReverseLexicoder<Date> revLex = new ReverseLexicoder<>(new DateLexicoder());
 

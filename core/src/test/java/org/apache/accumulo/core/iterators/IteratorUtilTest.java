@@ -307,7 +307,7 @@ public class IteratorUtilTest {
   }
 
   @Test
-  public void onlyReadsRelevantIteratorScopeConfigurations() throws Exception {
+  public void onlyReadsRelevantIteratorScopeConfigurations() {
     Map<String,String> data = new HashMap<>();
 
     // Make some configuration items, one with a bogus scope
