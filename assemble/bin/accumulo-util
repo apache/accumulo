@@ -21,6 +21,7 @@ Usage: accumulo-util <command> (<argument> ...)
 
 Commands:
   build-native        Builds Accumulo native libraries
+  dumpzoo             Dumps data in ZooKeeper
   hadoop-jar          Runs 'hadoop jar' command with Accumulo jars
   gen-monitor-cert    Generates Accumulo monitor certficate
   load-jars-hdfs      Loads Accumulo jars in lib/ to HDFS for VFS classloader
@@ -262,6 +263,9 @@ function main() {
   case "$1" in
     build-native)
       build_native "${@:2}"
+      ;;
+    dumpzoo)
+      "$bin"/accumulo org.apache.accumulo.server.util.DumpZookeeper "${@:2}"
       ;;
     hadoop-jar)
       hadoop_jar "${@:2}"
