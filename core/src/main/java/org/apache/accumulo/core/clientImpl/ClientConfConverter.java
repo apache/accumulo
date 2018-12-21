@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -227,23 +226,17 @@ public class ClientConfConverter {
         // Attempt to load sensitive properties from a CredentialProvider, if configured
         org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
         if (hadoopConf != null) {
-          try {
-            for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
-              if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) {
-                continue;
-              }
-
-              if (filter.test(key)) {
-                char[] value = CredentialProviderFactoryShim
-                    .getValueFromCredentialProvider(hadoopConf, key);
-                if (value != null) {
-                  props.put(key, new String(value));
-                }
+          for (String key : CredentialProviderFactoryShim.getKeys(hadoopConf)) {
+            if (!Property.isValidPropertyKey(key) || !Property.isSensitive(key)) {
+              continue;
+            }
+            if (filter.test(key)) {
+              char[] value = CredentialProviderFactoryShim
+                  .getValueFromCredentialProvider(hadoopConf, key);
+              if (value != null) {
+                props.put(key, new String(value));
               }
             }
-          } catch (IOException e) {
-            log.warn("Failed to extract sensitive properties from Hadoop CredentialProvider, "
-                + "falling back to accumulo.properties", e);
           }
         }
       }

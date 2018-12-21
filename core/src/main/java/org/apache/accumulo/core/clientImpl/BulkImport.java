@@ -261,7 +261,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   public interface KeyExtentCache {
     KeyExtent lookup(Text row)
-        throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException;
+        throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
   }
 
   public static List<KeyExtent> findOverlappingTablets(KeyExtentCache extentCache,
@@ -396,7 +396,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   private Set<KeyExtent> mapDesitnationsToExtents(Table.ID tableId, KeyExtentCache kec,
       List<Destination> destinations)
-      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Set<KeyExtent> extents = new HashSet<>();
 
     for (Destination dest : destinations) {

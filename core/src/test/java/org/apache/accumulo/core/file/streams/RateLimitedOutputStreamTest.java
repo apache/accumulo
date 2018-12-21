@@ -18,7 +18,6 @@ package org.apache.accumulo.core.file.streams;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Random;
 
@@ -48,7 +47,7 @@ public class RateLimitedOutputStreamTest {
   }
 
   public static class NullOutputStream extends FSDataOutputStream {
-    public NullOutputStream() throws IOException {
+    public NullOutputStream() {
       super(new CountingOutputStream(ByteStreams.nullOutputStream()), null);
     }
   }

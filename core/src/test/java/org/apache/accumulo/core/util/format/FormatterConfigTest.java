@@ -37,7 +37,7 @@ public class FormatterConfigTest {
   }
 
   @Test
-  public void testSetShownLength() throws Exception {
+  public void testSetShownLength() {
     FormatterConfig config = new FormatterConfig();
     try {
       config.setShownLength(-1);

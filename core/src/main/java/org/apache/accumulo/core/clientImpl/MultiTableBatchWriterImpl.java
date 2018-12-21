@@ -21,8 +21,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -142,8 +140,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   }
 
   @Override
-  public BatchWriter getBatchWriter(String tableName)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  public BatchWriter getBatchWriter(String tableName) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
 
     Table.ID tableId = getId(tableName);

@@ -48,7 +48,7 @@ public class ConditionTest {
   private Condition c;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     c = new Condition(FAMILY, QUALIFIER);
   }
 

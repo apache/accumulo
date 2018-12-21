@@ -43,7 +43,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ServerClient;
@@ -163,8 +162,7 @@ public class Gatherer {
    *         associated with a file represent the tablets that use the file.
    */
   private Map<String,Map<String,List<TRowRange>>> getFilesGroupedByLocation(
-      Predicate<String> fileSelector)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+      Predicate<String> fileSelector) {
 
     Iterable<TabletMetadata> tmi = TabletsMetadata.builder().forTable(tableId)
         .overlapping(startRow, endRow).fetchFiles().fetchLocation().fetchLast().fetchPrev()
@@ -522,8 +520,7 @@ public class Gatherer {
         (sc1, sc2) -> SummaryCollection.merge(sc1, sc2, factory), SummaryCollection::new);
   }
 
-  private int countFiles()
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  private int countFiles() {
     // TODO use a batch scanner + iterator to parallelize counting files
     return TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow).fetchFiles()
         .fetchPrev().build(ctx).stream().mapToInt(tm -> tm.getFiles().size()).sum();
@@ -570,12 +567,7 @@ public class Gatherer {
   }
 
   public Future<SummaryCollection> gather(ExecutorService es) {
-    int numFiles;
-    try {
-      numFiles = countFiles();
-    } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
+    int numFiles = countFiles();
 
     log.debug("Gathering summaries from {} files", numFiles);
 

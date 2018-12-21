@@ -52,7 +52,7 @@ public class DelegationTokenImplTest {
   }
 
   @Test
-  public void testEquality() throws IOException {
+  public void testEquality() {
     AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier("user", 1, 1000L,
         2000L, "instanceid");
     // We don't need a real serialized Token for the password

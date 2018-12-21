@@ -96,7 +96,7 @@ public class MapFileOperations extends FileOperations {
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-        IteratorEnvironment env) throws IOException {
+        IteratorEnvironment env) {
       throw new UnsupportedOperationException();
     }
 
@@ -148,7 +148,7 @@ public class MapFileOperations extends FileOperations {
   }
 
   @Override
-  protected FileSKVWriter openWriter(FileOptions options) throws IOException {
+  protected FileSKVWriter openWriter(FileOptions options) {
     throw new UnsupportedOperationException();
   }
 

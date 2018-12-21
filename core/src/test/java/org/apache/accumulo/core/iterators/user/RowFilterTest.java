@@ -88,7 +88,7 @@ public class RowFilterTest {
     private static final Set<String> passRows = new HashSet<>(Arrays.asList("0", "1"));
 
     @Override
-    public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException {
+    public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) {
       return rowIterator.hasTop() && passRows.contains(rowIterator.getTopKey().getRow().toString());
     }
   }
@@ -97,14 +97,14 @@ public class RowFilterTest {
     private static final Set<String> passRows = new HashSet<>(Arrays.asList("1", "2"));
 
     @Override
-    public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException {
+    public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) {
       return rowIterator.hasTop() && passRows.contains(rowIterator.getTopKey().getRow().toString());
     }
   }
 
   public static class TrueFilter extends RowFilter {
     @Override
-    public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException {
+    public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) {
       return true;
     }
   }

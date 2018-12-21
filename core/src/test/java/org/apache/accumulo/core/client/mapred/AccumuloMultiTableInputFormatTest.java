@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client.mapred;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,7 +45,7 @@ public class AccumuloMultiTableInputFormatTest {
    * serialized in the JobContext.
    */
   @Test
-  public void testTableQueryConfigSerialization() throws IOException {
+  public void testTableQueryConfigSerialization() {
     String table1Name = testName.getMethodName() + "1";
     String table2Name = testName.getMethodName() + "2";
     JobConf job = new JobConf();

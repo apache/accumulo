@@ -32,7 +32,6 @@ import java.util.Scanner;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -259,7 +258,7 @@ public class ConfiguratorBase {
    * @since 1.6.0
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf,
-      String principal, String tokenFile) throws AccumuloSecurityException {
+      String principal, String tokenFile) {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
           + " can only be set once per job");

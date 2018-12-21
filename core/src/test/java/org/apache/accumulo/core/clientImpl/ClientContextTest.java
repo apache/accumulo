@@ -46,7 +46,7 @@ public class ClientContextTest {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "provided keystoreUrl path isn't user provided")
   @BeforeClass
-  public static void setUpBeforeClass() throws Exception {
+  public static void setUpBeforeClass() {
     try {
       Class.forName(CredentialProviderFactoryShim.HADOOP_CRED_PROVIDER_CLASS_NAME);
       isCredentialProviderAvailable = true;

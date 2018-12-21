@@ -68,7 +68,7 @@ public class CredentialsTest {
   }
 
   @Test
-  public void roundtripThrift() throws DestroyFailedException {
+  public void roundtripThrift() {
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
     TCredentials tCreds = creds.toThrift(instanceID);
     Credentials roundtrip = Credentials.fromThrift(tCreds);
@@ -101,7 +101,7 @@ public class CredentialsTest {
   }
 
   @Test
-  public void testCredentialsSerialization() throws AccumuloSecurityException {
+  public void testCredentialsSerialization() {
     Credentials creds = new Credentials("a:b-c", new PasswordToken("d-e-f".getBytes(UTF_8)));
     String serialized = creds.serialize();
     Credentials result = Credentials.deserialize(serialized);

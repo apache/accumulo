@@ -64,7 +64,7 @@ public class AccumuloInputFormatTest {
   }
 
   @Test
-  public void testAddIterator() throws IOException {
+  public void testAddIterator() {
     AccumuloInputFormat.addIterator(job,
         new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions",
@@ -113,7 +113,7 @@ public class AccumuloInputFormatTest {
    * expected.
    */
   @Test
-  public void testIteratorOptionEncoding() throws Throwable {
+  public void testIteratorOptionEncoding() {
     String key = "colon:delimited:key";
     String value = "comma,delimited,value";
     IteratorSetting someSetting = new IteratorSetting(1, "iterator", "Iterator.class");
@@ -142,7 +142,7 @@ public class AccumuloInputFormatTest {
    * Test getting iterator settings for multiple iterators set
    */
   @Test
-  public void testGetIteratorSettings() throws IOException {
+  public void testGetIteratorSettings() {
     AccumuloInputFormat.addIterator(job,
         new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions",
@@ -175,7 +175,7 @@ public class AccumuloInputFormatTest {
   }
 
   @Test
-  public void testSetRegex() throws IOException {
+  public void testSetRegex() {
     String regex = ">\"*%<>\'\\";
 
     IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);

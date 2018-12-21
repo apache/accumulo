@@ -385,7 +385,7 @@ public class RFile {
       this.sampler = sampler;
     }
 
-    public void append(Key key, Value value) throws IOException {
+    public void append(Key key, Value value) {
       if (sampler.accept(key)) {
         entries.add(new SampleEntry(key, value));
         dataSize += key.getSize() + value.getSize();
@@ -581,7 +581,7 @@ public class RFile {
     }
 
     public Writer(BCFile.Writer bfw, int blockSize, int indexBlockSize,
-        SamplerConfigurationImpl samplerConfig, Sampler sampler) throws IOException {
+        SamplerConfigurationImpl samplerConfig, Sampler sampler) {
       this.blockSize = blockSize;
       this.maxBlockSize = (long) (blockSize * MAX_BLOCK_MULTIPLIER);
       this.indexBlockSize = indexBlockSize;
@@ -735,7 +735,7 @@ public class RFile {
     }
 
     @Override
-    public long getLength() throws IOException {
+    public long getLength() {
       if (!closed) {
         return fileWriter.getLength();
       }
@@ -755,7 +755,7 @@ public class RFile {
     private boolean checkRange = true;
 
     private LocalityGroupReader(CachableBlockFile.Reader reader, LocalityGroupMetadata lgm,
-        int version) throws IOException {
+        int version) {
       super(lgm.columnFamilies, lgm.isDefaultLG);
       this.firstKey = lgm.firstKey;
       this.index = lgm.indexReader;
@@ -1074,12 +1074,12 @@ public class RFile {
     }
 
     @Override
-    public Key getFirstKey() throws IOException {
+    public Key getFirstKey() {
       return firstKey;
     }
 
     @Override
-    public Key getLastKey() throws IOException {
+    public Key getLastKey() {
       if (index.size() == 0)
         return null;
       return index.getLastKey();
@@ -1091,18 +1091,18 @@ public class RFile {
     }
 
     @Override
-    public void closeDeepCopies() throws IOException {
+    public void closeDeepCopies() {
       throw new UnsupportedOperationException();
     }
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-        IteratorEnvironment env) throws IOException {
+        IteratorEnvironment env) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public DataInputStream getMetaStore(String name) throws IOException {
+    public DataInputStream getMetaStore(String name) {
       throw new UnsupportedOperationException();
     }
 
@@ -1373,7 +1373,7 @@ public class RFile {
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-        IteratorEnvironment env) throws IOException {
+        IteratorEnvironment env) {
       throw new UnsupportedOperationException();
     }
 

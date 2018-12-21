@@ -24,7 +24,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -39,8 +38,7 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
   private BatchWriterConfig bwConfig;
 
   public TabletServerBatchDeleter(ClientContext context, Table.ID tableId,
-      Authorizations authorizations, int numQueryThreads, BatchWriterConfig bwConfig)
-      throws TableNotFoundException {
+      Authorizations authorizations, int numQueryThreads, BatchWriterConfig bwConfig) {
     super(context, tableId, authorizations, numQueryThreads);
     this.context = context;
     this.tableId = tableId;
@@ -50,7 +48,7 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
   }
 
   @Override
-  public void delete() throws MutationsRejectedException, TableNotFoundException {
+  public void delete() throws MutationsRejectedException {
     BatchWriter bw = null;
     try {
       bw = new BatchWriterImpl(context, tableId, bwConfig);

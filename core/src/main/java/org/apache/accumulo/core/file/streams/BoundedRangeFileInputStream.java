@@ -61,7 +61,7 @@ public class BoundedRangeFileInputStream extends InputStream {
   }
 
   @Override
-  public int available() throws IOException {
+  public int available() {
     return (int) (end - pos);
   }
 
@@ -108,7 +108,7 @@ public class BoundedRangeFileInputStream extends InputStream {
   /*
    * We may skip beyond the end of the file.
    */
-  public long skip(long n) throws IOException {
+  public long skip(long n) {
     long len = Math.min(n, end - pos);
     pos += len;
     return len;

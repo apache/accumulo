@@ -23,7 +23,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
@@ -78,17 +77,16 @@ public class CredentialProviderFactoryShimTest {
   }
 
   @Test(expected = NullPointerException.class)
-  public void testNullConfigOnGetValue() throws IOException {
+  public void testNullConfigOnGetValue() {
     CredentialProviderFactoryShim.getValueFromCredentialProvider(null, "alias");
   }
 
   @Test(expected = NullPointerException.class)
-  public void testNullAliasOnGetValue() throws IOException {
+  public void testNullAliasOnGetValue() {
     CredentialProviderFactoryShim.getValueFromCredentialProvider(new Configuration(false), null);
   }
 
-  protected void checkCredentialProviders(Configuration conf, Map<String,String> expectation)
-      throws IOException {
+  protected void checkCredentialProviders(Configuration conf, Map<String,String> expectation) {
     List<String> keys = CredentialProviderFactoryShim.getKeys(conf);
     assertNotNull(keys);
 
@@ -102,7 +100,7 @@ public class CredentialProviderFactoryShimTest {
   }
 
   @Test
-  public void testExtractFromProvider() throws IOException {
+  public void testExtractFromProvider() {
     String absPath = getKeyStoreUrl(populatedKeyStore);
     Configuration conf = new Configuration();
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, absPath);
@@ -114,7 +112,7 @@ public class CredentialProviderFactoryShimTest {
   }
 
   @Test
-  public void testEmptyKeyStoreParses() throws IOException {
+  public void testEmptyKeyStoreParses() {
     String absPath = getKeyStoreUrl(emptyKeyStore);
     Configuration conf = new Configuration();
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, absPath);
@@ -123,7 +121,7 @@ public class CredentialProviderFactoryShimTest {
   }
 
   @Test
-  public void testEmptyAndPopulatedKeyStores() throws IOException {
+  public void testEmptyAndPopulatedKeyStores() {
     String populatedAbsPath = getKeyStoreUrl(populatedKeyStore),
         emptyAbsPath = getKeyStoreUrl(emptyKeyStore);
     Configuration conf = new Configuration();
@@ -137,7 +135,7 @@ public class CredentialProviderFactoryShimTest {
   }
 
   @Test
-  public void testNonExistentClassesDoesntFail() throws IOException {
+  public void testNonExistentClassesDoesntFail() {
     Configuration conf = new Configuration();
     conf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, "jceks://file/foo/bar.jceks");
     List<String> keys = CredentialProviderFactoryShim.getKeys(conf);
@@ -148,7 +146,7 @@ public class CredentialProviderFactoryShimTest {
   }
 
   @Test
-  public void testConfigurationCreation() throws IOException {
+  public void testConfigurationCreation() {
     final String path = "jceks://file/tmp/foo.jks";
     final Configuration actualConf = CredentialProviderFactoryShim.getConfiguration(path);
     assertNotNull(actualConf);

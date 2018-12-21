@@ -50,7 +50,7 @@ public class ValueTest {
   }
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     DATABUFF.rewind();
   }
 

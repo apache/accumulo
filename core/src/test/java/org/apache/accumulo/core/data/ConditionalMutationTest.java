@@ -40,7 +40,7 @@ public class ConditionalMutationTest {
   private ConditionalMutation cm;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     c1 = new Condition(FAMILY, QUALIFIER);
     c2 = new Condition(FAMILY, QUALIFIER2);
     assertNotEquals(c1, c2);

@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.clientImpl.lexicoder;
 
-import java.io.IOException;
 import java.io.OutputStream;
 
 /**
@@ -33,12 +32,12 @@ public class FixedByteArrayOutputStream extends OutputStream {
   }
 
   @Override
-  public void write(int b) throws IOException {
+  public void write(int b) {
     out[i++] = (byte) b;
   }
 
   @Override
-  public void write(byte b[], int off, int len) throws IOException {
+  public void write(byte b[], int off, int len) {
     System.arraycopy(b, off, out, i, len);
     i += len;
   }

@@ -809,8 +809,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   public static Map<String,Map<KeyExtent,List<Range>>> binOffline(Table.ID tableId,
-      List<Range> ranges, ClientInfo clientInfo)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      List<Range> ranges, ClientInfo clientInfo) throws AccumuloException, TableNotFoundException {
 
     try (ClientContext context = new ClientContext(clientInfo)) {
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();

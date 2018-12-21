@@ -176,7 +176,7 @@ public final class Compression {
       }
 
       @Override
-      CompressionCodec getCodec() throws IOException {
+      CompressionCodec getCodec() {
         return codec;
       }
 
@@ -305,7 +305,7 @@ public final class Compression {
 
       @Override
       public InputStream createDecompressionStream(InputStream downStream,
-          Decompressor decompressor, int downStreamBufferSize) throws IOException {
+          Decompressor decompressor, int downStreamBufferSize) {
         if (downStreamBufferSize > 0) {
           return new BufferedInputStream(downStream, downStreamBufferSize);
         }
@@ -324,7 +324,7 @@ public final class Compression {
 
       @Override
       public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor,
-          int downStreamBufferSize) throws IOException {
+          int downStreamBufferSize) {
         if (downStreamBufferSize > 0) {
           return new BufferedOutputStream(downStream, downStreamBufferSize);
         }
@@ -358,7 +358,7 @@ public final class Compression {
       private static final int DEFAULT_BUFFER_SIZE = 64 * 1024;
 
       @Override
-      public CompressionCodec getCodec() throws IOException {
+      public CompressionCodec getCodec() {
         return snappyCodec;
       }
 
@@ -617,7 +617,7 @@ public final class Compression {
       this.compressName = name;
     }
 
-    abstract CompressionCodec getCodec() throws IOException;
+    abstract CompressionCodec getCodec();
 
     /**
      * function to create the default codec object.
@@ -642,7 +642,7 @@ public final class Compression {
 
     public abstract boolean isSupported();
 
-    public Compressor getCompressor() throws IOException {
+    public Compressor getCompressor() {
       CompressionCodec codec = getCodec();
       if (codec != null) {
         Compressor compressor = CodecPool.getCompressor(codec);
@@ -672,7 +672,7 @@ public final class Compression {
       }
     }
 
-    public Decompressor getDecompressor() throws IOException {
+    public Decompressor getDecompressor() {
       CompressionCodec codec = getCodec();
       if (codec != null) {
         Decompressor decompressor = CodecPool.getDecompressor(codec);

@@ -68,7 +68,7 @@ public class SimpleStore<T> implements TStore<T> {
   }
 
   @Override
-  public void push(long tid, Repo<T> repo) throws StackOverflowException {
+  public void push(long tid, Repo<T> repo) {
     throw new NotImplementedException();
   }
 

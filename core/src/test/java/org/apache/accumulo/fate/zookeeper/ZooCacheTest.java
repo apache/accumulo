@@ -55,7 +55,7 @@ public class ZooCacheTest {
   private ZooCache zc;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     zr = createMock(ZooReader.class);
     zk = createStrictMock(ZooKeeper.class);
     expect(zr.getZooKeeper()).andReturn(zk);

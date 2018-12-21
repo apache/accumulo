@@ -331,7 +331,7 @@ public class BloomFilterLayer {
      *          range of keys to check
      * @return false iff key doesn't exist, true if key probably exists.
      */
-    boolean probablyHasKey(Range range) throws IOException {
+    boolean probablyHasKey(Range range) {
       if (bloomFilter == null) {
         initiateLoad(maxLoadThreads);
         if (bloomFilter == null)
@@ -419,7 +419,7 @@ public class BloomFilterLayer {
 
     @Override
     public void init(SortedKeyValueIterator<org.apache.accumulo.core.data.Key,Value> source,
-        Map<String,String> options, IteratorEnvironment env) throws IOException {
+        Map<String,String> options, IteratorEnvironment env) {
       throw new UnsupportedOperationException();
 
     }

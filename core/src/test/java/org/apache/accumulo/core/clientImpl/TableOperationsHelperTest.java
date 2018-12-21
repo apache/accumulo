@@ -21,7 +21,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -35,10 +34,7 @@ import java.util.TreeMap;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.Locations;
@@ -68,98 +64,80 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public void create(String tableName)
-        throws AccumuloException, AccumuloSecurityException, TableExistsException {}
+    public void create(String tableName) {}
 
     @Override
-    public void create(String tableName, NewTableConfiguration ntc)
-        throws AccumuloException, AccumuloSecurityException, TableExistsException {}
+    public void create(String tableName, NewTableConfiguration ntc) {}
 
     @Override
-    public void addSplits(String tableName, SortedSet<Text> partitionKeys)
-        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {}
+    public void addSplits(String tableName, SortedSet<Text> partitionKeys) {}
 
     @Override
-    public Collection<Text> listSplits(String tableName) throws TableNotFoundException {
+    public Collection<Text> listSplits(String tableName) {
       return null;
     }
 
     @Override
-    public Collection<Text> listSplits(String tableName, int maxSplits)
-        throws TableNotFoundException {
+    public Collection<Text> listSplits(String tableName, int maxSplits) {
       return null;
     }
 
     @Override
     public Text getMaxRow(String tableName, Authorizations auths, Text startRow,
-        boolean startInclusive, Text endRow, boolean endInclusive)
-        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+        boolean startInclusive, Text endRow, boolean endInclusive) {
       return null;
     }
 
     @Override
-    public void merge(String tableName, Text start, Text end)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    public void merge(String tableName, Text start, Text end) {
 
     }
 
     @Override
-    public void deleteRows(String tableName, Text start, Text end)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {}
+    public void deleteRows(String tableName, Text start, Text end) {}
 
     @Override
-    public void compact(String tableName, Text start, Text end, boolean flush, boolean wait)
-        throws AccumuloSecurityException, TableNotFoundException, AccumuloException {}
+    public void compact(String tableName, Text start, Text end, boolean flush, boolean wait) {}
 
     @Override
     public void compact(String tableName, Text start, Text end, List<IteratorSetting> iterators,
-        boolean flush, boolean wait)
-        throws AccumuloSecurityException, TableNotFoundException, AccumuloException {}
+        boolean flush, boolean wait) {}
 
     @Override
-    public void compact(String tableName, CompactionConfig config)
-        throws AccumuloSecurityException, TableNotFoundException, AccumuloException {}
+    public void compact(String tableName, CompactionConfig config) {}
 
     @Override
-    public void delete(String tableName)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {}
+    public void delete(String tableName) {}
 
     @Override
     public void clone(String srcTableName, String newTableName, boolean flush,
-        Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-        TableExistsException {}
+        Map<String,String> propertiesToSet, Set<String> propertiesToExclude) {}
 
     @Override
-    public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException,
-        TableNotFoundException, AccumuloException, TableExistsException {}
+    public void rename(String oldTableName, String newTableName) {}
 
     @Override
-    public void flush(String tableName) throws AccumuloException, AccumuloSecurityException {}
+    public void flush(String tableName) {}
 
     @Override
-    public void flush(String tableName, Text start, Text end, boolean wait)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {}
+    public void flush(String tableName, Text start, Text end, boolean wait) {}
 
     @Override
-    public void setProperty(String tableName, String property, String value)
-        throws AccumuloException, AccumuloSecurityException {
+    public void setProperty(String tableName, String property, String value) {
       if (!settings.containsKey(tableName))
         settings.put(tableName, new TreeMap<>());
       settings.get(tableName).put(property, value);
     }
 
     @Override
-    public void removeProperty(String tableName, String property)
-        throws AccumuloException, AccumuloSecurityException {
+    public void removeProperty(String tableName, String property) {
       if (!settings.containsKey(tableName))
         return;
       settings.get(tableName).remove(property);
     }
 
     @Override
-    public Iterable<Entry<String,String>> getProperties(String tableName)
-        throws AccumuloException, TableNotFoundException {
+    public Iterable<Entry<String,String>> getProperties(String tableName) {
       Map<String,String> empty = Collections.emptyMap();
       if (!settings.containsKey(tableName))
         return empty.entrySet();
@@ -167,48 +145,40 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public void setLocalityGroups(String tableName, Map<String,Set<Text>> groups)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {}
+    public void setLocalityGroups(String tableName, Map<String,Set<Text>> groups) {}
 
     @Override
-    public Map<String,Set<Text>> getLocalityGroups(String tableName)
-        throws AccumuloException, TableNotFoundException {
+    public Map<String,Set<Text>> getLocalityGroups(String tableName) {
       return null;
     }
 
     @Override
-    public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits) {
       return null;
     }
 
     @Override
     @Deprecated
-    public void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
-        throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException {}
+    public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) {}
 
     @Override
-    public void offline(String tableName)
-        throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    public void offline(String tableName) {
 
     }
 
     @Override
-    public void online(String tableName)
-        throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}
+    public void online(String tableName) {}
 
     @Override
-    public void offline(String tableName, boolean wait)
-        throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    public void offline(String tableName, boolean wait) {
 
     }
 
     @Override
-    public void online(String tableName, boolean wait)
-        throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}
+    public void online(String tableName, boolean wait) {}
 
     @Override
-    public void clearLocatorCache(String tableName) throws TableNotFoundException {}
+    public void clearLocatorCache(String tableName) {}
 
     @Override
     public Map<String,String> tableIdMap() {
@@ -216,75 +186,63 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public List<DiskUsage> getDiskUsage(Set<String> tables)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    public List<DiskUsage> getDiskUsage(Set<String> tables) {
       return null;
     }
 
     @Override
-    public void importTable(String tableName, String exportDir)
-        throws TableExistsException, AccumuloException, AccumuloSecurityException {}
+    public void importTable(String tableName, String exportDir) {}
 
     @Override
-    public void exportTable(String tableName, String exportDir)
-        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {}
+    public void exportTable(String tableName, String exportDir) {}
 
     @Override
-    public void cancelCompaction(String tableName)
-        throws AccumuloSecurityException, TableNotFoundException, AccumuloException {}
+    public void cancelCompaction(String tableName) {}
 
     @Override
-    public boolean testClassLoad(String tableName, String className, String asTypeName)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    public boolean testClassLoad(String tableName, String className, String asTypeName) {
       return false;
     }
 
     @Override
-    public void setSamplerConfiguration(String tableName, SamplerConfiguration samplerConfiguration)
-        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    public void setSamplerConfiguration(String tableName,
+        SamplerConfiguration samplerConfiguration) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public void clearSamplerConfiguration(String tableName)
-        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    public void clearSamplerConfiguration(String tableName) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public SamplerConfiguration getSamplerConfiguration(String tableName)
-        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    public SamplerConfiguration getSamplerConfiguration(String tableName) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public Locations locate(String tableName, Collection<Range> ranges)
-        throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    public Locations locate(String tableName, Collection<Range> ranges) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public SummaryRetriever summaries(String tableName)
-        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    public SummaryRetriever summaries(String tableName) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public void addSummarizers(String tableName, SummarizerConfiguration... summarizerConf)
-        throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    public void addSummarizers(String tableName, SummarizerConfiguration... summarizerConf) {
       throw new UnsupportedOperationException();
 
     }
 
     @Override
-    public void removeSummarizers(String tableName, Predicate<SummarizerConfiguration> predicate)
-        throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    public void removeSummarizers(String tableName, Predicate<SummarizerConfiguration> predicate) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public List<SummarizerConfiguration> listSummarizers(String tableName)
-        throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    public List<SummarizerConfiguration> listSummarizers(String tableName) {
       throw new UnsupportedOperationException();
     }
   }

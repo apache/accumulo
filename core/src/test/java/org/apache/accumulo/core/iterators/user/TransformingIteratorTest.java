@@ -68,7 +68,7 @@ public class TransformingIteratorTest {
   private TreeMap<Key,Value> data = new TreeMap<>();
 
   @Before
-  public void createData() throws Exception {
+  public void createData() {
     data.clear();
     generateRow(data, "row1");
     generateRow(data, "row2");
@@ -245,7 +245,7 @@ public class TransformingIteratorTest {
   }
 
   @Test
-  public void testReplaceKeyParts() throws Exception {
+  public void testReplaceKeyParts() {
     TransformingIterator it = new IdentityKeyTransformingIterator();
     Key originalKey = new Key("r", "cf", "cq", "cv", 42);
     originalKey.setDeleted(true);

@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -83,8 +82,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
 
     @Override
-    public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
-        throws IOException {
+    public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) {
       throw new NotImplementedException();
     }
 
@@ -208,8 +206,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
   }
 
-  private void nextTablet()
-      throws TableNotFoundException, AccumuloException, IOException, AccumuloSecurityException {
+  private void nextTablet() throws TableNotFoundException, AccumuloException, IOException {
 
     Range nextRange = null;
 

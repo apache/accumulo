@@ -69,7 +69,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testAllRowsFullSlice() throws Exception {
+  public void testAllRowsFullSlice() {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     loadKvs(foundKvs, EMPTY_OPTS, INFINITY);
     for (int i = 0; i < LR_DIM; i++) {
@@ -83,7 +83,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testSingleRowFullSlice() throws Exception {
+  public void testSingleRowFullSlice() {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     int rowId = LR_DIM / 2;
     loadKvs(foundKvs, EMPTY_OPTS, Range.exact(new Text(LONG_LEX.encode((long) rowId))));
@@ -104,7 +104,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testAllRowsSlice() throws Exception {
+  public void testAllRowsSlice() {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCf = 20;
     long sliceMinCq = 30;
@@ -137,7 +137,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testSingleColumnSlice() throws Exception {
+  public void testSingleColumnSlice() {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCf = 20;
     long sliceMinCq = 20;
@@ -166,7 +166,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testSingleColumnSliceByExclude() throws Exception {
+  public void testSingleColumnSliceByExclude() {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCf = 20;
     long sliceMinCq = 20;
@@ -197,7 +197,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testAllCfsCqSlice() throws Exception {
+  public void testAllCfsCqSlice() {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCq = 10;
     long sliceMaxCq = 30;
@@ -222,7 +222,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testSliceCfsAllCqs() throws Exception {
+  public void testSliceCfsAllCqs() {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCf = 10;
     long sliceMaxCf = 30;
@@ -247,7 +247,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testEmptySlice() throws Exception {
+  public void testEmptySlice() {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCf = LR_DIM + 1;
     long sliceMinCq = LR_DIM + 1;
@@ -308,7 +308,7 @@ public abstract class TestCfCqSlice {
   }
 
   @Test
-  public void testSeekMinExclusive() throws Exception {
+  public void testSeekMinExclusive() {
     boolean[][][] foundKvs = new boolean[LR_DIM][LR_DIM][LR_DIM];
     long sliceMinCf = 20;
     long sliceMinCq = 30;

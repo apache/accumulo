@@ -191,7 +191,7 @@ public class ReplicationClient {
 
   public static <T> T executeServicerWithReturn(ClientContext context, HostAndPort tserver,
       ClientExecReturn<T,ReplicationServicer.Client> exec, long timeout)
-      throws AccumuloException, AccumuloSecurityException, TTransportException {
+      throws AccumuloException, AccumuloSecurityException {
     ReplicationServicer.Client client = null;
     while (true) {
       try {

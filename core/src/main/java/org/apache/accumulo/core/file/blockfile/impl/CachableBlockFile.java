@@ -319,15 +319,14 @@ public class CachableBlockFile {
     }
 
     public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data,
-        BlockCache index, AccumuloConfiguration accumuloConfiguration, CryptoService cryptoService)
-        throws IOException {
+        BlockCache index, AccumuloConfiguration accumuloConfiguration,
+        CryptoService cryptoService) {
       this(fs, dataFile, conf, null, data, index, null, accumuloConfiguration, cryptoService);
     }
 
     public Reader(FileSystem fs, Path dataFile, Configuration conf, Cache<String,Long> fileLenCache,
         BlockCache data, BlockCache index, RateLimiter readLimiter,
-        AccumuloConfiguration accumuloConfiguration, CryptoService cryptoService)
-        throws IOException {
+        AccumuloConfiguration accumuloConfiguration, CryptoService cryptoService) {
       this(pathToCacheId(dataFile), () -> fs.open(dataFile),
           () -> fs.getFileStatus(dataFile).getLen(), fileLenCache, data, index, readLimiter, conf,
           accumuloConfiguration, cryptoService);
@@ -335,15 +334,14 @@ public class CachableBlockFile {
 
     public <InputStreamType extends InputStream & Seekable> Reader(String cacheId,
         InputStreamType fsin, long len, Configuration conf, BlockCache data, BlockCache index,
-        AccumuloConfiguration accumuloConfiguration, CryptoService cryptoService)
-        throws IOException {
+        AccumuloConfiguration accumuloConfiguration, CryptoService cryptoService) {
       this(cacheId, () -> fsin, () -> len, null, data, index, null, conf, accumuloConfiguration,
           cryptoService);
     }
 
     public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fsin, long len,
         Configuration conf, AccumuloConfiguration accumuloConfiguration,
-        CryptoService cryptoService) throws IOException {
+        CryptoService cryptoService) {
       this(null, () -> fsin, () -> len, null, null, null, null, conf, accumuloConfiguration,
           cryptoService);
     }

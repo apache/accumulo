@@ -172,7 +172,7 @@ public final class BCFile {
        *
        * @return The current byte offset in underlying file.
        */
-      long getCurrentPos() throws IOException {
+      long getCurrentPos() {
         return fsOut.position() + fsBufferedOutput.size();
       }
 
@@ -183,7 +183,7 @@ public final class BCFile {
       /**
        * Current size of compressed data.
        */
-      long getCompressedSize() throws IOException {
+      long getCompressedSize() {
         return getCurrentPos() - posStart;
       }
 
@@ -255,7 +255,7 @@ public final class BCFile {
        *
        * @return the number of uncompressed bytes written through the BlockAppender so far.
        */
-      public long getRawSize() throws IOException {
+      public long getRawSize() {
         return size() & 0x00000000ffffffffL;
       }
 

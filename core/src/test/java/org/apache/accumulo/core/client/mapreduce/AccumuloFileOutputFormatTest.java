@@ -35,7 +35,7 @@ import org.junit.Test;
 public class AccumuloFileOutputFormatTest {
 
   @Test
-  public void validateConfiguration() throws IOException, InterruptedException {
+  public void validateConfiguration() throws IOException {
 
     int a = 7;
     long b = 300L;

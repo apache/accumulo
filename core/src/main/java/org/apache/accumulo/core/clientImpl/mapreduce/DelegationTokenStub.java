@@ -20,10 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.IOException;
 import java.util.Set;
-
-import javax.security.auth.DestroyFailedException;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 
@@ -48,17 +45,17 @@ public class DelegationTokenStub implements AuthenticationToken {
   }
 
   @Override
-  public void write(DataOutput out) throws IOException {
+  public void write(DataOutput out) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public void readFields(DataInput in) throws IOException {
+  public void readFields(DataInput in) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public void destroy() throws DestroyFailedException {
+  public void destroy() {
     throw new UnsupportedOperationException();
   }
 

@@ -140,7 +140,7 @@ public class RFileTest {
     }
 
     @Override
-    public long getPos() throws IOException {
+    public long getPos() {
       return pos;
     }
 
@@ -157,12 +157,12 @@ public class RFileTest {
     }
 
     @Override
-    public boolean seekToNewSource(long targetPos) throws IOException {
+    public boolean seekToNewSource(long targetPos) {
       return false;
     }
 
     @Override
-    public int read(long position, byte[] buffer, int offset, int length) throws IOException {
+    public int read(long position, byte[] buffer, int offset, int length) {
 
       if (position >= buf.length)
         throw new IllegalArgumentException();
@@ -176,13 +176,13 @@ public class RFileTest {
     }
 
     @Override
-    public void readFully(long position, byte[] buffer) throws IOException {
+    public void readFully(long position, byte[] buffer) {
       read(position, buffer, 0, buffer.length);
 
     }
 
     @Override
-    public void readFully(long position, byte[] buffer, int offset, int length) throws IOException {
+    public void readFully(long position, byte[] buffer, int offset, int length) {
       read(position, buffer, offset, length);
     }
 

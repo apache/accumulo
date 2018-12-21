@@ -78,7 +78,7 @@ public abstract class TableOperationsHelper implements TableOperations {
 
   @Override
   public IteratorSetting getIteratorSetting(String tableName, String name, IteratorScope scope)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+      throws AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(name != null, "name is null");
     checkArgument(scope != null, "scope is null");
@@ -109,7 +109,7 @@ public abstract class TableOperationsHelper implements TableOperations {
 
   @Override
   public Map<String,EnumSet<IteratorScope>> listIterators(String tableName)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+      throws AccumuloException, TableNotFoundException {
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();
     for (Entry<String,String> property : this.getProperties(tableName)) {
       String name = property.getKey();

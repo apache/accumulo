@@ -1163,7 +1163,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   private void waitForTableStateTransition(Table.ID tableId, TableState expectedState)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      throws AccumuloException, TableNotFoundException {
 
     Text startRow = null;
     Text lastRow = null;
@@ -1343,8 +1343,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow,
-      boolean startInclusive, Text endRow, boolean endInclusive)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+      boolean startInclusive, Text endRow, boolean endInclusive) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(auths != null, "auths is null");
     Scanner scanner = context.createScanner(tableName, auths);
@@ -1863,7 +1862,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public List<SummarizerConfiguration> listSummarizers(String tableName)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      throws AccumuloException, TableNotFoundException {
     return new ArrayList<>(SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
   }
 

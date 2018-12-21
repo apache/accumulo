@@ -58,7 +58,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -396,16 +395,11 @@ public class Admin implements KeywordExecutable {
    */
   static String qualifyWithZooKeeperSessionId(String zTServerRoot, ZooCache zooCache,
       String hostAndPort) {
-    try {
-      long sessionId = ZooLock.getSessionId(zooCache, zTServerRoot + "/" + hostAndPort);
-      if (sessionId == 0) {
-        return hostAndPort;
-      }
-      return hostAndPort + "[" + Long.toHexString(sessionId) + "]";
-    } catch (InterruptedException | KeeperException e) {
-      log.warn("Failed to communicate with ZooKeeper to find session ID for TabletServer.");
+    long sessionId = ZooLock.getSessionId(zooCache, zTServerRoot + "/" + hostAndPort);
+    if (sessionId == 0) {
       return hostAndPort;
     }
+    return hostAndPort + "[" + Long.toHexString(sessionId) + "]";
   }
 
   private static final String ACCUMULO_SITE_BACKUP_FILE = "accumulo.properties.bak";

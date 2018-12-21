@@ -20,7 +20,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.zookeeper.KeeperException;
 
 public class ZookeeperLockChecker implements TabletServerLockChecker {
 
@@ -34,11 +33,7 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   @Override
   public boolean isLockHeld(String tserver, String session) {
-    try {
-      return ZooLock.getSessionId(zc, root + "/" + tserver) == Long.parseLong(session, 16);
-    } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException(e);
-    }
+    return ZooLock.getSessionId(zc, root + "/" + tserver) == Long.parseLong(session, 16);
   }
 
   @Override
