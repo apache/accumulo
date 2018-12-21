@@ -80,6 +80,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   public SiteConfiguration(URL accumuloPropsLocation, Map<String,String> overrides) {
     config = createMap(accumuloPropsLocation, overrides);
+    ConfigSanityCheck.validate(config.entrySet());
   }
 
   @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
