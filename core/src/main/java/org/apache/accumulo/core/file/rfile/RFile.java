@@ -1247,6 +1247,10 @@ public class RFile {
       this.lgContext = new LocalityGroupContext(currentReaders);
     }
 
+    public Reader(CachableBlockFile.CachableBuilder b) throws IOException {
+      this(new CachableBlockFile.Reader(b));
+    }
+
     private void closeLocalityGroupReaders() {
       for (LocalityGroupReader lgr : currentReaders) {
         try {

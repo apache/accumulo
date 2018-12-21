@@ -45,7 +45,6 @@ import org.apache.hadoop.fs.Seekable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 
 /**
@@ -64,6 +63,70 @@ public class CachableBlockFile {
 
   public static String pathToCacheId(Path p) {
     return p.toString();
+  }
+
+  public static class CachableBuilder {
+    String cacheId = null;
+    IoeSupplier<InputStream> inputSupplier = null;
+    IoeSupplier<Long> lengthSupplier = null;
+    Cache<String,Long> fileLenCache = null;
+    BlockCache dCache = null;
+    BlockCache iCache = null;
+    RateLimiter readLimiter = null;
+    Configuration hadoopConf = null;
+    CryptoService cryptoService = null;
+
+    public CachableBuilder cacheId(String id) {
+      this.cacheId = id;
+      return this;
+    }
+
+    public CachableBuilder conf(Configuration hadoopConf) {
+      this.hadoopConf = hadoopConf;
+      return this;
+    }
+
+    public CachableBuilder fsPath(FileSystem fs, Path dataFile) {
+      this.cacheId = pathToCacheId(dataFile);
+      this.inputSupplier = () -> fs.open(dataFile);
+      this.lengthSupplier = () -> fs.getFileStatus(dataFile).getLen();
+      return this;
+    }
+
+    public CachableBuilder input(InputStream is) {
+      this.inputSupplier = () -> is;
+      return this;
+    }
+
+    public CachableBuilder length(long len) {
+      this.lengthSupplier = () -> len;
+      return this;
+    }
+
+    public CachableBuilder fileLen(Cache<String,Long> cache) {
+      this.fileLenCache = cache;
+      return this;
+    }
+
+    public CachableBuilder data(BlockCache dCache) {
+      this.dCache = dCache;
+      return this;
+    }
+
+    public CachableBuilder index(BlockCache iCache) {
+      this.iCache = iCache;
+      return this;
+    }
+
+    public CachableBuilder readLimiter(RateLimiter readLimiter) {
+      this.readLimiter = readLimiter;
+      return this;
+    }
+
+    public CachableBuilder cryptoService(CryptoService cryptoService) {
+      this.cryptoService = cryptoService;
+      return this;
+    }
   }
 
   /**
@@ -299,43 +362,16 @@ public class CachableBlockFile {
       }
     }
 
-    private Reader(String cacheId, IoeSupplier<InputStream> inputSupplier,
-        IoeSupplier<Long> lenghtSupplier, Cache<String,Long> fileLenCache, BlockCache data,
-        BlockCache index, RateLimiter readLimiter, Configuration conf,
-        CryptoService cryptoService) {
-      Preconditions.checkArgument(cacheId != null || (data == null && index == null));
-      this.cacheId = cacheId;
-      this.inputSupplier = inputSupplier;
-      this.lengthSupplier = lenghtSupplier;
-      this.fileLenCache = fileLenCache;
-      this._dCache = data;
-      this._iCache = index;
-      this.readLimiter = readLimiter;
-      this.conf = conf;
-      this.cryptoService = Objects.requireNonNull(cryptoService);
-    }
-
-    public Reader(FileSystem fs, Path dataFile, Configuration conf, BlockCache data,
-        BlockCache index, CryptoService cryptoService) {
-      this(fs, dataFile, conf, null, data, index, null, cryptoService);
-    }
-
-    public Reader(FileSystem fs, Path dataFile, Configuration conf, Cache<String,Long> fileLenCache,
-        BlockCache data, BlockCache index, RateLimiter readLimiter, CryptoService cryptoService) {
-      this(pathToCacheId(dataFile), () -> fs.open(dataFile),
-          () -> fs.getFileStatus(dataFile).getLen(), fileLenCache, data, index, readLimiter, conf,
-          cryptoService);
-    }
-
-    public <InputStreamType extends InputStream & Seekable> Reader(String cacheId,
-        InputStreamType fsin, long len, Configuration conf, BlockCache data, BlockCache index,
-        CryptoService cryptoService) {
-      this(cacheId, () -> fsin, () -> len, null, data, index, null, conf, cryptoService);
-    }
-
-    public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fsin, long len,
-        Configuration conf, CryptoService cryptoService) {
-      this(null, () -> fsin, () -> len, null, null, null, null, conf, cryptoService);
+    public Reader(CachableBuilder b) {
+      this.cacheId = b.cacheId;
+      this.inputSupplier = b.inputSupplier;
+      this.lengthSupplier = b.lengthSupplier;
+      this.fileLenCache = b.fileLenCache;
+      this._dCache = b.dCache;
+      this._iCache = b.iCache;
+      this.readLimiter = b.readLimiter;
+      this.conf = b.hadoopConf;
+      this.cryptoService = Objects.requireNonNull(b.cryptoService);
     }
 
     /**
