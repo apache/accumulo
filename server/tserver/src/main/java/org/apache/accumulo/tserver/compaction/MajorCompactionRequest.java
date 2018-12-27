@@ -157,8 +157,8 @@ public class MajorCompactionRequest implements Cloneable {
       FileSystem fs = volumeManager.getVolumeByPath(file.path()).getFileSystem();
       Configuration conf = CachedConfiguration.getInstance();
       SummaryCollection fsc = SummaryReader
-          .load(fs, conf, tableConfig, factory, file.path(), summarySelector, summaryCache,
-              indexCache, fileLenCache, context.getCryptoService())
+          .load(fs, conf, factory, file.path(), summarySelector, summaryCache, indexCache,
+              fileLenCache, context.getCryptoService())
           .getSummaries(Collections.singletonList(new Gatherer.RowRange(extent)));
       sc.merge(fsc, factory);
     }
