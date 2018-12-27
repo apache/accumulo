@@ -99,7 +99,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
     addOpenWals(c, allWalsSeen);
 
-    // This test creates the table manyWALsTable with a lot of tablets and write a little bit to
+    // This test creates the table manyWALsTable with a lot of tablets and writes a little bit to
     // each tablet. In between writing a little bit to each tablet a lot of data is written to
     // another table called rollWALsTable. Writing a lot causes the write ahead logs to roll. This
     // write pattern should cause the tablets in the manyWALsTable table to reference many closed
