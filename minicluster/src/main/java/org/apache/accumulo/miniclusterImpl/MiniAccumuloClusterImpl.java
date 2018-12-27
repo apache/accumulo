@@ -19,11 +19,7 @@ package org.apache.accumulo.miniclusterImpl;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
@@ -317,12 +313,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     log.debug("Starting MiniAccumuloCluster process with class: " + clazz.getSimpleName()
         + "\n, jvmOpts: " + extraJvmOpts + "\n, classpath: " + classpath + "\n, args: " + argList
         + "\n, environment: " + builder.environment());
-    Process process = builder.start();
 
-    builder.redirectError(
-        new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".err"));
-    builder.redirectInput(
-        new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".out"));
+    builder = builder.redirectError(
+        new File(config.getLogDir(), clazz.getSimpleName() + "_" + builder.hashCode() + ".err"));
+    builder = builder.redirectOutput(
+        new File(config.getLogDir(), clazz.getSimpleName() + "_" + builder.hashCode() + ".out"));
+
+    Process process = builder.start();
 
     cleanup.add(process);
 
