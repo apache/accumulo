@@ -28,7 +28,7 @@ import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
+import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.RFile.Writer;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
@@ -66,9 +66,9 @@ public class SplitLarge {
       CryptoService cryptoService = ConfigurationTypeHelper.getClassInstance(null, opts.cryptoClass,
           CryptoService.class, CryptoServiceFactory.newDefaultInstance());
       Path path = new Path(file);
-      CachableBlockFile.Reader rdr = new CachableBlockFile.Reader(fs, path, conf, null, null,
-          cryptoService);
-      try (Reader iter = new RFile.Reader(rdr)) {
+      CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf)
+          .cryptoService(cryptoService);
+      try (Reader iter = new RFile.Reader(cb)) {
 
         if (!file.endsWith(".rf")) {
           throw new IllegalArgumentException("File must end with .rf");

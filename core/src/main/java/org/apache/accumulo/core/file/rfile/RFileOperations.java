@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
+import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
@@ -45,11 +45,12 @@ public class RFileOperations extends FileOperations {
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
   private static RFile.Reader getReader(FileOptions options) throws IOException {
-    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(options.getFileSystem(),
-        new Path(options.getFilename()), options.getConfiguration(), options.getFileLenCache(),
-        options.getDataCache(), options.getIndexCache(), options.getRateLimiter(),
-        options.getCryptoService());
-    return new RFile.Reader(_cbr);
+    CachableBuilder cb = new CachableBuilder()
+        .fsPath(options.getFileSystem(), new Path(options.getFilename()))
+        .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
+        .data(options.getDataCache()).index(options.getIndexCache())
+        .readLimiter(options.getRateLimiter()).cryptoService(options.getCryptoService());
+    return new RFile.Reader(cb);
   }
 
   @Override
