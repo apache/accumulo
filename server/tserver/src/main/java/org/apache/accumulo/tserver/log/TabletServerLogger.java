@@ -451,8 +451,8 @@ public class TabletServerLogger {
     if (durability == Durability.DEFAULT || durability == Durability.NONE) {
       throw new IllegalArgumentException("Unexpected durability " + durability);
     }
-    write(singletonList(commitSession), false,
-        logger -> logger.log(commitSession, m, durability), writeRetryFactory.createRetry());
+    write(singletonList(commitSession), false, logger -> logger.log(commitSession, m, durability),
+        writeRetryFactory.createRetry());
     logSizeEstimate.addAndGet(m.numBytes());
   }
 
@@ -476,10 +476,9 @@ public class TabletServerLogger {
   }
 
   public void minorCompactionFinished(final CommitSession commitSession, final long walogSeq,
-                                      final Durability durability) throws IOException {
-    write(
-        singletonList(commitSession), true, logger -> logger.minorCompactionFinished(walogSeq,
-            commitSession.getLogId(), durability),
+      final Durability durability) throws IOException {
+    write(singletonList(commitSession), true,
+        logger -> logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), durability),
         writeRetryFactory.createRetry());
   }
 

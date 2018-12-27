@@ -27,7 +27,8 @@ public class TabletMutations {
   private final List<Mutation> mutations;
   private final Durability durability;
 
-  public TabletMutations(CommitSession commitSession, List<Mutation> mutations, Durability durability) {
+  public TabletMutations(CommitSession commitSession, List<Mutation> mutations,
+      Durability durability) {
     this.commitSession = commitSession;
     this.mutations = mutations;
     this.durability = durability;

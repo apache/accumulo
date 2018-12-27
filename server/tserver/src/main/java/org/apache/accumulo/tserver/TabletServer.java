@@ -1045,7 +1045,8 @@ public class TabletServer implements Runnable {
                 us.failures.put(tablet.getExtent(), us.successfulCommits.get(tablet));
               } else {
                 if (durability != Durability.NONE) {
-                  loggables.put(commitSession, new TabletMutations(commitSession, mutations, durability));
+                  loggables.put(commitSession,
+                      new TabletMutations(commitSession, mutations, durability));
                 }
                 sendables.put(commitSession, mutations);
                 mutationCount += mutations.size();
