@@ -24,8 +24,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
@@ -88,7 +86,6 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
-import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
@@ -127,8 +124,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public static class LogWriter extends Daemon {
     private BufferedReader in;
     private BufferedWriter out;
-
-
 
     public synchronized void flush() throws IOException {
       if (out != null)
@@ -325,9 +320,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     Process process = builder.start();
 
     builder.redirectError(
-            new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".err"));
+        new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".err"));
     builder.redirectInput(
-            new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".out"));
+        new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".out"));
 
     cleanup.add(process);
 

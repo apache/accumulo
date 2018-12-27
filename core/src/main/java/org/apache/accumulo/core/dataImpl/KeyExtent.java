@@ -495,11 +495,12 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public Range toMetadataRange() {
-    Text metadataPrevRow = new Text(getTableId().getUtf8());
-    metadataPrevRow.append(new byte[] {';'}, 0, 1);
-    if (getPrevEndRow() != null) {
-      metadataPrevRow.append(getPrevEndRow().getBytes(), 0, getPrevEndRow().getLength());
-    }
+    Text metadataPrevRow;
+
+    if (textPrevEndRow == null)
+      metadataPrevRow = TabletsSection.getRow(getTableId(), new Text(""));
+    else
+      metadataPrevRow = TabletsSection.getRow(getTableId(), this.textPrevEndRow);
 
     return new Range(metadataPrevRow, getPrevEndRow() == null, getMetadataEntry(), true);
   }
