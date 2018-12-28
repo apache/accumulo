@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 class TabletMemory implements Closeable {
   private static final Logger log = LoggerFactory.getLogger(TabletMemory.class);
 
-  private final TabletCommitter tablet;
+  private final Tablet tablet;
   private InMemoryMap memTable;
   private InMemoryMap otherMemTable;
   private InMemoryMap deletingMemTable;
@@ -184,16 +184,8 @@ class TabletMemory implements Closeable {
     return commitSession;
   }
 
-  public ServerContext getContext() {
-    return context;
-  }
-
   @Override
   public void close() {
     commitSession = null;
-  }
-
-  public boolean isClosed() {
-    return commitSession == null;
   }
 }

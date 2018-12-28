@@ -187,10 +187,6 @@ public class TabletData {
     this.splitTime = System.currentTimeMillis();
   }
 
-  public static Logger getLog() {
-    return log;
-  }
-
   public String getTime() {
     return time;
   }

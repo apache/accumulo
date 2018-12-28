@@ -332,7 +332,6 @@ public class TabletServer implements Runnable {
 
   private Thread majorCompactorThread;
 
-  private HostAndPort replicationAddress;
   private HostAndPort clientAddress;
 
   private volatile boolean serverStopRequested = false;
@@ -2833,7 +2832,7 @@ public class TabletServer implements Runnable {
 
     // Start the thrift service listening for incoming replication requests
     try {
-      replicationAddress = startReplicationService();
+      startReplicationService();
     } catch (UnknownHostException e) {
       throw new RuntimeException("Failed to start replication service", e);
     }
@@ -3116,13 +3115,6 @@ public class TabletServer implements Runnable {
     if (clientAddress == null)
       return null;
     return clientAddress.getHost() + ":" + clientAddress.getPort();
-  }
-
-  public String getReplicationAddressSTring() {
-    if (replicationAddress == null) {
-      return null;
-    }
-    return replicationAddress.getHost() + ":" + replicationAddress.getPort();
   }
 
   public TServerInstance getTabletSession() {

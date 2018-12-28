@@ -32,9 +32,7 @@ import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.client.summary.Summary.FileStatistics;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -92,10 +90,6 @@ public class MajorCompactionRequest implements Cloneable {
         mcr.indexCache, mcr.fileLenCache, mcr.context);
     // know this is already unmodifiable, no need to wrap again
     this.files = mcr.files;
-  }
-
-  public TabletId getTabletId() {
-    return new TabletIdImpl(extent);
   }
 
   public MajorCompactionReason getReason() {
