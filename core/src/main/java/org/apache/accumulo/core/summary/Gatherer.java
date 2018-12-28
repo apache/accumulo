@@ -660,8 +660,7 @@ public class Gatherer {
       Cache<String,Long> fileLenCache) {
     Path path = new Path(file);
     Configuration conf = CachedConfiguration.getInstance();
-    return SummaryReader.load(volMgr.get(path), conf, ctx.getConfiguration(), factory, path,
-        summarySelector, summaryCache, indexCache, fileLenCache, cryptoService)
-        .getSummaries(ranges);
+    return SummaryReader.load(volMgr.get(path), conf, factory, path, summarySelector, summaryCache,
+        indexCache, fileLenCache, cryptoService).getSummaries(ranges);
   }
 }
