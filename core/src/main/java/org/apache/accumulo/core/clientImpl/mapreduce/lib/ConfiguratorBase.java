@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URI;
-import java.net.URISyntaxException;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.conf.Configuration;
@@ -262,21 +263,35 @@ public class ConfiguratorBase {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
           + " can only be set once per job");
-
     checkArgument(principal != null, "principal is null");
     checkArgument(tokenFile != null, "tokenFile is null");
+    setConnectorInfo(implementingClass, conf, principal,
+        getTokenFromFile(conf, principal, new Path(tokenFile)));
+  }
 
+  // @formatter:off
+  // Migrated this method from 1.9 for backwards compatibility. See
+  // https://github.com/apache/accumulo/blob/1.9/core/src/main/java/org/apache/accumulo/core/client/mapreduce/lib/impl/ConfiguratorBase.java#L288
+  // @formatter:on
+  private static AuthenticationToken getTokenFromFile(Configuration conf, String principal,
+      Path tokenFile) {
+    FSDataInputStream in;
     try {
-      DistributedCacheHelper.addCacheFile(new URI(tokenFile), conf);
-    } catch (URISyntaxException e) {
-      throw new IllegalStateException(
-          "Unable to add tokenFile \"" + tokenFile + "\" to distributed cache.");
+      FileSystem fs = FileSystem.get(conf);
+      in = fs.open(Objects.requireNonNull(tokenFile));
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Couldn't open token file called \"" + tokenFile + "\".");
     }
-
-    conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
-    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
-        TokenSource.FILE.prefix() + tokenFile);
+    try (java.util.Scanner fileScanner = new java.util.Scanner(in)) {
+      while (fileScanner.hasNextLine()) {
+        Credentials creds = Credentials.deserialize(fileScanner.nextLine());
+        if (principal.equals(creds.getPrincipal())) {
+          return creds.getToken();
+        }
+      }
+      throw new IllegalArgumentException(
+          "Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
+    }
   }
 
   /**

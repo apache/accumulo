@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -165,10 +166,11 @@ public class TokenFileIT extends AccumuloClusterHarness {
       }
       bw.close();
 
-      File tf = folder.newFile("client.properties");
-      try (PrintStream out = new PrintStream(tf)) {
-        getClientInfo().getProperties().store(out, "Credentials for " + getClass().getName());
-      }
+      File tf = folder.newFile("root_test.pw");
+      PrintStream out = new PrintStream(tf);
+      String outString = new Credentials(getAdminPrincipal(), getAdminToken()).serialize();
+      out.println(outString);
+      out.close();
 
       MRTokenFileTester.main(new String[] {tf.getAbsolutePath(), table1, table2});
       assertNull(e1);
