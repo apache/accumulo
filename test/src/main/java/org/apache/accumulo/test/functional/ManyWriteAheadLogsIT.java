@@ -19,7 +19,6 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertTrue;
 
-import java.util.Base64;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,6 +32,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
@@ -121,10 +121,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           rand.nextBytes(val);
           m.put("f", "q", "v");
 
-          Base64.getEncoder().encodeToString(val);
-
           manyWALsWriter.addMutation(m);
-
         }
         manyWALsWriter.flush();
 
@@ -132,7 +129,8 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
         for (int j = 0; j < 1000; j++) {
           Mutation m = new Mutation(String.format("%03d", j));
           rand.nextBytes(val);
-          m.put("f", "q", Base64.getEncoder().encodeToString(val));
+
+          m.put("f", "q", Base64.encodeBase64String(val));
 
           rollWALsWriter.addMutation(m);
         }
