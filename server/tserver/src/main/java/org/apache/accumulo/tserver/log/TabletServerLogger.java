@@ -271,13 +271,11 @@ public class TabletServerLogger {
         while (!nextLogMaker.isShutdown()) {
           DfsLogger alog = null;
           try {
-            if (log.isDebugEnabled())
-              log.debug("Creating next WAL");
+            log.debug("Creating next WAL");
             alog = new DfsLogger(tserver.getContext(), conf, syncCounter, flushCounter);
             alog.open(tserver.getClientAddressString());
             String fileName = alog.getFileName();
-            if (log.isDebugEnabled())
-              log.debug("Created next WAL " + fileName);
+            log.debug("Created next WAL {}", fileName);
             tserver.addNewLogMarker(alog);
             while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
               log.info("Our WAL was not used for 12 hours: {}", fileName);
