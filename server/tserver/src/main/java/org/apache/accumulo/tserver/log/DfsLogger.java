@@ -17,10 +17,12 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.singletonList;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
+import static org.apache.accumulo.tserver.logger.LogEvents.MUTATION;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 
 import java.io.DataInputStream;
@@ -32,7 +34,6 @@ import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -49,7 +50,6 @@ import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
 import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.cryptoImpl.NoCryptoService;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
@@ -66,6 +66,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
+import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
@@ -450,7 +451,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       key.event = OPEN;
       key.tserverSession = filename;
       key.filename = filename;
-      op = logFileData(Collections.singletonList(new Pair<>(key, EMPTY)), Durability.SYNC);
+      op = logKeyData(key, Durability.SYNC);
     } catch (Exception ex) {
       if (logFile != null)
         logFile.close();
@@ -537,22 +538,14 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
   }
 
-  public synchronized void defineTablet(long seq, int tid, KeyExtent tablet) throws IOException {
+  public LoggerOperation defineTablet(CommitSession cs) throws IOException {
     // write this log to the METADATA table
     final LogFileKey key = new LogFileKey();
     key.event = DEFINE_TABLET;
-    key.seq = seq;
-    key.tabletId = tid;
-    key.tablet = tablet;
-    try {
-      write(key, EMPTY);
-    } catch (ClosedChannelException ex) {
-      throw new LogClosedException();
-    } catch (IllegalArgumentException e) {
-      log.error("Signature of sync method changed. Accumulo is likely"
-          + " incompatible with this version of Hadoop.");
-      throw new RuntimeException(e);
-    }
+    key.seq = cs.getWALogSeq();
+    key.tabletId = cs.getLogId();
+    key.tablet = cs.getExtent();
+    return logKeyData(key, Durability.LOG);
   }
 
   private synchronized void write(LogFileKey key, LogFileValue value) throws IOException {
@@ -561,26 +554,22 @@ public class DfsLogger implements Comparable<DfsLogger> {
     encryptingLogFile.flush();
   }
 
-  public LoggerOperation log(long seq, int tid, Mutation mutation, Durability durability)
-      throws IOException {
-    return logManyTablets(Collections.singletonList(
-        new TabletMutations(tid, seq, Collections.singletonList(mutation), durability)));
+  private LoggerOperation logKeyData(LogFileKey key, Durability d) throws IOException {
+    return logFileData(singletonList(new Pair<>(key, EMPTY)), d);
   }
 
   private LoggerOperation logFileData(List<Pair<LogFileKey,LogFileValue>> keys,
       Durability durability) throws IOException {
     DfsLogger.LogWork work = new DfsLogger.LogWork(new CountDownLatch(1), durability);
-    synchronized (DfsLogger.this) {
-      try {
-        for (Pair<LogFileKey,LogFileValue> pair : keys) {
-          write(pair.getFirst(), pair.getSecond());
-        }
-      } catch (ClosedChannelException ex) {
-        throw new LogClosedException();
-      } catch (Exception e) {
-        log.error("Failed to write log entries", e);
-        work.exception = e;
+    try {
+      for (Pair<LogFileKey,LogFileValue> pair : keys) {
+        write(pair.getFirst(), pair.getSecond());
       }
+    } catch (ClosedChannelException ex) {
+      throw new LogClosedException();
+    } catch (Exception e) {
+      log.error("Failed to write log entries", e);
+      work.exception = e;
     }
 
     if (durability == Durability.LOG)
@@ -614,6 +603,16 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return logFileData(data, durability);
   }
 
+  public LoggerOperation log(CommitSession cs, Mutation m, Durability d) throws IOException {
+    LogFileKey key = new LogFileKey();
+    key.event = MUTATION;
+    key.seq = cs.getWALogSeq();
+    key.tabletId = cs.getLogId();
+    LogFileValue value = new LogFileValue();
+    value.mutations = singletonList(m);
+    return logFileData(singletonList(new Pair<>(key, value)), d);
+  }
+
   /**
    * Return the Durability with the highest precedence
    */
@@ -631,7 +630,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     key.event = COMPACTION_FINISH;
     key.seq = seq;
     key.tabletId = tid;
-    return logFileData(Collections.singletonList(new Pair<>(key, EMPTY)), durability);
+    return logKeyData(key, durability);
   }
 
   public LoggerOperation minorCompactionStarted(long seq, int tid, String fqfn,
@@ -641,7 +640,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     key.seq = seq;
     key.tabletId = tid;
     key.filename = fqfn;
-    return logFileData(Collections.singletonList(new Pair<>(key, EMPTY)), durability);
+    return logKeyData(key, durability);
   }
 
   public String getLogger() {

@@ -1045,8 +1045,8 @@ public class TabletServer implements Runnable {
                 us.failures.put(tablet.getExtent(), us.successfulCommits.get(tablet));
               } else {
                 if (durability != Durability.NONE) {
-                  loggables.put(commitSession, new TabletMutations(commitSession.getLogId(),
-                      commitSession.getWALogSeq(), mutations, durability));
+                  loggables.put(commitSession,
+                      new TabletMutations(commitSession, mutations, durability));
                 }
                 sendables.put(commitSession, mutations);
                 mutationCount += mutations.size();
@@ -1063,8 +1063,7 @@ public class TabletServer implements Runnable {
                 // prepareMutationsForCommit() expects
                 CommitSession cs = e.getCommitSession();
                 if (durability != Durability.NONE) {
-                  loggables.put(cs, new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
-                      e.getNonViolators(), durability));
+                  loggables.put(cs, new TabletMutations(cs, e.getNonViolators(), durability));
                 }
                 sendables.put(cs, e.getNonViolators());
               }
@@ -1272,7 +1271,7 @@ public class TabletServer implements Runnable {
           try {
             final Span wal = Trace.start("wal");
             try {
-              logger.log(cs, cs.getWALogSeq(), mutation, durability);
+              logger.log(cs, mutation, durability);
             } finally {
               wal.stop();
             }
@@ -1390,8 +1389,7 @@ public class TabletServer implements Runnable {
                   for (ServerConditionalMutation scm : entry.getValue())
                     results.add(new TCMResult(scm.getID(), TCMStatus.ACCEPTED));
                   if (durability != Durability.NONE) {
-                    loggables.put(cs, new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
-                        mutations, durability));
+                    loggables.put(cs, new TabletMutations(cs, mutations, durability));
                   }
                   sendables.put(cs, mutations);
                 }
@@ -1400,8 +1398,7 @@ public class TabletServer implements Runnable {
               CommitSession cs = e.getCommitSession();
               if (e.getNonViolators().size() > 0) {
                 if (durability != Durability.NONE) {
-                  loggables.put(cs, new TabletMutations(cs.getLogId(), cs.getWALogSeq(),
-                      e.getNonViolators(), durability));
+                  loggables.put(cs, new TabletMutations(cs, e.getNonViolators(), durability));
                 }
                 sendables.put(cs, e.getNonViolators());
                 for (Mutation m : e.getNonViolators())

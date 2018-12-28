@@ -275,7 +275,7 @@ public class TabletServerLogger {
             alog = new DfsLogger(tserver.getContext(), conf, syncCounter, flushCounter);
             alog.open(tserver.getClientAddressString());
             String fileName = alog.getFileName();
-            log.debug("Created next WAL " + fileName);
+            log.debug("Created next WAL {}", fileName);
             tserver.addNewLogMarker(alog);
             while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
               log.info("Our WAL was not used for 12 hours: {}", fileName);
@@ -348,9 +348,8 @@ public class TabletServerLogger {
     while (!success) {
       try {
         // get a reference to the loggers that no other thread can touch
-        DfsLogger copy = null;
         AtomicInteger currentId = new AtomicInteger(-1);
-        copy = initializeLoggers(currentId);
+        DfsLogger copy = initializeLoggers(currentId);
         currentLogId = currentId.get();
 
         // add the logger to the log set for the memory in the tablet,
@@ -361,7 +360,8 @@ public class TabletServerLogger {
             if (commitSession.beginUpdatingLogsUsed(copy, mincFinish)) {
               try {
                 // Scribble out a tablet definition and then write to the metadata table
-                defineTablet(commitSession, writeRetry);
+                write(singletonList(commitSession), false,
+                    logger -> logger.defineTablet(commitSession), writeRetry);
               } finally {
                 commitSession.finishUpdatingLogsUsed();
               }
@@ -441,26 +441,15 @@ public class TabletServerLogger {
     });
   }
 
-  public void defineTablet(final CommitSession commitSession, final Retry writeRetry)
-      throws IOException {
-    // scribble this into the metadata tablet, too.
-    write(singletonList(commitSession), false, logger -> {
-      logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(),
-          commitSession.getExtent());
-      return DfsLogger.NO_WAIT_LOGGER_OP;
-    }, writeRetry);
-  }
-
   /**
    * Log a single mutation. This method expects mutations that have a durability other than NONE.
    */
-  public void log(final CommitSession commitSession, final long tabletSeq, final Mutation m,
-      final Durability durability) throws IOException {
+  public void log(final CommitSession commitSession, final Mutation m, final Durability durability)
+      throws IOException {
     if (durability == Durability.DEFAULT || durability == Durability.NONE) {
       throw new IllegalArgumentException("Unexpected durability " + durability);
     }
-    write(singletonList(commitSession), false,
-        logger -> logger.log(tabletSeq, commitSession.getLogId(), m, durability),
+    write(singletonList(commitSession), false, logger -> logger.log(commitSession, m, durability),
         writeRetryFactory.createRetry());
     logSizeEstimate.addAndGet(m.numBytes());
   }
@@ -486,16 +475,9 @@ public class TabletServerLogger {
 
   public void minorCompactionFinished(final CommitSession commitSession, final long walogSeq,
       final Durability durability) throws IOException {
-
-    long t1 = System.currentTimeMillis();
-
     write(singletonList(commitSession), true,
         logger -> logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), durability),
         writeRetryFactory.createRetry());
-
-    long t2 = System.currentTimeMillis();
-
-    log.debug(" wrote MinC finish: writeTime:{}ms  durability:{}", (t2 - t1), durability);
   }
 
   public long minorCompactionStarted(final CommitSession commitSession, final long seq,

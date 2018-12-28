@@ -20,16 +20,16 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.tserver.tablet.CommitSession;
 
 public class TabletMutations {
-  private final int tid;
-  private final long seq;
+  private CommitSession commitSession;
   private final List<Mutation> mutations;
   private final Durability durability;
 
-  public TabletMutations(int tid, long seq, List<Mutation> mutations, Durability durability) {
-    this.tid = tid;
-    this.seq = seq;
+  public TabletMutations(CommitSession commitSession, List<Mutation> mutations,
+      Durability durability) {
+    this.commitSession = commitSession;
     this.mutations = mutations;
     this.durability = durability;
   }
@@ -39,11 +39,11 @@ public class TabletMutations {
   }
 
   public int getTid() {
-    return tid;
+    return commitSession.getLogId();
   }
 
   public long getSeq() {
-    return seq;
+    return commitSession.getWALogSeq();
   }
 
   public Durability getDurability() {
