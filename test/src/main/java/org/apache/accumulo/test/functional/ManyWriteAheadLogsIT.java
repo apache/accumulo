@@ -73,8 +73,6 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
    * This creates a situation where many tablets reference many different write ahead logs. However
    * not single tablet references a lot of write ahead logs. Want to ensure the tablet server forces
    * minor compactions for this situation.
-   *
-   * @throws Exception
    */
   @Test
   public void testMany() throws Exception {
