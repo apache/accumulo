@@ -51,7 +51,12 @@ if [ ! -d "$HADOOP_HOME" ]; then
 fi
 
 ## Build using existing CLASSPATH, conf/ directory, dependencies in lib/, and external Hadoop & Zookeeper dependencies
-CLASSPATH="${CLASSPATH}:${conf}:${lib}/*:${HADOOP_CONF_DIR}:${ZOOKEEPER_HOME}/*:${HADOOP_HOME}/share/hadoop/client/*"
+if [ -n "$CLASSPATH" ]; then
+  CLASSPATH="${CLASSPATH}:${conf}"
+else
+  CLASSPATH="${conf}"
+fi
+CLASSPATH="${CLASSPATH}:${lib}/*:${HADOOP_CONF_DIR}:${ZOOKEEPER_HOME}/*:${HADOOP_HOME}/share/hadoop/client/*"
 export CLASSPATH
 
 ##################################################################
