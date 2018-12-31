@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.clientImpl.mapreduce.lib;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayInputStream;
@@ -25,7 +26,8 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URI;
-import java.util.Objects;
+import java.net.URISyntaxException;
+import java.util.Base64;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -36,9 +38,6 @@ import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
-import org.apache.accumulo.core.clientImpl.ClientConfConverter;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.conf.Configuration;
@@ -84,6 +83,15 @@ public class ConfiguratorBase {
     public String prefix() {
       return prefix;
     }
+  }
+
+  /**
+   * Configuration keys for available {@link Instance} types.
+   *
+   * @since 1.6.0
+   */
+  public static enum InstanceOpts {
+    TYPE, NAME, ZOO_KEEPERS, CLIENT_CONFIG;
   }
 
   public enum ClientOpts {
@@ -231,12 +239,12 @@ public class ConfiguratorBase {
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf,
       String principal, AuthenticationToken token) {
+    if (isConnectorInfoSet(implementingClass, conf))
+      throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
+          + " can only be set once per job");
+
     checkArgument(principal != null, "principal is null");
     checkArgument(token != null, "token is null");
-    Properties props = getClientProperties(implementingClass, conf);
-    props.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), principal);
-    ClientProperty.setAuthenticationToken(props, token);
-    setClientProperties(implementingClass, conf, props);
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
   }
 
@@ -263,35 +271,21 @@ public class ConfiguratorBase {
     if (isConnectorInfoSet(implementingClass, conf))
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
           + " can only be set once per job");
+
     checkArgument(principal != null, "principal is null");
     checkArgument(tokenFile != null, "tokenFile is null");
-    setConnectorInfo(implementingClass, conf, principal,
-        getTokenFromFile(conf, principal, new Path(tokenFile)));
-  }
 
-  // @formatter:off
-  // Migrated this method from 1.9 for backwards compatibility. See
-  // https://github.com/apache/accumulo/blob/1.9/core/src/main/java/org/apache/accumulo/core/client/mapreduce/lib/impl/ConfiguratorBase.java#L288
-  // @formatter:on
-  private static AuthenticationToken getTokenFromFile(Configuration conf, String principal,
-      Path tokenFile) {
-    FSDataInputStream in;
     try {
-      FileSystem fs = FileSystem.get(conf);
-      in = fs.open(Objects.requireNonNull(tokenFile));
-    } catch (IOException e) {
-      throw new IllegalArgumentException("Couldn't open token file called \"" + tokenFile + "\".");
+      DistributedCacheHelper.addCacheFile(new URI(tokenFile), conf);
+    } catch (URISyntaxException e) {
+      throw new IllegalStateException(
+          "Unable to add tokenFile \"" + tokenFile + "\" to distributed cache.");
     }
-    try (java.util.Scanner fileScanner = new java.util.Scanner(in)) {
-      while (fileScanner.hasNextLine()) {
-        Credentials creds = Credentials.deserialize(fileScanner.nextLine());
-        if (principal.equals(creds.getPrincipal())) {
-          return creds.getToken();
-        }
-      }
-      throw new IllegalArgumentException(
-          "Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
-    }
+
+    conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
+    conf.set(enumToConfKey(implementingClass, ConnectorInfo.TOKEN),
+        TokenSource.FILE.prefix() + tokenFile);
   }
 
   /**
@@ -321,8 +315,7 @@ public class ConfiguratorBase {
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
   public static String getPrincipal(Class<?> implementingClass, Configuration conf) {
-    Properties props = getClientProperties(implementingClass, conf);
-    return props.getProperty(ClientProperty.AUTH_PRINCIPAL.getKey());
+    return conf.get(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL));
   }
 
   /**
@@ -336,11 +329,76 @@ public class ConfiguratorBase {
    * @return the principal's authentication token
    * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
+   * @see #setConnectorInfo(Class, Configuration, String, String)
    */
   public static AuthenticationToken getAuthenticationToken(Class<?> implementingClass,
       Configuration conf) {
-    Properties props = getClientProperties(implementingClass, conf);
-    return ClientProperty.getAuthenticationToken(props);
+    String token = conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN));
+    if (token == null || token.isEmpty())
+      return null;
+    if (token.startsWith(TokenSource.INLINE.prefix())) {
+      String[] args = token.substring(TokenSource.INLINE.prefix().length()).split(":", 2);
+      if (args.length == 2)
+        return org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer
+            .deserialize(args[0], Base64.getDecoder().decode(args[1].getBytes(UTF_8)));
+    } else if (token.startsWith(TokenSource.FILE.prefix())) {
+      String tokenFileName = token.substring(TokenSource.FILE.prefix().length());
+      return getTokenFromFile(conf, getPrincipal(implementingClass, conf), tokenFileName);
+    } else if (token.startsWith(TokenSource.JOB.prefix())) {
+      String[] args = token.substring(TokenSource.JOB.prefix().length()).split(":", 2);
+      if (args.length == 2) {
+        String className = args[0], serviceName = args[1];
+        if (DelegationTokenImpl.class.getName().equals(className)) {
+          return new org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub(serviceName);
+        }
+      }
+    }
+
+    throw new IllegalStateException("Token was not properly serialized into the configuration");
+  }
+
+  /**
+   * Reads from the token file in distributed cache. Currently, the token file stores data separated
+   * by colons e.g. principal:token_class:token
+   *
+   * @param conf
+   *          the Hadoop context for the configured job
+   * @return path to the token file as a String
+   * @since 1.6.0
+   * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
+   */
+  public static AuthenticationToken getTokenFromFile(Configuration conf, String principal,
+      String tokenFile) {
+    FSDataInputStream in = null;
+    try {
+      URI[] uris = DistributedCacheHelper.getCacheFiles(conf);
+      Path path = null;
+      for (URI u : uris) {
+        if (u.toString().equals(tokenFile)) {
+          path = new Path(u);
+        }
+      }
+      if (path == null) {
+        throw new IllegalArgumentException(
+            "Couldn't find password file called \"" + tokenFile + "\" in cache.");
+      }
+      FileSystem fs = FileSystem.get(conf);
+      in = fs.open(path);
+    } catch (IOException e) {
+      throw new IllegalArgumentException(
+          "Couldn't open password file called \"" + tokenFile + "\".");
+    }
+    try (java.util.Scanner fileScanner = new java.util.Scanner(in)) {
+      while (fileScanner.hasNextLine()) {
+        org.apache.accumulo.core.clientImpl.Credentials creds = org.apache.accumulo.core.clientImpl.Credentials
+            .deserialize(fileScanner.nextLine());
+        if (principal.equals(creds.getPrincipal())) {
+          return creds.getToken();
+        }
+      }
+      throw new IllegalArgumentException(
+          "Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
+    }
   }
 
   /**
@@ -356,14 +414,16 @@ public class ConfiguratorBase {
    */
   public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf,
       org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
-    Properties props = getClientProperties(implementingClass, conf);
-    Properties newProps = ClientConfConverter.toProperties(clientConfig);
-    for (Object keyObj : newProps.keySet()) {
-      String propKey = (String) keyObj;
-      String val = newProps.getProperty(propKey);
-      props.setProperty(propKey, val);
+    String key = enumToConfKey(implementingClass, InstanceOpts.TYPE);
+    if (!conf.get(key, "").isEmpty())
+      throw new IllegalStateException(
+          "Instance info can only be set once per job; it has already been configured with "
+              + conf.get(key));
+    conf.set(key, "ZooKeeperInstance");
+    if (clientConfig != null) {
+      conf.set(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG),
+          clientConfig.serialize());
     }
-    setClientProperties(implementingClass, conf, props);
   }
 
   /**
@@ -376,12 +436,21 @@ public class ConfiguratorBase {
    *          the Hadoop configuration object to configure
    * @return an Accumulo instance
    * @since 1.6.0
+   * @see #setZooKeeperInstance(Class, Configuration,
+   *      org.apache.accumulo.core.client.ClientConfiguration)
    */
   public static org.apache.accumulo.core.client.Instance getInstance(Class<?> implementingClass,
       Configuration conf) {
-    ClientInfo info = ClientInfo.from(getClientProperties(implementingClass, conf));
-    return new org.apache.accumulo.core.client.ZooKeeperInstance(info.getZooKeepers(),
-        info.getZooKeepers());
+    String instanceType = conf.get(enumToConfKey(implementingClass, InstanceOpts.TYPE), "");
+
+    if ("ZooKeeperInstance".equals(instanceType)) {
+      return new org.apache.accumulo.core.client.ZooKeeperInstance(
+          getClientConfiguration(implementingClass, conf));
+    } else if (instanceType.isEmpty()) {
+      throw new IllegalStateException(
+          "Instance has not been configured for " + implementingClass.getSimpleName());
+    } else
+      throw new IllegalStateException("Unrecognized instance type " + instanceType);
   }
 
   /**
@@ -397,7 +466,23 @@ public class ConfiguratorBase {
    */
   public static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
       Class<?> implementingClass, Configuration conf) {
-    return ClientConfConverter.toClientConf(getClientProperties(implementingClass, conf));
+    String clientConfigString = conf
+        .get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
+    if (null != clientConfigString) {
+      return org.apache.accumulo.core.client.ClientConfiguration.deserialize(clientConfigString);
+    }
+
+    String instanceName = conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME));
+    String zookeepers = conf.get(enumToConfKey(implementingClass, InstanceOpts.ZOO_KEEPERS));
+    org.apache.accumulo.core.client.ClientConfiguration clientConf = org.apache.accumulo.core.client.ClientConfiguration
+        .loadDefault();
+    if (null != instanceName) {
+      clientConf.withInstance(instanceName);
+    }
+    if (null != zookeepers) {
+      clientConf.withZkHosts(zookeepers);
+    }
+    return clientConf;
   }
 
   /**

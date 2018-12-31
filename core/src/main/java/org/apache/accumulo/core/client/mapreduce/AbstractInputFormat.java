@@ -28,13 +28,11 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
@@ -53,14 +51,15 @@ import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -146,10 +145,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       throws AccumuloSecurityException {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
-      try (AccumuloClient client = Accumulo.newClient()
-          .from(Configurator.getClientProperties(CLASS, job.getConfiguration()))
-          .as(principal, token).build()) {
-        token = client.securityOperations().getDelegationToken(new DelegationTokenConfig());
+      try {
+        org.apache.accumulo.core.client.Instance instance = getInstance(job);
+        org.apache.accumulo.core.client.Connector conn = instance.getConnector(principal, token);
+        token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, "
             + "Mappers/Reducers will likely fail to communicate with Accumulo", e);
@@ -500,13 +499,29 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
 
       split = (RangeInputSplit) inSplit;
-      log.debug("Initializing input split: " + split);
+      Table.ID tableId = Table.ID.of(split.getTableId());
+      log.debug("Initializing input split: " + split.toString());
 
-      if (context == null) {
-        context = new ClientContext(
-            Configurator.getClientProperties(CLASS, attempt.getConfiguration()));
+      org.apache.accumulo.core.client.Instance instance = split
+          .getInstance(getClientConfiguration(attempt));
+      if (null == instance) {
+        instance = getInstance(attempt);
       }
-      Authorizations authorizations = getScanAuthorizations(attempt);
+
+      String principal = split.getPrincipal();
+      if (null == principal) {
+        principal = getPrincipal(attempt);
+      }
+
+      AuthenticationToken token = split.getToken();
+      if (null == token) {
+        token = getAuthenticationToken(attempt);
+      }
+
+      Authorizations authorizations = split.getAuths();
+      if (null == authorizations) {
+        authorizations = getScanAuthorizations(attempt);
+      }
       String classLoaderContext = getClassLoaderContext(attempt);
       String table = split.getTableName();
 
@@ -515,7 +530,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       // but the scanner will use the table id resolved at job setup time
       InputTableConfig tableConfig = getInputTableConfig(attempt, split.getTableName());
 
-      log.debug("Creating client with user: " + context.whoami());
+      log.debug("Creating connector with user: " + principal);
       log.debug("Creating scanner for table: " + table);
       log.debug("Authorizations are: " + authorizations);
 
@@ -527,7 +542,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit
           // will not span tablets
           int scanThreads = 1;
-          scanner = context.createBatchScanner(split.getTableName(), authorizations, scanThreads);
+          scanner = instance.getConnector(principal, token).createBatchScanner(split.getTableName(),
+              authorizations, scanThreads);
           setupIterators(attempt, scanner, split.getTableName(), split);
           if (classLoaderContext != null) {
             scanner.setClassLoaderContext(classLoaderContext);
@@ -558,12 +574,15 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         }
 
         try {
+          org.apache.accumulo.core.client.ClientConfiguration clientConf = getClientConfiguration(
+              attempt);
+          ClientContext context = new ClientContext(ClientConfConverter.toProperties(clientConf));
           if (isOffline) {
-            scanner = new OfflineScanner(context, Table.ID.of(split.getTableId()), authorizations);
+            scanner = new OfflineScanner(context, tableId, authorizations);
           } else {
             // Not using public API to create scanner so that we can use table ID
             // Table ID is used in case of renames during M/R job
-            scanner = new ScannerImpl(context, Table.ID.of(split.getTableId()), authorizations);
+            scanner = new ScannerImpl(context, tableId, authorizations);
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");
@@ -671,13 +690,6 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     }
   }
 
-  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobContext context, Table.ID tableId,
-      List<Range> ranges)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    return Configurator.binOffline(tableId, ranges,
-        ClientInfo.from(Configurator.getClientProperties(CLASS, context.getConfiguration())));
-  }
-
   /**
    * Gets the splits of the tables that have been set on the job by reading the metadata table for
    * the specified ranges.
@@ -695,8 +707,10 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
     Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
     Map<String,InputTableConfig> tableConfigs = getInputTableConfigs(context);
-    try (AccumuloClient client = Accumulo.newClient()
-        .from(Configurator.getClientProperties(CLASS, context.getConfiguration())).build()) {
+    Properties props = ClientConfConverter.toProperties(getClientConfiguration(context));
+    props.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), getPrincipal(context));
+    ClientProperty.setAuthenticationToken(props, getAuthenticationToken(context));
+    try (ClientContext client = new ClientContext(props)) {
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
 
         String tableName = tableConfigEntry.getKey();
@@ -705,12 +719,15 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         Table.ID tableId;
         // resolve table name to id once, and use id from this point forward
         try {
-          tableId = Tables.getTableId((ClientContext) client, tableName);
+          tableId = Tables.getTableId(client, tableName);
         } catch (TableNotFoundException e) {
           throw new IOException(e);
         }
 
-        boolean batchScan = Configurator.isBatchScan(CLASS, context.getConfiguration());
+        Authorizations auths = getScanAuthorizations(context);
+
+        boolean batchScan = org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator
+            .isBatchScan(CLASS, context.getConfiguration());
         boolean supportBatchScan = !(tableConfig.isOfflineScan()
             || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
         if (batchScan && !supportBatchScan)
@@ -734,27 +751,28 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         TabletLocator tl;
         try {
           if (tableConfig.isOfflineScan()) {
-            binnedRanges = binOfflineTable(context, tableId, ranges);
+            binnedRanges = org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator
+                .binOffline(tableId, ranges, client);
             while (binnedRanges == null) {
               // Some tablets were still online, try again
               // sleep randomly between 100 and 200 ms
               sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
-              binnedRanges = binOfflineTable(context, tableId, ranges);
+              binnedRanges = org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator
+                  .binOffline(tableId, ranges, client);
 
             }
           } else {
-            tl = TabletLocator.getLocator((ClientContext) client, tableId);
+            tl = TabletLocator.getLocator(client, tableId);
             // its possible that the cache could contain complete, but old information about a
             // tables tablets... so clear it
             tl.invalidateCache();
 
-            while (!tl.binRanges((ClientContext) client, ranges, binnedRanges).isEmpty()) {
+            while (!tl.binRanges(client, ranges, binnedRanges).isEmpty()) {
               String tableIdStr = tableId.canonicalID();
-              if (!Tables.exists((ClientContext) client, tableId))
+              if (!Tables.exists(client, tableId))
                 throw new TableDeletedException(tableIdStr);
-              if (Tables.getTableState((ClientContext) client, tableId) == TableState.OFFLINE)
-                throw new TableOfflineException(
-                    Tables.getTableOfflineMsg((ClientContext) client, tableId));
+              if (Tables.getTableState(client, tableId) == TableState.OFFLINE)
+                throw new TableOfflineException(Tables.getTableOfflineMsg(client, tableId));
               binnedRanges.clear();
               log.warn("Unable to locate bins for specified ranges. Retrying.");
               // sleep randomly between 100 and 200 ms

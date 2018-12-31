@@ -34,7 +34,6 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
@@ -53,14 +52,15 @@ import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -630,13 +630,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
   }
 
-  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job, Table.ID tableId,
-      List<Range> ranges)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    return Configurator.binOffline(tableId, ranges,
-        ClientInfo.from(Configurator.getClientProperties(CLASS, job)));
-  }
-
   /**
    * Gets the splits of the tables that have been set on the job by reading the metadata table for
    * the specified ranges.
@@ -662,8 +655,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig = tableConfigEntry
           .getValue();
 
-      try (
-          ClientContext context = new ClientContext(Configurator.getClientProperties(CLASS, job))) {
+      try (ClientContext context = new ClientContext(
+          ClientConfConverter.toProperties(getClientConfiguration(job)))) {
         Table.ID tableId;
         // resolve table name to id once, and use id from this point forward
         try {
@@ -696,12 +689,12 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         TabletLocator tl;
         try {
           if (tableConfig.isOfflineScan()) {
-            binnedRanges = binOfflineTable(job, tableId, ranges);
+            binnedRanges = InputConfigurator.binOffline(tableId, ranges, context);
             while (binnedRanges == null) {
               // Some tablets were still online, try again
               // sleep randomly between 100 and 200 ms
               sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
-              binnedRanges = binOfflineTable(job, tableId, ranges);
+              binnedRanges = InputConfigurator.binOffline(tableId, ranges, context);
             }
           } else {
             tl = TabletLocator.getLocator(context, tableId);
