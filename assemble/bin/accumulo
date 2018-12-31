@@ -34,7 +34,7 @@ function main() {
     echo "$conf is not a valid directory.  Please make sure it exists"
     exit 1
   fi
-  if [ ! -f "$conf/accumulo-env.sh" ]; then
+  if [[ ! -f "$conf/accumulo-env.sh" ]]; then
     echo "accumulo-env.sh must exist in $conf"
     exit 1
   fi
@@ -51,16 +51,16 @@ function main() {
   mkdir -p "${ACCUMULO_LOG_DIR}" 2>/dev/null
   : "${MALLOC_ARENA_MAX:?"variable is not set in accumulo-env.sh"}"
 
-  if [ -x "$JAVA_HOME/bin/java" ]; then
+  if [[ -x "$JAVA_HOME/bin/java" ]]; then
     JAVA="$JAVA_HOME/bin/java"
   else
     JAVA=$(which java)
   fi
-  if [ ! -x "$JAVA" ]; then
+  if [[ ! -x "$JAVA" ]]; then
     echo "Could not find any executable java binary. Please set java on your PATH or set JAVA_HOME"
     exit 1
   fi
-  if [ -n "$ACCUMULO_JAVA_PREFIX" ]; then
+  if [[ -n "$ACCUMULO_JAVA_PREFIX" ]]; then
     JAVA=($ACCUMULO_JAVA_PREFIX $JAVA)
   fi
 

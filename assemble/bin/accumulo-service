@@ -44,7 +44,7 @@ function invalid_args {
 function rotate_log () {
   logfile="$1"
   max_retained="5"
-  if [ -f "$logfile" ]; then
+  if [[ -f "$logfile" ]]; then
     while [[ "$max_retained" -gt 1 ]]; do
       prev=$(( max_retained - 1))
       [ -f "$logfile.$prev" ] && mv -f "$logfile.$prev" "$logfile.$max_retained"
@@ -55,7 +55,7 @@ function rotate_log () {
 }
 
 function start_service() {
-  if [ -f "$pid_file" ]; then
+  if [[ -f "$pid_file" ]]; then
     pid=$(cat "$pid_file")
     if kill -0 "$pid" 2>/dev/null; then
       echo "$host : $service already running (${pid})"
@@ -87,7 +87,7 @@ function start_service() {
 }
 
 function stop_service() {
-  if [ -f "$pid_file" ]; then
+  if [[ -f "$pid_file" ]]; then
     echo "Stopping $service on $host";
     kill -s TERM "$(cat "$pid_file")" 2>/dev/null
     rm -f "${pid_file}" 2>/dev/null
@@ -95,7 +95,7 @@ function stop_service() {
 }
 
 function kill_service() {
-  if [ -f "$pid_file" ]; then
+  if [[ -f "$pid_file" ]]; then
     echo "Killing $service on $host";
     kill -s KILL "$(cat "$pid_file")" 2>/dev/null
     rm -f "${pid_file}" 2>/dev/null
@@ -120,7 +120,7 @@ function main() {
   export conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
   export lib="${basedir}/lib"
 
-  if [ -f "${conf}/accumulo-env.sh" ]; then
+  if [[ -f "${conf}/accumulo-env.sh" ]]; then
     source "${conf}/accumulo-env.sh"
   fi
   ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
