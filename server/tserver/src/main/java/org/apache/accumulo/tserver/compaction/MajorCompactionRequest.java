@@ -32,7 +32,9 @@ import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.client.summary.Summary.FileStatistics;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -49,6 +51,7 @@ import org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactio
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 
@@ -90,6 +93,11 @@ public class MajorCompactionRequest implements Cloneable {
         mcr.indexCache, mcr.fileLenCache, mcr.context);
     // know this is already unmodifiable, no need to wrap again
     this.files = mcr.files;
+  }
+
+  @VisibleForTesting
+  public TabletId getTabletId() {
+    return new TabletIdImpl(extent);
   }
 
   public MajorCompactionReason getReason() {
