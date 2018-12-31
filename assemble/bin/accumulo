@@ -122,7 +122,11 @@ if [ -z "${LOG4J_JAR}" -a -z "${CLASSPATH}" ]; then
    exit 1
 fi
 
-CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}:${LOG4J_JAR}:${CLASSPATH}"
+if [[ -n "$CLASSPATH" ]]; then
+  CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}:${LOG4J_JAR}:${CLASSPATH}"
+else
+  CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}:${LOG4J_JAR}"
+fi
 
 if [ -z "${JAVA_HOME}" -o ! -d "${JAVA_HOME}" ]; then
    echo "JAVA_HOME is not set or is not a directory.  Please make sure it's set globally or in conf/accumulo-env.sh"
