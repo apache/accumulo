@@ -128,7 +128,7 @@ function start_all() {
 
   start_service "$monitor" monitor 
 
-  if [ "$1" != "--no-tservers" ]; then
+  if [[ "$1" != "--no-tservers" ]]; then
     start_tservers
   fi
 
@@ -170,7 +170,7 @@ function start_here() {
   done
 
   for host in $local_hosts; do
-    if [ "$host" == "$monitor" ]; then
+    if [[ "$host" == "$monitor" ]]; then
       start_service "$host" monitor 
       break
     fi

@@ -41,17 +41,17 @@ export ZOOKEEPER_HOME="${ZOOKEEPER_HOME:-/path/to/zookeeper}"
 ##########################
 
 ## Verify that Hadoop & Zookeeper installation directories exist
-if [ ! -d "$ZOOKEEPER_HOME" ]; then
+if [[ ! -d "$ZOOKEEPER_HOME" ]]; then
   echo "ZOOKEEPER_HOME=$ZOOKEEPER_HOME is not set to a valid directory in accumulo-env.sh"
   exit 1
 fi
-if [ ! -d "$HADOOP_HOME" ]; then
+if [[ ! -d "$HADOOP_HOME" ]]; then
   echo "HADOOP_HOME=$HADOOP_HOME is not set to a valid directory in accumulo-env.sh"
   exit 1
 fi
 
 ## Build using existing CLASSPATH, conf/ directory, dependencies in lib/, and external Hadoop & Zookeeper dependencies
-if [ -n "$CLASSPATH" ]; then
+if [[ -n "$CLASSPATH" ]]; then
   CLASSPATH="${CLASSPATH}:${conf}"
 else
   CLASSPATH="${conf}"
