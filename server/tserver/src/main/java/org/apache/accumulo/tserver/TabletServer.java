@@ -2034,6 +2034,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             // modification
           }
 
+          List<DfsLogger> closedCopy;
+
+          synchronized (closedLogs) {
+            closedCopy = copyClosedLogs(closedLogs);
+          }
+
           int numMajorCompactionsInProgress = 0;
 
           Iterator<Entry<KeyExtent,Tablet>> iter = copyOnlineTablets.entrySet().iterator();
@@ -2052,14 +2058,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
               continue;
             }
 
-            int maxLogEntriesPerTablet = getTableConfiguration(tablet.getExtent())
-                .getCount(Property.TABLE_MINC_LOGS_MAX);
-
-            if (tablet.getLogCount() >= maxLogEntriesPerTablet) {
-              log.debug("Initiating minor compaction for " + tablet.getExtent() + " because it has "
-                  + tablet.getLogCount() + " write ahead logs");
-              tablet.initiateMinorCompaction(MinorCompactionReason.SYSTEM);
-            }
+            tablet.checkIfMinorCompactionNeededForLogs(closedCopy);
 
             synchronized (tablet) {
               if (tablet.initiateMajorCompaction(MajorCompactionReason.NORMAL)
@@ -3408,7 +3407,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       // very important this copy maintains same order ..
       closedCopy.add(dfsLogger);
     }
-    return closedCopy;
+    return Collections.unmodifiableList(closedCopy);
   }
 
   private void markUnusedWALs() {
@@ -3454,11 +3453,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   public void walogClosed(DfsLogger currentLog) throws WalMarkerException {
     metadataTableLogs.remove(currentLog);
+
     if (currentLog.getWrites() > 0) {
+      int clSize;
       synchronized (closedLogs) {
         closedLogs.add(currentLog);
+        clSize = closedLogs.size();
       }
-      log.info("Marking " + currentLog.getPath() + " as closed");
+      log.info("Marking " + currentLog.getPath() + " as closed. Total closed logs " + clSize);
       walMarker.closeWal(getTabletSession(), currentLog.getPath());
     } else {
       log.info(

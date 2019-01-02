@@ -2497,6 +2497,38 @@ public class Tablet implements TabletCommitter {
     candidates.removeAll(referencedLogs);
   }
 
+  public void checkIfMinorCompactionNeededForLogs(List<DfsLogger> closedLogs) {
+
+    // grab this outside of tablet lock.
+    int maxLogs = tableConfiguration.getCount(Property.TABLE_MINC_LOGS_MAX);
+
+    String reason = null;
+    synchronized (this) {
+      if (currentLogs.size() >= maxLogs) {
+        reason = "referenced " + currentLogs.size() + " write ahead logs";
+      } else if (maxLogs < closedLogs.size()) {
+        // If many tablets reference a single WAL, but each tablet references a different WAL then
+        // this could result in the tablet server referencing many WALs. For recovery that would
+        // mean each tablet had to process lots of WAL. This check looks for a single use of an
+        // older WAL and compacts if one is found. The following check assumes the most recent WALs
+        // are at the end of the list and ignores these.
+        List<DfsLogger> oldClosed = closedLogs.subList(0, closedLogs.size() - maxLogs);
+        for (DfsLogger closedLog : oldClosed) {
+          if (currentLogs.contains(closedLog)) {
+            reason = "referenced at least one old write ahead log " + closedLog.getFileName();
+            break;
+          }
+        }
+      }
+    }
+
+    if (reason != null) {
+      // initiate and log outside of tablet lock
+      initiateMinorCompaction(MinorCompactionReason.SYSTEM);
+      log.debug("Initiating minor compaction for " + getExtent() + " because " + reason);
+    }
+  }
+
   Set<String> beginClearingUnusedLogs() {
     Set<String> unusedLogs = new HashSet<>();
 
@@ -2556,10 +2588,6 @@ public class Tablet implements TabletCommitter {
 
   // this lock is basically used to synchronize writing of log info to metadata
   private final ReentrantLock logLock = new ReentrantLock();
-
-  public synchronized int getLogCount() {
-    return currentLogs.size();
-  }
 
   // don't release the lock if this method returns true for success; instead, the caller should
   // clean up by calling finishUpdatingLogsUsed()

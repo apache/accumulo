@@ -1032,8 +1032,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
             "Group " + entry.getKey() + " overlaps with another group");
       }
 
-      if(entry.getValue().isEmpty()) {
-        throw new IllegalArgumentException("Group "+entry.getKey()+" is empty");
+      if (entry.getValue().isEmpty()) {
+        throw new IllegalArgumentException("Group " + entry.getKey() + " is empty");
       }
 
       all.addAll(entry.getValue());
