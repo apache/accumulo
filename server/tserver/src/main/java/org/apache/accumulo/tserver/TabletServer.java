@@ -3454,11 +3454,17 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   public void walogClosed(DfsLogger currentLog) throws WalMarkerException {
     metadataTableLogs.remove(currentLog);
-    synchronized (closedLogs) {
-      closedLogs.add(currentLog);
+    if (currentLog.getWrites() > 0) {
+      synchronized (closedLogs) {
+        closedLogs.add(currentLog);
+      }
+      log.info("Marking " + currentLog.getPath() + " as closed");
+      walMarker.closeWal(getTabletSession(), currentLog.getPath());
+    } else {
+      log.info(
+          "Marking " + currentLog.getPath() + " as unreferenced (skipping closed writes == 0)");
+      walMarker.walUnreferenced(getTabletSession(), currentLog.getPath());
     }
-    log.info("Marking " + currentLog.getPath() + " as closed");
-    walMarker.closeWal(getTabletSession(), currentLog.getPath());
   }
 
   public void updateBulkImportState(List<String> files, BulkImportState state) {

@@ -69,6 +69,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 
 /**
  * Wrap a connection to a logger.
@@ -320,6 +321,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private AtomicLong syncCounter;
   private AtomicLong flushCounter;
   private final long slowFlushMillis;
+  private long writes = 0;
 
   private DfsLogger(ServerResources conf) {
     this.conf = conf;
@@ -596,6 +598,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
   }
 
+  public synchronized long getWrites() {
+    Preconditions.checkState(writes >= 0);
+    return writes;
+  }
+
   public synchronized void defineTablet(long seq, int tid, KeyExtent tablet) throws IOException {
     // write this log to the METADATA table
     final LogFileKey key = new LogFileKey();
@@ -610,12 +617,18 @@ public class DfsLogger implements Comparable<DfsLogger> {
           + " incompatible with this version of Hadoop.");
       throw new RuntimeException(e);
     }
+
+    synchronized (closeLock) {
+      if (closed)
+        throw new LogClosedException();
+    }
   }
 
   private synchronized void write(LogFileKey key, LogFileValue value) throws IOException {
     key.write(encryptingLogFile);
     value.write(encryptingLogFile);
     encryptingLogFile.flush();
+    writes++;
   }
 
   public LoggerOperation log(long seq, int tid, Mutation mutation, Durability durability)
@@ -640,15 +653,16 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
     }
 
-    if (durability == Durability.LOG)
-      return NO_WAIT_LOGGER_OP;
-
     synchronized (closeLock) {
       // use a different lock for close check so that adding to work queue does not need
       // to wait on walog I/O operations
 
       if (closed)
         throw new LogClosedException();
+
+      if (durability == Durability.LOG)
+        return NO_WAIT_LOGGER_OP;
+
       workQueue.add(work);
     }
 
