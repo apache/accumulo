@@ -50,6 +50,8 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.OpTimer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -174,6 +176,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     MasterClient.executeNamespace(context, client -> client.setNamespaceProperty(Tracer.traceInfo(),
         context.rpcCreds(), namespace, property, value));
+    checkLocalityGroups(namespace, property);
   }
 
   @Override
@@ -184,6 +187,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     MasterClient.executeNamespace(context, client -> client
         .removeNamespaceProperty(Tracer.traceInfo(), context.rpcCreds(), namespace, property));
+    checkLocalityGroups(namespace, property);
   }
 
   @Override
@@ -268,6 +272,23 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     } catch (TableExistsException | TableNotFoundException e) {
       // should not happen
       throw new AssertionError(e);
+    }
+  }
+
+  private void checkLocalityGroups(String namespace, String propChanged)
+      throws AccumuloException, NamespaceNotFoundException {
+    if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
+      Iterable<Entry<String,String>> allProps = getProperties(namespace);
+      try {
+        LocalityGroupUtil.checkLocalityGroups(allProps);
+      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+        LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged
+            + "' for namespace '" + namespace
+            + "'resulted in bad locality group config. This may be a transient situation since the"
+            + " config spreads over multiple properties. Setting properties in a different order "
+            + "may help. Even though this warning was displayed, the property was updated. Please "
+            + "check your config to ensure consistency.", e);
+      }
     }
   }
 }

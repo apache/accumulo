@@ -57,11 +57,13 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
@@ -81,10 +83,10 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  int countTrue(Collection<Boolean> bools) {
+  int countInUse(Collection<WalState> bools) {
     int result = 0;
-    for (Boolean b : bools) {
-      if (b)
+    for (WalState b : bools) {
+      if (b != WalState.UNREFERENCED)
         result++;
     }
     return result;
@@ -102,17 +104,15 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       writeSomeData(c, tableName, 1, 1);
 
       // wal markers are added lazily
-      Map<String,Boolean> wals = getWALsAndAssertCount(context, 2);
-      for (Boolean b : wals.values()) {
-        assertTrue("logs should be in use", b);
-      }
+      Map<String,WalState> wals = getWALsAndAssertCount(context, 2);
+      assertEquals("all WALs should be in use", 2, countInUse(wals.values()));
 
       // roll log, get a new next
       writeSomeData(c, tableName, 1001, 50);
-      Map<String,Boolean> walsAfterRoll = getWALsAndAssertCount(context, 3);
+      Map<String,WalState> walsAfterRoll = getWALsAndAssertCount(context, 3);
       assertTrue("new WALs should be a superset of the old WALs",
           walsAfterRoll.keySet().containsAll(wals.keySet()));
-      assertEquals("all WALs should be in use", 3, countTrue(walsAfterRoll.values()));
+      assertEquals("all WALs should be in use", 3, countInUse(walsAfterRoll.values()));
 
       // flush the tables
       for (String table : new String[] {tableName, MetadataTable.NAME, RootTable.NAME}) {
@@ -120,8 +120,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       }
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       // rolled WAL is no longer in use, but needs to be GC'd
-      Map<String,Boolean> walsAfterflush = getWALsAndAssertCount(context, 3);
-      assertEquals("inUse should be 2", 2, countTrue(walsAfterflush.values()));
+      Map<String,WalState> walsAfterflush = getWALsAndAssertCount(context, 3);
+      assertEquals("inUse should be 2", 2, countInUse(walsAfterflush.values()));
 
       // let the GC run for a little bit
       control.start(GARBAGE_COLLECTOR);
@@ -150,13 +150,13 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       verifySomeData(c, tableName, 1001 * 50 + 1);
       writeSomeData(c, tableName, 100, 100);
 
-      Map<String,Boolean> walsAfterRestart = getWALsAndAssertCount(context, 4);
+      Map<String,WalState> walsAfterRestart = getWALsAndAssertCount(context, 4);
       // log.debug("wals after " + walsAfterRestart);
-      assertEquals("used WALs after restart should be 4", 4, countTrue(walsAfterRestart.values()));
+      assertEquals("used WALs after restart should be 4", 4, countInUse(walsAfterRestart.values()));
       control.start(GARBAGE_COLLECTOR);
       sleepUninterruptibly(5, TimeUnit.SECONDS);
-      Map<String,Boolean> walsAfterRestartAndGC = getWALsAndAssertCount(context, 2);
-      assertEquals("logs in use should be 2", 2, countTrue(walsAfterRestartAndGC.values()));
+      Map<String,WalState> walsAfterRestartAndGC = getWALsAndAssertCount(context, 2);
+      assertEquals("logs in use should be 2", 2, countInUse(walsAfterRestartAndGC.values()));
     }
   }
 
@@ -224,14 +224,14 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
   private final int TIMES_TO_COUNT = 20;
   private final int PAUSE_BETWEEN_COUNTS = 100;
 
-  private Map<String,Boolean> getWALsAndAssertCount(ServerContext c, int expectedCount)
+  private Map<String,WalState> getWALsAndAssertCount(ServerContext c, int expectedCount)
       throws Exception {
     // see https://issues.apache.org/jira/browse/ACCUMULO-4110. Sometimes this test counts the logs
     // before
     // the new standby log is actually ready. So let's try a few times before failing, returning the
     // last
     // wals variable with the the correct count.
-    Map<String,Boolean> wals = _getWals(c);
+    Map<String,WalState> wals = _getWals(c);
     if (wals.size() == expectedCount) {
       return wals;
     }
@@ -262,14 +262,24 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
     return waitLonger;
   }
 
-  private Map<String,Boolean> _getWals(ServerContext c) throws Exception {
-    Map<String,Boolean> result = new HashMap<>();
-    WalStateManager wals = new WalStateManager(c);
-    for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
-      // WALs are in use if they are not unreferenced
-      result.put(entry.getKey().toString(), entry.getValue() != WalState.UNREFERENCED);
+  static Map<String,WalState> _getWals(ServerContext c) throws Exception {
+    while (true) {
+      try {
+        Map<String,WalState> result = new HashMap<>();
+        WalStateManager wals = new WalStateManager(c);
+        for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
+          // WALs are in use if they are not unreferenced
+          result.put(entry.getKey().toString(), entry.getValue());
+        }
+        return result;
+      } catch (WalMarkerException wme) {
+        if (wme.getCause() instanceof NoNodeException) {
+          log.debug("WALs changed while reading, retrying", wme);
+        } else {
+          throw wme;
+        }
+      }
     }
-    return result;
   }
 
 }

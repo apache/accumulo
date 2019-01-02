@@ -30,7 +30,9 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -43,6 +45,8 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
@@ -50,7 +54,7 @@ import com.google.common.collect.ImmutableSet.Builder;
 
 public class LocalityGroupUtil {
 
-  // private static final Logger log = Logger.getLogger(ColumnFamilySet.class);
+  private static final Logger log = LoggerFactory.getLogger(LocalityGroupUtil.class);
 
   // using an ImmutableSet here for more efficient comparisons in LocalityGroupIterator
   public static final ImmutableSet<ByteSequence> EMPTY_CF_SET = ImmutableSet.of();
@@ -77,6 +81,31 @@ public class LocalityGroupUtil {
     LocalityGroupConfigurationError(String why) {
       super(why);
     }
+  }
+
+  public static boolean isLocalityGroupProperty(String prop) {
+    return prop.startsWith(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey())
+        || prop.equals(Property.TABLE_LOCALITY_GROUPS.getKey());
+  }
+
+  public static void checkLocalityGroups(Iterable<Entry<String,String>> config)
+      throws LocalityGroupConfigurationError {
+    ConfigurationCopy cc = new ConfigurationCopy(config);
+    if (cc.get(Property.TABLE_LOCALITY_GROUPS) != null) {
+      getLocalityGroups(cc);
+    }
+  }
+
+  public static Map<String,Set<ByteSequence>> getLocalityGroupsIgnoringErrors(
+      AccumuloConfiguration acuconf, Table.ID tableId) {
+    try {
+      return getLocalityGroups(acuconf);
+    } catch (LocalityGroupConfigurationError | RuntimeException e) {
+      log.warn("Failed to get locality group config for tableId:" + tableId
+          + ", proceeding without locality groups.", e);
+    }
+
+    return Collections.emptyMap();
   }
 
   public static Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuconf)
@@ -112,6 +141,15 @@ public class LocalityGroupUtil {
         }
       }
     }
+
+    Set<Entry<String,Set<ByteSequence>>> es = result.entrySet();
+    for (Entry<String,Set<ByteSequence>> entry : es) {
+      if (entry.getValue().isEmpty()) {
+        throw new LocalityGroupConfigurationError(
+            "Locality group " + entry.getKey() + " specified but not declared");
+      }
+    }
+
     // result.put("", all);
     return result;
   }
@@ -359,6 +397,11 @@ public class LocalityGroupUtil {
         throw new IllegalArgumentException(
             "Group " + entry.getKey() + " overlaps with another group");
       }
+
+      if (entry.getValue().isEmpty()) {
+        throw new IllegalArgumentException("Group " + entry.getKey() + " is empty");
+      }
+
       all.addAll(entry.getValue());
     }
   }

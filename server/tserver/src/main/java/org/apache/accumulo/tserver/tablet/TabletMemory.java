@@ -22,7 +22,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
@@ -43,11 +42,8 @@ class TabletMemory implements Closeable {
   TabletMemory(Tablet tablet) {
     this.tablet = tablet;
     this.context = tablet.getContext();
-    try {
-      memTable = new InMemoryMap(tablet.getTableConfiguration(), context);
-    } catch (LocalityGroupConfigurationError e) {
-      throw new RuntimeException(e);
-    }
+    memTable = new InMemoryMap(tablet.getTableConfiguration(), context,
+        tablet.getExtent().getTableId());
     commitSession = new CommitSession(tablet, nextSeq, memTable);
     nextSeq += 2;
   }
@@ -73,11 +69,8 @@ class TabletMemory implements Closeable {
     }
 
     otherMemTable = memTable;
-    try {
-      memTable = new InMemoryMap(tablet.getTableConfiguration(), context);
-    } catch (LocalityGroupConfigurationError e) {
-      throw new RuntimeException(e);
-    }
+    memTable = new InMemoryMap(tablet.getTableConfiguration(), context,
+        tablet.getExtent().getTableId());
 
     CommitSession oldCommitSession = commitSession;
     commitSession = new CommitSession(tablet, nextSeq, memTable);

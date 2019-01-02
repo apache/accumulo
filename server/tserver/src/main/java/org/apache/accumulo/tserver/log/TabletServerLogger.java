@@ -498,5 +498,4 @@ public class TabletServerLogger {
       throw new IOException(e);
     }
   }
-
 }

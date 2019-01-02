@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.clientImpl.Table.ID;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
@@ -243,15 +245,18 @@ public class InMemoryMapIT {
       localityGroupNativeConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
           tempFolder.newFolder().getAbsolutePath());
 
-      defaultMap = new InMemoryMap(new ConfigurationCopy(defaultMapConfig), getServerContext());
-      nativeMapWrapper = new InMemoryMap(new ConfigurationCopy(nativeMapConfig),
-          getServerContext());
+      ID testId = Table.ID.of("TEST");
+
+      defaultMap = new InMemoryMap(new ConfigurationCopy(defaultMapConfig), getServerContext(),
+          testId);
+      nativeMapWrapper = new InMemoryMap(new ConfigurationCopy(nativeMapConfig), getServerContext(),
+          testId);
       localityGroupMap = new InMemoryMap(
           updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupConfig)),
-          getServerContext());
+          getServerContext(), testId);
       localityGroupMapWithNative = new InMemoryMap(
           updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupNativeConfig)),
-          getServerContext());
+          getServerContext(), testId);
     } catch (Exception e) {
       log.error("Error getting new InMemoryMap ", e);
       fail(e.getMessage());

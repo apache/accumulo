@@ -43,6 +43,7 @@ import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.collect.ImmutableSortedSet;
@@ -148,6 +149,13 @@ public class NewTableConfiguration {
     checkDisjoint(props, localityProps, "locality group");
     checkDisjoint(props, iteratorProps, "iterator");
     checkTableProperties(props);
+
+    try {
+      LocalityGroupUtil.checkLocalityGroups(props.entrySet());
+    } catch (LocalityGroupConfigurationError e) {
+      throw new IllegalArgumentException(e);
+    }
+
     this.properties = new HashMap<>(props);
     return this;
   }

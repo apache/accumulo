@@ -23,12 +23,16 @@ import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
@@ -94,6 +98,12 @@ public class MinorCompactor extends Compactor {
       log.warn("Failed to determine if table " + extent.getTableId() + " was deleting ", e);
       return false; // can not get positive confirmation that its deleting.
     }
+  }
+
+  @Override
+  protected Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuTableConf)
+      throws IOException {
+    return LocalityGroupUtil.getLocalityGroupsIgnoringErrors(acuTableConf, extent.getTableId());
   }
 
   @Override

@@ -76,6 +76,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 
 /**
  * Wrap a connection to a logger.
@@ -327,6 +328,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private AtomicLong syncCounter;
   private AtomicLong flushCounter;
   private final long slowFlushMillis;
+  private long writes = 0;
 
   private DfsLogger(ServerContext context, ServerResources conf) {
     this.context = context;
@@ -538,6 +540,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
   }
 
+  public synchronized long getWrites() {
+    Preconditions.checkState(writes >= 0);
+    return writes;
+  }
+
   public LoggerOperation defineTablet(CommitSession cs) throws IOException {
     // write this log to the METADATA table
     final LogFileKey key = new LogFileKey();
@@ -552,6 +559,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     key.write(encryptingLogFile);
     value.write(encryptingLogFile);
     encryptingLogFile.flush();
+    writes++;
   }
 
   private LoggerOperation logKeyData(LogFileKey key, Durability d) throws IOException {
@@ -572,15 +580,16 @@ public class DfsLogger implements Comparable<DfsLogger> {
       work.exception = e;
     }
 
-    if (durability == Durability.LOG)
-      return NO_WAIT_LOGGER_OP;
-
     synchronized (closeLock) {
       // use a different lock for close check so that adding to work queue does not need
       // to wait on walog I/O operations
 
       if (closed)
         throw new LogClosedException();
+
+      if (durability == Durability.LOG)
+        return NO_WAIT_LOGGER_OP;
+
       workQueue.add(work);
     }
 

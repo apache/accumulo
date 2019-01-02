@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.Sampler;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -66,7 +67,6 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PreAllocatedArray;
@@ -132,13 +132,12 @@ public class InMemoryMap {
     return pair.getSecond();
   }
 
-  public InMemoryMap(AccumuloConfiguration config, ServerContext serverContext)
-      throws LocalityGroupConfigurationError {
+  public InMemoryMap(AccumuloConfiguration config, ServerContext serverContext, Table.ID tableId) {
 
     boolean useNativeMap = config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
 
     this.memDumpDir = config.get(Property.TSERV_MEMDUMP_DIR);
-    this.lggroups = LocalityGroupUtil.getLocalityGroups(config);
+    this.lggroups = LocalityGroupUtil.getLocalityGroupsIgnoringErrors(config, tableId);
 
     this.config = config;
     this.context = serverContext;

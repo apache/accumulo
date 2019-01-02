@@ -40,10 +40,13 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides a class for administering the accumulo instance
@@ -63,6 +66,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     checkArgument(value != null, "value is null");
     MasterClient.executeVoid(context, client -> client.setSystemProperty(Tracer.traceInfo(),
         context.rpcCreds(), property, value));
+    checkLocalityGroups(property);
   }
 
   @Override
@@ -71,6 +75,21 @@ public class InstanceOperationsImpl implements InstanceOperations {
     checkArgument(property != null, "property is null");
     MasterClient.executeVoid(context,
         client -> client.removeSystemProperty(Tracer.traceInfo(), context.rpcCreds(), property));
+    checkLocalityGroups(property);
+  }
+
+  void checkLocalityGroups(String propChanged) throws AccumuloSecurityException, AccumuloException {
+    if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
+      try {
+        LocalityGroupUtil.checkLocalityGroups(getSystemConfiguration().entrySet());
+      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+        LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged
+            + "' resulted in bad locality group config. This may be a transient situation since "
+            + "the config spreads over multiple properties. Setting properties in a different "
+            + "order may help. Even though this warning was displayed, the property was updated. "
+            + "Please check your config to ensure consistency.", e);
+      }
+    }
   }
 
   @Override

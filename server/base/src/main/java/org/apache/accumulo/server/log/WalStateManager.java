@@ -162,9 +162,22 @@ public class WalStateManager {
       String zpath = root() + "/" + tsi;
       zoo.sync(zpath);
       for (String child : zoo.getChildren(zpath)) {
-        Pair<WalState,Path> parts = parse(zoo.getData(zpath + "/" + child, null));
-        if (parts.getFirst() != WalState.UNREFERENCED) {
-          result.add(parts.getSecond());
+        byte[] zdata = null;
+        try {
+          // This function is called by the Master. Its possible that Accumulo GC deletes an
+          // unreferenced WAL in ZK after the call to getChildren above. Catch this exception inside
+          // the loop so that not all children are ignored.
+          zdata = zoo.getData(zpath + "/" + child, null);
+        } catch (KeeperException.NoNodeException e) {
+          log.debug("WAL state removed {} {} during getWalsInUse.  Likely a race condition between "
+              + "master and GC.", tsi, child);
+        }
+
+        if (zdata != null) {
+          Pair<WalState,Path> parts = parse(zdata);
+          if (parts.getFirst() != WalState.UNREFERENCED) {
+            result.add(parts.getSecond());
+          }
         }
       }
     } catch (KeeperException.NoNodeException e) {
@@ -186,6 +199,9 @@ public class WalStateManager {
         if (logs == null) {
           result.put(inst, logs = new ArrayList<>());
         }
+
+        // This function is called by the Accumulo GC which deletes WAL markers. Therefore we do not
+        // expect the following call to fail because the WAL info in ZK was deleted.
         for (String idString : zoo.getChildren(path + "/" + child)) {
           logs.add(UUID.fromString(idString));
         }
@@ -211,6 +227,8 @@ public class WalStateManager {
     Map<Path,WalState> result = new HashMap<>();
     for (Entry<TServerInstance,List<UUID>> entry : getAllMarkers().entrySet()) {
       for (UUID id : entry.getValue()) {
+        // This function is called by the Accumulo GC which deletes WAL markers. Therefore we do not
+        // expect the following call to fail because the WAL info in ZK was deleted.
         Pair<WalState,Path> state = state(entry.getKey(), id);
         result.put(state.getSecond(), state.getFirst());
       }

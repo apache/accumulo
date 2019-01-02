@@ -52,6 +52,8 @@ import org.apache.hadoop.io.MapFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /**
  * Bulk import makes requests of tablet servers, and those requests can take a long time. Our
  * communications to the tablet server may fail, so we won't know the status of the request. The
@@ -137,7 +139,7 @@ public class BulkImport extends MasterRepo {
     master.updateBulkImportStatus(sourceDir, BulkImportState.MOVING);
     // move the files into the directory
     try {
-      String bulkDir = prepareBulkImport(master, fs, sourceDir, tableId);
+      String bulkDir = prepareBulkImport(master.getContext(), fs, sourceDir, tableId);
       log.debug(" tid {} bulkDir {}", tid, bulkDir);
       return new LoadFiles(tableId, sourceDir, bulkDir, errorDir, setTime);
     } catch (IOException ex) {
@@ -148,8 +150,8 @@ public class BulkImport extends MasterRepo {
     }
   }
 
-  private Path createNewBulkDir(ServerContext context, VolumeManager fs, Table.ID tableId)
-      throws IOException {
+  private static Path createNewBulkDir(ServerContext context, VolumeManager fs, String sourceDir,
+      Table.ID tableId) throws IOException {
     Path tempPath = fs.matchingFileSystem(new Path(sourceDir),
         ServerConstants.getTablesDirs(context.getConfiguration()));
     if (tempPath == null)
@@ -181,17 +183,18 @@ public class BulkImport extends MasterRepo {
     }
   }
 
-  private String prepareBulkImport(Master master, final VolumeManager fs, String dir,
+  @VisibleForTesting
+  public static String prepareBulkImport(ServerContext master, final VolumeManager fs, String dir,
       Table.ID tableId) throws Exception {
-    final Path bulkDir = createNewBulkDir(master.getContext(), fs, tableId);
+    final Path bulkDir = createNewBulkDir(master, fs, dir, tableId);
 
-    MetadataTableUtil.addBulkLoadInProgressFlag(master.getContext(),
+    MetadataTableUtil.addBulkLoadInProgressFlag(master,
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
 
     Path dirPath = new Path(dir);
     FileStatus[] mapFiles = fs.listStatus(dirPath);
 
-    final UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
+    final UniqueNameAllocator namer = master.getUniqueNameAllocator();
 
     int workerCount = master.getConfiguration().getCount(Property.MASTER_BULK_RENAME_THREADS);
     SimpleThreadPool workers = new SimpleThreadPool(workerCount, "bulk move");

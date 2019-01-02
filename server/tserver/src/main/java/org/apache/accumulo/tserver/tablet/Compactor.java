@@ -179,6 +179,15 @@ public class Compactor implements Callable<CompactionStats> {
     return MajorCompactionReason.values()[reason];
   }
 
+  protected Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuTableConf)
+      throws IOException {
+    try {
+      return LocalityGroupUtil.getLocalityGroups(acuTableConf);
+    } catch (LocalityGroupConfigurationError e) {
+      throw new IOException(e);
+    }
+  }
+
   @Override
   public CompactionStats call() throws IOException, CompactionCanceledException {
 
@@ -204,12 +213,7 @@ public class Compactor implements Callable<CompactionStats> {
           .forFile(outputFilePathName, ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter()).build();
 
-      Map<String,Set<ByteSequence>> lGroups;
-      try {
-        lGroups = LocalityGroupUtil.getLocalityGroups(acuTableConf);
-      } catch (LocalityGroupConfigurationError e) {
-        throw new IOException(e);
-      }
+      Map<String,Set<ByteSequence>> lGroups = getLocalityGroups(acuTableConf);
 
       long t1 = System.currentTimeMillis();
 

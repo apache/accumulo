@@ -140,7 +140,5 @@ public class BulkIT extends AccumuloClusterHarness {
     } else {
       c.tableOperations().importDirectory(files.toString()).to(tableName).load();
     }
-
   }
-
 }
