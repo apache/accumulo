@@ -27,6 +27,9 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.slf4j.LoggerFactory;
 
 /**
  * This object stores table creation parameters. Currently includes: {@link TimeType}, whether to
@@ -90,6 +93,15 @@ public class NewTableConfiguration {
   public NewTableConfiguration setProperties(Map<String,String> prop) {
     checkArgument(prop != null, "properties is null");
     SamplerConfigurationImpl.checkDisjoint(prop, samplerConfiguration);
+
+    try {
+      LocalityGroupUtil.checkLocalityGroups(prop.entrySet());
+    } catch (LocalityGroupConfigurationError e) {
+      LoggerFactory.getLogger(NewTableConfiguration.class).warn(
+          "Setting new table properties with bad locality group config.   Even though this warning"
+              + " was displayed, the properties were set. props:" + prop,
+          e);
+    }
 
     this.properties = new HashMap<>(prop);
     return this;

@@ -110,6 +110,7 @@ import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.OpTimer;
@@ -929,16 +930,23 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
     try {
-      MasterClient.executeTable(context, new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          client.setTableProperty(Tracer.traceInfo(), context.rpcCreds(), tableName, property,
-              value);
-        }
-      });
+      setPropertyNoChecks(tableName, property, value);
+
+      checkLocalityGroups(tableName, property);
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);
     }
+  }
+
+  private void setPropertyNoChecks(final String tableName, final String property,
+      final String value)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    MasterClient.executeTable(context, new ClientExec<MasterClientService.Client>() {
+      @Override
+      public void execute(MasterClientService.Client client) throws Exception {
+        client.setTableProperty(Tracer.traceInfo(), context.rpcCreds(), tableName, property, value);
+      }
+    });
   }
 
   @Override
@@ -947,14 +955,38 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(property != null, "property is null");
     try {
-      MasterClient.executeTable(context, new ClientExec<MasterClientService.Client>() {
-        @Override
-        public void execute(MasterClientService.Client client) throws Exception {
-          client.removeTableProperty(Tracer.traceInfo(), context.rpcCreds(), tableName, property);
-        }
-      });
+      removePropertyNoChecks(tableName, property);
+
+      checkLocalityGroups(tableName, property);
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);
+    }
+  }
+
+  private void removePropertyNoChecks(final String tableName, final String property)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    MasterClient.executeTable(context, new ClientExec<MasterClientService.Client>() {
+      @Override
+      public void execute(MasterClientService.Client client) throws Exception {
+        client.removeTableProperty(Tracer.traceInfo(), context.rpcCreds(), tableName, property);
+      }
+    });
+  }
+
+  void checkLocalityGroups(String tableName, String propChanged)
+      throws AccumuloException, TableNotFoundException {
+    if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
+      Iterable<Entry<String,String>> allProps = getProperties(tableName);
+      try {
+        LocalityGroupUtil.checkLocalityGroups(allProps);
+      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+        LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged + "' for table '"
+            + tableName
+            + "' resulted in bad locality group config.  This may be a transient situation since "
+            + "the config spreads over multiple properties.  Setting properties in a different "
+            + "order may help.  Even though this warning was displayed, the property was updated. "
+            + "Please check your config to ensure consistency.", e);
+      }
     }
   }
 
@@ -1000,17 +1032,21 @@ public class TableOperationsImpl extends TableOperationsHelper {
             "Group " + entry.getKey() + " overlaps with another group");
       }
 
+      if (entry.getValue().isEmpty()) {
+        throw new IllegalArgumentException("Group " + entry.getKey() + " is empty");
+      }
+
       all.addAll(entry.getValue());
     }
 
     for (Entry<String,Set<Text>> entry : groups.entrySet()) {
       Set<Text> colFams = entry.getValue();
       String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
-      setProperty(tableName, Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
+      setPropertyNoChecks(tableName, Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
     }
 
     try {
-      setProperty(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(),
+      setPropertyNoChecks(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(),
           Joiner.on(",").join(groups.keySet()));
     } catch (AccumuloException e) {
       if (e.getCause() instanceof TableNotFoundException)
@@ -1029,7 +1065,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         String group = parts[parts.length - 1];
 
         if (!groups.containsKey(group)) {
-          removeProperty(tableName, property);
+          removePropertyNoChecks(tableName, property);
         }
       }
     }

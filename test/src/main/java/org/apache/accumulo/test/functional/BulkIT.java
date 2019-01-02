@@ -113,5 +113,4 @@ public class BulkIT extends AccumuloClusterHarness {
     vopts.rows = 1;
     VerifyIngest.verifyIngest(c, vopts, SOPTS);
   }
-
 }

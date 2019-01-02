@@ -38,6 +38,7 @@ import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.server.AccumuloServerContext;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
@@ -48,6 +49,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /*
  * Bulk import makes requests of tablet servers, and those requests can take a
@@ -146,7 +149,8 @@ public class BulkImport extends MasterRepo {
     }
   }
 
-  private Path createNewBulkDir(VolumeManager fs, String tableId) throws IOException {
+  private static Path createNewBulkDir(VolumeManager fs, String sourceDir, String tableId)
+      throws IOException {
     Path tempPath = fs.matchingFileSystem(new Path(sourceDir), ServerConstants.getTablesDirs());
     if (tempPath == null)
       throw new IOException(sourceDir + " is not in a volume configured for Accumulo");
@@ -177,9 +181,10 @@ public class BulkImport extends MasterRepo {
     }
   }
 
-  private String prepareBulkImport(Master master, final VolumeManager fs, String dir,
-      String tableId) throws Exception {
-    final Path bulkDir = createNewBulkDir(fs, tableId);
+  @VisibleForTesting
+  public static String prepareBulkImport(AccumuloServerContext master, final VolumeManager fs,
+      String dir, String tableId) throws Exception {
+    final Path bulkDir = createNewBulkDir(fs, dir, tableId);
 
     MetadataTableUtil.addBulkLoadInProgressFlag(master,
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());

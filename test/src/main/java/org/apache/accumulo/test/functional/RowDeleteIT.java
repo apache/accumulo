@@ -64,7 +64,6 @@ public class RowDeleteIT extends AccumuloClusterHarness {
     c.tableOperations().create(tableName);
     Map<String,Set<Text>> groups = new HashMap<>();
     groups.put("lg1", Collections.singleton(new Text("foo")));
-    groups.put("dg", Collections.<Text> emptySet());
     c.tableOperations().setLocalityGroups(tableName, groups);
     IteratorSetting setting = new IteratorSetting(30, RowDeletingIterator.class);
     c.tableOperations().attachIterator(tableName, setting, EnumSet.of(IteratorScope.majc));

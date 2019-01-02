@@ -319,15 +319,6 @@ public class TabletServerLogger {
     }));
   }
 
-  public void resetLoggers() throws IOException {
-    logIdLock.writeLock().lock();
-    try {
-      close();
-    } finally {
-      logIdLock.writeLock().unlock();
-    }
-  }
-
   synchronized private void close() throws IOException {
     if (!logIdLock.isWriteLockedByCurrentThread()) {
       throw new IllegalStateException("close should be called with write lock held!");
@@ -453,7 +444,6 @@ public class TabletServerLogger {
           @Override
           void withWriteLock() throws IOException {
             close();
-            closeForReplication(sessions);
           }
         });
       }
@@ -470,13 +460,8 @@ public class TabletServerLogger {
       @Override
       void withWriteLock() throws IOException {
         close();
-        closeForReplication(sessions);
       }
     });
-  }
-
-  protected void closeForReplication(Collection<CommitSession> sessions) {
-    // TODO We can close the WAL here for replication purposes
   }
 
   public void defineTablet(final CommitSession commitSession, final Retry writeRetry)
@@ -583,5 +568,4 @@ public class TabletServerLogger {
       throw new IOException(e);
     }
   }
-
 }
