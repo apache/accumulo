@@ -236,12 +236,14 @@ public class InMemoryMapIT {
       localityGroupNativeConfig.put(Property.TSERV_MEMDUMP_DIR.getKey(),
           tempFolder.newFolder().getAbsolutePath());
 
-      defaultMap = new InMemoryMap(new ConfigurationCopy(defaultMapConfig));
-      nativeMapWrapper = new InMemoryMap(new ConfigurationCopy(nativeMapConfig));
+      defaultMap = new InMemoryMap(new ConfigurationCopy(defaultMapConfig), "--TEST--");
+      nativeMapWrapper = new InMemoryMap(new ConfigurationCopy(nativeMapConfig), "--TEST--");
       localityGroupMap = new InMemoryMap(
-          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupConfig)));
+          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupConfig)),
+          "--TEST--");
       localityGroupMapWithNative = new InMemoryMap(
-          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupNativeConfig)));
+          updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupNativeConfig)),
+          "--TEST--");
     } catch (Exception e) {
       log.error("Error getting new InMemoryMap ", e);
       fail(e.getMessage());
