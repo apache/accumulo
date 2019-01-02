@@ -2840,7 +2840,7 @@ public class TabletServer implements Runnable {
       throw new RuntimeException(ex);
     }
     final AccumuloConfiguration aconf = getConfiguration();
-    final boolean replicating = !aconf.get(Property.REPLICATION_NAME).isEmpty();
+    final boolean replicating = aconf.getBoolean(Property.TSERV_REPLICATION_ENABLED);
 
     if (replicating)
       setupReplication(aconf);
