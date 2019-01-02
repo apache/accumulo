@@ -165,7 +165,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Provide access to a single row range in a living TabletServer.
  */
-public class Tablet implements TabletCommitter {
+public class Tablet {
   private static final Logger log = LoggerFactory.getLogger(Tablet.class);
 
   private final TabletServer tabletServer;
@@ -259,7 +259,6 @@ public class Tablet implements TabletCommitter {
 
   private final int logId;
 
-  @Override
   public int getLogId() {
     return logId;
   }
@@ -1254,7 +1253,6 @@ public class Tablet implements TabletCommitter {
     return finishPreparingMutations(time);
   }
 
-  @Override
   public synchronized void abortCommit(CommitSession commitSession) {
     if (writesInProgress <= 0) {
       throw new IllegalStateException("waitingForLogs <= 0 " + writesInProgress);
@@ -1270,7 +1268,6 @@ public class Tablet implements TabletCommitter {
       this.notifyAll();
   }
 
-  @Override
   public void commit(CommitSession commitSession, List<Mutation> mutations) {
 
     int totalCount = 0;
@@ -2174,7 +2171,6 @@ public class Tablet implements TabletCommitter {
     return majCStats;
   }
 
-  @Override
   public KeyExtent getExtent() {
     return extent;
   }
@@ -2581,7 +2577,6 @@ public class Tablet implements TabletCommitter {
   // clean up by calling finishUpdatingLogsUsed()
   @SuppressFBWarnings(value = "UL_UNRELEASED_LOCK",
       justification = "lock is released by caller calling finishedUpdatingLogsUsed method")
-  @Override
   public boolean beginUpdatingLogsUsed(InMemoryMap memTable, DfsLogger more, boolean mincFinish) {
 
     boolean releaseLock = true;
@@ -2662,7 +2657,6 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  @Override
   public void finishUpdatingLogsUsed() {
     logLock.unlock();
   }
@@ -2747,17 +2741,14 @@ public class Tablet implements TabletCommitter {
     }
   }
 
-  @Override
   public TableConfiguration getTableConfiguration() {
     return tableConfiguration;
   }
 
-  @Override
   public Durability getDurability() {
     return DurabilityImpl.fromString(getTableConfiguration().get(Property.TABLE_DURABILITY));
   }
 
-  @Override
   public void updateMemoryUsageStats(long size, long mincSize) {
     getTabletResources().updateMemoryUsageStats(this, size, mincSize);
   }
@@ -2843,11 +2834,6 @@ public class Tablet implements TabletCommitter {
   public synchronized void setLastCompactionID(Long compactionId) {
     if (compactionId != null)
       this.lastCompactID = compactionId;
-  }
-
-  public void removeMajorCompactionQueuedReason(MajorCompactionReason reason) {
-    majorCompactionQueued.remove(reason);
-
   }
 
   public void minorCompactionWaitingToStart() {

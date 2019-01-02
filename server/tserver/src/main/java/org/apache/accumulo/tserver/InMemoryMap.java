@@ -23,12 +23,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
@@ -185,9 +183,6 @@ public class InMemoryMap {
   }
 
   private interface SimpleMap {
-    Value get(Key key);
-
-    Iterator<Entry<Key,Value>> iterator(Key startKey);
 
     int size();
 
@@ -208,16 +203,6 @@ public class InMemoryMap {
     public SampleMap(SimpleMap map, SimpleMap sampleMap) {
       this.map = map;
       this.sample = sampleMap;
-    }
-
-    @Override
-    public Value get(Key key) {
-      return map.get(key);
-    }
-
-    @Override
-    public Iterator<Entry<Key,Value>> iterator(Key startKey) {
-      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -326,16 +311,6 @@ public class InMemoryMap {
     }
 
     @Override
-    public Value get(Key key) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Iterator<Entry<Key,Value>> iterator(Key startKey) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
     public int size() {
       int sum = 0;
       for (SimpleMap map : maps)
@@ -414,18 +389,6 @@ public class InMemoryMap {
     }
 
     @Override
-    public Value get(Key key) {
-      return map.get(key);
-    }
-
-    @Override
-    public Iterator<Entry<Key,Value>> iterator(Key startKey) {
-      Key lk = new Key(startKey);
-      SortedMap<Key,Value> tm = map.tailMap(lk);
-      return tm.entrySet().iterator();
-    }
-
-    @Override
     public int size() {
       return size.get();
     }
@@ -478,16 +441,6 @@ public class InMemoryMap {
 
     NativeMapWrapper() {
       nativeMap = new NativeMap();
-    }
-
-    @Override
-    public Value get(Key key) {
-      return nativeMap.get(key);
-    }
-
-    @Override
-    public Iterator<Entry<Key,Value>> iterator(Key startKey) {
-      return nativeMap.iterator(startKey);
     }
 
     @Override
@@ -555,10 +508,6 @@ public class InMemoryMap {
       return 0;
 
     return map.getMemoryUsed();
-  }
-
-  Iterator<Map.Entry<Key,Value>> iterator(Key startKey) {
-    return map.iterator(startKey);
   }
 
   public synchronized long getNumEntries() {
@@ -885,9 +834,5 @@ public class InMemoryMap {
           MemValue.encode(iter.getTopValue(), ((MemKey) iter.getTopKey()).getKVCount()));
       iter.next();
     }
-  }
-
-  public ServerContext getContext() {
-    return context;
   }
 }

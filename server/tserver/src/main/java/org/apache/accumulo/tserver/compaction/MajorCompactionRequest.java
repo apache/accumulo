@@ -51,6 +51,7 @@ import org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactio
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 
@@ -94,6 +95,7 @@ public class MajorCompactionRequest implements Cloneable {
     this.files = mcr.files;
   }
 
+  @VisibleForTesting
   public TabletId getTabletId() {
     return new TabletIdImpl(extent);
   }

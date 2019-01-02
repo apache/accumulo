@@ -90,10 +90,6 @@ final class ScanOptions {
     return isolated;
   }
 
-  public SamplerConfiguration getSamplerConfiguration() {
-    return samplerConfig;
-  }
-
   public SamplerConfigurationImpl getSamplerConfigurationImpl() {
     if (samplerConfig == null)
       return null;
@@ -106,10 +102,6 @@ final class ScanOptions {
 
   public String getClassLoaderContext() {
     return classLoaderContext;
-  }
-
-  public void setClassLoaderContext(String context) {
-    this.classLoaderContext = context;
   }
 
   @Override
