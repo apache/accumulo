@@ -20,7 +20,6 @@ import java.io.File;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -526,11 +525,6 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       }
     }
     return mutationCount;
-  }
-
-  @VisibleForTesting
-  public void mutate(Mutation mutation, int mutationCount) {
-    mutate(Collections.singletonList(mutation), mutationCount);
   }
 
   void mutate(List<Mutation> mutations, int mutationCount) {

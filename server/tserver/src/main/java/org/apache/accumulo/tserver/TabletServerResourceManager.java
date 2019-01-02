@@ -724,32 +724,6 @@ public class TabletServerResourceManager {
     }
   }
 
-  public void close() {
-    for (ExecutorService executorService : threadPools.values()) {
-      executorService.shutdown();
-    }
-
-    if (this.cacheManager != null) {
-      try {
-        this.cacheManager.stop();
-      } catch (Exception ex) {
-        log.error("Error stopping BlockCacheManager", ex);
-      }
-    }
-
-    for (Entry<String,ExecutorService> entry : threadPools.entrySet()) {
-      while (true) {
-        try {
-          if (entry.getValue().awaitTermination(60, TimeUnit.SECONDS))
-            break;
-          log.info("Waiting for thread pool {} to shutdown", entry.getKey());
-        } catch (InterruptedException e) {
-          log.warn("Interrupted waiting for executor to terminate", e);
-        }
-      }
-    }
-  }
-
   public synchronized TabletResourceManager createTabletResourceManager(KeyExtent extent,
       AccumuloConfiguration conf) {
     return new TabletResourceManager(extent, conf);

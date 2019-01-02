@@ -31,12 +31,12 @@ public class CommitSession {
 
   private final long seq;
   private final InMemoryMap memTable;
-  private final TabletCommitter committer;
+  private final Tablet committer;
 
   private int commitsInProgress;
   private long maxCommittedTime = Long.MIN_VALUE;
 
-  CommitSession(TabletCommitter committer, long seq, InMemoryMap imm) {
+  CommitSession(Tablet committer, long seq, InMemoryMap imm) {
     this.seq = seq;
     this.memTable = imm;
     this.committer = committer;

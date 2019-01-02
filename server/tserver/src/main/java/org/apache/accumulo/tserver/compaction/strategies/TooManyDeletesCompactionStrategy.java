@@ -36,8 +36,6 @@ import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This compaction strategy works in concert with the {@link DeletesSummarizer}. Using the
@@ -83,8 +81,6 @@ import org.slf4j.LoggerFactory;
 public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy {
 
   private boolean shouldCompact = false;
-
-  Logger log = LoggerFactory.getLogger(TooManyDeletesCompactionStrategy.class);
 
   private double threshold;
 
