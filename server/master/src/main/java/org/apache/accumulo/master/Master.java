@@ -1386,8 +1386,8 @@ public class Master
             replServer.setServer(setupReplication());
           }
         }
-      } catch (Exception e) {
-        log.error("Replication name was set but error occurred starting services. ", e);
+      } catch (UnknownHostException | KeeperException | InterruptedException e) {
+        log.error("Error occurred starting replication services. ", e);
       }
     }, 1000, 5000);
 
