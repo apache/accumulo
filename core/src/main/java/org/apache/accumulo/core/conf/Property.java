@@ -456,8 +456,6 @@ public enum Property {
       "The amount of time an assignment can run before the server will print a"
           + " warning along with the current stack trace. Meant to help debug stuck"
           + " assignments"),
-  TSERV_REPLICATION_ENABLED("tserver.replication.services.enabled", "false", PropertyType.BOOLEAN,
-      "Start the replication services when tserver starts up."),
   TSERV_REPLICATION_REPLAYERS("tserver.replication.replayer.", null, PropertyType.PREFIX,
       "Allows configuration of implementation used to apply replicated data"),
   TSERV_REPLICATION_DEFAULT_HANDLER("tserver.replication.default.replayer",
@@ -1190,7 +1188,7 @@ public enum Property {
 
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT,
       Property.TSERV_NATIVEMAP_ENABLED, Property.TSERV_SCAN_MAX_OPENFILES,
-      Property.TSERV_REPLICATION_ENABLED, Property.MASTER_CLIENTPORT, Property.GC_PORT);
+      Property.MASTER_CLIENTPORT, Property.GC_PORT);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
