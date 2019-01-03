@@ -51,6 +51,15 @@ public class CountingSummarizerTest {
     }
   }
 
+  public static class ValueSummarizer extends CountingSummarizer<String> {
+    @Override
+    protected Converter<String> converter() {
+      return (k, v, c) -> {
+        c.accept("vp:" + v.toString().subSequence(0, 2));
+      };
+    }
+  }
+
   @Test
   public void testMultipleEmit() {
     SummarizerConfiguration sc = SummarizerConfiguration.builder(MultiSummarizer.class).build();
@@ -255,4 +264,39 @@ public class CountingSummarizerTest {
     expected.put("f2", 1L);
     assertEquals(expected, csum.getCounters());
   }
+
+  @Test
+  public void testConvertValue() {
+
+    SummarizerConfiguration sc = SummarizerConfiguration.builder(ValueSummarizer.class).build();
+    ValueSummarizer countSum = new ValueSummarizer();
+
+    Summarizer.Collector collector = countSum.collector(sc);
+
+    HashMap<String,Long> expected = new HashMap<>();
+
+    for (String row : new String[] {"ask", "asleep", "some", "soul"}) {
+      for (String fam : new String[] {"hop", "hope", "nope", "noop"}) {
+        for (String qual : new String[] {"mad", "lad", "lab", "map"})
+          for (Value value : new Value[] {new Value("ask"), new Value("asleep"), new Value("some"),
+              new Value("soul")}) {
+            collector.accept(new Key(row, fam, qual), value);
+            expected.merge("vp:" + value.toString().substring(0, 2), 1L, Long::sum);
+
+          }
+      }
+    }
+
+    HashMap<String,Long> stats = new HashMap<>();
+    collector.summarize(stats::put);
+
+    CounterSummary csum = new CounterSummary(stats);
+    assertEquals(expected, csum.getCounters());
+    assertEquals(256, csum.getSeen());
+    assertEquals(256, csum.getEmitted());
+    assertEquals(0, csum.getIgnored());
+    assertEquals(0, csum.getDeletesIgnored());
+
+  }
+
 }
