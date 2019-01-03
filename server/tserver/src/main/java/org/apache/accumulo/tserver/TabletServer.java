@@ -49,7 +49,6 @@ import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -496,39 +495,35 @@ public class TabletServer implements Runnable {
             SecurityErrorCode.PERMISSION_DENIED);
 
       try {
-        return watcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<TKeyExtent>>() {
+        return watcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
+          List<TKeyExtent> failures = new ArrayList<>();
 
-          @Override
-          public List<TKeyExtent> call() throws Exception {
-            List<TKeyExtent> failures = new ArrayList<>();
+          for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
+            TKeyExtent tke = entry.getKey();
+            Map<String,MapFileInfo> fileMap = entry.getValue();
+            Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
+            for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
+              Path path = new Path(mapping.getKey());
+              FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
+              path = ns.makeQualified(path);
+              fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
+            }
 
-            for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
-              TKeyExtent tke = entry.getKey();
-              Map<String,MapFileInfo> fileMap = entry.getValue();
-              Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
-              for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
-                Path path = new Path(mapping.getKey());
-                FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
-                path = ns.makeQualified(path);
-                fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
-              }
+            Tablet importTablet = onlineTablets.get(new KeyExtent(tke));
 
-              Tablet importTablet = onlineTablets.get(new KeyExtent(tke));
-
-              if (importTablet == null) {
+            if (importTablet == null) {
+              failures.add(tke);
+            } else {
+              try {
+                importTablet.importMapFiles(tid, fileRefMap, setTime);
+              } catch (IOException ioe) {
+                log.info("files {} not imported to {}: {}", fileMap.keySet(), new KeyExtent(tke),
+                    ioe.getMessage());
                 failures.add(tke);
-              } else {
-                try {
-                  importTablet.importMapFiles(tid, fileRefMap, setTime);
-                } catch (IOException ioe) {
-                  log.info("files {} not imported to {}: {}", fileMap.keySet(), new KeyExtent(tke),
-                      ioe.getMessage());
-                  failures.add(tke);
-                }
               }
             }
-            return failures;
           }
+          return failures;
         });
       } catch (RuntimeException e) {
         throw e;
@@ -538,31 +533,36 @@ public class TabletServer implements Runnable {
     }
 
     @Override
-    public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, TKeyExtent tke,
-        String dir, Map<String,MapFileInfo> fileMap, boolean setTime)
+    public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
+        Map<TKeyExtent,Map<String,MapFileInfo>> tabletImports, boolean setTime)
         throws ThriftSecurityException {
       if (!security.canPerformSystemActions(credentials))
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED);
 
-      Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
-      for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
-        Path path = new Path(dir, mapping.getKey());
-        FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
-        path = ns.makeQualified(path);
-        fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
-      }
+      watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
+        tabletImports.forEach((tke, fileMap) -> {
+          Map<FileRef,MapFileInfo> fileRefMap = new HashMap<>();
+          for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
+            Path path = new Path(dir, mapping.getKey());
+            FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
+            path = ns.makeQualified(path);
+            fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
+          }
 
-      Tablet importTablet = onlineTablets.get(new KeyExtent(tke));
+          Tablet importTablet = onlineTablets.get(new KeyExtent(tke));
 
-      if (importTablet != null) {
-        try {
-          importTablet.importMapFiles(tid, fileRefMap, setTime);
-        } catch (IOException ioe) {
-          log.info("files {} not imported to {}: {}", fileMap.keySet(), new KeyExtent(tke),
-              ioe.getMessage());
-        }
-      }
+          if (importTablet != null) {
+            try {
+              importTablet.importMapFiles(tid, fileRefMap, setTime);
+            } catch (IOException ioe) {
+              log.debug("files {} not imported to {}: {}", fileMap.keySet(), new KeyExtent(tke),
+                  ioe.getMessage());
+            }
+          }
+        });
+      });
+
     }
 
     private ScanDispatcher getScanDispatcher(KeyExtent extent) {

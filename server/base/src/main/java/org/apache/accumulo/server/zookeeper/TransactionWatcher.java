@@ -122,28 +122,37 @@ public class TransactionWatcher {
     }
   }
 
+  public void runQuietly(String ztxBulk, long tid, Runnable task) {
+    synchronized (counts) {
+      try {
+        if (!arbitrator.transactionAlive(ztxBulk, tid)) {
+          log.debug("Transaction " + tid + " of type " + ztxBulk + " is no longer active.");
+          return;
+        }
+      } catch (Exception e) {
+        log.warn("Unable to check if transaction " + tid + " of type " + ztxBulk + " is alive ", e);
+        return;
+      }
+      increment(tid);
+    }
+    try {
+      task.run();
+    } finally {
+      decrement(tid);
+    }
+  }
+
   public <T> T run(String ztxBulk, long tid, Callable<T> callable) throws Exception {
     synchronized (counts) {
       if (!arbitrator.transactionAlive(ztxBulk, tid)) {
         throw new Exception("Transaction " + tid + " of type " + ztxBulk + " is no longer active");
       }
-      AtomicInteger count = counts.get(tid);
-      if (count == null)
-        counts.put(tid, count = new AtomicInteger());
-      count.incrementAndGet();
+      increment(tid);
     }
     try {
       return callable.call();
     } finally {
-      synchronized (counts) {
-        AtomicInteger count = counts.get(tid);
-        if (count == null) {
-          log.error("unexpected missing count for transaction {}", tid);
-        } else {
-          if (count.decrementAndGet() == 0)
-            counts.remove(tid);
-        }
-      }
+      decrement(tid);
     }
   }
 
@@ -155,4 +164,22 @@ public class TransactionWatcher {
     }
   }
 
+  private void increment(long tid) {
+    AtomicInteger count = counts.get(tid);
+    if (count == null)
+      counts.put(tid, count = new AtomicInteger());
+    count.incrementAndGet();
+  }
+
+  private void decrement(long tid) {
+    synchronized (counts) {
+      AtomicInteger count = counts.get(tid);
+      if (count == null) {
+        log.error("unexpected missing count for transaction {}", tid);
+      } else {
+        if (count.decrementAndGet() == 0)
+          counts.remove(tid);
+      }
+    }
+  }
 }
