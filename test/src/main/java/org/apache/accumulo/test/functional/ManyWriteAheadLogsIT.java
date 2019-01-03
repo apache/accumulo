@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertTrue;
 
+import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.Map;
@@ -94,7 +95,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
       c.tableOperations().create(rollWALsTable);
 
-      Random rand = new Random();
+      Random rand = new SecureRandom();
 
       Set<String> allWalsSeen = new HashSet<>();
 
