@@ -2840,10 +2840,13 @@ public class TabletServer implements Runnable {
       throw new RuntimeException(ex);
     }
     final AccumuloConfiguration aconf = getConfiguration();
-    final boolean replicating = aconf.getBoolean(Property.TSERV_REPLICATION_ENABLED);
-
-    if (replicating)
-      setupReplication(aconf);
+    // if the replication name is ever set, then start replication services
+    SimpleTimer.getInstance(aconf).schedule(() -> {
+      if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
+        log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
+        setupReplication(aconf);
+      }
+    }, 1000, 5000);
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
     SimpleTimer.getInstance(aconf).schedule(new BulkImportCacheCleaner(this),
@@ -2926,7 +2929,7 @@ public class TabletServer implements Runnable {
         }
       }
     }
-    if (replicating) {
+    if (this.replServer != null) {
       log.debug("Stopping Replication Server");
       TServerUtils.stopTServer(this.replServer);
     }
@@ -2965,17 +2968,13 @@ public class TabletServer implements Runnable {
     replWorker.setExecutor(replicationThreadPool);
     replWorker.run();
 
-    // Check the configuration value for the size of the pool and, if changed, resize the pool,
-    // every 5 seconds);
-    Runnable replicationWorkThreadPoolResizer = new Runnable() {
-      @Override
-      public void run() {
-        int maxPoolSize = aconf.getCount(Property.REPLICATION_WORKER_THREADS);
-        if (replicationThreadPool.getMaximumPoolSize() != maxPoolSize) {
-          log.info("Resizing thread pool for sending replication work from {} to {}",
-              replicationThreadPool.getMaximumPoolSize(), maxPoolSize);
-          replicationThreadPool.setMaximumPoolSize(maxPoolSize);
-        }
+    // Check the configuration value for the size of the pool and, if changed, resize the pool
+    Runnable replicationWorkThreadPoolResizer = () -> {
+      int maxPoolSize = aconf.getCount(Property.REPLICATION_WORKER_THREADS);
+      if (replicationThreadPool.getMaximumPoolSize() != maxPoolSize) {
+        log.info("Resizing thread pool for sending replication work from {} to {}",
+            replicationThreadPool.getMaximumPoolSize(), maxPoolSize);
+        replicationThreadPool.setMaximumPoolSize(maxPoolSize);
       }
     };
     SimpleTimer.getInstance(aconf).schedule(replicationWorkThreadPoolResizer, 10000, 30000);

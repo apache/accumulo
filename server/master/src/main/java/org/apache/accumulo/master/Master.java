@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1261,22 +1262,6 @@ public class Master
     clientService = sa.server;
     log.info("Started Master client service at {}", sa.address);
 
-    // Start the replication coordinator which assigns tservers to service replication requests
-    MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
-    ReplicationCoordinator.Iface haReplicationProxy = HighlyAvailableServiceWrapper.service(impl,
-        this);
-    // @formatter:off
-    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
-      new ReplicationCoordinator.Processor<>(TraceWrap.service(haReplicationProxy));
-    // @formatter:on
-    ServerAddress replAddress = TServerUtils.startServer(context, hostname,
-        Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
-        "Master Replication Coordinator", "Replication Coordinator", null,
-        Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
-        Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
-
-    log.info("Started replication coordinator service at " + replAddress.address);
-
     // block until we can obtain the ZK lock for the master
     getMasterLock(zroot + Constants.ZMASTER_LOCK);
 
@@ -1391,6 +1376,81 @@ public class Master
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     }
 
+    // if the replication name is ever set, then start replication services
+    final ReplTServer replServer = new ReplTServer();
+    SimpleTimer.getInstance(getConfiguration()).schedule(() -> {
+      try {
+        if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
+          if (replServer.server == null) {
+            log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
+            replServer.setServer(setupReplication());
+          }
+        }
+      } catch (Exception e) {
+        log.error("Replication name was set but error occurred starting services. ", e);
+      }
+    }, 1000, 5000);
+
+    // The master is fully initialized. Clients are allowed to connect now.
+    masterInitialized.set(true);
+
+    while (clientService.isServing()) {
+      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+    }
+    log.info("Shutting down fate.");
+    fate.shutdown();
+
+    log.info("Shutting down timekeeping.");
+    timeKeeper.shutdown();
+
+    final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
+    statusThread.join(remaining(deadline));
+    if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
+      if (replicationWorkAssigner != null)
+        replicationWorkAssigner.join(remaining(deadline));
+      if (replicationWorkDriver != null)
+        replicationWorkDriver.join(remaining(deadline));
+      TServerUtils.stopTServer(replServer.server);
+    }
+    // Signal that we want it to stop, and wait for it to do so.
+    if (authenticationTokenKeyManager != null) {
+      authenticationTokenKeyManager.gracefulStop();
+      authenticationTokenKeyManager.join(remaining(deadline));
+    }
+
+    // quit, even if the tablet servers somehow jam up and the watchers
+    // don't stop
+    for (TabletGroupWatcher watcher : watchers) {
+      watcher.join(remaining(deadline));
+    }
+    log.info("exiting");
+  }
+
+  class ReplTServer {
+    TServer server;
+
+    public void setServer(TServer server) {
+      this.server = server;
+    }
+  }
+
+  private TServer setupReplication()
+      throws UnknownHostException, KeeperException, InterruptedException {
+    // Start the replication coordinator which assigns tservers to service replication requests
+    MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
+    ReplicationCoordinator.Iface haReplicationProxy = HighlyAvailableServiceWrapper.service(impl,
+        this);
+    // @formatter:off
+    ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
+            new ReplicationCoordinator.Processor<>(TraceWrap.service(haReplicationProxy));
+    // @formatter:on
+    ServerAddress replAddress = TServerUtils.startServer(context, hostname,
+        Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
+        "Master Replication Coordinator", "Replication Coordinator", null,
+        Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
+        Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+
+    log.info("Started replication coordinator service at " + replAddress.address);
     // Start the daemon to scan the replication table and make units of work
     replicationWorkDriver = new ReplicationDriver(this);
     replicationWorkDriver.start();
@@ -1412,36 +1472,7 @@ public class Master
     } catch (Exception e) {
       log.error("Failed to register replication metrics", e);
     }
-
-    // The master is fully initialized. Clients are allowed to connect now.
-    masterInitialized.set(true);
-
-    while (clientService.isServing()) {
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
-    }
-    log.info("Shutting down fate.");
-    fate.shutdown();
-
-    log.info("Shutting down timekeeping.");
-    timeKeeper.shutdown();
-
-    final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
-    statusThread.join(remaining(deadline));
-    replicationWorkAssigner.join(remaining(deadline));
-    replicationWorkDriver.join(remaining(deadline));
-    replAddress.server.stop();
-    // Signal that we want it to stop, and wait for it to do so.
-    if (authenticationTokenKeyManager != null) {
-      authenticationTokenKeyManager.gracefulStop();
-      authenticationTokenKeyManager.join(remaining(deadline));
-    }
-
-    // quit, even if the tablet servers somehow jam up and the watchers
-    // don't stop
-    for (TabletGroupWatcher watcher : watchers) {
-      watcher.join(remaining(deadline));
-    }
-    log.info("exiting");
+    return replAddress.server;
   }
 
   private long remaining(long deadline) {
