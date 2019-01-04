@@ -203,4 +203,9 @@ public final class ZKAuthenticator implements Authenticator {
     cs.add(PasswordToken.class);
     return cs;
   }
+
+  @Override
+  public boolean validTokenClass(String tokenClass) {
+    return tokenClass.equals(PasswordToken.class.getName());
+  }
 }
