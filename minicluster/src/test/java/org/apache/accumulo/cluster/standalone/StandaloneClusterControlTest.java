@@ -16,18 +16,9 @@
  */
 package org.apache.accumulo.cluster.standalone;
 
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.aryEq;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 
-import org.easymock.EasyMock;
 import org.junit.Test;
-
-import com.google.common.collect.Maps;
 
 public class StandaloneClusterControlTest {
 
@@ -45,45 +36,5 @@ public class StandaloneClusterControlTest {
 
     assertEquals(accumuloHome + "/bin/accumulo", control.accumuloPath);
     assertEquals(accumuloHome + "/bin/accumulo-service", control.accumuloServicePath);
-  }
-
-  @Test
-  public void mapreduceLaunchesLocally() throws Exception {
-    final String accumuloUtilPath = "/usr/lib/accumulo/bin/accumulo-util";
-    final String jar = "/home/user/my_project.jar";
-    final Class<?> clz = Object.class;
-    final String myClass = clz.getName();
-    StandaloneClusterControl control = EasyMock.createMockBuilder(StandaloneClusterControl.class)
-        .addMockedMethod("exec", String.class, String[].class)
-        .addMockedMethod("getAccumuloUtilPath").addMockedMethod("getJarFromClass", Class.class)
-        .createMock();
-
-    final String[] toolArgs = {"-u", "user", "-p", "password"};
-    final String[] expectedCommands = new String[4 + toolArgs.length];
-
-    int i = 0;
-    expectedCommands[i++] = accumuloUtilPath;
-    expectedCommands[i++] = "hadoop-jar";
-    expectedCommands[i++] = jar;
-    expectedCommands[i++] = myClass;
-    for (int j = 0; j < toolArgs.length; j++) {
-      expectedCommands[i + j] = quote(toolArgs[j]);
-    }
-
-    expect(control.getAccumuloUtilPath()).andReturn(accumuloUtilPath);
-    expect(control.getJarFromClass(anyObject(Class.class))).andReturn(jar);
-    expect(control.exec(eq("localhost"), aryEq(expectedCommands)))
-        .andReturn(Maps.immutableEntry(0, ""));
-
-    replay(control);
-
-    // Give a fake Class -- we aren't verifying the actual class passed in
-    control.execMapreduceWithStdout(clz, toolArgs);
-
-    verify(control);
-  }
-
-  private String quote(String word) {
-    return "'" + word + "'";
   }
 }
