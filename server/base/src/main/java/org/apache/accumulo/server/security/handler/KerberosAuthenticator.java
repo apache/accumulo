@@ -49,8 +49,6 @@ public class KerberosAuthenticator implements Authenticator {
 
   private static final Set<Class<? extends AuthenticationToken>> SUPPORTED_TOKENS = Sets
       .newHashSet(Arrays.asList(KerberosToken.class, SystemToken.class));
-  private static final Set<String> SUPPORTED_TOKEN_NAMES = Sets
-      .newHashSet(KerberosToken.class.getName(), SystemToken.class.getName());
 
   private final ZKAuthenticator zkAuthenticator = new ZKAuthenticator();
   private ZooCache zooCache;
@@ -188,11 +186,6 @@ public class KerberosAuthenticator implements Authenticator {
   @Override
   public Set<Class<? extends AuthenticationToken>> getSupportedTokenTypes() {
     return SUPPORTED_TOKENS;
-  }
-
-  @Override
-  public boolean validTokenClass(String tokenClass) {
-    return SUPPORTED_TOKEN_NAMES.contains(tokenClass);
   }
 
 }

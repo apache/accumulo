@@ -135,14 +135,6 @@ public class TableManager {
       }
     }
 
-    public TableState getOldState() {
-      return oldState;
-    }
-
-    public TableState getNewState() {
-      return newState;
-    }
-
     @Override
     public String getMessage() {
       return message;

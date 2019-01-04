@@ -55,9 +55,4 @@ public interface Authenticator {
   boolean userExists(String user);
 
   Set<Class<? extends AuthenticationToken>> getSupportedTokenTypes();
-
-  /**
-   * Returns true if the given token is appropriate for this Authenticator
-   */
-  boolean validTokenClass(String tokenClass);
 }

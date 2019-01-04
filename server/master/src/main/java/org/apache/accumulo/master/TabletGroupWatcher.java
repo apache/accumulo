@@ -104,8 +104,6 @@ abstract class TabletGroupWatcher extends Daemon {
   final TabletStateStore store;
   final TabletGroupWatcher dependentWatcher;
 
-  private MasterState masterState;
-
   final TableStats stats = new TableStats();
   private SortedSet<TServerInstance> lastScanServers = ImmutableSortedSet.of();
 
@@ -120,11 +118,6 @@ abstract class TabletGroupWatcher extends Daemon {
 
   Map<Table.ID,TableCounts> getStats() {
     return stats.getLast();
-  }
-
-  // returns the master state under which stats were collected
-  MasterState statsState() {
-    return masterState;
   }
 
   TableCounts getStats(Table.ID tableId) {
@@ -150,7 +143,6 @@ abstract class TabletGroupWatcher extends Daemon {
     while (this.master.stillMaster()) {
       // slow things down a little, otherwise we spam the logs when there are many wake-up events
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-      masterState = master.getMasterState();
 
       int totalUnloaded = 0;
       int unloaded = 0;

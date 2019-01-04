@@ -159,10 +159,6 @@ public class StatusMaker {
     }
   }
 
-  protected void setBatchWriter(BatchWriter bw) {
-    this.replicationWriter = bw;
-  }
-
   /**
    * Create a status record in the replication table
    */

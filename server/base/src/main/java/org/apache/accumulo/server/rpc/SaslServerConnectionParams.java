@@ -42,10 +42,6 @@ public class SaslServerConnectionParams extends SaslConnectionParams {
     setSecretManager(secretManager);
   }
 
-  public SaslServerConnectionParams(Properties clientProps, AuthenticationToken token) {
-    this(clientProps, token, null);
-  }
-
   public SaslServerConnectionParams(Properties clientProps, AuthenticationToken token,
       AuthenticationTokenSecretManager secretManager) {
     super(clientProps, token);

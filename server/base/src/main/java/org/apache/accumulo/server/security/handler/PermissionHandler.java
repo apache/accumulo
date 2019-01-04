@@ -139,11 +139,6 @@ public interface PermissionHandler {
   void initUser(String user) throws AccumuloSecurityException;
 
   /**
-   * Initializes a new user
-   */
-  void initTable(String table);
-
-  /**
    * Deletes a user
    */
   void cleanUser(String user) throws AccumuloSecurityException;
