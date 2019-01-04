@@ -2846,7 +2846,7 @@ public class TabletServer implements Runnable {
         log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
         setupReplication(aconf);
       }
-    }, 1000, 5000);
+    }, 0, 5000);
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
     SimpleTimer.getInstance(aconf).schedule(new BulkImportCacheCleaner(this),

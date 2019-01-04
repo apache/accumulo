@@ -48,6 +48,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    // set the name to kick off the replication services
     cfg.setProperty(Property.REPLICATION_NAME.getKey(), "test");
     cfg.setNumTservers(2);
   }

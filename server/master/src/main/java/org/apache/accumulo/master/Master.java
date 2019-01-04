@@ -40,6 +40,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -1377,19 +1378,19 @@ public class Master
     }
 
     // if the replication name is ever set, then start replication services
-    final ReplTServer replServer = new ReplTServer();
+    final AtomicReference<TServer> replServer = new AtomicReference<>();
     SimpleTimer.getInstance(getConfiguration()).schedule(() -> {
       try {
         if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
-          if (replServer.server == null) {
+          if (replServer.get() == null) {
             log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
-            replServer.setServer(setupReplication());
+            replServer.set(setupReplication());
           }
         }
       } catch (UnknownHostException | KeeperException | InterruptedException e) {
         log.error("Error occurred starting replication services. ", e);
       }
-    }, 1000, 5000);
+    }, 0, 5000);
 
     // The master is fully initialized. Clients are allowed to connect now.
     masterInitialized.set(true);
@@ -1405,13 +1406,12 @@ public class Master
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     statusThread.join(remaining(deadline));
-    if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
-      if (replicationWorkAssigner != null)
-        replicationWorkAssigner.join(remaining(deadline));
-      if (replicationWorkDriver != null)
-        replicationWorkDriver.join(remaining(deadline));
-      TServerUtils.stopTServer(replServer.server);
-    }
+    if (replicationWorkAssigner != null)
+      replicationWorkAssigner.join(remaining(deadline));
+    if (replicationWorkDriver != null)
+      replicationWorkDriver.join(remaining(deadline));
+    TServerUtils.stopTServer(replServer.get());
+
     // Signal that we want it to stop, and wait for it to do so.
     if (authenticationTokenKeyManager != null) {
       authenticationTokenKeyManager.gracefulStop();
@@ -1424,14 +1424,6 @@ public class Master
       watcher.join(remaining(deadline));
     }
     log.info("exiting");
-  }
-
-  class ReplTServer {
-    TServer server;
-
-    public void setServer(TServer server) {
-      this.server = server;
-    }
   }
 
   private TServer setupReplication()
