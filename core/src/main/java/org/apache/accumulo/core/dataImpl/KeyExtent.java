@@ -60,6 +60,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   private Text textPrevEndRow;
 
   private static final Table.ID EMPTY_ID = Table.ID.of("");
+  private static final Text EMPTY_TEXT = new Text("");
 
   private void check() {
 
@@ -495,11 +496,9 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public Range toMetadataRange() {
-    Text metadataPrevRow = new Text(getTableId().getUtf8());
-    metadataPrevRow.append(new byte[] {';'}, 0, 1);
-    if (getPrevEndRow() != null) {
-      metadataPrevRow.append(getPrevEndRow().getBytes(), 0, getPrevEndRow().getLength());
-    }
+
+    Text metadataPrevRow = TabletsSection.getRow(getTableId(),
+        getPrevEndRow() == null ? EMPTY_TEXT : getPrevEndRow());
 
     return new Range(metadataPrevRow, getPrevEndRow() == null, getMetadataEntry(), true);
   }
