@@ -53,7 +53,7 @@ public class StandaloneClusterControl implements ClusterControl {
   private static final Logger log = LoggerFactory.getLogger(StandaloneClusterControl.class);
 
   private static final String ACCUMULO_SERVICE_SCRIPT = "accumulo-service",
-      ACCUMULO_SCRIPT = "accumulo", ACCUMULO_UTIL_SCRIPT = "accumulo-util";
+      ACCUMULO_SCRIPT = "accumulo";
   private static final String MASTER_HOSTS_FILE = "masters", GC_HOSTS_FILE = "gc",
       TSERVER_HOSTS_FILE = "tservers", TRACER_HOSTS_FILE = "tracers",
       MONITOR_HOSTS_FILE = "monitor";
@@ -65,7 +65,7 @@ public class StandaloneClusterControl implements ClusterControl {
   private String serverCmdPrefix;
   protected RemoteShellOptions options;
 
-  protected String accumuloServicePath, accumuloPath, accumuloUtilPath;
+  protected String accumuloServicePath, accumuloPath;
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input file name")
@@ -81,11 +81,6 @@ public class StandaloneClusterControl implements ClusterControl {
     File bin = new File(accumuloHome, "bin");
     this.accumuloServicePath = new File(bin, ACCUMULO_SERVICE_SCRIPT).getAbsolutePath();
     this.accumuloPath = new File(bin, ACCUMULO_SCRIPT).getAbsolutePath();
-    this.accumuloUtilPath = new File(bin, ACCUMULO_UTIL_SCRIPT).getAbsolutePath();
-  }
-
-  String getAccumuloUtilPath() {
-    return this.accumuloUtilPath;
   }
 
   protected Entry<Integer,String> exec(String hostname, String[] command) throws IOException {
@@ -131,34 +126,6 @@ public class StandaloneClusterControl implements ClusterControl {
    */
   private String sanitize(String msg) {
     return msg.replaceAll("[\r\n]", "");
-  }
-
-  public Entry<Integer,String> execMapreduceWithStdout(Class<?> clz, String[] args)
-      throws IOException {
-    String host = "localhost";
-    List<String> cmd = new ArrayList<>();
-    cmd.add(getAccumuloUtilPath());
-    cmd.add("hadoop-jar");
-    cmd.add(getJarFromClass(clz));
-    cmd.add(clz.getName());
-    for (String arg : args) {
-      cmd.add("'" + arg + "'");
-    }
-    log.info("Running: '{}' on {}", StringUtils.join(cmd, " "), host);
-    return exec(host, cmd.toArray(new String[cmd.size()]));
-  }
-
-  String getJarFromClass(Class<?> clz) {
-    CodeSource source = clz.getProtectionDomain().getCodeSource();
-    if (source == null) {
-      throw new RuntimeException("Could not get CodeSource for class");
-    }
-    URL jarUrl = source.getLocation();
-    String jar = jarUrl.getPath();
-    if (!jar.endsWith(".jar")) {
-      throw new RuntimeException("Need to have a jar to run mapreduce: " + jar);
-    }
-    return jar;
   }
 
   @Override

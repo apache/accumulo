@@ -22,7 +22,6 @@ Usage: accumulo-util <command> (<argument> ...)
 Commands:
   build-native        Builds Accumulo native libraries
   dump-zoo            Dumps data in ZooKeeper
-  hadoop-jar          Runs 'hadoop jar' command with Accumulo jars
   gen-monitor-cert    Generates Accumulo monitor certficate
   load-jars-hdfs      Loads Accumulo jars in lib/ to HDFS for VFS classloader
   
@@ -182,71 +181,6 @@ function load_jars_hdfs() {
   "$HADOOP" fs -rm "$SYSTEM_CONTEXT_HDFS_DIR/slf4j*.jar"  > /dev/null
 }
 
-function hadoop_jar() {
-  if [[ -x "$HADOOP_HOME/bin/hadoop" ]]; then
-    HADOOP="$HADOOP_HOME/bin/hadoop"
-  else
-    HADOOP=$(which hadoop)
-  fi
-  if [[ ! -x "$HADOOP" ]]; then
-    echo "Could not find 'hadoop' command. Please set hadoop on your PATH or set HADOOP_HOME"
-    exit 1
-  fi
-  if [[ -z "$ZOOKEEPER_HOME" ]]; then
-     echo "ZOOKEEPER_HOME must be set!"
-     exit 1
-  fi
-
-  ZOOKEEPER_CMD="ls -1 $ZOOKEEPER_HOME/zookeeper-[0-9]*[^csn].jar "
-  if [[ $(eval "$ZOOKEEPER_CMD" | wc -l) -ne 1 ]] ; then
-     echo "Not exactly one zookeeper jar in $ZOOKEEPER_HOME"
-     exit 1
-  fi
-  ZOOKEEPER_LIB=$(eval "$ZOOKEEPER_CMD")
-
-  CORE_LIB="${lib}/accumulo-core.jar"
-  THRIFT_LIB="${lib}/libthrift.jar"
-  JCOMMANDER_LIB="${lib}/jcommander.jar"
-  COMMONS_VFS_LIB="${lib}/commons-vfs2.jar"
-  GUAVA_LIB="${lib}/guava.jar"
-  HTRACE_LIB="${lib}/htrace-core.jar"
-
-  USERJARS=" "
-  for arg in "$@"; do
-      if [[ "$arg" != "-libjars" ]] && [[ -z "$TOOLJAR" ]]; then
-        TOOLJAR="$arg"
-        shift
-     elif [[ "$arg" != "-libjars" ]] && [[ -z "$CLASSNAME" ]]; then
-        CLASSNAME="$arg"
-        shift
-     elif [[ -z "$USERJARS" ]]; then
-        USERJARS=$(echo "$arg" | tr "," " ")
-        shift
-     elif [[ "$arg" = "-libjars" ]]; then
-        USERJARS=""
-        shift
-     else
-        break
-     fi
-  done
-
-  LIB_JARS="$THRIFT_LIB,$CORE_LIB,$ZOOKEEPER_LIB,$JCOMMANDER_LIB,$COMMONS_VFS_LIB,$GUAVA_LIB,$HTRACE_LIB"
-  H_JARS="$THRIFT_LIB:$CORE_LIB:$ZOOKEEPER_LIB:$JCOMMANDER_LIB:$COMMONS_VFS_LIB:$GUAVA_LIB:$HTRACE_LIB"
-
-  for jar in $USERJARS; do
-     LIB_JARS="$LIB_JARS,$jar"
-     H_JARS="$H_JARS:$jar"
-  done
-  export HADOOP_CLASSPATH="$H_JARS:$HADOOP_CLASSPATH"
-
-  if [[ -z "$CLASSNAME" || -z "$TOOLJAR" ]]; then
-     echo "Usage: accumulo-util hadoop-jar path/to/myTool.jar my.tool.class.Name [-libjars my1.jar,my2.jar]" 1>&2
-     exit 1
-  fi
-
-  exec "$HADOOP" jar "$TOOLJAR" "$CLASSNAME" -libjars "$LIB_JARS" "$@"
-}
-
 function main() {
   SOURCE="${BASH_SOURCE[0]}"
   while [ -h "${SOURCE}" ]; do
@@ -265,9 +199,6 @@ function main() {
       ;;
     dump-zoo)
       "$bin"/accumulo org.apache.accumulo.server.util.DumpZookeeper "${@:2}"
-      ;;
-    hadoop-jar)
-      hadoop_jar "${@:2}"
       ;;
     gen-monitor-cert)
       gen_monitor_cert
