@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.hadoop.mapred;
 
-import static org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.getClientInfo;
-
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -46,7 +44,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   @Override
   public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
-    ClientInfo clientInfo = getClientInfo(job);
+    ClientInfo clientInfo = AccumuloOutputFormatImpl.getClientInfo(job);
     String principal = clientInfo.getPrincipal();
     AuthenticationToken token = clientInfo.getAuthenticationToken();
     try (AccumuloClient c = Accumulo.newClient().from(clientInfo.getProperties()).build()) {
