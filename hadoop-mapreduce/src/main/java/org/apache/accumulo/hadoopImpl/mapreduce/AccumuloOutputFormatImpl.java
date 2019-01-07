@@ -88,7 +88,7 @@ public class AccumuloOutputFormatImpl {
    *
    * @since 2.0.0
    */
-  protected static ClientInfo getClientInfo(JobContext context) {
+  public static ClientInfo getClientInfo(JobContext context) {
     return OutputConfigurator.getClientInfo(CLASS, context.getConfiguration());
   }
 
