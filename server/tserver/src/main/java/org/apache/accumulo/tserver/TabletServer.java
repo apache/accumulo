@@ -341,7 +341,7 @@ public class TabletServer implements Runnable {
   private ZooLock tabletServerLock;
 
   private TServer server;
-  private TServer replServer;
+  private volatile TServer replServer;
 
   private DistributedWorkQueue bulkFailedCopyQ;
 
@@ -2842,9 +2842,11 @@ public class TabletServer implements Runnable {
     final AccumuloConfiguration aconf = getConfiguration();
     // if the replication name is ever set, then start replication services
     SimpleTimer.getInstance(aconf).schedule(() -> {
-      if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
-        log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
-        setupReplication(aconf);
+      if (this.replServer == null) {
+        if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
+          log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
+          setupReplication(aconf);
+        }
       }
     }, 0, 5000);
 
@@ -2929,10 +2931,9 @@ public class TabletServer implements Runnable {
         }
       }
     }
-    if (this.replServer != null) {
-      log.debug("Stopping Replication Server");
-      TServerUtils.stopTServer(this.replServer);
-    }
+    log.debug("Stopping Replication Server");
+    TServerUtils.stopTServer(this.replServer);
+
     log.debug("Stopping Thrift Servers");
     TServerUtils.stopTServer(server);
 

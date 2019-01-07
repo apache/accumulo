@@ -1381,8 +1381,8 @@ public class Master
     final AtomicReference<TServer> replServer = new AtomicReference<>();
     SimpleTimer.getInstance(getConfiguration()).schedule(() -> {
       try {
-        if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
-          if (replServer.get() == null) {
+        if (replServer.get() == null) {
+          if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
             log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
             replServer.set(setupReplication());
           }
