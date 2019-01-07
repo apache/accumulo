@@ -398,8 +398,8 @@ public class SecurityOperation {
 
     try {
       if (useCached)
-        return permHandle.hasCachedNamespacePermission(user, namespace, permission);
-      return permHandle.hasNamespacePermission(user, namespace, permission);
+        return permHandle.hasCachedNamespacePermission(user, namespace.canonicalID(), permission);
+      return permHandle.hasNamespacePermission(user, namespace.canonicalID(), permission);
     } catch (NamespaceNotFoundException e) {
       throw new ThriftSecurityException(user, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
     }
@@ -754,7 +754,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.grantNamespacePermission(user, namespace, permission);
+      permHandle.grantNamespacePermission(user, namespace.canonicalID(), permission);
       log.info("Granted namespace permission {} for user {} on the namespace {}"
           + " at the request of user {}", permission, user, namespace, c.getPrincipal());
     } catch (AccumuloSecurityException e) {
@@ -809,7 +809,7 @@ public class SecurityOperation {
     targetUserExists(user);
 
     try {
-      permHandle.revokeNamespacePermission(user, namespace, permission);
+      permHandle.revokeNamespacePermission(user, namespace.canonicalID(), permission);
       log.info("Revoked namespace permission {} for user {} on the namespace {}"
           + " at the request of user {}", permission, user, namespace, c.getPrincipal());
 
@@ -871,7 +871,7 @@ public class SecurityOperation {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     try {
-      permHandle.cleanNamespacePermissions(namespace);
+      permHandle.cleanNamespacePermissions(namespace.canonicalID());
     } catch (AccumuloSecurityException e) {
       e.setUser(credentials.getPrincipal());
       throw e.asThriftException();

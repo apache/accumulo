@@ -456,9 +456,10 @@ public class Master
         for (String user : zoo.getChildren(users)) {
           zoo.putPersistentData(users + "/" + user + "/Namespaces", new byte[0],
               NodeExistsPolicy.SKIP);
-          perm.grantNamespacePermission(user, Namespace.ID.ACCUMULO, NamespacePermission.READ);
+          perm.grantNamespacePermission(user, Namespace.ID.ACCUMULO.canonicalID(),
+              NamespacePermission.READ);
         }
-        perm.grantNamespacePermission("root", Namespace.ID.ACCUMULO,
+        perm.grantNamespacePermission("root", Namespace.ID.ACCUMULO.canonicalID(),
             NamespacePermission.ALTER_TABLE);
 
         // add the currlog location for root tablet current logs

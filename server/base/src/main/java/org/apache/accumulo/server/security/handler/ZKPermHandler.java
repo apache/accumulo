@@ -126,7 +126,7 @@ public class ZKPermHandler implements PermissionHandler {
   }
 
   @Override
-  public boolean hasNamespacePermission(String user, Namespace.ID namespace,
+  public boolean hasNamespacePermission(String user, String namespace,
       NamespacePermission permission) throws NamespaceNotFoundException {
     byte[] serializedPerms;
     try {
@@ -148,8 +148,7 @@ public class ZKPermHandler implements PermissionHandler {
         } catch (KeeperException ex) {
           // not there, throw an informative exception
           if (e.code() == Code.NONODE) {
-            throw new NamespaceNotFoundException(namespace.canonicalID(), null,
-                "while checking permissions");
+            throw new NamespaceNotFoundException(namespace, null, "while checking permissions");
           }
           log.warn("Unhandled InterruptedException, failing closed for table permission check", e);
         }
@@ -168,7 +167,7 @@ public class ZKPermHandler implements PermissionHandler {
   }
 
   @Override
-  public boolean hasCachedNamespacePermission(String user, Namespace.ID namespace,
+  public boolean hasCachedNamespacePermission(String user, String namespace,
       NamespacePermission permission) {
     byte[] serializedPerms = zooCache
         .get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
@@ -234,7 +233,7 @@ public class ZKPermHandler implements PermissionHandler {
   }
 
   @Override
-  public void grantNamespacePermission(String user, Namespace.ID namespace,
+  public void grantNamespacePermission(String user, String namespace,
       NamespacePermission permission) throws AccumuloSecurityException {
     Set<NamespacePermission> namespacePerms;
     byte[] serializedPerms = zooCache
@@ -320,7 +319,7 @@ public class ZKPermHandler implements PermissionHandler {
   }
 
   @Override
-  public void revokeNamespacePermission(String user, Namespace.ID namespace,
+  public void revokeNamespacePermission(String user, String namespace,
       NamespacePermission permission) throws AccumuloSecurityException {
     byte[] serializedPerms = zooCache
         .get(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
@@ -370,7 +369,7 @@ public class ZKPermHandler implements PermissionHandler {
   }
 
   @Override
-  public void cleanNamespacePermissions(Namespace.ID namespace) throws AccumuloSecurityException {
+  public void cleanNamespacePermissions(String namespace) throws AccumuloSecurityException {
     try {
       synchronized (zooCache) {
         zooCache.clear();
@@ -525,9 +524,4 @@ public class ZKPermHandler implements PermissionHandler {
     return true;
   }
 
-  @Override
-  public void initTable(String table) {
-    // All proper housekeeping is done on delete and permission granting, no work needs to be done
-    // here
-  }
 }
