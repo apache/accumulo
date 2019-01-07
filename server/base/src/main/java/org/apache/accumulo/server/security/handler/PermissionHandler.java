@@ -141,7 +141,7 @@ public interface PermissionHandler {
   /**
    * Initializes a new table
    *
-   * @Deprecated since 2.0. Method is never called so implementation does nothing.
+   * @deprecated since 2.0.0. Method is never called so implementation does nothing.
    */
   @Deprecated
   void initTable(String table);
