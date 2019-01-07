@@ -158,6 +158,11 @@ public class KerberosPermissionHandler implements PermissionHandler {
   }
 
   @Override
+  public void initTable(String table) {
+    zkPermissionHandler.initTable(table);
+  }
+
+  @Override
   public void cleanUser(String user) throws AccumuloSecurityException {
     zkPermissionHandler.cleanUser(Base64.getEncoder().encodeToString(user.getBytes(UTF_8)));
   }

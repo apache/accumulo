@@ -524,4 +524,10 @@ public class ZKPermHandler implements PermissionHandler {
   public boolean validSecurityHandlers(Authenticator authent, Authorizor author) {
     return true;
   }
+
+  @Override
+  public void initTable(String table) {
+    // All proper housekeeping is done on delete and permission granting, no work needs to be done
+    // here
+  }
 }

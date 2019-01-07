@@ -139,6 +139,14 @@ public interface PermissionHandler {
   void initUser(String user) throws AccumuloSecurityException;
 
   /**
+   * Initializes a new table
+   *
+   * @Deprecated since 2.0. Method is never called so implementation does nothing.
+   */
+  @Deprecated
+  void initTable(String table);
+
+  /**
    * Deletes a user
    */
   void cleanUser(String user) throws AccumuloSecurityException;
