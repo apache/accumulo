@@ -19,13 +19,7 @@ package org.apache.accumulo.miniclusterImpl;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
@@ -88,7 +82,6 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
-import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
@@ -127,19 +120,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public static class LogWriter extends Daemon {
     private BufferedReader in;
     private BufferedWriter out;
-
-    public LogWriter(InputStream stream, File logFile) throws IOException {
-      this.in = new BufferedReader(new InputStreamReader(stream));
-      out = new BufferedWriter(new FileWriter(logFile));
-
-      SimpleTimer.getInstance(null).schedule(() -> {
-        try {
-          flush();
-        } catch (IOException e) {
-          log.error("Exception while attempting to flush.", e);
-        }
-      }, 1000, 1000);
-    }
 
     public synchronized void flush() throws IOException {
       if (out != null)
@@ -333,17 +313,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     log.debug("Starting MiniAccumuloCluster process with class: " + clazz.getSimpleName()
         + "\n, jvmOpts: " + extraJvmOpts + "\n, classpath: " + classpath + "\n, args: " + argList
         + "\n, environment: " + builder.environment());
-    Process process = builder.start();
 
-    LogWriter lw;
-    lw = new LogWriter(process.getErrorStream(),
-        new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".err"));
-    logWriters.add(lw);
-    lw.start();
-    lw = new LogWriter(process.getInputStream(),
-        new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".out"));
-    logWriters.add(lw);
-    lw.start();
+    builder = builder.redirectError(
+        new File(config.getLogDir(), clazz.getSimpleName() + "_" + builder.hashCode() + ".err"));
+    builder = builder.redirectOutput(
+        new File(config.getLogDir(), clazz.getSimpleName() + "_" + builder.hashCode() + ".out"));
+
+    Process process = builder.start();
 
     cleanup.add(process);
 
