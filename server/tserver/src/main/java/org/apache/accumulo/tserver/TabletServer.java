@@ -341,7 +341,7 @@ public class TabletServer implements Runnable {
   private ZooLock tabletServerLock;
 
   private TServer server;
-  private TServer replServer;
+  private volatile TServer replServer;
 
   private DistributedWorkQueue bulkFailedCopyQ;
 
@@ -2664,7 +2664,7 @@ public class TabletServer implements Runnable {
     return address;
   }
 
-  private HostAndPort startReplicationService() throws UnknownHostException {
+  private void startReplicationService() throws UnknownHostException {
     final ReplicationServicerHandler handler = new ReplicationServicerHandler(this);
     ReplicationServicer.Iface rpcProxy = TraceWrap.service(handler);
     ReplicationServicer.Iface repl = TCredentialsUpdatingWrapper.service(rpcProxy,
@@ -2695,8 +2695,6 @@ public class TabletServer implements Runnable {
       log.error("Could not advertise replication service port", e);
       throw new RuntimeException(e);
     }
-
-    return sp.address;
   }
 
   public ZooLock getLock() {
@@ -2841,35 +2839,16 @@ public class TabletServer implements Runnable {
       log.error("Error setting watches for recoveries");
       throw new RuntimeException(ex);
     }
-
-    // Start the thrift service listening for incoming replication requests
-    try {
-      startReplicationService();
-    } catch (UnknownHostException e) {
-      throw new RuntimeException("Failed to start replication service", e);
-    }
-
-    // Start the pool to handle outgoing replications
-    final ThreadPoolExecutor replicationThreadPool = new SimpleThreadPool(
-        getConfiguration().getCount(Property.REPLICATION_WORKER_THREADS), "replication task");
-    replWorker.setExecutor(replicationThreadPool);
-    replWorker.run();
-
-    // Check the configuration value for the size of the pool and, if changed, resize the pool,
-    // every 5 seconds);
     final AccumuloConfiguration aconf = getConfiguration();
-    Runnable replicationWorkThreadPoolResizer = new Runnable() {
-      @Override
-      public void run() {
-        int maxPoolSize = aconf.getCount(Property.REPLICATION_WORKER_THREADS);
-        if (replicationThreadPool.getMaximumPoolSize() != maxPoolSize) {
-          log.info("Resizing thread pool for sending replication work from {} to {}",
-              replicationThreadPool.getMaximumPoolSize(), maxPoolSize);
-          replicationThreadPool.setMaximumPoolSize(maxPoolSize);
+    // if the replication name is ever set, then start replication services
+    SimpleTimer.getInstance(aconf).schedule(() -> {
+      if (this.replServer == null) {
+        if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
+          log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
+          setupReplication(aconf);
         }
       }
-    };
-    SimpleTimer.getInstance(aconf).schedule(replicationWorkThreadPoolResizer, 10000, 30000);
+    }, 0, 5000);
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
     SimpleTimer.getInstance(aconf).schedule(new BulkImportCacheCleaner(this),
@@ -2954,6 +2933,7 @@ public class TabletServer implements Runnable {
     }
     log.debug("Stopping Replication Server");
     TServerUtils.stopTServer(this.replServer);
+
     log.debug("Stopping Thrift Servers");
     TServerUtils.stopTServer(server);
 
@@ -2973,6 +2953,32 @@ public class TabletServer implements Runnable {
     } catch (Exception e) {
       log.warn("Failed to release tablet server lock", e);
     }
+  }
+
+  private void setupReplication(AccumuloConfiguration aconf) {
+    // Start the thrift service listening for incoming replication requests
+    try {
+      startReplicationService();
+    } catch (UnknownHostException e) {
+      throw new RuntimeException("Failed to start replication service", e);
+    }
+
+    // Start the pool to handle outgoing replications
+    final ThreadPoolExecutor replicationThreadPool = new SimpleThreadPool(
+        getConfiguration().getCount(Property.REPLICATION_WORKER_THREADS), "replication task");
+    replWorker.setExecutor(replicationThreadPool);
+    replWorker.run();
+
+    // Check the configuration value for the size of the pool and, if changed, resize the pool
+    Runnable replicationWorkThreadPoolResizer = () -> {
+      int maxPoolSize = aconf.getCount(Property.REPLICATION_WORKER_THREADS);
+      if (replicationThreadPool.getMaximumPoolSize() != maxPoolSize) {
+        log.info("Resizing thread pool for sending replication work from {} to {}",
+            replicationThreadPool.getMaximumPoolSize(), maxPoolSize);
+        replicationThreadPool.setMaximumPoolSize(maxPoolSize);
+      }
+    };
+    SimpleTimer.getInstance(aconf).schedule(replicationWorkThreadPoolResizer, 10000, 30000);
   }
 
   private static Pair<Text,KeyExtent> verifyRootTablet(ServerContext context,
