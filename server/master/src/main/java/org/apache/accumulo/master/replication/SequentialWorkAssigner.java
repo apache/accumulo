@@ -58,8 +58,6 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
   // @formatter:on
   private Map<String,Map<Table.ID,String>> queuedWorkByPeerName;
 
-  public SequentialWorkAssigner() {}
-
   public SequentialWorkAssigner(AccumuloConfiguration conf, AccumuloClient client) {
     configure(conf, client);
   }
@@ -67,10 +65,6 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
   @Override
   public String getName() {
     return NAME;
-  }
-
-  protected Map<String,Map<Table.ID,String>> getQueuedWork() {
-    return queuedWorkByPeerName;
   }
 
   protected void setQueuedWork(Map<String,Map<Table.ID,String>> queuedWork) {

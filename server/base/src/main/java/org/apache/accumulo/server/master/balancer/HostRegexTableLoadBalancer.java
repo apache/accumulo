@@ -299,10 +299,6 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     return isIpBasedRegex;
   }
 
-  public int getMaxConcurrentMigrations() {
-    return maxTServerMigrations;
-  }
-
   @Override
   public void init(ServerContext context) {
     super.init(context);

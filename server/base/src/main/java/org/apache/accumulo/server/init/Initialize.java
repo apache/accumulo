@@ -688,7 +688,6 @@ public class Initialize implements KeywordExecutable {
       instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
       if (opts.clearInstanceName) {
         exists = false;
-        break;
       } else {
         // ACCUMULO-4401 setting exists=false is just as important as setting it to true
         exists = zoo.exists(instanceNamePath);
@@ -899,9 +898,9 @@ public class Initialize implements KeywordExecutable {
     boolean uploadAccumuloProps = false;
     @Parameter(names = "--instance-name",
         description = "the instance name, if not provided, will prompt")
-    String cliInstanceName;
+    String cliInstanceName = null;
     @Parameter(names = "--password", description = "set the password on the command line")
-    String cliPassword;
+    String cliPassword = null;
     @Parameter(names = {"-u", "--user"},
         description = "the name of the user to grant system permissions to")
     String rootUser = null;

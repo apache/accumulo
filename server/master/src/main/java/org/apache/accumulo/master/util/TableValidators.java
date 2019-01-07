@@ -93,19 +93,6 @@ public class TableValidators {
     }
   };
 
-  public static final Validator<String> NOT_ROOT = new Validator<String>() {
-
-    @Override
-    public boolean test(String tableName) {
-      return !RootTable.NAME.equals(tableName);
-    }
-
-    @Override
-    public String invalidMessage(String tableName) {
-      return "Table cannot be the " + RootTable.NAME + "(Id: " + RootTable.ID + ") table";
-    }
-  };
-
   public static final Validator<Table.ID> NOT_ROOT_ID = new Validator<Table.ID>() {
 
     @Override

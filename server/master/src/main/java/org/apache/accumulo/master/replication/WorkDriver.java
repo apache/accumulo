@@ -71,25 +71,6 @@ public class WorkDriver extends Daemon {
     }
   }
 
-  /*
-   * Getters/setters for testing purposes
-   */
-  protected AccumuloClient getClient() {
-    return client;
-  }
-
-  protected void setClient(AccumuloClient client) {
-    this.client = client;
-  }
-
-  protected AccumuloConfiguration getConf() {
-    return conf;
-  }
-
-  protected void setConf(AccumuloConfiguration conf) {
-    this.conf = conf;
-  }
-
   @Override
   public void run() {
     log.info("Starting replication work assignment thread using {}", assignerImplName);

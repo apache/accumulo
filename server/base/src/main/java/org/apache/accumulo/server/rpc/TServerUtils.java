@@ -295,23 +295,6 @@ public class TServerUtils {
   }
 
   /**
-   * Create a {@link TThreadPoolServer} with the provided transport, processor and transport
-   * factory.
-   *
-   * @param transport
-   *          Server transport
-   * @param processor
-   *          Processor implementation
-   * @param transportFactory
-   *          Transport factory
-   * @return A configured {@link TThreadPoolServer}
-   */
-  public static TThreadPoolServer createTThreadPoolServer(TServerTransport transport,
-      TProcessor processor, TTransportFactory transportFactory, TProtocolFactory protocolFactory) {
-    return createTThreadPoolServer(transport, processor, transportFactory, protocolFactory, null);
-  }
-
-  /**
    * Create a {@link TThreadPoolServer} with the provided server transport, processor and transport
    * factory.
    *

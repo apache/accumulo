@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 public class SecurityUtil {
   private static final Logger log = LoggerFactory.getLogger(SecurityUtil.class);
   private static final Logger renewalLog = LoggerFactory.getLogger("KerberosTicketRenewal");
-  public static boolean usingKerberos = false;
 
   /**
    * This method is for logging a server in kerberos. If this is used in client code, it will fail
@@ -61,8 +60,6 @@ public class SecurityUtil {
 
     if (principal == null || principal.length() == 0)
       return;
-
-    usingKerberos = true;
 
     if (login(principal, keyTab)) {
       try {

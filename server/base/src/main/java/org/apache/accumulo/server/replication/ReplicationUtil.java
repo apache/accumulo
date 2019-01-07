@@ -39,7 +39,6 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.fs.Path;
@@ -52,15 +51,13 @@ public class ReplicationUtil {
   public static final String STATUS_FORMATTER_CLASS_NAME = StatusFormatter.class.getName();
 
   private final ServerContext context;
-  private final ZooCache zooCache;
   private final ReplicaSystemFactory factory;
 
   public ReplicationUtil(ServerContext context) {
-    this(context, new ZooCache(context.getZooReaderWriter(), null), new ReplicaSystemFactory());
+    this(context, new ReplicaSystemFactory());
   }
 
-  public ReplicationUtil(ServerContext context, ZooCache cache, ReplicaSystemFactory factory) {
-    this.zooCache = cache;
+  public ReplicationUtil(ServerContext context, ReplicaSystemFactory factory) {
     this.context = context;
     this.factory = factory;
   }

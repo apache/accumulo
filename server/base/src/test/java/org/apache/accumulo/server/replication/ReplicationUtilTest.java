@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -33,7 +32,6 @@ import org.junit.Test;
 public class ReplicationUtilTest {
 
   ServerContext context;
-  ZooCache zc;
   AccumuloConfiguration conf;
   Map<String,String> confEntries;
   ReplicaSystemFactory factory;
@@ -42,12 +40,11 @@ public class ReplicationUtilTest {
   @Before
   public void setup() {
     context = EasyMock.createMock(ServerContext.class);
-    zc = EasyMock.createMock(ZooCache.class);
     conf = EasyMock.createMock(AccumuloConfiguration.class);
     EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();
     factory = new ReplicaSystemFactory();
 
-    util = new ReplicationUtil(context, zc, factory);
+    util = new ReplicationUtil(context, factory);
     confEntries = new HashMap<>();
   }
 

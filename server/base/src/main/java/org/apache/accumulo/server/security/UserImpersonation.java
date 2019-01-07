@@ -126,12 +126,6 @@ public class UserImpersonation {
       allUsers = allHosts = false;
     }
 
-    public UsersWithHosts(Set<String> users, Set<String> hosts) {
-      this();
-      this.users = users;
-      this.hosts = hosts;
-    }
-
     public Set<String> getUsers() {
       if (allUsers) {
         return ALWAYS_TRUE;
