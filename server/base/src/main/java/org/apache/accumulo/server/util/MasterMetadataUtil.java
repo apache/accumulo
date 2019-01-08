@@ -125,16 +125,6 @@ public class MasterMetadataUtil {
           "Metadata entry does not have time (" + metadataEntry + ")");
     }
 
-    Value flushID = columns.get(TabletsSection.ServerColumnFamily.FLUSH_COLUMN);
-    long initFlushID = -1;
-    if (flushID != null)
-      initFlushID = Long.parseLong(flushID.toString());
-
-    Value compactID = columns.get(TabletsSection.ServerColumnFamily.COMPACT_COLUMN);
-    long initCompactID = -1;
-    if (compactID != null)
-      initCompactID = Long.parseLong(compactID.toString());
-
     Text metadataPrevEndRow = KeyExtent.decodePrevEndRow(prevEndRowIBW);
 
     Table.ID tableId = (new KeyExtent(metadataEntry, (Text) null)).getTableId();
