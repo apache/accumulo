@@ -43,6 +43,7 @@ import org.apache.hadoop.util.Progressable;
  * @since 2.0
  */
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
+  private static final Class<AccumuloFileOutputFormat> CLASS = AccumuloFileOutputFormat.class;
 
   @Override
   public RecordWriter<Key,Value> getRecordWriter(FileSystem ignored, JobConf job, String name,
@@ -82,7 +83,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * Sets all the information required for this map reduce job.
    */
   public static FileOutputFormatBuilder.PathParams<JobConf> configure() {
-    return new FileOutputFormatBuilderImpl<JobConf>();
+    return new FileOutputFormatBuilderImpl<>(CLASS);
   }
 
 }
