@@ -122,6 +122,10 @@ public class TransactionWatcher {
     }
   }
 
+  /**
+   * Run task only if transaction is still active in zookeeper. If the tx is no longer active then
+   * that task is not run and a debug message is logged indicating the task was ignored.
+   */
   public void runQuietly(String ztxBulk, long tid, Runnable task) {
     synchronized (counts) {
       try {

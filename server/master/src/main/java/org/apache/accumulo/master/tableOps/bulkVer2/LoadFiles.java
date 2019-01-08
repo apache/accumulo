@@ -174,7 +174,7 @@ class LoadFiles extends MasterRepo {
       }
     }
 
-    private void queueLoad(HostAndPort server, KeyExtent extent,
+    private void addToQueue(HostAndPort server, KeyExtent extent,
         Map<String,MapFileInfo> thriftImports) {
       if (!thriftImports.isEmpty()) {
         loadMsgs.increment(server, 1);
@@ -218,7 +218,7 @@ class LoadFiles extends MasterRepo {
           }
         }
 
-        queueLoad(server, tablet.getExtent(), thriftImports);
+        addToQueue(server, tablet.getExtent(), thriftImports);
       }
 
       sendQueued(4 * 1024 * 1024);
