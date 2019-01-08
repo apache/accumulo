@@ -21,7 +21,6 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -49,12 +48,8 @@ public class ImportDirectoryCommand extends Command {
     // new bulk import only takes 2 args
     if (args.length == 2) {
       setTime = Boolean.parseBoolean(cl.getArgs()[1]);
-      TableOperations.ImportMappingOptions bulk = shellState.getAccumuloClient().tableOperations()
-          .importDirectory(dir).to(shellState.getTableName());
-      if (setTime)
-        bulk.tableTime().load();
-      else
-        bulk.load();
+      shellState.getAccumuloClient().tableOperations().importDirectory(dir)
+          .to(shellState.getTableName()).tableTime(setTime).load();
     } else if (args.length == 3) {
       // warn using deprecated bulk import
       Shell.log.warn(

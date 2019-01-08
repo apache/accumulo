@@ -567,8 +567,11 @@ public interface TableOperations {
      * timestamp used depends on how the table was created.
      *
      * @see NewTableConfiguration#setTimeType(TimeType)
+     * @param value
+     *          override the time values in the input files, and use the current time for all
+     *          mutations
      */
-    ImportMappingOptions tableTime();
+    ImportMappingOptions tableTime(boolean value);
 
     /**
      * Loads the files into the table.
