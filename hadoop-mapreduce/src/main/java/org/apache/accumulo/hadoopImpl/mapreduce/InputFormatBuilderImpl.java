@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 
@@ -177,40 +178,43 @@ public class InputFormatBuilderImpl<T>
    * Final builder method for mapreduce configuration
    */
   private void store(Job job) throws AccumuloException, AccumuloSecurityException {
-    AbstractInputFormat.setClientInfo(job, clientInfo);
+    _store(job.getConfiguration());
+  }
+
+  private void _store(Configuration conf) throws AccumuloException, AccumuloSecurityException {
+    InputConfigurator.setClientInfo(callingClass, conf, clientInfo);
     if (tableConfigMap.size() == 0) {
       throw new IllegalArgumentException("At least one Table must be configured for job.");
     }
     // if only one table use the single table configuration method
     if (tableConfigMap.size() == 1) {
       Map.Entry<String,InputTableConfig> entry = tableConfigMap.entrySet().iterator().next();
-      InputFormatBase.setInputTableName(job, entry.getKey());
+      InputConfigurator.setInputTableName(callingClass, conf, entry.getKey());
       InputTableConfig config = entry.getValue();
       if (!config.getScanAuths().isPresent())
         config.setScanAuths(getUserAuths(clientInfo));
-      AbstractInputFormat.setScanAuthorizations(job, config.getScanAuths().get());
+      InputConfigurator.setScanAuthorizations(callingClass, conf, config.getScanAuths().get());
       // all optional values
       if (config.getContext().isPresent())
-        AbstractInputFormat.setClassLoaderContext(job, config.getContext().get());
+        InputConfigurator.setClassLoaderContext(callingClass, conf, config.getContext().get());
       if (config.getRanges().size() > 0)
-        InputFormatBase.setRanges(job, config.getRanges());
+        InputConfigurator.setRanges(callingClass, conf, config.getRanges());
       if (config.getIterators().size() > 0)
-        InputConfigurator.writeIteratorsToConf(callingClass, job.getConfiguration(),
-            config.getIterators());
+        InputConfigurator.writeIteratorsToConf(callingClass, conf, config.getIterators());
       if (config.getFetchedColumns().size() > 0)
-        InputConfigurator.fetchColumns(callingClass, job.getConfiguration(),
-            config.getFetchedColumns());
+        InputConfigurator.fetchColumns(callingClass, conf, config.getFetchedColumns());
       if (config.getSamplerConfiguration() != null)
-        InputFormatBase.setSamplerConfiguration(job, config.getSamplerConfiguration());
+        InputConfigurator.setSamplerConfiguration(callingClass, conf,
+            config.getSamplerConfiguration());
       if (config.getExecutionHints().size() > 0)
-        InputFormatBase.setExecutionHints(job, config.getExecutionHints());
-      InputFormatBase.setAutoAdjustRanges(job, config.shouldAutoAdjustRanges());
-      InputFormatBase.setScanIsolation(job, config.shouldUseIsolatedScanners());
-      InputFormatBase.setLocalIterators(job, config.shouldUseLocalIterators());
-      InputFormatBase.setOfflineTableScan(job, config.isOfflineScan());
-      InputFormatBase.setBatchScan(job, config.shouldBatchScan());
+        InputConfigurator.setExecutionHints(callingClass, conf, config.getExecutionHints());
+      InputConfigurator.setAutoAdjustRanges(callingClass, conf, config.shouldAutoAdjustRanges());
+      InputConfigurator.setScanIsolation(callingClass, conf, config.shouldUseIsolatedScanners());
+      InputConfigurator.setLocalIterators(callingClass, conf, config.shouldUseLocalIterators());
+      InputConfigurator.setOfflineTableScan(callingClass, conf, config.isOfflineScan());
+      InputConfigurator.setBatchScan(callingClass, conf, config.shouldBatchScan());
     } else {
-      InputConfigurator.setInputTableConfigs(callingClass, job.getConfiguration(), tableConfigMap);
+      InputConfigurator.setInputTableConfigs(callingClass, conf, tableConfigMap);
     }
   }
 
@@ -218,50 +222,7 @@ public class InputFormatBuilderImpl<T>
    * Final builder method for legacy mapred configuration
    */
   private void store(JobConf jobConf) throws AccumuloException, AccumuloSecurityException {
-    org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClientInfo(jobConf, clientInfo);
-    if (tableConfigMap.size() == 0) {
-      throw new IllegalArgumentException("At least one Table must be configured for job.");
-    }
-    // if only one table use the single table configuration method
-    if (tableConfigMap.size() == 1) {
-      Map.Entry<String,InputTableConfig> entry = tableConfigMap.entrySet().iterator().next();
-      org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setInputTableName(jobConf,
-          entry.getKey());
-      InputTableConfig config = entry.getValue();
-      if (!config.getScanAuths().isPresent())
-        config.setScanAuths(getUserAuths(clientInfo));
-      org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setScanAuthorizations(jobConf,
-          config.getScanAuths().get());
-      // all optional values
-      if (config.getContext().isPresent())
-        org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat.setClassLoaderContext(jobConf,
-            config.getContext().get());
-      if (config.getRanges().size() > 0)
-        org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setRanges(jobConf,
-            config.getRanges());
-      if (config.getIterators().size() > 0)
-        InputConfigurator.writeIteratorsToConf(callingClass, jobConf, config.getIterators());
-      if (config.getFetchedColumns().size() > 0)
-        InputConfigurator.fetchColumns(callingClass, jobConf, config.getFetchedColumns());
-      if (config.getSamplerConfiguration() != null)
-        org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setSamplerConfiguration(jobConf,
-            config.getSamplerConfiguration());
-      if (config.getExecutionHints().size() > 0)
-        org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setExecutionHints(jobConf,
-            config.getExecutionHints());
-      org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setAutoAdjustRanges(jobConf,
-          config.shouldAutoAdjustRanges());
-      org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setScanIsolation(jobConf,
-          config.shouldUseIsolatedScanners());
-      org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setLocalIterators(jobConf,
-          config.shouldUseLocalIterators());
-      org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setOfflineTableScan(jobConf,
-          config.isOfflineScan());
-      org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.setBatchScan(jobConf,
-          config.shouldBatchScan());
-    } else {
-      InputConfigurator.setInputTableConfigs(callingClass, jobConf, tableConfigMap);
-    }
+    _store(jobConf);
   }
 
   private Authorizations getUserAuths(ClientInfo clientInfo)
