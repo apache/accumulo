@@ -51,6 +51,11 @@ function main() {
   mkdir -p "${ACCUMULO_LOG_DIR}" 2>/dev/null
   : "${MALLOC_ARENA_MAX:?"variable is not set in accumulo-env.sh"}"
 
+  if [[ $cmd == "classpath" ]]; then
+    echo "$CLASSPATH"
+    exit 0
+  fi
+
   if [[ -x "$JAVA_HOME/bin/java" ]]; then
     JAVA="$JAVA_HOME/bin/java"
   else
