@@ -26,8 +26,9 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.hadoop.mapreduce.OutputFormatBuilder;
-import org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl;
+import org.apache.accumulo.hadoopImpl.mapred.AccumuloRecordWriter;
 import org.apache.accumulo.hadoopImpl.mapreduce.OutputFormatBuilderImpl;
+import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -41,10 +42,11 @@ import org.apache.hadoop.util.Progressable;
  * @since 2.0
  */
 public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
+  private static final Class<AccumuloOutputFormat> CLASS = AccumuloOutputFormat.class;
 
   @Override
   public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
-    ClientInfo clientInfo = AccumuloOutputFormatImpl.getClientInfo(job);
+    ClientInfo clientInfo = OutputConfigurator.getClientInfo(CLASS, job);
     String principal = clientInfo.getPrincipal();
     AuthenticationToken token = clientInfo.getAuthenticationToken();
     try (AccumuloClient c = Accumulo.newClient().from(clientInfo.getProperties()).build()) {
@@ -59,13 +61,13 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   public RecordWriter<Text,Mutation> getRecordWriter(FileSystem ignored, JobConf job, String name,
       Progressable progress) throws IOException {
     try {
-      return new AccumuloOutputFormatImpl.AccumuloRecordWriter(job);
+      return new AccumuloRecordWriter(job);
     } catch (Exception e) {
       throw new IOException(e);
     }
   }
 
   public static OutputFormatBuilder.ClientParams<JobConf> configure() {
-    return new OutputFormatBuilderImpl<JobConf>();
+    return new OutputFormatBuilderImpl<>(CLASS);
   }
 }

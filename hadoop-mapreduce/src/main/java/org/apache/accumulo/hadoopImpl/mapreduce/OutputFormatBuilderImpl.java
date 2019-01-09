@@ -16,28 +16,30 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setClientInfo;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setCreateTables;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setDefaultTableName;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl.setSimulationMode;
-
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.hadoop.mapreduce.OutputFormatBuilder;
+import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 
 public class OutputFormatBuilderImpl<T>
     implements OutputFormatBuilder.ClientParams<T>, OutputFormatBuilder.OutputOptions<T> {
+  private final Class<?> callingClass;
   ClientInfo clientInfo;
 
   // optional values
   Optional<String> defaultTableName = Optional.empty();
   boolean createTables = false;
   boolean simulationMode = false;
+
+  public OutputFormatBuilderImpl(Class<?> callingClass) {
+    this.callingClass = callingClass;
+  }
 
   @Override
   public OutputFormatBuilder.OutputOptions<T> clientProperties(Properties clientProperties) {
@@ -76,24 +78,19 @@ public class OutputFormatBuilderImpl<T>
   }
 
   private void store(Job job) {
-    setClientInfo(job, clientInfo);
+    _store(job.getConfiguration());
+  }
+
+  private void _store(Configuration conf) {
+    OutputConfigurator.setClientInfo(callingClass, conf, clientInfo);
     if (defaultTableName.isPresent())
-      setDefaultTableName(job, defaultTableName.get());
-    setCreateTables(job, createTables);
-    setSimulationMode(job, simulationMode);
+      OutputConfigurator.setDefaultTableName(callingClass, conf, defaultTableName.get());
+    OutputConfigurator.setCreateTables(callingClass, conf, createTables);
+    OutputConfigurator.setSimulationMode(callingClass, conf, simulationMode);
   }
 
   private void store(JobConf jobConf) {
-    org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setClientInfo(jobConf,
-        clientInfo);
-    if (defaultTableName.isPresent())
-      org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setDefaultTableName(jobConf,
-          defaultTableName.get());
-    org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setCreateTables(jobConf,
-        createTables);
-    org.apache.accumulo.hadoopImpl.mapred.AccumuloOutputFormatImpl.setSimulationMode(jobConf,
-        simulationMode);
-
+    _store(jobConf);
   }
 
 }

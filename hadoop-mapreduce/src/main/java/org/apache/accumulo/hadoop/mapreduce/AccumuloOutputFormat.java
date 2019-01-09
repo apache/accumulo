@@ -25,8 +25,9 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.hadoopImpl.mapreduce.AccumuloOutputFormatImpl;
+import org.apache.accumulo.hadoopImpl.mapreduce.AccumuloRecordWriter;
 import org.apache.accumulo.hadoopImpl.mapreduce.OutputFormatBuilderImpl;
+import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -52,10 +53,11 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
  * @since 2.0
  */
 public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
+  private static final Class<AccumuloOutputFormat> CLASS = AccumuloOutputFormat.class;
 
   @Override
   public void checkOutputSpecs(JobContext job) throws IOException {
-    ClientInfo clientInfo = AccumuloOutputFormatImpl.getClientInfo(job);
+    ClientInfo clientInfo = OutputConfigurator.getClientInfo(CLASS, job.getConfiguration());
     String principal = clientInfo.getPrincipal();
     AuthenticationToken token = clientInfo.getAuthenticationToken();
     try (AccumuloClient c = Accumulo.newClient().from(clientInfo.getProperties()).build()) {
@@ -75,7 +77,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   public RecordWriter<Text,Mutation> getRecordWriter(TaskAttemptContext attempt)
       throws IOException {
     try {
-      return new AccumuloOutputFormatImpl.AccumuloRecordWriter(attempt);
+      return new AccumuloRecordWriter(attempt);
     } catch (Exception e) {
       throw new IOException(e);
     }
@@ -85,7 +87,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * Sets all the information required for this map reduce job.
    */
   public static OutputFormatBuilder.ClientParams<Job> configure() {
-    return new OutputFormatBuilderImpl<>();
+    return new OutputFormatBuilderImpl<>(CLASS);
   }
 
 }
