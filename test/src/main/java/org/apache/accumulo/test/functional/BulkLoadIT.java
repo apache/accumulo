@@ -155,9 +155,6 @@ public class BulkLoadIT extends AccumuloClusterHarness {
       // set logical time type so we can set time on bulk import
       newTableConf.setTimeType(TimeType.LOGICAL);
       client.tableOperations().create(tableName, newTableConf);
-      aconf = getCluster().getServerContext().getConfiguration();
-      fs = getCluster().getFileSystem();
-      rootPath = cluster.getTemporaryPath().toString();
       testSingleTabletSingleFile(client, false, true);
     }
   }
