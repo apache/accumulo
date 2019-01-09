@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.clientImpl;
+package org.apache.accumulo.core.clientImpl.bulk;
 
 import static org.junit.Assert.assertEquals;
 
@@ -26,11 +26,10 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Bulk.FileInfo;
-import org.apache.accumulo.core.clientImpl.Bulk.Files;
-import org.apache.accumulo.core.clientImpl.BulkSerialize.Input;
-import org.apache.accumulo.core.clientImpl.BulkSerialize.LoadMappingIterator;
-import org.apache.accumulo.core.clientImpl.Table.ID;
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
+import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
+import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize.Input;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -118,7 +117,7 @@ public class BulkSerializeTest {
 
   }
 
-  public SortedMap<KeyExtent,Bulk.Files> generateMapping(ID tableId) {
+  public SortedMap<KeyExtent,Bulk.Files> generateMapping(Table.ID tableId) {
     SortedMap<KeyExtent,Bulk.Files> mapping = new TreeMap<>();
     Bulk.Files testFiles = new Bulk.Files();
     Bulk.Files testFiles2 = new Bulk.Files();

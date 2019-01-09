@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.clientImpl;
+package org.apache.accumulo.core.clientImpl.bulk;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -25,22 +25,19 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.UncheckedIOException;
 import java.lang.reflect.Type;
-import java.util.AbstractMap;
 import java.util.Base64;
 import java.util.Base64.Decoder;
 import java.util.Base64.Encoder;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Bulk.Files;
-import org.apache.accumulo.core.clientImpl.Bulk.Mapping;
-import org.apache.accumulo.core.clientImpl.Table.ID;
+import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
+import org.apache.accumulo.core.clientImpl.bulk.Bulk.Mapping;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.fs.Path;
 
@@ -54,7 +51,6 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 /**
@@ -80,7 +76,7 @@ public class BulkSerialize {
     }
   }
 
-  private static Gson createGson() {
+  static Gson createGson() {
     return new GsonBuilder()
         .registerTypeHierarchyAdapter(byte[].class, new ByteArrayToBase64TypeAdapter()).create();
   }
@@ -115,61 +111,19 @@ public class BulkSerialize {
     }
   }
 
-  public static class LoadMappingIterator
-      implements Iterator<Entry<KeyExtent,Bulk.Files>>, AutoCloseable {
-    private ID tableId;
-    private JsonReader reader;
-    private Gson gson = createGson();
-    private Map<String,String> renameMap;
-
-    private LoadMappingIterator(Table.ID tableId, JsonReader reader) {
-      this.tableId = tableId;
-      this.reader = reader;
-    }
-
-    private void setRenameMap(Map<String,String> renameMap) {
-      this.renameMap = renameMap;
-    }
-
-    @Override
-    public void close() throws IOException {
-      reader.close();
-    }
-
-    @Override
-    public boolean hasNext() {
-      try {
-        return reader.hasNext();
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-    }
-
-    @Override
-    public Entry<KeyExtent,Files> next() {
-      Bulk.Mapping bm = gson.fromJson(reader, Bulk.Mapping.class);
-      if (renameMap != null) {
-        return new AbstractMap.SimpleEntry<>(bm.getKeyExtent(tableId),
-            bm.getFiles().mapNames(renameMap));
-      } else {
-        return new AbstractMap.SimpleEntry<>(bm.getKeyExtent(tableId), bm.getFiles());
-      }
-    }
-
-  }
-
   /**
    * Read Json array of Bulk.Mapping into LoadMappingIterator
    */
   public static LoadMappingIterator readLoadMapping(String bulkDir, Table.ID tableId, Input input)
       throws IOException {
     final Path lmFile = new Path(bulkDir, Constants.BULK_LOAD_MAPPING);
-    JsonReader reader = new JsonReader(
-        new BufferedReader(new InputStreamReader(input.open(lmFile), UTF_8)));
-    reader.beginArray();
-    return new LoadMappingIterator(tableId, reader);
+    return new LoadMappingIterator(tableId, input.open(lmFile));
   }
 
+  /**
+   * Writes rename file to JSON. This file maps all the old names to the new names for the
+   * BulkImportMove FATE operation.
+   */
   public static void writeRenameMap(Map<String,String> oldToNewNameMap, String bulkDir,
       Output output) throws IOException {
     final Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
@@ -180,6 +134,10 @@ public class BulkSerialize {
     }
   }
 
+  /**
+   * Reads the serialized rename file. This file maps all the old names to the new names for the
+   * BulkImportMove FATE operation.
+   */
   public static Map<String,String> readRenameMap(String bulkDir, Input input) throws IOException {
     final Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     Map<String,String> oldToNewNameMap;

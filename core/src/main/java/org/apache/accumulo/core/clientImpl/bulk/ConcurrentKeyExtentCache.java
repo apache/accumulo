@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.clientImpl;
+package org.apache.accumulo.core.clientImpl.bulk;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,8 +30,9 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.BulkImport.KeyExtentCache;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Table.ID;
+import org.apache.accumulo.core.clientImpl.bulk.BulkImport.KeyExtentCache;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -39,7 +40,6 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.annotations.VisibleForTesting;
 
-@VisibleForTesting
 class ConcurrentKeyExtentCache implements KeyExtentCache {
 
   private static final Text MAX = new Text();
@@ -54,8 +54,7 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
   private ID tableId;
   private ClientContext ctx;
 
-  @VisibleForTesting
-  ConcurrentKeyExtentCache(Table.ID tableId, ClientContext ctx) {
+  ConcurrentKeyExtentCache(ID tableId, ClientContext ctx) {
     this.tableId = tableId;
     this.ctx = ctx;
   }

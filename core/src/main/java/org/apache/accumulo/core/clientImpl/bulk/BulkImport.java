@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.clientImpl;
+package org.apache.accumulo.core.clientImpl.bulk;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.groupingBy;
@@ -46,15 +46,16 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.NamespaceExistsException;
-import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationArguments;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
-import org.apache.accumulo.core.clientImpl.Bulk.FileInfo;
-import org.apache.accumulo.core.clientImpl.Bulk.Files;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Table.ID;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
+import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
+import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -70,7 +71,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
-import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -100,7 +100,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   private LoadPlan plan = null;
 
-  BulkImport(String directory, ClientContext context) {
+  public BulkImport(String directory, ClientContext context) {
     this.context = context;
     this.dir = Objects.requireNonNull(directory);
   }
@@ -137,7 +137,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getUtf8()),
         ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
         ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
-    doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(), tableName);
+    new TableOperationsImpl(context).doBulkFateOperation(args, tableName);
   }
 
   /**
@@ -571,16 +571,5 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     }
 
     return mappings;
-  }
-
-  private String doFateOperation(FateOperation op, List<ByteBuffer> args, Map<String,String> opts,
-      String tableName) throws AccumuloSecurityException, AccumuloException {
-    try {
-      return new TableOperationsImpl(context).doFateOperation(op, args, opts, tableName);
-    } catch (TableExistsException | TableNotFoundException | NamespaceNotFoundException
-        | NamespaceExistsException e) {
-      // should not happen
-      throw new AssertionError(e);
-    }
   }
 }

@@ -29,11 +29,11 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.clientImpl.Bulk;
-import org.apache.accumulo.core.clientImpl.Bulk.Files;
-import org.apache.accumulo.core.clientImpl.BulkSerialize;
-import org.apache.accumulo.core.clientImpl.BulkSerialize.LoadMappingIterator;
 import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.clientImpl.bulk.Bulk;
+import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
+import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
+import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -117,7 +117,7 @@ class LoadFiles extends MasterRepo {
 
     abstract void load(List<TabletMetadata> tablets, Files files) throws Exception;
 
-    abstract long finish() throws Exception;
+    abstract long finish(long scanTime) throws Exception;
   }
 
   private static class OnlineLoader extends Loader {
@@ -225,10 +225,9 @@ class LoadFiles extends MasterRepo {
     }
 
     @Override
-    long finish() {
+    long finish(long scanTime) {
 
       sendQueued(0);
-
       long sleepTime = 0;
       if (loadMsgs.size() > 0) {
         // find which tablet server had the most load messages sent to it and sleep 13ms for each
@@ -240,6 +239,9 @@ class LoadFiles extends MasterRepo {
         sleepTime = Math.max(Math.max(100L, locationLess), sleepTime);
       }
 
+      if (sleepTime > 0) {
+        sleepTime = Math.max(sleepTime, scanTime * 2);
+      }
       return sleepTime;
     }
 
@@ -284,7 +286,7 @@ class LoadFiles extends MasterRepo {
     }
 
     @Override
-    long finish() throws Exception {
+    long finish(long scanTime) throws Exception {
 
       bw.close();
 
@@ -294,6 +296,9 @@ class LoadFiles extends MasterRepo {
         sleepTime = Collections.max(unloadingTablets.values()) * 13;
       }
 
+      if (sleepTime > 0) {
+        sleepTime = Math.max(sleepTime, scanTime * 2);
+      }
       return sleepTime;
     }
   }
@@ -328,38 +333,45 @@ class LoadFiles extends MasterRepo {
     loader.start(bulkDir, master, tid, bulkInfo.setTime);
 
     long t1 = System.currentTimeMillis();
-    while (true) {
-      if (loadMapEntry == null) {
-        if (!lmi.hasNext()) {
-          break;
-        }
-        loadMapEntry = lmi.next();
-      }
-      KeyExtent fke = loadMapEntry.getKey();
-      Files files = loadMapEntry.getValue();
-      loadMapEntry = null;
-
+    while (loadMapEntry != null) {
+      KeyExtent fileTablet = loadMapEntry.getKey();
       tablets.clear();
 
-      while (!Objects.equals(currentTablet.getPrevEndRow(), fke.getPrevEndRow())) {
-        currentTablet = tabletIter.next();
-      }
+      // get first tablet in range
+      currentTablet = getFirstTablet(tabletIter, currentTablet, fileTablet.getPrevEndRow());
       tablets.add(currentTablet);
 
-      while (!Objects.equals(currentTablet.getEndRow(), fke.getEndRow())) {
-        currentTablet = tabletIter.next();
-        tablets.add(currentTablet);
-      }
+      // get all tablets between currentTablet and EndRow given in mapping file
+      tablets.addAll(getTabletsInRange(tabletIter, currentTablet, fileTablet.getEndRow()));
 
-      loader.load(tablets, files);
+      loader.load(tablets, loadMapEntry.getValue());
+      loadMapEntry = lmi.next();
     }
-    long t2 = System.currentTimeMillis();
+    return loader.finish(Math.min(System.currentTimeMillis() - t1, 30000));
+  }
 
-    long sleepTime = loader.finish();
-    if (sleepTime > 0) {
-      long scanTime = Math.min(t2 - t1, 30000);
-      sleepTime = Math.max(sleepTime, scanTime * 2);
+  /**
+   * Move iterator to the provided prevEndRow and return that Tablet.
+   */
+  private TabletMetadata getFirstTablet(Iterator<TabletMetadata> tabletIter,
+      TabletMetadata currentTablet, Text prevEndRow) {
+    while (!Objects.equals(currentTablet.getPrevEndRow(), prevEndRow)) {
+      currentTablet = tabletIter.next();
     }
-    return sleepTime;
+    return currentTablet;
+  }
+
+  /**
+   * Move iterator to the provided EndRow and return any Tablets between currentTablet and that
+   * endRow
+   */
+  private List<TabletMetadata> getTabletsInRange(Iterator<TabletMetadata> tabletIter,
+      TabletMetadata currentTablet, Text endRow) {
+    List<TabletMetadata> tabletsInRange = new ArrayList<>();
+    while (!Objects.equals(currentTablet.getEndRow(), endRow)) {
+      currentTablet = tabletIter.next();
+      tabletsInRange.add(currentTablet);
+    }
+    return tabletsInRange;
   }
 }

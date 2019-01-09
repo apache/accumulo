@@ -80,6 +80,7 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
@@ -319,6 +320,18 @@ public class TableOperationsImpl extends TableOperationsHelper {
       } finally {
         MasterClient.close(client);
       }
+    }
+  }
+
+  public String doBulkFateOperation(List<ByteBuffer> args, String tableName)
+      throws AccumuloSecurityException, AccumuloException {
+    try {
+      return doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(),
+          tableName);
+    } catch (TableExistsException | TableNotFoundException | NamespaceNotFoundException
+        | NamespaceExistsException e) {
+      // should not happen
+      throw new AssertionError(e);
     }
   }
 
