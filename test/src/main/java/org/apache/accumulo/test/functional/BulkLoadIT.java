@@ -42,6 +42,8 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
@@ -117,7 +119,8 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     return dir;
   }
 
-  private void testSingleTabletSingleFile(AccumuloClient c, boolean offline) throws Exception {
+  private void testSingleTabletSingleFile(AccumuloClient c, boolean offline, boolean setTime)
+      throws Exception {
     addSplits(c, tableName, "0333");
 
     if (offline)
@@ -127,12 +130,12 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
     String h1 = writeData(dir + "/f1.", aconf, 0, 332);
 
-    c.tableOperations().importDirectory(dir).to(tableName).load();
+    c.tableOperations().importDirectory(dir).to(tableName).tableTime(setTime).load();
 
     if (offline)
       c.tableOperations().online(tableName);
 
-    verifyData(c, tableName, 0, 332);
+    verifyData(c, tableName, 0, 332, setTime);
     verifyMetadata(c, tableName,
         ImmutableMap.of("0333", ImmutableSet.of(h1), "null", ImmutableSet.of()));
   }
@@ -140,14 +143,26 @@ public class BulkLoadIT extends AccumuloClusterHarness {
   @Test
   public void testSingleTabletSingleFile() throws Exception {
     try (AccumuloClient client = createAccumuloClient()) {
-      testSingleTabletSingleFile(client, false);
+      testSingleTabletSingleFile(client, false, false);
+    }
+  }
+
+  @Test
+  public void testSetTime() throws Exception {
+    try (AccumuloClient client = createAccumuloClient()) {
+      tableName = "testSetTime_table1";
+      NewTableConfiguration newTableConf = new NewTableConfiguration();
+      // set logical time type so we can set time on bulk import
+      newTableConf.setTimeType(TimeType.LOGICAL);
+      client.tableOperations().create(tableName, newTableConf);
+      testSingleTabletSingleFile(client, false, true);
     }
   }
 
   @Test
   public void testSingleTabletSingleFileOffline() throws Exception {
     try (AccumuloClient client = createAccumuloClient()) {
-      testSingleTabletSingleFile(client, true);
+      testSingleTabletSingleFile(client, true, false);
     }
   }
 
@@ -165,7 +180,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     if (offline)
       c.tableOperations().online(tableName);
 
-    verifyData(c, tableName, 0, 333);
+    verifyData(c, tableName, 0, 333, false);
     verifyMetadata(c, tableName, ImmutableMap.of("null", ImmutableSet.of(h1)));
   }
 
@@ -270,7 +285,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
       if (offline)
         c.tableOperations().online(tableName);
 
-      verifyData(c, tableName, 0, 1999);
+      verifyData(c, tableName, 0, 1999, false);
       verifyMetadata(c, tableName, hashes);
     }
   }
@@ -345,12 +360,13 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     client.tableOperations().addSplits(tableName, splits);
   }
 
-  private void verifyData(AccumuloClient client, String table, int s, int e) throws Exception {
+  private void verifyData(AccumuloClient client, String table, int start, int end, boolean setTime)
+      throws Exception {
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
-      for (int i = s; i <= e; i++) {
+      for (int i = start; i <= end; i++) {
         if (!iter.hasNext())
           throw new Exception("row " + i + " not found");
 
@@ -363,6 +379,9 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
         if (Integer.parseInt(entry.getValue().toString()) != i)
           throw new Exception("unexpected value " + entry + " " + i);
+
+        if (setTime)
+          assertEquals(1L, entry.getKey().getTimestamp());
       }
 
       if (iter.hasNext())

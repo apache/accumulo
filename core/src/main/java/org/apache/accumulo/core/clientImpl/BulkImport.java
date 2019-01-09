@@ -106,8 +106,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   @Override
-  public ImportMappingOptions tableTime() {
-    this.setTime = true;
+  public ImportMappingOptions tableTime(boolean value) {
+    this.setTime = value;
     return this;
   }
 
