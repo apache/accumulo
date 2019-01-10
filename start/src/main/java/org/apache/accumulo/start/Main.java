@@ -217,9 +217,8 @@ public class Main {
     System.out.println("\nCore Commands:");
     printCommands(executables, UsageGroup.CORE);
 
-    System.out.println(
-        "  classpath                      Prints Accumulo classpath\n" +
-        "  <main class> args              Runs Java <main class> located on Accumulo classpath");
+    System.out.println("  classpath                      Prints Accumulo classpath\n"
+        + "  <main class> args              Runs Java <main class> located on Accumulo classpath");
 
     System.out.println("\nProcess Commands:");
     printCommands(executables, UsageGroup.PROCESS);
