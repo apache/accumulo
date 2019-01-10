@@ -33,7 +33,6 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.file.rfile.PrintInfo;
-import org.apache.accumulo.core.util.Classpath;
 import org.apache.accumulo.core.util.CreateToken;
 import org.apache.accumulo.core.util.Help;
 import org.apache.accumulo.core.util.Version;
@@ -103,7 +102,6 @@ public class KeywordStartIT {
     TreeMap<String,Class<? extends KeywordExecutable>> expectSet = new TreeMap<>();
     expectSet.put("admin", Admin.class);
     expectSet.put("check-server-config", ConfigSanityCheck.class);
-    expectSet.put("classpath", Classpath.class);
     expectSet.put("convert-config", ConvertConfig.class);
     expectSet.put("create-token", CreateToken.class);
     expectSet.put("gc", GCExecutable.class);
