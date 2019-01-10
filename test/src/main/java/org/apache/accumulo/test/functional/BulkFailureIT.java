@@ -20,9 +20,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -31,7 +32,11 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.rfile.RFile;
@@ -46,12 +51,12 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
-import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -66,12 +71,30 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
+import org.apache.thrift.transport.TTransportException;
+import org.apache.zookeeper.KeeperException;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class BulkFailureIT extends AccumuloClusterHarness {
+
+  static interface Loader {
+    void load(long txid, ClientContext context, KeyExtent extent, Path path, long size,
+        boolean expectFailure) throws Exception;
+  }
+
+  @Test
+  public void testImportCompactionImport() throws Exception {
+    String tables[] = getUniqueNames(2);
+
+    // run test calling old bulk import RPCs
+    runTest(tables[0], 99999999L, BulkFailureIT::oldLoad);
+
+    // run test calling new bulk import RPCs
+    runTest(tables[1], 22222222L, BulkFailureIT::newLoad);
+  }
 
   /**
    * This test verifies two things. First it ensures that after a bulk imported file is compacted
@@ -80,23 +103,21 @@ public class BulkFailureIT extends AccumuloClusterHarness {
    * test. Internal (non public API) RPCs and Zookeeper state is manipulated directly. This is the
    * only way to interleave compactions with multiple, duplicate import RPC request.
    */
-  @Test
-  public void testImportCompactionImport() throws Exception {
+  protected void runTest(String table, long fateTxid, Loader loader) throws IOException,
+      AccumuloException, AccumuloSecurityException, TableExistsException, KeeperException,
+      InterruptedException, Exception, FileNotFoundException, TableNotFoundException {
     try (AccumuloClient c = createAccumuloClient()) {
-      String table = getUniqueNames(1)[0];
 
       SortedMap<Key,Value> testData = createTestData();
 
       FileSystem fs = getCluster().getFileSystem();
-      String testFile = createTestFile(testData, fs);
+      String testFile = createTestFile(fateTxid, testData, fs);
 
       c.tableOperations().create(table);
       String tableId = c.tableOperations().tableIdMap().get(table);
 
       // Table has no splits, so this extent corresponds to the tables single tablet
       KeyExtent extent = new KeyExtent(Table.ID.of(tableId), null, null);
-
-      long fateTxid = 99999999L;
 
       ServerContext asCtx = getServerContext();
       ZooArbitrator.start(asCtx, Constants.BULK_ARBITRATOR_TYPE, fateTxid);
@@ -111,7 +132,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       Path bulkLoadPath = fs.makeQualified(status.getPath());
 
       // Directly ask the tablet to load the file.
-      assignMapFiles(fateTxid, asCtx, extent, bulkLoadPath.toString(), status.getLen());
+      loader.load(fateTxid, asCtx, extent, bulkLoadPath, status.getLen(), false);
 
       assertEquals(ImmutableSet.of(bulkLoadPath), getFiles(c, extent));
       assertEquals(ImmutableSet.of(bulkLoadPath), getLoaded(c, extent));
@@ -127,7 +148,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       assertEquals(testData, readTable(table, c));
 
       // this request should be ignored by the tablet
-      assignMapFiles(fateTxid, asCtx, extent, bulkLoadPath.toString(), status.getLen());
+      loader.load(fateTxid, asCtx, extent, bulkLoadPath, status.getLen(), false);
 
       assertEquals(tabletFiles, getFiles(c, extent));
       assertEquals(ImmutableSet.of(bulkLoadPath), getLoaded(c, extent));
@@ -139,7 +160,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       c.tableOperations().online(table, true);
 
       // this request should be ignored by the tablet
-      assignMapFiles(fateTxid, asCtx, extent, bulkLoadPath.toString(), status.getLen());
+      loader.load(fateTxid, asCtx, extent, bulkLoadPath, status.getLen(), false);
 
       assertEquals(tabletFiles, getFiles(c, extent));
       assertEquals(ImmutableSet.of(bulkLoadPath), getLoaded(c, extent));
@@ -148,16 +169,18 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       // After this, all load request should fail.
       ZooArbitrator.stop(asCtx, Constants.BULK_ARBITRATOR_TYPE, fateTxid);
 
-      try {
-        // expect this to fail
-        assignMapFiles(fateTxid, asCtx, extent, bulkLoadPath.toString(), status.getLen());
-        fail();
-      } catch (TApplicationException tae) {
+      c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME,
+          TablePermission.WRITE);
 
-      }
+      BatchDeleter bd = c.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY, 1);
+      bd.setRanges(Collections.singleton(extent.toMetadataRange()));
+      bd.fetchColumnFamily(BulkFileColumnFamily.NAME);
+      bd.delete();
+
+      loader.load(fateTxid, asCtx, extent, bulkLoadPath, status.getLen(), true);
 
       assertEquals(tabletFiles, getFiles(c, extent));
-      assertEquals(ImmutableSet.of(bulkLoadPath), getLoaded(c, extent));
+      assertEquals(ImmutableSet.of(), getLoaded(c, extent));
       assertEquals(testData, readTable(table, c));
     }
   }
@@ -171,8 +194,9 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     return testData;
   }
 
-  private String createTestFile(SortedMap<Key,Value> testData, FileSystem fs) throws IOException {
-    Path base = new Path(getCluster().getTemporaryPath(), "testBulk_ICI");
+  private String createTestFile(long txid, SortedMap<Key,Value> testData, FileSystem fs)
+      throws IOException {
+    Path base = new Path(getCluster().getTemporaryPath(), "testBulk_ICI_" + txid);
 
     fs.delete(base, true);
     fs.mkdirs(base);
@@ -200,17 +224,17 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     return actual;
   }
 
-  public Set<Path> getLoaded(AccumuloClient connector, KeyExtent extent)
+  public static Set<Path> getLoaded(AccumuloClient connector, KeyExtent extent)
       throws TableNotFoundException {
     return getPaths(connector, extent, BulkFileColumnFamily.NAME);
   }
 
-  public Set<Path> getFiles(AccumuloClient connector, KeyExtent extent)
+  public static Set<Path> getFiles(AccumuloClient connector, KeyExtent extent)
       throws TableNotFoundException {
     return getPaths(connector, extent, DataFileColumnFamily.NAME);
   }
 
-  private Set<Path> getPaths(AccumuloClient connector, KeyExtent extent, Text fam)
+  private static Set<Path> getPaths(AccumuloClient connector, KeyExtent extent, Text fam)
       throws TableNotFoundException {
     HashSet<Path> files = new HashSet<>();
 
@@ -225,9 +249,54 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     return files;
   }
 
-  private List<KeyExtent> assignMapFiles(long txid, ClientContext context, KeyExtent extent,
-      String path, long size) throws Exception {
+  private static void oldLoad(long txid, ClientContext context, KeyExtent extent, Path path,
+      long size, boolean expectFailure) throws Exception {
 
+    TabletClientService.Iface client = getClient(context, extent);
+    try {
+
+      Map<String,MapFileInfo> val = ImmutableMap.of(path.toString(), new MapFileInfo(size));
+      Map<KeyExtent,Map<String,MapFileInfo>> files = ImmutableMap.of(extent, val);
+
+      client.bulkImport(Tracer.traceInfo(), context.rpcCreds(), txid,
+          Translator.translate(files, Translators.KET), false);
+      if (expectFailure) {
+        fail("Expected RPC to fail");
+      }
+    } catch (TApplicationException tae) {
+      if (!expectFailure)
+        throw tae;
+    } finally {
+      ThriftUtil.returnClient((TServiceClient) client);
+    }
+  }
+
+  private static void newLoad(long txid, ClientContext context, KeyExtent extent, Path path,
+      long size, boolean expectFailure) throws Exception {
+
+    TabletClientService.Iface client = getClient(context, extent);
+    try {
+
+      Map<String,MapFileInfo> val = ImmutableMap.of(path.getName(), new MapFileInfo(size));
+      Map<KeyExtent,Map<String,MapFileInfo>> files = ImmutableMap.of(extent, val);
+
+      client.loadFiles(Tracer.traceInfo(), context.rpcCreds(), txid, path.getParent().toString(),
+          Translator.translate(files, Translators.KET), false);
+
+      if (!expectFailure) {
+        while (!getLoaded(context, extent).contains(path)) {
+          Thread.sleep(100);
+        }
+      }
+
+    } finally {
+      ThriftUtil.returnClient((TServiceClient) client);
+    }
+  }
+
+  protected static TabletClientService.Iface getClient(ClientContext context, KeyExtent extent)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      TTransportException {
     TabletLocator locator = TabletLocator.getLocator(context, extent.getTableId());
 
     locator.invalidateCache(extent);
@@ -237,18 +306,6 @@ public class BulkFailureIT extends AccumuloClusterHarness {
 
     long timeInMillis = context.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
     TabletClientService.Iface client = ThriftUtil.getTServerClient(location, context, timeInMillis);
-    try {
-
-      Map<String,MapFileInfo> val = ImmutableMap.of(path, new MapFileInfo(size));
-      Map<KeyExtent,Map<String,MapFileInfo>> files = ImmutableMap.of(extent, val);
-
-      List<TKeyExtent> failures = client.bulkImport(Tracer.traceInfo(), context.rpcCreds(), txid,
-          Translator.translate(files, Translators.KET), false);
-
-      return Translator.translate(failures, Translators.TKET);
-    } finally {
-      ThriftUtil.returnClient((TServiceClient) client);
-    }
-
+    return client;
   }
 }
