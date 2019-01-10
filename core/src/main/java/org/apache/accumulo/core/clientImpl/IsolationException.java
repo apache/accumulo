@@ -20,4 +20,14 @@ public class IsolationException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 
+  /**
+   * @since 2.0.0
+   */
+  public IsolationException(Exception cause) {
+    super(cause);
+  }
+
+  public IsolationException() {
+    super();
+  }
 }

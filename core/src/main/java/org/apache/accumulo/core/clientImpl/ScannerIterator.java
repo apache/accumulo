@@ -21,31 +21,26 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableDeletedException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.clientImpl.ThriftScanner.ScanState;
-import org.apache.accumulo.core.clientImpl.ThriftScanner.ScanTimedOutException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class ScannerIterator implements Iterator<Entry<Key,Value>> {
-
-  private static final Logger log = LoggerFactory.getLogger(ScannerIterator.class);
 
   // scanner options
   private long timeOut;
@@ -56,54 +51,25 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   private ScannerOptions options;
 
-  private ArrayBlockingQueue<Object> synchQ;
+  private Future<List<KeyValue>> readAheadOperation;
 
   private boolean finished = false;
 
-  private boolean readaheadInProgress = false;
   private long batchCount = 0;
   private long readaheadThreshold;
-
-  private static final List<KeyValue> EMPTY_LIST = Collections.emptyList();
 
   private static ThreadPoolExecutor readaheadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 3L,
       TimeUnit.SECONDS, new SynchronousQueue<>(),
       new NamingThreadFactory("Accumulo scanner read ahead thread"));
 
-  private class Reader implements Runnable {
+  private List<KeyValue> readBatch() throws Exception {
+    List<KeyValue> batch;
 
-    @Override
-    public void run() {
+    do {
+      batch = ThriftScanner.scan(scanState.context, scanState, timeOut);
+    } while (batch != null && batch.size() == 0);
 
-      try {
-        while (true) {
-          List<KeyValue> currentBatch = ThriftScanner.scan(scanState.context, scanState, timeOut);
-
-          if (currentBatch == null) {
-            synchQ.add(EMPTY_LIST);
-            return;
-          }
-
-          if (currentBatch.size() == 0)
-            continue;
-
-          synchQ.add(currentBatch);
-          return;
-        }
-      } catch (IsolationException | ScanTimedOutException | AccumuloException
-          | AccumuloSecurityException | TableDeletedException | TableOfflineException
-          | SampleNotPresentException e) {
-        log.trace("{}", e.getMessage(), e);
-        synchQ.add(e);
-      } catch (TableNotFoundException e) {
-        log.warn("{}", e.getMessage(), e);
-        synchQ.add(e);
-      } catch (Exception e) {
-        log.error("{}", e.getMessage(), e);
-        synchQ.add(e);
-      }
-    }
-
+    return batch == null ? Collections.emptyList() : batch;
   }
 
   ScannerIterator(ClientContext context, Table.ID tableId, Authorizations authorizations,
@@ -113,8 +79,6 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     this.readaheadThreshold = readaheadThreshold;
 
     this.options = new ScannerOptions(options);
-
-    synchQ = new ArrayBlockingQueue<>(1);
 
     if (this.options.fetchedColumns.size() > 0) {
       range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
@@ -134,12 +98,54 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   }
 
   private void initiateReadAhead() {
-    readaheadInProgress = true;
-    readaheadPool.execute(new Reader());
+    Preconditions.checkState(readAheadOperation == null);
+    readAheadOperation = readaheadPool.submit(this::readBatch);
+  }
+
+  private List<KeyValue> getNextBatch() {
+
+    List<KeyValue> nextBatch;
+
+    try {
+      if (readAheadOperation == null) {
+        // no read ahead run, fetch the next batch right now
+        nextBatch = readBatch();
+      } else {
+        nextBatch = readAheadOperation.get();
+        readAheadOperation = null;
+      }
+    } catch (ExecutionException ee) {
+      if (ee.getCause() instanceof IsolationException)
+        throw new IsolationException(ee);
+      if (ee.getCause() instanceof TableDeletedException) {
+        TableDeletedException cause = (TableDeletedException) ee.getCause();
+        throw new TableDeletedException(cause.getTableId(), cause);
+      }
+      if (ee.getCause() instanceof TableOfflineException)
+        throw new TableOfflineException(ee);
+      if (ee.getCause() instanceof SampleNotPresentException)
+        throw new SampleNotPresentException(ee.getCause().getMessage(), ee);
+
+      throw new RuntimeException(ee);
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    if (!nextBatch.isEmpty()) {
+      batchCount++;
+
+      if (batchCount > readaheadThreshold) {
+        // start a thread to read the next batch
+        initiateReadAhead();
+      }
+    }
+
+    return nextBatch;
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public boolean hasNext() {
     if (finished)
       return false;
@@ -148,41 +154,10 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       return true;
     }
 
-    // this is done in order to find see if there is another batch to get
-
-    try {
-      if (!readaheadInProgress) {
-        // no read ahead run, fetch the next batch right now
-        new Reader().run();
-      }
-
-      Object obj = synchQ.take();
-
-      if (obj instanceof Exception) {
-        finished = true;
-        if (obj instanceof RuntimeException)
-          throw (RuntimeException) obj;
-        else
-          throw new RuntimeException((Exception) obj);
-      }
-
-      List<KeyValue> currentBatch = (List<KeyValue>) obj;
-
-      if (currentBatch.size() == 0) {
-        currentBatch = null;
-        finished = true;
-        return false;
-      }
-      iter = currentBatch.iterator();
-      batchCount++;
-
-      if (batchCount > readaheadThreshold) {
-        // start a thread to read the next batch
-        initiateReadAhead();
-      }
-
-    } catch (InterruptedException e1) {
-      throw new RuntimeException(e1);
+    iter = getNextBatch().iterator();
+    if (!iter.hasNext()) {
+      finished = true;
+      return false;
     }
 
     return true;
@@ -201,5 +176,4 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   public void remove() {
     throw new UnsupportedOperationException("remove is not supported in Scanner");
   }
-
 }

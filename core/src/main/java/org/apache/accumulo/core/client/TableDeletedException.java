@@ -32,6 +32,14 @@ public class TableDeletedException extends RuntimeException {
     this.tableId = tableId;
   }
 
+  /**
+   * @since 2.0.0
+   */
+  public TableDeletedException(String tableId, Exception cause) {
+    super("Table ID " + tableId + " was deleted", cause);
+    this.tableId = tableId;
+  }
+
   public String getTableId() {
     return tableId;
   }
