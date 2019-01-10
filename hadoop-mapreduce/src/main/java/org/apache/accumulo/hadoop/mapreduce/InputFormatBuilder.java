@@ -45,14 +45,26 @@ public interface InputFormatBuilder {
    * @since 2.0
    */
   interface ClientParams<T> {
+
     /**
-     * Set the connection information needed to communicate with Accumulo in this job.
-     * clientProperties param can be created using {@link Accumulo#newClientProperties()}
+     * Set client properties needed to communicate with Accumulo for this job. This information will
+     * be serialized into the configuration. Therefore, it is more secure to use
+     * {@link #clientPropertiesPath(String)}. Client properties can be created using
+     * {@link Accumulo#newClientProperties()}
      *
      * @param clientProperties
      *          Accumulo connection information
      */
     TableParams<T> clientProperties(Properties clientProperties);
+
+    /**
+     * Set path to HDFS location containing accumulo-client.properties file. This setting is more
+     * secure than {@link #clientProperties(Properties)}
+     *
+     * @param clientPropsPath
+     *          HDFS path to accumulo-client.properties
+     */
+    TableParams<T> clientPropertiesPath(String clientPropsPath);
   }
 
   /**

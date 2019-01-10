@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -445,7 +444,6 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
    * Creates {@link AccumuloClient} from the configuration
    */
   private static AccumuloClient createClient(JobConf job, Class<?> callingClass) {
-    return Accumulo.newClient()
-        .from(InputConfigurator.getClientInfo(callingClass, job).getProperties()).build();
+    return InputConfigurator.createClient(callingClass, job);
   }
 }

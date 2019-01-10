@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.StringTokenizer;
 
@@ -52,6 +53,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -733,10 +735,8 @@ public class InputConfigurator extends ConfiguratorBase {
       if (getInputTableConfigs(implementingClass, conf).size() == 0)
         throw new IOException("No table set.");
 
-      String principal = getPrincipal(implementingClass, conf);
-      if (principal == null) {
-        principal = getClientInfo(implementingClass, conf).getPrincipal();
-      }
+      Properties props = getClientProperties(implementingClass, conf);
+      String principal = ClientProperty.AUTH_PRINCIPAL.getValue(props);
 
       for (Map.Entry<String,InputTableConfig> tableConfig : inputTableConfigs.entrySet()) {
         if (!client.securityOperations().hasTablePermission(principal, tableConfig.getKey(),

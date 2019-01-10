@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -77,8 +76,7 @@ public class AccumuloRecordWriter implements RecordWriter<Text,Mutation> {
     this.defaultTableName = (tname == null) ? null : new Text(tname);
 
     if (!simulate) {
-      this.client = Accumulo.newClient()
-          .from(OutputConfigurator.getClientInfo(CLASS, job).getProperties()).build();
+      this.client = OutputConfigurator.createClient(CLASS, job);
       mtbw = client.createMultiTableBatchWriter();
     }
   }

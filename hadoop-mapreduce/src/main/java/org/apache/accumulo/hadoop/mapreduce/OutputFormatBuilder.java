@@ -36,12 +36,23 @@ public interface OutputFormatBuilder {
   interface ClientParams<T> {
     /**
      * Set the connection information needed to communicate with Accumulo in this job.
-     * clientProperties param can be created using {@link Accumulo#newClientProperties()}
+     * clientProperties param can be created using {@link Accumulo#newClientProperties()}. Client
+     * properties will be serialized into configuration. Therefore it is more secure to use
+     * {@link #clientPropertiesPath(String)}
      *
      * @param clientProperties
      *          Accumulo connection information
      */
     OutputOptions<T> clientProperties(Properties clientProperties);
+
+    /**
+     * Set path to HDFS location containing accumulo-client.properties file. This setting is more
+     * secure than {@link #clientProperties(Properties)}
+     *
+     * @param clientPropsPath
+     *          HDFS path to accumulo-client.properties
+     */
+    OutputOptions<T> clientPropertiesPath(String clientPropsPath);
   }
 
   /**
@@ -80,5 +91,4 @@ public interface OutputFormatBuilder {
      */
     void store(T j);
   }
-
 }
