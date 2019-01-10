@@ -56,6 +56,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
  * @since 2.0
  */
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
+  private static final Class<AccumuloFileOutputFormat> CLASS = AccumuloFileOutputFormat.class;
 
   @Override
   public RecordWriter<Key,Value> getRecordWriter(TaskAttemptContext context) throws IOException {
@@ -93,7 +94,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * Sets all the information required for this map reduce job.
    */
   public static FileOutputFormatBuilder.PathParams<Job> configure() {
-    return new FileOutputFormatBuilderImpl<>();
+    return new FileOutputFormatBuilderImpl<>(CLASS);
   }
 
 }

@@ -24,8 +24,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
-import org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat;
-import org.apache.accumulo.hadoopImpl.mapred.InputFormatBase;
+import org.apache.accumulo.hadoopImpl.mapred.AccumuloRecordReader;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBuilderImpl;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.InputFormat;
@@ -53,15 +52,15 @@ public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
-    return AbstractInputFormat.getSplits(job);
+    return AccumuloRecordReader.getSplits(job, CLASS);
   }
 
   @Override
   public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> getRecordReader(InputSplit split,
       JobConf job, Reporter reporter) throws IOException {
     // @formatter:off
-    InputFormatBase.RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>> recordReader =
-      new InputFormatBase.RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {
+    AccumuloRecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader =
+      new AccumuloRecordReader<Text,PeekingIterator<Entry<Key,Value>>>(CLASS) {
     // @formatter:on
           RowIterator rowIterator;
 
@@ -99,6 +98,6 @@ public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<
    * Sets all the information required for this map reduce job.
    */
   public static InputFormatBuilder.ClientParams<JobConf> configure() {
-    return new InputFormatBuilderImpl<JobConf>(CLASS);
+    return new InputFormatBuilderImpl<>(CLASS);
   }
 }

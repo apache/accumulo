@@ -16,15 +16,6 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setCompressionType;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setDataBlockSize;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setFileBlockSize;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setIndexBlockSize;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setReplication;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setSampler;
-import static org.apache.accumulo.hadoopImpl.mapreduce.AccumuloFileOutputFormatImpl.setSummarizers;
-import static org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.setOutputPath;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,6 +25,8 @@ import java.util.Optional;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.hadoop.mapreduce.FileOutputFormatBuilder;
+import org.apache.accumulo.hadoopImpl.mapreduce.lib.FileOutputConfigurator;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
@@ -41,6 +34,7 @@ import org.apache.hadoop.mapreduce.Job;
 public class FileOutputFormatBuilderImpl<T> implements FileOutputFormatBuilder,
     FileOutputFormatBuilder.PathParams<T>, FileOutputFormatBuilder.OutputOptions<T> {
 
+  Class<?> callingClass;
   Path outputPath;
   Optional<String> comp = Optional.empty();
   Optional<Long> dataBlockSize = Optional.empty();
@@ -49,6 +43,10 @@ public class FileOutputFormatBuilderImpl<T> implements FileOutputFormatBuilder,
   Optional<Integer> replication = Optional.empty();
   Optional<SamplerConfiguration> sampler = Optional.empty();
   Collection<SummarizerConfiguration> summarizers = Collections.emptySet();
+
+  public FileOutputFormatBuilderImpl(Class<?> callingClass) {
+    this.callingClass = callingClass;
+  }
 
   @Override
   public OutputOptions<T> outputPath(Path path) {
@@ -110,46 +108,31 @@ public class FileOutputFormatBuilderImpl<T> implements FileOutputFormatBuilder,
   }
 
   private void store(Job job) {
-    setOutputPath(job, outputPath);
+    org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.setOutputPath(job, outputPath);
+    _store(job.getConfiguration());
+  }
+
+  private void _store(Configuration conf) {
     if (comp.isPresent())
-      setCompressionType(job, comp.get());
+      FileOutputConfigurator.setCompressionType(callingClass, conf, comp.get());
     if (dataBlockSize.isPresent())
-      setDataBlockSize(job, dataBlockSize.get());
+      FileOutputConfigurator.setDataBlockSize(callingClass, conf, dataBlockSize.get());
     if (fileBlockSize.isPresent())
-      setFileBlockSize(job, fileBlockSize.get());
+      FileOutputConfigurator.setFileBlockSize(callingClass, conf, fileBlockSize.get());
     if (indexBlockSize.isPresent())
-      setIndexBlockSize(job, indexBlockSize.get());
+      FileOutputConfigurator.setIndexBlockSize(callingClass, conf, indexBlockSize.get());
     if (replication.isPresent())
-      setReplication(job, replication.get());
+      FileOutputConfigurator.setReplication(callingClass, conf, replication.get());
     if (sampler.isPresent())
-      setSampler(job, sampler.get());
+      FileOutputConfigurator.setSampler(callingClass, conf, sampler.get());
     if (summarizers.size() > 0)
-      setSummarizers(job, summarizers.toArray(new SummarizerConfiguration[0]));
+      FileOutputConfigurator.setSummarizers(callingClass, conf,
+          summarizers.toArray(new SummarizerConfiguration[0]));
   }
 
   private void store(JobConf job) {
     org.apache.hadoop.mapred.FileOutputFormat.setOutputPath(job, outputPath);
-    if (comp.isPresent())
-      org.apache.accumulo.hadoopImpl.mapred.AccumuloFileOutputFormatImpl.setCompressionType(job,
-          comp.get());
-    if (dataBlockSize.isPresent())
-      org.apache.accumulo.hadoopImpl.mapred.AccumuloFileOutputFormatImpl.setDataBlockSize(job,
-          dataBlockSize.get());
-    if (fileBlockSize.isPresent())
-      org.apache.accumulo.hadoopImpl.mapred.AccumuloFileOutputFormatImpl.setFileBlockSize(job,
-          fileBlockSize.get());
-    if (indexBlockSize.isPresent())
-      org.apache.accumulo.hadoopImpl.mapred.AccumuloFileOutputFormatImpl.setIndexBlockSize(job,
-          indexBlockSize.get());
-    if (replication.isPresent())
-      org.apache.accumulo.hadoopImpl.mapred.AccumuloFileOutputFormatImpl.setReplication(job,
-          replication.get());
-    if (sampler.isPresent())
-      org.apache.accumulo.hadoopImpl.mapred.AccumuloFileOutputFormatImpl.setSampler(job,
-          sampler.get());
-    if (summarizers.size() > 0)
-      org.apache.accumulo.hadoopImpl.mapred.AccumuloFileOutputFormatImpl.setSummarizers(job,
-          summarizers.toArray(new SummarizerConfiguration[0]));
+    _store(job);
   }
 
 }

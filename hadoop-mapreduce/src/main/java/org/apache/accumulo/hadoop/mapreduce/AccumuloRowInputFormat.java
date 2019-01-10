@@ -24,8 +24,7 @@ import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.PeekingIterator;
-import org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat;
-import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase;
+import org.apache.accumulo.hadoopImpl.mapreduce.AccumuloRecordReader;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBuilderImpl;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -62,7 +61,7 @@ public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Ent
   @Override
   public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> createRecordReader(InputSplit split,
       TaskAttemptContext context) {
-    return new InputFormatBase.RecordReaderBase<Text,PeekingIterator<Entry<Key,Value>>>() {
+    return new AccumuloRecordReader<Text,PeekingIterator<Entry<Key,Value>>>(CLASS) {
       RowIterator rowIterator;
 
       @Override
@@ -97,7 +96,7 @@ public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Ent
    */
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
-    return AbstractInputFormat.getSplits(context);
+    return AccumuloRecordReader.getSplits(context, CLASS);
   }
 
   /**

@@ -271,10 +271,6 @@ public class InputTableConfig implements Writable {
 
   /**
    * Set the sampler configuration to use when reading from the data.
-   *
-   * @see ScannerBase#setSamplerConfiguration(SamplerConfiguration)
-   * @see InputFormatBase#setSamplerConfiguration(org.apache.hadoop.mapreduce.Job,
-   *      SamplerConfiguration)
    */
   public void setSamplerConfiguration(SamplerConfiguration samplerConfiguration) {
     this.samplerConfig = samplerConfiguration;

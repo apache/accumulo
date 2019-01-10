@@ -23,8 +23,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
-import org.apache.accumulo.hadoopImpl.mapreduce.AbstractInputFormat;
-import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBase;
+import org.apache.accumulo.hadoopImpl.mapreduce.AccumuloRecordReader;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBuilderImpl;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -80,13 +79,13 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
    */
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
-    return AbstractInputFormat.getSplits(context);
+    return AccumuloRecordReader.getSplits(context, CLASS);
   }
 
   @Override
   public RecordReader<Key,Value> createRecordReader(InputSplit split, TaskAttemptContext context) {
 
-    return new InputFormatBase.RecordReaderBase<Key,Value>() {
+    return new AccumuloRecordReader<Key,Value>(CLASS) {
       @Override
       public boolean nextKeyValue() {
         if (scannerIterator.hasNext()) {

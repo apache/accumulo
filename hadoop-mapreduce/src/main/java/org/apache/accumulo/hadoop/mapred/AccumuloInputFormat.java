@@ -23,8 +23,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
-import org.apache.accumulo.hadoopImpl.mapred.AbstractInputFormat;
-import org.apache.accumulo.hadoopImpl.mapred.InputFormatBase.RecordReaderBase;
+import org.apache.accumulo.hadoopImpl.mapred.AccumuloRecordReader;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputFormatBuilderImpl;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
@@ -54,14 +53,14 @@ public class AccumuloInputFormat implements InputFormat<Key,Value> {
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
-    return AbstractInputFormat.getSplits(job);
+    return AccumuloRecordReader.getSplits(job, CLASS);
   }
 
   @Override
   public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter)
       throws IOException {
 
-    RecordReaderBase<Key,Value> recordReader = new RecordReaderBase<Key,Value>() {
+    AccumuloRecordReader<Key,Value> recordReader = new AccumuloRecordReader<Key,Value>(CLASS) {
 
       @Override
       public boolean next(Key key, Value value) {
