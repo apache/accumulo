@@ -3371,7 +3371,7 @@ public class TabletServer implements Runnable {
       Path recovery = null;
       Path finished = RecoveryPath.getRecoveryPath(fs.getFullPath(FileType.WAL, entry.filename));
       finished = SortedLogState.getFinishedMarkerPath(finished);
-      TabletServer.log.info("Looking for " + finished);
+      TabletServer.log.debug("Looking for " + finished);
       if (fs.exists(finished)) {
         recovery = finished.getParent();
       }

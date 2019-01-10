@@ -24,10 +24,16 @@ import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
 import static org.apache.accumulo.tserver.logger.LogEvents.MUTATION;
 
 import java.io.IOException;
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -119,6 +125,48 @@ public class SortedLogRecovery {
       }
     }
     return tabletId;
+  }
+
+  /**
+   * This function opens recovery logs one at a time to see if they define the tablet. This is done
+   * so that later recovery steps that open all of the logs at once can possibly open a smaller set
+   * of logs. Opening a recovery log requires holding its index in memory and few key/values from
+   * it. For a lot of recovery logs this could possibly be a lot of memory.
+   *
+   * @return The maximum tablet ID observed AND the list of logs that contained the maximum tablet
+   *         ID.
+   */
+  private Entry<Integer,List<Path>> findLogsThatDefineTablet(KeyExtent extent,
+      List<Path> recoveryLogs) throws IOException {
+    Map<Integer,List<Path>> logsThatDefineTablet = new HashMap<>();
+
+    for (Path wal : recoveryLogs) {
+      int tabletId = findMaxTabletId(extent, Collections.singletonList(wal));
+      if (tabletId != -1) {
+        List<Path> perIdList = logsThatDefineTablet.get(tabletId);
+        if (perIdList == null) {
+          perIdList = new ArrayList<>();
+          logsThatDefineTablet.put(tabletId, perIdList);
+
+        }
+        perIdList.add(wal);
+        log.debug("Found tablet {} with id {} in recovery log {}", extent, tabletId, wal.getName());
+      } else {
+        log.debug("Did not find tablet {} in recovery log {}", extent, wal.getName());
+      }
+    }
+
+    if (logsThatDefineTablet.isEmpty()) {
+      return new AbstractMap.SimpleEntry<Integer,List<Path>>(-1, Collections.<Path> emptyList());
+    } else {
+      return Collections.max(logsThatDefineTablet.entrySet(),
+          new Comparator<Entry<Integer,List<Path>>>() {
+            @Override
+            public int compare(Entry<Integer,List<Path>> o1, Entry<Integer,List<Path>> o2) {
+              return Integer.compare(o1.getKey(), o2.getKey());
+            }
+          });
+    }
   }
 
   private String getPathSuffix(String pathString) {
@@ -247,23 +295,29 @@ public class SortedLogRecovery {
   public void recover(KeyExtent extent, List<Path> recoveryLogs, Set<String> tabletFiles,
       MutationReceiver mr) throws IOException {
 
+    Entry<Integer,List<Path>> maxEntry = findLogsThatDefineTablet(extent, recoveryLogs);
+
     // A tablet may leave a tserver and then come back, in which case it would have a different and
     // higher tablet id. Only want to consider events in the log related to the last time the tablet
     // was loaded.
-    int tabletId = findMaxTabletId(extent, recoveryLogs);
+    int tabletId = maxEntry.getKey();
+    List<Path> logsThatDefineTablet = maxEntry.getValue();
 
     if (tabletId == -1) {
       log.info("Tablet {} is not defined in recovery logs {} ", extent, asNames(recoveryLogs));
       return;
+    } else {
+      log.info("Found {} of {} logs with max id {} for tablet {}", logsThatDefineTablet.size(),
+          recoveryLogs.size(), tabletId, extent);
     }
 
     // Find the seq # for the last compaction that started and finished
-    long recoverySeq = findRecoverySeq(recoveryLogs, tabletFiles, tabletId);
+    long recoverySeq = findRecoverySeq(logsThatDefineTablet, tabletFiles, tabletId);
 
     log.info("Recovering mutations, tablet:{} tabletId:{} seq:{} logs:{}", extent, tabletId,
-        recoverySeq, asNames(recoveryLogs));
+        recoverySeq, asNames(logsThatDefineTablet));
 
     // Replay all mutations that were written after the last successful compaction started.
-    playbackMutations(recoveryLogs, mr, tabletId, recoverySeq);
+    playbackMutations(logsThatDefineTablet, mr, tabletId, recoverySeq);
   }
 }

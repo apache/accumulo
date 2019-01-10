@@ -51,7 +51,15 @@ public class RecoveryLogsIterator implements CloseableIterator<Entry<LogFileKey,
 
     try {
       for (Path log : recoveryLogPaths) {
-        iterators.add(new RecoveryLogReader(fs, log, start, end));
+        LOG.debug("Opening recovery log {}", log.getName());
+        RecoveryLogReader rlr = new RecoveryLogReader(fs, log, start, end);
+        if (rlr.hasNext()) {
+          LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
+          iterators.add(rlr);
+        } else {
+          LOG.debug("Write ahead log {} has no data in range {} {}", log.getName(), start, end);
+          rlr.close();
+        }
       }
 
       iter = Iterators.mergeSorted(iterators, (o1, o2) -> o1.getKey().compareTo(o2.getKey()));
