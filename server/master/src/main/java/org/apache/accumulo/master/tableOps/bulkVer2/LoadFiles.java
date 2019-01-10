@@ -50,6 +50,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
+import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -309,10 +310,10 @@ class LoadFiles extends MasterRepo {
    * scan the metadata table getting Tablet range and location information. It will return 0 when
    * all files have been loaded.
    */
-  private long loadFiles(Table.ID tableId, Path bulkDir, LoadMappingIterator lmi, Master master,
-      long tid) throws Exception {
-
-    Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.next();
+  private long loadFiles(Table.ID tableId, Path bulkDir, LoadMappingIterator loadMapIter,
+      Master master, long tid) throws Exception {
+    PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator(loadMapIter);
+    Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
     Text startRow = loadMapEntry.getKey().getPrevEndRow();
 
@@ -333,7 +334,8 @@ class LoadFiles extends MasterRepo {
     loader.start(bulkDir, master, tid, bulkInfo.setTime);
 
     long t1 = System.currentTimeMillis();
-    while (loadMapEntry != null) {
+    while (lmi.hasNext()) {
+      loadMapEntry = lmi.next();
       KeyExtent fileTablet = loadMapEntry.getKey();
       tablets.clear();
 
@@ -345,7 +347,6 @@ class LoadFiles extends MasterRepo {
       tablets.addAll(getTabletsInRange(tabletIter, currentTablet, fileTablet.getEndRow()));
 
       loader.load(tablets, loadMapEntry.getValue());
-      loadMapEntry = lmi.next();
     }
     return loader.finish(Math.min(System.currentTimeMillis() - t1, 30000));
   }

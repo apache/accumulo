@@ -70,8 +70,6 @@ public class LoadMappingIterator
 
   @Override
   public Map.Entry<KeyExtent,Bulk.Files> next() {
-    if (!hasNext())
-      return null;
     Bulk.Mapping bm = gson.fromJson(reader, Bulk.Mapping.class);
     if (renameMap != null) {
       return new AbstractMap.SimpleEntry<>(bm.getKeyExtent(tableId),
