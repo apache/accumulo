@@ -79,13 +79,13 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
    */
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
-    return AccumuloRecordReader.getSplits(context);
+    return AccumuloRecordReader.getSplits(context, CLASS);
   }
 
   @Override
   public RecordReader<Key,Value> createRecordReader(InputSplit split, TaskAttemptContext context) {
 
-    return new AccumuloRecordReader<Key,Value>() {
+    return new AccumuloRecordReader<Key,Value>(CLASS) {
       @Override
       public boolean nextKeyValue() {
         if (scannerIterator.hasNext()) {

@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.hadoop.mapred.AccumuloOutputFormat;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -48,8 +49,9 @@ import org.slf4j.LoggerFactory;
  * A base class to be used to create {@link RecordWriter} instances that write to Accumulo.
  */
 public class AccumuloRecordWriter implements RecordWriter<Text,Mutation> {
-  private static final Class<AccumuloRecordWriter> CLASS = AccumuloRecordWriter.class;
-  private static final Logger log = LoggerFactory.getLogger(CLASS);
+  // class to serialize configuration under in the job
+  private static final Class<AccumuloOutputFormat> CLASS = AccumuloOutputFormat.class;
+  private static final Logger log = LoggerFactory.getLogger(AccumuloRecordWriter.class);
   private MultiTableBatchWriter mtbw = null;
   private HashMap<Text,BatchWriter> bws;
   private Text defaultTableName;

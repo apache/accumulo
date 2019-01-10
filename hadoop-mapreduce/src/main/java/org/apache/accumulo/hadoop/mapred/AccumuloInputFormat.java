@@ -53,14 +53,14 @@ public class AccumuloInputFormat implements InputFormat<Key,Value> {
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
-    return AccumuloRecordReader.getSplits(job);
+    return AccumuloRecordReader.getSplits(job, CLASS);
   }
 
   @Override
   public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter)
       throws IOException {
 
-    AccumuloRecordReader<Key,Value> recordReader = new AccumuloRecordReader<Key,Value>() {
+    AccumuloRecordReader<Key,Value> recordReader = new AccumuloRecordReader<Key,Value>(CLASS) {
 
       @Override
       public boolean next(Key key, Value value) {

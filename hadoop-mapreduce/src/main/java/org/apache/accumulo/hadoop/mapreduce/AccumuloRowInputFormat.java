@@ -61,7 +61,7 @@ public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Ent
   @Override
   public RecordReader<Text,PeekingIterator<Entry<Key,Value>>> createRecordReader(InputSplit split,
       TaskAttemptContext context) {
-    return new AccumuloRecordReader<Text,PeekingIterator<Entry<Key,Value>>>() {
+    return new AccumuloRecordReader<Text,PeekingIterator<Entry<Key,Value>>>(CLASS) {
       RowIterator rowIterator;
 
       @Override
@@ -96,7 +96,7 @@ public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Ent
    */
   @Override
   public List<InputSplit> getSplits(JobContext context) throws IOException {
-    return AccumuloRecordReader.getSplits(context);
+    return AccumuloRecordReader.getSplits(context, CLASS);
   }
 
   /**

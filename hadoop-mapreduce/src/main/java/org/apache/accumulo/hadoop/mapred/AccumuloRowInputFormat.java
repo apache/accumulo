@@ -52,7 +52,7 @@ public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<
    */
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
-    return AccumuloRecordReader.getSplits(job);
+    return AccumuloRecordReader.getSplits(job, CLASS);
   }
 
   @Override
@@ -60,7 +60,7 @@ public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<
       JobConf job, Reporter reporter) throws IOException {
     // @formatter:off
     AccumuloRecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader =
-      new AccumuloRecordReader<Text,PeekingIterator<Entry<Key,Value>>>() {
+      new AccumuloRecordReader<Text,PeekingIterator<Entry<Key,Value>>>(CLASS) {
     // @formatter:on
           RowIterator rowIterator;
 
@@ -98,6 +98,6 @@ public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<
    * Sets all the information required for this map reduce job.
    */
   public static InputFormatBuilder.ClientParams<JobConf> configure() {
-    return new InputFormatBuilderImpl<JobConf>(CLASS);
+    return new InputFormatBuilderImpl<>(CLASS);
   }
 }

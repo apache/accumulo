@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -73,8 +72,9 @@ import org.slf4j.LoggerFactory;
  * @see org.apache.accumulo.hadoopImpl.mapreduce.AccumuloRecordReader
  */
 public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
-  private static final Class<?> CLASS = AccumuloRecordReader.class;
-  private static final Logger log = LoggerFactory.getLogger(CLASS);
+  // class to serialize configuration under in the job
+  private final Class<?> CLASS;
+  private static final Logger log = LoggerFactory.getLogger(AccumuloRecordReader.class);
 
   protected long numKeysRead;
   protected AccumuloClient client;
@@ -82,6 +82,10 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
   protected RangeInputSplit split;
   private org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit baseSplit;
   protected ScannerBase scannerBase;
+
+  public AccumuloRecordReader(Class<?> callingClass) {
+    this.CLASS = callingClass;
+  }
 
   /**
    * Extracts Iterators settings from the context to be used by RecordReader.
@@ -126,7 +130,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
     baseSplit = (org.apache.accumulo.hadoopImpl.mapreduce.RangeInputSplit) inSplit;
     log.debug("Initializing input split: " + baseSplit);
 
-    client = createClient(job);
+    client = createClient(job, CLASS);
     ClientContext context = (ClientContext) client;
     Authorizations authorizations = InputConfigurator.getScanAuthorizations(CLASS, job);
     String classLoaderContext = InputConfigurator.getClassLoaderContext(CLASS, job);
@@ -268,10 +272,10 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
 
   protected Key currentKey = null;
 
-  public static Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job,
-      Table.ID tableId, List<Range> ranges)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    try (AccumuloClient client = createClient(job)) {
+  private static Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job,
+      Table.ID tableId, List<Range> ranges, Class<?> callingClass)
+      throws TableNotFoundException, AccumuloException {
+    try (AccumuloClient client = createClient(job, callingClass)) {
       return InputConfigurator.binOffline(tableId, ranges, (ClientContext) client);
     }
   }
@@ -280,13 +284,14 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
    * Gets the splits of the tables that have been set on the job by reading the metadata table for
    * the specified ranges.
    */
-  public static InputSplit[] getSplits(JobConf job) throws IOException {
-    validateOptions(job);
+  public static InputSplit[] getSplits(JobConf job, Class<?> callingClass) throws IOException {
+    validateOptions(job, callingClass);
 
     Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
-    Map<String,InputTableConfig> tableConfigs = InputConfigurator.getInputTableConfigs(CLASS, job);
-    try (AccumuloClient client = createClient(job)) {
+    Map<String,InputTableConfig> tableConfigs = InputConfigurator.getInputTableConfigs(callingClass,
+        job);
+    try (AccumuloClient client = createClient(job, callingClass)) {
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
         String tableName = tableConfigEntry.getKey();
         InputTableConfig tableConfig = tableConfigEntry.getValue();
@@ -300,7 +305,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
           throw new IOException(e);
         }
 
-        boolean batchScan = InputConfigurator.isBatchScan(CLASS, job);
+        boolean batchScan = InputConfigurator.isBatchScan(callingClass, job);
         boolean supportBatchScan = !(tableConfig.isOfflineScan()
             || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
         if (batchScan && !supportBatchScan)
@@ -324,15 +329,15 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
         TabletLocator tl;
         try {
           if (tableConfig.isOfflineScan()) {
-            binnedRanges = binOfflineTable(job, tableId, ranges);
+            binnedRanges = binOfflineTable(job, tableId, ranges, callingClass);
             while (binnedRanges == null) {
               // Some tablets were still online, try again
               // sleep randomly between 100 and 200 ms
               sleepUninterruptibly(100 + random.nextInt(100), TimeUnit.MILLISECONDS);
-              binnedRanges = binOfflineTable(job, tableId, ranges);
+              binnedRanges = binOfflineTable(job, tableId, ranges, callingClass);
             }
           } else {
-            tl = InputConfigurator.getTabletLocator(CLASS, job, tableId);
+            tl = InputConfigurator.getTabletLocator(callingClass, job, tableId);
             // its possible that the cache could contain complete, but old information about a
             // tables
             // tablets... so clear it
@@ -429,28 +434,18 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
   /**
    * Check whether a configuration is fully configured to be used with an Accumulo
    * {@link InputFormat}.
-   *
-   * @param job
-   *          the Hadoop context for the configured job
-   * @throws java.io.IOException
-   *           if the context is improperly configured
    */
-  public static void validateOptions(JobConf job) throws IOException {
-    try (AccumuloClient client = InputConfigurator.createClient(CLASS, job)) {
-      InputConfigurator.validatePermissions(CLASS, job, client);
+  private static void validateOptions(JobConf job, Class<?> callingClass) throws IOException {
+    try (AccumuloClient client = InputConfigurator.createClient(callingClass, job)) {
+      InputConfigurator.validatePermissions(callingClass, job, client);
     }
   }
 
   /**
    * Creates {@link AccumuloClient} from the configuration
-   *
-   * @param job
-   *          Hadoop job instance configuration
-   * @return {@link AccumuloClient} object
-   * @since 2.0.0
    */
-  protected static AccumuloClient createClient(JobConf job) {
-    return Accumulo.newClient().from(InputConfigurator.getClientInfo(CLASS, job).getProperties())
-        .build();
+  private static AccumuloClient createClient(JobConf job, Class<?> callingClass) {
+    return Accumulo.newClient()
+        .from(InputConfigurator.getClientInfo(callingClass, job).getProperties()).build();
   }
 }
