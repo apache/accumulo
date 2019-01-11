@@ -279,7 +279,7 @@ public class CountingSummarizerTest {
       for (String fam : new String[] {"hop", "hope", "nope", "noop"}) {
         for (String qual : new String[] {"mad", "lad", "lab", "map"})
           for (Value value : new Value[] {new Value("ask"), new Value("asleep"), new Value("some"),
-                  new Value("soul")}) {
+              new Value("soul")}) {
             collector.accept(new Key(row, fam, qual), value);
             expected.merge("vp:" + value.toString().substring(0, 2), 1L, Long::sum);
 
