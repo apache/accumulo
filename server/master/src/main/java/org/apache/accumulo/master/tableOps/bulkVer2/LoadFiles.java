@@ -312,7 +312,7 @@ class LoadFiles extends MasterRepo {
    */
   private long loadFiles(Table.ID tableId, Path bulkDir, LoadMappingIterator loadMapIter,
       Master master, long tid) throws Exception {
-    PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator(loadMapIter);
+    PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
     Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
     Text startRow = loadMapEntry.getKey().getPrevEndRow();
