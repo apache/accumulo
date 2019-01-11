@@ -20,7 +20,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -72,7 +71,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
     }
   }
 
-  public AccumuloClient getAccumuloClient() {
+  public ClientContext getAccumuloClient() {
     return context;
   }
 

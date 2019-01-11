@@ -23,6 +23,7 @@ import java.util.Collections;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -80,13 +81,20 @@ public class RowHash extends Configured implements Tool {
       return tableName;
     }
 
-    public void setAccumuloConfigs(Job job) {
-      org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator.setClientProperties(
-          org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.class,
-          job.getConfiguration(), this.getClientProperties());
-      org.apache.accumulo.core.clientImpl.mapreduce.lib.OutputConfigurator.setClientProperties(
-          org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.class,
-          job.getConfiguration(), this.getClientProperties());
+    public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setZooKeeperInstance(job,
+          this.instance, this.zookeepers);
+      org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setZooKeeperInstance(job,
+          this.instance, this.zookeepers);
+
+      final String principal = getPrincipal();
+      getTableName();
+
+      AuthenticationToken token = getToken();
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setConnectorInfo(job, principal,
+          token);
+      org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setConnectorInfo(job,
+          principal, token);
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setInputTableName(job,
           getTableName());
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanAuthorizations(job,

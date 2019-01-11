@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -49,7 +48,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Key;
@@ -74,11 +72,7 @@ import org.apache.hadoop.util.StringUtils;
 
 import com.google.common.collect.Maps;
 
-/**
- * @since 1.6.0
- * @deprecated since 2.0.0
- */
-@Deprecated
+@SuppressWarnings("deprecation")
 public class InputConfigurator extends ConfiguratorBase {
 
   /**
@@ -94,8 +88,7 @@ public class InputConfigurator extends ConfiguratorBase {
     ITERATORS,
     TABLE_CONFIGS,
     SAMPLER_CONFIG,
-    CLASSLOADER_CONTEXT,
-    EXECUTION_HINTS
+    CLASSLOADER_CONTEXT
   }
 
   /**
@@ -634,8 +627,7 @@ public class InputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @param configs
-   *          an array of {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} objects
-   *          to associate with the job
+   *          an array of InputTableConfig objects to associate with the job
    * @since 1.6.0
    */
   public static void setInputTableConfigs(Class<?> implementingClass, Configuration conf,
@@ -657,8 +649,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Returns all {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} objects
-   * associated with this job.
+   * Returns all InputTableConfig objects associated with this job.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -695,8 +686,7 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Returns the {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} for the given
-   * table
+   * Returns the InputTableConfig for the given table
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -727,8 +717,8 @@ public class InputConfigurator extends ConfiguratorBase {
       throws IOException {
     Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> inputTableConfigs = getInputTableConfigs(
         implementingClass, conf);
-    try (AccumuloClient client = Accumulo.newClient()
-        .from(getClientProperties(implementingClass, conf)).build()) {
+    try {
+      AccumuloClient client = client(implementingClass, conf);
       if (getInputTableConfigs(implementingClass, conf).size() == 0)
         throw new IOException("No table set.");
 
@@ -764,8 +754,8 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   /**
-   * Returns the {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} for the
-   * configuration based on the properties set using the single-table input methods.
+   * Returns the InputTableConfig for the configuration based on the properties set using the
+   * single-table input methods.
    *
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
@@ -809,102 +799,100 @@ public class InputConfigurator extends ConfiguratorBase {
   }
 
   public static Map<String,Map<KeyExtent,List<Range>>> binOffline(Table.ID tableId,
-      List<Range> ranges, ClientInfo clientInfo) throws AccumuloException, TableNotFoundException {
+      List<Range> ranges, ClientContext context) throws AccumuloException, TableNotFoundException {
 
-    try (ClientContext context = new ClientContext(clientInfo)) {
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
+    if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
+      Tables.clearCache(context);
       if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
-        Tables.clearCache(context);
-        if (Tables.getTableState(context, tableId) != TableState.OFFLINE) {
-          throw new AccumuloException(
-              "Table is online tableId:" + tableId + " cannot scan table in offline mode ");
-        }
+        throw new AccumuloException(
+            "Table is online tableId:" + tableId + " cannot scan table in offline mode ");
       }
-
-      for (Range range : ranges) {
-        Text startRow;
-
-        if (range.getStartKey() != null)
-          startRow = range.getStartKey().getRow();
-        else
-          startRow = new Text();
-
-        Range metadataRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(),
-            true, null, false);
-        Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-        MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-        scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME);
-        scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-        scanner.fetchColumnFamily(MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME);
-        scanner.setRange(metadataRange);
-
-        RowIterator rowIter = new RowIterator(scanner);
-        KeyExtent lastExtent = null;
-        while (rowIter.hasNext()) {
-          Iterator<Map.Entry<Key,Value>> row = rowIter.next();
-          String last = "";
-          KeyExtent extent = null;
-          String location = null;
-
-          while (row.hasNext()) {
-            Map.Entry<Key,Value> entry = row.next();
-            Key key = entry.getKey();
-
-            if (key.getColumnFamily()
-                .equals(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME)) {
-              last = entry.getValue().toString();
-            }
-
-            if (key.getColumnFamily()
-                .equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)
-                || key.getColumnFamily()
-                    .equals(MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME)) {
-              location = entry.getValue().toString();
-            }
-
-            if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
-              extent = new KeyExtent(key.getRow(), entry.getValue());
-            }
-
-          }
-
-          if (location != null)
-            return null;
-
-          if (!extent.getTableId().equals(tableId)) {
-            throw new AccumuloException("Saw unexpected table Id " + tableId + " " + extent);
-          }
-
-          if (lastExtent != null && !extent.isPreviousExtent(lastExtent)) {
-            throw new AccumuloException(" " + lastExtent + " is not previous extent " + extent);
-          }
-
-          Map<KeyExtent,List<Range>> tabletRanges = binnedRanges.get(last);
-          if (tabletRanges == null) {
-            tabletRanges = new HashMap<>();
-            binnedRanges.put(last, tabletRanges);
-          }
-
-          List<Range> rangeList = tabletRanges.get(extent);
-          if (rangeList == null) {
-            rangeList = new ArrayList<>();
-            tabletRanges.put(extent, rangeList);
-          }
-
-          rangeList.add(range);
-
-          if (extent.getEndRow() == null
-              || range.afterEndKey(new Key(extent.getEndRow()).followingKey(PartialKey.ROW))) {
-            break;
-          }
-
-          lastExtent = extent;
-        }
-
-      }
-      return binnedRanges;
     }
+
+    for (Range range : ranges) {
+      Text startRow;
+
+      if (range.getStartKey() != null)
+        startRow = range.getStartKey().getRow();
+      else
+        startRow = new Text();
+
+      Range metadataRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(),
+          true, null, false);
+      Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
+      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME);
+      scanner.setRange(metadataRange);
+
+      RowIterator rowIter = new RowIterator(scanner);
+      KeyExtent lastExtent = null;
+      while (rowIter.hasNext()) {
+        Iterator<Map.Entry<Key,Value>> row = rowIter.next();
+        String last = "";
+        KeyExtent extent = null;
+        String location = null;
+
+        while (row.hasNext()) {
+          Map.Entry<Key,Value> entry = row.next();
+          Key key = entry.getKey();
+
+          if (key.getColumnFamily()
+              .equals(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME)) {
+            last = entry.getValue().toString();
+          }
+
+          if (key.getColumnFamily()
+              .equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)
+              || key.getColumnFamily()
+                  .equals(MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME)) {
+            location = entry.getValue().toString();
+          }
+
+          if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+            extent = new KeyExtent(key.getRow(), entry.getValue());
+          }
+
+        }
+
+        if (location != null)
+          return null;
+
+        if (!extent.getTableId().equals(tableId)) {
+          throw new AccumuloException("Saw unexpected table Id " + tableId + " " + extent);
+        }
+
+        if (lastExtent != null && !extent.isPreviousExtent(lastExtent)) {
+          throw new AccumuloException(" " + lastExtent + " is not previous extent " + extent);
+        }
+
+        Map<KeyExtent,List<Range>> tabletRanges = binnedRanges.get(last);
+        if (tabletRanges == null) {
+          tabletRanges = new HashMap<>();
+          binnedRanges.put(last, tabletRanges);
+        }
+
+        List<Range> rangeList = tabletRanges.get(extent);
+        if (rangeList == null) {
+          rangeList = new ArrayList<>();
+          tabletRanges.put(extent, rangeList);
+        }
+
+        rangeList.add(range);
+
+        if (extent.getEndRow() == null
+            || range.afterEndKey(new Key(extent.getEndRow()).followingKey(PartialKey.ROW))) {
+          break;
+        }
+
+        lastExtent = extent;
+      }
+
+    }
+    return binnedRanges;
   }
 
   private static String toBase64(Writable writable) {
