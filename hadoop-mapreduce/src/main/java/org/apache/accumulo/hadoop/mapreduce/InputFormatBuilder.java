@@ -58,11 +58,11 @@ public interface InputFormatBuilder {
     TableParams<T> clientProperties(Properties clientProperties);
 
     /**
-     * Set path to HDFS location containing accumulo-client.properties file. This setting is more
+     * Set path to DFS location containing accumulo-client.properties file. This setting is more
      * secure than {@link #clientProperties(Properties)}
      *
      * @param clientPropsPath
-     *          HDFS path to accumulo-client.properties
+     *          DFS path to accumulo-client.properties
      */
     TableParams<T> clientPropertiesPath(String clientPropsPath);
   }
