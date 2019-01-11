@@ -321,9 +321,6 @@ class LoadFiles extends MasterRepo {
         .overlapping(startRow, null).checkConsistency().fetchPrev().fetchLocation().fetchLoaded()
         .build(master.getContext()).iterator();
 
-    List<TabletMetadata> tablets = new ArrayList<>();
-    TabletMetadata currentTablet = tabletIter.next();
-
     Loader loader;
     if (bulkInfo.tableState == TableState.ONLINE) {
       loader = new OnlineLoader();
@@ -336,43 +333,33 @@ class LoadFiles extends MasterRepo {
     long t1 = System.currentTimeMillis();
     while (lmi.hasNext()) {
       loadMapEntry = lmi.next();
-      KeyExtent fileTablet = loadMapEntry.getKey();
-      tablets.clear();
-
-      // get first tablet in range
-      currentTablet = getFirstTablet(tabletIter, currentTablet, fileTablet.getPrevEndRow());
-      tablets.add(currentTablet);
-
-      // get all tablets between currentTablet and EndRow given in mapping file
-      tablets.addAll(getTabletsInRange(tabletIter, currentTablet, fileTablet.getEndRow()));
-
+      List<TabletMetadata> tablets = findOverlappingTablets(loadMapEntry.getKey(), tabletIter);
       loader.load(tablets, loadMapEntry.getValue());
     }
     return loader.finish(Math.min(System.currentTimeMillis() - t1, 30000));
   }
 
   /**
-   * Move iterator to the provided prevEndRow and return that Tablet.
+   * Find all the tablets within the provided bulk load mapping range.
    */
-  private TabletMetadata getFirstTablet(Iterator<TabletMetadata> tabletIter,
-      TabletMetadata currentTablet, Text prevEndRow) {
-    while (!Objects.equals(currentTablet.getPrevEndRow(), prevEndRow)) {
-      currentTablet = tabletIter.next();
-    }
-    return currentTablet;
-  }
+  private List<TabletMetadata> findOverlappingTablets(KeyExtent loadRange,
+      Iterator<TabletMetadata> tabletIter) {
+    List<TabletMetadata> tablets = new ArrayList<>();
+    TabletMetadata currentTablet = tabletIter.next();
 
-  /**
-   * Move iterator to the provided EndRow and return any Tablets between currentTablet and that
-   * endRow
-   */
-  private List<TabletMetadata> getTabletsInRange(Iterator<TabletMetadata> tabletIter,
-      TabletMetadata currentTablet, Text endRow) {
-    List<TabletMetadata> tabletsInRange = new ArrayList<>();
-    while (!Objects.equals(currentTablet.getEndRow(), endRow)) {
+    // skip tablets until we find the prevEndRow of loadRange
+    while (!Objects.equals(currentTablet.getPrevEndRow(), loadRange.getPrevEndRow())) {
       currentTablet = tabletIter.next();
-      tabletsInRange.add(currentTablet);
     }
-    return tabletsInRange;
+    // we have found the first tablet in the range, add it to the list
+    tablets.add(currentTablet);
+
+    // find the remaining tablets within the loadRange by
+    // adding tablets to the list until the endRow matches the loadRange
+    while (!Objects.equals(currentTablet.getEndRow(), loadRange.getEndRow())) {
+      currentTablet = tabletIter.next();
+      tablets.add(currentTablet);
+    }
+    return tablets;
   }
 }
