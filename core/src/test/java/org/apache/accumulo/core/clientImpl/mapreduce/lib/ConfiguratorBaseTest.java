@@ -21,22 +21,17 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Properties;
+import java.util.Base64;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-/**
- * @deprecated since 2.0.0
- */
-@Deprecated
 public class ConfiguratorBaseTest {
 
   private enum PrivateTestingEnum {
@@ -63,22 +58,26 @@ public class ConfiguratorBaseTest {
     assertNotNull(token);
     assertEquals(PasswordToken.class, token.getClass());
     assertEquals(new PasswordToken("testPassword"), token);
+    assertEquals(
+        "inline:" + PasswordToken.class.getName() + ":"
+            + Base64.getEncoder().encodeToString(
+                AuthenticationTokenSerializer.serialize(new PasswordToken("testPassword"))),
+        conf.get(
+            ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.ConnectorInfo.TOKEN)));
   }
 
   @Test
   public void testSetConnectorInfoClassOfQConfigurationStringString() {
     Configuration conf = new Configuration();
     assertFalse(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
-    ConfiguratorBase.setConnectorInfo(this.getClass(), conf, "testUser",
-        new PasswordToken("testPass"));
+    ConfiguratorBase.setConnectorInfo(this.getClass(), conf, "testUser", "testFile");
     assertTrue(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
     assertEquals("testUser", ConfiguratorBase.getPrincipal(this.getClass(), conf));
-    assertEquals("testPass",
-        new String(((PasswordToken) ClientInfo
-            .from(ConfiguratorBase.getClientProperties(this.getClass(), conf))
-            .getAuthenticationToken()).getPassword()));
+    assertEquals("file:testFile", conf.get(
+        ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.ConnectorInfo.TOKEN)));
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testSetZooKeeperInstance() {
     Configuration conf = new Configuration();
@@ -86,17 +85,19 @@ public class ConfiguratorBaseTest {
         org.apache.accumulo.core.client.ClientConfiguration.create()
             .withInstance("testInstanceName").withZkHosts("testZooKeepers").withSsl(true)
             .withZkTimeout(15000));
-
-    org.apache.accumulo.core.client.ClientConfiguration clientConf = ConfiguratorBase
-        .getClientConfiguration(this.getClass(), conf);
+    org.apache.accumulo.core.client.ClientConfiguration clientConf = org.apache.accumulo.core.client.ClientConfiguration
+        .deserialize(conf.get(ConfiguratorBase.enumToConfKey(this.getClass(),
+            ConfiguratorBase.InstanceOpts.CLIENT_CONFIG)));
     assertEquals("testInstanceName", clientConf
         .get(org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME));
-
-    Properties props = ConfiguratorBase.getClientProperties(this.getClass(), conf);
-    assertEquals("testInstanceName", props.getProperty(ClientProperty.INSTANCE_NAME.getKey()));
-    assertEquals("testZooKeepers", props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey()));
-    assertEquals("true", props.getProperty(ClientProperty.SSL_ENABLED.getKey()));
-    assertEquals("15000", props.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey()));
+    assertEquals("testZooKeepers", clientConf
+        .get(org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST));
+    assertEquals("true", clientConf.get(
+        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_RPC_SSL_ENABLED));
+    assertEquals("15000", clientConf.get(
+        org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT));
+    assertEquals(org.apache.accumulo.core.client.ZooKeeperInstance.class.getSimpleName(), conf
+        .get(ConfiguratorBase.enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.TYPE)));
   }
 
   @Test

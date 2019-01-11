@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -46,6 +47,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Rule;
@@ -61,7 +63,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TokenFileIT extends AccumuloClusterHarness {
   private static AssertionError e1 = null;
 
-  private static class MRTokenFileTester extends Configured implements Tool {
+  public static class MRTokenFileTester extends Configured implements Tool {
     private static class TestMapper implements Mapper<Key,Value,Text,Mutation> {
       Key key = null;
       int count = 0;
@@ -113,11 +115,11 @@ public class TokenFileIT extends AccumuloClusterHarness {
       job.setInputFormat(org.apache.accumulo.core.client.mapred.AccumuloInputFormat.class);
 
       ClientInfo info = getClientInfo();
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setZooKeeperInstance(job,
+          info.getInstanceName(), info.getZooKeepers());
       org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setConnectorInfo(job, user,
           tokenFile);
       org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setInputTableName(job, table1);
-      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setZooKeeperInstance(job,
-          info.getInstanceName(), info.getZooKeepers());
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -126,33 +128,31 @@ public class TokenFileIT extends AccumuloClusterHarness {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setZooKeeperInstance(job,
+          info.getInstanceName(), info.getZooKeepers());
       org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setConnectorInfo(job, user,
           tokenFile);
       org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setCreateTables(job, false);
       org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setDefaultTableName(job, table2);
-      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setZooKeeperInstance(job,
-          info.getInstanceName(), info.getZooKeepers());
 
       job.setNumReduceTasks(0);
 
-      return JobClient.runJob(job).isSuccessful() ? 0 : 1;
+      RunningJob rj = JobClient.runJob(job);
+      if (rj.isSuccessful()) {
+        return 0;
+      } else {
+        System.out.println(rj.getFailureInfo());
+        return 1;
+      }
     }
 
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
-    public static void main(String[] args) throws Exception {
-      Configuration conf = CachedConfiguration.getInstance();
-      conf.set("hadoop.tmp.dir", new File(args[0]).getParent());
-      conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir",
-          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
-      assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(), args));
-    }
   }
 
   @Rule
   public TemporaryFolder folder = new TemporaryFolder(
       new File(System.getProperty("user.dir") + "/target"));
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testMR() throws Exception {
     String[] tableNames = getUniqueNames(2);
@@ -169,12 +169,20 @@ public class TokenFileIT extends AccumuloClusterHarness {
       }
       bw.close();
 
-      File tf = folder.newFile("client.properties");
+      File tf = folder.newFile("root_test.pw");
       try (PrintStream out = new PrintStream(tf)) {
-        getClientInfo().getProperties().store(out, "Credentials for " + getClass().getName());
+        String outString = new Credentials(getAdminPrincipal(), getAdminToken()).serialize();
+        out.println(outString);
       }
 
-      MRTokenFileTester.main(new String[] {tf.getAbsolutePath(), table1, table2});
+      Configuration conf = CachedConfiguration.getInstance();
+      conf.set("hadoop.tmp.dir", new File(tf.getAbsolutePath()).getParent());
+      conf.set("mapreduce.framework.name", "local");
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(),
+          new String[] {tf.getAbsolutePath(), table1, table2}));
+
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {

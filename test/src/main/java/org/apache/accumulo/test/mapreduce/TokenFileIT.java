@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -131,24 +132,21 @@ public class TokenFileIT extends AccumuloClusterHarness {
 
       job.waitForCompletion(true);
 
-      return job.isSuccessful() ? 0 : 1;
+      if (job.isSuccessful()) {
+        return 0;
+      } else {
+        System.out.println(job.getStatus().getFailureInfo());
+        return 1;
+      }
     }
 
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
-    public static void main(String[] args) throws Exception {
-      Configuration conf = CachedConfiguration.getInstance();
-      conf.set("hadoop.tmp.dir", new File(args[0]).getParent());
-      conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir",
-          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
-      assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(), args));
-    }
   }
 
   @Rule
   public TemporaryFolder folder = new TemporaryFolder(
       new File(System.getProperty("user.dir") + "/target"));
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testMR() throws Exception {
     String[] tableNames = getUniqueNames(2);
@@ -165,12 +163,19 @@ public class TokenFileIT extends AccumuloClusterHarness {
       }
       bw.close();
 
-      File tf = folder.newFile("client.properties");
+      File tf = folder.newFile("root_test.pw");
       try (PrintStream out = new PrintStream(tf)) {
-        getClientInfo().getProperties().store(out, "Credentials for " + getClass().getName());
+        String outString = new Credentials(getAdminPrincipal(), getAdminToken()).serialize();
+        out.println(outString);
       }
 
-      MRTokenFileTester.main(new String[] {tf.getAbsolutePath(), table1, table2});
+      Configuration conf = CachedConfiguration.getInstance();
+      conf.set("hadoop.tmp.dir", new File(tf.getAbsolutePath()).getParent());
+      conf.set("mapreduce.framework.name", "local");
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(),
+          new String[] {tf.getAbsolutePath(), table1, table2}));
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
