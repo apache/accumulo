@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.hadoop.conf.Configuration;
 
@@ -93,8 +92,7 @@ public class OutputConfigurator extends ConfiguratorBase {
   public static BatchWriterConfig getBatchWriterOptions(Class<?> implementingClass,
       Configuration conf) {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    ClientInfo info = getClientInfo(implementingClass, conf);
-    Properties props = info.getProperties();
+    Properties props = getClientProperties(implementingClass, conf);
     String property = props.getProperty(BATCH_WRITER_DURABILITY.getKey());
     if (property != null)
       bwConfig.setDurability(DurabilityImpl.fromString(property));

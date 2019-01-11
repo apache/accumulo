@@ -227,5 +227,4 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       }
     }
   }
-
 }

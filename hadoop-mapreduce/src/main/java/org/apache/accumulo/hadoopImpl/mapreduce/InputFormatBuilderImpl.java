@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
@@ -46,11 +46,11 @@ public class InputFormatBuilderImpl<T>
     implements InputFormatBuilder, InputFormatBuilder.ClientParams<T>,
     InputFormatBuilder.TableParams<T>, InputFormatBuilder.InputFormatOptions<T> {
 
-  Class<?> callingClass;
-  ClientInfo clientInfo;
-
-  String currentTable;
-  Map<String,InputTableConfig> tableConfigMap = Collections.emptyMap();
+  private Class<?> callingClass;
+  private Properties clientProps;
+  private String clientPropsPath;
+  private String currentTable;
+  private Map<String,InputTableConfig> tableConfigMap = Collections.emptyMap();
 
   public InputFormatBuilderImpl(Class<?> callingClass) {
     this.callingClass = callingClass;
@@ -58,8 +58,15 @@ public class InputFormatBuilderImpl<T>
 
   @Override
   public InputFormatBuilder.TableParams<T> clientProperties(Properties clientProperties) {
-    this.clientInfo = ClientInfo
-        .from(Objects.requireNonNull(clientProperties, "clientProperties must not be null"));
+    this.clientProps = Objects.requireNonNull(clientProperties,
+        "clientProperties must not be null");
+    return this;
+  }
+
+  @Override
+  public TableParams<T> clientPropertiesPath(String clientPropsPath) {
+    this.clientPropsPath = Objects.requireNonNull(clientPropsPath,
+        "clientPropsPath must not be null");
     return this;
   }
 
@@ -182,7 +189,7 @@ public class InputFormatBuilderImpl<T>
   }
 
   private void _store(Configuration conf) throws AccumuloException, AccumuloSecurityException {
-    InputConfigurator.setClientInfo(callingClass, conf, clientInfo);
+    InputConfigurator.setClientProperties(callingClass, conf, clientProps, clientPropsPath);
     if (tableConfigMap.size() == 0) {
       throw new IllegalArgumentException("At least one Table must be configured for job.");
     }
@@ -191,8 +198,13 @@ public class InputFormatBuilderImpl<T>
       Map.Entry<String,InputTableConfig> entry = tableConfigMap.entrySet().iterator().next();
       InputConfigurator.setInputTableName(callingClass, conf, entry.getKey());
       InputTableConfig config = entry.getValue();
-      if (!config.getScanAuths().isPresent())
-        config.setScanAuths(getUserAuths(clientInfo));
+      if (!config.getScanAuths().isPresent()) {
+        Properties props = InputConfigurator.getClientProperties(callingClass, conf);
+        try (AccumuloClient c = Accumulo.newClient().from(props).build()) {
+          String principal = ClientProperty.AUTH_PRINCIPAL.getValue(props);
+          config.setScanAuths(c.securityOperations().getUserAuthorizations(principal));
+        }
+      }
       InputConfigurator.setScanAuthorizations(callingClass, conf, config.getScanAuths().get());
       // all optional values
       if (config.getContext().isPresent())
@@ -224,12 +236,4 @@ public class InputFormatBuilderImpl<T>
   private void store(JobConf jobConf) throws AccumuloException, AccumuloSecurityException {
     _store(jobConf);
   }
-
-  private Authorizations getUserAuths(ClientInfo clientInfo)
-      throws AccumuloSecurityException, AccumuloException {
-    try (AccumuloClient c = Accumulo.newClient().from(clientInfo.getProperties()).build()) {
-      return c.securityOperations().getUserAuthorizations(clientInfo.getPrincipal());
-    }
-  }
-
 }

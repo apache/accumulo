@@ -20,7 +20,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.hadoop.mapreduce.OutputFormatBuilder;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.conf.Configuration;
@@ -30,12 +29,13 @@ import org.apache.hadoop.mapreduce.Job;
 public class OutputFormatBuilderImpl<T>
     implements OutputFormatBuilder.ClientParams<T>, OutputFormatBuilder.OutputOptions<T> {
   private final Class<?> callingClass;
-  ClientInfo clientInfo;
+  private Properties clientProps;
+  private String clientPropsPath;
 
   // optional values
-  Optional<String> defaultTableName = Optional.empty();
-  boolean createTables = false;
-  boolean simulationMode = false;
+  private Optional<String> defaultTableName = Optional.empty();
+  private boolean createTables = false;
+  private boolean simulationMode = false;
 
   public OutputFormatBuilderImpl(Class<?> callingClass) {
     this.callingClass = callingClass;
@@ -43,8 +43,15 @@ public class OutputFormatBuilderImpl<T>
 
   @Override
   public OutputFormatBuilder.OutputOptions<T> clientProperties(Properties clientProperties) {
-    this.clientInfo = ClientInfo
-        .from(Objects.requireNonNull(clientProperties, "ClientInfo must not be null"));
+    this.clientProps = Objects.requireNonNull(clientProperties,
+        "clientProperties must not be null");
+    return this;
+  }
+
+  @Override
+  public OutputFormatBuilder.OutputOptions<T> clientPropertiesPath(String clientPropsPath) {
+    this.clientPropsPath = Objects.requireNonNull(clientPropsPath,
+        "clientPropsPath must not be null");
     return this;
   }
 
@@ -82,7 +89,7 @@ public class OutputFormatBuilderImpl<T>
   }
 
   private void _store(Configuration conf) {
-    OutputConfigurator.setClientInfo(callingClass, conf, clientInfo);
+    OutputConfigurator.setClientProperties(callingClass, conf, clientProps, clientPropsPath);
     if (defaultTableName.isPresent())
       OutputConfigurator.setDefaultTableName(callingClass, conf, defaultTableName.get());
     OutputConfigurator.setCreateTables(callingClass, conf, createTables);

@@ -18,12 +18,12 @@ package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.hadoop.conf.Configuration;
@@ -44,38 +44,15 @@ public class ConfiguratorBaseTest {
   }
 
   @Test
-  public void testSetConnectorInfoClassOfQConfigurationStringAuthenticationToken() {
+  public void testSetClientProperties() {
     Configuration conf = new Configuration();
-    assertFalse(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
-    ConfiguratorBase.setConnectorInfo(this.getClass(), conf, "testUser",
-        new PasswordToken("testPassword"));
-    assertTrue(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
-    assertEquals("testUser", ConfiguratorBase.getPrincipal(this.getClass(), conf));
-    AuthenticationToken token = ConfiguratorBase.getAuthenticationToken(this.getClass(), conf);
-    assertNotNull(token);
-    assertEquals(PasswordToken.class, token.getClass());
-    assertEquals(new PasswordToken("testPassword"), token);
-  }
-
-  @Test
-  public void testSetConnectorInfoClassOfQConfigurationStringString() {
-    Configuration conf = new Configuration();
-    assertFalse(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
-    ConfiguratorBase.setConnectorInfo(this.getClass(), conf, "testUser",
-        new PasswordToken("testPass"));
-    assertTrue(ConfiguratorBase.isConnectorInfoSet(this.getClass(), conf));
-    assertEquals("testUser", ConfiguratorBase.getPrincipal(this.getClass(), conf));
-    assertEquals("testPass", new String(((PasswordToken) ConfiguratorBase
-        .getClientInfo(this.getClass(), conf).getAuthenticationToken()).getPassword()));
-  }
-
-  @Test
-  public void testSetClientInfo() {
-    Configuration conf = new Configuration();
-    ClientInfo info = ClientInfo.from(
-        Accumulo.newClientProperties().to("myinstance", "myzookeepers").as("user", "pass").build());
-    ConfiguratorBase.setClientInfo(this.getClass(), conf, info);
-    ClientInfo info2 = ConfiguratorBase.getClientInfo(this.getClass(), conf);
+    Properties props = Accumulo.newClientProperties().to("myinstance", "myzookeepers")
+        .as("user", "pass").build();
+    assertFalse(ConfiguratorBase.isClientConfigured(this.getClass(), conf));
+    ConfiguratorBase.setClientProperties(this.getClass(), conf, props, null);
+    assertTrue(ConfiguratorBase.isClientConfigured(this.getClass(), conf));
+    Properties props2 = ConfiguratorBase.getClientProperties(this.getClass(), conf);
+    ClientInfo info2 = ClientInfo.from(props2);
     assertEquals("myinstance", info2.getInstanceName());
     assertEquals("myzookeepers", info2.getZooKeepers());
     assertEquals("user", info2.getPrincipal());

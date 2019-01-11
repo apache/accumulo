@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -45,7 +44,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.clientImpl.Table;
@@ -464,16 +462,9 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
   }
 
   /**
-   * Gets the {@link ClientInfo} from the configuration
-   */
-  private static ClientInfo getClientInfo(JobContext context, Class<?> callingClass) {
-    return InputConfigurator.getClientInfo(callingClass, context.getConfiguration());
-  }
-
-  /**
    * Creates {@link AccumuloClient} from the configuration
    */
   private static AccumuloClient createClient(JobContext context, Class<?> callingClass) {
-    return Accumulo.newClient().from(getClientInfo(context, callingClass).getProperties()).build();
+    return InputConfigurator.createClient(callingClass, context.getConfiguration());
   }
 }
