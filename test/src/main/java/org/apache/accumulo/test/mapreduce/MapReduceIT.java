@@ -18,7 +18,10 @@ package org.apache.accumulo.test.mapreduce;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -87,10 +90,15 @@ public class MapReduceIT extends ConfigurableMacBase {
       bw.addMutation(m);
     }
     bw.close();
+    String filename = MapReduceIT.class.getName() + "-client.properties";
+    File configFile = Paths.get(System.getProperty("user.dir"), "target", filename).toFile();
+    try (PrintStream out = new PrintStream(configFile)) {
+      c.properties().store(out, "Config file for " + MapReduceIT.class.getName());
+    }
     ClientInfo info = ClientInfo.from(c.properties());
     Process hash = cluster.exec(RowHash.class, Collections.singletonList(hadoopTmpDirArg), "-i",
         info.getInstanceName(), "-z", info.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "-t",
-        tablename, "--column", input_cfcq);
+        tablename, "--column", input_cfcq, "--config-file", configFile.getAbsolutePath());
     assertEquals(0, hash.waitFor());
 
     try (Scanner s = c.createScanner(tablename, Authorizations.EMPTY)) {

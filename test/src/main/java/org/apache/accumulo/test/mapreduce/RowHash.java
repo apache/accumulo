@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -82,10 +83,13 @@ public class RowHash extends Configured implements Tool {
     }
 
     public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
+      org.apache.accumulo.core.client.ClientConfiguration clientConf = ClientConfConverter
+          .toClientConf(this.getClientProperties());
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setZooKeeperInstance(job,
-          this.instance, this.zookeepers);
+          clientConf);
+
       org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setZooKeeperInstance(job,
-          this.instance, this.zookeepers);
+          clientConf);
 
       final String principal = getPrincipal();
       getTableName();
