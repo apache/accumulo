@@ -118,7 +118,7 @@ class LoadFiles extends MasterRepo {
 
     abstract void load(List<TabletMetadata> tablets, Files files) throws Exception;
 
-    abstract long finish() throws Exception;
+    abstract long finish(long startScanTime) throws Exception;
   }
 
   private static class OnlineLoader extends Loader {
@@ -226,10 +226,10 @@ class LoadFiles extends MasterRepo {
     }
 
     @Override
-    long finish() {
+    long finish(long startScanTime) {
+      long scanTime = Math.min(System.currentTimeMillis() - startScanTime, 30000);
 
       sendQueued(0);
-
       long sleepTime = 0;
       if (loadMsgs.size() > 0) {
         // find which tablet server had the most load messages sent to it and sleep 13ms for each
@@ -241,6 +241,9 @@ class LoadFiles extends MasterRepo {
         sleepTime = Math.max(Math.max(100L, locationLess), sleepTime);
       }
 
+      if (sleepTime > 0) {
+        sleepTime = Math.max(sleepTime, scanTime * 2);
+      }
       return sleepTime;
     }
 
@@ -285,7 +288,8 @@ class LoadFiles extends MasterRepo {
     }
 
     @Override
-    long finish() throws Exception {
+    long finish(long startScanTime) throws Exception {
+      long scanTime = Math.min(System.currentTimeMillis() - startScanTime, 30000);
 
       bw.close();
 
@@ -295,6 +299,9 @@ class LoadFiles extends MasterRepo {
         sleepTime = Collections.max(unloadingTablets.values()) * 13;
       }
 
+      if (sleepTime > 0) {
+        sleepTime = Math.max(sleepTime, scanTime * 2);
+      }
       return sleepTime;
     }
   }
@@ -331,14 +338,7 @@ class LoadFiles extends MasterRepo {
       List<TabletMetadata> tablets = findOverlappingTablets(loadMapEntry.getKey(), tabletIter);
       loader.load(tablets, loadMapEntry.getValue());
     }
-    long t2 = System.currentTimeMillis();
-
-    long sleepTime = loader.finish();
-    if (sleepTime > 0) {
-      long scanTime = Math.min(t2 - t1, 30000);
-      sleepTime = Math.max(sleepTime, scanTime * 2);
-    }
-    return sleepTime;
+    return loader.finish(t1);
   }
 
   /**
