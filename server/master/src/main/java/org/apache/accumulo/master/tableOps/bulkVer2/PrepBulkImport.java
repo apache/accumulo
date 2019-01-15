@@ -160,7 +160,6 @@ public class PrepBulkImport extends MasterRepo {
     try (LoadMappingIterator lmi = BulkSerialize.readLoadMapping(bulkDir.toString(),
         bulkInfo.tableId, p -> fs.open(p))) {
 
-      Iterators.transform(lmi, entry -> entry.getKey());
 
       TabletIterFactory tabletIterFactory = startRow -> TabletsMetadata.builder()
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency().fetchPrev()
