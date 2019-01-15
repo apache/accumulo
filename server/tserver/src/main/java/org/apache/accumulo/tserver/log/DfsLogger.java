@@ -192,6 +192,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
         long start = System.currentTimeMillis();
         try {
+          encryptingLogFile.flush();
           if (durabilityMethod != null) {
             durabilityMethod.invoke(logFile);
             if (durabilityMethod == sync) {
@@ -557,7 +558,6 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private synchronized void write(LogFileKey key, LogFileValue value) throws IOException {
     key.write(encryptingLogFile);
     value.write(encryptingLogFile);
-    encryptingLogFile.flush();
     writes++;
   }
 
