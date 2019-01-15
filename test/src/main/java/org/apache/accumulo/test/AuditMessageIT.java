@@ -47,7 +47,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -110,10 +109,6 @@ public class AuditMessageIT extends ConfigurableMacBase {
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IOException("Interrupted waiting for data to be flushed to output streams");
-    }
-
-    for (MiniAccumuloClusterImpl.LogWriter lw : getCluster().getLogWriters()) {
-      lw.flush();
     }
 
     // Grab the audit messages

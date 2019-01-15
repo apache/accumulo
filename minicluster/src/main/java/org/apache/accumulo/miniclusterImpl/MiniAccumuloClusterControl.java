@@ -34,7 +34,6 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.LogWriter;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.tracer.TraceServer;
@@ -95,9 +94,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       Thread.currentThread().interrupt();
       throw new IOException(e);
     }
-    for (LogWriter writer : cluster.getLogWriters()) {
-      writer.flush();
-    }
+
     return Maps.immutableEntry(exitCode, readAll(new FileInputStream(cluster.getConfig().getLogDir()
         + "/" + clz.getSimpleName() + "_" + p.hashCode() + ".out")));
   }
