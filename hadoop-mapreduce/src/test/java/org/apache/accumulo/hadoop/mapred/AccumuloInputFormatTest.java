@@ -225,4 +225,13 @@ public class AccumuloInputFormatTest {
 
     assertEquals(cols, InputConfigurator.getFetchedColumns(AccumuloInputFormat.class, job));
   }
+
+  @Test
+  public void testEmptyFetchColumns() throws Exception {
+    Set<IteratorSetting.Column> cols = new HashSet<>();
+    AccumuloInputFormat.configure().clientProperties(clientProperties).table("test")
+        .auths(Authorizations.EMPTY).fetchColumns(cols).store(job);
+
+    assertEquals(cols, InputConfigurator.getFetchedColumns(AccumuloInputFormat.class, job));
+  }
 }

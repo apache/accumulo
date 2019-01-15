@@ -16,13 +16,7 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
+import java.util.*;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -105,11 +99,16 @@ public class InputFormatBuilderImpl<T>
   @Override
   public InputFormatBuilder.InputFormatOptions<T> fetchColumns(
       Collection<IteratorSetting.Column> fetchColumns) {
-    Collection<IteratorSetting.Column> newFetchColumns = ImmutableList
-        .copyOf(Objects.requireNonNull(fetchColumns, "Collection of fetch columns is null"));
-    if (newFetchColumns.size() == 0)
-      throw new IllegalArgumentException("Specified collection of fetch columns is empty.");
+
+    Collection<IteratorSetting.Column> newFetchColumns;
+    if (fetchColumns != null) {
+      newFetchColumns = ImmutableList.copyOf(fetchColumns);
+    } else {
+      throw new NullPointerException("Collection of fetch columns is null");
+    }
+
     tableConfigMap.get(currentTable).fetchColumns(newFetchColumns);
+
     return this;
   }
 
