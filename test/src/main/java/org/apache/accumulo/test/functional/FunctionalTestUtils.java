@@ -53,7 +53,6 @@ import org.apache.accumulo.fate.AdminUtil.FateStatus;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.LogWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.hadoop.fs.FileSystem;
@@ -169,8 +168,6 @@ public class FunctionalTestUtils {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static String readAll(MiniAccumuloClusterImpl c, Class<?> klass, Process p)
       throws Exception {
-    for (LogWriter writer : c.getLogWriters())
-      writer.flush();
     return readAll(new FileInputStream(
         c.getConfig().getLogDir() + "/" + klass.getSimpleName() + "_" + p.hashCode() + ".out"));
   }

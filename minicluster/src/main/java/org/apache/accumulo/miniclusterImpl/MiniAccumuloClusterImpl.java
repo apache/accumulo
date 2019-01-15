@@ -19,13 +19,9 @@ package org.apache.accumulo.miniclusterImpl;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
@@ -74,7 +70,6 @@ import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -88,7 +83,6 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
-import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
@@ -124,48 +118,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloClusterImpl.class);
 
-  public static class LogWriter extends Daemon {
-    private BufferedReader in;
-    private BufferedWriter out;
-
-    public LogWriter(InputStream stream, File logFile) throws IOException {
-      this.in = new BufferedReader(new InputStreamReader(stream));
-      out = new BufferedWriter(new FileWriter(logFile));
-
-      SimpleTimer.getInstance(null).schedule(() -> {
-        try {
-          flush();
-        } catch (IOException e) {
-          log.error("Exception while attempting to flush.", e);
-        }
-      }, 1000, 1000);
-    }
-
-    public synchronized void flush() throws IOException {
-      if (out != null)
-        out.flush();
-    }
-
-    @Override
-    public void run() {
-      String line;
-
-      try {
-        while ((line = in.readLine()) != null) {
-          out.append(line);
-          out.append("\n");
-        }
-
-        synchronized (this) {
-          out.close();
-          out = null;
-          in.close();
-        }
-
-      } catch (IOException e) {}
-    }
-  }
-
   private boolean initialized = false;
 
   private Set<Pair<ServerType,Integer>> debugPorts = new HashSet<>();
@@ -175,12 +127,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private SiteConfiguration siteConfig;
   private ServerContext context;
   private Properties clientProperties;
-
-  public List<LogWriter> getLogWriters() {
-    return logWriters;
-  }
-
-  private List<LogWriter> logWriters = new ArrayList<>();
 
   private MiniAccumuloConfigImpl config;
   private MiniDFSCluster miniDFS = null;
@@ -333,17 +279,16 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     log.debug("Starting MiniAccumuloCluster process with class: " + clazz.getSimpleName()
         + "\n, jvmOpts: " + extraJvmOpts + "\n, classpath: " + classpath + "\n, args: " + argList
         + "\n, environment: " + builder.environment());
-    Process process = builder.start();
 
-    LogWriter lw;
-    lw = new LogWriter(process.getErrorStream(),
-        new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".err"));
-    logWriters.add(lw);
-    lw.start();
-    lw = new LogWriter(process.getInputStream(),
-        new File(config.getLogDir(), clazz.getSimpleName() + "_" + process.hashCode() + ".out"));
-    logWriters.add(lw);
-    lw.start();
+    Integer hashcode = builder.hashCode();
+
+    builder = builder
+        .redirectError(new File(config.getLogDir(),
+            clazz.getSimpleName() + "_" + hashcode.toString() + ".err"))
+        .redirectOutput(new File(config.getLogDir(),
+            clazz.getSimpleName() + "_" + hashcode.toString() + ".out"));
+
+    Process process = builder.start();
 
     cleanup.add(process);
 
@@ -736,10 +681,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (executor == null) {
       // keep repeated calls to stop() from failing
       return;
-    }
-
-    for (LogWriter lw : logWriters) {
-      lw.flush();
     }
 
     MiniAccumuloClusterControl control = getClusterControl();
