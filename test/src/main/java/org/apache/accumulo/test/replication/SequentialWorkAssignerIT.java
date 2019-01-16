@@ -36,7 +36,6 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.master.replication.SequentialWorkAssigner;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
@@ -58,18 +57,13 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     }
 
     @Override
-    public void setClient(AccumuloClient client) {
-      super.setClient(client);
-    }
-
-    @Override
     public void setQueuedWork(Map<String,Map<Table.ID,String>> queuedWork) {
       super.setQueuedWork(queuedWork);
     }
 
     @Override
     public void setWorkQueue(DistributedWorkQueue workQueue) {
-      super.setWorkQueue(workQueue);
+      super.workQueue = workQueue;
     }
 
     @Override
@@ -80,11 +74,6 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     @Override
     public void createWork() {
       super.createWork();
-    }
-
-    @Override
-    public void setZooCache(ZooCache zooCache) {
-      super.setZooCache(zooCache);
     }
 
     @Override

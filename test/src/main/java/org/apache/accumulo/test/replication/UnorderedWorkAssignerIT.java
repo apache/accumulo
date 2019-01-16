@@ -35,7 +35,6 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.master.replication.UnorderedWorkAssigner;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -64,7 +63,7 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
     @Override
     protected void setWorkQueue(DistributedWorkQueue workQueue) {
-      super.setWorkQueue(workQueue);
+      super.workQueue = workQueue;
     }
 
     @Override
@@ -83,11 +82,6 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
     }
 
     @Override
-    protected void setClient(AccumuloClient client) {
-      super.setClient(client);
-    }
-
-    @Override
     protected void setMaxQueueSize(int maxQueueSize) {
       super.setMaxQueueSize(maxQueueSize);
     }
@@ -95,11 +89,6 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
     @Override
     protected void createWork() {
       super.createWork();
-    }
-
-    @Override
-    protected void setZooCache(ZooCache zooCache) {
-      super.setZooCache(zooCache);
     }
 
     @Override

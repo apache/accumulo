@@ -66,30 +66,29 @@ public class SequentialWorkAssignerTest {
 
     queuedWork.put("cluster1", cluster1Work);
 
-    assigner.setClient(client);
-    assigner.setZooCache(zooCache);
-    assigner.setWorkQueue(workQueue);
+    assigner.zooCache = zooCache;
+    assigner.workQueue = workQueue;
     assigner.setQueuedWork(queuedWork);
 
     expect(client.getInstanceID()).andReturn("instance");
 
     // file1 replicated
-    expect(zooCache.get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE + "/"
-        + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file1",
+    expect(assigner.zooCache.get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE
+        + "/" + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file1",
             new ReplicationTarget("cluster1", "1", Table.ID.of("1"))))).andReturn(null);
     // file2 still needs to replicate
     expect(
-        zooCache
+        assigner.zooCache
             .get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE + "/"
                 + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file2",
                     new ReplicationTarget("cluster1", "2", Table.ID.of("2")))))
                         .andReturn(new byte[0]);
 
-    replay(workQueue, zooCache, client);
+    replay(assigner.workQueue, assigner.zooCache, assigner.client);
 
     assigner.cleanupFinishedWork();
 
-    verify(workQueue, zooCache, client);
+    verify(assigner.workQueue, assigner.zooCache, assigner.client);
 
     assertEquals(1, cluster1Work.size());
     assertEquals(

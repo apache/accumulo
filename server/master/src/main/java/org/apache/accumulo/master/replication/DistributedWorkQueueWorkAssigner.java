@@ -67,20 +67,12 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
   protected int maxQueueSize;
   protected ZooCache zooCache;
 
-  protected void setClient(AccumuloClient client) {
-    this.client = client;
-  }
-
   protected void setWorkQueue(DistributedWorkQueue workQueue) {
     this.workQueue = workQueue;
   }
 
   protected void setMaxQueueSize(int maxQueueSize) {
     this.maxQueueSize = maxQueueSize;
-  }
-
-  protected void setZooCache(ZooCache zooCache) {
-    this.zooCache = zooCache;
   }
 
   /**

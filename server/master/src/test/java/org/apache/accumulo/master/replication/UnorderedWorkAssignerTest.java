@@ -63,7 +63,7 @@ public class UnorderedWorkAssignerTest {
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
     Set<String> queuedWork = new HashSet<>();
     assigner.setQueuedWork(queuedWork);
-    assigner.setWorkQueue(workQueue);
+    assigner.workQueue = workQueue;
 
     Path p = new Path("/accumulo/wal/tserver+port/" + UUID.randomUUID());
 
@@ -72,10 +72,10 @@ public class UnorderedWorkAssignerTest {
         + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
         + target.getSourceTableId();
 
-    workQueue.addWork(expectedQueueKey, p.toString());
+    assigner.workQueue.addWork(expectedQueueKey, p.toString());
     expectLastCall().once();
 
-    replay(workQueue);
+    replay(assigner.workQueue);
 
     assigner.queueWork(p, target);
 
@@ -93,10 +93,10 @@ public class UnorderedWorkAssignerTest {
 
     replay(workQueue);
 
-    assigner.setWorkQueue(workQueue);
+    assigner.workQueue = workQueue;
     assigner.initializeQueuedWork();
 
-    verify(workQueue);
+    verify(assigner.workQueue);
 
     Set<String> queuedWork = assigner.getQueuedWork();
     assertEquals("Expected existing work and queued work to be the same size", existingWork.size(),
@@ -110,19 +110,21 @@ public class UnorderedWorkAssignerTest {
     assigner.setQueuedWork(queuedWork);
 
     ZooCache cache = createMock(ZooCache.class);
-    assigner.setZooCache(cache);
+    assigner.zooCache = cache;
 
-    expect(client.getInstanceID()).andReturn("id");
-    expect(cache.get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal1"))
-        .andReturn(null);
-    expect(cache.get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal2"))
-        .andReturn(null);
+    expect(assigner.client.getInstanceID()).andReturn("id");
+    expect(assigner.zooCache
+        .get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal1"))
+            .andReturn(null);
+    expect(assigner.zooCache
+        .get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal2"))
+            .andReturn(null);
 
-    replay(cache, client);
+    replay(assigner.zooCache, assigner.client);
 
     assigner.cleanupFinishedWork();
 
-    verify(cache, client);
+    verify(assigner.zooCache, assigner.client);
     assertTrue("Queued work was not emptied", queuedWork.isEmpty());
   }
 
