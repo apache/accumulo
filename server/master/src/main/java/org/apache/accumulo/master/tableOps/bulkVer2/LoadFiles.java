@@ -29,11 +29,11 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.clientImpl.Bulk;
-import org.apache.accumulo.core.clientImpl.Bulk.Files;
-import org.apache.accumulo.core.clientImpl.BulkSerialize;
-import org.apache.accumulo.core.clientImpl.BulkSerialize.LoadMappingIterator;
 import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.clientImpl.bulk.Bulk;
+import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
+import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
+import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -50,6 +50,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
+import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -304,19 +305,16 @@ class LoadFiles extends MasterRepo {
    * scan the metadata table getting Tablet range and location information. It will return 0 when
    * all files have been loaded.
    */
-  private long loadFiles(Table.ID tableId, Path bulkDir, LoadMappingIterator lmi, Master master,
-      long tid) throws Exception {
-
-    Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.next();
+  private long loadFiles(Table.ID tableId, Path bulkDir, LoadMappingIterator loadMapIter,
+      Master master, long tid) throws Exception {
+    PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
+    Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
     Text startRow = loadMapEntry.getKey().getPrevEndRow();
 
     Iterator<TabletMetadata> tabletIter = TabletsMetadata.builder().forTable(tableId)
         .overlapping(startRow, null).checkConsistency().fetchPrev().fetchLocation().fetchLoaded()
         .build(master.getContext()).iterator();
-
-    List<TabletMetadata> tablets = new ArrayList<>();
-    TabletMetadata currentTablet = tabletIter.next();
 
     Loader loader;
     if (bulkInfo.tableState == TableState.ONLINE) {
@@ -328,38 +326,41 @@ class LoadFiles extends MasterRepo {
     loader.start(bulkDir, master, tid, bulkInfo.setTime);
 
     long t1 = System.currentTimeMillis();
-    while (true) {
-      if (loadMapEntry == null) {
-        if (!lmi.hasNext()) {
-          break;
-        }
-        loadMapEntry = lmi.next();
-      }
-      KeyExtent fke = loadMapEntry.getKey();
-      Files files = loadMapEntry.getValue();
-      loadMapEntry = null;
-
-      tablets.clear();
-
-      while (!Objects.equals(currentTablet.getPrevEndRow(), fke.getPrevEndRow())) {
-        currentTablet = tabletIter.next();
-      }
-      tablets.add(currentTablet);
-
-      while (!Objects.equals(currentTablet.getEndRow(), fke.getEndRow())) {
-        currentTablet = tabletIter.next();
-        tablets.add(currentTablet);
-      }
-
-      loader.load(tablets, files);
+    while (lmi.hasNext()) {
+      loadMapEntry = lmi.next();
+      List<TabletMetadata> tablets = findOverlappingTablets(loadMapEntry.getKey(), tabletIter);
+      loader.load(tablets, loadMapEntry.getValue());
     }
-    long t2 = System.currentTimeMillis();
 
     long sleepTime = loader.finish();
     if (sleepTime > 0) {
-      long scanTime = Math.min(t2 - t1, 30000);
+      long scanTime = Math.min(System.currentTimeMillis() - t1, 30000);
       sleepTime = Math.max(sleepTime, scanTime * 2);
     }
     return sleepTime;
+  }
+
+  /**
+   * Find all the tablets within the provided bulk load mapping range.
+   */
+  private List<TabletMetadata> findOverlappingTablets(KeyExtent loadRange,
+      Iterator<TabletMetadata> tabletIter) {
+    List<TabletMetadata> tablets = new ArrayList<>();
+    TabletMetadata currentTablet = tabletIter.next();
+
+    // skip tablets until we find the prevEndRow of loadRange
+    while (!Objects.equals(currentTablet.getPrevEndRow(), loadRange.getPrevEndRow())) {
+      currentTablet = tabletIter.next();
+    }
+    // we have found the first tablet in the range, add it to the list
+    tablets.add(currentTablet);
+
+    // find the remaining tablets within the loadRange by
+    // adding tablets to the list until the endRow matches the loadRange
+    while (!Objects.equals(currentTablet.getEndRow(), loadRange.getEndRow())) {
+      currentTablet = tabletIter.next();
+      tablets.add(currentTablet);
+    }
+    return tablets;
   }
 }

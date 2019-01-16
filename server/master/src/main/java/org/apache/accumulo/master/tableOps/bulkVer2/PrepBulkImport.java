@@ -28,10 +28,10 @@ import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.BulkSerialize;
-import org.apache.accumulo.core.clientImpl.BulkSerialize.LoadMappingIterator;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
+import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -160,13 +160,9 @@ public class PrepBulkImport extends MasterRepo {
     try (LoadMappingIterator lmi = BulkSerialize.readLoadMapping(bulkDir.toString(),
         bulkInfo.tableId, p -> fs.open(p))) {
 
-      Iterators.transform(lmi, entry -> entry.getKey());
-
-      TabletIterFactory tabletIterFactory = startRow -> {
-        return TabletsMetadata.builder().forTable(bulkInfo.tableId).overlapping(startRow, null)
-            .checkConsistency().fetchPrev().build(master.getContext()).stream()
-            .map(TabletMetadata::getExtent).iterator();
-      };
+      TabletIterFactory tabletIterFactory = startRow -> TabletsMetadata.builder()
+          .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency().fetchPrev()
+          .build(master.getContext()).stream().map(TabletMetadata::getExtent).iterator();
 
       checkForMerge(bulkInfo.tableId.canonicalID(),
           Iterators.transform(lmi, entry -> entry.getKey()), tabletIterFactory);
