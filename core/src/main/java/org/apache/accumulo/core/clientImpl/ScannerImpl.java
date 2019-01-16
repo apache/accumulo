@@ -18,11 +18,10 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -60,7 +59,45 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   boolean closed = false;
 
-  private Set<ScannerIterator> iters = Collections.synchronizedSet(new HashSet<>());
+  private static final int MAX_ENTRIES = 1000;
+
+  private long iterCount = 0;
+
+  // Create an LRU map of iterators that tracks the most 1000 recently used iterators. An LRU map is
+  // used to support the use case of a long lived scanner that constantly creates iterators and does
+  // not read all of the data. For this case do not want iterator tracking to consume too much
+  // memory.
+  private Map<ScannerIterator,Long> iters = new LinkedHashMap<ScannerIterator,Long>(MAX_ENTRIES + 1,
+      .75F, true) {
+    private static final long serialVersionUID = 1L;
+
+    // This method is called just after a new entry has been added
+    @Override
+    public boolean removeEldestEntry(Map.Entry<ScannerIterator,Long> eldest) {
+      return size() > MAX_ENTRIES;
+    }
+  };
+
+  /**
+   * This is used for ScannerIterators to report their activity back to the scanner that created
+   * them.
+   */
+  class Reporter {
+
+    void readBatch(ScannerIterator iter) {
+      synchronized (ScannerImpl.this) {
+        // This iter just had some activity, so access it in map so it becomes the most recently
+        // used.
+        iters.get(iter);
+      }
+    }
+
+    void finished(ScannerIterator iter) {
+      synchronized (ScannerImpl.this) {
+        iters.remove(iter);
+      }
+    }
+  }
 
   private synchronized void ensureOpen() {
     if (closed)
@@ -111,9 +148,9 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   public synchronized Iterator<Entry<Key,Value>> iterator() {
     ensureOpen();
     ScannerIterator iter = new ScannerIterator(context, tableId, authorizations, range, size,
-        getTimeout(TimeUnit.SECONDS), this, isolated, readaheadThreshold, iters);
+        getTimeout(TimeUnit.SECONDS), this, isolated, readaheadThreshold, new Reporter());
 
-    iters.add(iter);
+    iters.put(iter, iterCount++);
 
     return iter;
   }
@@ -156,7 +193,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   @Override
   public synchronized void close() {
     if (!closed) {
-      iters.forEach(ScannerIterator::close);
+      iters.forEach((iter, v) -> iter.close());
       iters.clear();
     }
 

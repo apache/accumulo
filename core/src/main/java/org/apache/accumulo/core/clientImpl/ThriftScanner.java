@@ -559,7 +559,6 @@ public class ThriftScanner {
   }
 
   static void close(ScanState scanState) {
-
     if (!scanState.finished && scanState.scanID != null && scanState.prevLoc != null) {
       TInfo tinfo = Tracer.traceInfo();
 

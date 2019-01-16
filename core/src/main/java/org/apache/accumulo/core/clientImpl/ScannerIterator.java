@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -59,7 +58,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   private long batchCount = 0;
   private long readaheadThreshold;
 
-  private Set<ScannerIterator> activeIters;
+  private ScannerImpl.Reporter reporter;
 
   private static ThreadPoolExecutor readaheadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 3L,
       TimeUnit.SECONDS, new SynchronousQueue<>(),
@@ -69,13 +68,13 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   ScannerIterator(ClientContext context, Table.ID tableId, Authorizations authorizations,
       Range range, int size, long timeOut, ScannerOptions options, boolean isolated,
-      long readaheadThreshold, Set<ScannerIterator> activeIters) {
+      long readaheadThreshold, ScannerImpl.Reporter reporter) {
     this.timeOut = timeOut;
     this.readaheadThreshold = readaheadThreshold;
 
     this.options = new ScannerOptions(options);
 
-    this.activeIters = activeIters;
+    this.reporter = reporter;
 
     if (this.options.fetchedColumns.size() > 0) {
       range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
@@ -106,7 +105,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     iter = getNextBatch().iterator();
     if (!iter.hasNext()) {
       finished = true;
-      activeIters.remove(this);
+      reporter.finished(this);
       return false;
     }
 
@@ -147,6 +146,10 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
         batch = ThriftScanner.scan(scanState.context, scanState, timeOut);
       }
     } while (batch != null && batch.size() == 0);
+
+    if (batch != null) {
+      reporter.readBatch(this);
+    }
 
     return batch == null ? Collections.emptyList() : batch;
   }
