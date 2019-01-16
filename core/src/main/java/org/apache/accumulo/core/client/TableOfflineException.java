@@ -28,7 +28,17 @@ public class TableOfflineException extends RuntimeException {
     super("Table with ID (" + tableId + ") is offline");
   }
 
+  /**
+   * @since 2.0.0
+   */
   public TableOfflineException(String msg) {
     super(msg);
+  }
+
+  /**
+   * @since 2.0.0
+   */
+  public TableOfflineException(Exception cause) {
+    super(cause);
   }
 }
