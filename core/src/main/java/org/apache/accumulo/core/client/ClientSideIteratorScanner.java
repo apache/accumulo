@@ -382,4 +382,9 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   public SamplerConfiguration getIteratorSamplerConfiguration() {
     return iteratorSamplerConfig;
   }
+
+  @Override
+  public void close() {
+    smi.scanner.close();
+  }
 }

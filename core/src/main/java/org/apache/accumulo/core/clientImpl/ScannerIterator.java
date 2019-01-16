@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -47,7 +48,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   // scanner state
   private Iterator<KeyValue> iter;
-  private ScanState scanState;
+  private final ScanState scanState;
 
   private ScannerOptions options;
 
@@ -58,17 +59,23 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   private long batchCount = 0;
   private long readaheadThreshold;
 
+  private Set<ScannerIterator> activeIters;
+
   private static ThreadPoolExecutor readaheadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 3L,
       TimeUnit.SECONDS, new SynchronousQueue<>(),
       new NamingThreadFactory("Accumulo scanner read ahead thread"));
 
+  private boolean closed = false;
+
   ScannerIterator(ClientContext context, Table.ID tableId, Authorizations authorizations,
       Range range, int size, long timeOut, ScannerOptions options, boolean isolated,
-      long readaheadThreshold) {
+      long readaheadThreshold, Set<ScannerIterator> activeIters) {
     this.timeOut = timeOut;
     this.readaheadThreshold = readaheadThreshold;
 
     this.options = new ScannerOptions(options);
+
+    this.activeIters = activeIters;
 
     if (this.options.fetchedColumns.size() > 0) {
       range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
@@ -99,6 +106,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     iter = getNextBatch().iterator();
     if (!iter.hasNext()) {
       finished = true;
+      activeIters.remove(this);
       return false;
     }
 
@@ -112,16 +120,32 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     throw new NoSuchElementException();
   }
 
+  void close() {
+    // run actual close operation in the background so this does not block.
+    readaheadPool.execute(() -> {
+      synchronized (scanState) {
+        // this is synchronized so its mutually exclusive with readBatch()
+        closed = true;
+        ThriftScanner.close(scanState);
+      }
+    });
+  }
+
   private void initiateReadAhead() {
     Preconditions.checkState(readAheadOperation == null);
     readAheadOperation = readaheadPool.submit(this::readBatch);
   }
 
   private List<KeyValue> readBatch() throws Exception {
+
     List<KeyValue> batch;
 
     do {
-      batch = ThriftScanner.scan(scanState.context, scanState, timeOut);
+      synchronized (scanState) {
+        // this is synchronized so its mutually exclusive with closing
+        Preconditions.checkState(!closed, "Scanner was closed");
+        batch = ThriftScanner.scan(scanState.context, scanState, timeOut);
+      }
     } while (batch != null && batch.size() == 0);
 
     return batch == null ? Collections.emptyList() : batch;
