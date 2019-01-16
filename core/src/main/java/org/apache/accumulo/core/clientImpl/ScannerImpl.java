@@ -59,14 +59,14 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   boolean closed = false;
 
-  private static final int MAX_ENTRIES = 1000;
+  private static final int MAX_ENTRIES = 32;
 
   private long iterCount = 0;
 
-  // Create an LRU map of iterators that tracks the most 1000 recently used iterators. An LRU map is
-  // used to support the use case of a long lived scanner that constantly creates iterators and does
-  // not read all of the data. For this case do not want iterator tracking to consume too much
-  // memory.
+  // Create an LRU map of iterators that tracks the MAX_ENTRIES most recently used iterators. An LRU
+  // map is used to support the use case of a long lived scanner that constantly creates iterators
+  // and does not read all of the data. For this case do not want iterator tracking to consume too
+  // much memory.
   private Map<ScannerIterator,Long> iters = new LinkedHashMap<ScannerIterator,Long>(MAX_ENTRIES + 1,
       .75F, true) {
     private static final long serialVersionUID = 1L;
