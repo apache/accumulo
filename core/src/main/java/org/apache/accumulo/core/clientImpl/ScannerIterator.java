@@ -62,16 +62,6 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       TimeUnit.SECONDS, new SynchronousQueue<>(),
       new NamingThreadFactory("Accumulo scanner read ahead thread"));
 
-  private List<KeyValue> readBatch() throws Exception {
-    List<KeyValue> batch;
-
-    do {
-      batch = ThriftScanner.scan(scanState.context, scanState, timeOut);
-    } while (batch != null && batch.size() == 0);
-
-    return batch == null ? Collections.emptyList() : batch;
-  }
-
   ScannerIterator(ClientContext context, Table.ID tableId, Authorizations authorizations,
       Range range, int size, long timeOut, ScannerOptions options, boolean isolated,
       long readaheadThreshold) {
@@ -95,54 +85,6 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       initiateReadAhead();
     }
     iter = null;
-  }
-
-  private void initiateReadAhead() {
-    Preconditions.checkState(readAheadOperation == null);
-    readAheadOperation = readaheadPool.submit(this::readBatch);
-  }
-
-  private List<KeyValue> getNextBatch() {
-
-    List<KeyValue> nextBatch;
-
-    try {
-      if (readAheadOperation == null) {
-        // no read ahead run, fetch the next batch right now
-        nextBatch = readBatch();
-      } else {
-        nextBatch = readAheadOperation.get();
-        readAheadOperation = null;
-      }
-    } catch (ExecutionException ee) {
-      if (ee.getCause() instanceof IsolationException)
-        throw new IsolationException(ee);
-      if (ee.getCause() instanceof TableDeletedException) {
-        TableDeletedException cause = (TableDeletedException) ee.getCause();
-        throw new TableDeletedException(cause.getTableId(), cause);
-      }
-      if (ee.getCause() instanceof TableOfflineException)
-        throw new TableOfflineException(ee);
-      if (ee.getCause() instanceof SampleNotPresentException)
-        throw new SampleNotPresentException(ee.getCause().getMessage(), ee);
-
-      throw new RuntimeException(ee);
-    } catch (RuntimeException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-
-    if (!nextBatch.isEmpty()) {
-      batchCount++;
-
-      if (batchCount > readaheadThreshold) {
-        // start a thread to read the next batch
-        initiateReadAhead();
-      }
-    }
-
-    return nextBatch;
   }
 
   @Override
@@ -170,10 +112,70 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     throw new NoSuchElementException();
   }
 
-  // just here to satisfy the interface
-  // could make this actually delete things from the database
-  @Override
-  public void remove() {
-    throw new UnsupportedOperationException("remove is not supported in Scanner");
+  private void initiateReadAhead() {
+    Preconditions.checkState(readAheadOperation == null);
+    readAheadOperation = readaheadPool.submit(this::readBatch);
   }
+
+  private List<KeyValue> readBatch() throws Exception {
+    List<KeyValue> batch;
+
+    do {
+      batch = ThriftScanner.scan(scanState.context, scanState, timeOut);
+    } while (batch != null && batch.size() == 0);
+
+    return batch == null ? Collections.emptyList() : batch;
+  }
+
+  private List<KeyValue> getNextBatch() {
+
+    List<KeyValue> nextBatch;
+
+    try {
+      if (readAheadOperation == null) {
+        // no read ahead run, fetch the next batch right now
+        nextBatch = readBatch();
+      } else {
+        nextBatch = readAheadOperation.get();
+        readAheadOperation = null;
+      }
+    } catch (ExecutionException ee) {
+      wrapExecutionException(ee);
+      throw new RuntimeException(ee);
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    if (!nextBatch.isEmpty()) {
+      batchCount++;
+
+      if (batchCount > readaheadThreshold) {
+        // start a thread to read the next batch
+        initiateReadAhead();
+      }
+    }
+
+    return nextBatch;
+  }
+
+  private void wrapExecutionException(ExecutionException ee) {
+    // Need preserve the type of exception that was the cause because some code depends on it.
+    // However the cause is an exception that occurred in a background thread, so throwing it would
+    // lose the stack trace for the user thread calling the scanner. Wrapping the exception with the
+    // same type preserves the type and stack traces (foreground and background thread traces) that
+    // are critical for debugging.
+    if (ee.getCause() instanceof IsolationException)
+      throw new IsolationException(ee);
+    if (ee.getCause() instanceof TableDeletedException) {
+      TableDeletedException cause = (TableDeletedException) ee.getCause();
+      throw new TableDeletedException(cause.getTableId(), cause);
+    }
+    if (ee.getCause() instanceof TableOfflineException)
+      throw new TableOfflineException(ee);
+    if (ee.getCause() instanceof SampleNotPresentException)
+      throw new SampleNotPresentException(ee.getCause().getMessage(), ee);
+  }
+
 }
