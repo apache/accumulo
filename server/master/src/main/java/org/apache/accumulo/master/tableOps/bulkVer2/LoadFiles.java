@@ -331,11 +331,10 @@ class LoadFiles extends MasterRepo {
       List<TabletMetadata> tablets = findOverlappingTablets(loadMapEntry.getKey(), tabletIter);
       loader.load(tablets, loadMapEntry.getValue());
     }
-    long t2 = System.currentTimeMillis();
 
     long sleepTime = loader.finish();
     if (sleepTime > 0) {
-      long scanTime = Math.min(t2 - t1, 30000);
+      long scanTime = Math.min(System.currentTimeMillis() - t1, 30000);
       sleepTime = Math.max(sleepTime, scanTime * 2);
     }
     return sleepTime;
