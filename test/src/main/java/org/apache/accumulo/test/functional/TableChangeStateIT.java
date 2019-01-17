@@ -18,7 +18,6 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -288,14 +287,14 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
           ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
 
       // call with no locks - passed as null.
-      AdminUtil.FateStatus noLocks = admin.getTransactionStatus(zs, null, null, null, null);
+      List<AdminUtil.TransactionStatus> noLocks = admin.getTransactionStatus(zs, zk, null, null);
 
-      assertEquals(withLocks.getTransactions().size(), noLocks.getTransactions().size());
+      assertEquals(withLocks.getTransactions().size(), noLocks.size());
 
       // exercise methods on returned status.
-      assertNotNull(noLocks.getDanglingHeldLocks());
-      assertNotNull(noLocks.getDanglingWaitingLocks());
-      assertNotNull(noLocks.getTransactions());
+      // assertNotNull(noLocks.getDanglingHeldLocks());
+      // assertNotNull(noLocks.getDanglingWaitingLocks());
+      // assertNotNull(noLocks.getTransactions());
 
     } catch (KeeperException | TableNotFoundException | InterruptedException ex) {
       throw new IllegalStateException(ex);

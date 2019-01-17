@@ -63,6 +63,9 @@ public class AdminUtil<T> {
     this.exitOnError = exitOnError;
   }
 
+  /**
+   * FATE transaction status, including lock information.
+   */
   public static class TransactionStatus {
 
     private final long txid;
@@ -74,12 +77,14 @@ public class AdminUtil<T> {
 
     private TransactionStatus(Long tid, TStatus status, String debug, List<String> hlocks,
         List<String> wlocks, String top) {
+
       this.txid = tid;
       this.status = status;
       this.debug = debug;
       this.hlocks = Collections.unmodifiableList(hlocks);
       this.wlocks = Collections.unmodifiableList(wlocks);
       this.top = top;
+
     }
 
     /**
@@ -121,7 +126,6 @@ public class AdminUtil<T> {
     public String getTop() {
       return top;
     }
-
   }
 
   public static class FateStatus {
@@ -184,6 +188,48 @@ public class AdminUtil<T> {
     }
   }
 
+  /**
+   * Returns a list of the FATE transactions, optionally filtered by transaction id and status.
+   *
+   * @param zs
+   *          read-only zoostore
+   * @param zk
+   *          zookeeper reader.
+   * @param filterTxid
+   *          filter results to include for provided transaction ids.
+   * @param filterStatus
+   *          filter results to include only provided status types
+   * @return list of FATE transactions that match filter criteria
+   */
+  public List<TransactionStatus> getTransactionStatus(ReadOnlyTStore<T> zs, IZooReader zk,
+      Set<Long> filterTxid, EnumSet<TStatus> filterStatus) {
+
+    FateStatus status = getTransactionStatus(zs, filterTxid, filterStatus,
+        Collections.<Long,List<String>> emptyMap(), Collections.<Long,List<String>> emptyMap());
+
+    return status.getTransactions();
+  }
+
+  /**
+   * Get the FATE transaction status and lock information stored in zookeeper, optionally filtered
+   * by transaction id and filter status.
+   *
+   * @param zs
+   *          read-only zoostore
+   * @param zk
+   *          zookeeper reader.
+   * @param lockPath
+   *          the zookeeper path for locks
+   * @param filterTxid
+   *          filter results to include for provided transaction ids.
+   * @param filterStatus
+   *          filter results to include only provided status types
+   * @return a summary container of the fate transactions.
+   * @throws KeeperException
+   *           if zookeeper exception occurs
+   * @throws InterruptedException
+   *           if process is interrupted.
+   */
   public FateStatus getStatus(ReadOnlyTStore<T> zs, IZooReader zk, String lockPath,
       Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
       throws KeeperException, InterruptedException {
@@ -310,25 +356,25 @@ public class AdminUtil<T> {
 
       String debug = (String) zs.getProperty(tid, "debug");
 
-      List<String> hlocks = null;
+      List<String> hlocks = heldLocks.remove(tid);
 
-      if (heldLocks == null) {
-        heldLocks = Collections.emptyMap();
-      } else {
-        hlocks = heldLocks.remove(tid);
-      }
+      // if (heldLocks == null) {
+      // heldLocks = Collections.emptyMap();
+      // } else {
+      // hlocks = heldLocks.remove(tid);
+      // }
 
       if (hlocks == null) {
         hlocks = Collections.emptyList();
       }
 
-      List<String> wlocks = null;
+      List<String> wlocks = waitingLocks.remove(tid);
 
-      if (waitingLocks == null) {
-        waitingLocks = Collections.emptyMap();
-      } else {
-        wlocks = waitingLocks.remove(tid);
-      }
+      // if (waitingLocks == null) {
+      // waitingLocks = Collections.emptyMap();
+      // } else {
+      // wlocks = waitingLocks.remove(tid);
+      // }
 
       if (wlocks == null) {
         wlocks = Collections.emptyList();
