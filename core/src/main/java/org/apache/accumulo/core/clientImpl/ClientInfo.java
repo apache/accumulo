@@ -21,6 +21,7 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.hadoop.conf.Configuration;
 
 /**
  * Accumulo client information. Can be built using {@link Accumulo#newClient()}
@@ -63,6 +64,11 @@ public interface ClientInfo {
    * @return All Accumulo client properties set for this connection
    */
   Properties getProperties();
+
+  /**
+   * @return hadoop Configuration
+   */
+  Configuration getHadoopConf();
 
   /**
    * @return ClientInfo given properties

@@ -72,7 +72,6 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -120,7 +119,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     Map<String,String> props = context.instanceOperations().getSystemConfiguration();
     AccumuloConfiguration conf = new ConfigurationCopy(props);
 
-    FileSystem fs = VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), conf)
+    FileSystem fs = VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf)
         .getFileSystem();
 
     Path srcPath = checkPath(fs, dir);

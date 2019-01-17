@@ -66,7 +66,6 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -91,13 +90,14 @@ public class CryptoTest {
       + "/target/CryptoTest-testkeyfile";
   public static final String emptyKeyPath = System.getProperty("user.dir")
       + "/target/CryptoTest-emptykeyfile";
+  private static Configuration hadoopConf = new Configuration();
 
   @Rule
   public ExpectedException exception = ExpectedException.none();
 
   @BeforeClass
   public static void setupKeyFiles() throws Exception {
-    FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
+    FileSystem fs = FileSystem.getLocal(hadoopConf);
     Path aesPath = new Path(keyPath);
     try (FSDataOutputStream out = fs.create(aesPath)) {
       out.writeUTF("sixteenbytekey"); // 14 + 2 from writeUTF
@@ -206,7 +206,7 @@ public class CryptoTest {
   @Test
   public void testRFileEncrypted() throws Exception {
     AccumuloConfiguration cryptoOnConf = getAccumuloConfig(CRYPTO_ON_CONF);
-    FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
+    FileSystem fs = FileSystem.getLocal(hadoopConf);
     ArrayList<Key> keys = testData();
     SummarizerConfiguration sumConf = SummarizerConfiguration.builder(KeyCounter.class.getName())
         .build();
@@ -243,7 +243,7 @@ public class CryptoTest {
   public void testReadNoCryptoWithCryptoConfigured() throws Exception {
     AccumuloConfiguration cryptoOffConf = getAccumuloConfig(CRYPTO_OFF_CONF);
     AccumuloConfiguration cryptoOnConf = getAccumuloConfig(CRYPTO_ON_CONF);
-    FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
+    FileSystem fs = FileSystem.getLocal(hadoopConf);
     ArrayList<Key> keys = testData();
 
     String file = "target/testFile2.rf";

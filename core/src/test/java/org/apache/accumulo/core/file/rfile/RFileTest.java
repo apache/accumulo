@@ -82,7 +82,6 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -122,6 +121,7 @@ public class RFileTest {
   }
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
+  private static final Configuration hadoopConf = new Configuration();
 
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder(
@@ -218,7 +218,7 @@ public class RFileTest {
 
   public static class TestRFile {
 
-    protected Configuration conf = CachedConfiguration.getInstance();
+    protected Configuration conf = new Configuration();
     public RFile.Writer writer;
     protected ByteArrayOutputStream baos;
     protected FSDataOutputStream dos;
@@ -1735,8 +1735,7 @@ public class RFileTest {
     byte data[] = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in2 = new FSDataInputStream(bais);
-    CachableBuilder cb = new CachableBuilder().input(in2).length(data.length)
-        .conf(CachedConfiguration.getInstance())
+    CachableBuilder cb = new CachableBuilder().input(in2).length(data.length).conf(hadoopConf)
         .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
     Reader reader = new RFile.Reader(cb);
     checkIndex(reader);

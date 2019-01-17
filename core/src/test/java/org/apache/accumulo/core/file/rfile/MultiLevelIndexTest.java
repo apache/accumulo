@@ -38,13 +38,14 @@ import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Writer;
 import org.apache.accumulo.core.file.rfile.RFileTest.SeekableByteArrayInputStream;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
-import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.junit.Test;
 
 public class MultiLevelIndexTest {
+  private Configuration hadoopConf = new Configuration();
 
   @Test
   public void test1() throws Exception {
@@ -62,7 +63,7 @@ public class MultiLevelIndexTest {
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
-    BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", CachedConfiguration.getInstance(),
+    BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", hadoopConf,
         CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
 
     BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
@@ -83,8 +84,7 @@ public class MultiLevelIndexTest {
     byte[] data = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in = new FSDataInputStream(bais);
-    CachableBuilder cb = new CachableBuilder().input(in).length(data.length)
-        .conf(CachedConfiguration.getInstance())
+    CachableBuilder cb = new CachableBuilder().input(in).length(data.length).conf(hadoopConf)
         .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(cb);
 

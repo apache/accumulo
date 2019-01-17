@@ -48,7 +48,6 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.trace.DistributedTrace;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -227,9 +226,8 @@ public class TestIngest {
     FileSKVWriter writer = null;
 
     if (opts.outputFile != null) {
-      Configuration conf = CachedConfiguration.getInstance();
       writer = FileOperations.getInstance().newWriterBuilder()
-          .forFile(opts.outputFile + "." + RFile.EXTENSION, fs, conf,
+          .forFile(opts.outputFile + "." + RFile.EXTENSION, fs, new Configuration(),
               CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
       writer.startDefaultLocalityGroup();
@@ -357,6 +355,6 @@ public class TestIngest {
   public static void ingest(AccumuloClient c, Opts opts, BatchWriterOpts batchWriterOpts)
       throws MutationsRejectedException, IOException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException, TableExistsException {
-    ingest(c, FileSystem.get(CachedConfiguration.getInstance()), opts, batchWriterOpts);
+    ingest(c, FileSystem.get(new Configuration()), opts, batchWriterOpts);
   }
 }

@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -80,7 +79,7 @@ public class BloomFilterLayerLookupTest {
     acuconf.set(Property.TABLE_BLOOM_LOAD_THRESHOLD, "1");
     acuconf.set(Property.TSERV_BLOOM_LOAD_MAXCONCURRENT, "1");
 
-    Configuration conf = CachedConfiguration.getInstance();
+    Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
 
     // get output file name

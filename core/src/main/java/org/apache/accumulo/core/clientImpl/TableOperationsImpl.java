@@ -120,7 +120,6 @@ import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
@@ -1151,7 +1150,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> props = context.instanceOperations().getSystemConfiguration();
     AccumuloConfiguration conf = new ConfigurationCopy(props);
 
-    FileSystem fs = VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), conf)
+    FileSystem fs = VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf)
         .getFileSystem();
 
     if (dir.contains(":")) {
@@ -1481,7 +1480,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     try {
-      FileSystem fs = new Path(importDir).getFileSystem(CachedConfiguration.getInstance());
+      FileSystem fs = new Path(importDir).getFileSystem(context.getHadoopConf());
       Map<String,String> props = getExportedProps(fs, new Path(importDir, Constants.EXPORT_FILE));
 
       for (Entry<String,String> entry : props.entrySet()) {

@@ -38,7 +38,6 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -81,7 +80,6 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
       log.info("Creating lots of bulk import files");
       final FileSystem fs = getCluster().getFileSystem();
       final Path basePath = getCluster().getTemporaryPath();
-      CachedConfiguration.setInstance(fs.getConf());
 
       final Path base = new Path(basePath, "testBulkLoad" + tableName);
       fs.delete(base, true);

@@ -27,6 +27,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.junit.Before;
 import org.junit.Rule;
@@ -36,6 +37,7 @@ import org.junit.rules.ExpectedException;
 public class VolumeManagerImplTest {
 
   protected VolumeManager fs;
+  private Configuration hadoopConf = new Configuration();
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -78,7 +80,7 @@ public class VolumeManagerImplTest {
     conf.set(Property.GENERAL_VOLUME_CHOOSER,
         "org.apache.accumulo.server.fs.ChooserThatDoesntExist");
     thrown.expect(RuntimeException.class);
-    VolumeManagerImpl.get(conf);
+    VolumeManagerImpl.get(conf, hadoopConf);
   }
 
   @Test
@@ -112,7 +114,7 @@ public class VolumeManagerImplTest {
     ConfigurationCopy conf = new ConfigurationCopy();
     conf.set(Property.INSTANCE_VOLUMES, "viewfs://dummy");
     thrown.expect(IllegalArgumentException.class);
-    VolumeManagerImpl.get(conf);
+    VolumeManagerImpl.get(conf, hadoopConf);
   }
 
   public static class WrongVolumeChooser implements VolumeChooser {
@@ -134,7 +136,7 @@ public class VolumeManagerImplTest {
     conf.set(Property.INSTANCE_VOLUMES, StringUtils.join(volumes, ","));
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
     thrown.expect(RuntimeException.class);
-    VolumeManager vm = VolumeManagerImpl.get(conf);
+    VolumeManager vm = VolumeManagerImpl.get(conf, hadoopConf);
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Table.ID.of("sometable"),
         null);
     String choice = vm.choose(chooserEnv, volumes.toArray(new String[0]));

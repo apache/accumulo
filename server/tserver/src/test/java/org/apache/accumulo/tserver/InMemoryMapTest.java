@@ -62,6 +62,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfiguratio
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ZooConfiguration;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -110,11 +111,13 @@ public class InMemoryMapTest {
   }
 
   public static ServerContext getServerContext() {
+    Configuration hadoopConf = new Configuration();
     ServerContext context = EasyMock.createMock(ServerContext.class);
     EasyMock.expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
         .anyTimes();
     EasyMock.expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance())
         .anyTimes();
+    EasyMock.expect(context.getHadoopConf()).andReturn(hadoopConf).anyTimes();
     EasyMock.replay(context);
     return context;
   }

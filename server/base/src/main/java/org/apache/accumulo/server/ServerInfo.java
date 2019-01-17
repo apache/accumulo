@@ -39,11 +39,13 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SystemCredentials;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
 public class ServerInfo implements ClientInfo {
 
   private SiteConfiguration siteConfig;
+  private Configuration hadoopConf;
   private String instanceID;
   private String instanceName;
   private String zooKeepers;
@@ -55,11 +57,12 @@ public class ServerInfo implements ClientInfo {
       int zooKeepersSessionTimeOut) {
     SingletonManager.setMode(Mode.SERVER);
     this.siteConfig = siteConfig;
+    this.hadoopConf = new Configuration();
     this.instanceName = instanceName;
     this.zooKeepers = zooKeepers;
     this.zooKeepersSessionTimeOut = zooKeepersSessionTimeOut;
     try {
-      volumeManager = VolumeManagerImpl.get(siteConfig);
+      volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConf);
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
@@ -83,13 +86,14 @@ public class ServerInfo implements ClientInfo {
   ServerInfo(SiteConfiguration config) {
     SingletonManager.setMode(Mode.SERVER);
     siteConfig = config;
+    hadoopConf = new Configuration();
     try {
-      volumeManager = VolumeManagerImpl.get(siteConfig);
+      volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConf);
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
     Path instanceIdPath = ServerUtil.getAccumuloInstanceIdPath(volumeManager);
-    instanceID = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, config);
+    instanceID = ZooUtil.getInstanceIDFromHdfs(instanceIdPath, config, hadoopConf);
     zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
@@ -152,5 +156,10 @@ public class ServerInfo implements ClientInfo {
 
   public Credentials getCredentials() {
     return SystemCredentials.get(getInstanceID(), getSiteConfiguration());
+  }
+
+  @Override
+  public Configuration getHadoopConf() {
+    return this.hadoopConf;
   }
 }

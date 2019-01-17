@@ -26,6 +26,7 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.hadoop.conf.Configuration;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -33,6 +34,7 @@ public class ClientInfoImpl implements ClientInfo {
 
   private Properties properties;
   private AuthenticationToken token;
+  private Configuration hadoopConf;
 
   public ClientInfoImpl(Path propertiesFile) {
     this(ClientInfoImpl.toProperties(propertiesFile));
@@ -45,6 +47,7 @@ public class ClientInfoImpl implements ClientInfo {
   public ClientInfoImpl(Properties properties, AuthenticationToken token) {
     this.properties = properties;
     this.token = token;
+    this.hadoopConf = new Configuration();
   }
 
   @Override
@@ -108,5 +111,10 @@ public class ClientInfoImpl implements ClientInfo {
       throw new IllegalArgumentException("Failed to load properties from " + propertiesFile, e);
     }
     return properties;
+  }
+
+  @Override
+  public Configuration getHadoopConf() {
+    return this.hadoopConf;
   }
 }

@@ -25,7 +25,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -75,7 +74,7 @@ public class CreateEmpty {
   }
 
   public static void main(String[] args) throws Exception {
-    Configuration conf = CachedConfiguration.getInstance();
+    Configuration conf = new Configuration();
 
     Opts opts = new Opts();
     opts.parseArgs(CreateEmpty.class.getName(), args);

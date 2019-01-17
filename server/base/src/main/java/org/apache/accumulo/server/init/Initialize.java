@@ -843,14 +843,14 @@ public class Initialize implements KeywordExecutable {
     return false;
   }
 
-  private static void addVolumes(VolumeManager fs, SiteConfiguration siteConfig)
-      throws IOException {
+  private static void addVolumes(VolumeManager fs, SiteConfiguration siteConfig,
+      Configuration hadoopConf) throws IOException {
 
-    String[] volumeURIs = VolumeConfiguration.getVolumeUris(siteConfig);
+    String[] volumeURIs = VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf);
 
     HashSet<String> initializedDirs = new HashSet<>();
-    initializedDirs
-        .addAll(Arrays.asList(ServerConstants.checkBaseUris(siteConfig, volumeURIs, true)));
+    initializedDirs.addAll(
+        Arrays.asList(ServerConstants.checkBaseUris(siteConfig, hadoopConf, volumeURIs, true)));
 
     HashSet<String> uinitializedDirs = new HashSet<>();
     uinitializedDirs.addAll(Arrays.asList(volumeURIs));
@@ -860,7 +860,7 @@ public class Initialize implements KeywordExecutable {
     Path iidPath = new Path(aBasePath, ServerConstants.INSTANCE_ID_DIR);
     Path versionPath = new Path(aBasePath, ServerConstants.VERSION_DIR);
 
-    UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, siteConfig));
+    UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, siteConfig, hadoopConf));
     for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements(siteConfig)) {
       if (aBasePath.equals(replacementVolume.getFirst()))
         log.error(
@@ -932,9 +932,9 @@ public class Initialize implements KeywordExecutable {
     try {
       setZooReaderWriter(new ZooReaderWriter(siteConfig));
       SecurityUtil.serverLogin(siteConfig);
-      Configuration hadoopConfig = CachedConfiguration.getInstance();
+      Configuration hadoopConfig = new Configuration();
 
-      VolumeManager fs = VolumeManagerImpl.get(siteConfig);
+      VolumeManager fs = VolumeManagerImpl.get(siteConfig, hadoopConfig);
 
       if (opts.resetSecurity) {
         log.info("Resetting security on accumulo.");
@@ -960,7 +960,7 @@ public class Initialize implements KeywordExecutable {
       }
 
       if (opts.addVolumes) {
-        addVolumes(fs, siteConfig);
+        addVolumes(fs, siteConfig, hadoopConfig);
       }
 
       if (!opts.resetSecurity && !opts.addVolumes)

@@ -25,7 +25,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.Opts;
@@ -33,8 +32,6 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 public class BulkIT extends AccumuloClusterHarness {
@@ -47,20 +44,6 @@ public class BulkIT extends AccumuloClusterHarness {
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
-  }
-
-  private Configuration origConf;
-
-  @Before
-  public void saveConf() {
-    origConf = CachedConfiguration.getInstance();
-  }
-
-  @After
-  public void restoreConf() {
-    if (origConf != null) {
-      CachedConfiguration.setInstance(origConf);
-    }
   }
 
   @Test

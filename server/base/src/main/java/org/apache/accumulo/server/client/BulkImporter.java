@@ -62,7 +62,6 @@ import org.apache.accumulo.core.util.StopWatch;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -104,7 +103,7 @@ public class BulkImporter {
     this.setTime = setTime;
   }
 
-  public AssignmentStats importFiles(List<String> files) throws IOException {
+  public AssignmentStats importFiles(List<String> files) {
 
     int numThreads = context.getConfiguration().getCount(Property.TSERV_BULK_PROCESS_THREADS);
     int numAssignThreads = context.getConfiguration()
@@ -113,8 +112,7 @@ public class BulkImporter {
     timer = new StopWatch<>(Timers.class);
     timer.start(Timers.TOTAL);
 
-    VolumeManagerImpl.get(context.getConfiguration());
-    final VolumeManager fs = VolumeManagerImpl.get(context.getConfiguration());
+    final VolumeManager fs = context.getVolumeManager();
 
     Set<Path> paths = new HashSet<>();
     for (String file : files) {

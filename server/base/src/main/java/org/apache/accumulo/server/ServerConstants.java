@@ -32,6 +32,7 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
 public class ServerConstants {
@@ -90,14 +91,15 @@ public class ServerConstants {
   // these are functions to delay loading the Accumulo configuration unless we must
   public static synchronized String[] getBaseUris(AccumuloConfiguration conf) {
     if (baseUris == null) {
-      baseUris = checkBaseUris(conf, VolumeConfiguration.getVolumeUris(conf), false);
+      baseUris = checkBaseUris(conf, CachedConfiguration.getInstance(),
+          VolumeConfiguration.getVolumeUris(conf), false);
     }
 
     return baseUris;
   }
 
-  public static String[] checkBaseUris(AccumuloConfiguration conf, String[] configuredBaseDirs,
-      boolean ignore) {
+  public static String[] checkBaseUris(AccumuloConfiguration conf, Configuration hadoopConf,
+      String[] configuredBaseDirs, boolean ignore) {
     // all base dirs must have same instance id and data version, any dirs that have neither should
     // be ignored
     String firstDir = null;
@@ -109,10 +111,10 @@ public class ServerConstants {
       String currentIid;
       Integer currentVersion;
       try {
-        currentIid = ZooUtil.getInstanceIDFromHdfs(path, conf);
+        currentIid = ZooUtil.getInstanceIDFromHdfs(path, conf, hadoopConf);
         Path vpath = new Path(baseDir, VERSION_DIR);
-        currentVersion = ServerUtil.getAccumuloPersistentVersion(
-            vpath.getFileSystem(CachedConfiguration.getInstance()), vpath);
+        currentVersion = ServerUtil.getAccumuloPersistentVersion(vpath.getFileSystem(hadoopConf),
+            vpath);
       } catch (Exception e) {
         if (ignore)
           continue;

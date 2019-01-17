@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.junit.Test;
@@ -52,7 +52,7 @@ public class ServerMutationTest {
     assertEquals(42L, cu.getTimestamp());
 
     ServerMutation m2 = new ServerMutation();
-    ReflectionUtils.copy(CachedConfiguration.getInstance(), m, m2);
+    ReflectionUtils.copy(new Configuration(), m, m2);
 
     updates = m2.getUpdates();
 

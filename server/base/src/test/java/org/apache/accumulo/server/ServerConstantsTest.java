@@ -39,6 +39,7 @@ import org.junit.rules.TemporaryFolder;
 public class ServerConstantsTest {
 
   AccumuloConfiguration conf = DefaultConfiguration.getInstance();
+  Configuration hadoopConf = new Configuration();
 
   @Rule
   public TemporaryFolder folder = new TemporaryFolder(
@@ -70,17 +71,18 @@ public class ServerConstantsTest {
   }
 
   private void verifyAllPass(ArrayList<String> paths) {
-    assertEquals(paths, Arrays.asList(
-        ServerConstants.checkBaseUris(conf, paths.toArray(new String[paths.size()]), true)));
-    assertEquals(paths, Arrays.asList(
-        ServerConstants.checkBaseUris(conf, paths.toArray(new String[paths.size()]), false)));
+    assertEquals(paths, Arrays.asList(ServerConstants.checkBaseUris(conf, hadoopConf,
+        paths.toArray(new String[paths.size()]), true)));
+    assertEquals(paths, Arrays.asList(ServerConstants.checkBaseUris(conf, hadoopConf,
+        paths.toArray(new String[paths.size()]), false)));
   }
 
   private void verifySomePass(ArrayList<String> paths) {
-    assertEquals(paths.subList(0, 2), Arrays.asList(
-        ServerConstants.checkBaseUris(conf, paths.toArray(new String[paths.size()]), true)));
+    assertEquals(paths.subList(0, 2), Arrays.asList(ServerConstants.checkBaseUris(conf, hadoopConf,
+        paths.toArray(new String[paths.size()]), true)));
     try {
-      ServerConstants.checkBaseUris(conf, paths.toArray(new String[paths.size()]), false);
+      ServerConstants.checkBaseUris(conf, hadoopConf, paths.toArray(new String[paths.size()]),
+          false);
       fail();
     } catch (Exception e) {
       // ignored
@@ -89,14 +91,16 @@ public class ServerConstantsTest {
 
   private void verifyError(ArrayList<String> paths) {
     try {
-      ServerConstants.checkBaseUris(conf, paths.toArray(new String[paths.size()]), true);
+      ServerConstants.checkBaseUris(conf, hadoopConf, paths.toArray(new String[paths.size()]),
+          true);
       fail();
     } catch (Exception e) {
       // ignored
     }
 
     try {
-      ServerConstants.checkBaseUris(conf, paths.toArray(new String[paths.size()]), false);
+      ServerConstants.checkBaseUris(conf, hadoopConf, paths.toArray(new String[paths.size()]),
+          false);
       fail();
     } catch (Exception e) {
       // ignored
