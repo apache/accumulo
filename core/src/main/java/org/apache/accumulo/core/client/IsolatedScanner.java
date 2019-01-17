@@ -283,4 +283,9 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
     this.readaheadThreshold = batches;
   }
+
+  @Override
+  public void close() {
+    scanner.close();
+  }
 }

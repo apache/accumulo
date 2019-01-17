@@ -19,6 +19,8 @@ package org.apache.accumulo.core.clientImpl;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
@@ -55,6 +57,54 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   private boolean isolated = false;
   private long readaheadThreshold = Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD;
 
+  boolean closed = false;
+
+  private static final int MAX_ENTRIES = 16;
+
+  private long iterCount = 0;
+
+  // Create an LRU map of iterators that tracks the MAX_ENTRIES most recently used iterators. An LRU
+  // map is used to support the use case of a long lived scanner that constantly creates iterators
+  // and does not read all of the data. For this case do not want iterator tracking to consume too
+  // much memory. Also it would be best to avoid an RPC storm of close methods for thousands
+  // sessions that may have timed out.
+  private Map<ScannerIterator,Long> iters = new LinkedHashMap<ScannerIterator,Long>(MAX_ENTRIES + 1,
+      .75F, true) {
+    private static final long serialVersionUID = 1L;
+
+    // This method is called just after a new entry has been added
+    @Override
+    public boolean removeEldestEntry(Map.Entry<ScannerIterator,Long> eldest) {
+      return size() > MAX_ENTRIES;
+    }
+  };
+
+  /**
+   * This is used for ScannerIterators to report their activity back to the scanner that created
+   * them.
+   */
+  class Reporter {
+
+    void readBatch(ScannerIterator iter) {
+      synchronized (ScannerImpl.this) {
+        // This iter just had some activity, so access it in map so it becomes the most recently
+        // used.
+        iters.get(iter);
+      }
+    }
+
+    void finished(ScannerIterator iter) {
+      synchronized (ScannerImpl.this) {
+        iters.remove(iter);
+      }
+    }
+  }
+
+  private synchronized void ensureOpen() {
+    if (closed)
+      throw new IllegalArgumentException("Scanner is closed");
+  }
+
   public ScannerImpl(ClientContext context, Table.ID tableId, Authorizations authorizations) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
@@ -69,17 +119,20 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   @Override
   public synchronized void setRange(Range range) {
+    ensureOpen();
     checkArgument(range != null, "range is null");
     this.range = range;
   }
 
   @Override
   public synchronized Range getRange() {
+    ensureOpen();
     return range;
   }
 
   @Override
   public synchronized void setBatchSize(int size) {
+    ensureOpen();
     if (size > 0)
       this.size = size;
     else
@@ -88,32 +141,42 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   @Override
   public synchronized int getBatchSize() {
+    ensureOpen();
     return size;
   }
 
   @Override
   public synchronized Iterator<Entry<Key,Value>> iterator() {
-    return new ScannerIterator(context, tableId, authorizations, range, size,
-        getTimeout(TimeUnit.SECONDS), this, isolated, readaheadThreshold);
+    ensureOpen();
+    ScannerIterator iter = new ScannerIterator(context, tableId, authorizations, range, size,
+        getTimeout(TimeUnit.SECONDS), this, isolated, readaheadThreshold, new Reporter());
+
+    iters.put(iter, iterCount++);
+
+    return iter;
   }
 
   @Override
   public Authorizations getAuthorizations() {
+    ensureOpen();
     return authorizations;
   }
 
   @Override
   public synchronized void enableIsolation() {
+    ensureOpen();
     this.isolated = true;
   }
 
   @Override
   public synchronized void disableIsolation() {
+    ensureOpen();
     this.isolated = false;
   }
 
   @Override
   public synchronized void setReadaheadThreshold(long batches) {
+    ensureOpen();
     if (batches < 0) {
       throw new IllegalArgumentException(
           "Number of batches before read-ahead must be non-negative");
@@ -124,6 +187,17 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   @Override
   public synchronized long getReadaheadThreshold() {
+    ensureOpen();
     return readaheadThreshold;
+  }
+
+  @Override
+  public synchronized void close() {
+    if (!closed) {
+      iters.forEach((iter, v) -> iter.close());
+      iters.clear();
+    }
+
+    closed = true;
   }
 }

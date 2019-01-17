@@ -557,4 +557,24 @@ public class ThriftScanner {
       Thread.currentThread().setName(old);
     }
   }
+
+  static void close(ScanState scanState) {
+    if (!scanState.finished && scanState.scanID != null && scanState.prevLoc != null) {
+      TInfo tinfo = Tracer.traceInfo();
+
+      log.debug("Closing active scan {} {}", scanState.prevLoc, scanState.scanID);
+      HostAndPort parsedLocation = HostAndPort.fromString(scanState.prevLoc.tablet_location);
+      TabletClientService.Client client = null;
+      try {
+        client = ThriftUtil.getTServerClient(parsedLocation, scanState.context);
+        client.closeScan(tinfo, scanState.scanID);
+      } catch (TException e) {
+        // ignore this is a best effort
+        log.debug("Failed to close active scan " + scanState.prevLoc + " " + scanState.scanID, e);
+      } finally {
+        if (client != null)
+          ThriftUtil.returnClient(client);
+      }
+    }
+  }
 }
