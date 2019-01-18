@@ -335,10 +335,6 @@ public class VolumeManagerImpl implements VolumeManager {
 
   private static final String DEFAULT = "";
 
-  public static VolumeManager get(AccumuloConfiguration conf) throws IOException {
-    return get(conf, CachedConfiguration.getInstance());
-  }
-
   public static VolumeManager get(AccumuloConfiguration conf, final Configuration hadoopConf)
       throws IOException {
     final Map<String,Volume> volumes = new HashMap<>();

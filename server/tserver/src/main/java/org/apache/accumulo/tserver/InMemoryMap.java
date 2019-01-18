@@ -63,7 +63,6 @@ import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
 import org.apache.accumulo.core.util.Pair;
@@ -582,7 +581,7 @@ public class InMemoryMap {
 
     private synchronized FileSKVIterator getReader() throws IOException {
       if (reader == null) {
-        Configuration conf = CachedConfiguration.getInstance();
+        Configuration conf = context.getHadoopConf();
         FileSystem fs = FileSystem.getLocal(conf);
 
         reader = new RFileOperations().newReaderBuilder()
@@ -743,7 +742,7 @@ public class InMemoryMap {
     if (activeIters.size() > 0) {
       // dump memmap exactly as is to a tmp file on disk, and switch scans to that temp file
       try {
-        Configuration conf = CachedConfiguration.getInstance();
+        Configuration conf = context.getHadoopConf();
         FileSystem fs = FileSystem.getLocal(conf);
 
         String tmpFile = memDumpDir + "/memDump" + UUID.randomUUID() + "." + RFile.EXTENSION;

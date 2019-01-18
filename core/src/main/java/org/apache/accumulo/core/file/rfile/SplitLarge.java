@@ -33,7 +33,6 @@ import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.RFile.Writer;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -56,7 +55,7 @@ public class SplitLarge {
   }
 
   public static void main(String[] args) throws Exception {
-    Configuration conf = CachedConfiguration.getInstance();
+    Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
     Opts opts = new Opts();
     opts.parseArgs(SplitLarge.class.getName(), args);

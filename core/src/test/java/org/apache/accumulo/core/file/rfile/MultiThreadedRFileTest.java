@@ -55,7 +55,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.hadoop.conf.Configuration;
@@ -108,7 +107,7 @@ public class MultiThreadedRFileTest {
 
   public static class TestRFile {
 
-    private Configuration conf = CachedConfiguration.getInstance();
+    private Configuration conf = new Configuration();
     public RFile.Writer writer;
     private FSDataOutputStream dos;
     private AccumuloConfiguration accumuloConfiguration;

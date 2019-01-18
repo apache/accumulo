@@ -39,11 +39,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.commons.lang.NotImplementedException;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -110,7 +110,7 @@ public class BulkImporterTest {
   @Test
   public void testFindOverlappingTablets() throws Exception {
     MockTabletLocator locator = new MockTabletLocator();
-    FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
+    FileSystem fs = FileSystem.getLocal(new Configuration());
     ServerContext context = EasyMock.createMock(ServerContext.class);
     EasyMock.expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance())
         .anyTimes();
@@ -145,7 +145,7 @@ public class BulkImporterTest {
     writer.append(new Key("iterator", "cf", "cq5"), empty);
     writer.append(new Key("xyzzy", "cf", "cq"), empty);
     writer.close();
-    VolumeManager vm = VolumeManagerImpl.get(context.getConfiguration());
+    VolumeManager vm = VolumeManagerImpl.get(context.getConfiguration(), new Configuration());
     List<TabletLocation> overlaps = BulkImporter.findOverlappingTablets(context, vm, locator,
         new Path(file));
     assertEquals(5, overlaps.size());

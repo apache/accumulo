@@ -40,6 +40,7 @@ import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.log.RecoveryLogReader;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -76,7 +77,7 @@ public class LogReader {
     Opts opts = new Opts();
     opts.parseArgs(LogReader.class.getName(), args);
     SiteConfiguration siteConfig = new SiteConfiguration();
-    VolumeManager fs = VolumeManagerImpl.get(siteConfig);
+    VolumeManager fs = VolumeManagerImpl.get(siteConfig, new Configuration());
 
     Matcher rowMatcher = null;
     KeyExtent ke = null;

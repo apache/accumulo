@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletServerBatchWriter;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
@@ -48,7 +49,6 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.trace.DistributedTrace;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -227,9 +227,9 @@ public class TestIngest {
     FileSKVWriter writer = null;
 
     if (opts.outputFile != null) {
-      Configuration conf = CachedConfiguration.getInstance();
+      ClientContext cc = (ClientContext) accumuloClient;
       writer = FileOperations.getInstance().newWriterBuilder()
-          .forFile(opts.outputFile + "." + RFile.EXTENSION, fs, conf,
+          .forFile(opts.outputFile + "." + RFile.EXTENSION, fs, cc.getHadoopConf(),
               CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
       writer.startDefaultLocalityGroup();
@@ -357,6 +357,7 @@ public class TestIngest {
   public static void ingest(AccumuloClient c, Opts opts, BatchWriterOpts batchWriterOpts)
       throws MutationsRejectedException, IOException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException, TableExistsException {
-    ingest(c, FileSystem.get(CachedConfiguration.getInstance()), opts, batchWriterOpts);
+    ClientContext cc = (ClientContext) c;
+    ingest(c, FileSystem.get(cc.getHadoopConf()), opts, batchWriterOpts);
   }
 }

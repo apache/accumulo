@@ -53,7 +53,6 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -473,7 +472,7 @@ public class BloomFilterLayer {
     acuconf.set(Property.TABLE_BLOOM_LOAD_THRESHOLD, "1");
     acuconf.set(Property.TSERV_BLOOM_LOAD_MAXCONCURRENT, "1");
 
-    Configuration conf = CachedConfiguration.getInstance();
+    Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
 
     String suffix = FileOperations.getNewFileExtension(acuconf);

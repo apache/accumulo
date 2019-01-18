@@ -123,7 +123,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     conf = context.getConfiguration();
 
     try {
-      fs = VolumeManagerImpl.get(conf);
+      fs = VolumeManagerImpl.get(conf, context.getHadoopConf());
     } catch (IOException e) {
       log.error("Could not connect to filesystem", e);
       throw new RuntimeException(e);

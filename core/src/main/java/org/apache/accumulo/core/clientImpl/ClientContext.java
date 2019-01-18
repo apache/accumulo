@@ -64,6 +64,7 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,6 +90,7 @@ public class ClientContext implements AccumuloClient {
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
   private AccumuloConfiguration serverConf;
+  private Configuration hadoopConf;
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
   // compute, so cache them.
@@ -136,6 +138,7 @@ public class ClientContext implements AccumuloClient {
   public ClientContext(SingletonReservation reservation, ClientInfo info,
       AccumuloConfiguration serverConf) {
     this.info = info;
+    this.hadoopConf = info.getHadoopConf();
     zooCache = new ZooCacheFactory().getZooCache(info.getZooKeepers(),
         info.getZooKeepersSessionTimeOut());
     this.serverConf = serverConf;
@@ -239,6 +242,14 @@ public class ClientContext implements AccumuloClient {
   public AccumuloConfiguration getConfiguration() {
     ensureOpen();
     return serverConf;
+  }
+
+  /**
+   * Retrieve the hadoop configuration
+   */
+  public Configuration getHadoopConf() {
+    ensureOpen();
+    return this.hadoopConf;
   }
 
   /**

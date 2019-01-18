@@ -36,6 +36,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
@@ -60,7 +61,7 @@ public class ChangeSecret {
 
   public static void main(String[] args) throws Exception {
     SiteConfiguration siteConfig = new SiteConfiguration();
-    VolumeManager fs = VolumeManagerImpl.get(siteConfig);
+    VolumeManager fs = VolumeManagerImpl.get(siteConfig, new Configuration());
     verifyHdfsWritePermission(fs);
 
     Opts opts = new Opts();
