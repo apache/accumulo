@@ -742,7 +742,7 @@ public class InMemoryMap {
     if (activeIters.size() > 0) {
       // dump memmap exactly as is to a tmp file on disk, and switch scans to that temp file
       try {
-        Configuration conf = this.context.getHadoopConf();
+        Configuration conf = context.getHadoopConf();
         FileSystem fs = FileSystem.getLocal(conf);
 
         String tmpFile = memDumpDir + "/memDump" + UUID.randomUUID() + "." + RFile.EXTENSION;
