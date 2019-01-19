@@ -29,6 +29,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -66,14 +67,15 @@ public class ZooZap {
     }
 
     SiteConfiguration siteConf = new SiteConfiguration();
+    Configuration hadoopConf = new Configuration();
     // Login as the server on secure HDFS
     if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       SecurityUtil.serverLogin(siteConf);
     }
 
-    String volDir = VolumeConfiguration.getVolumeUris(siteConf)[0];
+    String volDir = VolumeConfiguration.getVolumeUris(siteConf, hadoopConf)[0];
     Path instanceDir = new Path(volDir, "instance_id");
-    String iid = ZooUtil.getInstanceIDFromHdfs(instanceDir, siteConf);
+    String iid = ZooUtil.getInstanceIDFromHdfs(instanceDir, siteConf, hadoopConf);
     ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
 
     if (opts.zapMaster) {

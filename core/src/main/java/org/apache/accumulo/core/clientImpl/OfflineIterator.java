@@ -56,7 +56,6 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.commons.lang.NotImplementedException;
@@ -303,7 +302,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     AccumuloConfiguration acuTableConf = new ConfigurationCopy(
         context.tableOperations().getProperties(tableName));
 
-    Configuration conf = CachedConfiguration.getInstance();
+    Configuration conf = context.getHadoopConf();
 
     for (SortedKeyValueIterator<Key,Value> reader : readers) {
       ((FileSKVIterator) reader).close();

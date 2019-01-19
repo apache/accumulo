@@ -37,7 +37,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -169,7 +168,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
         out.println(outString);
       }
 
-      Configuration conf = CachedConfiguration.getInstance();
+      Configuration conf = cluster.getServerContext().getHadoopConf();
       conf.set("hadoop.tmp.dir", new File(tf.getAbsolutePath()).getParent());
       conf.set("mapreduce.framework.name", "local");
       conf.set("mapreduce.cluster.local.dir",

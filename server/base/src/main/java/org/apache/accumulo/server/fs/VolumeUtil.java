@@ -30,7 +30,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerConstants;
@@ -63,7 +62,7 @@ public class VolumeUtil {
     if (!dir.toString().contains(":"))
       return true;
 
-    for (String tableDir : ServerConstants.getTablesDirs(context.getConfiguration())) {
+    for (String tableDir : ServerConstants.getTablesDirs(context)) {
       // use Path to normalize tableDir
       if (dir.toString().startsWith(new Path(tableDir).toString()))
         return true;
@@ -166,7 +165,7 @@ public class VolumeUtil {
   public static String switchRootTableVolume(ServerContext context, String location)
       throws IOException {
     String newLocation = switchVolume(location, FileType.TABLE,
-        ServerConstants.getVolumeReplacements(context.getConfiguration()));
+        ServerConstants.getVolumeReplacements(context.getConfiguration(), context.getHadoopConf()));
     if (newLocation != null) {
       MetadataTableUtil.setRootTabletDir(context, newLocation);
       log.info("Volume replaced: {} -> {}", location, newLocation);
@@ -184,7 +183,7 @@ public class VolumeUtil {
       VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate)
       throws IOException {
     List<Pair<Path,Path>> replacements = ServerConstants
-        .getVolumeReplacements(context.getConfiguration());
+        .getVolumeReplacements(context.getConfiguration(), context.getHadoopConf());
     log.trace("Using volume replacements: {}", replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<>();
@@ -275,10 +274,10 @@ public class VolumeUtil {
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
         context);
-    Path newDir = new Path(
-        vm.choose(chooserEnv, ServerConstants.getBaseUris(context.getConfiguration()))
-            + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR
-            + dir.getParent().getName() + Path.SEPARATOR + dir.getName());
+    Path newDir = new Path(vm.choose(chooserEnv,
+        ServerConstants.getBaseUris(context.getConfiguration(), context.getHadoopConf()))
+        + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + dir.getParent().getName()
+        + Path.SEPARATOR + dir.getName());
 
     log.info("Updating directory for {} from {} to {}", extent, dir, newDir);
     if (extent.isRootTablet()) {
@@ -302,7 +301,7 @@ public class VolumeUtil {
 
         // do a lot of logging since this is the root tablet
         log.info("copying {} to {}", dir, newDir);
-        if (!FileUtil.copy(fs1, dir, fs2, newDir, false, CachedConfiguration.getInstance())) {
+        if (!FileUtil.copy(fs1, dir, fs2, newDir, false, context.getHadoopConf())) {
           throw new IOException("Failed to copy " + dir + " to " + newDir);
         }
 

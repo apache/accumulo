@@ -92,8 +92,8 @@ public class RecoveryManager {
     public void run() {
       boolean rescheduled = false;
       try {
-        long time = closer.close(master.getConfiguration(), master.getFileSystem(),
-            new Path(source));
+        long time = closer.close(master.getConfiguration(), master.getContext().getHadoopConf(),
+            master.getFileSystem(), new Path(source));
 
         if (time > 0) {
           executor.schedule(this, time, TimeUnit.MILLISECONDS);
@@ -137,8 +137,8 @@ public class RecoveryManager {
     for (Collection<String> logs : walogs) {
       for (String walog : logs) {
 
-        String switchedWalog = VolumeUtil.switchVolume(walog, FileType.WAL,
-            ServerConstants.getVolumeReplacements(master.getConfiguration()));
+        String switchedWalog = VolumeUtil.switchVolume(walog, FileType.WAL, ServerConstants
+            .getVolumeReplacements(master.getConfiguration(), master.getContext().getHadoopConf()));
         if (switchedWalog != null) {
           // replaces the volume used for sorting, but do not change entry in metadata table. When
           // the tablet loads it will change the metadata table entry. If

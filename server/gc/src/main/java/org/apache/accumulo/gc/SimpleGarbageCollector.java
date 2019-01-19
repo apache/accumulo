@@ -347,7 +347,7 @@ public class SimpleGarbageCollector implements Iface {
           new NamingThreadFactory("deleting"));
 
       final List<Pair<Path,Path>> replacements = ServerConstants
-          .getVolumeReplacements(getConfiguration());
+          .getVolumeReplacements(getConfiguration(), getContext().getHadoopConf());
 
       for (final String delete : confirmedDeletes.values()) {
 
@@ -448,7 +448,7 @@ public class SimpleGarbageCollector implements Iface {
     public void deleteTableDirIfEmpty(Table.ID tableID) throws IOException {
       // if dir exist and is empty, then empty list is returned...
       // hadoop 2.0 will throw an exception if the file does not exist
-      for (String dir : ServerConstants.getTablesDirs(context.getConfiguration())) {
+      for (String dir : ServerConstants.getTablesDirs(context)) {
         FileStatus[] tabletDirs = null;
         try {
           tabletDirs = fs.listStatus(new Path(dir + "/" + tableID));

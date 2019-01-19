@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
@@ -576,13 +575,6 @@ public class ZooUtil {
 
   public static String getRoot(final String instanceId) {
     return Constants.ZROOT + "/" + instanceId;
-  }
-
-  /**
-   * Utility to support certain client side utilities to minimize command-line options.
-   */
-  public static String getInstanceIDFromHdfs(Path instanceDirectory, AccumuloConfiguration conf) {
-    return getInstanceIDFromHdfs(instanceDirectory, conf, CachedConfiguration.getInstance());
   }
 
   public static String getInstanceIDFromHdfs(Path instanceDirectory, AccumuloConfiguration conf,

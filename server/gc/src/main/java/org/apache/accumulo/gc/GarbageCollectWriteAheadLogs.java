@@ -398,7 +398,7 @@ public class GarbageCollectWriteAheadLogs {
   protected Map<UUID,Path> getSortedWALogs() throws IOException {
     Map<UUID,Path> result = new HashMap<>();
 
-    for (String dir : ServerConstants.getRecoveryDirs(context.getConfiguration())) {
+    for (String dir : ServerConstants.getRecoveryDirs(context)) {
       Path recoveryDir = new Path(dir);
       if (fs.exists(recoveryDir)) {
         for (FileStatus status : fs.listStatus(recoveryDir)) {

@@ -107,8 +107,9 @@ public class RandomizeVolumes {
 
       VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId, context);
       final String newLocation = vm.choose(chooserEnv,
-          ServerConstants.getBaseUris(context.getConfiguration())) + Path.SEPARATOR
-          + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR + directory;
+          ServerConstants.getBaseUris(context.getConfiguration(), context.getHadoopConf()))
+          + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
+          + directory;
       m.put(key.getColumnFamily(), key.getColumnQualifier(),
           new Value(newLocation.getBytes(UTF_8)));
       if (log.isTraceEnabled()) {

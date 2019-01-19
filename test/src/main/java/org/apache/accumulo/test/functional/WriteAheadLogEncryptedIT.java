@@ -21,7 +21,6 @@ import static org.apache.accumulo.test.functional.WriteAheadLogIT.testWAL;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -49,7 +48,7 @@ public class WriteAheadLogEncryptedIT extends AccumuloClusterHarness {
     // setup key file
     try {
       Path keyFile = new Path(keyPath);
-      FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
+      FileSystem fs = FileSystem.getLocal(cluster.getServerContext().getHadoopConf());
       fs.delete(keyFile, true);
       if (fs.createNewFile(keyFile))
         log.info("Created keyfile at {}", keyPath);

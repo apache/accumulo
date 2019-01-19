@@ -74,7 +74,6 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
@@ -242,14 +241,15 @@ public class Initialize implements KeywordExecutable {
         ReplicationUtil.STATUS_FORMATTER_CLASS_NAME);
   }
 
-  static boolean checkInit(Configuration conf, VolumeManager fs, SiteConfiguration sconf)
-      throws IOException {
+  static boolean checkInit(Configuration conf, VolumeManager fs, SiteConfiguration sconf,
+      Configuration hadoopConf) throws IOException {
     @SuppressWarnings("deprecation")
     String fsUri = sconf.get(Property.INSTANCE_DFS_URI);
     if (fsUri.equals(""))
       fsUri = FileSystem.getDefaultUri(conf).toString();
     log.info("Hadoop Filesystem is {}", fsUri);
-    log.info("Accumulo data dirs are {}", Arrays.asList(VolumeConfiguration.getVolumeUris(sconf)));
+    log.info("Accumulo data dirs are {}",
+        Arrays.asList(VolumeConfiguration.getVolumeUris(sconf, hadoopConf)));
     log.info("Zookeeper server is {}", sconf.get(Property.INSTANCE_ZK_HOST));
     log.info("Checking if Zookeeper is available. If this hangs, then you need"
         + " to make sure zookeeper is running");
@@ -274,8 +274,8 @@ public class Initialize implements KeywordExecutable {
           + " accumulo.properties. Without this accumulo will not operate" + " correctly");
     }
     try {
-      if (isInitialized(fs, sconf)) {
-        printInitializeFailureMessages(sconf);
+      if (isInitialized(fs, sconf, hadoopConf)) {
+        printInitializeFailureMessages(sconf, hadoopConf);
         return false;
       }
     } catch (IOException e) {
@@ -285,7 +285,7 @@ public class Initialize implements KeywordExecutable {
     return true;
   }
 
-  static void printInitializeFailureMessages(SiteConfiguration sconf) {
+  static void printInitializeFailureMessages(SiteConfiguration sconf, Configuration hadoopConf) {
     @SuppressWarnings("deprecation")
     Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
     @SuppressWarnings("deprecation")
@@ -293,7 +293,8 @@ public class Initialize implements KeywordExecutable {
     String instanceDfsDir = sconf.get(INSTANCE_DFS_DIR);
     // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
     log.error("FATAL It appears the directories {}",
-        Arrays.asList(VolumeConfiguration.getVolumeUris(sconf)) + " were previously initialized.");
+        Arrays.asList(VolumeConfiguration.getVolumeUris(sconf, hadoopConf))
+            + " were previously initialized.");
     String instanceVolumes = sconf.get(Property.INSTANCE_VOLUMES);
     String instanceDfsUri = sconf.get(INSTANCE_DFS_URI);
 
@@ -316,7 +317,7 @@ public class Initialize implements KeywordExecutable {
 
   public boolean doInit(SiteConfiguration siteConfig, Opts opts, Configuration conf,
       VolumeManager fs) throws IOException {
-    if (!checkInit(conf, fs, siteConfig)) {
+    if (!checkInit(conf, fs, siteConfig, conf)) {
       return false;
     }
 
@@ -345,15 +346,15 @@ public class Initialize implements KeywordExecutable {
       opts.rootpass = getRootPassword(siteConfig, opts, rootUser);
     }
 
-    return initialize(siteConfig, opts, instanceNamePath, fs, rootUser);
+    return initialize(siteConfig, conf, opts, instanceNamePath, fs, rootUser);
   }
 
-  private boolean initialize(SiteConfiguration siteConfig, Opts opts, String instanceNamePath,
-      VolumeManager fs, String rootUser) {
+  private boolean initialize(SiteConfiguration siteConfig, Configuration hadoopConf, Opts opts,
+      String instanceNamePath, VolumeManager fs, String rootUser) {
 
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
-    String[] configuredVolumes = VolumeConfiguration.getVolumeUris(siteConfig);
+    String[] configuredVolumes = VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf);
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.INIT, null);
     final String rootTabletDir = new Path(
         fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR
@@ -367,16 +368,15 @@ public class Initialize implements KeywordExecutable {
     }
 
     try {
-      initFileSystem(siteConfig, fs, uuid, rootTabletDir);
+      initFileSystem(siteConfig, hadoopConf, fs, uuid, rootTabletDir);
     } catch (Exception e) {
       log.error("FATAL Failed to initialize filesystem", e);
 
       if (siteConfig.get(Property.INSTANCE_VOLUMES).trim().equals("")) {
-        Configuration fsConf = CachedConfiguration.getInstance();
 
         final String defaultFsUri = "file:///";
-        String fsDefaultName = fsConf.get("fs.default.name", defaultFsUri),
-            fsDefaultFS = fsConf.get("fs.defaultFS", defaultFsUri);
+        String fsDefaultName = hadoopConf.get("fs.default.name", defaultFsUri),
+            fsDefaultFS = hadoopConf.get("fs.defaultFS", defaultFsUri);
 
         // Try to determine when we couldn't find an appropriate core-site.xml on the classpath
         if (defaultFsUri.equals(fsDefaultName) && defaultFsUri.equals(fsDefaultFS)) {
@@ -482,22 +482,23 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
-  private void initFileSystem(SiteConfiguration siteConfig, VolumeManager fs, UUID uuid,
-      String rootTabletDir) throws IOException {
-    initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(siteConfig), false);
+  private void initFileSystem(SiteConfiguration siteConfig, Configuration hadoopConf,
+      VolumeManager fs, UUID uuid, String rootTabletDir) throws IOException {
+    initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf), false);
 
     // initialize initial system tables config in zookeeper
-    initSystemTablesConfig(zoo, Constants.ZROOT + "/" + uuid);
+    initSystemTablesConfig(zoo, Constants.ZROOT + "/" + uuid, hadoopConf);
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.INIT, null);
-    String tableMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig))
-        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID + TABLE_TABLETS_TABLET_DIR;
+    String tableMetadataTabletDir = fs.choose(chooserEnv,
+        ServerConstants.getBaseUris(siteConfig, hadoopConf)) + Constants.HDFS_TABLES_DIR
+        + Path.SEPARATOR + MetadataTable.ID + TABLE_TABLETS_TABLET_DIR;
     String replicationTableDefaultTabletDir = fs.choose(chooserEnv,
-        ServerConstants.getBaseUris(siteConfig)) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-        + ReplicationTable.ID + Constants.DEFAULT_TABLET_LOCATION;
-    String defaultMetadataTabletDir = fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig))
-        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
-        + Constants.DEFAULT_TABLET_LOCATION;
+        ServerConstants.getBaseUris(siteConfig, hadoopConf)) + Constants.HDFS_TABLES_DIR
+        + Path.SEPARATOR + ReplicationTable.ID + Constants.DEFAULT_TABLET_LOCATION;
+    String defaultMetadataTabletDir = fs.choose(chooserEnv,
+        ServerConstants.getBaseUris(siteConfig, hadoopConf)) + Constants.HDFS_TABLES_DIR
+        + Path.SEPARATOR + MetadataTable.ID + Constants.DEFAULT_TABLET_LOCATION;
 
     // create table and default tablets directories
     createDirectories(fs, rootTabletDir, tableMetadataTabletDir, defaultMetadataTabletDir,
@@ -780,14 +781,13 @@ public class Initialize implements KeywordExecutable {
         rootUser, opts.rootpass);
   }
 
-  public static void initSystemTablesConfig(ZooReaderWriter zoo, String zooKeeperRoot)
-      throws IOException {
+  public static void initSystemTablesConfig(ZooReaderWriter zoo, String zooKeeperRoot,
+      Configuration hadoopConf) throws IOException {
     try {
-      Configuration conf = CachedConfiguration.getInstance();
-      int max = conf.getInt("dfs.replication.max", 512);
+      int max = hadoopConf.getInt("dfs.replication.max", 512);
       // Hadoop 0.23 switched the min value configuration name
-      int min = Math.max(conf.getInt("dfs.replication.min", 1),
-          conf.getInt("dfs.namenode.replication.min", 1));
+      int min = Math.max(hadoopConf.getInt("dfs.replication.min", 1),
+          hadoopConf.getInt("dfs.namenode.replication.min", 1));
       if (max < 5)
         setMetadataReplication(max, "max");
       if (min > 5)
@@ -832,9 +832,9 @@ public class Initialize implements KeywordExecutable {
     initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), rep);
   }
 
-  public static boolean isInitialized(VolumeManager fs, SiteConfiguration siteConfig)
-      throws IOException {
-    for (String baseDir : VolumeConfiguration.getVolumeUris(siteConfig)) {
+  public static boolean isInitialized(VolumeManager fs, SiteConfiguration siteConfig,
+      Configuration hadoopConf) throws IOException {
+    for (String baseDir : VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf)) {
       if (fs.exists(new Path(baseDir, ServerConstants.INSTANCE_ID_DIR))
           || fs.exists(new Path(baseDir, ServerConstants.VERSION_DIR)))
         return true;
@@ -861,7 +861,8 @@ public class Initialize implements KeywordExecutable {
     Path versionPath = new Path(aBasePath, ServerConstants.VERSION_DIR);
 
     UUID uuid = UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, siteConfig, hadoopConf));
-    for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements(siteConfig)) {
+    for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements(siteConfig,
+        hadoopConf)) {
       if (aBasePath.equals(replacementVolume.getFirst()))
         log.error(
             "{} is set to be replaced in {} and should not appear in {}."
@@ -870,8 +871,7 @@ public class Initialize implements KeywordExecutable {
             aBasePath, Property.INSTANCE_VOLUMES_REPLACEMENTS, Property.INSTANCE_VOLUMES);
     }
 
-    if (ServerUtil.getAccumuloPersistentVersion(
-        versionPath.getFileSystem(CachedConfiguration.getInstance()),
+    if (ServerUtil.getAccumuloPersistentVersion(versionPath.getFileSystem(hadoopConf),
         versionPath) != ServerConstants.DATA_VERSION) {
       throw new IOException("Accumulo " + Constants.VERSION + " cannot initialize data version "
           + ServerUtil.getAccumuloPersistentVersion(fs));
@@ -939,7 +939,7 @@ public class Initialize implements KeywordExecutable {
       if (opts.resetSecurity) {
         log.info("Resetting security on accumulo.");
         try (ServerContext context = new ServerContext(siteConfig)) {
-          if (isInitialized(fs, siteConfig)) {
+          if (isInitialized(fs, siteConfig, hadoopConfig)) {
             if (!opts.forceResetSecurity) {
               ConsoleReader c = getConsoleReader();
               String userEnteredName = c.readLine("WARNING: This will remove all"

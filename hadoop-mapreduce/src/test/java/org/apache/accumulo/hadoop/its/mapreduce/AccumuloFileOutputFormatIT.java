@@ -37,7 +37,6 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -204,7 +203,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       assertEquals(1, files.length);
       assertTrue(files[0].exists());
 
-      Configuration conf = CachedConfiguration.getInstance();
+      Configuration conf = cluster.getServerContext().getHadoopConf();
       DefaultConfiguration acuconf = DefaultConfiguration.getInstance();
       FileSKVIterator sample = RFileOperations.getInstance().newReaderBuilder()
           .forFile(files[0].toString(), FileSystem.getLocal(conf), conf,

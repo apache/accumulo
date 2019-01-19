@@ -38,7 +38,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.hadoop.mapred.AccumuloInputFormat;
 import org.apache.accumulo.hadoop.mapred.AccumuloOutputFormat;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -132,7 +131,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
     public static void main(String[] args) throws Exception {
-      Configuration conf = CachedConfiguration.getInstance();
+      Configuration conf = cluster.getServerContext().getHadoopConf();
       conf.set("hadoop.tmp.dir", new File(args[0]).getParent());
       conf.set("mapreduce.framework.name", "local");
       conf.set("mapreduce.cluster.local.dir",
