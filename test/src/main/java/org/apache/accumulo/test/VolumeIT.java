@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -85,10 +84,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class VolumeIT extends ConfigurableMacBase {
 
-  private static final Text EMPTY = new Text();
-  private static final Value EMPTY_VALUE = new Value(new byte[] {});
   private File volDirBase;
-  private Path v1, v2;
+  private Path v1, v2, v3;
+  private List<String> expected = new ArrayList<>();
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -104,6 +102,13 @@ public class VolumeIT extends ConfigurableMacBase {
     File v2f = new File(volDirBase, "v2");
     v1 = new Path("file://" + v1f.getAbsolutePath());
     v2 = new Path("file://" + v2f.getAbsolutePath());
+    File v3f = new File(volDirBase, "v3");
+    v3 = new Path("file://" + v3f.getAbsolutePath());
+    // setup expected rows
+    for (int i = 0; i < 100; i++) {
+      String row = String.format("%06d", i * 100 + 3);
+      expected.add(row + ":cf1:cq1:1");
+    }
 
     // Run MAC on two locations in the local file system
     URI v1Uri = v1.toUri();
@@ -131,20 +136,13 @@ public class VolumeIT extends ConfigurableMacBase {
         partitions.add(new Text(s));
       accumuloClient.tableOperations().addSplits(tableName, partitions);
       // scribble over the splits
-      BatchWriter bw = accumuloClient.createBatchWriter(tableName, new BatchWriterConfig());
-      String[] rows = "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
-      for (String s : rows) {
-        Mutation m = new Mutation(new Text(s));
-        m.put(EMPTY, EMPTY, EMPTY_VALUE);
-        bw.addMutation(m);
-      }
-      bw.close();
+      VolumeChooserIT.writeDataToTable(accumuloClient, tableName, VolumeChooserIT.alpha_rows);
       // write the data to disk, read it back
       accumuloClient.tableOperations().flush(tableName, null, null, true);
       try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
         int i = 0;
         for (Entry<Key,Value> entry : scanner) {
-          assertEquals(rows[i++], entry.getKey().getRow().toString());
+          assertEquals(VolumeChooserIT.alpha_rows[i++], entry.getKey().getRow().toString());
         }
       }
       // verify the new files are written to the different volumes
@@ -210,9 +208,7 @@ public class VolumeIT extends ConfigurableMacBase {
       BatchWriter bw = accumuloClient.createBatchWriter(tableName, new BatchWriterConfig());
 
       // create two files in each tablet
-
-      String[] rows = "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
-      for (String s : rows) {
+      for (String s : VolumeChooserIT.alpha_rows) {
         Mutation m = new Mutation(s);
         m.put("cf1", "cq1", "1");
         bw.addMutation(m);
@@ -222,7 +218,7 @@ public class VolumeIT extends ConfigurableMacBase {
       bw.flush();
       accumuloClient.tableOperations().flush(tableName, null, null, true);
 
-      for (String s : rows) {
+      for (String s : VolumeChooserIT.alpha_rows) {
         Mutation m = new Mutation(s);
         m.put("cf1", "cq1", "2");
         bw.addMutation(m);
@@ -284,21 +280,9 @@ public class VolumeIT extends ConfigurableMacBase {
   public void testAddVolumes() throws Exception {
     try (AccumuloClient client = createClient()) {
       String[] tableNames = getUniqueNames(2);
-
-      // grab this before shutting down cluster
-      String uuid = client.getInstanceID();
-
-      verifyVolumesUsed(client, tableNames[0], false, v1, v2);
-
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
-      cluster.stop();
-
       PropertiesConfiguration conf = new PropertiesConfiguration();
-      conf.load(cluster.getAccumuloPropertiesPath());
 
-      File v3f = new File(volDirBase, "v3");
-      assertTrue(v3f.mkdir() || v3f.isDirectory());
-      Path v3 = new Path("file://" + v3f.getAbsolutePath());
+      String uuid = verifyAndShutdownCluster(client, conf, tableNames[0]);
 
       conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2 + "," + v3);
       conf.save(cluster.getAccumuloPropertiesPath());
@@ -306,14 +290,7 @@ public class VolumeIT extends ConfigurableMacBase {
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
 
-      // check that all volumes are initialized
-      for (Path volumePath : Arrays.asList(v1, v2, v3)) {
-        FileSystem fs = volumePath.getFileSystem(CachedConfiguration.getInstance());
-        Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
-        FileStatus[] iids = fs.listStatus(vp);
-        assertEquals(1, iids.length);
-        assertEquals(uuid, iids[0].getPath().getName());
-      }
+      checkVolumesInitialized(Arrays.asList(v1, v2, v3), uuid);
 
       // start cluster and verify that new volume is used
       cluster.start();
@@ -322,26 +299,28 @@ public class VolumeIT extends ConfigurableMacBase {
     }
   }
 
+  // grab uuid before shutting down cluster
+  private String verifyAndShutdownCluster(AccumuloClient c, PropertiesConfiguration conf,
+      String tableName) throws Exception {
+    String uuid = c.getInstanceID();
+
+    verifyVolumesUsed(c, tableName, false, v1, v2);
+
+    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    cluster.stop();
+
+    conf.load(cluster.getAccumuloPropertiesPath());
+    return uuid;
+  }
+
   @Test
   public void testNonConfiguredVolumes() throws Exception {
 
     String[] tableNames = getUniqueNames(2);
+    PropertiesConfiguration conf = new PropertiesConfiguration();
 
-    // grab this before shutting down cluster
     try (AccumuloClient client = createClient()) {
-      String uuid = client.getInstanceID();
-
-      verifyVolumesUsed(client, tableNames[0], false, v1, v2);
-
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
-      cluster.stop();
-
-      PropertiesConfiguration conf = new PropertiesConfiguration();
-      conf.load(cluster.getAccumuloPropertiesPath());
-
-      File v3f = new File(volDirBase, "v3");
-      assertTrue(v3f.mkdir() || v3f.isDirectory());
-      Path v3 = new Path("file://" + v3f.getAbsolutePath());
+      String uuid = verifyAndShutdownCluster(client, conf, tableNames[0]);
 
       conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3);
       conf.save(cluster.getAccumuloPropertiesPath());
@@ -349,27 +328,12 @@ public class VolumeIT extends ConfigurableMacBase {
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
 
-      // check that all volumes are initialized
-      for (Path volumePath : Arrays.asList(v1, v2, v3)) {
-        FileSystem fs = volumePath.getFileSystem(CachedConfiguration.getInstance());
-        Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
-        FileStatus[] iids = fs.listStatus(vp);
-        assertEquals(1, iids.length);
-        assertEquals(uuid, iids[0].getPath().getName());
-      }
+      checkVolumesInitialized(Arrays.asList(v1, v2, v3), uuid);
 
       // start cluster and verify that new volume is used
       cluster.start();
 
-      // Make sure we can still read the tables (tableNames[0] is very likely to have a file still
-      // on
-      // v1)
-      List<String> expected = new ArrayList<>();
-      for (int i = 0; i < 100; i++) {
-        String row = String.format("%06d", i * 100 + 3);
-        expected.add(row + ":cf1:cq1:1");
-      }
-
+      // verify we can still read the tables (tableNames[0] is likely to have a file still on v1)
       verifyData(expected, client.createScanner(tableNames[0], Authorizations.EMPTY));
 
       // v1 should not have any data for tableNames[1]
@@ -377,9 +341,19 @@ public class VolumeIT extends ConfigurableMacBase {
     }
   }
 
-  private void writeData(String tableName, AccumuloClient client)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException,
-      TableNotFoundException, MutationsRejectedException {
+  // check that all volumes are initialized
+  private void checkVolumesInitialized(List<Path> volumes, String uuid) throws Exception {
+    for (Path volumePath : volumes) {
+      FileSystem fs = volumePath.getFileSystem(CachedConfiguration.getInstance());
+      Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
+      FileStatus[] iids = fs.listStatus(vp);
+      assertEquals(1, iids.length);
+      assertEquals(uuid, iids[0].getPath().getName());
+    }
+  }
+
+  private void writeData(String tableName, AccumuloClient client) throws AccumuloException,
+      AccumuloSecurityException, TableExistsException, TableNotFoundException {
     TreeSet<Text> splits = new TreeSet<>();
     for (int i = 1; i < 100; i++) {
       splits.add(new Text(String.format("%06d", i * 100)));
@@ -401,12 +375,6 @@ public class VolumeIT extends ConfigurableMacBase {
 
   private void verifyVolumesUsed(AccumuloClient client, String tableName, boolean shouldExist,
       Path... paths) throws Exception {
-
-    List<String> expected = new ArrayList<>();
-    for (int i = 0; i < 100; i++) {
-      String row = String.format("%06d", i * 100 + 3);
-      expected.add(row + ":cf1:cq1:1");
-    }
 
     if (!client.tableOperations().exists(tableName)) {
       assertFalse(shouldExist);
