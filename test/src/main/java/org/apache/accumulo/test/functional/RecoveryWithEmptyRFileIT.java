@@ -88,7 +88,7 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
           Path rfile = new Path(entry.getKey().getColumnQualifier().toString());
           log.debug("Removing rfile '{}'", rfile);
           cluster.getFileSystem().delete(rfile, false);
-          Process info = cluster.exec(CreateEmpty.class, rfile.toString());
+          Process info = cluster.exec(CreateEmpty.class, rfile.toString()).getProcess();
           assertEquals(0, info.waitFor());
         }
         assertTrue(foundFile);

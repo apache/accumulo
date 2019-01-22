@@ -20,14 +20,18 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -86,6 +90,7 @@ import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.hadoop.conf.Configuration;
@@ -140,11 +145,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return zooCfgFile;
   }
 
-  public Process exec(Class<?> clazz, String... args) throws IOException {
+  public ProcessInfo exec(Class<?> clazz, String... args) throws IOException {
     return exec(clazz, null, args);
   }
 
-  public Process exec(Class<?> clazz, List<String> jvmArgs, String... args) throws IOException {
+  public ProcessInfo exec(Class<?> clazz, List<String> jvmArgs, String... args) throws IOException {
     ArrayList<String> jvmArgs2 = new ArrayList<>(1 + (jvmArgs == null ? 0 : jvmArgs.size()));
     jvmArgs2.add("-Xmx" + config.getDefaultMemory());
     if (jvmArgs != null)
@@ -227,9 +232,32 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
   }
 
+  public static class ProcessInfo {
+
+    private final Process process;
+    private final File stdOut;
+
+    public ProcessInfo(Process process, File stdOut) {
+      this.process = process;
+      this.stdOut = stdOut;
+    }
+
+    public Process getProcess() {
+      return process;
+    }
+
+    public String readStdOut() {
+      try (InputStream in = new FileInputStream(stdOut)) {
+        return IOUtils.toString(in, StandardCharsets.UTF_8);
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+  }
+
   @SuppressFBWarnings(value = "COMMAND_INJECTION",
       justification = "mini runs in the same security context as user providing the args")
-  private Process _exec(Class<?> clazz, List<String> extraJvmOpts, String... args)
+  private ProcessInfo _exec(Class<?> clazz, List<String> extraJvmOpts, String... args)
       throws IOException {
     String javaHome = System.getProperty("java.home");
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
@@ -282,21 +310,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     Integer hashcode = builder.hashCode();
 
-    builder = builder
-        .redirectError(
-            new File(config.getLogDir(), clazz.getSimpleName() + "_" + hashcode + ".err"))
-        .redirectOutput(
-            new File(config.getLogDir(), clazz.getSimpleName() + "_" + hashcode + ".out"));
+    File stdOut = new File(config.getLogDir(), clazz.getSimpleName() + "_" + hashcode + ".out");
+    File stdErr = new File(config.getLogDir(), clazz.getSimpleName() + "_" + hashcode + ".err");
 
-    Process process = builder.start();
+    Process process = builder.redirectError(stdErr).redirectOutput(stdOut).start();
 
     cleanup.add(process);
 
-    return process;
+    return new ProcessInfo(process, stdOut);
   }
 
-  public Process _exec(Class<?> clazz, ServerType serverType, Map<String,String> configOverrides,
-      String... args) throws IOException {
+  public ProcessInfo _exec(Class<?> clazz, ServerType serverType,
+      Map<String,String> configOverrides, String... args) throws IOException {
     List<String> jvmOpts = new ArrayList<>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
     if (configOverrides != null && !configOverrides.isEmpty()) {
@@ -576,7 +601,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           args.add(config.getRootPassword());
         }
 
-        Process initProcess = exec(Initialize.class, args.toArray(new String[0]));
+        Process initProcess = exec(Initialize.class, args.toArray(new String[0])).getProcess();
         int ret = initProcess.waitFor();
         if (ret != 0) {
           throw new RuntimeException("Initialize process returned " + ret + ". Check the logs in "
@@ -594,7 +619,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int ret = 0;
     for (int i = 0; i < 5; i++) {
       ret = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString())
-          .waitFor();
+          .getProcess().waitFor();
       if (ret == 0)
         break;
       sleepUninterruptibly(1, TimeUnit.SECONDS);

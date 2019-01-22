@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
@@ -52,17 +52,15 @@ import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.AdminUtil.FateStatus;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.test.TestIngest;
+import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.collect.Iterators;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class FunctionalTestUtils {
 
@@ -154,22 +152,7 @@ public class FunctionalTestUtils {
   }
 
   public static String readAll(InputStream is) throws IOException {
-    byte[] buffer = new byte[4096];
-    StringBuilder result = new StringBuilder();
-    while (true) {
-      int n = is.read(buffer);
-      if (n <= 0)
-        break;
-      result.append(new String(buffer, 0, n));
-    }
-    return result.toString();
-  }
-
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
-  public static String readAll(MiniAccumuloClusterImpl c, Class<?> klass, Process p)
-      throws Exception {
-    return readAll(new FileInputStream(
-        c.getConfig().getLogDir() + "/" + klass.getSimpleName() + "_" + p.hashCode() + ".out"));
+    return IOUtils.toString(is, UTF_8);
   }
 
   static Mutation nm(String row, String cf, String cq, Value value) {

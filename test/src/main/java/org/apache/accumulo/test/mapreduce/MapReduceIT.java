@@ -96,9 +96,11 @@ public class MapReduceIT extends ConfigurableMacBase {
       c.properties().store(out, "Config file for " + MapReduceIT.class.getName());
     }
     ClientInfo info = ClientInfo.from(c.properties());
-    Process hash = cluster.exec(RowHash.class, Collections.singletonList(hadoopTmpDirArg), "-i",
-        info.getInstanceName(), "-z", info.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "-t",
-        tablename, "--column", input_cfcq, "--config-file", configFile.getAbsolutePath());
+    Process hash = cluster
+        .exec(RowHash.class, Collections.singletonList(hadoopTmpDirArg), "-i",
+            info.getInstanceName(), "-z", info.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD,
+            "-t", tablename, "--column", input_cfcq, "--config-file", configFile.getAbsolutePath())
+        .getProcess();
     assertEquals(0, hash.waitFor());
 
     try (Scanner s = c.createScanner(tablename, Authorizations.EMPTY)) {

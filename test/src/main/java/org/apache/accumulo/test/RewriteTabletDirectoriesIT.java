@@ -125,7 +125,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
 
         // This should fail: only one volume
         assertEquals(1, cluster.exec(RandomizeVolumes.class, "-z", cluster.getZooKeepers(), "-i",
-            getClientInfo().getInstanceName(), "-t", tableName).waitFor());
+            getClientInfo().getInstanceName(), "-t", tableName).getProcess().waitFor());
 
         cluster.stop();
 
@@ -136,11 +136,12 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
         conf.save(cluster.getAccumuloPropertiesPath());
 
         // initialize volume
-        assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
+        assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
         cluster.start();
 
         // change the directory entries
-        assertEquals(0, cluster.exec(Admin.class, "randomizeVolumes", "-t", tableName).waitFor());
+        assertEquals(0,
+            cluster.exec(Admin.class, "randomizeVolumes", "-t", tableName).getProcess().waitFor());
 
         // verify a more equal sharing
         int v1Count = 0, v2Count = 0;

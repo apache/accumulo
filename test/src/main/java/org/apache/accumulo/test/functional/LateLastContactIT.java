@@ -43,7 +43,7 @@ public class LateLastContactIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    Process zombie = cluster.exec(ZombieTServer.class);
+    Process zombie = cluster.exec(ZombieTServer.class).getProcess();
     assertEquals(0, zombie.waitFor());
   }
 

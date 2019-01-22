@@ -290,7 +290,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
       verifyVolumesUsed(client, tableNames[0], false, v1, v2);
 
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       cluster.stop();
 
       PropertiesConfiguration conf = new PropertiesConfiguration();
@@ -304,7 +304,7 @@ public class VolumeIT extends ConfigurableMacBase {
       conf.save(cluster.getAccumuloPropertiesPath());
 
       // initialize volume
-      assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
+      assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
 
       // check that all volumes are initialized
       for (Path volumePath : Arrays.asList(v1, v2, v3)) {
@@ -333,7 +333,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
       verifyVolumesUsed(client, tableNames[0], false, v1, v2);
 
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       cluster.stop();
 
       PropertiesConfiguration conf = new PropertiesConfiguration();
@@ -347,7 +347,7 @@ public class VolumeIT extends ConfigurableMacBase {
       conf.save(cluster.getAccumuloPropertiesPath());
 
       // initialize volume
-      assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
+      assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
 
       // check that all volumes are initialized
       for (Path volumePath : Arrays.asList(v1, v2, v3)) {
@@ -494,7 +494,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
       verifyVolumesUsed(client, tableNames[0], false, v1, v2);
 
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       cluster.stop();
 
       PropertiesConfiguration conf = new PropertiesConfiguration();
@@ -537,7 +537,7 @@ public class VolumeIT extends ConfigurableMacBase {
         cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD)));
 
     if (cleanShutdown)
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
 
     cluster.stop();
 

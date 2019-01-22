@@ -43,31 +43,35 @@ public class ShutdownIT extends ConfigurableMacBase {
   @Test
   public void shutdownDuringIngest() throws Exception {
     Process ingest = cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z",
-        cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable");
+        cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable").getProcess();
     sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     ingest.destroy();
   }
 
   @Test
   public void shutdownDuringQuery() throws Exception {
-    assertEquals(0, cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z",
-        cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable").waitFor());
+    assertEquals(0,
+        cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z",
+            cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable")
+            .getProcess().waitFor());
     Process verify = cluster.exec(VerifyIngest.class, "-i", cluster.getInstanceName(), "-z",
-        cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD);
+        cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD).getProcess();
     sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     verify.destroy();
   }
 
   @Test
   public void shutdownDuringDelete() throws Exception {
-    assertEquals(0, cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z",
-        cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable").waitFor());
+    assertEquals(0,
+        cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z",
+            cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable")
+            .getProcess().waitFor());
     Process deleter = cluster.exec(TestRandomDeletes.class, "-i", cluster.getInstanceName(), "-z",
-        cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD);
+        cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD).getProcess();
     sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     deleter.destroy();
   }
 
@@ -91,7 +95,7 @@ public class ShutdownIT extends ConfigurableMacBase {
       };
       async.start();
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       if (ref.get() != null)
         throw ref.get();
     }
@@ -99,7 +103,7 @@ public class ShutdownIT extends ConfigurableMacBase {
 
   @Test
   public void stopDuringStart() throws Exception {
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
   }
 
   @Test
@@ -112,13 +116,14 @@ public class ShutdownIT extends ConfigurableMacBase {
   static void runAdminStopTest(AccumuloClient c, MiniAccumuloClusterImpl cluster)
       throws InterruptedException, IOException {
     String confPath = cluster.getConfig().getClientPropsFile().getAbsolutePath();
-    int x = cluster.exec(TestIngest.class, "--config-file", confPath, "--createTable").waitFor();
+    int x = cluster.exec(TestIngest.class, "--config-file", confPath, "--createTable").getProcess()
+        .waitFor();
     assertEquals(0, x);
     List<String> tabletServers = c.instanceOperations().getTabletServers();
     assertEquals(2, tabletServers.size());
     String doomed = tabletServers.get(0);
     log.info("Stopping " + doomed);
-    assertEquals(0, cluster.exec(Admin.class, "stop", doomed).waitFor());
+    assertEquals(0, cluster.exec(Admin.class, "stop", doomed).getProcess().waitFor());
     tabletServers = c.instanceOperations().getTabletServers();
     assertEquals(1, tabletServers.size());
     assertNotEquals(tabletServers.get(0), doomed);

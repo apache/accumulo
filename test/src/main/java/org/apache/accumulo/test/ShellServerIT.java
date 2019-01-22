@@ -302,7 +302,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     System.setProperty("HOME", rootPath);
     System.setProperty("hadoop.tmp.dir", userDir + "/target/hadoop-tmp");
 
-    traceProcess = getCluster().exec(TraceServer.class);
+    traceProcess = getCluster().exec(TraceServer.class).getProcess();
 
     AccumuloClient client = getCluster().createAccumuloClient(getPrincipal(), getToken());
     TableOperations tops = client.tableOperations();

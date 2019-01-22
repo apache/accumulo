@@ -80,7 +80,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
         c.tableOperations().flush(RootTable.NAME, null, null, true);
       }
       log.info("shutting down");
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       cluster.stop();
       log.info("starting up");
       cluster.start();
