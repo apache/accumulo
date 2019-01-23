@@ -30,7 +30,7 @@ import org.apache.accumulo.core.security.Authorizations;
 /**
  * Client connection to an Accumulo instance. Allows the user to request a scanner, deleter or
  * writer for the instance as well as various objects that permit administrative operations.
- * Enforces security on the client side with by requiring user credentials.
+ * Enforces security on the client side by requiring user credentials.
  *
  * <p>
  * Supports fluent API for creation. Various options can be provided to {@link Accumulo#newClient()}
@@ -55,6 +55,8 @@ import org.apache.accumulo.core.security.Authorizations;
  * AccumuloClient and pass it around.
  *
  * @since 2.0.0
+ * @see <a href=https://accumulo.apache.org/docs/2.x/getting-started/clients>Accumulo Client
+ *      Documentation</a>
  */
 public interface AccumuloClient extends AutoCloseable {
 
@@ -357,6 +359,8 @@ public interface AccumuloClient extends AutoCloseable {
      * @param propertiesFilePath
      *          Path to properties file
      * @return this builder
+     * @see <a href=https://accumulo.apache.org/docs/2.x/configuration/client-properties>Client
+     *      properties documentation</a>
      */
     FromOptions<T> from(String propertiesFilePath);
 
@@ -367,16 +371,20 @@ public interface AccumuloClient extends AutoCloseable {
      * @param propertiesFile
      *          Path to properties file
      * @return this builder
+     * @see <a href=https://accumulo.apache.org/docs/2.x/configuration/client-properties>Client
+     *      properties documentation</a>
      */
     FromOptions<T> from(Path propertiesFile);
 
     /**
-     * Build using Java properties object. A list of available properties can be found in the
-     * documentation at https://accumulo.apache.org/docs/2.x/configuration/client-properties
+     * Build using Java properties object. An example properties file can be found at
+     * conf/accumulo-client.properties in the Accumulo tarball distribution.
      *
      * @param properties
      *          Properties object
      * @return this builder
+     * @see <a href=https://accumulo.apache.org/docs/2.x/configuration/client-properties>Client
+     *      properties documentation</a>
      */
     FromOptions<T> from(Properties properties);
   }
