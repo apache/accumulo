@@ -97,7 +97,7 @@ public class RowHashIT extends ConfigurableMacBase {
     ClientInfo info = ClientInfo.from(c.properties());
     Process hash = cluster.exec(RowHash.class, Collections.singletonList(hadoopTmpDirArg), "-i",
         info.getInstanceName(), "-z", info.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "-t",
-        tablename, "--column", input_cfcq);
+        tablename, "--column", input_cfcq).getProcess();
     assertEquals(0, hash.waitFor());
 
     try (Scanner s = c.createScanner(tablename, Authorizations.EMPTY)) {

@@ -214,6 +214,6 @@ public class ConfigurableMacBase extends AccumuloITBase {
   }
 
   protected Process exec(Class<?> clazz, String... args) throws IOException {
-    return getCluster().exec(clazz, args);
+    return getCluster().exec(clazz, args).getProcess();
   }
 }

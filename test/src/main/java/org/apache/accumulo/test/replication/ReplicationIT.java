@@ -1198,7 +1198,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
       // Starting the gc will run CloseWriteAheadLogReferences which will first close Statuses
       // in the metadata table, and then in the replication table
-      Process gc = cluster.exec(SimpleGarbageCollector.class);
+      Process gc = cluster.exec(SimpleGarbageCollector.class).getProcess();
 
       waitForGCLock(client);
 

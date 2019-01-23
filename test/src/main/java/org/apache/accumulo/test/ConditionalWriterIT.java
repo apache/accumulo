@@ -1537,7 +1537,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       AccumuloCluster cluster = getCluster();
       MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
       if (!client.tableOperations().exists("trace")) {
-        tracer = mac.exec(TraceServer.class);
+        tracer = mac.exec(TraceServer.class).getProcess();
         while (!client.tableOperations().exists("trace")) {
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }

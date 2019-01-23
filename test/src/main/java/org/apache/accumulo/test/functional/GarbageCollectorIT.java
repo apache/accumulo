@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -25,7 +24,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -56,6 +55,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
@@ -149,19 +149,17 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     try (AccumuloClient c = createClient()) {
       addEntries(c, new BatchWriterOpts());
       cluster.getConfig().setDefaultMemory(10, MemoryUnit.MEGABYTE);
-      Process gc = cluster.exec(SimpleGarbageCollector.class);
+      ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
       sleepUninterruptibly(20, TimeUnit.SECONDS);
       String output = "";
       while (!output.contains("delete candidates has exceeded")) {
-        byte buffer[] = new byte[10 * 1024];
         try {
-          int n = gc.getInputStream().read(buffer);
-          output = new String(buffer, 0, n, UTF_8);
-        } catch (IOException ex) {
+          output = gc.readStdOut();
+        } catch (UncheckedIOException ex) {
           break;
         }
       }
-      gc.destroy();
+      gc.getProcess().destroy();
       assertTrue(output.contains("delete candidates has exceeded"));
     }
   }
@@ -222,19 +220,19 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       bw3.addMutation(createDelMutation("/", "", "", ""));
       bw3.close();
 
-      Process gc = cluster.exec(SimpleGarbageCollector.class);
+      ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
       try {
         String output = "";
         while (!output.contains("Ignoring invalid deletion candidate")) {
           sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
           try {
-            output = FunctionalTestUtils.readAll(cluster, SimpleGarbageCollector.class, gc);
-          } catch (IOException ioe) {
+            output = gc.readStdOut();
+          } catch (UncheckedIOException ioe) {
             log.error("Could not read all from cluster.", ioe);
           }
         }
       } finally {
-        gc.destroy();
+        gc.getProcess().destroy();
       }
 
       try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {

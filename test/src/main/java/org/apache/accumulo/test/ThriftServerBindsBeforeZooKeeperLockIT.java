@@ -284,7 +284,8 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
         throw new IllegalArgumentException("Irrelevant server type for test");
     }
 
-    return cluster._exec(service, serverType,
-        ImmutableMap.of(property.getKey(), Integer.toString(port)));
+    return cluster
+        ._exec(service, serverType, ImmutableMap.of(property.getKey(), Integer.toString(port)))
+        .getProcess();
   }
 }

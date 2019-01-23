@@ -31,11 +31,11 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -92,13 +92,13 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
       // kill the tserver
       for (ProcessReference ref : getCluster().getProcesses().get(ServerType.TABLET_SERVER))
         getCluster().killProcess(ServerType.TABLET_SERVER, ref);
-      final Process ts = cluster.exec(TabletServer.class);
+      final ProcessInfo ts = cluster.exec(TabletServer.class);
 
       // wait for recovery
       Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
-      ts.waitFor();
-      String result = FunctionalTestUtils.readAll(cluster, TabletServer.class, ts);
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+      ts.getProcess().waitFor();
+      String result = ts.readStdOut();
       for (String line : result.split("\n")) {
         System.out.println(line);
       }

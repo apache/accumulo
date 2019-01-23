@@ -236,7 +236,7 @@ public class KerberosProxyIT extends AccumuloITBase {
     File proxyPropertiesFile = generateNewProxyConfiguration(cfg);
     File clientPropsFile = generateNewAccumuloClientConfiguration(cfg);
     return mac.exec(Proxy.class, "-p", proxyPropertiesFile.getCanonicalPath(), "-c",
-        clientPropsFile.getCanonicalPath());
+        clientPropsFile.getCanonicalPath()).getProcess();
   }
 
   /**

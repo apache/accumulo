@@ -280,6 +280,7 @@ public class VolumeIT extends ConfigurableMacBase {
   public void testAddVolumes() throws Exception {
     try (AccumuloClient client = createClient()) {
       String[] tableNames = getUniqueNames(2);
+
       PropertiesConfiguration conf = new PropertiesConfiguration();
 
       String uuid = verifyAndShutdownCluster(client, conf, tableNames[0]);
@@ -288,7 +289,7 @@ public class VolumeIT extends ConfigurableMacBase {
       conf.save(cluster.getAccumuloPropertiesPath());
 
       // initialize volume
-      assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
+      assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
 
       checkVolumesInitialized(Arrays.asList(v1, v2, v3), uuid);
 
@@ -306,7 +307,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     verifyVolumesUsed(c, tableName, false, v1, v2);
 
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     cluster.stop();
 
     conf.load(cluster.getAccumuloPropertiesPath());
@@ -326,7 +327,7 @@ public class VolumeIT extends ConfigurableMacBase {
       conf.save(cluster.getAccumuloPropertiesPath());
 
       // initialize volume
-      assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
+      assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
 
       checkVolumesInitialized(Arrays.asList(v1, v2, v3), uuid);
 
@@ -462,7 +463,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
       verifyVolumesUsed(client, tableNames[0], false, v1, v2);
 
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       cluster.stop();
 
       PropertiesConfiguration conf = new PropertiesConfiguration();
@@ -505,7 +506,7 @@ public class VolumeIT extends ConfigurableMacBase {
         cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD)));
 
     if (cleanShutdown)
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
 
     cluster.stop();
 

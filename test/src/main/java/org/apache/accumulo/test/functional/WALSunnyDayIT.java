@@ -132,7 +132,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       // restart the tserver, but don't run recovery on all tablets
       control.stop(TABLET_SERVER);
       // this delays recovery on the normal tables
-      assertEquals(0, cluster.exec(SetGoalState.class, "SAFE_MODE").waitFor());
+      assertEquals(0, cluster.exec(SetGoalState.class, "SAFE_MODE").getProcess().waitFor());
       control.start(TABLET_SERVER);
 
       // wait for the metadata table to go back online
@@ -146,7 +146,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
           markers.keySet().iterator().next().getTableId().canonicalID());
 
       // put some data in the WAL
-      assertEquals(0, cluster.exec(SetGoalState.class, "NORMAL").waitFor());
+      assertEquals(0, cluster.exec(SetGoalState.class, "NORMAL").getProcess().waitFor());
       verifySomeData(c, tableName, 1001 * 50 + 1);
       writeSomeData(c, tableName, 100, 100);
 

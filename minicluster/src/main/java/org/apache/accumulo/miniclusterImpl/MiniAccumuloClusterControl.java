@@ -18,9 +18,7 @@ package org.apache.accumulo.miniclusterImpl;
 
 import static java.util.Objects.requireNonNull;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -34,6 +32,7 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.tracer.TraceServer;
@@ -69,7 +68,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
 
   @Override
   public int exec(Class<?> clz, String[] args) throws IOException {
-    Process p = cluster.exec(clz, args);
+    Process p = cluster.exec(clz, args).getProcess();
     int exitCode;
     try {
       exitCode = p.waitFor();
@@ -85,35 +84,22 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       justification = "code runs in same security context as user who provided input file name")
   @Override
   public Entry<Integer,String> execWithStdout(Class<?> clz, String[] args) throws IOException {
-    Process p = cluster.exec(clz, args);
+    ProcessInfo pi = cluster.exec(clz, args);
     int exitCode;
     try {
-      exitCode = p.waitFor();
+      exitCode = pi.getProcess().waitFor();
     } catch (InterruptedException e) {
       log.warn("Interrupted waiting for process to exit", e);
       Thread.currentThread().interrupt();
       throw new IOException(e);
     }
 
-    return Maps.immutableEntry(exitCode, readAll(new FileInputStream(cluster.getConfig().getLogDir()
-        + "/" + clz.getSimpleName() + "_" + p.hashCode() + ".out")));
-  }
-
-  private String readAll(InputStream is) throws IOException {
-    byte[] buffer = new byte[4096];
-    StringBuilder result = new StringBuilder();
-    while (true) {
-      int n = is.read(buffer);
-      if (n <= 0)
-        break;
-      result.append(new String(buffer, 0, n));
-    }
-    return result.toString();
+    return Maps.immutableEntry(exitCode, pi.readStdOut());
   }
 
   @Override
   public void adminStopAll() throws IOException {
-    Process p = cluster.exec(Admin.class, "stopAll");
+    Process p = cluster.exec(Admin.class, "stopAll").getProcess();
     try {
       p.waitFor();
     } catch (InterruptedException e) {
@@ -147,34 +133,36 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           int count = 0;
           for (int i = tabletServerProcesses.size(); count < limit
               && i < cluster.getConfig().getNumTservers(); i++, ++count) {
-            tabletServerProcesses.add(cluster._exec(TabletServer.class, server, configOverrides));
+            tabletServerProcesses
+                .add(cluster._exec(TabletServer.class, server, configOverrides).getProcess());
           }
         }
         break;
       case MASTER:
         if (masterProcess == null) {
-          masterProcess = cluster._exec(Master.class, server, configOverrides);
+          masterProcess = cluster._exec(Master.class, server, configOverrides).getProcess();
         }
         break;
       case ZOOKEEPER:
         if (zooKeeperProcess == null) {
           zooKeeperProcess = cluster._exec(ZooKeeperServerMain.class, server, configOverrides,
-              cluster.getZooCfgFile().getAbsolutePath());
+              cluster.getZooCfgFile().getAbsolutePath()).getProcess();
         }
         break;
       case GARBAGE_COLLECTOR:
         if (gcProcess == null) {
-          gcProcess = cluster._exec(SimpleGarbageCollector.class, server, configOverrides);
+          gcProcess = cluster._exec(SimpleGarbageCollector.class, server, configOverrides)
+              .getProcess();
         }
         break;
       case MONITOR:
         if (monitor == null) {
-          monitor = cluster._exec(Monitor.class, server, configOverrides);
+          monitor = cluster._exec(Monitor.class, server, configOverrides).getProcess();
         }
         break;
       case TRACER:
         if (tracer == null) {
-          tracer = cluster._exec(TraceServer.class, server, configOverrides);
+          tracer = cluster._exec(TraceServer.class, server, configOverrides).getProcess();
         }
         break;
       default:

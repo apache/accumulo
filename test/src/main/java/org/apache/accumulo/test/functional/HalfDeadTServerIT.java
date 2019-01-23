@@ -158,7 +158,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
         assertEquals(1, c.instanceOperations().getTabletServers().size());
         int rows = 100 * 1000;
         ingest = cluster.exec(TestIngest.class, "-u", "root", "-i", cluster.getInstanceName(), "-z",
-            cluster.getZooKeepers(), "-p", ROOT_PASSWORD, "--rows", rows + "");
+            cluster.getZooKeepers(), "-p", ROOT_PASSWORD, "--rows", rows + "").getProcess();
         sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
         // block I/O with some side-channel trickiness
