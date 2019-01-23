@@ -65,7 +65,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.Tracer;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.CancelFlagFuture;
 import org.apache.accumulo.core.util.CompletableFutureUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -659,7 +658,7 @@ public class Gatherer {
       List<RowRange> ranges, BlockCache summaryCache, BlockCache indexCache,
       Cache<String,Long> fileLenCache) {
     Path path = new Path(file);
-    Configuration conf = CachedConfiguration.getInstance();
+    Configuration conf = ctx.getHadoopConf();
     return SummaryReader.load(volMgr.get(path), conf, factory, path, summarySelector, summaryCache,
         indexCache, fileLenCache, cryptoService).getSummaries(ranges);
   }

@@ -20,8 +20,10 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
 public interface LogCloser {
-  long close(AccumuloConfiguration conf, VolumeManager fs, Path path) throws IOException;
+  long close(AccumuloConfiguration conf, Configuration hadoopConf, VolumeManager fs, Path path)
+      throws IOException;
 }

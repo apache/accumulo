@@ -59,7 +59,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -345,7 +344,7 @@ public class VolumeIT extends ConfigurableMacBase {
   // check that all volumes are initialized
   private void checkVolumesInitialized(List<Path> volumes, String uuid) throws Exception {
     for (Path volumePath : volumes) {
-      FileSystem fs = volumePath.getFileSystem(CachedConfiguration.getInstance());
+      FileSystem fs = volumePath.getFileSystem(cluster.getServerContext().getHadoopConf());
       Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
       FileStatus[] iids = fs.listStatus(vp);
       assertEquals(1, iids.length);

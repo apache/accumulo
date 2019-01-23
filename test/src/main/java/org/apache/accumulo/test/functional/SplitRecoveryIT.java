@@ -145,8 +145,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     for (int i = 0; i < extents.length; i++) {
       KeyExtent extent = extents[i];
 
-      String tdir = ServerConstants.getTablesDirs(context.getConfiguration())[0] + "/"
-          + extent.getTableId() + "/dir_" + i;
+      String tdir = ServerConstants.getTablesDirs(context)[0] + "/" + extent.getTableId() + "/dir_"
+          + i;
       MetadataTableUtil.addTablet(extent, tdir, context, TabletTime.LOGICAL_TIME_ID, zl);
       SortedMap<FileRef,DataFileValue> mapFiles = new TreeMap<>();
       mapFiles.put(new FileRef(tdir + "/" + RFile.EXTENSION + "_000_000"),

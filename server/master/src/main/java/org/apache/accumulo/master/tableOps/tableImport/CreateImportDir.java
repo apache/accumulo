@@ -45,7 +45,7 @@ class CreateImportDir extends MasterRepo {
     UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
 
     Path exportDir = new Path(tableInfo.exportDir);
-    String[] tableDirs = ServerConstants.getTablesDirs(master.getConfiguration());
+    String[] tableDirs = ServerConstants.getTablesDirs(master.getContext());
 
     log.info("Looking for matching filesystem for " + exportDir + " from options "
         + Arrays.toString(tableDirs));

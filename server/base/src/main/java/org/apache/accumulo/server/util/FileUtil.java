@@ -43,7 +43,6 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
@@ -209,8 +208,6 @@ public class FileUtil {
   public static double estimatePercentageLTE(ServerContext context, String tabletDir,
       Text prevEndRow, Text endRow, Collection<String> mapFiles, Text splitRow) throws IOException {
 
-    Configuration conf = CachedConfiguration.getInstance();
-
     Path tmpDir = null;
 
     int maxToOpen = context.getConfiguration()
@@ -225,7 +222,8 @@ public class FileUtil {
             mapFiles.size(), endRow, prevEndRow, tmpDir);
 
         long t1 = System.currentTimeMillis();
-        mapFiles = reduceFiles(context, conf, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
+        mapFiles = reduceFiles(context, context.getHadoopConf(), prevEndRow, endRow, mapFiles,
+            maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
 
         log.debug("Finished reducing indexes for {} {} in {}", endRow, prevEndRow,
@@ -287,7 +285,6 @@ public class FileUtil {
   public static SortedMap<Double,Key> findMidPoint(ServerContext context, String tabletDirectory,
       Text prevEndRow, Text endRow, Collection<String> mapFiles, double minSplit, boolean useIndex)
       throws IOException {
-    Configuration conf = CachedConfiguration.getInstance();
 
     Collection<String> origMapFiles = mapFiles;
 
@@ -308,7 +305,8 @@ public class FileUtil {
             mapFiles.size(), endRow, prevEndRow, tmpDir);
 
         long t1 = System.currentTimeMillis();
-        mapFiles = reduceFiles(context, conf, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
+        mapFiles = reduceFiles(context, context.getHadoopConf(), prevEndRow, endRow, mapFiles,
+            maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
 
         log.debug("Finished reducing indexes for {} {} in {}", endRow, prevEndRow,

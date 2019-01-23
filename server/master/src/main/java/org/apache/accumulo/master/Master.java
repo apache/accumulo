@@ -287,7 +287,7 @@ public class Master
       Path oldPath = fs.getFullPath(FileType.TABLE, "/" + MetadataTable.ID + "/root_tablet");
       if (fs.exists(oldPath)) {
         VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(RootTable.ID, context);
-        String newPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(getConfiguration()))
+        String newPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(context))
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + RootTable.ID;
         fs.mkdirs(new Path(newPath));
         if (!fs.rename(oldPath, new Path(newPath))) {
@@ -299,7 +299,7 @@ public class Master
 
       Path location = null;
 
-      for (String basePath : ServerConstants.getTablesDirs(getConfiguration())) {
+      for (String basePath : ServerConstants.getTablesDirs(context)) {
         Path path = new Path(basePath + "/" + RootTable.ID + RootTable.ROOT_TABLET_LOCATION);
         if (fs.exists(path)) {
           if (location != null) {
@@ -424,7 +424,8 @@ public class Master
         log.debug("Upgrade creating table {} (ID: {})", RootTable.NAME, RootTable.ID);
         TableManager.prepareNewTableState(zoo, getInstanceID(), RootTable.ID, Namespace.ID.ACCUMULO,
             RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.SKIP);
-        Initialize.initSystemTablesConfig(context.getZooReaderWriter(), context.getZooKeeperRoot());
+        Initialize.initSystemTablesConfig(context.getZooReaderWriter(), context.getZooKeeperRoot(),
+            context.getHadoopConf());
         // ensure root user can flush root table
         security.grantTablePermission(context.rpcCreds(), security.getRootUsername(), RootTable.ID,
             TablePermission.ALTER_TABLE, Namespace.ID.ACCUMULO);

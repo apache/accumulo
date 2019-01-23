@@ -662,7 +662,7 @@ abstract class TabletGroupWatcher extends Daemon {
         VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
             master.getContext());
         String tdir = master.getFileSystem().choose(chooserEnv,
-            ServerConstants.getBaseUris(master.getConfiguration())) + Constants.HDFS_TABLES_DIR
+            ServerConstants.getBaseUris(master.getContext())) + Constants.HDFS_TABLES_DIR
             + Path.SEPARATOR + extent.getTableId() + Constants.DEFAULT_TABLET_LOCATION;
         MetadataTableUtil.addTablet(
             new KeyExtent(extent.getTableId(), null, extent.getPrevEndRow()), tdir,

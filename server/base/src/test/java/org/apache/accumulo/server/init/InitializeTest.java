@@ -72,7 +72,7 @@ public class InitializeTest {
     expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("hdfs://foo");
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
     replay(fs, sconf);
-    assertTrue(Initialize.isInitialized(fs, sconf));
+    assertTrue(Initialize.isInitialized(fs, sconf, conf));
   }
 
   @SuppressWarnings("deprecation")
@@ -82,7 +82,7 @@ public class InitializeTest {
     expect(fs.exists(anyObject(Path.class))).andReturn(false);
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
     replay(fs, sconf);
-    assertTrue(Initialize.isInitialized(fs, sconf));
+    assertTrue(Initialize.isInitialized(fs, sconf, conf));
   }
 
   @SuppressWarnings("deprecation")
@@ -94,7 +94,7 @@ public class InitializeTest {
     expect(zoo.exists("/")).andReturn(false);
     replay(zoo);
 
-    assertFalse(Initialize.checkInit(conf, fs, sconf));
+    assertFalse(Initialize.checkInit(conf, fs, sconf, conf));
   }
 
   @SuppressWarnings("deprecation")
@@ -109,7 +109,7 @@ public class InitializeTest {
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
     replay(fs);
 
-    assertFalse(Initialize.checkInit(conf, fs, sconf));
+    assertFalse(Initialize.checkInit(conf, fs, sconf, conf));
   }
 
   // Cannot test, need to mock static FileSystem.getDefaultUri()
@@ -128,7 +128,7 @@ public class InitializeTest {
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
     replay(fs);
 
-    assertFalse(Initialize.checkInit(conf, fs, sconf));
+    assertFalse(Initialize.checkInit(conf, fs, sconf, conf));
   }
 
   @SuppressWarnings("deprecation")
@@ -144,7 +144,7 @@ public class InitializeTest {
     expect(fs.exists(anyObject(Path.class))).andThrow(new IOException());
     replay(fs);
 
-    Initialize.checkInit(conf, fs, sconf);
+    Initialize.checkInit(conf, fs, sconf, conf);
   }
 
   @SuppressWarnings("deprecation")
@@ -160,6 +160,6 @@ public class InitializeTest {
     expect(fs.exists(anyObject(Path.class))).andReturn(false);
     replay(fs);
 
-    assertTrue(Initialize.checkInit(conf, fs, sconf));
+    assertTrue(Initialize.checkInit(conf, fs, sconf, conf));
   }
 }

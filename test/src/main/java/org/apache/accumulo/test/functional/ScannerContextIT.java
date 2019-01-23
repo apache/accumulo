@@ -38,7 +38,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -69,7 +68,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   public void checkCluster() throws Exception {
     Assume.assumeThat(getClusterType(), CoreMatchers.is(ClusterType.MINI));
     MiniAccumuloClusterImpl.class.cast(getCluster());
-    fs = FileSystem.get(CachedConfiguration.getInstance());
+    fs = FileSystem.get(cluster.getServerContext().getHadoopConf());
   }
 
   private Path copyTestIteratorsJarToTmp() throws IOException {

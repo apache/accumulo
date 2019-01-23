@@ -106,9 +106,9 @@ public class RandomizeVolumes {
       Mutation m = new Mutation(key.getRow());
 
       VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId, context);
-      final String newLocation = vm.choose(chooserEnv,
-          ServerConstants.getBaseUris(context.getConfiguration())) + Path.SEPARATOR
-          + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR + directory;
+      final String newLocation = vm.choose(chooserEnv, ServerConstants.getBaseUris(context))
+          + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
+          + directory;
       m.put(key.getColumnFamily(), key.getColumnQualifier(),
           new Value(newLocation.getBytes(UTF_8)));
       if (log.isTraceEnabled()) {

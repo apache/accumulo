@@ -58,7 +58,7 @@ class ChooseDir extends MasterRepo {
         master.getContext());
 
     String baseDir = master.getFileSystem().choose(chooserEnv,
-        ServerConstants.getBaseUris(master.getConfiguration())) + Constants.HDFS_TABLES_DIR
+        ServerConstants.getBaseUris(master.getContext())) + Constants.HDFS_TABLES_DIR
         + Path.SEPARATOR + tableInfo.getTableId();
     tableInfo.defaultTabletDir = baseDir + Constants.DEFAULT_TABLET_LOCATION;
 

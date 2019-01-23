@@ -21,9 +21,9 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.fs.ViewFSUtils;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
@@ -37,14 +37,15 @@ public class HadoopLogCloser implements LogCloser {
   private static final Logger log = LoggerFactory.getLogger(HadoopLogCloser.class);
 
   @Override
-  public long close(AccumuloConfiguration conf, VolumeManager fs, Path source) throws IOException {
+  public long close(AccumuloConfiguration conf, Configuration hadoopConf, VolumeManager fs,
+      Path source) throws IOException {
     FileSystem ns = fs.getVolumeByPath(source).getFileSystem();
 
     // if path points to a viewfs path, then resolve to underlying filesystem
     if (ViewFSUtils.isViewFS(ns)) {
       Path newSource = ns.resolvePath(source);
       if (!newSource.equals(source) && newSource.toUri().getScheme() != null) {
-        ns = newSource.getFileSystem(CachedConfiguration.getInstance());
+        ns = newSource.getFileSystem(hadoopConf);
         source = newSource;
       }
     }

@@ -26,7 +26,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -88,11 +87,16 @@ public class ServerConstants {
 
   private static List<Pair<Path,Path>> replacementsList = null;
 
+  public static String[] getBaseUris(ServerContext context) {
+    return getBaseUris(context.getConfiguration(), context.getHadoopConf());
+  }
+
   // these are functions to delay loading the Accumulo configuration unless we must
-  public static synchronized String[] getBaseUris(AccumuloConfiguration conf) {
+  public static synchronized String[] getBaseUris(AccumuloConfiguration conf,
+      Configuration hadoopConf) {
     if (baseUris == null) {
-      baseUris = checkBaseUris(conf, CachedConfiguration.getInstance(),
-          VolumeConfiguration.getVolumeUris(conf), false);
+      baseUris = checkBaseUris(conf, hadoopConf,
+          VolumeConfiguration.getVolumeUris(conf, hadoopConf), false);
     }
 
     return baseUris;
@@ -150,12 +154,12 @@ public class ServerConstants {
   public static final String RECOVERY_DIR = "recovery";
   public static final String WAL_DIR = "wal";
 
-  public static String[] getTablesDirs(AccumuloConfiguration conf) {
-    return VolumeConfiguration.prefix(getBaseUris(conf), TABLE_DIR);
+  public static String[] getTablesDirs(ServerContext context) {
+    return VolumeConfiguration.prefix(getBaseUris(context), TABLE_DIR);
   }
 
-  public static String[] getRecoveryDirs(AccumuloConfiguration conf) {
-    return VolumeConfiguration.prefix(getBaseUris(conf), RECOVERY_DIR);
+  public static String[] getRecoveryDirs(ServerContext context) {
+    return VolumeConfiguration.prefix(getBaseUris(context), RECOVERY_DIR);
   }
 
   public static Path getInstanceIdLocation(Volume v) {
@@ -168,8 +172,8 @@ public class ServerConstants {
     return v.prefixChild(VERSION_DIR);
   }
 
-  public static synchronized List<Pair<Path,Path>> getVolumeReplacements(
-      AccumuloConfiguration conf) {
+  public static synchronized List<Pair<Path,Path>> getVolumeReplacements(AccumuloConfiguration conf,
+      Configuration hadoopConf) {
 
     if (replacementsList == null) {
       String replacements = conf.get(Property.INSTANCE_VOLUMES_REPLACEMENTS);
@@ -215,7 +219,7 @@ public class ServerConstants {
       }
 
       HashSet<Path> baseDirs = new HashSet<>();
-      for (String baseDir : getBaseUris(conf)) {
+      for (String baseDir : getBaseUris(conf, hadoopConf)) {
         // normalize using path
         baseDirs.add(new Path(baseDir));
       }

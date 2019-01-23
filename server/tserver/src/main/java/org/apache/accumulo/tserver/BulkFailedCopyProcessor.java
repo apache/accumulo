@@ -20,7 +20,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
@@ -62,7 +61,7 @@ public class BulkFailedCopyProcessor implements Processor {
       FileSystem origFs = vm.getVolumeByPath(orig).getFileSystem();
       FileSystem destFs = vm.getVolumeByPath(dest).getFileSystem();
 
-      FileUtil.copy(origFs, orig, destFs, tmp, false, true, CachedConfiguration.getInstance());
+      FileUtil.copy(origFs, orig, destFs, tmp, false, true, context.getHadoopConf());
       destFs.rename(tmp, dest);
       log.debug("copied {} to {}", orig, dest);
     } catch (IOException ex) {

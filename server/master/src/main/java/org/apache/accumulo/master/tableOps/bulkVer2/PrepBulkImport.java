@@ -220,7 +220,7 @@ public class PrepBulkImport extends MasterRepo {
   private Path createNewBulkDir(ServerContext context, VolumeManager fs, Table.ID tableId)
       throws IOException {
     Path tempPath = fs.matchingFileSystem(new Path(bulkInfo.sourceDir),
-        ServerConstants.getTablesDirs(context.getConfiguration()));
+        ServerConstants.getTablesDirs(context));
     if (tempPath == null)
       throw new IOException(bulkInfo.sourceDir + " is not in a volume configured for Accumulo");
 
