@@ -62,10 +62,12 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   /**
-   * Create a {@link Key} builder. Copy bytes defaults to true.
+   * Create a {@link Key} builder. Using the builder makes it easy to mix types, like {@code String}
+   * and {@code byte[]}, for different fields. Copy bytes defaults to true.
    *
    * @since 2.0
    * @return the builder at the {@link KeyBuilder.RowStep}
+   * @see #builder(boolean)
    */
   public static KeyBuilder.RowStep builder() {
     return new KeyBuilder.KeyBuilderImpl(true);
@@ -121,6 +123,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *
    * @param row
    *          row ID
+   * @see #builder()
    */
   public Key(Text row) {
     init(row.getBytes(), 0, row.getLength(), EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0,
@@ -137,6 +140,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * @param row
    *          row ID
    * @since 1.8.0
+   * @see #builder()
    */
   public Key(byte[] row) {
     init(row, 0, row.length, EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0,
@@ -151,6 +155,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          row ID
    * @param ts
    *          timestamp
+   * @see #builder()
    */
   public Key(Text row, long ts) {
     this(row);
@@ -169,6 +174,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * @param ts
    *          timestamp
    * @since 1.8.0
+   * @see #builder()
    */
   public Key(byte[] row, long ts) {
     this(row);
@@ -207,6 +213,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          length of column visibility in cv
    * @param ts
    *          timestamp
+   * @see #builder()
    */
   public Key(byte row[], int rOff, int rLen, byte cf[], int cfOff, int cfLen, byte cq[], int cqOff,
       int cqLen, byte cv[], int cvOff, int cvLen, long ts) {
@@ -249,6 +256,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          delete marker
    * @param copy
    *          if true, forces copy of byte array values into key
+   * @see #builder()
    */
   Key(byte row[], int rOff, int rLen, byte cf[], int cfOff, int cfLen, byte cq[], int cqOff,
       int cqLen, byte cv[], int cvOff, int cvLen, long ts, boolean deleted, boolean copy) {
@@ -271,6 +279,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          column visibility
    * @param timestamp
    *          timestamp
+   * @see #builder()
    */
   public Key(byte[] row, byte[] colFamily, byte[] colQualifier, byte[] colVisibility,
       long timestamp) {
@@ -295,6 +304,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          timestamp
    * @param deleted
    *          delete marker
+   * @see #builder()
    */
   public Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted) {
     this(row, cf, cq, cv, ts, deleted, true);
@@ -317,6 +327,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          delete marker
    * @param copy
    *          if true, forces copy of byte array values into key
+   * @see #builder()
    */
   public Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy) {
     init(row, 0, row.length, cf, 0, cf.length, cq, 0, cq.length, cv, 0, cv.length, ts, deleted,
@@ -326,6 +337,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Creates a key with the specified row, the specified column family, empty column qualifier,
    * empty column visibility, timestamp {@link Long#MAX_VALUE}, and delete marker false.
+   *
+   * @see #builder()
    */
   public Key(Text row, Text cf) {
     init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), EMPTY_BYTES, 0, 0,
@@ -341,6 +354,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * instead.
    *
    * @since 1.8.0
+   * @see #builder()
    */
   public Key(byte[] row, byte[] cf) {
     init(row, 0, row.length, cf, 0, cf.length, EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, Long.MAX_VALUE,
@@ -350,6 +364,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, empty column visibility, timestamp {@link Long#MAX_VALUE}, and delete marker false.
+   *
+   * @see #builder()
    */
   public Key(Text row, Text cf, Text cq) {
     init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0,
@@ -365,6 +381,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * instead.
    *
    * @since 1.8.0
+   * @see #builder()
    */
   public Key(byte[] row, byte[] cf, byte[] cq) {
     init(row, 0, row.length, cf, 0, cf.length, cq, 0, cq.length, EMPTY_BYTES, 0, 0, Long.MAX_VALUE,
@@ -375,6 +392,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, the specified column visibility, timestamp {@link Long#MAX_VALUE}, and delete marker
    * false.
+   *
+   * @see #builder()
    */
   public Key(Text row, Text cf, Text cq, Text cv) {
     init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0,
@@ -390,6 +409,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * instead.
    *
    * @since 1.8.0
+   * @see #builder()
    */
   public Key(byte[] row, byte[] cf, byte[] cq, byte[] cv) {
     init(row, 0, row.length, cf, 0, cf.length, cq, 0, cq.length, cv, 0, cv.length, Long.MAX_VALUE,
@@ -399,6 +419,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, empty column visibility, the specified timestamp, and delete marker false.
+   *
+   * @see #builder()
    */
   public Key(Text row, Text cf, Text cq, long ts) {
     init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0,
@@ -414,6 +436,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * instead.
    *
    * @since 1.8.0
+   * @see #builder()
    */
   public Key(byte[] row, byte[] cf, byte[] cq, long ts) {
     init(row, 0, row.length, cf, 0, cf.length, cq, 0, cq.length, EMPTY_BYTES, 0, 0, ts, false,
@@ -423,6 +446,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, the specified column visibility, the specified timestamp, and delete marker false.
+   *
+   * @see #builder()
    */
   public Key(Text row, Text cf, Text cq, Text cv, long ts) {
     init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0,
@@ -432,6 +457,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, the specified column visibility, the specified timestamp, and delete marker false.
+   *
+   * @see #builder()
    */
   public Key(Text row, Text cf, Text cq, ColumnVisibility cv, long ts) {
     byte[] expr = cv.getExpression();
@@ -448,6 +475,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * instead.
    *
    * @since 1.8.0
+   * @see #builder()
    */
   public Key(byte[] row, byte[] cf, byte[] cq, ColumnVisibility cv, long ts) {
     byte[] expr = cv.getExpression();
@@ -457,6 +485,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
   /**
    * Converts CharSequence to Text and creates a Key using {@link #Key(Text)}.
+   *
+   * @see #builder()
    */
   public Key(CharSequence row) {
     this(new Text(row.toString()));
@@ -464,6 +494,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
   /**
    * Converts CharSequence to Text and creates a Key using {@link #Key(Text,Text)}.
+   *
+   * @see #builder()
    */
   public Key(CharSequence row, CharSequence cf) {
     this(new Text(row.toString()), new Text(cf.toString()));
@@ -471,6 +503,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
   /**
    * Converts CharSequence to Text and creates a Key using {@link #Key(Text,Text,Text)}.
+   *
+   * @see #builder()
    */
   public Key(CharSequence row, CharSequence cf, CharSequence cq) {
     this(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()));
@@ -478,6 +512,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
   /**
    * Converts CharSequence to Text and creates a Key using {@link #Key(Text,Text,Text,Text)}.
+   *
+   * @see #builder()
    */
   public Key(CharSequence row, CharSequence cf, CharSequence cq, CharSequence cv) {
     this(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()),
@@ -486,6 +522,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
   /**
    * Converts CharSequence to Text and creates a Key using {@link #Key(Text,Text,Text,long)}.
+   *
+   * @see #builder()
    */
   public Key(CharSequence row, CharSequence cf, CharSequence cq, long ts) {
     this(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()), ts);
@@ -493,6 +531,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
   /**
    * Converts CharSequence to Text and creates a Key using {@link #Key(Text,Text,Text,Text,long)}.
+   *
+   * @see #builder()
    */
   public Key(CharSequence row, CharSequence cf, CharSequence cq, CharSequence cv, long ts) {
     this(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()),
@@ -502,6 +542,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Converts CharSequence to Text and creates a Key using
    * {@link #Key(Text,Text,Text,ColumnVisibility,long)}.
+   *
+   * @see #builder()
    */
   public Key(CharSequence row, CharSequence cf, CharSequence cq, ColumnVisibility cv, long ts) {
     this(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()),

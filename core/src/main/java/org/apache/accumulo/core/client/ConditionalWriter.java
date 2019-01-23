@@ -127,7 +127,7 @@ public interface ConditionalWriter extends AutoCloseable {
   Iterator<Result> write(Iterator<ConditionalMutation> mutations);
 
   /**
-   * This method has the same thread safety guarantees as @link {@link #write(Iterator)}
+   * This method has the same thread safety guarantees as {@link #write(Iterator)}
    *
    * @return Result for the submitted mutation
    */

@@ -62,6 +62,11 @@ import com.google.common.base.Preconditions;
  * rather, they indicate that Accumulo should insert a delete marker for that row column. A delete
  * marker effectively hides entries for that row column with a timestamp earlier than the marker's.
  * (The hidden data is eventually removed during Accumulo garbage collection.)
+ *
+ * <p>
+ * This class has many overloaded {@code put} and {@code putDelete} methods. These were added to
+ * support different subset of fields and types. The functionality of all of these {@code put}
+ * methods and more is provided by the new fluent {@link #at()} method added in 2.0.
  */
 public class Mutation implements Writable {
 
@@ -386,6 +391,7 @@ public class Mutation implements Writable {
    *          column qualifier
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(Text columnFamily, Text columnQualifier, Value value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value.get());
@@ -403,6 +409,7 @@ public class Mutation implements Writable {
    *          column visibility
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
       Value value) {
@@ -422,6 +429,7 @@ public class Mutation implements Writable {
    *          timestamp
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(Text columnFamily, Text columnQualifier, long timestamp, Value value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value.get());
@@ -440,6 +448,7 @@ public class Mutation implements Writable {
    *          timestamp
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
       long timestamp, Value value) {
@@ -455,6 +464,7 @@ public class Mutation implements Writable {
    *          column family
    * @param columnQualifier
    *          column qualifier
+   * @see #at()
    */
   public void putDelete(Text columnFamily, Text columnQualifier) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
@@ -469,6 +479,7 @@ public class Mutation implements Writable {
    *          column qualifier
    * @param columnVisibility
    *          column visibility
+   * @see #at()
    */
   public void putDelete(Text columnFamily, Text columnQualifier,
       ColumnVisibility columnVisibility) {
@@ -486,6 +497,7 @@ public class Mutation implements Writable {
    *          column qualifier
    * @param timestamp
    *          timestamp
+   * @see #at()
    */
   public void putDelete(Text columnFamily, Text columnQualifier, long timestamp) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, true, EMPTY_BYTES);
@@ -502,6 +514,7 @@ public class Mutation implements Writable {
    *          column visibility
    * @param timestamp
    *          timestamp
+   * @see #at()
    */
   public void putDelete(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
       long timestamp) {
@@ -517,6 +530,7 @@ public class Mutation implements Writable {
    *          column family
    * @param columnQualifier
    *          column qualifier
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, Value value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value.get());
@@ -534,6 +548,7 @@ public class Mutation implements Writable {
    *          column visibility
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, Value value) {
@@ -553,6 +568,7 @@ public class Mutation implements Writable {
    *          timestamp
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp,
       Value value) {
@@ -572,6 +588,7 @@ public class Mutation implements Writable {
    *          timestamp
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, long timestamp, Value value) {
@@ -587,6 +604,7 @@ public class Mutation implements Writable {
    *          column family
    * @param columnQualifier
    *          column qualifier
+   * @see #at()
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
@@ -602,6 +620,7 @@ public class Mutation implements Writable {
    *          column qualifier
    * @param columnVisibility
    *          column visibility
+   * @see #at()
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility) {
@@ -619,6 +638,7 @@ public class Mutation implements Writable {
    *          column qualifier
    * @param timestamp
    *          timestamp
+   * @see #at()
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier, long timestamp) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, true, EMPTY_BYTES);
@@ -635,6 +655,7 @@ public class Mutation implements Writable {
    *          column visibility
    * @param timestamp
    *          timestamp
+   * @see #at()
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, long timestamp) {
@@ -652,6 +673,7 @@ public class Mutation implements Writable {
    *          column qualifier
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, CharSequence value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value);
@@ -669,6 +691,7 @@ public class Mutation implements Writable {
    *          column visibility
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, CharSequence value) {
@@ -687,6 +710,7 @@ public class Mutation implements Writable {
    *          timestamp
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp,
       CharSequence value) {
@@ -706,6 +730,7 @@ public class Mutation implements Writable {
    *          timestamp
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, long timestamp, CharSequence value) {
@@ -724,6 +749,7 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    * @since 1.5.0
+   * @see #at()
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, byte[] value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value);
@@ -742,6 +768,7 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    * @since 1.5.0
+   * @see #at()
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility,
       byte[] value) {
@@ -761,6 +788,7 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    * @since 1.5.0
+   * @see #at()
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, long timestamp, byte[] value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value);
@@ -780,6 +808,7 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    * @since 1.5.0
+   * @see #at()
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility,
       long timestamp, byte[] value) {
@@ -796,6 +825,7 @@ public class Mutation implements Writable {
    * @param columnQualifier
    *          column qualifier
    * @since 1.5.0
+   * @see #at()
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
@@ -811,6 +841,7 @@ public class Mutation implements Writable {
    * @param columnVisibility
    *          column visibility
    * @since 1.5.0
+   * @see #at()
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier,
       ColumnVisibility columnVisibility) {
@@ -829,6 +860,7 @@ public class Mutation implements Writable {
    * @param timestamp
    *          timestamp
    * @since 1.5.0
+   * @see #at()
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier, long timestamp) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, true, EMPTY_BYTES);
@@ -846,6 +878,7 @@ public class Mutation implements Writable {
    * @param timestamp
    *          timestamp
    * @since 1.5.0
+   * @see #at()
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier,
       ColumnVisibility columnVisibility, long timestamp) {
@@ -962,6 +995,20 @@ public class Mutation implements Writable {
    *
    * <p>
    * The put and delete methods end the chain and add the modification to the Mutation.
+   *
+   * <p>
+   * The following is an example if using {@code at()} to put and delete. Notice how the example
+   * mixes {@code String} and {@code byte[]}.
+   *
+   * <p>
+   *
+   * <pre>
+   * <code>
+   *   Mutation m = new Mutation("row0017");
+   *   m.at().family("001").qualifier(new byte[] {0,1}).put("v99");
+   *   m.at().family("002").qualifier(new byte[] {0,1}).delete();
+   * </code>
+   * </pre>
    *
    * @return a new FamilyOptions object, starting the method chain
    * @since 2.0.0

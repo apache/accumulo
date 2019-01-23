@@ -28,13 +28,11 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
  * not accessible from here.
  *
  * <UL>
- * <LI>Hadoop input, output formats and partitioners in
- * {@code org.apache.accumulo.core.client.mapred} and
- * {@code org.apache.accumulo.core.client.mapreduce} packages (excluding {@code impl} sub-packages).
+ * <LI>Hadoop input, output formats and partitioners in {@code org.apache.accumulo.hadoop.mapred}
+ * and {@code org.apache.accumulo.hadoop.mapreduce} packages.
  * <LI>{@code org.apache.accumulo.minicluster.MiniAccumuloCluster} Not linkable by javadoc, because
  * in a separate module.
- * <LI>{@link Lexicoder} and all of its implementations in the same package (excluding the
- * {@code impl} sub-package).
+ * <LI>{@link Lexicoder} and all of its implementations in the same package.
  * <LI>{@link RFile}
  * </UL>
  *

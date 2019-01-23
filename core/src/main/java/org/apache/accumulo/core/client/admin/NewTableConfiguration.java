@@ -126,8 +126,6 @@ public class NewTableConfiguration {
   /**
    * Return value indicating whether table is to be created in offline or online mode.
    *
-   * @return 1 if true; 0 otherwise.
-   *
    * @since 2.0.0
    */
   public InitialTableState getInitialTableState() {
