@@ -87,6 +87,10 @@ public class ServerConstants {
 
   private static List<Pair<Path,Path>> replacementsList = null;
 
+  public static String[] getBaseUris(ServerContext context) {
+    return getBaseUris(context.getConfiguration(), context.getHadoopConf());
+  }
+
   // these are functions to delay loading the Accumulo configuration unless we must
   public static synchronized String[] getBaseUris(AccumuloConfiguration conf,
       Configuration hadoopConf) {
@@ -151,13 +155,11 @@ public class ServerConstants {
   public static final String WAL_DIR = "wal";
 
   public static String[] getTablesDirs(ServerContext context) {
-    return VolumeConfiguration
-        .prefix(getBaseUris(context.getConfiguration(), context.getHadoopConf()), TABLE_DIR);
+    return VolumeConfiguration.prefix(getBaseUris(context), TABLE_DIR);
   }
 
   public static String[] getRecoveryDirs(ServerContext context) {
-    return VolumeConfiguration
-        .prefix(getBaseUris(context.getConfiguration(), context.getHadoopConf()), RECOVERY_DIR);
+    return VolumeConfiguration.prefix(getBaseUris(context), RECOVERY_DIR);
   }
 
   public static Path getInstanceIdLocation(Volume v) {

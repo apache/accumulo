@@ -287,8 +287,7 @@ public class Master
       Path oldPath = fs.getFullPath(FileType.TABLE, "/" + MetadataTable.ID + "/root_tablet");
       if (fs.exists(oldPath)) {
         VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(RootTable.ID, context);
-        String newPath = fs.choose(chooserEnv,
-            ServerConstants.getBaseUris(getConfiguration(), context.getHadoopConf()))
+        String newPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(context))
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + RootTable.ID;
         fs.mkdirs(new Path(newPath));
         if (!fs.rename(oldPath, new Path(newPath))) {

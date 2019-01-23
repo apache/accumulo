@@ -2862,8 +2862,7 @@ public class Tablet {
 
     UniqueNameAllocator namer = context.getUniqueNameAllocator();
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId, context);
-    String volume = fs.choose(chooserEnv,
-        ServerConstants.getBaseUris(context.getConfiguration(), context.getHadoopConf()))
+    String volume = fs.choose(chooserEnv, ServerConstants.getBaseUris(context))
         + Constants.HDFS_TABLES_DIR + Path.SEPARATOR;
 
     while (true) {
