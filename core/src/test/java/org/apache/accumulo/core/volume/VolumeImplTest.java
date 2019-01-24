@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
@@ -33,15 +34,18 @@ public class VolumeImplTest {
 
   @Test
   public void testFileSystemInequivalence() {
+    Configuration hadoopConf = createMock(Configuration.class);
     FileSystem fs = createMock(FileSystem.class), other = createMock(FileSystem.class);
+
     String basePath = "/accumulo";
 
-    VolumeImpl volume = new VolumeImpl(fs, basePath);
-
+    expect(fs.getConf()).andReturn(hadoopConf).anyTimes();
     expect(fs.getUri()).andReturn(URI.create("hdfs://localhost:8020")).anyTimes();
     expect(other.getUri()).andReturn(URI.create("hdfs://otherhost:8020")).anyTimes();
 
     replay(fs, other);
+
+    VolumeImpl volume = new VolumeImpl(fs, basePath);
 
     assertFalse(volume.equivalentFileSystems(other));
 
@@ -50,15 +54,17 @@ public class VolumeImplTest {
 
   @Test
   public void testFileSystemEquivalence() {
+    Configuration hadoopConf = createMock(Configuration.class);
     FileSystem fs = createMock(FileSystem.class), other = createMock(FileSystem.class);
     String basePath = "/accumulo";
 
-    VolumeImpl volume = new VolumeImpl(fs, basePath);
-
+    expect(fs.getConf()).andReturn(hadoopConf).anyTimes();
     expect(fs.getUri()).andReturn(URI.create("hdfs://myhost:8020")).anyTimes();
     expect(other.getUri()).andReturn(URI.create("hdfs://myhost:8020")).anyTimes();
 
     replay(fs, other);
+
+    VolumeImpl volume = new VolumeImpl(fs, basePath);
 
     assertTrue(volume.equivalentFileSystems(other));
 
