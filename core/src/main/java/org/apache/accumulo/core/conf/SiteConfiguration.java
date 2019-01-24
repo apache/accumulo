@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -111,8 +110,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
     // Add sensitive properties from credential provider (if set)
     String credProvider = result.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
     if (credProvider != null) {
-      org.apache.hadoop.conf.Configuration hadoopConf = new org.apache.hadoop.conf.Configuration(
-          CachedConfiguration.getInstance());
+      org.apache.hadoop.conf.Configuration hadoopConf = new org.apache.hadoop.conf.Configuration();
       hadoopConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProvider);
       for (Property property : Property.values()) {
         if (property.isSensitive()) {

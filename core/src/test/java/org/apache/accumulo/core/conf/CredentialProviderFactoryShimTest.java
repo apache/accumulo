@@ -44,6 +44,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CredentialProviderFactoryShimTest {
 
+  private static final Configuration hadoopConf = new Configuration();
   private static final Logger log = LoggerFactory
       .getLogger(CredentialProviderFactoryShimTest.class);
 
@@ -148,7 +149,8 @@ public class CredentialProviderFactoryShimTest {
   @Test
   public void testConfigurationCreation() {
     final String path = "jceks://file/tmp/foo.jks";
-    final Configuration actualConf = CredentialProviderFactoryShim.getConfiguration(path);
+    final Configuration actualConf = CredentialProviderFactoryShim.getConfiguration(hadoopConf,
+        path);
     assertNotNull(actualConf);
     assertEquals(path, actualConf.get(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH));
   }

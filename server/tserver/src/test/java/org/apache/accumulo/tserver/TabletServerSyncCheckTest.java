@@ -71,7 +71,7 @@ public class TabletServerSyncCheckTest {
 
     public TestVolumeManagerImpl(Map<String,Volume> volumes) {
       super(volumes, volumes.values().iterator().next(),
-          new ConfigurationCopy(Collections.emptyMap()));
+          new ConfigurationCopy(Collections.emptyMap()), new Configuration());
     }
 
     @Override

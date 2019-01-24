@@ -35,7 +35,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.volume.NonConfiguredVolume;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -71,9 +70,10 @@ public class VolumeManagerImpl implements VolumeManager {
   private final Multimap<URI,Volume> volumesByFileSystemUri;
   private final Volume defaultVolume;
   private final VolumeChooser chooser;
+  private final Configuration hadoopConf;
 
   protected VolumeManagerImpl(Map<String,Volume> volumes, Volume defaultVolume,
-      AccumuloConfiguration conf) {
+      AccumuloConfiguration conf, Configuration hadoopConf) {
     this.volumesByName = volumes;
     this.defaultVolume = defaultVolume;
     // We may have multiple directories used in a single FileSystem (e.g. testing)
@@ -94,6 +94,7 @@ public class VolumeManagerImpl implements VolumeManager {
           "Failed to load volume chooser specified by " + Property.GENERAL_VOLUME_CHOOSER);
     }
     chooser = chooser1;
+    this.hadoopConf = hadoopConf;
   }
 
   private void invertVolumesByFileSystem(Map<String,Volume> forward,
@@ -106,13 +107,14 @@ public class VolumeManagerImpl implements VolumeManager {
   public static org.apache.accumulo.server.fs.VolumeManager getLocal(String localBasePath)
       throws IOException {
     AccumuloConfiguration accConf = DefaultConfiguration.getInstance();
-    Volume defaultLocalVolume = VolumeConfiguration
-        .create(FileSystem.getLocal(CachedConfiguration.getInstance()), localBasePath);
+    Configuration hadoopConf = new Configuration();
+    Volume defaultLocalVolume = VolumeConfiguration.create(FileSystem.getLocal(hadoopConf),
+        localBasePath);
 
     // The default volume gets placed in the map, but local filesystem is only used for testing
     // purposes
     return new VolumeManagerImpl(Collections.singletonMap(DEFAULT, defaultLocalVolume),
-        defaultLocalVolume, accConf);
+        defaultLocalVolume, accConf, hadoopConf);
   }
 
   @Override
@@ -261,7 +263,7 @@ public class VolumeManagerImpl implements VolumeManager {
   public Volume getVolumeByPath(Path path) {
     if (path.toString().contains(":")) {
       try {
-        FileSystem desiredFs = path.getFileSystem(CachedConfiguration.getInstance());
+        FileSystem desiredFs = path.getFileSystem(hadoopConf);
         URI desiredFsUri = desiredFs.getUri();
         Collection<Volume> candidateVolumes = volumesByFileSystemUri.get(desiredFsUri);
         if (candidateVolumes != null) {
@@ -357,8 +359,8 @@ public class VolumeManagerImpl implements VolumeManager {
       }
     }
 
-    return new VolumeManagerImpl(volumes, VolumeConfiguration.getDefaultVolume(hadoopConf, conf),
-        conf);
+    Volume defaultVolume = VolumeConfiguration.getDefaultVolume(hadoopConf, conf);
+    return new VolumeManagerImpl(volumes, defaultVolume, conf, hadoopConf);
   }
 
   @Override
@@ -395,8 +397,8 @@ public class VolumeManagerImpl implements VolumeManager {
   @Override
   public Path matchingFileSystem(Path source, String[] options) {
     try {
-      if (ViewFSUtils.isViewFS(source, CachedConfiguration.getInstance())) {
-        return ViewFSUtils.matchingFileSystem(source, options, CachedConfiguration.getInstance());
+      if (ViewFSUtils.isViewFS(source, hadoopConf)) {
+        return ViewFSUtils.matchingFileSystem(source, options, hadoopConf);
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
