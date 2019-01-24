@@ -57,12 +57,7 @@ public interface TableOperations {
   SortedSet<String> list();
 
   /**
-   * A method to check if a table exists in Accumulo. WARNING: There exists race conditions when
-   * interpreting the results of this method. A table could be removed at the same time (or even
-   * very shortly before) and not exist when this method returns true. A table could be created at the
-   * same time (or shortly before) and exist when this method returns false. The results of this
-   * method should only be used for informational purposes and taken whether this table existed
-   * at some point in time, fairly recently.
+   * A method to check if a table existed at some point in time, fairly recently.
    *
    * @param tableName
    *          the name of the table
