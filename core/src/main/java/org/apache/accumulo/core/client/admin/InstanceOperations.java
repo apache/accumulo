@@ -130,4 +130,12 @@ public interface InstanceOperations {
    * @since 1.7.0
    */
   void waitForBalance() throws AccumuloException;
+
+  /**
+   * Returns unique instance ID that identifies this instance of accumulo.
+   *
+   * @return a String
+   */
+
+  String getInstanceID();
 }

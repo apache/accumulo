@@ -267,7 +267,7 @@ public interface AccumuloClient extends AutoCloseable {
   /**
    * Returns a unique string that identifies this instance of accumulo.
    *
-   * @return a UUID
+   * @return a String
    */
   String getInstanceID();
 
