@@ -19,7 +19,7 @@
       <div class="modal-dialog" role="document">
         <!-- Modal content -->
         <div class="modal-content">
-          <div class="modal-header">
+          <div class="modal-header center">
             <button type="button" class="close" data-dismiss="modal">&times;</button>
             <span class="modal-title"><a href="https://accumulo.apache.org" target="_blank"><img alt="Apache Accumulo" src="/resources/images/accumulo-logo.png" /></a></span>
           </div>
