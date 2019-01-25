@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -309,20 +308,6 @@ public class CredentialProviderFactoryShim {
     }
 
     return aliases;
-  }
-
-  /**
-   * Create a Hadoop {@link Configuration} with the appropriate members to access
-   * CredentialProviders
-   *
-   * @param credentialProviders
-   *          Comma-separated list of CredentialProvider URLs
-   * @return Configuration to be used for CredentialProvider
-   */
-  public static Configuration getConfiguration(String credentialProviders) {
-    requireNonNull(credentialProviders);
-    return getConfiguration(new Configuration(CachedConfiguration.getInstance()),
-        credentialProviders);
   }
 
   /**

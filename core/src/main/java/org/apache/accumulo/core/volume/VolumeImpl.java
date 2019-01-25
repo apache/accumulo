@@ -21,7 +21,6 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.util.Objects;
 
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -37,6 +36,7 @@ public class VolumeImpl implements Volume {
 
   protected final FileSystem fs;
   protected final String basePath;
+  private final Configuration hadoopConf;
 
   public VolumeImpl(Path path, Configuration conf) throws IOException {
     requireNonNull(path);
@@ -44,6 +44,7 @@ public class VolumeImpl implements Volume {
 
     this.fs = path.getFileSystem(conf);
     this.basePath = path.toUri().getPath();
+    this.hadoopConf = conf;
   }
 
   public VolumeImpl(FileSystem fs, String basePath) {
@@ -52,6 +53,7 @@ public class VolumeImpl implements Volume {
 
     this.fs = fs;
     this.basePath = basePath;
+    this.hadoopConf = fs.getConf();
   }
 
   @Override
@@ -75,7 +77,7 @@ public class VolumeImpl implements Volume {
 
     FileSystem other;
     try {
-      other = p.getFileSystem(CachedConfiguration.getInstance());
+      other = p.getFileSystem(hadoopConf);
     } catch (IOException e) {
       log.warn("Could not determine filesystem from path: {}", p, e);
       return false;
