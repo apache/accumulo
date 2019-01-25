@@ -112,7 +112,7 @@ shell)   export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_SHELL_OPTS}" 
 esac
 
 XML_FILES="${ACCUMULO_CONF_DIR}"
-LOG4J_JAR=$(find -H "${HADOOP_PREFIX}/lib" "${HADOOP_PREFIX}"/share/hadoop/common/lib -name 'log4j*.jar' -print 2>/dev/null | head -1)
+LOG4J_JAR=$(find -H "${HADOOP_PREFIX}/lib" "${HADOOP_PREFIX}"/share/hadoop/common/lib -name 'log4j*.jar' -not -name 'log4j-core*.jar' -print 2>/dev/null | head -1)
 SLF4J_JARS="${ACCUMULO_HOME}/lib/slf4j-api.jar:${ACCUMULO_HOME}/lib/slf4j-log4j12.jar"
 
 # The `find` command could fail for environmental reasons or bad configuration
