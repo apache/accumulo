@@ -17,8 +17,6 @@
 package org.apache.accumulo.test.functional;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -43,7 +41,7 @@ public class SslIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void binary() throws AccumuloException, AccumuloSecurityException, Exception {
+  public void binary() throws Exception {
     try (AccumuloClient client = createClient()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);

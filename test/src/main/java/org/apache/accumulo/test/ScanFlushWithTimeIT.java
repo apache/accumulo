@@ -94,11 +94,7 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
 
   private void testScanner(ScannerBase s, long expected) {
     long now = System.currentTimeMillis();
-    try {
-      s.iterator().next();
-    } finally {
-      s.close();
-    }
+    s.iterator().next();
     long diff = System.currentTimeMillis() - now;
     log.info("Diff = {}", diff);
     assertTrue("Scanner taking too long to return intermediate results: " + diff, diff < expected);

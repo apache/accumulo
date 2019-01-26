@@ -408,7 +408,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       siteConfig.put(Property.INSTANCE_DFS_DIR.getKey(), "/accumulo");
       config.setSiteConfig(siteConfig);
     } else if (config.useExistingInstance()) {
-      dfsUri = getServerContext().getHadoopConf().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
+      dfsUri = config.getHadoopConfiguration().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
     } else {
       dfsUri = "file:///";
     }
