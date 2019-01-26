@@ -109,12 +109,11 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
         SlowIterator.setSleepTime(setting, Long.MAX_VALUE);
         scanner.addScanIterator(setting);
 
-        final Iterator<Entry<Key,Value>> slow = scanner.iterator();
-
         final List<Future<Boolean>> callables = new ArrayList<>();
         final CountDownLatch latch = new CountDownLatch(10);
         for (int i = 0; i < 10; i++) {
           Future<Boolean> callable = service.submit(() -> {
+            Iterator<Entry<Key,Value>> slow = scanner.iterator();
             latch.countDown();
             while (slow.hasNext()) {
 
@@ -131,13 +130,13 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
 
         // let's add more for good measure.
         for (int i = 0; i < 2; i++) {
-          try (Scanner scanner2 = c.createScanner(tableName, new Authorizations())) {
-            scanner2.setRange(new Range(String.format("%08d", 0), String.format("%08d", 1000)));
-            scanner2.setBatchSize(1);
-            Iterator<Entry<Key,Value>> iter = scanner2.iterator();
-            // call super's verify mechanism
-            verify(iter, 0, 1000);
-          }
+          // do not close scanner, since all data is consumed it should close the sessions
+          Scanner scanner2 = c.createScanner(tableName, new Authorizations());
+          scanner2.setRange(new Range(String.format("%08d", 0), String.format("%08d", 1000)));
+          scanner2.setBatchSize(1);
+          Iterator<Entry<Key,Value>> iter = scanner2.iterator();
+          // call super's verify mechanism
+          verify(iter, 0, 1000);
         }
 
         int sessionsFound = 0;

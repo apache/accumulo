@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -124,8 +125,13 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     readaheadPool.execute(() -> {
       synchronized (scanState) {
         // this is synchronized so its mutually exclusive with readBatch()
-        closed = true;
-        ThriftScanner.close(scanState);
+        try {
+          closed = true;
+          ThriftScanner.close(scanState);
+        } catch (Exception e) {
+          LoggerFactory.getLogger(ScannerIterator.class)
+              .debug("Exception when closing scan session", e);
+        }
       }
     });
   }
