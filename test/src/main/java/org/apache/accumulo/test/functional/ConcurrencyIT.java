@@ -24,14 +24,10 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -51,26 +47,27 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
   static class ScanTask extends Thread {
 
     int count = 0;
-    Scanner scanner = null;
+    AccumuloClient client;
+    String tableName;
+    long time;
 
-    ScanTask(AccumuloClient client, String tableName, long time) throws Exception {
-      try {
-        scanner = client.createScanner(tableName, Authorizations.EMPTY);
-        IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
-        SlowIterator.setSleepTime(slow, time);
-        scanner.addScanIterator(slow);
-      } finally {
-        if (scanner != null) {
-          scanner.close();
-        }
-      }
+    ScanTask(AccumuloClient client, String tableName, long time) {
+      this.client = client;
+      this.tableName = tableName;
+      this.time = time;
     }
 
     @Override
     public void run() {
-      count = Iterators.size(scanner.iterator());
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
+        SlowIterator.setSleepTime(slow, time);
+        scanner.addScanIterator(slow);
+        count = Iterators.size(scanner.iterator());
+      } catch (TableNotFoundException e) {
+        throw new IllegalStateException(e);
+      }
     }
-
   }
 
   @Override
@@ -103,9 +100,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
     }
   }
 
-  static void runTest(AccumuloClient c, String tableName)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException,
-      TableNotFoundException, MutationsRejectedException, Exception, InterruptedException {
+  static void runTest(AccumuloClient c, String tableName) throws Exception {
     c.tableOperations().create(tableName);
     IteratorSetting is = new IteratorSetting(10, SlowIterator.class);
     SlowIterator.setSleepTime(is, 50);

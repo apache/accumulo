@@ -48,7 +48,7 @@ public class WriteAheadLogEncryptedIT extends AccumuloClusterHarness {
     // setup key file
     try {
       Path keyFile = new Path(keyPath);
-      FileSystem fs = FileSystem.getLocal(cluster.getServerContext().getHadoopConf());
+      FileSystem fs = FileSystem.getLocal(new Configuration());
       fs.delete(keyFile, true);
       if (fs.createNewFile(keyFile))
         log.info("Created keyfile at {}", keyPath);

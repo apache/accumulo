@@ -18,8 +18,6 @@ package org.apache.accumulo.test.functional;
 
 import java.util.Map;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -46,7 +44,7 @@ public class SslWithClientAuthIT extends SslIT {
 
   @Override
   @Test
-  public void binary() throws AccumuloException, AccumuloSecurityException, Exception {
+  public void binary() throws Exception {
     super.binary();
   }
 
