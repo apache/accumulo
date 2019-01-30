@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.clientImpl.Tables.qualified;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.BufferedReader;
@@ -130,6 +131,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.util.Retry;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -137,6 +139,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -188,7 +191,56 @@ public class TableOperationsImpl extends TableOperationsHelper {
       timer = new OpTimer().start();
     }
 
-    boolean exists = Tables.getNameToIdMap(context).containsKey(tableName);
+    boolean exists = false;
+    ZooReader zooReader = new ZooReader(context.getZooKeepers(), 10000);
+    try {
+      List<String> tableIds = zooReader.getChildren(context.getZooKeeperRoot() + Constants.ZTABLES);
+      Map<Namespace.ID,String> namespaceIdToNameMap = new HashMap<>();
+      StringBuilder zPathBuilder = new StringBuilder();
+      zPathBuilder.append(context.getZooKeeperRoot()).append(Constants.ZTABLES).append("/");
+      int prefixLength = zPathBuilder.length();
+
+      for (String tableIdStr : tableIds) {
+        // reset StringBuilder to prefix length before appending ID and suffix
+        zPathBuilder.setLength(prefixLength);
+        zPathBuilder.append(tableIdStr).append(Constants.ZTABLE_NAME);
+        byte[] currentTableName = zooReader.getData(zPathBuilder.toString(), null);
+        zPathBuilder.setLength(prefixLength);
+        zPathBuilder.append(tableIdStr).append(Constants.ZTABLE_NAMESPACE);
+        byte[] nId = zooReader.getData(zPathBuilder.toString(), null);
+
+        String namespaceName = Namespace.DEFAULT;
+        // create fully qualified table name
+        if (nId == null) {
+          namespaceName = null;
+        } else {
+          Namespace.ID namespaceId = Namespace.ID.of(new String(nId, UTF_8));
+          if (!namespaceId.equals(Namespace.ID.DEFAULT)) {
+            try {
+              namespaceName = namespaceIdToNameMap.get(namespaceId);
+              if (namespaceName == null) {
+                namespaceName = getNamespaceName(zooReader, context, namespaceId);
+                namespaceIdToNameMap.put(namespaceId, namespaceName);
+              }
+            } catch (NamespaceNotFoundException | KeeperException | InterruptedException e) {
+              log.error("Table (" + tableIdStr + ") contains reference to namespace (" + namespaceId
+                  + ") that doesn't exist", e);
+              continue;
+            }
+          }
+        }
+        if (currentTableName != null && namespaceName != null) {
+          String tableNameStr = qualified(new String(currentTableName, UTF_8), namespaceName);
+          if (tableNameStr.equals(tableName)) {
+            exists = true;
+            break;
+          }
+        }
+      }
+
+    } catch (KeeperException | InterruptedException e) {
+      log.error("Error checking table exists: " + tableName, e);
+    }
 
     if (timer != null) {
       timer.stop();
@@ -197,6 +249,23 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     return exists;
+  }
+
+  /**
+   * Look for namespace name in ZK straight up not in caches.
+   */
+  private static String getNamespaceName(ZooReader reader, ClientContext context,
+      Namespace.ID namespaceId)
+      throws NamespaceNotFoundException, KeeperException, InterruptedException {
+    String name;
+    byte[] path = reader.getData(context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/"
+        + namespaceId.canonicalID() + Constants.ZNAMESPACE_NAME, null);
+    if (path != null)
+      name = new String(path, UTF_8);
+    else
+      throw new NamespaceNotFoundException(namespaceId.canonicalID(), null,
+          "getNamespaceName() failed to find namespace");
+    return name;
   }
 
   @Override
