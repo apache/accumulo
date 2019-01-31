@@ -83,9 +83,9 @@ public class ClientContext implements AccumuloClient {
 
   private static final Logger log = LoggerFactory.getLogger(ClientContext.class);
 
-  protected ClientInfo info;
-  protected String instanceId;
-  protected final ZooCache zooCache;
+  private ClientInfo info;
+  private String instanceId;
+  private final ZooCache zooCache;
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
@@ -792,7 +792,31 @@ public class ClientContext implements AccumuloClient {
 
   @Override
   public String getInstanceID() {
-    return instanceOperations().getInstanceID();
+
+    ensureOpen();
+    final String instanceName = info.getInstanceName();
+    if (instanceId == null) {
+      // want the instance id to be stable for the life of this instance object,
+      // so only get it once
+      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
+      byte[] iidb = zooCache.get(instanceNamePath);
+      if (iidb == null) {
+        throw new RuntimeException(
+            "Instance name " + instanceName + " does not exist in zookeeper. "
+                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+      }
+      instanceId = new String(iidb, UTF_8);
+    }
+
+    if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
+      if (instanceName == null)
+        throw new RuntimeException("Instance id " + instanceId + " does not exist in zookeeper");
+      throw new RuntimeException("Instance id " + instanceId + " pointed to by the name "
+          + instanceName + " does not exist in zookeeper");
+    }
+
+    return instanceId;
+
   }
 
 }

@@ -240,29 +240,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
    */
   @Override
   public String getInstanceID() {
-    context.ensureOpen();
-    final String instanceName = context.info.getInstanceName();
-    if (context.instanceId == null) {
-      // want the instance id to be stable for the life of this instance object,
-      // so only get it once
-      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
-      byte[] iidb = context.zooCache.get(instanceNamePath);
-      if (iidb == null) {
-        throw new RuntimeException(
-            "Instance name " + instanceName + " does not exist in zookeeper. "
-                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
-      }
-      context.instanceId = new String(iidb, UTF_8);
-    }
-
-    if (context.zooCache.get(Constants.ZROOT + "/" + context.instanceId) == null) {
-      if (instanceName == null)
-        throw new RuntimeException(
-            "Instance id " + context.instanceId + " does not exist in zookeeper");
-      throw new RuntimeException("Instance id " + context.instanceId + " pointed to by the name "
-          + instanceName + " does not exist in zookeeper");
-    }
-
-    return context.instanceId;
+    return context.getInstanceID();
   }
 }

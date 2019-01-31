@@ -269,7 +269,7 @@ public interface AccumuloClient extends AutoCloseable {
    *
    * @return a String
    */
-  String getInstanceID();
+  String mnvgetInstanceID();
 
   /**
    * Retrieves a TableOperations object to perform table functions, such as create and delete.
