@@ -33,6 +33,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.ReplicationConstants;
@@ -112,13 +113,16 @@ public class UnorderedWorkAssignerTest {
     ZooCache cache = createMock(ZooCache.class);
     assigner.setZooCache(cache);
 
-    expect(client.getInstanceID()).andReturn("id");
+    InstanceOperations opts = createMock(InstanceOperations.class);
+    expect(opts.getInstanceID()).andReturn("id");
+    expect(client.instanceOperations()).andReturn(opts);
+
     expect(cache.get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal1"))
         .andReturn(null);
     expect(cache.get(Constants.ZROOT + "/id" + ReplicationConstants.ZOO_WORK_QUEUE + "/wal2"))
         .andReturn(null);
 
-    replay(cache, client);
+    replay(cache, opts, client);
 
     assigner.cleanupFinishedWork();
 

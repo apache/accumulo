@@ -241,8 +241,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       HashSet<TServerInstance> tservers = new HashSet<>();
       for (String tserver : client.instanceOperations().getTabletServers()) {
         try {
-          String zPath = ZooUtil.getRoot(client.getInstanceID()) + Constants.ZTSERVERS + "/"
-              + tserver;
+          String zPath = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+              + Constants.ZTSERVERS + "/" + tserver;
           ClientInfo info = getClientInfo();
           long sessionId = ZooLock.getSessionId(
               new ZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut()), zPath);

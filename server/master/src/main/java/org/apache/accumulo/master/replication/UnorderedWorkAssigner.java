@@ -137,7 +137,7 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
   @Override
   protected void cleanupFinishedWork() {
     final Iterator<String> work = queuedWork.iterator();
-    final String instanceId = client.getInstanceID();
+    final String instanceId = client.instanceOperations().getInstanceID();
     while (work.hasNext()) {
       String filename = work.next();
       // Null equates to the work was finished

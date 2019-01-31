@@ -105,7 +105,8 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
         while (true) {
           try {
             client = MasterClient.getConnectionWithRetry((ClientContext) c);
-            stats = client.getMasterStats(Tracer.traceInfo(), creds.toThrift(c.getInstanceID()));
+            stats = client.getMasterStats(Tracer.traceInfo(),
+                creds.toThrift(c.instanceOperations().getInstanceID()));
             break;
           } catch (ThriftNotActiveServiceException e) {
             // Let it loop, fetching a new location

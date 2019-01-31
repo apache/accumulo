@@ -192,7 +192,9 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       byte[] masterLockData;
       do {
         masterLockData = ZooLock.getLockData(zcache,
-            ZooUtil.getRoot(accumuloClient.getInstanceID()) + Constants.ZMASTER_LOCK, null);
+            ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceID())
+                + Constants.ZMASTER_LOCK,
+            null);
         if (masterLockData != null) {
           log.info("Master lock is still held");
           Thread.sleep(1000);

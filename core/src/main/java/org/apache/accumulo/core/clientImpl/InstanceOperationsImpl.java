@@ -232,4 +232,10 @@ public class InstanceOperationsImpl implements InstanceOperations {
     }
     return null;
   }
+
+  @Override
+  public String getInstanceID() {
+
+    return context.getInstanceID();
+  }
 }

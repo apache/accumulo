@@ -246,9 +246,11 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
       IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(info.getZooKeepers(),
           info.getZooKeepersSessionTimeOut(), secret);
       ZooStore<String> zs = new ZooStore<>(
-          ZooUtil.getRoot(accumuloClient.getInstanceID()) + Constants.ZFATE, zk);
+          ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceID()) + Constants.ZFATE,
+          zk);
       AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk,
-          ZooUtil.getRoot(accumuloClient.getInstanceID()) + Constants.ZTABLE_LOCKS + "/" + tableId,
+          ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceID())
+              + Constants.ZTABLE_LOCKS + "/" + tableId,
           null, null);
 
       for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {

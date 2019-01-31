@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.replication.ReplicationConstants;
@@ -71,7 +72,9 @@ public class SequentialWorkAssignerTest {
     assigner.setWorkQueue(workQueue);
     assigner.setQueuedWork(queuedWork);
 
-    expect(client.getInstanceID()).andReturn("instance");
+    InstanceOperations opts = createMock(InstanceOperations.class);
+    expect(opts.getInstanceID()).andReturn("instance");
+    expect(client.instanceOperations()).andReturn(opts);
 
     // file1 replicated
     expect(zooCache.get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE + "/"
@@ -85,7 +88,7 @@ public class SequentialWorkAssignerTest {
                     new ReplicationTarget("cluster1", "2", Table.ID.of("2")))))
                         .andReturn(new byte[0]);
 
-    replay(workQueue, zooCache, client);
+    replay(workQueue, zooCache, opts, client);
 
     assigner.cleanupFinishedWork();
 

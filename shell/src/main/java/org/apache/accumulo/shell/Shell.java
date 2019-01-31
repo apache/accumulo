@@ -620,7 +620,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     ClientInfo info = ClientInfo.from(accumuloClient.properties());
     reader.print("\n" + SHELL_DESCRIPTION + "\n" + "- \n" + "- version: " + Constants.VERSION + "\n"
         + "- instance name: " + info.getInstanceName() + "\n" + "- instance id: "
-        + accumuloClient.getInstanceID() + "\n" + "- \n"
+        + accumuloClient.instanceOperations().getInstanceID() + "\n" + "- \n"
         + "- type 'help' for a list of available commands\n" + "- \n");
     reader.flush();
   }

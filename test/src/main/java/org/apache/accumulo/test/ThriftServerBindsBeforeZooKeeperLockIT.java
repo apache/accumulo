@@ -133,7 +133,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   public void testMasterService() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
     try (AccumuloClient client = createAccumuloClient()) {
-      final String instanceID = client.getInstanceID();
+      final String instanceID = client.instanceOperations().getInstanceID();
 
       // Wait for the Master to grab its lock
       while (true) {
@@ -201,7 +201,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   public void testGarbageCollectorPorts() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
     try (AccumuloClient client = createAccumuloClient()) {
-      String instanceID = client.getInstanceID();
+      String instanceID = client.instanceOperations().getInstanceID();
 
       // Wait for the Master to grab its lock
       while (true) {

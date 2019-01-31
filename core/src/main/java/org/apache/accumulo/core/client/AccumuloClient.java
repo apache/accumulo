@@ -265,13 +265,6 @@ public interface AccumuloClient extends AutoCloseable {
   String whoami();
 
   /**
-   * Returns a unique string that identifies this instance of accumulo.
-   *
-   * @return a UUID
-   */
-  String getInstanceID();
-
-  /**
    * Retrieves a TableOperations object to perform table functions, such as create and delete.
    *
    * @return an object to manipulate tables
