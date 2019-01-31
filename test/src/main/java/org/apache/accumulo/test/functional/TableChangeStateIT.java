@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -232,9 +231,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
         if (tx.getTop().contains("CompactionDriver") && tx.getDebug().contains("CompactRange")) {
 
-          Iterator<AdminUtil.TransactionStatus> itor = noLocks.listIterator();
-          while (itor.hasNext()) {
-            AdminUtil.TransactionStatus tx2 = itor.next();
+          for (AdminUtil.TransactionStatus tx2 : noLocks) {
             if (tx2.getTxid().equals(tx.getTxid())) {
               matchCount++;
             }
@@ -469,13 +466,14 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
       OnlineOpTiming status = new OnlineOpTiming();
 
-      log.trace("Online completed in {} ms",
-          TimeUnit.MILLISECONDS.convert(status.runningTime(), TimeUnit.NANOSECONDS));
       log.trace("Setting {} online", tableName);
 
       connector.tableOperations().online(tableName, true);
       // stop timing
       status.setComplete();
+
+      log.trace("Online completed in {} ms",
+          TimeUnit.MILLISECONDS.convert(status.runningTime(), TimeUnit.NANOSECONDS));
 
       return status;
     }
