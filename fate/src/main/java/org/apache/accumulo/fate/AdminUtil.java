@@ -189,20 +189,20 @@ public class AdminUtil<T> {
   }
 
   /**
-   * Returns a list of the FATE transactions, optionally filtered by transaction id and status.
+   * Returns a list of the FATE transactions, optionally filtered by transaction id and status. This
+   * method does not process lock information, if lock information is desired, use
+   * {@link #getStatus(ReadOnlyTStore, IZooReader, String, Set, EnumSet)}
    *
    * @param zs
    *          read-only zoostore
-   * @param zk
-   *          zookeeper reader.
    * @param filterTxid
    *          filter results to include for provided transaction ids.
    * @param filterStatus
    *          filter results to include only provided status types
    * @return list of FATE transactions that match filter criteria
    */
-  public List<TransactionStatus> getTransactionStatus(ReadOnlyTStore<T> zs, IZooReader zk,
-      Set<Long> filterTxid, EnumSet<TStatus> filterStatus) {
+  public List<TransactionStatus> getTransactionStatus(ReadOnlyTStore<T> zs, Set<Long> filterTxid,
+      EnumSet<TStatus> filterStatus) {
 
     FateStatus status = getTransactionStatus(zs, filterTxid, filterStatus,
         Collections.<Long,List<String>> emptyMap(), Collections.<Long,List<String>> emptyMap());
@@ -239,9 +239,8 @@ public class AdminUtil<T> {
 
     findLocks(zk, lockPath, heldLocks, waitingLocks);
 
-    FateStatus status = getTransactionStatus(zs, filterTxid, filterStatus, heldLocks, waitingLocks);
+    return getTransactionStatus(zs, filterTxid, filterStatus, heldLocks, waitingLocks);
 
-    return status;
   }
 
   /**
@@ -281,7 +280,7 @@ public class AdminUtil<T> {
         for (String node : lockNodes) {
           try {
             byte[] data = zk.getData(lockPath + "/" + id + "/" + node, null);
-            String lda[] = new String(data, UTF_8).split(":");
+            String[] lda = new String(data, UTF_8).split(":");
 
             if (lda[0].charAt(0) == 'W')
               sawWriteLock = true;
@@ -343,7 +342,7 @@ public class AdminUtil<T> {
    *          populated list of locks held by transaction - or an empty map if none.
    * @return current fate and lock status
    */
-  public FateStatus getTransactionStatus(ReadOnlyTStore<T> zs, Set<Long> filterTxid,
+  private FateStatus getTransactionStatus(ReadOnlyTStore<T> zs, Set<Long> filterTxid,
       EnumSet<TStatus> filterStatus, Map<Long,List<String>> heldLocks,
       Map<Long,List<String>> waitingLocks) {
 
@@ -358,23 +357,11 @@ public class AdminUtil<T> {
 
       List<String> hlocks = heldLocks.remove(tid);
 
-      // if (heldLocks == null) {
-      // heldLocks = Collections.emptyMap();
-      // } else {
-      // hlocks = heldLocks.remove(tid);
-      // }
-
       if (hlocks == null) {
         hlocks = Collections.emptyList();
       }
 
       List<String> wlocks = waitingLocks.remove(tid);
-
-      // if (waitingLocks == null) {
-      // waitingLocks = Collections.emptyMap();
-      // } else {
-      // wlocks = waitingLocks.remove(tid);
-      // }
 
       if (wlocks == null) {
         wlocks = Collections.emptyList();

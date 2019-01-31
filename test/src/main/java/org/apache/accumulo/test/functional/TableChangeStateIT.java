@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -79,12 +80,16 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
   private String tableName;
 
+  private String secret;
+
   @Before
   public void setup() {
 
     connector = getConnector();
 
     tableName = getUniqueNames(1)[0];
+
+    secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
     createData(tableName);
   }
@@ -197,8 +202,51 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
     assertTrue("compaction fate transaction exits", findFate(tableName));
 
-    // exercise refactored method, with null for lock maps.
-    useGetTransactionStatus(tableName);
+    Instance instance = connector.getInstance();
+    AdminUtil<String> admin = new AdminUtil<>(false);
+
+    try {
+
+      String tableId = Tables.getTableId(instance, tableName);
+
+      log.trace("tid: {}", tableId);
+
+      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
+          instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
+      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
+
+      AdminUtil.FateStatus withLocks = admin.getStatus(zs, zk,
+          ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
+
+      // call method that does not use locks.
+      List<AdminUtil.TransactionStatus> noLocks = admin.getTransactionStatus(zs, null, null);
+
+      // fast check - count number of transactions
+      assertEquals(withLocks.getTransactions().size(), noLocks.size());
+
+      int matchCount = 0;
+
+      for (AdminUtil.TransactionStatus tx : withLocks.getTransactions()) {
+
+        log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
+
+        if (tx.getTop().contains("CompactionDriver") && tx.getDebug().contains("CompactRange")) {
+
+          Iterator<AdminUtil.TransactionStatus> itor = noLocks.listIterator();
+          while (itor.hasNext()) {
+            AdminUtil.TransactionStatus tx2 = itor.next();
+            if (tx2.getTxid().equals(tx.getTxid())) {
+              matchCount++;
+            }
+          }
+        }
+      }
+
+      assertTrue("Number of fates matches should be > 0", matchCount > 0);
+
+    } catch (KeeperException | TableNotFoundException | InterruptedException ex) {
+      throw new IllegalStateException(ex);
+    }
 
     // test complete, cancel compaction and move on.
     connector.tableOperations().cancelCompaction(tableName);
@@ -262,47 +310,6 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Exercise the AdminUtil.getTransactionStatus() method, passing nulls for lock maps.
-   *
-   * @param tableName
-   *          the test table name
-   */
-  private void useGetTransactionStatus(final String tableName) {
-
-    Instance instance = connector.getInstance();
-    AdminUtil<String> admin = new AdminUtil<>(false);
-
-    try {
-
-      String tableId = Tables.getTableId(instance, tableName);
-
-      log.trace("tid: {}", tableId);
-
-      String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
-      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
-          instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
-      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
-
-      AdminUtil.FateStatus withLocks = admin.getStatus(zs, zk,
-          ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
-
-      // call with no locks - passed as null.
-      List<AdminUtil.TransactionStatus> noLocks = admin.getTransactionStatus(zs, zk, null, null);
-
-      assertEquals(withLocks.getTransactions().size(), noLocks.size());
-
-      // exercise methods on returned status.
-      // assertNotNull(noLocks.getDanglingHeldLocks());
-      // assertNotNull(noLocks.getDanglingWaitingLocks());
-      // assertNotNull(noLocks.getTransactions());
-
-    } catch (KeeperException | TableNotFoundException | InterruptedException ex) {
-      throw new IllegalStateException(ex);
-    }
-
-  }
-
-  /**
    * Checks fates in zookeeper looking for transaction associated with a compaction as a double
    * check that the test will be valid because the running compaction does have a fate transaction
    * lock.
@@ -320,7 +327,6 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
       log.trace("tid: {}", tableId);
 
-      String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
       IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
           instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
       ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
@@ -463,14 +469,13 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
       OnlineOpTiming status = new OnlineOpTiming();
 
+      log.trace("Online completed in {} ms",
+          TimeUnit.MILLISECONDS.convert(status.runningTime(), TimeUnit.NANOSECONDS));
       log.trace("Setting {} online", tableName);
 
       connector.tableOperations().online(tableName, true);
       // stop timing
       status.setComplete();
-
-      log.trace("Online completed in {} ms",
-          TimeUnit.MILLISECONDS.convert(status.runningTime(), TimeUnit.NANOSECONDS));
 
       return status;
     }
