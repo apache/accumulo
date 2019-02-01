@@ -18,11 +18,13 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -48,6 +50,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveScan;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -124,8 +127,10 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       CountDownLatch latch = new CountDownLatch(NUM_SCANNERS);
 
+      List<ScannerThread> scanThreadsToClose = new ArrayList<>(NUM_SCANNERS);
       for (int scannerIndex = 0; scannerIndex < NUM_SCANNERS; scannerIndex++) {
         ScannerThread st = new ScannerThread(client, scannerIndex, tableName, latch);
+        scanThreadsToClose.add(st);
         pool.submit(st);
       }
 
@@ -147,44 +152,64 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       }
 
-      // all scanner have reported at least 1 result, so check for unique scan ids.
-      Set<Long> scanIds = new HashSet<>();
-
-      List<String> tservers = client.instanceOperations().getTabletServers();
-
-      log.debug("tablet servers {}", tservers);
-
-      for (String tserver : tservers) {
-
-        List<ActiveScan> activeScans = null;
-        for (int i = 0; i < 10; i++) {
-          try {
-            activeScans = client.instanceOperations().getActiveScans(tserver);
-            break;
-          } catch (AccumuloException e) {
-            if (e.getCause() instanceof TableNotFoundException) {
-              log.debug("Got TableNotFoundException, will retry");
-              Thread.sleep(200);
-              continue;
-            }
-            throw e;
-          }
-        }
-
-        assertNotNull("Repeatedly got exception trying to active scans", activeScans);
-
-        log.debug("TServer {} has {} active scans", tserver, activeScans.size());
-
-        for (ActiveScan scan : activeScans) {
-          log.debug("Tserver {} scan id {}", tserver, scan.getScanid());
-          scanIds.add(scan.getScanid());
-        }
-      }
-
+      Set<Long> scanIds = getScanIds(client);
       assertTrue("Expected at least " + NUM_SCANNERS + " scanIds, but saw " + scanIds.size(),
           scanIds.size() >= NUM_SCANNERS);
 
+      scanThreadsToClose.forEach(st -> {
+        if (st.scanner != null) {
+          st.scanner.close();
+        }
+      });
+
+      while (!(scanIds = getScanIds(client)).isEmpty()) {
+        log.debug("Waiting for active scans to stop...");
+        Thread.sleep(200);
+      }
+      assertEquals("Expected no scanIds after closing scanners", 0, scanIds.size());
+
     }
+  }
+
+  private Set<Long> getScanIds(AccumuloClient client)
+      throws AccumuloSecurityException, InterruptedException, AccumuloException {
+    // all scanner have reported at least 1 result, so check for unique scan ids.
+    Set<Long> scanIds = new HashSet<>();
+
+    List<String> tservers = client.instanceOperations().getTabletServers();
+
+    log.debug("tablet servers {}", tservers);
+
+    for (String tserver : tservers) {
+
+      List<ActiveScan> activeScans = null;
+      for (int i = 0; i < 10; i++) {
+        try {
+          activeScans = client.instanceOperations().getActiveScans(tserver);
+          break;
+        } catch (AccumuloException e) {
+          if (e.getCause() instanceof TableNotFoundException) {
+            log.debug("Got TableNotFoundException, will retry");
+            Thread.sleep(200);
+            continue;
+          }
+          throw e;
+        }
+      }
+
+      assertNotNull("Repeatedly got exception trying to active scans", activeScans);
+
+      activeScans
+          .removeIf(scan -> scan.getTable().startsWith(Namespace.ACCUMULO + Namespace.SEPARATOR));
+      log.debug("TServer {} has {} active non-metadata scans", tserver, activeScans.size());
+
+      for (ActiveScan scan : activeScans) {
+        log.debug("Tserver {} scan id {} ({})", tserver, scan.getScanid(), scan.getTable());
+        scanIds.add(scan.getScanid());
+      }
+    }
+
+    return scanIds;
   }
 
   /**
@@ -244,7 +269,6 @@ public class ScanIdIT extends AccumuloClusterHarness {
           // exit when success condition is met.
           if (!testInProgress.get()) {
             scanner.clearScanIterators();
-            scanner.close();
             return;
           }
 
@@ -274,9 +298,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
       } catch (TableNotFoundException e) {
         throw new IllegalStateException("Initialization failure. Could not create scanner", e);
       } finally {
-        if (scanner != null) {
-          scanner.close();
-        }
+        // don't close scanner here, because it will clean up the scan ids we're checking for
       }
     }
   }
