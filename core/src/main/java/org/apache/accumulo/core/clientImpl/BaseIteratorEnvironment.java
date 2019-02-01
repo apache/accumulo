@@ -57,11 +57,6 @@ public class BaseIteratorEnvironment implements IteratorEnvironment {
   }
 
   @Override
-  public boolean isUserCompaction() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
     throw new UnsupportedOperationException();
   }
