@@ -36,7 +36,9 @@ public interface IteratorEnvironment {
 
   boolean isFullMajorCompaction();
 
-  boolean isUserCompaction();
+  default boolean isUserCompaction() {
+    throw new UnsupportedOperationException();
+  }
 
   void registerSideChannel(SortedKeyValueIterator<Key,Value> iter);
 
