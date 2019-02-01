@@ -133,7 +133,7 @@ public class MinorCompactor extends Compactor {
           }
 
           return ret;
-        } catch (IOException e) {
+        } catch (IOException | UnsatisfiedLinkError e) {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
           ProblemReports.getInstance(tabletServer).report(new ProblemReport(
               getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));
