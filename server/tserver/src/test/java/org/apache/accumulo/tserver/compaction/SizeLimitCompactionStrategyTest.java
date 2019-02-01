@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -35,7 +36,7 @@ import org.junit.Test;
 
 public class SizeLimitCompactionStrategyTest {
 
-  private Map<FileRef,DataFileValue> nfl(String... sa) {
+  private static Map<FileRef,DataFileValue> nfl(String... sa) {
 
     HashMap<FileRef,DataFileValue> ret = new HashMap<>();
     for (int i = 0; i < sa.length; i += 2) {
@@ -46,11 +47,9 @@ public class SizeLimitCompactionStrategyTest {
     return ret;
   }
 
-  @Test
-  public void testLimits() {
-    SizeLimitCompactionStrategy slcs = new SizeLimitCompactionStrategy();
+  public static void testSizeLimit(String opt, CompactionStrategy slcs) throws IOException {
     HashMap<String,String> opts = new HashMap<>();
-    opts.put(SizeLimitCompactionStrategy.SIZE_LIMIT_OPT, "1G");
+    opts.put(opt, "1G");
 
     slcs.init(opts);
 
@@ -71,5 +70,12 @@ public class SizeLimitCompactionStrategyTest {
     assertEquals(nfl("f5", "500M", "f6", "500M", "f7", "500M", "f8", "500M").keySet(),
         new HashSet<>(slcs.getCompactionPlan(mcr).inputFiles));
     assertEquals(8, mcr.getFiles().size());
+  }
+
+  @Test
+  public void testLimits() throws IOException {
+    SizeLimitCompactionStrategy slcs = new SizeLimitCompactionStrategy();
+
+    testSizeLimit(SizeLimitCompactionStrategy.SIZE_LIMIT_OPT, slcs);
   }
 }
