@@ -55,7 +55,7 @@ import org.apache.accumulo.core.security.Authorizations;
  * AccumuloClient and pass it around.
  *
  * @since 2.0.0
- * @see <a href=https://accumulo.apache.org/docs/2.x/getting-started/clients>Accumulo Client
+ * @see <a href="https://accumulo.apache.org/docs/2.x/getting-started/clients">Accumulo Client
  *      Documentation</a>
  */
 public interface AccumuloClient extends AutoCloseable {
@@ -359,7 +359,7 @@ public interface AccumuloClient extends AutoCloseable {
      * @param propertiesFilePath
      *          Path to properties file
      * @return this builder
-     * @see <a href=https://accumulo.apache.org/docs/2.x/configuration/client-properties>Client
+     * @see <a href="https://accumulo.apache.org/docs/2.x/configuration/client-properties">Client
      *      properties documentation</a>
      */
     FromOptions<T> from(String propertiesFilePath);
@@ -371,7 +371,7 @@ public interface AccumuloClient extends AutoCloseable {
      * @param propertiesFile
      *          Path to properties file
      * @return this builder
-     * @see <a href=https://accumulo.apache.org/docs/2.x/configuration/client-properties>Client
+     * @see <a href="https://accumulo.apache.org/docs/2.x/configuration/client-properties">Client
      *      properties documentation</a>
      */
     FromOptions<T> from(Path propertiesFile);
@@ -383,7 +383,7 @@ public interface AccumuloClient extends AutoCloseable {
      * @param properties
      *          Properties object
      * @return this builder
-     * @see <a href=https://accumulo.apache.org/docs/2.x/configuration/client-properties>Client
+     * @see <a href="https://accumulo.apache.org/docs/2.x/configuration/client-properties">Client
      *      properties documentation</a>
      */
     FromOptions<T> from(Properties properties);
