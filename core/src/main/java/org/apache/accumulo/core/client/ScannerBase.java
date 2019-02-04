@@ -305,5 +305,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    *
    * @since 2.0.0
    */
-  void setExecutionHints(Map<String,String> hints);
+  default void setExecutionHints(Map<String,String> hints) {
+    throw new UnsupportedOperationException();
+  }
 }
