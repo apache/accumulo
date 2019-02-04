@@ -78,7 +78,8 @@ public class PerTableVolumeChooserTest {
   }
 
   private VolumeChooser getTableDelegate() {
-    VolumeChooserEnvironment env = new VolumeChooserEnvironment(Table.ID.of("testTable"), null);
+    VolumeChooserEnvironment env = new VolumeChooserEnvironment(Table.ID.of("testTable"), null,
+        null);
     return chooser.getDelegateChooser(env);
   }
 

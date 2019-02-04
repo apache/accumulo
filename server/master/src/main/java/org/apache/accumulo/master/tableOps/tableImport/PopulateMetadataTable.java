@@ -152,7 +152,7 @@ class PopulateMetadataTable extends MasterRepo {
                   UTF_8);
 
               // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
-              String absolutePath = getClonedTabletDir(master, tableDirs, tabletDir);
+              String absolutePath = getClonedTabletDir(master, endRow, tableDirs, tabletDir);
 
               m = new Mutation(metadataRow);
               TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
@@ -170,7 +170,7 @@ class PopulateMetadataTable extends MasterRepo {
                   UTF_8);
 
               // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
-              String absolutePath = getClonedTabletDir(master, tableDirs, tabletDir);
+              String absolutePath = getClonedTabletDir(master, endRow, tableDirs, tabletDir);
 
               m = new Mutation(metadataRow);
               TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
@@ -217,9 +217,10 @@ class PopulateMetadataTable extends MasterRepo {
    *
    * @return An absolute, unique path for the imported table
    */
-  protected String getClonedTabletDir(Master master, String[] tableDirs, String tabletDir) {
+  protected String getClonedTabletDir(Master master, Text endRow, String[] tableDirs,
+      String tabletDir) {
     // We can try to spread out the tablet dirs across all volumes
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableInfo.tableId,
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableInfo.tableId, endRow,
         master.getContext());
     String tableDir = master.getFileSystem().choose(chooserEnv, tableDirs);
 

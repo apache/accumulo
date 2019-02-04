@@ -2861,7 +2861,7 @@ public class Tablet {
     String lowDirectory;
 
     UniqueNameAllocator namer = context.getUniqueNameAllocator();
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId, context);
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId, endRow, context);
     String volume = fs.choose(chooserEnv, ServerConstants.getBaseUris(context))
         + Constants.HDFS_TABLES_DIR + Path.SEPARATOR;
 

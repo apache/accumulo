@@ -914,7 +914,8 @@ public class MetadataTableUtil {
         Key k = entry.getKey();
         Mutation m = new Mutation(k.getRow());
         m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
-        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId, context);
+        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId,
+            new KeyExtent(k.getRow(), (Text) null).getEndRow(), context);
         String dir = volumeManager.choose(chooserEnv, ServerConstants.getBaseUris(context))
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR + new String(
                 FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES));
@@ -1023,7 +1024,7 @@ public class MetadataTableUtil {
    */
   public static void createReplicationTable(ServerContext context) {
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ReplicationTable.ID,
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ReplicationTable.ID, null,
         context);
     String dir = context.getVolumeManager().choose(chooserEnv, ServerConstants.getBaseUris(context))
         + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID

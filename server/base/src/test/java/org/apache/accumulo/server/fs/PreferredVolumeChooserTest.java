@@ -74,7 +74,8 @@ public class PreferredVolumeChooserTest {
   }
 
   private String[] chooseForTable() {
-    VolumeChooserEnvironment env = new VolumeChooserEnvironment(Table.ID.of("testTable"), null);
+    VolumeChooserEnvironment env = new VolumeChooserEnvironment(Table.ID.of("testTable"), null,
+        null);
     return chooser.getPreferredVolumes(env, ALL_OPTIONS);
   }
 

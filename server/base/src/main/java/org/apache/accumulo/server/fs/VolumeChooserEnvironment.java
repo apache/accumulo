@@ -20,6 +20,7 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.hadoop.io.Text;
 
 public class VolumeChooserEnvironment {
 
@@ -35,17 +36,33 @@ public class VolumeChooserEnvironment {
   private final ServerContext context;
   private final ChooserScope scope;
   private final Table.ID tableId;
+  private final Text endRow;
 
   public VolumeChooserEnvironment(ChooserScope scope, ServerContext context) {
     this.context = context;
     this.scope = Objects.requireNonNull(scope);
     this.tableId = null;
+    this.endRow = null;
   }
 
-  public VolumeChooserEnvironment(Table.ID tableId, ServerContext context) {
+  public VolumeChooserEnvironment(Table.ID tableId, Text endRow, ServerContext context) {
     this.context = context;
     this.scope = ChooserScope.TABLE;
     this.tableId = Objects.requireNonNull(tableId);
+    this.endRow = endRow;
+
+  }
+
+  /**
+   * The end row of the tablet for which a volume is being chosen. Only call this when the scope is
+   * TABLE
+   *
+   * @since 2.0.0
+   */
+  public Text getEndRow() {
+    if (scope != ChooserScope.TABLE)
+      throw new IllegalStateException("Can only request end row for tables, not for " + scope);
+    return endRow;
   }
 
   public Table.ID getTableId() {

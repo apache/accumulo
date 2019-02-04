@@ -43,7 +43,7 @@ public class ImportTableTest {
     EasyMock.expect(master.getContext()).andReturn(null);
     EasyMock.expect(master.getFileSystem()).andReturn(volumeManager);
     // Choose the 2nd element
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(iti.tableId, null);
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(iti.tableId, null, null);
     EasyMock.expect(volumeManager.choose(EasyMock.eq(chooserEnv), EasyMock.eq(tableDirs)))
         .andReturn(tableDirs[1]);
 
@@ -51,7 +51,7 @@ public class ImportTableTest {
 
     PopulateMetadataTable pmt = new PopulateMetadataTable(iti);
     assertEquals(tableDirs[1] + "/" + iti.tableId + "/" + tabletDir,
-        pmt.getClonedTabletDir(master, tableDirs, tabletDir));
+        pmt.getClonedTabletDir(master, null, tableDirs, tabletDir));
 
     EasyMock.verify(master, volumeManager);
   }

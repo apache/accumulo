@@ -660,7 +660,8 @@ abstract class TabletGroupWatcher extends Daemon {
         // Recreate the default tablet to hold the end of the table
         Master.log.debug("Recreating the last tablet to point to {}", extent.getPrevEndRow());
         VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
-            master.getContext());
+            extent.getEndRow(), master.getContext());
+
         String tdir = master.getFileSystem().choose(chooserEnv,
             ServerConstants.getBaseUris(master.getContext())) + Constants.HDFS_TABLES_DIR
             + Path.SEPARATOR + extent.getTableId() + Constants.DEFAULT_TABLET_LOCATION;

@@ -273,7 +273,8 @@ public class VolumeUtil {
     }
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
-        context);
+        extent.getEndRow(), context);
+
     Path newDir = new Path(vm.choose(chooserEnv, ServerConstants.getBaseUris(context))
         + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + dir.getParent().getName()
         + Path.SEPARATOR + dir.getName());
