@@ -29,11 +29,11 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
+import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.ObservableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
@@ -207,7 +207,7 @@ public class TableConfiguration extends ObservableConfiguration {
     if (pic == null || pic.updateCount != count) {
       List<IterInfo> iters = new ArrayList<>();
       Map<String,Map<String,String>> allOptions = new HashMap<>();
-      IteratorUtil.parseIterConf(scope, iters, allOptions, this);
+      IterConfigUtil.parseIterConf(scope, iters, allOptions, this);
       ParsedIteratorConfig newPic = new ParsedIteratorConfig(iters, allOptions,
           get(Property.TABLE_CLASSPATH), count);
       ref.compareAndSet(pic, newPic);

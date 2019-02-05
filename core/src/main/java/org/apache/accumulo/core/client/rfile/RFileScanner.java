@@ -37,6 +37,8 @@ import org.apache.accumulo.core.clientImpl.ScannerOptions;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.IterConfigUtil;
+import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
@@ -52,7 +54,6 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
@@ -64,6 +65,7 @@ import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.SystemIteratorUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
 
@@ -364,17 +366,20 @@ class RFileScanner extends ScannerOptions implements Scanner {
       if (opts.useSystemIterators) {
         SortedSet<Column> cols = this.getFetchedColumns();
         families = LocalityGroupUtil.families(cols);
-        iterator = IteratorUtil.setupSystemScanIterators(iterator, cols, getAuthorizations(),
+        iterator = SystemIteratorUtil.setupSystemScanIterators(iterator, cols, getAuthorizations(),
             EMPTY_BYTES, tableConf);
       }
 
       try {
         if (opts.tableConfig != null && opts.tableConfig.size() > 0) {
-          iterator = IteratorUtil.loadIterators(IteratorScope.scan, iterator, null, tableConf,
-              serverSideIteratorList, serverSideIteratorOptions, new IterEnv());
+          IterLoad il = IterConfigUtil.loadIterConf(IteratorScope.scan, serverSideIteratorList,
+              serverSideIteratorOptions, tableConf);
+          iterator = IterConfigUtil.loadIterators(iterator,
+              il.iterEnv(new IterEnv()).useAccumuloClassLoader(true));
         } else {
-          iterator = IteratorUtil.loadIterators(iterator, serverSideIteratorList,
-              serverSideIteratorOptions, new IterEnv(), false, null);
+          iterator = IterConfigUtil.loadIterators(iterator,
+              new IterLoad().iters(serverSideIteratorList).iterOpts(serverSideIteratorOptions)
+                  .iterEnv(new IterEnv()).useAccumuloClassLoader(false));
         }
       } catch (IOException e) {
         throw new RuntimeException(e);

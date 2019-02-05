@@ -40,6 +40,8 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.IterConfigUtil;
+import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -52,7 +54,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
@@ -442,9 +443,10 @@ public class CollectTabletStats {
     SortedKeyValueIterator<Key,Value> visFilter = VisibilityFilter.wrap(colFilter, authorizations,
         defaultLabels);
 
-    if (useTableIterators)
-      return IteratorUtil.loadIterators(IteratorScope.scan, visFilter, ke, conf, ssiList, ssio,
-          null);
+    if (useTableIterators) {
+      IterLoad il = IterConfigUtil.loadIterConf(IteratorScope.scan, ssiList, ssio, conf);
+      return IterConfigUtil.loadIterators(visFilter, il.useAccumuloClassLoader(true));
+    }
     return visFilter;
   }
 

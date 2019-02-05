@@ -50,13 +50,13 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.FateOperation;
 import org.apache.accumulo.core.master.thrift.FateService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.SystemIteratorUtil;
 import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
@@ -441,7 +441,7 @@ class FateServiceHandler implements FateService.Iface {
         TableId tableId = validateTableIdArgument(arguments.get(0), tableOp, null);
         byte[] startRow = ByteBufferUtil.toBytes(arguments.get(1));
         byte[] endRow = ByteBufferUtil.toBytes(arguments.get(2));
-        List<IteratorSetting> iterators = IteratorUtil
+        List<IteratorSetting> iterators = SystemIteratorUtil
             .decodeIteratorSettings(ByteBufferUtil.toBytes(arguments.get(3)));
         CompactionStrategyConfig compactionStrategy = CompactionStrategyConfigUtil
             .decode(ByteBufferUtil.toBytes(arguments.get(4)));

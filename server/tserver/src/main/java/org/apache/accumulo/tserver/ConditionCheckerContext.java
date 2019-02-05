@@ -29,6 +29,8 @@ import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.CompressedIterators.IterConfig;
+import org.apache.accumulo.core.conf.IterConfigUtil;
+import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -38,7 +40,6 @@ import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TCMResult;
 import org.apache.accumulo.core.dataImpl.thrift.TCMStatus;
 import org.apache.accumulo.core.dataImpl.thrift.TCondition;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.server.ServerContext;
@@ -96,7 +97,7 @@ public class ConditionCheckerContext {
       Map<String,Map<String,String>> mergedItersOpts = new HashMap<>(
           tableIterOpts.size() + ic.ssio.size());
 
-      IteratorUtil.mergeIteratorConfig(mergedIters, mergedItersOpts, tableIters, tableIterOpts,
+      IterConfigUtil.mergeIteratorConfig(mergedIters, mergedItersOpts, tableIters, tableIterOpts,
           ic.ssiList, ic.ssio);
 
       mic = new MergedIterConfig(mergedIters, mergedItersOpts);
@@ -104,8 +105,9 @@ public class ConditionCheckerContext {
       mergedIterCache.put(key, mic);
     }
 
-    return IteratorUtil.loadIterators(systemIter, mic.mergedIters, mic.mergedItersOpts, tie, true,
-        context, classCache);
+    IterLoad iterLoad = new IterLoad().iters(mic.mergedIters).iterOpts(mic.mergedItersOpts)
+        .iterEnv(tie).useAccumuloClassLoader(true).context(context);
+    return IterConfigUtil.loadIterators(systemIter, classCache, iterLoad);
   }
 
   boolean checkConditions(SortedKeyValueIterator<Key,Value> systemIter,

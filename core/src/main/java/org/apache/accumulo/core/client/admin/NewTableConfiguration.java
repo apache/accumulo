@@ -36,8 +36,8 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.TableOperationsHelper;
+import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -168,7 +168,7 @@ public class NewTableConfiguration {
     Map<String,String> propertyMap = new HashMap<>();
 
     if (limitVersion)
-      propertyMap.putAll(IteratorUtil.generateInitialTableProperties(limitVersion));
+      propertyMap.putAll(IterConfigUtil.generateInitialTableProperties(limitVersion));
 
     propertyMap.putAll(summarizerProps);
     propertyMap.putAll(samplerProps);

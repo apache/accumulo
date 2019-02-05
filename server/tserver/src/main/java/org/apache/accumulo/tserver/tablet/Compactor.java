@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -40,7 +41,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
@@ -365,8 +365,8 @@ public class Compactor implements Callable<CompactionStats> {
       else
         throw new IllegalArgumentException();
 
-      SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorUtil
-          .loadIterators(env.getIteratorScope(), cfsi, extent, acuTableConf, iterators, iterEnv));
+      SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IterConfigUtil
+          .loadIterators(env.getIteratorScope(), cfsi, acuTableConf, iterators, iterEnv));
 
       itr.seek(extent.toDataRange(), columnFamilies, inclusive);
 

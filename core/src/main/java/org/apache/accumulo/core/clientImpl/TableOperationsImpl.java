@@ -100,7 +100,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
@@ -128,6 +127,7 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.SystemIteratorUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.util.Retry;
@@ -838,7 +838,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
         start == null ? EMPTY : TextUtil.getByteBuffer(start),
         end == null ? EMPTY : TextUtil.getByteBuffer(end),
-        ByteBuffer.wrap(IteratorUtil.encodeIteratorSettings(config.getIterators())),
+        ByteBuffer.wrap(SystemIteratorUtil.encodeIteratorSettings(config.getIterators())),
         ByteBuffer.wrap(CompactionStrategyConfigUtil.encode(config.getCompactionStrategy())));
 
     Map<String,String> opts = new HashMap<>();
