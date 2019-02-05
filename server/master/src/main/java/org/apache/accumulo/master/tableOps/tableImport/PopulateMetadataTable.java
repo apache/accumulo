@@ -47,6 +47,7 @@ import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
@@ -220,8 +221,8 @@ class PopulateMetadataTable extends MasterRepo {
   protected String getClonedTabletDir(Master master, Text endRow, String[] tableDirs,
       String tabletDir) {
     // We can try to spread out the tablet dirs across all volumes
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableInfo.tableId, endRow,
-        master.getContext());
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(tableInfo.tableId,
+        endRow, master.getContext());
     String tableDir = master.getFileSystem().choose(chooserEnv, tableDirs);
 
     // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX

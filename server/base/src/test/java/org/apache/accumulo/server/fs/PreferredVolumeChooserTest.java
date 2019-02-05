@@ -27,10 +27,9 @@ import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.server.fs.VolumeChooser.VolumeChooserException;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.junit.After;
@@ -41,60 +40,71 @@ import org.junit.rules.ExpectedException;
 
 public class PreferredVolumeChooserTest {
 
+  private static final String TABLE_CUSTOM_SUFFIX = "volume.preferred";
+
+  private static final String getCustomPropertySuffix(ChooserScope scope) {
+    return "volume.preferred." + scope.name().toLowerCase();
+  }
+
   private static final String[] ALL_OPTIONS = {"1", "2", "3"};
 
-  private ServerConfigurationFactory confFactory;
-  private TableConfiguration tableConf;
+  private ServiceEnvironment serviceEnv;
+  private Configuration tableConf;
+  private Configuration systemConf;
   private PreferredVolumeChooser chooser;
-  private AccumuloConfiguration systemConf;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void before() {
-    confFactory = createStrictMock(ServerConfigurationFactory.class);
+    serviceEnv = createStrictMock(ServiceEnvironment.class);
 
-    chooser = new PreferredVolumeChooser() {
-      @Override
-      ServerConfigurationFactory loadConfFactory(VolumeChooserEnvironment env) {
-        return confFactory;
-      }
-    };
+    chooser = new PreferredVolumeChooser();
 
-    tableConf = createStrictMock(TableConfiguration.class);
-    systemConf = createStrictMock(AccumuloConfiguration.class);
-    expect(confFactory.getTableConfiguration(anyObject())).andReturn(tableConf).anyTimes();
-    expect(confFactory.getSystemConfiguration()).andReturn(systemConf).anyTimes();
+    tableConf = createStrictMock(Configuration.class);
+    systemConf = createStrictMock(Configuration.class);
+    expect(serviceEnv.getConfiguration(anyObject())).andReturn(tableConf).anyTimes();
+    expect(serviceEnv.getConfiguration()).andReturn(systemConf).anyTimes();
   }
 
   @After
   public void after() {
-    verify(confFactory, tableConf, systemConf);
+    verify(serviceEnv, tableConf, systemConf);
   }
 
   private String[] chooseForTable() {
-    VolumeChooserEnvironment env = new VolumeChooserEnvironment(TableId.of("testTable"), null,
-        null);
+    VolumeChooserEnvironment env = new VolumeChooserEnvironmentImpl(TableId.of("testTable"), null,
+        null) {
+      @Override
+      public ServiceEnvironment getServiceEnv() {
+        return serviceEnv;
+      }
+    };
     return chooser.getPreferredVolumes(env, ALL_OPTIONS);
   }
 
   private String[] choose(ChooserScope scope) {
-    VolumeChooserEnvironment env = new VolumeChooserEnvironment(scope, null);
+    VolumeChooserEnvironment env = new VolumeChooserEnvironmentImpl(scope, null) {
+      @Override
+      public ServiceEnvironment getServiceEnv() {
+        return serviceEnv;
+      }
+    };
     return chooser.getPreferredVolumes(env, ALL_OPTIONS);
   }
 
   @Test
   public void testInitScopeSelectsRandomlyFromAll() {
-    replay(confFactory, tableConf, systemConf);
+    replay(serviceEnv, tableConf, systemConf);
     String[] volumes = choose(ChooserScope.INIT);
     assertSame(ALL_OPTIONS, volumes);
   }
 
   @Test
   public void testTableScopeUsingTableProperty() {
-    expect(tableConf.get(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES)).andReturn("2,1");
-    replay(confFactory, tableConf, systemConf);
+    expect(tableConf.getTableCustom(TABLE_CUSTOM_SUFFIX)).andReturn("2,1");
+    replay(serviceEnv, tableConf, systemConf);
 
     String[] volumes = chooseForTable();
     Arrays.sort(volumes);
@@ -103,10 +113,10 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testTableScopeUsingDefaultScopeProperty() {
-    expect(tableConf.get(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES)).andReturn(null).once();
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
-        .andReturn("3,2").once();
-    replay(confFactory, tableConf, systemConf);
+    expect(tableConf.getTableCustom(TABLE_CUSTOM_SUFFIX)).andReturn(null).once();
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT))).andReturn("3,2")
+        .once();
+    replay(serviceEnv, tableConf, systemConf);
 
     String[] volumes = chooseForTable();
     Arrays.sort(volumes);
@@ -115,10 +125,10 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testTableScopeWithNoConfig() {
-    expect(tableConf.get(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES)).andReturn(null).once();
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
-        .andReturn(null).once();
-    replay(confFactory, tableConf, systemConf);
+    expect(tableConf.getTableCustom(TABLE_CUSTOM_SUFFIX)).andReturn(null).once();
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT))).andReturn(null)
+        .once();
+    replay(serviceEnv, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
     chooseForTable();
@@ -127,8 +137,8 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testTableScopeWithEmptySet() {
-    expect(tableConf.get(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES)).andReturn(",").once();
-    replay(confFactory, tableConf, systemConf);
+    expect(tableConf.getTableCustom(TABLE_CUSTOM_SUFFIX)).andReturn(",").once();
+    replay(serviceEnv, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
     chooseForTable();
@@ -137,10 +147,10 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testTableScopeWithUnrecognizedVolumes() {
-    expect(tableConf.get(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES)).andReturn(null).once();
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
-        .andReturn("4").once();
-    replay(confFactory, tableConf, systemConf);
+    expect(tableConf.getTableCustom(TABLE_CUSTOM_SUFFIX)).andReturn(null).once();
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT))).andReturn("4")
+        .once();
+    replay(serviceEnv, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
     chooseForTable();
@@ -149,9 +159,9 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testLoggerScopeUsingLoggerProperty() {
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
-        .andReturn("2,1").once();
-    replay(confFactory, tableConf, systemConf);
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.LOGGER))).andReturn("2,1")
+        .once();
+    replay(serviceEnv, tableConf, systemConf);
 
     String[] volumes = choose(ChooserScope.LOGGER);
     Arrays.sort(volumes);
@@ -160,11 +170,11 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testLoggerScopeUsingDefaultProperty() {
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
-        .andReturn(null).once();
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
-        .andReturn("3,2").once();
-    replay(confFactory, tableConf, systemConf);
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.LOGGER))).andReturn(null)
+        .once();
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT))).andReturn("3,2")
+        .once();
+    replay(serviceEnv, tableConf, systemConf);
 
     String[] volumes = choose(ChooserScope.LOGGER);
     Arrays.sort(volumes);
@@ -173,11 +183,11 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testLoggerScopeWithNoConfig() {
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
-        .andReturn(null).once();
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
-        .andReturn(null).once();
-    replay(confFactory, tableConf, systemConf);
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.LOGGER))).andReturn(null)
+        .once();
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT))).andReturn(null)
+        .once();
+    replay(serviceEnv, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
     choose(ChooserScope.LOGGER);
@@ -186,9 +196,9 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testLoggerScopeWithEmptySet() {
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
-        .andReturn(",").once();
-    replay(confFactory, tableConf, systemConf);
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.LOGGER))).andReturn(",")
+        .once();
+    replay(serviceEnv, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
     choose(ChooserScope.LOGGER);
@@ -197,11 +207,11 @@ public class PreferredVolumeChooserTest {
 
   @Test
   public void testLoggerScopeWithUnrecognizedVolumes() {
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER)))
-        .andReturn(null).once();
-    expect(systemConf.get(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.DEFAULT)))
-        .andReturn("4").once();
-    replay(confFactory, tableConf, systemConf);
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.LOGGER))).andReturn(null)
+        .once();
+    expect(systemConf.getCustom(getCustomPropertySuffix(ChooserScope.DEFAULT))).andReturn("4")
+        .once();
+    replay(serviceEnv, tableConf, systemConf);
 
     thrown.expect(VolumeChooserException.class);
     choose(ChooserScope.LOGGER);

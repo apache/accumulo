@@ -25,13 +25,9 @@ import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsStatus;
-import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +42,7 @@ import com.google.common.cache.LoadingCache;
  */
 public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
 
-  public static final String HDFS_SPACE_RECOMPUTE_INTERVAL = Property.GENERAL_ARBITRARY_PROP_PREFIX
-      .getKey() + "spaceaware.volume.chooser.recompute.interval";
+  public static final String RECOMPUTE_INTERVAL = "spaceaware.volume.chooser.recompute.interval";
 
   // Default time to wait in ms. Defaults to 5 min
   private long defaultComputationCacheDuration = 300000;
@@ -72,9 +67,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
       VolumeChooserEnvironment env) {
 
     if (choiceCache == null) {
-      ServerConfigurationFactory scf = loadConfFactory(env);
-      AccumuloConfiguration systemConfiguration = scf.getSystemConfiguration();
-      String propertyValue = systemConfiguration.get(HDFS_SPACE_RECOMPUTE_INTERVAL);
+      String propertyValue = env.getServiceEnv().getConfiguration().getCustom(RECOMPUTE_INTERVAL);
 
       long computationCacheDuration = StringUtils.isNotBlank(propertyValue)
           ? Long.parseLong(propertyValue)
@@ -106,11 +99,9 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
         throw new IllegalStateException("Options was empty! No valid volumes to choose from.");
       }
 
-      VolumeManager manager = env.getServerContext().getVolumeManager();
-
       // Compute percentage space available on each volume
       for (String option : options) {
-        FileSystem pathFs = manager.getVolumeByPath(new Path(option)).getFileSystem();
+        FileSystem pathFs = env.getFileSystem(option);
         try {
           FsStatus optionStatus = pathFs.getStatus();
           double percentFree = ((double) optionStatus.getRemaining() / optionStatus.getCapacity());

@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -51,7 +52,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 
 /**
@@ -149,9 +149,9 @@ public class MajorCompactionRequest implements Cloneable {
    */
   public List<Summary> getSummaries(Collection<FileRef> files,
       Predicate<SummarizerConfiguration> summarySelector) {
-    Preconditions.checkState(volumeManager != null,
-        "Getting summaries is not" + " supported at this time. It's only supported when"
-            + " CompactionStrategy.gatherInformation() is called.");
+    Objects.requireNonNull(volumeManager,
+        "Getting summaries is not  supported at this time. It's only supported when "
+            + "CompactionStrategy.gatherInformation() is called.");
     SummaryCollection sc = new SummaryCollection();
     SummarizerFactory factory = new SummarizerFactory(tableConfig);
     for (FileRef file : files) {
@@ -172,9 +172,9 @@ public class MajorCompactionRequest implements Cloneable {
   }
 
   public FileSKVIterator openReader(FileRef ref) throws IOException {
-    Preconditions.checkState(volumeManager != null,
-        "Opening files is not" + " supported at this time. It's only supported when"
-            + " CompactionStrategy.gatherInformation() is called.");
+    Objects.requireNonNull(volumeManager,
+        "Opening files is not supported at this time. It's only supported when "
+            + "CompactionStrategy.gatherInformation() is called.");
     // @TODO verify the file isn't some random file in HDFS
     // @TODO ensure these files are always closed?
     FileOperations fileFactory = FileOperations.getInstance();

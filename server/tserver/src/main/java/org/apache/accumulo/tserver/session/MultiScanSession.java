@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
@@ -63,8 +64,8 @@ public class MultiScanSession extends ScanSession {
   }
 
   @Override
-  public String getTableId() {
-    return threadPoolExtent.getTableId().canonical();
+  public TableId getTableId() {
+    return threadPoolExtent.getTableId();
   }
 
   @Override

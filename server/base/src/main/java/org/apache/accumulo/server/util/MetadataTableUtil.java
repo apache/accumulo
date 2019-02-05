@@ -87,6 +87,7 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.hadoop.fs.FileStatus;
@@ -914,7 +915,7 @@ public class MetadataTableUtil {
         Key k = entry.getKey();
         Mutation m = new Mutation(k.getRow());
         m.putDelete(k.getColumnFamily(), k.getColumnQualifier());
-        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId,
+        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(tableId,
             new KeyExtent(k.getRow(), (Text) null).getEndRow(), context);
         String dir = volumeManager.choose(chooserEnv, ServerConstants.getBaseUris(context))
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR + new String(
@@ -1024,8 +1025,8 @@ public class MetadataTableUtil {
    */
   public static void createReplicationTable(ServerContext context) {
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ReplicationTable.ID, null,
-        context);
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(ReplicationTable.ID,
+        null, context);
     String dir = context.getVolumeManager().choose(chooserEnv, ServerConstants.getBaseUris(context))
         + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID
         + Constants.DEFAULT_TABLET_LOCATION;

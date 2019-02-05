@@ -23,7 +23,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanInfo.Type;
 import org.junit.Test;
 
@@ -48,7 +50,18 @@ public class IdleRatioScanPrioritizerTest {
     Collections.shuffle(scans);
 
     Comparator<ScanInfo> comparator = new IdleRatioScanPrioritizer()
-        .createComparator(Collections::emptyMap);
+        .createComparator(new ScanPrioritizer.CreateParameters() {
+
+          @Override
+          public Map<String,String> getOptions() {
+            return Collections.emptyMap();
+          }
+
+          @Override
+          public ServiceEnvironment getServiceEnv() {
+            throw new UnsupportedOperationException();
+          }
+        });
 
     Collections.sort(scans, comparator);
 

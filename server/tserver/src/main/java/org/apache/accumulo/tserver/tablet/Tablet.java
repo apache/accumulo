@@ -98,6 +98,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -2861,7 +2862,8 @@ public class Tablet {
     String lowDirectory;
 
     UniqueNameAllocator namer = context.getUniqueNameAllocator();
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId, endRow, context);
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(tableId, endRow,
+        context);
     String volume = fs.choose(chooserEnv, ServerConstants.getBaseUris(context))
         + Constants.HDFS_TABLES_DIR + Path.SEPARATOR;
 

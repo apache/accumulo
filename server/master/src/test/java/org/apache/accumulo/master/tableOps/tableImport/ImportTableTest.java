@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.easymock.EasyMock;
 import org.junit.Test;
@@ -43,7 +44,7 @@ public class ImportTableTest {
     EasyMock.expect(master.getContext()).andReturn(null);
     EasyMock.expect(master.getFileSystem()).andReturn(volumeManager);
     // Choose the 2nd element
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(iti.tableId, null, null);
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(iti.tableId, null, null);
     EasyMock.expect(volumeManager.choose(EasyMock.eq(chooserEnv), EasyMock.eq(tableDirs)))
         .andReturn(tableDirs[1]);
 

@@ -42,6 +42,7 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOnRequiredTable;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -107,7 +108,7 @@ public class RandomizeVolumes {
       Key key = entry.getKey();
       Mutation m = new Mutation(key.getRow());
 
-      VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableId,
+      VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(tableId,
           new KeyExtent(key.getRow(), (Text) null).getEndRow(), context);
       final String newLocation = vm.choose(chooserEnv, ServerConstants.getBaseUris(context))
           + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR

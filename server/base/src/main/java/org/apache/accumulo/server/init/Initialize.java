@@ -88,6 +88,7 @@ import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
@@ -355,7 +356,7 @@ public class Initialize implements KeywordExecutable {
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
     String[] configuredVolumes = VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf);
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.INIT, null);
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.INIT, null);
     final String rootTabletDir = new Path(
         fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR + ServerConstants.TABLE_DIR
             + Path.SEPARATOR + RootTable.ID + RootTable.ROOT_TABLET_LOCATION).toString();
@@ -489,7 +490,7 @@ public class Initialize implements KeywordExecutable {
     // initialize initial system tables config in zookeeper
     initSystemTablesConfig(zoo, Constants.ZROOT + "/" + uuid, hadoopConf);
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(ChooserScope.INIT, null);
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.INIT, null);
     String tableMetadataTabletDir = fs.choose(chooserEnv,
         ServerConstants.getBaseUris(siteConfig, hadoopConf)) + Constants.HDFS_TABLES_DIR
         + Path.SEPARATOR + MetadataTable.ID + TABLE_TABLETS_TABLET_DIR;

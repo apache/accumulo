@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters;
 import org.apache.accumulo.core.spi.scan.ScanInfo.Type;
 import org.junit.Test;
@@ -59,6 +61,11 @@ public class SimpleScanDispatcherTest {
       return se;
     }
 
+    @Override
+    public ServiceEnvironment getServiceEnv() {
+      throw new UnsupportedOperationException();
+    }
+
   }
 
   private void runTest(Map<String,String> opts, Map<String,String> hints, String expectedSingle,
@@ -70,7 +77,23 @@ public class SimpleScanDispatcherTest {
 
     SimpleScanDispatcher ssd1 = new SimpleScanDispatcher();
 
-    ssd1.init(() -> opts);
+    ssd1.init(new ScanDispatcher.InitParameters() {
+
+      @Override
+      public TableId getTableId() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public Map<String,String> getOptions() {
+        return opts;
+      }
+
+      @Override
+      public ServiceEnvironment getServiceEnv() {
+        throw new UnsupportedOperationException();
+      }
+    });
 
     Map<String,ScanExecutor> executors = new HashMap<>();
     executors.put("E1", null);

@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.IteratorConfiguration;
 import org.apache.accumulo.core.spi.common.Stats;
 
@@ -52,7 +53,7 @@ public interface ScanInfo {
 
   Type getScanType();
 
-  String getTableId();
+  TableId getTableId();
 
   /**
    * Returns the first time a tablet knew about a scan over its portion of data. This is the time a

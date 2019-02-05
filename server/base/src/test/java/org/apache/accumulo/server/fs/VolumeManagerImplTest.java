@@ -137,7 +137,7 @@ public class VolumeManagerImplTest {
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
     thrown.expect(RuntimeException.class);
     VolumeManager vm = VolumeManagerImpl.get(conf, hadoopConf);
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(TableId.of("sometable"),
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(TableId.of("sometable"),
         null, null);
     String choice = vm.choose(chooserEnv, volumes.toArray(new String[0]));
     assertTrue("shouldn't see invalid options from misbehaving chooser.", volumes.contains(choice));

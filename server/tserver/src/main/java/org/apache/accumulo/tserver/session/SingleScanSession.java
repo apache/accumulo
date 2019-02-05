@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.security.Authorizations;
@@ -58,8 +59,8 @@ public class SingleScanSession extends ScanSession {
   }
 
   @Override
-  public String getTableId() {
-    return extent.getTableId().canonical();
+  public TableId getTableId() {
+    return extent.getTableId();
   }
 
   @Override

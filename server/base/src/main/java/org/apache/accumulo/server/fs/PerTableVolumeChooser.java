@@ -16,24 +16,18 @@
  */
 package org.apache.accumulo.server.fs;
 
-import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * A {@link VolumeChooser} that delegates to another volume chooser based on other properties:
- * table.custom.volume.chooser for tables, and general.custom.scoped.volume.chooser for scopes.
- * general.custor.{scope}.volume.chooser can override the system wide setting for
- * general.custom.scoped.volume.chooser. At the this this was written, the only known scope was
+ * table.custom.volume.chooser for tables, and general.custom.volume.chooser.scoped for scopes.
+ * general.custom.volume.chooser.{scope} can override the system wide setting for
+ * general.custom.volume.chooser.scoped. At the this this was written, the only known scope was
  * "logger".
  */
 public class PerTableVolumeChooser implements VolumeChooser {
@@ -45,19 +39,13 @@ public class PerTableVolumeChooser implements VolumeChooser {
   private final ConcurrentHashMap<ChooserScope,VolumeChooser> scopeSpecificChooserCache = new ConcurrentHashMap<>();
   private final RandomVolumeChooser randomChooser = new RandomVolumeChooser();
 
-  // TODO has to be lazily initialized currently because of the reliance on HdfsZooInstance. see
-  // ACCUMULO-3411
-  private volatile ServerConfigurationFactory lazyConfFactory = null;
+  private static final String TABLE_CUSTOM_SUFFIX = "volume.chooser";
 
-  public static final String TABLE_VOLUME_CHOOSER = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
-      + "volume.chooser";
-
-  public static final String getPropertyNameForScope(ChooserScope scope) {
-    return Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + scope.name().toLowerCase()
-        + ".volume.chooser";
+  private static final String getCustomPropertySuffix(ChooserScope scope) {
+    return "volume.chooser." + scope.name().toLowerCase();
   }
 
-  private static final String DEFAULT_SCOPED_VOLUME_CHOOSER = getPropertyNameForScope(
+  private static final String DEFAULT_SCOPED_VOLUME_CHOOSER = getCustomPropertySuffix(
       ChooserScope.DEFAULT);
 
   @Override
@@ -76,55 +64,47 @@ public class PerTableVolumeChooser implements VolumeChooser {
             ChooserScope.INIT, RandomVolumeChooser.class.getName());
         return randomChooser;
       case TABLE:
-        return getVolumeChooserForTable(env, loadConfFactory(env));
+        return getVolumeChooserForTable(env);
       default:
-        return getVolumeChooserForScope(env, loadConfFactory(env));
+        return getVolumeChooserForScope(env);
     }
   }
 
-  private VolumeChooser getVolumeChooserForTable(VolumeChooserEnvironment env,
-      ServerConfigurationFactory confFactory) {
-    log.trace("Looking up property {} for table id: {}", TABLE_VOLUME_CHOOSER, env.getTableId());
-    final TableConfiguration tableConf = confFactory.getTableConfiguration(env.getTableId());
-    String clazz = tableConf.get(TABLE_VOLUME_CHOOSER);
+  private VolumeChooser getVolumeChooserForTable(VolumeChooserEnvironment env) {
+    log.trace("Looking up property {} for table id: {}", TABLE_CUSTOM_SUFFIX, env.getTableId());
+
+    String clazz = env.getServiceEnv().getConfiguration(env.getTableId())
+        .getTableCustom(TABLE_CUSTOM_SUFFIX);
 
     // fall back to global default scope, so setting only one default is necessary, rather than a
     // separate default for TABLE scope than other scopes
     if (clazz == null || clazz.isEmpty()) {
-      clazz = confFactory.getSystemConfiguration().get(DEFAULT_SCOPED_VOLUME_CHOOSER);
+      clazz = env.getServiceEnv().getConfiguration().getCustom(DEFAULT_SCOPED_VOLUME_CHOOSER);
     }
 
     if (clazz == null || clazz.isEmpty()) {
-      String msg = "Property " + TABLE_VOLUME_CHOOSER + " or " + DEFAULT_SCOPED_VOLUME_CHOOSER
+      String msg = "Property " + TABLE_CUSTOM_SUFFIX + " or " + DEFAULT_SCOPED_VOLUME_CHOOSER
           + " must be a valid " + VolumeChooser.class.getSimpleName() + " to use the "
           + getClass().getSimpleName();
       throw new VolumeChooserException(msg);
     }
 
-    String context = getTableContext(tableConf); // can be null
-    return createVolumeChooser(context, clazz, TABLE_VOLUME_CHOOSER, env.getTableId(),
+    return createVolumeChooser(env, clazz, TABLE_CUSTOM_SUFFIX, env.getTableId(),
         tableSpecificChooserCache);
   }
 
-  // visible (not private) for testing
-  String getTableContext(TableConfiguration tableConf) {
-    return tableConf.get(Property.TABLE_CLASSPATH);
-  }
-
-  private VolumeChooser getVolumeChooserForScope(VolumeChooserEnvironment env,
-      ServerConfigurationFactory confFactory) {
+  private VolumeChooser getVolumeChooserForScope(VolumeChooserEnvironment env) {
     ChooserScope scope = env.getScope();
-    String property = getPropertyNameForScope(scope);
+    String property = getCustomPropertySuffix(scope);
     log.trace("Looking up property {} for scope: {}", property, scope);
 
-    AccumuloConfiguration systemConfiguration = confFactory.getSystemConfiguration();
-    String clazz = systemConfiguration.get(property);
+    String clazz = env.getServiceEnv().getConfiguration().getCustom(property);
 
     // fall back to global default scope if this scope isn't configured (and not already default
     // scope)
     if ((clazz == null || clazz.isEmpty()) && scope != ChooserScope.DEFAULT) {
       log.debug("{} not found; using {}", property, DEFAULT_SCOPED_VOLUME_CHOOSER);
-      clazz = systemConfiguration.get(DEFAULT_SCOPED_VOLUME_CHOOSER);
+      clazz = env.getServiceEnv().getConfiguration().getCustom(DEFAULT_SCOPED_VOLUME_CHOOSER);
 
       if (clazz == null || clazz.isEmpty()) {
         String msg = "Property " + property + " or " + DEFAULT_SCOPED_VOLUME_CHOOSER
@@ -136,8 +116,7 @@ public class PerTableVolumeChooser implements VolumeChooser {
       property = DEFAULT_SCOPED_VOLUME_CHOOSER;
     }
 
-    String context = null;
-    return createVolumeChooser(context, clazz, property, scope, scopeSpecificChooserCache);
+    return createVolumeChooser(env, clazz, property, scope, scopeSpecificChooserCache);
   }
 
   /**
@@ -154,8 +133,8 @@ public class PerTableVolumeChooser implements VolumeChooser {
    *          The cache
    * @return The volume chooser instance
    */
-  private <T> VolumeChooser createVolumeChooser(String context, String clazz, String property,
-      T key, ConcurrentHashMap<T,VolumeChooser> cache) {
+  private <T> VolumeChooser createVolumeChooser(VolumeChooserEnvironment env, String clazz,
+      String property, T key, ConcurrentHashMap<T,VolumeChooser> cache) {
     final String className = clazz.trim();
     // create a new instance, unless another thread beat us with one of the same class name, then
     // use theirs
@@ -169,26 +148,17 @@ public class PerTableVolumeChooser implements VolumeChooser {
         log.trace("Change detected for {} for {}", property, key);
       }
       try {
-        return ConfigurationTypeHelper.getClassInstance(context, className, VolumeChooser.class);
-      } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-          | IOException e) {
+        if (key instanceof TableId) {
+          TableId tableId = (TableId) key;
+          return env.getServiceEnv().instantiate(tableId, className, VolumeChooser.class);
+        } else {
+          return env.getServiceEnv().instantiate(className, VolumeChooser.class);
+        }
+      } catch (Exception e) {
         String msg = "Failed to create instance for " + key + " configured to use " + className
             + " via " + property;
         throw new VolumeChooserException(msg, e);
       }
     });
   }
-
-  // visible (not private) for testing
-  ServerConfigurationFactory loadConfFactory(VolumeChooserEnvironment env) {
-    // This local variable is an intentional component of the single-check idiom.
-    ServerConfigurationFactory localConf = lazyConfFactory;
-    if (localConf == null) {
-      // If we're under contention when first getting here we'll throw away some initializations.
-      localConf = env.getServerContext().getServerConfFactory();
-      lazyConfFactory = localConf;
-    }
-    return localConf;
-  }
-
 }
