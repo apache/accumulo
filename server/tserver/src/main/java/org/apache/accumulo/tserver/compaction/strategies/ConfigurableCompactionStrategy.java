@@ -44,6 +44,9 @@ import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.tserver.compaction.WriteParameters;
 import org.apache.hadoop.fs.Path;
 
+/**
+ * The compaction strategy used by the shell compact command.
+ */
 public class ConfigurableCompactionStrategy extends CompactionStrategy {
 
   private abstract static class Test {

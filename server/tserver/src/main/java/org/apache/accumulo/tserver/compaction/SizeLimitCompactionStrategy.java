@@ -24,7 +24,11 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
+import org.apache.accumulo.tserver.compaction.strategies.BasicCompactionStrategy;
 
+/**
+ * {@link BasicCompactionStrategy} offer the same functionality as this class and more.
+ */
 public class SizeLimitCompactionStrategy extends DefaultCompactionStrategy {
   public static final String SIZE_LIMIT_OPT = "sizeLimit";
 
