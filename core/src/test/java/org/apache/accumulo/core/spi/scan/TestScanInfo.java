@@ -26,6 +26,7 @@ import java.util.Set;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.spi.common.IteratorConfiguration;
 import org.apache.accumulo.core.spi.common.Stats;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.accumulo.core.util.Stat;
 
 public class TestScanInfo implements ScanInfo {
@@ -61,7 +62,7 @@ public class TestScanInfo implements ScanInfo {
   }
 
   @Override
-  public String getTableId() {
+  public Table.ID getTableId() {
     throw new UnsupportedOperationException();
   }
 

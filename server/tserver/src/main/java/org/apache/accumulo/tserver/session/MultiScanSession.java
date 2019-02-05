@@ -27,6 +27,7 @@ import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.accumulo.tserver.scan.ScanTask;
 
 public class MultiScanSession extends ScanSession {
@@ -63,8 +64,8 @@ public class MultiScanSession extends ScanSession {
   }
 
   @Override
-  public String getTableId() {
-    return threadPoolExtent.getTableId().canonicalID();
+  public Table.ID getTableId() {
+    return threadPoolExtent.getTableId();
   }
 
   @Override

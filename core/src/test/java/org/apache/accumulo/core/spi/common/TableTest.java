@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.clientImpl;
+package org.apache.accumulo.core.spi.common;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.apache.accumulo.core.spi.common.Table;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;

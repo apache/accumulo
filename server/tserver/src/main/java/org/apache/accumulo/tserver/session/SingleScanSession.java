@@ -26,6 +26,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.accumulo.tserver.scan.ScanTask;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Scanner;
@@ -58,8 +59,8 @@ public class SingleScanSession extends ScanSession {
   }
 
   @Override
-  public String getTableId() {
-    return extent.getTableId().canonicalID();
+  public Table.ID getTableId() {
+    return extent.getTableId();
   }
 
   @Override
