@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.common.Table;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;

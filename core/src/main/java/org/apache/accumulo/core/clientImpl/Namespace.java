@@ -18,6 +18,8 @@ package org.apache.accumulo.core.clientImpl;
 
 import java.util.concurrent.ExecutionException;
 
+import org.apache.accumulo.core.spi.common.AbstractId;
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 

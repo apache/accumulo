@@ -28,7 +28,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
@@ -36,6 +35,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.master.replication.SequentialWorkAssigner;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;

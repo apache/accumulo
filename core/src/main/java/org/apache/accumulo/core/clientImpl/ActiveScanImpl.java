@@ -31,6 +31,7 @@ import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.common.Table;
 
 /**
  * A class that contains information about an ActiveScan

@@ -19,8 +19,8 @@ package org.apache.accumulo.master.state;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.master.thrift.MasterState;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.accumulo.server.master.state.TabletState;
 
 public class TableStats {

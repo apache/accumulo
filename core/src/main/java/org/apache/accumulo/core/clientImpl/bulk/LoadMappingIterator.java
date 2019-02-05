@@ -28,8 +28,8 @@ import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.spi.common.Table;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;

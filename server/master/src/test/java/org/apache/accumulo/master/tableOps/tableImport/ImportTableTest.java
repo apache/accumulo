@@ -18,7 +18,7 @@ package org.apache.accumulo.master.tableOps.tableImport;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;

@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.slf4j.LoggerFactory;
 

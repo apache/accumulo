@@ -14,9 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.clientImpl;
+package org.apache.accumulo.core.spi.common;
 
 import java.util.concurrent.ExecutionException;
+
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Tables;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -31,6 +34,8 @@ public class Table {
    * Uses an internal cache and private constructor for storing a WeakReference of every Table.ID.
    * Therefore, a Table.ID can't be instantiated outside this class and is accessed by calling
    * Table.ID.{@link #of(String)}.
+   *
+   * @since 2.0.0
    */
   public static class ID extends AbstractId {
     private static final long serialVersionUID = 7399913185860577809L;

@@ -23,10 +23,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.accumulo.core.util.Validator;
 
 import com.google.common.base.Joiner;

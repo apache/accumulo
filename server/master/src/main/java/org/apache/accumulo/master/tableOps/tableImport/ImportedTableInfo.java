@@ -19,7 +19,7 @@ package org.apache.accumulo.master.tableOps.tableImport;
 import java.io.Serializable;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.spi.common.Table;
 
 class ImportedTableInfo implements Serializable {
 

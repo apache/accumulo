@@ -37,6 +37,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;

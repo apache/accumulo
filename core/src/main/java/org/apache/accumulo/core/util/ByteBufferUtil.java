@@ -27,8 +27,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.hadoop.io.Text;
 
 public class ByteBufferUtil {

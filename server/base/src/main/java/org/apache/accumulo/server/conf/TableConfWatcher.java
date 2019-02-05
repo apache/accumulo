@@ -17,7 +17,7 @@
 package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;

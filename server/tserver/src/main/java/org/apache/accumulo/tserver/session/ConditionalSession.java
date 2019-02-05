@@ -19,9 +19,9 @@ package org.apache.accumulo.tserver.session;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Durability;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.common.Table;
 
 public class ConditionalSession extends Session {
   public final TCredentials credentials;

@@ -18,8 +18,8 @@ package org.apache.accumulo.master.tableOps.bulkVer2;
 
 import java.io.Serializable;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.spi.common.Table;
 
 /**
  * Package private class to hold all the information used for bulk import2

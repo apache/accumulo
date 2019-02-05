@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.server.tables;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.spi.common.Table;
 
 public interface TableObserver {
   void initialize();

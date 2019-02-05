@@ -18,7 +18,7 @@ package org.apache.accumulo.monitor.rest.problems;
 
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.accumulo.monitor.util.JaxbAbstractIdSerializer;
 
 /**

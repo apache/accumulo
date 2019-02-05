@@ -19,8 +19,8 @@ package org.apache.accumulo.core.metadata;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.spi.common.Table;
 
 /**
  * A metadata servicer for the root table.<br>

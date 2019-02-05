@@ -21,6 +21,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.apache.accumulo.core.spi.common.Table;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;

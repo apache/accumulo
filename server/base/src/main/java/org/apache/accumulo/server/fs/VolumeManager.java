@@ -19,8 +19,8 @@ package org.apache.accumulo.server.fs;
 import java.io.IOException;
 import java.util.Collection;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.fs.ContentSummary;

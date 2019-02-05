@@ -17,8 +17,8 @@
 package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.spi.common.Table;
 
 public abstract class ServerConfiguration {
 

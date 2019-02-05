@@ -19,9 +19,9 @@ package org.apache.accumulo.tserver;
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;

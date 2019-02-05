@@ -44,10 +44,10 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.accumulo.monitor.Monitor;
 import org.glassfish.jersey.server.mvc.Template;
 import org.slf4j.Logger;

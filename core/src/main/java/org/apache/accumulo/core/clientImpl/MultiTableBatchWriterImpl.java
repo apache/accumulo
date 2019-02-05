@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.spi.common.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -19,8 +19,8 @@ package org.apache.accumulo.core.clientImpl.mapred;
 import java.io.IOException;
 import java.util.Collection;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.spi.common.Table;
 import org.apache.hadoop.mapred.InputSplit;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.clientImpl;
+package org.apache.accumulo.core.spi.common;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
@@ -24,6 +24,8 @@ import java.util.Objects;
 
 /**
  * An abstract identifier class for comparing equality of identifiers of the same type.
+ *
+ * @since 2.0.0
  */
 public abstract class AbstractId implements Comparable<AbstractId>, Serializable {
 
