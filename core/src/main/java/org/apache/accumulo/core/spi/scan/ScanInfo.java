@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.spi.common.IteratorConfiguration;
 import org.apache.accumulo.core.spi.common.Stats;
+import org.apache.accumulo.core.spi.common.Table;
 
 /**
  * Provides information about an active Accumulo scan against a tablet. Accumulo scans operate by
@@ -52,7 +53,7 @@ public interface ScanInfo {
 
   Type getScanType();
 
-  String getTableId();
+  Table.ID getTableId();
 
   /**
    * Returns the first time a tablet knew about a scan over its portion of data.
