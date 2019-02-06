@@ -91,6 +91,25 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
   void fetchColumnFamily(Text col);
 
   /**
+   * Adds a column family to the list of columns that will be fetched by this scanner. By default
+   * when no columns have been added the scanner fetches all columns. To fetch multiple column
+   * families call this function multiple times.
+   *
+   * <p>
+   * This can help limit which locality groups are read on the server side.
+   *
+   * <p>
+   * When used in conjunction with custom iterators, the set of column families fetched is passed to
+   * the top iterator's seek method. Custom iterators may change this set of column families when
+   * calling seek on their source.
+   *
+   * @param colFam
+   *          the column family to be fetched
+   * @since 2.0.0
+   */
+  void fetchColumnFamily(CharSequence colFam);
+
+  /**
    * Adds a column to the list of columns that will be fetched by this scanner. The column is
    * identified by family and qualifier. By default when no columns have been added the scanner
    * fetches all columns.
@@ -120,6 +139,20 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    *          the column qualifier of the column to be fetched
    */
   void fetchColumn(Text colFam, Text colQual);
+
+  /**
+   * Adds a column to the list of columns that will be fetched by this scanner. The column is
+   * identified by family and qualifier. By default when no columns have been added the scanner
+   * fetches all columns. See the warning on {@link #fetchColumn(Text, Text)}
+   *
+   *
+   * @param colFam
+   *          the column family of the column to be fetched
+   * @param colQual
+   *          the column qualifier of the column to be fetched
+   * @since 2.0.0
+   */
+  void fetchColumn(CharSequence colFam, CharSequence colQual);
 
   /**
    * Adds a column to the list of columns that will be fetch by this scanner.

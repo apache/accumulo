@@ -203,7 +203,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         assertEquals(Status.REJECTED, cw.write(cm5).getStatus());
 
         // ensure rejected mutations did not write
-        scanner.fetchColumn(new Text("name"), new Text("last"));
+        scanner.fetchColumn("name", "last");
         scanner.setRange(new Range("99006"));
         Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
         assertEquals("Doe", entry.getValue().toString());
@@ -282,7 +282,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
           scanner.setRange(new Range("99006"));
           // TODO verify all columns
-          scanner.fetchColumn(new Text("tx"), new Text("seq"));
+          scanner.fetchColumn("tx", "seq");
           Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
           assertEquals("1", entry.getValue().toString());
           long ts = entry.getKey().getTimestamp();
@@ -538,7 +538,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       try (Scanner scanner = client.createScanner(tableName, new Authorizations())) {
         scanner.addScanIterator(iterConfig);
         scanner.setRange(new Range("ACCUMULO-1000"));
-        scanner.fetchColumn(new Text("count"), new Text("comments"));
+        scanner.fetchColumn("count", "comments");
 
         Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
         assertEquals("3", entry.getValue().toString());
@@ -689,7 +689,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         assertEquals(Status.ACCEPTED, cw.write(cm6).getStatus());
 
         scanner.setRange(new Range("ACCUMULO-1000"));
-        scanner.fetchColumn(new Text("count"), new Text("comments"));
+        scanner.fetchColumn("count", "comments");
 
         Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
         assertEquals("9", entry.getValue().toString());
@@ -792,7 +792,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
         assertEquals(3, count);
 
-        scanner.fetchColumn(new Text("tx"), new Text("seq"));
+        scanner.fetchColumn("tx", "seq");
 
         for (String row : new String[] {"99006", "59056", "19059"}) {
           scanner.setRange(new Range(row));
@@ -853,7 +853,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         assertEquals("2", entry.getValue().toString());
 
         scanner.clearColumns();
-        scanner.fetchColumn(new Text("name"), new Text("last"));
+        scanner.fetchColumn("name", "last");
         entry = Iterables.getOnlyElement(scanner);
         assertEquals("Doe", entry.getValue().toString());
       }
@@ -1014,7 +1014,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
         assertEquals(4, rows.size());
 
-        scanner.fetchColumn(new Text("tx"), new Text("seq"));
+        scanner.fetchColumn("tx", "seq");
         Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
         assertEquals("1", entry.getValue().toString());
       }
