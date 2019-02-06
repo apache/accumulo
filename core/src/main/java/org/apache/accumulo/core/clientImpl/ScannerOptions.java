@@ -140,25 +140,10 @@ public class ScannerOptions implements ScannerBase {
   }
 
   @Override
-  public void fetchColumnFamily(CharSequence colFam) {
-    checkArgument(colFam != null, "colFam is null");
-    Column c = new Column(colFam.toString().getBytes(), null, null);
-    fetchedColumns.add(c);
-  }
-
-  @Override
   public synchronized void fetchColumn(Text colFam, Text colQual) {
     checkArgument(colFam != null, "colFam is null");
     checkArgument(colQual != null, "colQual is null");
     Column c = new Column(TextUtil.getBytes(colFam), TextUtil.getBytes(colQual), null);
-    fetchedColumns.add(c);
-  }
-
-  @Override
-  public void fetchColumn(CharSequence colFam, CharSequence colQual) {
-    checkArgument(colFam != null, "colFam is null");
-    checkArgument(colQual != null, "colQual is null");
-    Column c = new Column(colFam.toString().getBytes(), colQual.toString().getBytes(), null);
     fetchedColumns.add(c);
   }
 
