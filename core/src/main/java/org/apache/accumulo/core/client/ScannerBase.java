@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting.Column;
@@ -107,7 +108,10 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    *          the column family to be fetched
    * @since 2.0.0
    */
-  void fetchColumnFamily(CharSequence colFam);
+  default void fetchColumnFamily(CharSequence colFam) {
+    Objects.requireNonNull(colFam);
+    fetchColumnFamily(new Text(colFam.toString()));
+  }
 
   /**
    * Adds a column to the list of columns that will be fetched by this scanner. The column is
@@ -152,7 +156,11 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    *          the column qualifier of the column to be fetched
    * @since 2.0.0
    */
-  void fetchColumn(CharSequence colFam, CharSequence colQual);
+  default void fetchColumn(CharSequence colFam, CharSequence colQual) {
+    Objects.requireNonNull(colFam);
+    Objects.requireNonNull(colQual);
+    fetchColumn(new Text(colFam.toString()), new Text(colQual.toString()));
+  }
 
   /**
    * Adds a column to the list of columns that will be fetch by this scanner.
