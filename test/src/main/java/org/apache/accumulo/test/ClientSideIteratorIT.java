@@ -145,10 +145,10 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
       checkResults(csis, resultSet1, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME);
       checkResults(scanner, resultSet2, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME);
 
-      csis.fetchColumnFamily(new Text("colf"));
+      csis.fetchColumnFamily("colf");
       checkResults(csis, resultSet1, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME);
       csis.clearColumns();
-      csis.fetchColumnFamily(new Text("none"));
+      csis.fetchColumnFamily("none");
       assertFalse(csis.iterator().hasNext());
     }
   }
