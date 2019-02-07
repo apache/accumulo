@@ -215,17 +215,25 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               append(classpathBuilder, f.getURL());
             }
           } else {
-            throw new IllegalArgumentException(
-                "Unknown classloader type : " + classLoader.getClass().getName());
+            if (classLoader.getClass().getName().equals("jdk.internal.loader.ClassLoaders$AppClassLoader")) {
+              log.debug("Detected Java 11 classloader: {}", classLoader.getClass().getName());
+            } else {
+              log.debug("Detected unknown classloader: {}", classLoader.getClass().getName());
+            }
+            String javaClassPath = System.getProperty("java.class.path");
+            if (javaClassPath == null) {
+              throw new IllegalStateException("java.class.path is not set");
+            } else {
+              log.debug("Using classpath set by java.class.path system property: {}", javaClassPath);
+            }
+            classpathBuilder.append(File.pathSeparator).append(javaClassPath);
           }
         }
       } else {
         for (String s : config.getClasspathItems())
           classpathBuilder.append(File.pathSeparator).append(s);
       }
-
       return classpathBuilder.toString();
-
     } catch (URISyntaxException e) {
       throw new IOException(e);
     }
