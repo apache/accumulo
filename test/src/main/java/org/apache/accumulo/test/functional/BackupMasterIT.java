@@ -45,7 +45,7 @@ public class BackupMasterIT extends ConfigurableMacBase {
       String secret = getCluster().getSiteConfiguration().get(Property.INSTANCE_SECRET);
       IZooReaderWriter writer = new ZooReaderWriterFactory()
           .getZooReaderWriter(cluster.getZooKeepers(), 30 * 1000, secret);
-      String root = "/accumulo/" + client.getInstanceID();
+      String root = "/accumulo/" + client.instanceOperations().getInstanceID();
       List<String> children = Collections.emptyList();
       // wait for 2 lock entries
       do {

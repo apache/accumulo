@@ -302,7 +302,7 @@ public class VolumeIT extends ConfigurableMacBase {
   // grab uuid before shutting down cluster
   private String verifyAndShutdownCluster(AccumuloClient c, PropertiesConfiguration conf,
       String tableName) throws Exception {
-    String uuid = c.getInstanceID();
+    String uuid = c.instanceOperations().getInstanceID();
 
     verifyVolumesUsed(c, tableName, false, v1, v2);
 
@@ -479,7 +479,8 @@ public class VolumeIT extends ConfigurableMacBase {
 
       // check that root tablet is not on volume 1
       ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-      String zpath = ZooUtil.getRoot(client.getInstanceID()) + RootTable.ZROOT_TABLET_PATH;
+      String zpath = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+          + RootTable.ZROOT_TABLET_PATH;
       String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
       assertTrue(rootTabletDir.startsWith(v2.toString()));
 
@@ -541,7 +542,8 @@ public class VolumeIT extends ConfigurableMacBase {
 
     // check that root tablet is not on volume 1 or 2
     ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-    String zpath = ZooUtil.getRoot(client.getInstanceID()) + RootTable.ZROOT_TABLET_PATH;
+    String zpath = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+        + RootTable.ZROOT_TABLET_PATH;
     String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
     assertTrue(rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
 

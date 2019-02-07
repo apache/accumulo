@@ -267,8 +267,8 @@ public class MergeStats {
       ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooReaderWriter();
       for (Entry<String,String> entry : tableIdMap.entrySet()) {
         final String table = entry.getKey(), tableId = entry.getValue();
-        String path = ZooUtil.getRoot(client.getInstanceID()) + Constants.ZTABLES + "/" + tableId
-            + "/merge";
+        String path = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+            + Constants.ZTABLES + "/" + tableId + "/merge";
         MergeInfo info = new MergeInfo();
         if (zooReaderWriter.exists(path)) {
           byte[] data = zooReaderWriter.getData(path, new Stat());

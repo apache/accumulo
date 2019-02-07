@@ -254,7 +254,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     try (AccumuloClient client = createClient()) {
 
       ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
-      String path = ZooUtil.getRoot(client.getInstanceID()) + Constants.ZGC_LOCK;
+      String path = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+          + Constants.ZGC_LOCK;
       for (int i = 0; i < 5; i++) {
         List<String> locks;
         try {

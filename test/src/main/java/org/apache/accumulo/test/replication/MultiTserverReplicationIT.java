@@ -67,15 +67,16 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
       ZooReader zreader = new ZooReader(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut());
       Set<String> tserverHost = new HashSet<>();
-      tserverHost.addAll(
-          zreader.getChildren(ZooUtil.getRoot(client.getInstanceID()) + Constants.ZTSERVERS));
+      tserverHost.addAll(zreader.getChildren(
+          ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZTSERVERS));
 
       Set<HostAndPort> replicationServices = new HashSet<>();
 
       for (String tserver : tserverHost) {
         try {
-          byte[] portData = zreader.getData(ZooUtil.getRoot(client.getInstanceID())
-              + ReplicationConstants.ZOO_TSERVERS + "/" + tserver, null);
+          byte[] portData = zreader
+              .getData(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+                  + ReplicationConstants.ZOO_TSERVERS + "/" + tserver, null);
           HostAndPort replAddress = HostAndPort.fromString(new String(portData, UTF_8));
           replicationServices.add(replAddress);
         } catch (Exception e) {
@@ -111,9 +112,10 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
       String masterAddr = Iterables.getOnlyElement(context.getMasterLocations());
 
       // Get the master replication coordinator addr
-      String replCoordAddr = new String(zreader.getData(
-          ZooUtil.getRoot(client.getInstanceID()) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
-          null), UTF_8);
+      String replCoordAddr = new String(
+          zreader.getData(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+              + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR, null),
+          UTF_8);
 
       // They shouldn't be the same
       assertNotEquals(masterAddr, replCoordAddr);

@@ -387,7 +387,6 @@ public class ClientContext implements AccumuloClient {
    *
    * @return a UUID
    */
-  @Override
   public String getInstanceID() {
     ensureOpen();
     final String instanceName = info.getInstanceName();

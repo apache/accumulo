@@ -159,7 +159,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
         try {
           client = MasterClient.getConnectionWithRetry((ClientContext) accumuloClient);
           stats = client.getMasterStats(Tracer.traceInfo(),
-              creds.toThrift(accumuloClient.getInstanceID()));
+              creds.toThrift(accumuloClient.instanceOperations().getInstanceID()));
           break;
         } catch (ThriftSecurityException exception) {
           throw new AccumuloSecurityException(exception);
