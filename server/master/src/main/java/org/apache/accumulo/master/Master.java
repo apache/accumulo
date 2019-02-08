@@ -450,6 +450,11 @@ public class Master extends AccumuloServerContext
         moveRootTabletToRootTable(zoo);
 
         // add system namespace permissions to existing users
+        // N.B. this section is ignoring the configured PermissionHandler
+        // under the assumption that these details are in zk and we can
+        // modify the structure so long as we pass back in whatever we read.
+        // This is currently true for the KerberosPermissionHandler so long
+        // as we don't need to refer to a human readable username.
         ZKPermHandler perm = new ZKPermHandler();
         perm.initialize(getInstance().getInstanceID(), true);
         String users = ZooUtil.getRoot(getInstance()) + "/users";
@@ -459,8 +464,11 @@ public class Master extends AccumuloServerContext
           perm.grantNamespacePermission(user, Namespaces.ACCUMULO_NAMESPACE_ID,
               NamespacePermission.READ);
         }
-        perm.grantNamespacePermission("root", Namespaces.ACCUMULO_NAMESPACE_ID,
-            NamespacePermission.ALTER_TABLE);
+        // because we need to refer to the root username, we can't use the
+        // ZKPermHandler directly. The security object should work since
+        // the loop above should have made the needed structure in ZK.
+        security.grantNamespacePermission(rpcCreds(), security.getRootUsername(),
+            Namespaces.ACCUMULO_NAMESPACE_ID, NamespacePermission.ALTER_TABLE);
 
         // add the currlog location for root tablet current logs
         zoo.putPersistentData(ZooUtil.getRoot(getInstance()) + RootTable.ZROOT_TABLET_CURRENT_LOGS,
