@@ -455,7 +455,7 @@ public class Master extends AccumuloServerContext
         // modify the structure so long as we pass back in whatever we read.
         // This is true for any permission handler, including KerberosPermissionHandler,
         // that uses the ZKPermHandler for permissions storage so long
-        // as we don't need to refer to a human readable username.
+        // as the PermHandler only overrides the user name, and we don't care what the user name is.
         ZKPermHandler perm = new ZKPermHandler();
         perm.initialize(getInstance().getInstanceID(), true);
         String users = ZooUtil.getRoot(getInstance()) + "/users";
