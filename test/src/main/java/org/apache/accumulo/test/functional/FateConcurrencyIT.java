@@ -62,13 +62,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * IT Tests that create / run a "slow" FATE transaction so that other operations can be checked.
+ * Included tests for:
+ * <p/>
  * ACCUMULO-4574. Test to verify that changing table state to online / offline
  * {@link org.apache.accumulo.core.client.admin.TableOperations#online(String)} when the table is
  * already in that state returns without blocking.
+ * </p>
+ * AdminUtil refactor to provide methods that provide FATE status, one with table lock info
+ * (original) and additional method without.
+ *
  */
-public class TableChangeStateIT extends AccumuloClusterHarness {
+public class FateConcurrencyIT extends AccumuloClusterHarness {
 
-  private static final Logger log = LoggerFactory.getLogger(TableChangeStateIT.class);
+  private static final Logger log = LoggerFactory.getLogger(FateConcurrencyIT.class);
 
   private static final int NUM_ROWS = 1000;
   private static final long SLOW_SCAN_SLEEP_MS = 250L;
