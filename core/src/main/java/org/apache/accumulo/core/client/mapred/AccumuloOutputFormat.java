@@ -424,7 +424,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
     private AccumuloClient client;
 
     protected AccumuloRecordWriter(JobConf job)
-        throws AccumuloException, AccumuloSecurityException {
+        throws AccumuloException, AccumuloSecurityException, IOException {
       Level l = getLogLevel(job);
       if (l != null)
         log.setLevel(getLogLevel(job));
