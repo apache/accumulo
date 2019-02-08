@@ -453,7 +453,8 @@ public class Master extends AccumuloServerContext
         // N.B. this section is ignoring the configured PermissionHandler
         // under the assumption that these details are in zk and we can
         // modify the structure so long as we pass back in whatever we read.
-        // This is currently true for the KerberosPermissionHandler so long
+        // This is true for any permission handler, including KerberosPermissionHandler,
+        // that uses the ZKPermHandler for permissions storage so long
         // as we don't need to refer to a human readable username.
         ZKPermHandler perm = new ZKPermHandler();
         perm.initialize(getInstance().getInstanceID(), true);
