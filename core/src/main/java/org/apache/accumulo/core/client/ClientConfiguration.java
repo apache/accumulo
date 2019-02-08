@@ -50,7 +50,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @deprecated since 2.0.0, replaced by {@link Accumulo#newClient()}
  */
 @Deprecated
-public class ClientConfiguration extends CompositeConfiguration {
+public class ClientConfiguration {
   private static final Logger log = LoggerFactory.getLogger(ClientConfiguration.class);
 
   public static final String USER_ACCUMULO_DIR_NAME = ".accumulo";
