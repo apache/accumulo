@@ -467,7 +467,7 @@ public class Master extends AccumuloServerContext
         }
         // because we need to refer to the root username, we can't use the
         // ZKPermHandler directly since that violates our earlier assumption that we don't
-        // care about contents of the username. PermissionHandlers that need to
+        // care about contents of the username. When using a PermissionHandler that needs to
         // encode the username in some way, i.e. the KerberosPermissionHandler, things would
         // fail. Instead we should be able to use the security object since
         // the loop above should have made the needed structure in ZK.
