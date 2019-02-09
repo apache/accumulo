@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.master.tableOps.delete;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -29,10 +29,10 @@ public class DeleteTable extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private Table.ID tableId;
-  private Namespace.ID namespaceId;
+  private TableId tableId;
+  private NamespaceId namespaceId;
 
-  public DeleteTable(Namespace.ID namespaceId, Table.ID tableId) {
+  public DeleteTable(NamespaceId namespaceId, TableId tableId) {
     this.namespaceId = namespaceId;
     this.tableId = tableId;
   }

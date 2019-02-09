@@ -30,14 +30,14 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.AbstractId;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.data.AbstractId;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooQueueLock;
@@ -56,16 +56,16 @@ public class Utils {
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
   public static void checkTableDoesNotExist(ServerContext context, String tableName,
-      Table.ID tableId, TableOperation operation) throws AcceptableThriftTableOperationException {
+      TableId tableId, TableOperation operation) throws AcceptableThriftTableOperationException {
 
-    Table.ID id = Tables.getNameToIdMap(context).get(tableName);
+    TableId id = Tables.getNameToIdMap(context).get(tableName);
 
     if (id != null && !id.equals(tableId))
       throw new AcceptableThriftTableOperationException(null, tableName, operation,
           TableOperationExceptionType.EXISTS, null);
   }
 
-  public static <T extends AbstractId> T getNextId(String name, ServerContext context,
+  public static <T extends AbstractId<T>> T getNextId(String name, ServerContext context,
       Function<String,T> newIdFunction) throws AcceptableThriftTableOperationException {
     try {
       IZooReaderWriter zoo = context.getZooReaderWriter();
@@ -86,13 +86,13 @@ public class Utils {
   static final Lock tableNameLock = new ReentrantLock();
   static final Lock idLock = new ReentrantLock();
 
-  public static long reserveTable(Master env, Table.ID tableId, long tid, boolean writeLock,
+  public static long reserveTable(Master env, TableId tableId, long tid, boolean writeLock,
       boolean tableMustExist, TableOperation op) throws Exception {
     if (getLock(env.getContext(), tableId, tid, writeLock).tryLock()) {
       if (tableMustExist) {
         IZooReaderWriter zk = env.getContext().getZooReaderWriter();
         if (!zk.exists(env.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId))
-          throw new AcceptableThriftTableOperationException(tableId.canonicalID(), "", op,
+          throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
       }
       log.info("table {} ({}) locked for {} operation: {}", tableId, Long.toHexString(tid),
@@ -102,27 +102,27 @@ public class Utils {
       return 100;
   }
 
-  public static void unreserveTable(Master env, Table.ID tableId, long tid, boolean writeLock) {
+  public static void unreserveTable(Master env, TableId tableId, long tid, boolean writeLock) {
     getLock(env.getContext(), tableId, tid, writeLock).unlock();
     log.info("table {} ({}) unlocked for ", tableId, Long.toHexString(tid),
         (writeLock ? "write" : "read"));
   }
 
-  public static void unreserveNamespace(Master env, Namespace.ID namespaceId, long id,
+  public static void unreserveNamespace(Master env, NamespaceId namespaceId, long id,
       boolean writeLock) {
     getLock(env.getContext(), namespaceId, id, writeLock).unlock();
     log.info("namespace {} ({}) unlocked for {}", namespaceId, Long.toHexString(id),
         (writeLock ? "write" : "read"));
   }
 
-  public static long reserveNamespace(Master env, Namespace.ID namespaceId, long id,
+  public static long reserveNamespace(Master env, NamespaceId namespaceId, long id,
       boolean writeLock, boolean mustExist, TableOperation op) throws Exception {
     if (getLock(env.getContext(), namespaceId, id, writeLock).tryLock()) {
       if (mustExist) {
         IZooReaderWriter zk = env.getContext().getZooReaderWriter();
         if (!zk.exists(
             env.getContext().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId))
-          throw new AcceptableThriftTableOperationException(namespaceId.canonicalID(), "", op,
+          throw new AcceptableThriftTableOperationException(namespaceId.canonical(), "", op,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
       }
       log.info("namespace {} ({}) locked for {} operation: {}", namespaceId, Long.toHexString(id),
@@ -153,10 +153,11 @@ public class Utils {
         String.format("%016x", tid));
   }
 
-  private static Lock getLock(ServerContext context, AbstractId id, long tid, boolean writeLock) {
+  private static Lock getLock(ServerContext context, AbstractId<?> id, long tid,
+      boolean writeLock) {
     byte[] lockData = String.format("%016x", tid).getBytes(UTF_8);
     ZooQueueLock qlock = new ZooQueueLock(context.getZooReaderWriter(),
-        context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id, false);
+        context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical(), false);
     Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
     if (lock == null) {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
@@ -176,15 +177,15 @@ public class Utils {
     return tableNameLock;
   }
 
-  public static Lock getReadLock(Master env, AbstractId tableId, long tid) {
-    return Utils.getLock(env.getContext(), tableId, tid, false);
+  public static Lock getReadLock(Master env, AbstractId<?> id, long tid) {
+    return Utils.getLock(env.getContext(), id, tid, false);
   }
 
   public static void checkNamespaceDoesNotExist(ServerContext context, String namespace,
-      Namespace.ID namespaceId, TableOperation operation)
+      NamespaceId namespaceId, TableOperation operation)
       throws AcceptableThriftTableOperationException {
 
-    Namespace.ID n = Namespaces.lookupNamespaceId(context, namespace);
+    NamespaceId n = Namespaces.lookupNamespaceId(context, namespace);
 
     if (n != null && !n.equals(namespaceId))
       throw new AcceptableThriftTableOperationException(null, namespace, operation,

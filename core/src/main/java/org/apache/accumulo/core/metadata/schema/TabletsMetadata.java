@@ -35,9 +35,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
-import org.apache.accumulo.core.clientImpl.Table.ID;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -73,7 +72,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private Text endRow;
     private boolean checkConsistency = false;
     private boolean saveKeyValues;
-    private ID tableId;
+    private TableId tableId;
 
     @Override
     public TabletsMetadata build(AccumuloClient client) {
@@ -204,7 +203,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
-    public TableRangeOptions forTable(Table.ID tableId) {
+    public TableRangeOptions forTable(TableId tableId) {
       Preconditions.checkArgument(!tableId.equals(RootTable.ID),
           "Getting tablet metadata for " + RootTable.NAME + " not supported at this time.");
       if (tableId.equals(MetadataTable.ID)) {
@@ -309,7 +308,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      * metadata table ID is passed in then the root table is scanned. Defaults to returning all
      * tablets for the table ID.
      */
-    TableRangeOptions forTable(Table.ID tableId);
+    TableRangeOptions forTable(TableId tableId);
 
     /**
      * Obtain tablet metadata by scanning the metadata table. Defaults to the range

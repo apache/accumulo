@@ -38,9 +38,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.clientImpl.Table;
-import org.apache.accumulo.core.clientImpl.Table.ID;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.data.ServerMutation;
@@ -62,7 +61,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class SortedLogRecoveryTest {
 
-  static final KeyExtent extent = new KeyExtent(Table.ID.of("table"), null, null);
+  static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
   static final Text cf = new Text("cf");
   static final Text cq = new Text("cq");
   static final Value value = new Value("value".getBytes());
@@ -724,8 +723,8 @@ public class SortedLogRecoveryTest {
 
   @Test
   public void testMultipleTablets() throws IOException {
-    KeyExtent e1 = new KeyExtent(ID.of("1"), new Text("m"), null);
-    KeyExtent e2 = new KeyExtent(ID.of("1"), null, new Text("m"));
+    KeyExtent e1 = new KeyExtent(TableId.of("1"), new Text("m"), null);
+    KeyExtent e2 = new KeyExtent(TableId.of("1"), null, new Text("m"));
 
     Mutation m1 = new ServerMutation(new Text("b"));
     m1.put("f1", "q1", "v1");

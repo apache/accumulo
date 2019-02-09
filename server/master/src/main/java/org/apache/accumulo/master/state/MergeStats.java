@@ -24,9 +24,9 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -197,7 +197,7 @@ public class MergeStats {
     if (start == null) {
       start = new Text();
     }
-    Table.ID tableId = extent.getTableId();
+    TableId tableId = extent.getTableId();
     Text first = TabletsSection.getRow(tableId, start);
     Range range = new Range(first, false, null, true);
     scanner.setRange(range.clip(MetadataSchema.TabletsSection.getRange()));

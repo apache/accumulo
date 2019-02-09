@@ -26,13 +26,13 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.Translator;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
@@ -77,7 +77,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     return instance;
   }
 
-  private String getTableName(Table.ID tableId) {
+  private String getTableName(TableId tableId) {
     try {
       return Tables.getTableName(context, tableId);
     } catch (TableNotFoundException e) {
@@ -93,7 +93,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
     return auths;
   }
 
-  private boolean shouldAudit(TCredentials credentials, Table.ID tableId) {
+  private boolean shouldAudit(TCredentials credentials, TableId tableId) {
     return (audit.isInfoEnabled() || audit.isWarnEnabled()) && !tableId.equals(MetadataTable.ID)
         && shouldAudit(credentials);
   }
@@ -152,7 +152,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   @Override
-  public boolean canScan(TCredentials credentials, Table.ID tableId, Namespace.ID namespaceId,
+  public boolean canScan(TCredentials credentials, TableId tableId, NamespaceId namespaceId,
       TRange range, List<TColumn> columns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations)
       throws ThriftSecurityException {
@@ -183,7 +183,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " iterators: %s; iteratorOptions: %s;";
 
   @Override
-  public boolean canScan(TCredentials credentials, Table.ID tableId, Namespace.ID namespaceId,
+  public boolean canScan(TCredentials credentials, TableId tableId, NamespaceId namespaceId,
       Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations)
       throws ThriftSecurityException {
@@ -265,7 +265,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " createTable; targetTable: %s;";
 
   @Override
-  public boolean canCreateTable(TCredentials c, String tableName, Namespace.ID namespaceId)
+  public boolean canCreateTable(TCredentials c, String tableName, NamespaceId namespaceId)
       throws ThriftSecurityException {
     try {
       boolean result = super.canCreateTable(c, tableName, namespaceId);
@@ -281,7 +281,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " deleteTable; targetTable: %s;";
 
   @Override
-  public boolean canDeleteTable(TCredentials c, Table.ID tableId, Namespace.ID namespaceId)
+  public boolean canDeleteTable(TCredentials c, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
     String tableName = getTableName(tableId);
     try {
@@ -298,8 +298,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " renameTable; targetTable: %s; newTableName: %s;";
 
   @Override
-  public boolean canRenameTable(TCredentials c, Table.ID tableId, String oldTableName,
-      String newTableName, Namespace.ID namespaceId) throws ThriftSecurityException {
+  public boolean canRenameTable(TCredentials c, TableId tableId, String oldTableName,
+      String newTableName, NamespaceId namespaceId) throws ThriftSecurityException {
     try {
       boolean result = super.canRenameTable(c, tableId, oldTableName, newTableName, namespaceId);
       audit(c, result, CAN_RENAME_TABLE_AUDIT_TEMPLATE, oldTableName, newTableName);
@@ -314,7 +314,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " splitTable; targetTable: %s; targetNamespace: %s;";
 
   @Override
-  public boolean canSplitTablet(TCredentials credentials, Table.ID table, Namespace.ID namespaceId)
+  public boolean canSplitTablet(TCredentials credentials, TableId table, NamespaceId namespaceId)
       throws ThriftSecurityException {
     try {
       boolean result = super.canSplitTablet(credentials, table, namespaceId);
@@ -346,7 +346,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " flushTable; targetTable: %s; targetNamespace: %s;";
 
   @Override
-  public boolean canFlush(TCredentials c, Table.ID tableId, Namespace.ID namespaceId)
+  public boolean canFlush(TCredentials c, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
     try {
       boolean result = super.canFlush(c, tableId, namespaceId);
@@ -362,7 +362,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " alterTable; targetTable: %s; targetNamespace: %s;";
 
   @Override
-  public boolean canAlterTable(TCredentials c, Table.ID tableId, Namespace.ID namespaceId)
+  public boolean canAlterTable(TCredentials c, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
     try {
       boolean result = super.canAlterTable(c, tableId, namespaceId);
@@ -378,8 +378,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " cloneTable; targetTable: %s; newTableName: %s";
 
   @Override
-  public boolean canCloneTable(TCredentials c, Table.ID tableId, String tableName,
-      Namespace.ID destinationNamespaceId, Namespace.ID sourceNamespaceId)
+  public boolean canCloneTable(TCredentials c, TableId tableId, String tableName,
+      NamespaceId destinationNamespaceId, NamespaceId sourceNamespaceId)
       throws ThriftSecurityException {
     String oldTableName = getTableName(tableId);
     try {
@@ -397,8 +397,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " deleteData; targetTable: %s; startRange: %s; endRange: %s;";
 
   @Override
-  public boolean canDeleteRange(TCredentials c, Table.ID tableId, String tableName, Text startRow,
-      Text endRow, Namespace.ID namespaceId) throws ThriftSecurityException {
+  public boolean canDeleteRange(TCredentials c, TableId tableId, String tableName, Text startRow,
+      Text endRow, NamespaceId namespaceId) throws ThriftSecurityException {
     try {
       boolean result = super.canDeleteRange(c, tableId, tableName, startRow, endRow, namespaceId);
       audit(c, result, CAN_DELETE_RANGE_AUDIT_TEMPLATE, tableName, startRow.toString(),
@@ -415,8 +415,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " bulkImport; targetTable: %s; dataDir: %s; failDir: %s;";
 
   @Override
-  public boolean canBulkImport(TCredentials c, Table.ID tableId, String tableName, String dir,
-      String failDir, Namespace.ID namespaceId) throws ThriftSecurityException {
+  public boolean canBulkImport(TCredentials c, TableId tableId, String tableName, String dir,
+      String failDir, NamespaceId namespaceId) throws ThriftSecurityException {
     try {
       boolean result = super.canBulkImport(c, tableId, tableName, dir, failDir, namespaceId);
       audit(c, result, CAN_BULK_IMPORT_AUDIT_TEMPLATE, tableName, dir, failDir);
@@ -431,7 +431,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " compactTable; targetTable: %s; targetNamespace: %s;";
 
   @Override
-  public boolean canCompact(TCredentials c, Table.ID tableId, Namespace.ID namespaceId)
+  public boolean canCompact(TCredentials c, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
     try {
       boolean result = super.canCompact(c, tableId, namespaceId);
@@ -525,8 +525,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " grantTable; targetUser: %s; targetTable: %s; targetNamespace: %s;";
 
   @Override
-  public boolean canGrantTable(TCredentials c, String user, Table.ID table,
-      Namespace.ID namespaceId) throws ThriftSecurityException {
+  public boolean canGrantTable(TCredentials c, String user, TableId table, NamespaceId namespaceId)
+      throws ThriftSecurityException {
     try {
       boolean result = super.canGrantTable(c, user, table, namespaceId);
       audit(c, result, CAN_GRANT_TABLE_AUDIT_TEMPLATE, user, table, namespaceId);
@@ -557,8 +557,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " revokeTable; targetUser: %s; targetTable %s; targetNamespace: %s;";
 
   @Override
-  public boolean canRevokeTable(TCredentials c, String user, Table.ID table,
-      Namespace.ID namespaceId) throws ThriftSecurityException {
+  public boolean canRevokeTable(TCredentials c, String user, TableId table, NamespaceId namespaceId)
+      throws ThriftSecurityException {
     try {
       boolean result = super.canRevokeTable(c, user, table, namespaceId);
       audit(c, result, CAN_REVOKE_TABLE_AUDIT_TEMPLATE, user, table, namespaceId);
@@ -574,7 +574,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
 
   @Override
   public boolean canImport(TCredentials credentials, String tableName, String importDir,
-      Namespace.ID namespaceId) throws ThriftSecurityException {
+      NamespaceId namespaceId) throws ThriftSecurityException {
 
     try {
       boolean result = super.canImport(credentials, tableName, importDir, namespaceId);
@@ -590,8 +590,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " targetTable: %s; dataDir: %s;";
 
   @Override
-  public boolean canExport(TCredentials credentials, Table.ID tableId, String tableName,
-      String exportDir, Namespace.ID namespaceId) throws ThriftSecurityException {
+  public boolean canExport(TCredentials credentials, TableId tableId, String tableName,
+      String exportDir, NamespaceId namespaceId) throws ThriftSecurityException {
 
     try {
       boolean result = super.canExport(credentials, tableId, tableName, exportDir, namespaceId);
@@ -635,8 +635,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " grantTablePermission; permission: %s; targetTable: %s; targetUser: %s;";
 
   @Override
-  public void grantTablePermission(TCredentials credentials, String user, Table.ID tableId,
-      TablePermission permission, Namespace.ID namespaceId) throws ThriftSecurityException {
+  public void grantTablePermission(TCredentials credentials, String user, TableId tableId,
+      TablePermission permission, NamespaceId namespaceId) throws ThriftSecurityException {
     String tableName = getTableName(tableId);
     try {
       super.grantTablePermission(credentials, user, tableId, permission, namespaceId);
@@ -667,8 +667,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " revokeTablePermission; permission: %s; targetTable: %s; targetUser: %s;";
 
   @Override
-  public void revokeTablePermission(TCredentials credentials, String user, Table.ID tableId,
-      TablePermission permission, Namespace.ID namespaceId) throws ThriftSecurityException {
+  public void revokeTablePermission(TCredentials credentials, String user, TableId tableId,
+      TablePermission permission, NamespaceId namespaceId) throws ThriftSecurityException {
     String tableName = getTableName(tableId);
     try {
       super.revokeTablePermission(credentials, user, tableId, permission, namespaceId);
@@ -699,8 +699,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " %s; targetTable: %s;";
 
   @Override
-  public boolean canOnlineOfflineTable(TCredentials credentials, Table.ID tableId, FateOperation op,
-      Namespace.ID namespaceId) throws ThriftSecurityException {
+  public boolean canOnlineOfflineTable(TCredentials credentials, TableId tableId, FateOperation op,
+      NamespaceId namespaceId) throws ThriftSecurityException {
     String tableName = getTableName(tableId);
     String operation = null;
     if (op == FateOperation.TABLE_ONLINE)
@@ -723,7 +723,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       + " mergeTable; targetTable: %s; targetNamespace: %s;";
 
   @Override
-  public boolean canMerge(TCredentials c, Table.ID tableId, Namespace.ID namespaceId)
+  public boolean canMerge(TCredentials c, TableId tableId, NamespaceId namespaceId)
       throws ThriftSecurityException {
     try {
       boolean result = super.canMerge(c, tableId, namespaceId);

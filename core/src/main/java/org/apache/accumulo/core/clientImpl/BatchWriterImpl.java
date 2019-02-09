@@ -22,13 +22,14 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 
 public class BatchWriterImpl implements BatchWriter {
 
-  private final Table.ID tableId;
+  private final TableId tableId;
   private final TabletServerBatchWriter bw;
 
-  public BatchWriterImpl(ClientContext context, Table.ID tableId, BatchWriterConfig config) {
+  public BatchWriterImpl(ClientContext context, TableId tableId, BatchWriterConfig config) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
     if (config == null)

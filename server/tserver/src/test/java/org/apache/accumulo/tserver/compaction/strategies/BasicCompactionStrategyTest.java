@@ -28,10 +28,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
@@ -74,7 +74,7 @@ public class BasicCompactionStrategyTest {
   public void testDefaultCompaction() {
     ttcs.init(opts);
     conf = DefaultConfiguration.getInstance();
-    KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
+    KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
     mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf,
         InMemoryMapTest.getServerContext());
     Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "10M", "f2", "10M", "f3", "10M", "f4",
@@ -94,7 +94,7 @@ public class BasicCompactionStrategyTest {
   public void testLargeCompaction() {
     ttcs.init(opts);
     conf = DefaultConfiguration.getInstance();
-    KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
+    KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
     mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf, getServerContext());
     Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "2G", "f2", "2G", "f3", "2G", "f4",
         "2G");
@@ -136,7 +136,7 @@ public class BasicCompactionStrategyTest {
   public void testFileSubsetCompaction() {
     ttcs.init(opts);
     conf = DefaultConfiguration.getInstance();
-    KeyExtent ke = new KeyExtent(Table.ID.of("0"), null, null);
+    KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
     mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf, getServerContext());
     Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "1G", "f2", "10M", "f3", "10M", "f4",
         "10M", "f5", "10M", "f6", "10M", "f7", "10M");

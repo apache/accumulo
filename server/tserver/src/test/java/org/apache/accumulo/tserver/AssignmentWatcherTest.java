@@ -19,9 +19,9 @@ package org.apache.accumulo.tserver;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.TabletServerResourceManager.AssignmentWatcher;
@@ -50,7 +50,7 @@ public class AssignmentWatcherTest {
     RunnableStartedAt run = new RunnableStartedAt(task, System.currentTimeMillis());
     EasyMock.expect(conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING)).andReturn(0L);
 
-    assignments.put(new KeyExtent(Table.ID.of("1"), null, null), run);
+    assignments.put(new KeyExtent(TableId.of("1"), null, null), run);
 
     EasyMock.expect(task.getException()).andReturn(new Exception("Assignment warning happened"));
     EasyMock.expect(timer.schedule(watcher, 5000L)).andReturn(null);

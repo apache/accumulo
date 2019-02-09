@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -47,6 +46,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Processor;
@@ -291,7 +291,7 @@ public class SimpleGarbageCollector implements Iface {
     }
 
     @Override
-    public Set<Table.ID> getTableIDs() {
+    public Set<TableId> getTableIDs() {
       return Tables.getIdToNameMap(context).keySet();
     }
 
@@ -397,7 +397,7 @@ public class SimpleGarbageCollector implements Iface {
                 }
                 String parts[] = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
                 if (parts.length > 2) {
-                  Table.ID tableId = Table.ID.of(parts[1]);
+                  TableId tableId = TableId.of(parts[1]);
                   String tabletDir = parts[2];
                   context.getTableManager().updateTableStateCache(tableId);
                   TableState tableState = context.getTableManager().getTableState(tableId);
@@ -445,7 +445,7 @@ public class SimpleGarbageCollector implements Iface {
     }
 
     @Override
-    public void deleteTableDirIfEmpty(Table.ID tableID) throws IOException {
+    public void deleteTableDirIfEmpty(TableId tableID) throws IOException {
       // if dir exist and is empty, then empty list is returned...
       // hadoop 2.0 will throw an exception if the file does not exist
       for (String dir : ServerConstants.getTablesDirs(context)) {

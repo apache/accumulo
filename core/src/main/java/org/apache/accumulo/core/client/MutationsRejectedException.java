@@ -26,9 +26,9 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 
 /**
@@ -106,7 +106,7 @@ public class MutationsRejectedException extends AccumuloException {
     for (Entry<TabletId,Set<SecurityErrorCode>> entry : hashMap.entrySet()) {
       TabletId tabletId = entry.getKey();
       String tableInfo = Tables.getPrintableTableInfoFromId(context,
-          Table.ID.of(tabletId.getTableId().toString()));
+          TableId.of(tabletId.getTableId().toString()));
 
       if (!result.containsKey(tableInfo)) {
         result.put(tableInfo, new HashSet<>());

@@ -35,9 +35,9 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Mapping;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.fs.Path;
 
@@ -114,7 +114,7 @@ public class BulkSerialize {
   /**
    * Read Json array of Bulk.Mapping into LoadMappingIterator
    */
-  public static LoadMappingIterator readLoadMapping(String bulkDir, Table.ID tableId, Input input)
+  public static LoadMappingIterator readLoadMapping(String bulkDir, TableId tableId, Input input)
       throws IOException {
     final Path lmFile = new Path(bulkDir, Constants.BULK_LOAD_MAPPING);
     return new LoadMappingIterator(tableId, input.open(lmFile));
@@ -154,7 +154,7 @@ public class BulkSerialize {
    * because the load mapping file was written with the original file names before they were moved
    * by BulkImportMove
    */
-  public static LoadMappingIterator getUpdatedLoadMapping(String bulkDir, Table.ID tableId,
+  public static LoadMappingIterator getUpdatedLoadMapping(String bulkDir, TableId tableId,
       Input input) throws IOException {
     Map<String,String> renames = readRenameMap(bulkDir, input);
     LoadMappingIterator lmi = readLoadMapping(bulkDir, tableId, input);

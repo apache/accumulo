@@ -25,6 +25,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
@@ -38,12 +39,12 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   private Authorizations authorizations;
   private Text tableId;
 
-  public OfflineScanner(ClientContext context, Table.ID tableId, Authorizations authorizations) {
+  public OfflineScanner(ClientContext context, TableId tableId, Authorizations authorizations) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
     checkArgument(authorizations != null, "authorizations is null");
     this.context = context;
-    this.tableId = new Text(tableId.getUtf8());
+    this.tableId = new Text(tableId.canonical());
     this.range = new Range((Key) null, (Key) null);
     this.authorizations = authorizations;
     this.batchSize = Constants.SCAN_BATCH_SIZE;

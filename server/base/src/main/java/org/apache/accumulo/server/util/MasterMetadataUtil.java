@@ -33,11 +33,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -127,12 +127,12 @@ public class MasterMetadataUtil {
 
     Text metadataPrevEndRow = KeyExtent.decodePrevEndRow(prevEndRowIBW);
 
-    Table.ID tableId = (new KeyExtent(metadataEntry, (Text) null)).getTableId();
+    TableId tableId = (new KeyExtent(metadataEntry, (Text) null)).getTableId();
 
     return fixSplit(context, tableId, metadataEntry, metadataPrevEndRow, oper, splitRatio, lock);
   }
 
-  private static KeyExtent fixSplit(ServerContext context, Table.ID tableId, Text metadataEntry,
+  private static KeyExtent fixSplit(ServerContext context, TableId tableId, Text metadataEntry,
       Text metadataPrevEndRow, Value oper, double splitRatio, ZooLock lock)
       throws AccumuloException {
     if (metadataPrevEndRow == null)

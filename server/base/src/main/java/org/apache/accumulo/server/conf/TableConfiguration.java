@@ -28,10 +28,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.ObservableConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -57,12 +57,11 @@ public class TableConfiguration extends ObservableConfiguration {
   private final NamespaceConfiguration parent;
   private ZooCacheFactory zcf = new ZooCacheFactory();
 
-  private final Table.ID tableId;
+  private final TableId tableId;
 
   private EnumMap<IteratorScope,AtomicReference<ParsedIteratorConfig>> iteratorConfig;
 
-  public TableConfiguration(ServerContext context, Table.ID tableId,
-      NamespaceConfiguration parent) {
+  public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
     this.context = requireNonNull(context);
     this.tableId = requireNonNull(tableId);
     this.parent = requireNonNull(parent);
@@ -80,7 +79,7 @@ public class TableConfiguration extends ObservableConfiguration {
   private synchronized ZooCachePropertyAccessor getPropCacheAccessor() {
     if (propCacheAccessor == null) {
       synchronized (propCaches) {
-        PropCacheKey key = new PropCacheKey(context.getInstanceID(), tableId.canonicalID());
+        PropCacheKey key = new PropCacheKey(context.getInstanceID(), tableId.canonical());
         ZooCache propCache = propCaches.get(key);
         if (propCache == null) {
           propCache = zcf.getZooCache(context.getZooKeepers(),
@@ -128,7 +127,7 @@ public class TableConfiguration extends ObservableConfiguration {
     getPropCacheAccessor().getProperties(props, getPath(), filter, parent, null);
   }
 
-  public Table.ID getTableId() {
+  public TableId getTableId() {
     return tableId;
   }
 

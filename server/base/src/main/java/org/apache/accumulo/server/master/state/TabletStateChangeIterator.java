@@ -29,8 +29,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -58,8 +58,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
   private static final Logger log = LoggerFactory.getLogger(TabletStateChangeIterator.class);
 
   private Set<TServerInstance> current;
-  private Set<Table.ID> onlineTables;
-  private Map<Table.ID,MergeInfo> merges;
+  private Set<TableId> onlineTables;
+  private Map<TableId,MergeInfo> merges;
   private boolean debug = false;
   private Set<KeyExtent> migrations;
   private MasterState masterState = MasterState.NORMAL;
@@ -105,12 +105,12 @@ public class TabletStateChangeIterator extends SkippingIterator {
     }
   }
 
-  private Set<Table.ID> parseTableIDs(String tableIDs) {
+  private Set<TableId> parseTableIDs(String tableIDs) {
     if (tableIDs == null)
       return null;
-    Set<Table.ID> result = new HashSet<>();
+    Set<TableId> result = new HashSet<>();
     for (String tableID : tableIDs.split(","))
-      result.add(Table.ID.of(tableID));
+      result.add(TableId.of(tableID));
     return result;
   }
 
@@ -132,11 +132,11 @@ public class TabletStateChangeIterator extends SkippingIterator {
     return result;
   }
 
-  private Map<Table.ID,MergeInfo> parseMerges(String merges) {
+  private Map<TableId,MergeInfo> parseMerges(String merges) {
     if (merges == null)
       return null;
     try {
-      Map<Table.ID,MergeInfo> result = new HashMap<>();
+      Map<TableId,MergeInfo> result = new HashMap<>();
       DataInputBuffer buffer = new DataInputBuffer();
       byte[] data = Base64.getDecoder().decode(merges);
       buffer.reset(data, data.length);
@@ -225,7 +225,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     }
   }
 
-  public static void setOnlineTables(IteratorSetting cfg, Set<Table.ID> onlineTables) {
+  public static void setOnlineTables(IteratorSetting cfg, Set<TableId> onlineTables) {
     if (onlineTables != null)
       cfg.addOption(TABLES_OPTION, Joiner.on(",").join(onlineTables));
   }

@@ -333,7 +333,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void deleteTables() throws Exception {
     try (AccumuloClient c = createClient()) {
       for (String table : c.tableOperations().list()) {
-        if (!table.startsWith(Namespace.ACCUMULO + ".") && !table.equals("trace"))
+        if (!table.startsWith(Namespace.ACCUMULO.name() + ".") && !table.equals("trace"))
           try {
             c.tableOperations().delete(table);
           } catch (TableNotFoundException e) {
@@ -1707,7 +1707,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void namespaces() throws Exception {
     ts.exec("namespaces", true, "\"\"", true); // default namespace, displayed as quoted empty
                                                // string
-    ts.exec("namespaces", true, Namespace.ACCUMULO, true);
+    ts.exec("namespaces", true, Namespace.ACCUMULO.name(), true);
     ts.exec("createnamespace thing1", true);
     String namespaces = ts.exec("namespaces");
     assertTrue(namespaces.contains("thing1"));

@@ -48,11 +48,11 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -798,7 +798,7 @@ public class InputConfigurator extends ConfiguratorBase {
     return null;
   }
 
-  public static Map<String,Map<KeyExtent,List<Range>>> binOffline(Table.ID tableId,
+  public static Map<String,Map<KeyExtent,List<Range>>> binOffline(TableId tableId,
       List<Range> ranges, ClientContext context) throws AccumuloException, TableNotFoundException {
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();

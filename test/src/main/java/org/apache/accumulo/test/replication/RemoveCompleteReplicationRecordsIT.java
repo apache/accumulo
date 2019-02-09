@@ -29,10 +29,10 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -82,8 +82,8 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     ReplicationTable.setOnline(client);
   }
 
-  private Table.ID createTableId(int i) {
-    return Table.ID.of(Integer.toString(i));
+  private TableId createTableId(int i) {
+    return TableId.of(Integer.toString(i));
   }
 
   @Test
@@ -172,7 +172,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     // Add two records that we can delete
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     Mutation m = new Mutation(fileToRemove);
-    StatusSection.add(m, Table.ID.of("5"),
+    StatusSection.add(m, TableId.of("5"),
         ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
     replBw.addMutation(m);
 
@@ -180,7 +180,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
     fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     m = new Mutation(fileToRemove);
-    StatusSection.add(m, Table.ID.of("6"),
+    StatusSection.add(m, TableId.of("6"),
         ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(false).build()));
     replBw.addMutation(m);
 
@@ -239,15 +239,15 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     filesToRemove.add(fileToRemove);
     Mutation m = new Mutation(fileToRemove);
-    ReplicationTarget target = new ReplicationTarget("peer1", "5", Table.ID.of("5"));
+    ReplicationTarget target = new ReplicationTarget("peer1", "5", TableId.of("5"));
     Value value = ProtobufUtil.toValue(
         builder.setBegin(10000).setEnd(10000).setClosed(true).setCreatedTime(time).build());
-    StatusSection.add(m, Table.ID.of("5"), value);
+    StatusSection.add(m, TableId.of("5"), value);
     WorkSection.add(m, target.toText(), value);
     replBw.addMutation(m);
 
     m = OrderSection.createMutation(fileToRemove, time);
-    OrderSection.add(m, Table.ID.of("5"), value);
+    OrderSection.add(m, TableId.of("5"), value);
     replBw.addMutation(m);
     time++;
 
@@ -258,13 +258,13 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     m = new Mutation(fileToRemove);
     value = ProtobufUtil.toValue(
         builder.setBegin(10000).setEnd(10000).setClosed(true).setCreatedTime(time).build());
-    target = new ReplicationTarget("peer1", "6", Table.ID.of("6"));
-    StatusSection.add(m, Table.ID.of("6"), value);
+    target = new ReplicationTarget("peer1", "6", TableId.of("6"));
+    StatusSection.add(m, TableId.of("6"), value);
     WorkSection.add(m, target.toText(), value);
     replBw.addMutation(m);
 
     m = OrderSection.createMutation(fileToRemove, time);
-    OrderSection.add(m, Table.ID.of("6"), value);
+    OrderSection.add(m, TableId.of("6"), value);
     replBw.addMutation(m);
     time++;
 
@@ -322,14 +322,14 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     // Add two records that we can delete
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     Mutation m = new Mutation(fileToRemove);
-    ReplicationTarget target = new ReplicationTarget("peer1", "5", Table.ID.of("5"));
+    ReplicationTarget target = new ReplicationTarget("peer1", "5", TableId.of("5"));
     Value value = ProtobufUtil
         .toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build());
-    StatusSection.add(m, Table.ID.of("5"), value);
+    StatusSection.add(m, TableId.of("5"), value);
     WorkSection.add(m, target.toText(), value);
-    target = new ReplicationTarget("peer2", "5", Table.ID.of("5"));
+    target = new ReplicationTarget("peer2", "5", TableId.of("5"));
     WorkSection.add(m, target.toText(), value);
-    target = new ReplicationTarget("peer3", "5", Table.ID.of("5"));
+    target = new ReplicationTarget("peer3", "5", TableId.of("5"));
     WorkSection.add(m, target.toText(), ProtobufUtil.toValue(builder.setClosed(false).build()));
     replBw.addMutation(m);
 

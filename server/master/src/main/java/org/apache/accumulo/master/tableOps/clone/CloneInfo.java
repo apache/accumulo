@@ -20,18 +20,18 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 
 class CloneInfo implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  Table.ID srcTableId;
+  TableId srcTableId;
   String tableName;
-  Table.ID tableId;
-  Namespace.ID namespaceId;
-  Namespace.ID srcNamespaceId;
+  TableId tableId;
+  NamespaceId namespaceId;
+  NamespaceId srcNamespaceId;
   Map<String,String> propertiesToSet;
   Set<String> propertiesToExclude;
 

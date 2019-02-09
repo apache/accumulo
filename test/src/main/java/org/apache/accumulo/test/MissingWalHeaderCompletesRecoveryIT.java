@@ -28,9 +28,9 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -133,7 +133,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
-      Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull("Table ID was null", tableId);
 
       LogEntry logEntry = new LogEntry(new KeyExtent(tableId, null, null), 0, "127.0.0.1:12345",
@@ -193,7 +193,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
-      Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull("Table ID was null", tableId);
 
       LogEntry logEntry = new LogEntry(null, 0, "127.0.0.1:12345",

@@ -47,6 +47,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
@@ -78,7 +79,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchReaderIterator.class);
 
   private final ClientContext context;
-  private final Table.ID tableId;
+  private final TableId tableId;
   private Authorizations authorizations = Authorizations.EMPTY;
   private final int numThreads;
   private final ExecutorService queryThreadPool;
@@ -104,7 +105,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     void receive(List<Entry<Key,Value>> entries);
   }
 
-  public TabletServerBatchReaderIterator(ClientContext context, Table.ID tableId,
+  public TabletServerBatchReaderIterator(ClientContext context, TableId tableId,
       Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
       ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout) {
 
@@ -242,7 +243,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         // need to always do the check when failures occur
         if (failures.size() >= lastFailureSize)
           if (!Tables.exists(context, tableId))
-            throw new TableDeletedException(tableId.canonicalID());
+            throw new TableDeletedException(tableId.canonical());
           else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
             throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
@@ -380,7 +381,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         Tables.clearCache(context);
         if (!Tables.exists(context, tableId))
-          fatalException = new TableDeletedException(tableId.canonicalID());
+          fatalException = new TableDeletedException(tableId.canonical());
         else
           fatalException = e;
       } catch (SampleNotPresentException e) {
@@ -763,7 +764,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       log.debug("Server : " + server + " msg : " + e.getMessage(), e);
       String tableInfo = "?";
       if (e.getExtent() != null) {
-        Table.ID tableId = new KeyExtent(e.getExtent()).getTableId();
+        TableId tableId = new KeyExtent(e.getExtent()).getTableId();
         tableInfo = Tables.getPrintableTableInfoFromId(context, tableId);
       }
       String message = "Table " + tableInfo + " does not have sampling configured or built";

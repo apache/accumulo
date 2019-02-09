@@ -31,10 +31,10 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -81,11 +81,11 @@ public class TableLoadBalancerTest {
 
   static SortedMap<TServerInstance,TabletServerStatus> state;
 
-  static List<TabletStats> generateFakeTablets(TServerInstance tserver, Table.ID tableId) {
+  static List<TabletStats> generateFakeTablets(TServerInstance tserver, TableId tableId) {
     List<TabletStats> result = new ArrayList<>();
     TabletServerStatus tableInfo = state.get(tserver);
     // generate some fake tablets
-    for (int i = 0; i < tableInfo.tableMap.get(tableId.canonicalID()).onlineTablets; i++) {
+    for (int i = 0; i < tableInfo.tableMap.get(tableId.canonical()).onlineTablets; i++) {
       TabletStats stats = new TabletStats();
       stats.extent = new KeyExtent(tableId, new Text(tserver.host() + String.format("%03d", i + 1)),
           new Text(tserver.host() + String.format("%03d", i))).toThrift();
@@ -97,7 +97,7 @@ public class TableLoadBalancerTest {
   static class DefaultLoadBalancer
       extends org.apache.accumulo.server.master.balancer.DefaultLoadBalancer {
 
-    public DefaultLoadBalancer(Table.ID table) {
+    public DefaultLoadBalancer(TableId table) {
       super(table);
     }
 
@@ -105,7 +105,7 @@ public class TableLoadBalancerTest {
     public void init(ServerContext context) {}
 
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId tableId) {
       return generateFakeTablets(tserver, tableId);
     }
   }
@@ -115,13 +115,13 @@ public class TableLoadBalancerTest {
 
     // use our new classname to test class loading
     @Override
-    protected String getLoadBalancerClassNameForTable(Table.ID table) {
+    protected String getLoadBalancerClassNameForTable(TableId table) {
       return DefaultLoadBalancer.class.getName();
     }
 
     // we don't have real tablet servers to ask: invent some online tablets
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId tableId) {
       return generateFakeTablets(tserver, tableId);
     }
 
@@ -153,7 +153,7 @@ public class TableLoadBalancerTest {
     ServerConfigurationFactory confFactory = new ServerConfigurationFactory(context,
         new SiteConfiguration()) {
       @Override
-      public TableConfiguration getTableConfiguration(Table.ID tableId) {
+      public TableConfiguration getTableConfiguration(TableId tableId) {
         // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration
         // constructor
         NamespaceConfiguration dummyConf = new NamespaceConfiguration(null, context, null);
@@ -189,14 +189,14 @@ public class TableLoadBalancerTest {
     tls.init(context2);
     tls.balance(state, migrations, migrationsOut);
     int count = 0;
-    Map<Table.ID,Integer> movedByTable = new HashMap<>();
-    movedByTable.put(Table.ID.of(t1Id), 0);
-    movedByTable.put(Table.ID.of(t2Id), 0);
-    movedByTable.put(Table.ID.of(t3Id), 0);
+    Map<TableId,Integer> movedByTable = new HashMap<>();
+    movedByTable.put(TableId.of(t1Id), 0);
+    movedByTable.put(TableId.of(t2Id), 0);
+    movedByTable.put(TableId.of(t3Id), 0);
     for (TabletMigration migration : migrationsOut) {
       if (migration.oldServer.equals(svr))
         count++;
-      Table.ID key = migration.tablet.getTableId();
+      TableId key = migration.tablet.getTableId();
       movedByTable.put(key, movedByTable.get(key) + 1);
     }
     assertEquals(15, count);

@@ -19,7 +19,7 @@ package org.apache.accumulo.core.replication;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -29,18 +29,18 @@ public class ReplicationTargetTest {
 
   @Test
   public void properEquality() {
-    ReplicationTarget expected1 = new ReplicationTarget("foo", "bar", Table.ID.of("1"));
+    ReplicationTarget expected1 = new ReplicationTarget("foo", "bar", TableId.of("1"));
 
-    assertEquals(expected1, new ReplicationTarget("foo", "bar", Table.ID.of("1")));
-    assertNotEquals(expected1, new ReplicationTarget("foo", "foo", Table.ID.of("1")));
-    assertNotEquals(expected1, new ReplicationTarget("bar", "bar", Table.ID.of("1")));
-    assertNotEquals(expected1, new ReplicationTarget(null, "bar", Table.ID.of("1")));
-    assertNotEquals(expected1, new ReplicationTarget("foo", null, Table.ID.of("1")));
+    assertEquals(expected1, new ReplicationTarget("foo", "bar", TableId.of("1")));
+    assertNotEquals(expected1, new ReplicationTarget("foo", "foo", TableId.of("1")));
+    assertNotEquals(expected1, new ReplicationTarget("bar", "bar", TableId.of("1")));
+    assertNotEquals(expected1, new ReplicationTarget(null, "bar", TableId.of("1")));
+    assertNotEquals(expected1, new ReplicationTarget("foo", null, TableId.of("1")));
   }
 
   @Test
   public void writableOut() throws Exception {
-    ReplicationTarget expected = new ReplicationTarget("foo", "bar", Table.ID.of("1"));
+    ReplicationTarget expected = new ReplicationTarget("foo", "bar", TableId.of("1"));
     DataOutputBuffer buffer = new DataOutputBuffer();
     expected.write(buffer);
 
@@ -64,7 +64,7 @@ public class ReplicationTargetTest {
 
   @Test
   public void staticFromTextHelper() throws Exception {
-    ReplicationTarget expected = new ReplicationTarget("foo", "bar", Table.ID.of("1"));
+    ReplicationTarget expected = new ReplicationTarget("foo", "bar", TableId.of("1"));
     DataOutputBuffer buffer = new DataOutputBuffer();
     expected.write(buffer);
     Text t = new Text();
@@ -75,7 +75,7 @@ public class ReplicationTargetTest {
 
   @Test
   public void staticToTextHelper() throws Exception {
-    ReplicationTarget expected = new ReplicationTarget("foo", "bar", Table.ID.of("1"));
+    ReplicationTarget expected = new ReplicationTarget("foo", "bar", TableId.of("1"));
     DataOutputBuffer buffer = new DataOutputBuffer();
     expected.write(buffer);
     Text t = new Text();
@@ -86,7 +86,7 @@ public class ReplicationTargetTest {
 
   @Test
   public void staticFromStringHelper() throws Exception {
-    ReplicationTarget expected = new ReplicationTarget("foo", "bar", Table.ID.of("1"));
+    ReplicationTarget expected = new ReplicationTarget("foo", "bar", TableId.of("1"));
     DataOutputBuffer buffer = new DataOutputBuffer();
     expected.write(buffer);
     Text t = new Text();

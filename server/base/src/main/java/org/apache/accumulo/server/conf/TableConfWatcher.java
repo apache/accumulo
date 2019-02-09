@@ -17,7 +17,7 @@
 package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -72,7 +72,7 @@ class TableConfWatcher implements Watcher {
         return;
       }
     }
-    Table.ID tableId = Table.ID.of(tableIdString);
+    TableId tableId = TableId.of(tableIdString);
 
     switch (event.getType()) {
       case NodeDataChanged:

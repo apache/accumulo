@@ -59,7 +59,7 @@ public class SingleScanSession extends ScanSession {
 
   @Override
   public String getTableId() {
-    return extent.getTableId().canonicalID();
+    return extent.getTableId().canonical();
   }
 
   @Override

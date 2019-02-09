@@ -30,11 +30,11 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Translator;
 import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ScanState;
@@ -294,8 +294,8 @@ public class SessionManager {
     }
   }
 
-  public Map<Table.ID,MapCounter<ScanRunState>> getActiveScansPerTable() {
-    Map<Table.ID,MapCounter<ScanRunState>> counts = new HashMap<>();
+  public Map<TableId,MapCounter<ScanRunState>> getActiveScansPerTable() {
+    Map<TableId,MapCounter<ScanRunState>> counts = new HashMap<>();
 
     Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
@@ -313,7 +313,7 @@ public class SessionManager {
       Session session = entry.getValue();
       @SuppressWarnings("rawtypes")
       ScanTask nbt = null;
-      Table.ID tableID = null;
+      TableId tableID = null;
 
       if (session instanceof SingleScanSession) {
         SingleScanSession ss = (SingleScanSession) session;
@@ -386,7 +386,7 @@ public class SessionManager {
         }
 
         ActiveScan activeScan = new ActiveScan(ss.client, ss.getUser(),
-            ss.extent.getTableId().canonicalID(), ct - ss.startTime, ct - ss.lastAccessTime,
+            ss.extent.getTableId().canonical(), ct - ss.startTime, ct - ss.lastAccessTime,
             ScanType.SINGLE, state, ss.extent.toThrift(),
             Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio,
             ss.auths.getAuthorizationsBB(), ss.context);
@@ -420,7 +420,7 @@ public class SessionManager {
         }
 
         activeScans.add(new ActiveScan(mss.client, mss.getUser(),
-            mss.threadPoolExtent.getTableId().canonicalID(), ct - mss.startTime,
+            mss.threadPoolExtent.getTableId().canonical(), ct - mss.startTime,
             ct - mss.lastAccessTime, ScanType.BATCH, state, mss.threadPoolExtent.toThrift(),
             Translator.translate(mss.columnSet, Translators.CT), mss.ssiList, mss.ssio,
             mss.auths.getAuthorizationsBB(), mss.context));

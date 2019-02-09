@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -116,7 +117,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
         client -> client.drainReplicationTable(tinfo, rpcCreds, tableName, wals));
   }
 
-  protected Table.ID getTableId(AccumuloClient client, String tableName)
+  protected TableId getTableId(AccumuloClient client, String tableName)
       throws TableNotFoundException {
     TableOperations tops = client.tableOperations();
 
@@ -132,7 +133,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
       }
     }
 
-    return Table.ID.of(tableId);
+    return TableId.of(tableId);
   }
 
   @Override
@@ -141,7 +142,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
 
     log.debug("Collecting referenced files for replication of table {}", tableName);
 
-    Table.ID tableId = getTableId(context, tableName);
+    TableId tableId = getTableId(context, tableName);
 
     log.debug("Found id of {} for name {}", tableId, tableName);
 

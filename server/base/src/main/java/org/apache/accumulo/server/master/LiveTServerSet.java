@@ -27,8 +27,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -162,13 +162,13 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void flush(ZooLock lock, Table.ID tableId, byte[] startRow, byte[] endRow)
+    public void flush(ZooLock lock, TableId tableId, byte[] startRow, byte[] endRow)
         throws TException {
       TabletClientService.Client client = ThriftUtil
           .getClient(new TabletClientService.Client.Factory(), address, context);
       try {
-        client.flush(Tracer.traceInfo(), context.rpcCreds(), lockString(lock),
-            tableId.canonicalID(), startRow == null ? null : ByteBuffer.wrap(startRow),
+        client.flush(Tracer.traceInfo(), context.rpcCreds(), lockString(lock), tableId.canonical(),
+            startRow == null ? null : ByteBuffer.wrap(startRow),
             endRow == null ? null : ByteBuffer.wrap(endRow));
       } finally {
         ThriftUtil.returnClient(client);

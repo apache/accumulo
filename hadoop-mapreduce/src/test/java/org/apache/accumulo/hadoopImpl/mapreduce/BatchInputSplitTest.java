@@ -33,9 +33,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.hadoop.io.Text;
@@ -46,7 +46,7 @@ public class BatchInputSplitTest {
   @Test
   public void testSimpleWritable() throws IOException {
     List<Range> ranges = Collections.singletonList(new Range(new Key("a"), new Key("b")));
-    BatchInputSplit split = new BatchInputSplit("table", Table.ID.of("1"), ranges,
+    BatchInputSplit split = new BatchInputSplit("table", TableId.of("1"), ranges,
         new String[] {"localhost"});
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -68,7 +68,7 @@ public class BatchInputSplitTest {
   @Test
   public void testAllFieldsWritable() throws IOException {
     List<Range> ranges = Collections.singletonList(new Range(new Key("a"), new Key("b")));
-    BatchInputSplit split = new BatchInputSplit("table", Table.ID.of("1"), ranges,
+    BatchInputSplit split = new BatchInputSplit("table", TableId.of("1"), ranges,
         new String[] {"localhost"});
 
     Set<IteratorSetting.Column> fetchedColumns = new HashSet<>();

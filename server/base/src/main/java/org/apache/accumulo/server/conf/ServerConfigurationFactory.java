@@ -20,13 +20,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
 
@@ -35,10 +35,10 @@ import org.apache.accumulo.server.ServerContext;
  */
 public class ServerConfigurationFactory extends ServerConfiguration {
 
-  private static final Map<String,Map<Table.ID,TableConfiguration>> tableConfigs = new HashMap<>(1);
-  private static final Map<String,Map<Namespace.ID,NamespaceConfiguration>> namespaceConfigs = new HashMap<>(
+  private static final Map<String,Map<TableId,TableConfiguration>> tableConfigs = new HashMap<>(1);
+  private static final Map<String,Map<NamespaceId,NamespaceConfiguration>> namespaceConfigs = new HashMap<>(
       1);
-  private static final Map<String,Map<Table.ID,NamespaceConfiguration>> tableParentConfigs = new HashMap<>(
+  private static final Map<String,Map<TableId,NamespaceConfiguration>> tableParentConfigs = new HashMap<>(
       1);
 
   private static void addInstanceToCaches(String iid) {
@@ -53,13 +53,13 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     }
   }
 
-  static boolean removeCachedTableConfiguration(String instanceId, Table.ID tableId) {
+  static boolean removeCachedTableConfiguration(String instanceId, TableId tableId) {
     synchronized (tableConfigs) {
       return tableConfigs.get(instanceId).remove(tableId) != null;
     }
   }
 
-  static boolean removeCachedNamespaceConfiguration(String instanceId, Namespace.ID namespaceId) {
+  static boolean removeCachedNamespaceConfiguration(String instanceId, NamespaceId namespaceId) {
     synchronized (namespaceConfigs) {
       return namespaceConfigs.get(instanceId).remove(namespaceId) != null;
     }
@@ -79,7 +79,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   static void expireAllTableObservers() {
     synchronized (tableConfigs) {
-      for (Map<Table.ID,TableConfiguration> instanceMap : tableConfigs.values()) {
+      for (Map<TableId,TableConfiguration> instanceMap : tableConfigs.values()) {
         for (TableConfiguration c : instanceMap.values()) {
           c.expireAllObservers();
         }
@@ -131,7 +131,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   }
 
   @Override
-  public TableConfiguration getTableConfiguration(Table.ID tableId) {
+  public TableConfiguration getTableConfiguration(TableId tableId) {
     TableConfiguration conf;
     synchronized (tableConfigs) {
       conf = tableConfigs.get(instanceID).get(tableId);
@@ -151,7 +151,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       conf = new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
       ConfigSanityCheck.validate(conf);
       synchronized (tableConfigs) {
-        Map<Table.ID,TableConfiguration> configs = tableConfigs.get(instanceID);
+        Map<TableId,TableConfiguration> configs = tableConfigs.get(instanceID);
         TableConfiguration existingConf = configs.get(tableId);
         if (existingConf == null) {
           // Configuration doesn't exist yet
@@ -165,7 +165,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     return conf;
   }
 
-  public NamespaceConfiguration getNamespaceConfigurationForTable(Table.ID tableId) {
+  public NamespaceConfiguration getNamespaceConfigurationForTable(TableId tableId) {
     NamespaceConfiguration conf;
     synchronized (tableParentConfigs) {
       conf = tableParentConfigs.get(instanceID).get(tableId);
@@ -173,7 +173,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     // can't hold the lock during the construction and validation of the config,
     // which may result in creating multiple objects for the same id, but that's ok.
     if (conf == null) {
-      Namespace.ID namespaceId;
+      NamespaceId namespaceId;
       try {
         namespaceId = Tables.getNamespaceId(context, tableId);
       } catch (TableNotFoundException e) {
@@ -189,7 +189,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   }
 
   @Override
-  public NamespaceConfiguration getNamespaceConfiguration(Namespace.ID namespaceId) {
+  public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
     NamespaceConfiguration conf;
     // can't hold the lock during the construction and validation of the config,
     // which may result in creating multiple objects for the same id, but that's ok.

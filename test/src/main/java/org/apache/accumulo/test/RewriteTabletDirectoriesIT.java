@@ -30,10 +30,10 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -101,7 +101,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
       try (BatchScanner scanner = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY,
           1)) {
         DIRECTORY_COLUMN.fetch(scanner);
-        Table.ID tableId = Table.ID.of(c.tableOperations().tableIdMap().get(tableName));
+        TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
         assertNotNull("TableID for " + tableName + " was null", tableId);
         scanner.setRanges(Collections.singletonList(TabletsSection.getRange(tableId)));
         // verify the directory entries are all on v1, make a few entries relative

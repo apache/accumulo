@@ -33,11 +33,11 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Writer;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -75,7 +75,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   private KeyExtent nke(String table, String endRow, String prevEndRow) {
-    return new KeyExtent(Table.ID.of(table), endRow == null ? null : new Text(endRow),
+    return new KeyExtent(TableId.of(table), endRow == null ? null : new Text(endRow),
         prevEndRow == null ? null : new Text(prevEndRow));
   }
 

@@ -52,11 +52,11 @@ import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -215,7 +215,7 @@ public class SampleIT extends AccumuloClusterHarness {
     Set<String> es = Collections.emptySet();
     client.tableOperations().clone(tableName, clone, false, em, es);
     client.tableOperations().offline(clone, true);
-    Table.ID cloneID = Table.ID.of(client.tableOperations().tableIdMap().get(clone));
+    TableId cloneID = TableId.of(client.tableOperations().tableIdMap().get(clone));
     OfflineScanner oScanner = new OfflineScanner((ClientContext) client, cloneID,
         Authorizations.EMPTY);
     if (sc != null) {

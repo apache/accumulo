@@ -33,11 +33,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -125,7 +125,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     }
   }
 
-  public void deleteProblemReport(Table.ID table, ProblemType pType, String resource) {
+  public void deleteProblemReport(TableId table, ProblemType pType, String resource) {
     final ProblemReport pr = new ProblemReport(table, pType, resource, null);
 
     Runnable r = new Runnable() {
@@ -157,7 +157,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
 
   private static ProblemReports instance;
 
-  public void deleteProblemReports(Table.ID table) throws Exception {
+  public void deleteProblemReports(TableId table) throws Exception {
 
     if (isMeta(table)) {
       Iterator<ProblemReport> pri = iterator(table);
@@ -184,11 +184,11 @@ public class ProblemReports implements Iterable<ProblemReport> {
       MetadataTableUtil.getMetadataTable(context).update(delMut);
   }
 
-  private static boolean isMeta(Table.ID tableId) {
+  private static boolean isMeta(TableId tableId) {
     return tableId.equals(MetadataTable.ID) || tableId.equals(RootTable.ID);
   }
 
-  public Iterator<ProblemReport> iterator(final Table.ID table) {
+  public Iterator<ProblemReport> iterator(final TableId table) {
     try {
 
       return new Iterator<ProblemReport>() {
@@ -300,9 +300,9 @@ public class ProblemReports implements Iterable<ProblemReport> {
     getInstance(context).printProblems();
   }
 
-  public Map<Table.ID,Map<ProblemType,Integer>> summarize() {
+  public Map<TableId,Map<ProblemType,Integer>> summarize() {
 
-    TreeMap<Table.ID,Map<ProblemType,Integer>> summary = new TreeMap<>();
+    TreeMap<TableId,Map<ProblemType,Integer>> summary = new TreeMap<>();
 
     for (ProblemReport pr : this) {
       Map<ProblemType,Integer> tableProblems = summary.get(pr.getTableId());

@@ -34,8 +34,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
@@ -65,8 +65,7 @@ public class ProblemsResource {
     ProblemSummary problems = new ProblemSummary();
 
     if (Monitor.getProblemException() == null) {
-      for (Entry<Table.ID,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary()
-          .entrySet()) {
+      for (Entry<TableId,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary().entrySet()) {
         Integer readCount = null, writeCount = null, loadCount = null;
 
         for (ProblemType pt : ProblemType.values()) {
@@ -102,7 +101,7 @@ public class ProblemsResource {
       @QueryParam("s") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String tableID) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
-      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(Table.ID.of(tableID));
+      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(TableId.of(tableID));
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table "
           + (StringUtils.isEmpty(tableID) ? StringUtils.EMPTY : sanitize(tableID)), e);
@@ -121,8 +120,7 @@ public class ProblemsResource {
     ProblemDetail problems = new ProblemDetail();
 
     if (Monitor.getProblemException() == null) {
-      for (Entry<Table.ID,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary()
-          .entrySet()) {
+      for (Entry<TableId,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary().entrySet()) {
         ArrayList<ProblemReport> problemReports = new ArrayList<>();
         Iterator<ProblemReport> iter = entry.getKey() == null
             ? ProblemReports.getInstance(Monitor.getContext()).iterator()
@@ -161,7 +159,7 @@ public class ProblemsResource {
       @QueryParam("ptype") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String ptype) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
-      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(Table.ID.of(tableID),
+      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(TableId.of(tableID),
           ProblemType.valueOf(ptype), resource);
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table "

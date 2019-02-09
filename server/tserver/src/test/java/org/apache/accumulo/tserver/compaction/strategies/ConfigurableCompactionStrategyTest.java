@@ -24,9 +24,9 @@ import static org.junit.Assert.assertNull;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.compaction.CompactionSettings;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
@@ -42,7 +42,7 @@ public class ConfigurableCompactionStrategyTest {
   @Test
   public void testOutputOptions() {
     MajorCompactionRequest mcr = new MajorCompactionRequest(
-        new KeyExtent(Table.ID.of("1"), null, null), MajorCompactionReason.USER, null,
+        new KeyExtent(TableId.of("1"), null, null), MajorCompactionReason.USER, null,
         getServerContext());
 
     Map<FileRef,DataFileValue> files = new HashMap<>();

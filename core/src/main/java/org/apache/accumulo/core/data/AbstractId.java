@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.clientImpl;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNull;
+package org.apache.accumulo.core.data;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -25,26 +22,20 @@ import java.util.Objects;
 /**
  * An abstract identifier class for comparing equality of identifiers of the same type.
  */
-public abstract class AbstractId implements Comparable<AbstractId>, Serializable {
+public abstract class AbstractId<T extends AbstractId<T>> implements Comparable<T>, Serializable {
 
-  private static final long serialVersionUID = -155513612834787244L;
+  private static final long serialVersionUID = 1L;
   private final String canonical;
-  private Integer hashCode = null;
 
   protected AbstractId(final String canonical) {
-    requireNonNull(canonical, "canonical cannot be null");
-    this.canonical = canonical;
+    this.canonical = Objects.requireNonNull(canonical, "canonical cannot be null");
   }
 
   /**
-   * The canonical ID
+   * The canonical ID. This is guaranteed to be non-null.
    */
-  public final String canonicalID() {
+  public final String canonical() {
     return canonical;
-  }
-
-  public boolean isEmpty() {
-    return canonical.isEmpty();
   }
 
   /**
@@ -53,18 +44,13 @@ public abstract class AbstractId implements Comparable<AbstractId>, Serializable
    */
   @Override
   public boolean equals(final Object obj) {
-    if (this == obj)
-      return true;
-    return obj != null && Objects.equals(getClass(), obj.getClass())
-        && Objects.equals(canonicalID(), ((AbstractId) obj).canonicalID());
+    return this == obj || (obj != null && Objects.equals(getClass(), obj.getClass())
+        && Objects.equals(canonical(), ((AbstractId<?>) obj).canonical()));
   }
 
   @Override
   public int hashCode() {
-    if (hashCode == null) {
-      hashCode = Objects.hash(canonicalID());
-    }
-    return hashCode;
+    return canonical().hashCode();
   }
 
   /**
@@ -72,20 +58,12 @@ public abstract class AbstractId implements Comparable<AbstractId>, Serializable
    */
   @Override
   public String toString() {
-    return canonical;
-  }
-
-  /**
-   * Return a UTF_8 byte[] of the canonical ID.
-   */
-  public final byte[] getUtf8() {
-    return canonical.getBytes(UTF_8);
+    return canonical();
   }
 
   @Override
-  public int compareTo(AbstractId id) {
-    requireNonNull(id, "id cannot be null");
-    return this.canonicalID().compareTo(id.canonicalID());
+  public int compareTo(T other) {
+    return canonical().compareTo(Objects.requireNonNull(other, "other cannot be null").canonical());
   }
 
 }

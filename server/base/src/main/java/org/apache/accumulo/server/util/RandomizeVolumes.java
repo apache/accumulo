@@ -28,9 +28,9 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
@@ -76,7 +76,7 @@ public class RandomizeVolumes {
       log.error("Could not determine the table ID for table {}", tableName);
       return 2;
     }
-    Table.ID tableId = Table.ID.of(tblStr);
+    TableId tableId = TableId.of(tblStr);
     TableState tableState = context.getTableManager().getTableState(tableId);
     if (tableState != TableState.OFFLINE) {
       log.info("Taking {} offline", tableName);
@@ -95,7 +95,7 @@ public class RandomizeVolumes {
       String directory;
       if (oldLocation.contains(":")) {
         String[] parts = oldLocation.split(Path.SEPARATOR);
-        Table.ID tableIdEntry = Table.ID.of(parts[parts.length - 2]);
+        TableId tableIdEntry = TableId.of(parts[parts.length - 2]);
         if (!tableIdEntry.equals(tableId)) {
           log.error("Unexpected table id found: {}, expected {}; skipping", tableIdEntry, tableId);
           continue;

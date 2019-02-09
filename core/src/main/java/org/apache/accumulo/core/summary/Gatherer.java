@@ -46,11 +46,11 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ServerClient;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
@@ -104,7 +104,7 @@ public class Gatherer {
   private static final Logger log = LoggerFactory.getLogger(Gatherer.class);
 
   private ClientContext ctx;
-  private Table.ID tableId;
+  private TableId tableId;
   private SummarizerFactory factory;
   private Text startRow = null;
   private Text endRow = null;
@@ -121,7 +121,7 @@ public class Gatherer {
   public Gatherer(ClientContext context, TSummaryRequest request, AccumuloConfiguration tableConfig,
       CryptoService cryptoService) {
     this.ctx = context;
-    this.tableId = Table.ID.of(request.tableId);
+    this.tableId = TableId.of(request.tableId);
     this.startRow = ByteBufferUtil.toText(request.bounds.startRow);
     this.endRow = ByteBufferUtil.toText(request.bounds.endRow);
     this.clipRange = new Range(startRow, false, endRow, true);

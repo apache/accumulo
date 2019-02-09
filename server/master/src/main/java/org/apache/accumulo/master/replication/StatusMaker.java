@@ -27,9 +27,9 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -113,7 +113,7 @@ public class StatusMaker {
         }
         // Extract the useful bits from the status key
         MetadataSchema.ReplicationSection.getFile(entry.getKey(), file);
-        Table.ID tableId = MetadataSchema.ReplicationSection.getTableId(entry.getKey());
+        TableId tableId = MetadataSchema.ReplicationSection.getTableId(entry.getKey());
 
         Status status;
         try {
@@ -162,10 +162,10 @@ public class StatusMaker {
   /**
    * Create a status record in the replication table
    */
-  protected boolean addStatusRecord(Text file, Table.ID tableId, Value v) {
+  protected boolean addStatusRecord(Text file, TableId tableId, Value v) {
     try {
       Mutation m = new Mutation(file);
-      m.put(StatusSection.NAME, new Text(tableId.getUtf8()), v);
+      m.put(StatusSection.NAME, new Text(tableId.canonical()), v);
 
       try {
         replicationWriter.addMutation(m);
@@ -199,7 +199,7 @@ public class StatusMaker {
    * @param value
    *          Serialized version of the Status msg
    */
-  protected boolean addOrderRecord(Text file, Table.ID tableId, Status stat, Value value) {
+  protected boolean addOrderRecord(Text file, TableId tableId, Status stat, Value value) {
     try {
       if (!stat.hasCreatedTime()) {
         try {

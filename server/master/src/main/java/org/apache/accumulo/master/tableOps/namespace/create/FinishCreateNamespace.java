@@ -52,7 +52,7 @@ class FinishCreateNamespace extends MasterRepo {
 
   @Override
   public String getReturn() {
-    return namespaceInfo.namespaceId.canonicalID();
+    return namespaceInfo.namespaceId.canonical();
   }
 
   @Override

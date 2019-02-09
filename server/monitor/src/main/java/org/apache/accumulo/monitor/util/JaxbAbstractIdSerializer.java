@@ -18,20 +18,20 @@ package org.apache.accumulo.monitor.util;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 
-import org.apache.accumulo.core.clientImpl.AbstractId;
+import org.apache.accumulo.core.data.AbstractId;
 
 /**
  * A class for marshaling {@link AbstractId} into its canonical form for REST endpoints
  */
-public class JaxbAbstractIdSerializer extends XmlAdapter<String,AbstractId> {
+public class JaxbAbstractIdSerializer extends XmlAdapter<String,AbstractId<?>> {
 
   @Override
-  public String marshal(AbstractId id) {
-    return id == null ? null : id.canonicalID();
+  public String marshal(AbstractId<?> id) {
+    return id == null ? null : id.canonical();
   }
 
   @Override
-  public AbstractId unmarshal(String id) {
+  public AbstractId<?> unmarshal(String id) {
     throw new UnsupportedOperationException("Cannot unmarshal from String");
   }
 }

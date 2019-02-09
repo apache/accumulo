@@ -19,6 +19,7 @@ package org.apache.accumulo.core.clientImpl;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -35,7 +36,7 @@ public class ScannerImplTest {
 
   @Test
   public void testValidReadaheadValues() {
-    Scanner s = new ScannerImpl(context, Table.ID.of("foo"), Authorizations.EMPTY);
+    Scanner s = new ScannerImpl(context, TableId.of("foo"), Authorizations.EMPTY);
     s.setReadaheadThreshold(0);
     s.setReadaheadThreshold(10);
     s.setReadaheadThreshold(Long.MAX_VALUE);
@@ -46,7 +47,7 @@ public class ScannerImplTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testInValidReadaheadValues() {
-    Scanner s = new ScannerImpl(context, Table.ID.of("foo"), Authorizations.EMPTY);
+    Scanner s = new ScannerImpl(context, TableId.of("foo"), Authorizations.EMPTY);
     s.setReadaheadThreshold(-1);
     s.close();
   }
@@ -54,7 +55,7 @@ public class ScannerImplTest {
   @Test
   public void testGetAuthorizations() {
     Authorizations expected = new Authorizations("a,b");
-    Scanner s = new ScannerImpl(context, Table.ID.of("foo"), expected);
+    Scanner s = new ScannerImpl(context, TableId.of("foo"), expected);
     assertEquals(expected, s.getAuthorizations());
     s.close();
   }
@@ -62,7 +63,7 @@ public class ScannerImplTest {
   @SuppressWarnings("resource")
   @Test(expected = IllegalArgumentException.class)
   public void testNullAuthorizationsFails() {
-    new ScannerImpl(context, Table.ID.of("foo"), null);
+    new ScannerImpl(context, TableId.of("foo"), null);
   }
 
 }

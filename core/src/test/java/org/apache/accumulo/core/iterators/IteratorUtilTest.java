@@ -28,13 +28,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -148,7 +148,7 @@ public class IteratorUtilTest {
     SortedMapIterator source = new SortedMapIterator(tm);
 
     SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source,
-        new KeyExtent(Table.ID.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
+        new KeyExtent(TableId.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
@@ -180,7 +180,7 @@ public class IteratorUtilTest {
     SortedMapIterator source = new SortedMapIterator(tm);
 
     SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.majc, source,
-        new KeyExtent(Table.ID.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
+        new KeyExtent(TableId.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
@@ -218,7 +218,7 @@ public class IteratorUtilTest {
         "1," + SquaringIter.class.getName());
 
     SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source,
-        new KeyExtent(Table.ID.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
+        new KeyExtent(TableId.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
@@ -257,7 +257,7 @@ public class IteratorUtilTest {
     SortedMapIterator source = new SortedMapIterator(tm);
 
     SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source,
-        new KeyExtent(Table.ID.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
+        new KeyExtent(TableId.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());
@@ -295,7 +295,7 @@ public class IteratorUtilTest {
     SortedMapIterator source = new SortedMapIterator(tm);
 
     SortedKeyValueIterator<Key,Value> iter = IteratorUtil.loadIterators(IteratorScope.minc, source,
-        new KeyExtent(Table.ID.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
+        new KeyExtent(TableId.of("tab"), null, null), conf, new DefaultIteratorEnvironment(conf));
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(iter.hasTop());

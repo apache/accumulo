@@ -37,13 +37,13 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
@@ -76,7 +76,7 @@ class WriteExportFiles extends MasterRepo {
     if (Tables.getTableState(context, tableInfo.tableID) != TableState.OFFLINE) {
       Tables.clearCache(context);
       if (Tables.getTableState(context, tableInfo.tableID) != TableState.OFFLINE) {
-        throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(),
+        throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonical(),
             tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
             "Table is not offline");
       }
@@ -115,7 +115,7 @@ class WriteExportFiles extends MasterRepo {
     metaScanner.fetchColumnFamily(LogColumnFamily.NAME);
 
     if (metaScanner.iterator().hasNext()) {
-      throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(),
+      throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonical(),
           tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Write ahead logs found for table");
     }
@@ -129,7 +129,7 @@ class WriteExportFiles extends MasterRepo {
       exportTable(master.getFileSystem(), master.getContext(), tableInfo.tableName,
           tableInfo.tableID, tableInfo.exportDir);
     } catch (IOException ioe) {
-      throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonicalID(),
+      throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonical(),
           tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Failed to create export files " + ioe.getMessage());
     }
@@ -146,7 +146,7 @@ class WriteExportFiles extends MasterRepo {
   }
 
   public static void exportTable(VolumeManager fs, ServerContext context, String tableName,
-      Table.ID tableID, String exportDir) throws Exception {
+      TableId tableID, String exportDir) throws Exception {
 
     fs.mkdirs(new Path(exportDir));
     Path exportMetaFilePath = fs.getVolumeByPath(new Path(exportDir)).getFileSystem()
@@ -165,7 +165,7 @@ class WriteExportFiles extends MasterRepo {
       osw.append("srcInstanceID:" + context.getInstanceID() + "\n");
       osw.append("srcZookeepers:" + context.getZooKeepers() + "\n");
       osw.append("srcTableName:" + tableName + "\n");
-      osw.append("srcTableID:" + tableID.canonicalID() + "\n");
+      osw.append("srcTableID:" + tableID.canonical() + "\n");
       osw.append(ExportTable.DATA_VERSION_PROP + ":" + ServerConstants.DATA_VERSION + "\n");
       osw.append("srcCodeVersion:" + Constants.VERSION + "\n");
 
@@ -212,7 +212,7 @@ class WriteExportFiles extends MasterRepo {
   }
 
   private static Map<String,String> exportMetadata(VolumeManager fs, ServerContext context,
-      Table.ID tableID, ZipOutputStream zipOut, DataOutputStream dataOut)
+      TableId tableID, ZipOutputStream zipOut, DataOutputStream dataOut)
       throws IOException, TableNotFoundException {
     zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_METADATA_FILE));
 
@@ -252,7 +252,7 @@ class WriteExportFiles extends MasterRepo {
     return uniqueFiles;
   }
 
-  private static void exportConfig(ServerContext context, Table.ID tableID, ZipOutputStream zipOut,
+  private static void exportConfig(ServerContext context, TableId tableID, ZipOutputStream zipOut,
       DataOutputStream dataOut) throws AccumuloException, AccumuloSecurityException, IOException {
 
     DefaultConfiguration defaultConfig = DefaultConfiguration.getInstance();

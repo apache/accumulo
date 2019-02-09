@@ -18,8 +18,8 @@ package org.apache.accumulo.master.tableOps.tableImport;
 
 import java.io.Serializable;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 
 class ImportedTableInfo implements Serializable {
 
@@ -28,7 +28,7 @@ class ImportedTableInfo implements Serializable {
   public String exportDir;
   public String user;
   public String tableName;
-  public Table.ID tableId;
+  public TableId tableId;
   public String importDir;
-  public Namespace.ID namespaceId;
+  public NamespaceId namespaceId;
 }

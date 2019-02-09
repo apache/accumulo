@@ -28,6 +28,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 
@@ -49,7 +50,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
 
   private final ClientContext context;
   private Authorizations authorizations;
-  private Table.ID tableId;
+  private TableId tableId;
 
   private int size;
 
@@ -105,7 +106,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
       throw new IllegalArgumentException("Scanner is closed");
   }
 
-  public ScannerImpl(ClientContext context, Table.ID tableId, Authorizations authorizations) {
+  public ScannerImpl(ClientContext context, TableId tableId, Authorizations authorizations) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
     checkArgument(authorizations != null, "authorizations is null");

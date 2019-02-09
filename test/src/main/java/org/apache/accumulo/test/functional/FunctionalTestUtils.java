@@ -39,11 +39,11 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -66,7 +66,7 @@ public class FunctionalTestUtils {
 
   public static int countRFiles(AccumuloClient c, String tableName) throws Exception {
     try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      Table.ID tableId = Table.ID.of(c.tableOperations().tableIdMap().get(tableName));
+      TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       return Iterators.size(scanner.iterator());

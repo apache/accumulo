@@ -22,7 +22,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.fs.Path;
@@ -48,7 +48,7 @@ public class Bulk {
       return tablet;
     }
 
-    public KeyExtent getKeyExtent(Table.ID tableId) {
+    public KeyExtent getKeyExtent(TableId tableId) {
       return tablet.toKeyExtent(tableId);
     }
 
@@ -70,7 +70,7 @@ public class Bulk {
       this.prevEndRow = prevEndRow == null ? null : TextUtil.getBytes(prevEndRow);
     }
 
-    public KeyExtent toKeyExtent(Table.ID tableId) {
+    public KeyExtent toKeyExtent(TableId tableId) {
       return Bulk.toKeyExtent(tableId, this);
     }
 
@@ -222,7 +222,7 @@ public class Bulk {
     return new Tablet(keyExtent.getEndRow(), keyExtent.getPrevEndRow());
   }
 
-  public static KeyExtent toKeyExtent(Table.ID tableId, Tablet tablet) {
+  public static KeyExtent toKeyExtent(TableId tableId, Tablet tablet) {
     return new KeyExtent(tableId, tablet.getEndRow(), tablet.getPrevEndRow());
   }
 }

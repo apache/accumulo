@@ -17,7 +17,7 @@
 package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -72,7 +72,7 @@ class NamespaceConfWatcher implements Watcher {
         return;
       }
     }
-    Namespace.ID namespaceId = Namespace.ID.of(namespaceIdStr);
+    NamespaceId namespaceId = NamespaceId.of(namespaceIdStr);
 
     switch (event.getType()) {
       case NodeDataChanged:

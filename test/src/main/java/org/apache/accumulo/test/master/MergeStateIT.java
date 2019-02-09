@@ -28,9 +28,9 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterState;
@@ -66,8 +66,8 @@ public class MergeStateIT extends ConfigurableMacBase {
     }
 
     @Override
-    public Set<Table.ID> onlineTables() {
-      return Collections.singleton(Table.ID.of("t"));
+    public Set<TableId> onlineTables() {
+      return Collections.singleton(TableId.of("t"));
     }
 
     @Override
@@ -115,7 +115,7 @@ public class MergeStateIT extends ConfigurableMacBase {
       // Create a fake METADATA table with these splits
       String splits[] = {"a", "e", "j", "o", "t", "z"};
       // create metadata for a table "t" with the splits above
-      Table.ID tableId = Table.ID.of("t");
+      TableId tableId = TableId.of("t");
       Text pr = null;
       for (String s : splits) {
         Text split = new Text(s);

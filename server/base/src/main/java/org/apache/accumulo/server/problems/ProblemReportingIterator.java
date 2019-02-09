@@ -21,10 +21,10 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -36,10 +36,10 @@ public class ProblemReportingIterator implements InterruptibleIterator {
   private boolean sawError = false;
   private final boolean continueOnError;
   private String resource;
-  private Table.ID tableId;
+  private TableId tableId;
   private final ServerContext context;
 
-  public ProblemReportingIterator(ServerContext context, Table.ID tableId, String resource,
+  public ProblemReportingIterator(ServerContext context, TableId tableId, String resource,
       boolean continueOnError, SortedKeyValueIterator<Key,Value> source) {
     this.context = context;
     this.tableId = tableId;

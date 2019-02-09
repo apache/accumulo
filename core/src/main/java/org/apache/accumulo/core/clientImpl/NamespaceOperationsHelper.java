@@ -35,12 +35,12 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
 
   @Override
   public String systemNamespace() {
-    return Namespace.ACCUMULO;
+    return Namespace.ACCUMULO.name();
   }
 
   @Override
   public String defaultNamespace() {
-    return Namespace.DEFAULT;
+    return Namespace.DEFAULT.name();
   }
 
   @Override

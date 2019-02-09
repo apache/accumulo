@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.master.tableOps.compact.cancel;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -25,10 +25,10 @@ import org.apache.accumulo.master.tableOps.Utils;
 
 class FinishCancelCompaction extends MasterRepo {
   private static final long serialVersionUID = 1L;
-  private Table.ID tableId;
-  private Namespace.ID namespaceId;
+  private TableId tableId;
+  private NamespaceId namespaceId;
 
-  public FinishCancelCompaction(Namespace.ID namespaceId, Table.ID tableId) {
+  public FinishCancelCompaction(NamespaceId namespaceId, TableId tableId) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
   }

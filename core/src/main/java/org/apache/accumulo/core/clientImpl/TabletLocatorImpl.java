@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
@@ -72,7 +73,7 @@ public class TabletLocatorImpl extends TabletLocator {
     return o1.compareTo(o2);
   };
 
-  protected Table.ID tableId;
+  protected TableId tableId;
   protected TabletLocator parent;
   protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
   protected TabletLocationObtainer locationObtainer;
@@ -140,14 +141,14 @@ public class TabletLocatorImpl extends TabletLocator {
     }
   }
 
-  public TabletLocatorImpl(Table.ID tableId, TabletLocator parent, TabletLocationObtainer tlo,
+  public TabletLocatorImpl(TableId tableId, TabletLocator parent, TabletLocationObtainer tlo,
       TabletServerLockChecker tslc) {
     this.tableId = tableId;
     this.parent = parent;
     this.locationObtainer = tlo;
     this.lockChecker = tslc;
 
-    this.lastTabletRow = new Text(tableId.getUtf8());
+    this.lastTabletRow = new Text(tableId.canonical());
     lastTabletRow.append(new byte[] {'<'}, 0, 1);
   }
 
@@ -476,7 +477,7 @@ public class TabletLocatorImpl extends TabletLocator {
   private void lookupTabletLocation(ClientContext context, Text row, boolean retry,
       LockCheckerSession lcSession)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    Text metadataRow = new Text(tableId.getUtf8());
+    Text metadataRow = new Text(tableId.canonical());
     metadataRow.append(new byte[] {';'}, 0, 1);
     metadataRow.append(row.getBytes(), 0, row.getLength());
     TabletLocation ptl = parent.locateTablet(context, metadataRow, false, retry);

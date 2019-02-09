@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.hadoop.io.Text;
@@ -228,39 +227,39 @@ public class RangeTest {
   @Test
   public void testMergeOverlapping22() {
 
-    Range ke1 = new KeyExtent(Table.ID.of("tab1"), new Text("Bank"), null).toMetadataRange();
-    Range ke2 = new KeyExtent(Table.ID.of("tab1"), new Text("Fails"), new Text("Bank"))
+    Range ke1 = new KeyExtent(TableId.of("tab1"), new Text("Bank"), null).toMetadataRange();
+    Range ke2 = new KeyExtent(TableId.of("tab1"), new Text("Fails"), new Text("Bank"))
         .toMetadataRange();
-    Range ke3 = new KeyExtent(Table.ID.of("tab1"), new Text("Sam"), new Text("Fails"))
+    Range ke3 = new KeyExtent(TableId.of("tab1"), new Text("Sam"), new Text("Fails"))
         .toMetadataRange();
-    Range ke4 = new KeyExtent(Table.ID.of("tab1"), new Text("bails"), new Text("Sam"))
+    Range ke4 = new KeyExtent(TableId.of("tab1"), new Text("bails"), new Text("Sam"))
         .toMetadataRange();
-    Range ke5 = new KeyExtent(Table.ID.of("tab1"), null, new Text("bails")).toMetadataRange();
+    Range ke5 = new KeyExtent(TableId.of("tab1"), null, new Text("bails")).toMetadataRange();
 
     List<Range> rl = newRangeList(ke1, ke2, ke3, ke4, ke5);
     List<Range> expected = newRangeList(
-        new KeyExtent(Table.ID.of("tab1"), null, null).toMetadataRange());
+        new KeyExtent(TableId.of("tab1"), null, null).toMetadataRange());
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke1, ke2, ke4, ke5);
     expected = newRangeList(
-        new KeyExtent(Table.ID.of("tab1"), new Text("Fails"), null).toMetadataRange(),
-        new KeyExtent(Table.ID.of("tab1"), null, new Text("Sam")).toMetadataRange());
+        new KeyExtent(TableId.of("tab1"), new Text("Fails"), null).toMetadataRange(),
+        new KeyExtent(TableId.of("tab1"), null, new Text("Sam")).toMetadataRange());
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke2, ke3, ke4, ke5);
     expected = newRangeList(
-        new KeyExtent(Table.ID.of("tab1"), null, new Text("Bank")).toMetadataRange());
+        new KeyExtent(TableId.of("tab1"), null, new Text("Bank")).toMetadataRange());
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke1, ke2, ke3, ke4);
     expected = newRangeList(
-        new KeyExtent(Table.ID.of("tab1"), new Text("bails"), null).toMetadataRange());
+        new KeyExtent(TableId.of("tab1"), new Text("bails"), null).toMetadataRange());
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke2, ke3, ke4);
     expected = newRangeList(
-        new KeyExtent(Table.ID.of("tab1"), new Text("bails"), new Text("Bank")).toMetadataRange());
+        new KeyExtent(TableId.of("tab1"), new Text("bails"), new Text("Bank")).toMetadataRange());
 
     check(Range.mergeOverlapping(rl), expected);
   }

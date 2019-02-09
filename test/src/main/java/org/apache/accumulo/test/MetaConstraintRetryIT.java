@@ -18,9 +18,9 @@
 package org.apache.accumulo.test;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Writer;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.TablePermission;
@@ -46,7 +46,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
 
       ServerContext context = getServerContext();
       Writer w = new Writer(context, MetadataTable.ID);
-      KeyExtent extent = new KeyExtent(Table.ID.of("5"), null, null);
+      KeyExtent extent = new KeyExtent(TableId.of("5"), null, null);
 
       Mutation m = new Mutation(extent.getMetadataEntry());
       // unknown columns should cause constraint violation

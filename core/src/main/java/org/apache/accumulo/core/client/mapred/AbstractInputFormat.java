@@ -54,12 +54,12 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
@@ -532,10 +532,10 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
         try {
           if (isOffline) {
-            scanner = new OfflineScanner(client, Table.ID.of(baseSplit.getTableId()),
+            scanner = new OfflineScanner(client, TableId.of(baseSplit.getTableId()),
                 authorizations);
           } else {
-            scanner = new ScannerImpl(client, Table.ID.of(baseSplit.getTableId()), authorizations);
+            scanner = new ScannerImpl(client, TableId.of(baseSplit.getTableId()), authorizations);
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");
@@ -608,7 +608,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
   }
 
-  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job, Table.ID tableId,
+  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job, TableId tableId,
       List<Range> ranges)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     return InputConfigurator.binOffline(tableId, ranges, InputConfigurator.client(CLASS, job));
@@ -648,7 +648,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         throw new IOException(e);
       }
 
-      Table.ID tableId;
+      TableId tableId;
       // resolve table name to id once, and use id from this point forward
       try {
         tableId = Tables.getTableId(client, tableName);
@@ -694,7 +694,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           tl.invalidateCache();
 
           while (!tl.binRanges(client, ranges, binnedRanges).isEmpty()) {
-            String tableIdStr = tableId.canonicalID();
+            String tableIdStr = tableId.canonical();
             if (!Tables.exists(client, tableId))
               throw new TableDeletedException(tableIdStr);
             if (Tables.getTableState(client, tableId) == TableState.OFFLINE)
@@ -745,7 +745,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             for (Range r : extentRanges.getValue()) {
               if (autoAdjust) {
                 // divide ranges into smaller ranges, based on the tablets
-                RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
+                RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonical(),
                     ke.clip(r), new String[] {location});
                 org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils.updateSplit(split,
                     tableConfig, logLevel);
@@ -768,7 +768,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
       if (!autoAdjust)
         for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
-          RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
+          RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonical(),
               entry.getKey(), entry.getValue().toArray(new String[0]));
           org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils.updateSplit(split, tableConfig,
               logLevel);

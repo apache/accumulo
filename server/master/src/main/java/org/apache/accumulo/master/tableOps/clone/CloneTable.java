@@ -19,9 +19,9 @@ package org.apache.accumulo.master.tableOps.clone;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -32,7 +32,7 @@ public class CloneTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
   private CloneInfo cloneInfo;
 
-  public CloneTable(String user, Namespace.ID namespaceId, Table.ID srcTableId, String tableName,
+  public CloneTable(String user, NamespaceId namespaceId, TableId srcTableId, String tableName,
       Map<String,String> propertiesToSet, Set<String> propertiesToExclude) {
     cloneInfo = new CloneInfo();
     cloneInfo.user = user;
@@ -58,7 +58,7 @@ public class CloneTable extends MasterRepo {
     Utils.getIdLock().lock();
     try {
       cloneInfo.tableId = Utils.getNextId(cloneInfo.tableName, environment.getContext(),
-          Table.ID::of);
+          TableId::of);
 
       return new ClonePermissions(cloneInfo);
     } finally {

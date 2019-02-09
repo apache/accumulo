@@ -28,12 +28,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
@@ -169,7 +169,7 @@ public class DefaultCompactionStrategyTest {
   }
 
   private MajorCompactionRequest createRequest(MajorCompactionReason reason, Object... objs) {
-    return createRequest(new KeyExtent(Table.ID.of("0"), null, null), reason, objs);
+    return createRequest(new KeyExtent(TableId.of("0"), null, null), reason, objs);
   }
 
   private MajorCompactionRequest createRequest(KeyExtent extent, MajorCompactionReason reason,

@@ -37,10 +37,10 @@ import java.util.function.Function;
 
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -68,7 +68,7 @@ import com.google.common.collect.Iterators;
 
 public class TabletMetadata {
 
-  private Table.ID tableId;
+  private TableId tableId;
   private Text prevEndRow;
   private boolean sawPrevEndRow = false;
   private Text endRow;
@@ -131,7 +131,7 @@ public class TabletMetadata {
     }
   }
 
-  public Table.ID getTableId() {
+  public TableId getTableId() {
     return tableId;
   }
 
@@ -363,7 +363,7 @@ public class TabletMetadata {
   @VisibleForTesting
   static TabletMetadata create(String id, String prevEndRow, String endRow) {
     TabletMetadata te = new TabletMetadata();
-    te.tableId = Table.ID.of(id);
+    te.tableId = TableId.of(id);
     te.sawPrevEndRow = true;
     te.prevEndRow = prevEndRow == null ? null : new Text(prevEndRow);
     te.endRow = endRow == null ? null : new Text(endRow);

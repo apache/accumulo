@@ -28,12 +28,12 @@ import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -73,7 +73,7 @@ public class PrepBulkImport extends MasterRepo {
 
   private final BulkInfo bulkInfo;
 
-  public PrepBulkImport(Table.ID tableId, String sourceDir, boolean setTime) {
+  public PrepBulkImport(TableId tableId, String sourceDir, boolean setTime) {
     BulkInfo info = new BulkInfo();
     info.tableId = tableId;
     info.sourceDir = sourceDir;
@@ -164,8 +164,8 @@ public class PrepBulkImport extends MasterRepo {
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency().fetchPrev()
           .build(master.getContext()).stream().map(TabletMetadata::getExtent).iterator();
 
-      checkForMerge(bulkInfo.tableId.canonicalID(),
-          Iterators.transform(lmi, entry -> entry.getKey()), tabletIterFactory);
+      checkForMerge(bulkInfo.tableId.canonical(), Iterators.transform(lmi, entry -> entry.getKey()),
+          tabletIterFactory);
     }
   }
 
@@ -217,7 +217,7 @@ public class PrepBulkImport extends MasterRepo {
     return new BulkImportMove(bulkInfo);
   }
 
-  private Path createNewBulkDir(ServerContext context, VolumeManager fs, Table.ID tableId)
+  private Path createNewBulkDir(ServerContext context, VolumeManager fs, TableId tableId)
       throws IOException {
     Path tempPath = fs.matchingFileSystem(new Path(bulkInfo.sourceDir),
         ServerConstants.getTablesDirs(context));

@@ -19,8 +19,8 @@ package org.apache.accumulo.server.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -28,7 +28,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 
 public class NamespacePropUtil {
-  public static boolean setNamespaceProperty(ServerContext context, Namespace.ID namespaceId,
+  public static boolean setNamespaceProperty(ServerContext context, NamespaceId namespaceId,
       String property, String value) throws KeeperException, InterruptedException {
     if (!isPropertyValid(property, value))
       return false;
@@ -53,13 +53,13 @@ public class NamespacePropUtil {
         && Property.isValidTablePropertyKey(property);
   }
 
-  public static void removeNamespaceProperty(ServerContext context, Namespace.ID namespaceId,
+  public static void removeNamespaceProperty(ServerContext context, NamespaceId namespaceId,
       String property) throws InterruptedException, KeeperException {
     String zPath = getPath(context, namespaceId) + "/" + property;
     context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
   }
 
-  private static String getPath(ServerContext context, Namespace.ID namespaceId) {
+  private static String getPath(ServerContext context, NamespaceId namespaceId) {
     return context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
         + Constants.ZNAMESPACE_CONF;
   }

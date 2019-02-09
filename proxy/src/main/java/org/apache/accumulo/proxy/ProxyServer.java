@@ -1789,12 +1789,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
 
   @Override
   public String systemNamespace() throws TException {
-    return Namespace.ACCUMULO;
+    return Namespace.ACCUMULO.name();
   }
 
   @Override
   public String defaultNamespace() throws TException {
-    return Namespace.DEFAULT;
+    return Namespace.DEFAULT.name();
   }
 
   @Override

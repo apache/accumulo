@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,9 +41,9 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
   private class TableBatchWriter implements BatchWriter {
 
-    private Table.ID tableId;
+    private TableId tableId;
 
-    TableBatchWriter(Table.ID tableId) {
+    TableBatchWriter(TableId tableId) {
       this.tableId = tableId;
     }
 
@@ -72,7 +73,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   }
 
   private TabletServerBatchWriter bw;
-  private ConcurrentHashMap<Table.ID,BatchWriter> tableWriters;
+  private ConcurrentHashMap<TableId,BatchWriter> tableWriters;
   private final ClientContext context;
 
   public MultiTableBatchWriterImpl(ClientContext context, BatchWriterConfig config) {
@@ -119,7 +120,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
    *          The name of the table which to find the ID for
    * @return The table ID, or null if the table name doesn't exist
    */
-  private Table.ID getId(String tableName) throws TableNotFoundException {
+  private TableId getId(String tableName) throws TableNotFoundException {
     try {
       return Tables.getTableId(context, tableName);
     } catch (UncheckedExecutionException e) {
@@ -143,7 +144,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   public BatchWriter getBatchWriter(String tableName) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
 
-    Table.ID tableId = getId(tableName);
+    TableId tableId = getId(tableName);
 
     BatchWriter tbw = tableWriters.get(tableId);
     if (tbw == null) {

@@ -75,7 +75,7 @@ class FinishCreateTable extends MasterRepo {
 
   @Override
   public String getReturn() {
-    return tableInfo.getTableId().canonicalID();
+    return tableInfo.getTableId().canonical();
   }
 
   @Override

@@ -225,7 +225,7 @@ class DatafileManager {
       boolean inTheRightDirectory = false;
       Path parent = tpath.path().getParent().getParent();
       for (String tablesDir : ServerConstants.getTablesDirs(tablet.getContext())) {
-        if (parent.equals(new Path(tablesDir, tablet.getExtent().getTableId().canonicalID()))) {
+        if (parent.equals(new Path(tablesDir, tablet.getExtent().getTableId().canonical()))) {
           inTheRightDirectory = true;
           break;
         }

@@ -32,7 +32,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -44,7 +45,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ProblemReportTest {
-  private static final Table.ID TABLE_ID = Table.ID.of("table");
+  private static final TableId TABLE_ID = TableId.of("table");
   private static final String RESOURCE = "resource";
   private static final String SERVER = "server";
 
@@ -87,8 +88,8 @@ public class ProblemReportTest {
     ProblemReport r2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     assertEquals(r, r2);
     assertEquals(r2, r);
-    ProblemReport rx1 = new ProblemReport(Table.ID.METADATA, ProblemType.FILE_READ, RESOURCE,
-        SERVER, null);
+    ProblemReport rx1 = new ProblemReport(MetadataTable.ID, ProblemType.FILE_READ, RESOURCE, SERVER,
+        null);
     assertNotEquals(r, rx1);
     ProblemReport rx2 = new ProblemReport(TABLE_ID, ProblemType.FILE_WRITE, RESOURCE, SERVER, null);
     assertNotEquals(r, rx2);
@@ -122,11 +123,11 @@ public class ProblemReportTest {
     assertEquals(r.hashCode(), re2.hashCode());
   }
 
-  private byte[] makeZPathFileName(Table.ID table, ProblemType problemType, String resource)
+  private byte[] makeZPathFileName(TableId table, ProblemType problemType, String resource)
       throws Exception {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
-    dos.writeUTF(table.canonicalID());
+    dos.writeUTF(table.canonical());
     dos.writeUTF(problemType.name());
     dos.writeUTF(resource);
     dos.close();

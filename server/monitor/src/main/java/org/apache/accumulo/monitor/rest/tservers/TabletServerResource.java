@@ -39,8 +39,8 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
@@ -312,7 +312,7 @@ public class TabletServerResource {
       ActionStatsUpdator.update(total.majors, info.majors);
 
       KeyExtent extent = new KeyExtent(info.extent);
-      Table.ID tableId = extent.getTableId();
+      TableId tableId = extent.getTableId();
       MessageDigest digester = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
       if (extent.getEndRow() != null && extent.getEndRow().getLength() > 0) {
         digester.update(extent.getEndRow().getBytes(), 0, extent.getEndRow().getLength());

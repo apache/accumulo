@@ -24,8 +24,8 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooser.VolumeChooserException;
@@ -78,7 +78,7 @@ public class PerTableVolumeChooserTest {
   }
 
   private VolumeChooser getTableDelegate() {
-    VolumeChooserEnvironment env = new VolumeChooserEnvironment(Table.ID.of("testTable"), null,
+    VolumeChooserEnvironment env = new VolumeChooserEnvironment(TableId.of("testTable"), null,
         null);
     return chooser.getDelegateChooser(env);
   }

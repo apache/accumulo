@@ -32,7 +32,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.Test;
@@ -42,10 +42,10 @@ public class GarbageCollectionTest {
     TreeSet<String> candidates = new TreeSet<>();
     ArrayList<String> blips = new ArrayList<>();
     Map<String,Reference> references = new TreeMap<>();
-    HashSet<Table.ID> tableIds = new HashSet<>();
+    HashSet<TableId> tableIds = new HashSet<>();
 
     ArrayList<String> deletes = new ArrayList<>();
-    ArrayList<Table.ID> tablesDirsToDelete = new ArrayList<>();
+    ArrayList<TableId> tablesDirsToDelete = new ArrayList<>();
     TreeMap<String,Status> filesToReplicate = new TreeMap<>();
 
     @Override
@@ -69,7 +69,7 @@ public class GarbageCollectionTest {
     }
 
     @Override
-    public Set<Table.ID> getTableIDs() {
+    public Set<TableId> getTableIDs() {
       return tableIds;
     }
 
@@ -80,13 +80,13 @@ public class GarbageCollectionTest {
     }
 
     @Override
-    public void deleteTableDirIfEmpty(Table.ID tableID) {
+    public void deleteTableDirIfEmpty(TableId tableID) {
       tablesDirsToDelete.add(tableID);
     }
 
     public void addFileReference(String tableId, String endRow, String file) {
       references.put(tableId + ":" + endRow + ":" + file,
-          new Reference(Table.ID.of(tableId), file, false));
+          new Reference(TableId.of(tableId), file, false));
     }
 
     public void removeFileReference(String tableId, String endRow, String file) {
@@ -94,7 +94,7 @@ public class GarbageCollectionTest {
     }
 
     public void addDirReference(String tableId, String endRow, String dir) {
-      references.put(tableId + ":" + endRow, new Reference(Table.ID.of(tableId), dir, true));
+      references.put(tableId + ":" + endRow, new Reference(TableId.of(tableId), dir, true));
     }
 
     public void removeDirReference(String tableId, String endRow) {
@@ -512,7 +512,7 @@ public class GarbageCollectionTest {
 
     TestGCE gce = new TestGCE();
 
-    gce.tableIds.add(Table.ID.of("4"));
+    gce.tableIds.add(TableId.of("4"));
 
     gce.candidates.add("/4/t-0");
     gce.candidates.add("/4/t-0/F002.rf");
@@ -524,9 +524,9 @@ public class GarbageCollectionTest {
 
     gca.collect(gce);
 
-    HashSet<Table.ID> tids = new HashSet<>();
-    tids.add(Table.ID.of("5"));
-    tids.add(Table.ID.of("6"));
+    HashSet<TableId> tids = new HashSet<>();
+    tids.add(TableId.of("5"));
+    tids.add(TableId.of("6"));
 
     assertEquals(tids.size(), gce.tablesDirsToDelete.size());
     assertTrue(tids.containsAll(gce.tablesDirsToDelete));

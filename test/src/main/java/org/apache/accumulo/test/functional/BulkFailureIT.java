@@ -42,12 +42,12 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.Translator;
 import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
@@ -117,7 +117,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       String tableId = c.tableOperations().tableIdMap().get(table);
 
       // Table has no splits, so this extent corresponds to the tables single tablet
-      KeyExtent extent = new KeyExtent(Table.ID.of(tableId), null, null);
+      KeyExtent extent = new KeyExtent(TableId.of(tableId), null, null);
 
       ServerContext asCtx = getServerContext();
       ZooArbitrator.start(asCtx, Constants.BULK_ARBITRATOR_TYPE, fateTxid);
@@ -125,7 +125,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       VolumeManager vm = asCtx.getVolumeManager();
 
       // move the file into a directory for the table and rename the file to something unique
-      String bulkDir = BulkImport.prepareBulkImport(asCtx, vm, testFile, Table.ID.of(tableId));
+      String bulkDir = BulkImport.prepareBulkImport(asCtx, vm, testFile, TableId.of(tableId));
 
       // determine the files new name and path
       FileStatus status = fs.listStatus(new Path(bulkDir))[0];

@@ -27,7 +27,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -35,6 +34,7 @@ import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
@@ -53,7 +53,7 @@ import org.junit.Test;
 public class BulkImporterTest {
 
   static final SortedSet<KeyExtent> fakeMetaData = new TreeSet<>();
-  static final Table.ID tableId = Table.ID.of("1");
+  static final TableId tableId = TableId.of("1");
 
   static {
     fakeMetaData.add(new KeyExtent(tableId, new Text("a"), null));
@@ -177,19 +177,19 @@ public class BulkImporterTest {
     // a correct startRow so that findOverlappingTablets works as intended.
 
     // 1;2;1
-    KeyExtent extent = new KeyExtent(Table.ID.of("1"), new Text("2"), new Text("1"));
+    KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("2"), new Text("1"));
     assertEquals(new Text("1\0"), BulkImporter.getStartRowForExtent(extent));
 
     // 1;2<
-    extent = new KeyExtent(Table.ID.of("1"), new Text("2"), null);
+    extent = new KeyExtent(TableId.of("1"), new Text("2"), null);
     assertNull(BulkImporter.getStartRowForExtent(extent));
 
     // 1<<
-    extent = new KeyExtent(Table.ID.of("1"), null, null);
+    extent = new KeyExtent(TableId.of("1"), null, null);
     assertNull(BulkImporter.getStartRowForExtent(extent));
 
     // 1;8;7777777
-    extent = new KeyExtent(Table.ID.of("1"), new Text("8"), new Text("7777777"));
+    extent = new KeyExtent(TableId.of("1"), new Text("8"), new Text("7777777"));
     assertEquals(new Text("7777777\0"), BulkImporter.getStartRowForExtent(extent));
   }
 }

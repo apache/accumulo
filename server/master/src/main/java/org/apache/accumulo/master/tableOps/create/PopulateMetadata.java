@@ -24,8 +24,8 @@ import java.util.SortedSet;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -77,7 +77,7 @@ class PopulateMetadata extends MasterRepo {
     return new FinishCreateTable(tableInfo);
   }
 
-  private void writeSplitsToMetadataTable(ServerContext ctx, Table.ID tableId,
+  private void writeSplitsToMetadataTable(ServerContext ctx, TableId tableId,
       SortedSet<Text> splits, Map<Text,Text> data, char timeType, ZooLock lock, BatchWriter bw)
       throws MutationsRejectedException {
     Text prevSplit = null;

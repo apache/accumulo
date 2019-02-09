@@ -44,10 +44,10 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.monitor.Monitor;
 import org.glassfish.jersey.server.mvc.Template;
 import org.slf4j.Logger;
@@ -292,7 +292,7 @@ public class WebViews {
       @PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID)
       throws TableNotFoundException {
 
-    String tableName = Tables.getTableName(Monitor.getContext(), Table.ID.of(tableID));
+    String tableName = Tables.getTableName(Monitor.getContext(), TableId.of(tableID));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");

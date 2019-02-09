@@ -24,9 +24,9 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -88,7 +88,7 @@ public class MasterAssignmentIT extends AccumuloClusterHarness {
 
   private TabletLocationState getTabletLocationState(AccumuloClient c, String tableId) {
     try (MetaDataTableScanner s = new MetaDataTableScanner((ClientContext) c,
-        new Range(TabletsSection.getRow(Table.ID.of(tableId), null)))) {
+        new Range(TabletsSection.getRow(TableId.of(tableId), null)))) {
       return s.next();
     }
   }

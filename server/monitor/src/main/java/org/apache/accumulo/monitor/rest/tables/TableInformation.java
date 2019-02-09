@@ -18,7 +18,7 @@ package org.apache.accumulo.monitor.rest.tables;
 
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.monitor.util.JaxbAbstractIdSerializer;
 
@@ -34,7 +34,7 @@ public class TableInformation {
   public String tablename;
 
   @XmlJavaTypeAdapter(JaxbAbstractIdSerializer.class)
-  public Table.ID tableId;
+  public TableId tableId;
 
   public String tableState;
 
@@ -84,7 +84,7 @@ public class TableInformation {
    * @param tableState
    *          State of the table
    */
-  public TableInformation(String tableName, Table.ID tableId, String tableState) {
+  public TableInformation(String tableName, TableId tableId, String tableState) {
     this.tablename = tableName;
     this.tableId = tableId;
     this.tableState = tableState;
@@ -122,7 +122,7 @@ public class TableInformation {
    * @param tableState
    *          State of the table
    */
-  public TableInformation(String tableName, Table.ID tableId, TableInfo info, Double holdTime,
+  public TableInformation(String tableName, TableId tableId, TableInfo info, Double holdTime,
       String tableState) {
     this.tablename = tableName;
     this.tableId = tableId;

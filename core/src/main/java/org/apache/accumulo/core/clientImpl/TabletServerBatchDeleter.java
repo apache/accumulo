@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyIterator;
 import org.apache.accumulo.core.security.Authorizations;
@@ -34,10 +35,10 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 public class TabletServerBatchDeleter extends TabletServerBatchReader implements BatchDeleter {
 
   private final ClientContext context;
-  private Table.ID tableId;
+  private TableId tableId;
   private BatchWriterConfig bwConfig;
 
-  public TabletServerBatchDeleter(ClientContext context, Table.ID tableId,
+  public TabletServerBatchDeleter(ClientContext context, TableId tableId,
       Authorizations authorizations, int numQueryThreads, BatchWriterConfig bwConfig) {
     super(context, tableId, authorizations, numQueryThreads);
     this.context = context;

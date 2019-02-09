@@ -27,11 +27,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
@@ -76,12 +76,12 @@ public class BulkImport extends MasterRepo {
 
   private static final Logger log = LoggerFactory.getLogger(BulkImport.class);
 
-  private Table.ID tableId;
+  private TableId tableId;
   private String sourceDir;
   private String errorDir;
   private boolean setTime;
 
-  public BulkImport(Table.ID tableId, String sourceDir, String errorDir, boolean setTime) {
+  public BulkImport(TableId tableId, String sourceDir, String errorDir, boolean setTime) {
     this.tableId = tableId;
     this.sourceDir = sourceDir;
     this.errorDir = errorDir;
@@ -101,7 +101,7 @@ public class BulkImport extends MasterRepo {
         reserve2 = Utils.reserveHdfsDirectory(master, errorDir, tid);
       return reserve2;
     } else {
-      throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.OFFLINE, null);
     }
   }
@@ -123,15 +123,15 @@ public class BulkImport extends MasterRepo {
       // ignored
     }
     if (errorStatus == null)
-      throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
           errorDir + " does not exist");
     if (!errorStatus.isDirectory())
-      throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
           errorDir + " is not a directory");
     if (fs.listStatus(errorPath).length != 0)
-      throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
           errorDir + " is not empty");
 
@@ -144,14 +144,14 @@ public class BulkImport extends MasterRepo {
       return new LoadFiles(tableId, sourceDir, bulkDir, errorDir, setTime);
     } catch (IOException ex) {
       log.error("error preparing the bulk import directory", ex);
-      throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_INPUT_DIRECTORY,
           sourceDir + ": " + ex);
     }
   }
 
   private static Path createNewBulkDir(ServerContext context, VolumeManager fs, String sourceDir,
-      Table.ID tableId) throws IOException {
+      TableId tableId) throws IOException {
     Path tempPath = fs.matchingFileSystem(new Path(sourceDir),
         ServerConstants.getTablesDirs(context));
     if (tempPath == null)
@@ -185,7 +185,7 @@ public class BulkImport extends MasterRepo {
 
   @VisibleForTesting
   public static String prepareBulkImport(ServerContext master, final VolumeManager fs, String dir,
-      Table.ID tableId) throws Exception {
+      TableId tableId) throws Exception {
     final Path bulkDir = createNewBulkDir(master, fs, dir, tableId);
 
     MetadataTableUtil.addBulkLoadInProgressFlag(master,

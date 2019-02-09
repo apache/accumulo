@@ -22,7 +22,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -36,11 +36,11 @@ public class ReplicationTarget implements Writable {
 
   private String peerName;
   private String remoteIdentifier;
-  private Table.ID sourceTableId;
+  private TableId sourceTableId;
 
   public ReplicationTarget() {}
 
-  public ReplicationTarget(String peerName, String remoteIdentifier, Table.ID sourceTableId) {
+  public ReplicationTarget(String peerName, String remoteIdentifier, TableId sourceTableId) {
     this.peerName = peerName;
     this.remoteIdentifier = remoteIdentifier;
     this.sourceTableId = sourceTableId;
@@ -62,11 +62,11 @@ public class ReplicationTarget implements Writable {
     this.remoteIdentifier = remoteIdentifier;
   }
 
-  public Table.ID getSourceTableId() {
+  public TableId getSourceTableId() {
     return sourceTableId;
   }
 
-  public void setSourceTableId(Table.ID sourceTableId) {
+  public void setSourceTableId(TableId sourceTableId) {
     this.sourceTableId = sourceTableId;
   }
 
@@ -90,7 +90,7 @@ public class ReplicationTarget implements Writable {
       out.writeBoolean(false);
     } else {
       out.writeBoolean(true);
-      WritableUtils.writeString(out, sourceTableId.canonicalID());
+      WritableUtils.writeString(out, sourceTableId.canonical());
     }
   }
 
@@ -103,7 +103,7 @@ public class ReplicationTarget implements Writable {
       this.remoteIdentifier = WritableUtils.readString(in);
     }
     if (in.readBoolean()) {
-      this.sourceTableId = Table.ID.of(WritableUtils.readString(in));
+      this.sourceTableId = TableId.of(WritableUtils.readString(in));
     }
   }
 

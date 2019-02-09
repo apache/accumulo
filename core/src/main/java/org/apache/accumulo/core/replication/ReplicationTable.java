@@ -31,8 +31,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
@@ -46,8 +46,8 @@ import com.google.common.collect.ImmutableMap;
 public class ReplicationTable {
   private static final Logger log = LoggerFactory.getLogger(ReplicationTable.class);
 
-  public static final Table.ID ID = Table.ID.of("+rep");
-  public static final String NAME = Namespace.ACCUMULO + ".replication";
+  public static final TableId ID = TableId.of("+rep");
+  public static final String NAME = Namespace.ACCUMULO.name() + ".replication";
 
   public static final String COMBINER_NAME = "statuscombiner";
 

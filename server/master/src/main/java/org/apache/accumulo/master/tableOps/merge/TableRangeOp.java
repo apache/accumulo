@@ -17,10 +17,10 @@
 package org.apache.accumulo.master.tableOps.merge;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.TextUtil;
@@ -40,8 +40,8 @@ public class TableRangeOp extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private final Table.ID tableId;
-  private final Namespace.ID namespaceId;
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
   private byte[] startRow;
   private byte[] endRow;
   private Operation op;
@@ -52,7 +52,7 @@ public class TableRangeOp extends MasterRepo {
         + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.MERGE);
   }
 
-  public TableRangeOp(MergeInfo.Operation op, Namespace.ID namespaceId, Table.ID tableId,
+  public TableRangeOp(MergeInfo.Operation op, NamespaceId namespaceId, TableId tableId,
       Text startRow, Text endRow) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
@@ -74,7 +74,7 @@ public class TableRangeOp extends MasterRepo {
 
     if (start != null && end != null)
       if (start.compareTo(end) >= 0)
-        throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
+        throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
             TableOperation.MERGE, TableOperationExceptionType.BAD_RANGE,
             "start row must be less than end row");
 

@@ -53,12 +53,12 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -145,7 +145,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  private Multimap<String,Table.ID> getLogs(AccumuloClient client, ServerContext context)
+  private Multimap<String,TableId> getLogs(AccumuloClient client, ServerContext context)
       throws Exception {
     // Map of server to tableId
     Multimap<TServerInstance,String> serverToTableID = HashMultimap.create();
@@ -159,13 +159,13 @@ public class ReplicationIT extends ConfigurableMacBase {
         serverToTableID.put(key, new String(tableId, UTF_8));
       }
       // Map of logs to tableId
-      Multimap<String,Table.ID> logs = HashMultimap.create();
+      Multimap<String,TableId> logs = HashMultimap.create();
       WalStateManager wals = new WalStateManager(context);
       for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
         for (UUID id : entry.getValue()) {
           Pair<WalState,Path> state = wals.state(entry.getKey(), id);
           for (String tableId : serverToTableID.get(entry.getKey())) {
-            logs.put(state.getSecond().toString(), Table.ID.of(tableId));
+            logs.put(state.getSecond().toString(), TableId.of(tableId));
           }
         }
       }
@@ -173,9 +173,9 @@ public class ReplicationIT extends ConfigurableMacBase {
     }
   }
 
-  private Multimap<String,Table.ID> getAllLogs(AccumuloClient client, ServerContext context)
+  private Multimap<String,TableId> getAllLogs(AccumuloClient client, ServerContext context)
       throws Exception {
-    Multimap<String,Table.ID> logs = getLogs(client, context);
+    Multimap<String,TableId> logs = getLogs(client, context);
     try (Scanner scanner = context.createScanner(ReplicationTable.NAME, Authorizations.EMPTY)) {
       StatusSection.limit(scanner);
       Text buff = new Text();
@@ -187,7 +187,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
         StatusSection.getFile(entry.getKey(), buff);
         String file = buff.toString();
-        Table.ID tableId = StatusSection.getTableId(entry.getKey());
+        TableId tableId = StatusSection.getTableId(entry.getKey());
 
         logs.put(file, tableId);
       }
@@ -217,7 +217,7 @@ public class ReplicationIT extends ConfigurableMacBase {
   public void replicationTableCreated() {
     try (AccumuloClient client = createClient()) {
       assertTrue(client.tableOperations().exists(ReplicationTable.NAME));
-      assertEquals(ReplicationTable.ID.canonicalID(),
+      assertEquals(ReplicationTable.ID.canonical(),
           client.tableOperations().tableIdMap().get(ReplicationTable.NAME));
     }
   }
@@ -544,7 +544,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     final ServerContext context = getServerContext();
     try (AccumuloClient client = createClient()) {
       String table1 = "table1", table2 = "table2", table3 = "table3";
-      final Multimap<String,Table.ID> logs = HashMultimap.create();
+      final Multimap<String,TableId> logs = HashMultimap.create();
       final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
       Thread t = new Thread(new Runnable() {
@@ -609,10 +609,10 @@ public class ReplicationIT extends ConfigurableMacBase {
       // We might have a WAL that was use solely for the replication table
       // We want to remove that from our list as it should not appear in the replication table
       String replicationTableId = client.tableOperations().tableIdMap().get(ReplicationTable.NAME);
-      Iterator<Entry<String,Table.ID>> observedLogs = logs.entries().iterator();
+      Iterator<Entry<String,TableId>> observedLogs = logs.entries().iterator();
       while (observedLogs.hasNext()) {
-        Entry<String,Table.ID> observedLog = observedLogs.next();
-        if (replicationTableId.equals(observedLog.getValue().canonicalID())) {
+        Entry<String,TableId> observedLog = observedLogs.next();
+        if (replicationTableId.equals(observedLog.getValue().canonical())) {
           log.info("Removing {} because its tableId is for the replication table", observedLog);
           observedLogs.remove();
         }
@@ -752,7 +752,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
       String table = "table";
       client.tableOperations().create(table);
-      Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(table));
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table));
 
       assertNotNull(tableId);
 
@@ -1068,7 +1068,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       writeSomeData(client, table1, 2000, 50);
       client.tableOperations().flush(table1, null, null, true);
 
-      Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(table1));
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table1));
       assertNotNull("Table ID was null", tableId);
 
       // Make sure the replication table exists at this point
@@ -1331,7 +1331,7 @@ public class ReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(table1));
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table1));
       assertNotNull("Could not determine table id for " + table1, tableId);
 
       // Write some data to table1

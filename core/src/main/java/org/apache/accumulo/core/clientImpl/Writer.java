@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
@@ -47,9 +48,9 @@ public class Writer {
   private static final Logger log = LoggerFactory.getLogger(Writer.class);
 
   private ClientContext context;
-  private Table.ID tableId;
+  private TableId tableId;
 
-  public Writer(ClientContext context, Table.ID tableId) {
+  public Writer(ClientContext context, TableId tableId) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
     this.context = context;

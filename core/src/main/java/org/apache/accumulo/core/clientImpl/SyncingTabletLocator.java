@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -51,7 +52,7 @@ public class SyncingTabletLocator extends TabletLocator {
     }
   }
 
-  public SyncingTabletLocator(final ClientContext context, final Table.ID tableId) {
+  public SyncingTabletLocator(final ClientContext context, final TableId tableId) {
     this(() -> TabletLocator.getLocator(context, tableId));
   }
 

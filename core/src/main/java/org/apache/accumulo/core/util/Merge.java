@@ -23,11 +23,11 @@ import java.util.List;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -212,7 +212,7 @@ public class Merge {
       Text end) throws MergeException {
     // open up metadata, walk through the tablets.
 
-    Table.ID tableId;
+    TableId tableId;
     TabletsMetadata tablets;
     try {
       ClientContext context = (ClientContext) client;

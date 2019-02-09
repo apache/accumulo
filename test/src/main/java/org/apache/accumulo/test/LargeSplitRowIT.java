@@ -205,7 +205,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
       while (iterator.hasNext()) {
         String curr = iterator.next();
-        if (!curr.startsWith(Namespace.ACCUMULO + ".")) {
+        if (!curr.startsWith(Namespace.ACCUMULO.name() + ".")) {
           tableName = curr;
         }
       }

@@ -54,6 +54,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TCMResult;
 import org.apache.accumulo.core.dataImpl.thrift.TCMStatus;
@@ -113,7 +114,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private Map<Text,Boolean> cache = Collections.synchronizedMap(new LRUMap(1000));
   private final ClientContext context;
   private TabletLocator locator;
-  private final Table.ID tableId;
+  private final TableId tableId;
   private long timeout;
   private final Durability durability;
   private final String classLoaderContext;
@@ -298,7 +299,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
       if (failures.size() == mutations.size())
         if (!Tables.exists(context, tableId))
-          throw new TableDeletedException(tableId.canonicalID());
+          throw new TableDeletedException(tableId.canonical());
         else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
           throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
@@ -385,7 +386,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
   }
 
-  ConditionalWriterImpl(ClientContext context, Table.ID tableId, ConditionalWriterConfig config) {
+  ConditionalWriterImpl(ClientContext context, TableId tableId, ConditionalWriterConfig config) {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
@@ -512,7 +513,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
 
     TConditionalSession tcs = client.startConditionalUpdate(tinfo, context.rpcCreds(),
-        ByteBufferUtil.toByteBuffers(auths.getAuthorizations()), tableId.canonicalID(),
+        ByteBufferUtil.toByteBuffers(auths.getAuthorizations()), tableId.canonical(),
         DurabilityImpl.toThrift(durability), this.classLoaderContext);
 
     synchronized (cachedSessionIDs) {

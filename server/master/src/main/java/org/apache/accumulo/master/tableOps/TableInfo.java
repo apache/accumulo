@@ -20,17 +20,16 @@ import java.io.Serializable;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
-import org.apache.accumulo.core.clientImpl.Table.ID;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 
 public class TableInfo implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
   private String tableName;
-  private Table.ID tableId;
-  private Namespace.ID namespaceId;
+  private TableId tableId;
+  private NamespaceId namespaceId;
 
   private char timeType;
   private String user;
@@ -54,19 +53,19 @@ public class TableInfo implements Serializable {
     this.tableName = tableName;
   }
 
-  public ID getTableId() {
+  public TableId getTableId() {
     return tableId;
   }
 
-  public void setTableId(ID tableId) {
+  public void setTableId(TableId tableId) {
     this.tableId = tableId;
   }
 
-  public Namespace.ID getNamespaceId() {
+  public NamespaceId getNamespaceId() {
     return namespaceId;
   }
 
-  public void setNamespaceId(Namespace.ID namespaceId) {
+  public void setNamespaceId(NamespaceId namespaceId) {
     this.namespaceId = namespaceId;
   }
 

@@ -27,8 +27,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.io.Text;
 
 public class ByteBufferUtil {
@@ -90,8 +90,8 @@ public class ByteBufferUtil {
     }
   }
 
-  public static Table.ID toTableId(ByteBuffer bytes) {
-    return Table.ID.of(toString(bytes));
+  public static TableId toTableId(ByteBuffer bytes) {
+    return TableId.of(toString(bytes));
   }
 
   public static ByteBuffer toByteBuffers(ByteSequence bs) {

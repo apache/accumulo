@@ -29,8 +29,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
@@ -55,12 +55,12 @@ class CopyFailed extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private Table.ID tableId;
+  private TableId tableId;
   private String source;
   private String bulk;
   private String error;
 
-  public CopyFailed(Table.ID tableId, String source, String bulk, String error) {
+  public CopyFailed(TableId tableId, String source, String bulk, String error) {
     this.tableId = tableId;
     this.source = source;
     this.bulk = bulk;

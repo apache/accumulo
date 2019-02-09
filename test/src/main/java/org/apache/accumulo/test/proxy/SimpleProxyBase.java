@@ -2749,8 +2749,8 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   @Test
   public void namespaceOperations() throws Exception {
     // default namespace and accumulo namespace
-    assertEquals("System namespace is wrong", client.systemNamespace(), Namespace.ACCUMULO);
-    assertEquals("Default namespace is wrong", client.defaultNamespace(), Namespace.DEFAULT);
+    assertEquals("System namespace is wrong", client.systemNamespace(), Namespace.ACCUMULO.name());
+    assertEquals("Default namespace is wrong", client.defaultNamespace(), Namespace.DEFAULT.name());
 
     // namespace existence and namespace listing
     assertTrue("Namespace created during setup should exist",

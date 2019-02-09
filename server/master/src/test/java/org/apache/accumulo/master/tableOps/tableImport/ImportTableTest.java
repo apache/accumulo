@@ -18,7 +18,7 @@ package org.apache.accumulo.master.tableOps.tableImport;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -32,7 +32,7 @@ public class ImportTableTest {
     Master master = EasyMock.createMock(Master.class);
     VolumeManager volumeManager = EasyMock.createMock(VolumeManager.class);
     ImportedTableInfo iti = new ImportedTableInfo();
-    iti.tableId = Table.ID.of("5");
+    iti.tableId = TableId.of("5");
 
     // Different volumes with different paths
     String[] tableDirs = {"hdfs://nn1:8020/apps/accumulo1/tables",

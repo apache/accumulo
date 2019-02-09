@@ -156,7 +156,7 @@ public class MetadataConstraints implements Constraint {
     }
 
     // ensure row is not less than Constants.METADATA_TABLE_ID
-    if (new Text(row).compareTo(new Text(MetadataTable.ID.getUtf8())) < 0) {
+    if (new Text(row).compareTo(new Text(MetadataTable.ID.canonical())) < 0) {
       violations = addViolation(violations, 5);
     }
 

@@ -19,7 +19,7 @@ package org.apache.accumulo.core.metadata;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 
 /**
@@ -35,7 +35,7 @@ class ServicerForRootTable extends MetadataServicer {
   }
 
   @Override
-  public Table.ID getServicedTableId() {
+  public TableId getServicedTableId() {
     return RootTable.ID;
   }
 

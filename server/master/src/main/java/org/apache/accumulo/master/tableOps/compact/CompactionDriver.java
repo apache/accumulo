@@ -20,11 +20,11 @@ import java.util.Collections;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -45,13 +45,13 @@ class CompactionDriver extends MasterRepo {
   private static final long serialVersionUID = 1L;
 
   private long compactId;
-  private final Table.ID tableId;
-  private final Namespace.ID namespaceId;
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
   private byte[] startRow;
   private byte[] endRow;
 
-  public CompactionDriver(long compactId, Namespace.ID namespaceId, Table.ID tableId,
-      byte[] startRow, byte[] endRow) {
+  public CompactionDriver(long compactId, NamespaceId namespaceId, TableId tableId, byte[] startRow,
+      byte[] endRow) {
     this.compactId = compactId;
     this.tableId = tableId;
     this.namespaceId = namespaceId;
@@ -74,7 +74,7 @@ class CompactionDriver extends MasterRepo {
 
     if (Long.parseLong(new String(zoo.getData(zCancelID, null))) >= compactId) {
       // compaction was canceled
-      throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Compaction canceled");
     }
 
@@ -103,12 +103,12 @@ class CompactionDriver extends MasterRepo {
 
     Tables.clearCache(master.getContext());
     if (tabletCount == 0 && !Tables.exists(master.getContext(), tableId))
-      throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
 
     if (serversToFlush.size() == 0
         && Tables.getTableState(master.getContext(), tableId) == TableState.OFFLINE)
-      throw new AcceptableThriftTableOperationException(tableId.canonicalID(), null,
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, null);
 
     if (tabletsToWaitFor == 0)
@@ -118,7 +118,7 @@ class CompactionDriver extends MasterRepo {
       try {
         final TServerConnection server = master.getConnection(tsi);
         if (server != null)
-          server.compact(master.getMasterLock(), tableId.canonicalID(), startRow, endRow);
+          server.compact(master.getMasterLock(), tableId.canonical(), startRow, endRow);
       } catch (TException ex) {
         LoggerFactory.getLogger(CompactionDriver.class).error(ex.toString());
       }

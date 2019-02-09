@@ -30,9 +30,9 @@ import java.util.EnumSet;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.clientImpl.Table.ID;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -56,7 +56,7 @@ public class TabletMetadataTest {
 
   @Test
   public void testAllColumns() {
-    KeyExtent extent = new KeyExtent(ID.of("5"), new Text("df"), new Text("da"));
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
     Mutation mutation = extent.getPrevRowUpdateMutation();
 
@@ -123,7 +123,7 @@ public class TabletMetadataTest {
 
   @Test
   public void testFuture() {
-    KeyExtent extent = new KeyExtent(ID.of("5"), new Text("df"), new Text("da"));
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
     Mutation mutation = extent.getPrevRowUpdateMutation();
     mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
@@ -142,7 +142,7 @@ public class TabletMetadataTest {
 
   @Test(expected = IllegalStateException.class)
   public void testFutureAndCurrent() {
-    KeyExtent extent = new KeyExtent(ID.of("5"), new Text("df"), new Text("da"));
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
     Mutation mutation = extent.getPrevRowUpdateMutation();
     mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");

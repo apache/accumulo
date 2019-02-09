@@ -35,10 +35,10 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -55,11 +55,11 @@ import org.apache.hadoop.io.WritableComparable;
  */
 public class KeyExtent implements WritableComparable<KeyExtent> {
 
-  private Table.ID tableId;
+  private TableId tableId;
   private Text textEndRow;
   private Text textPrevEndRow;
 
-  private static final Table.ID EMPTY_ID = Table.ID.of("");
+  private static final TableId EMPTY_ID = TableId.of("");
   private static final Text EMPTY_TEXT = new Text("");
 
   private void check() {
@@ -86,7 +86,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     this.setPrevEndRow(new Text(), false, false);
   }
 
-  public KeyExtent(Table.ID table, Text endRow, Text prevEndRow) {
+  public KeyExtent(TableId table, Text endRow, Text prevEndRow) {
     this.setTableId(table);
     this.setEndRow(endRow, false, true);
     this.setPrevEndRow(prevEndRow, false, true);
@@ -104,7 +104,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public KeyExtent(TKeyExtent tke) {
-    this.setTableId(Table.ID.of(new String(ByteBufferUtil.toBytes(tke.table), UTF_8)));
+    this.setTableId(TableId.of(new String(ByteBufferUtil.toBytes(tke.table), UTF_8)));
     this.setEndRow(tke.endRow == null ? null : new Text(ByteBufferUtil.toBytes(tke.endRow)), false,
         false);
     this.setPrevEndRow(
@@ -149,7 +149,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
    * Sets the extents table id
    *
    */
-  public void setTableId(Table.ID tId) {
+  public void setTableId(TableId tId) {
     Objects.requireNonNull(tId, "null table id not allowed");
 
     this.tableId = tId;
@@ -161,7 +161,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
    * Returns the extent's table id
    *
    */
-  public Table.ID getTableId() {
+  public TableId getTableId() {
     return tableId;
   }
 
@@ -229,7 +229,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   public void readFields(DataInput in) throws IOException {
     Text tid = new Text();
     tid.readFields(in);
-    setTableId(Table.ID.of(tid.toString()));
+    setTableId(TableId.of(tid.toString()));
     boolean hasRow = in.readBoolean();
     if (hasRow) {
       Text er = new Text();
@@ -253,7 +253,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   @Override
   public void write(DataOutput out) throws IOException {
-    new Text(getTableId().getUtf8()).write(out);
+    new Text(getTableId().canonical()).write(out);
     if (getEndRow() != null) {
       out.writeBoolean(true);
       getEndRow().write(out);
@@ -357,7 +357,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   public String toString() {
     String endRowString;
     String prevEndRowString;
-    String tableIdString = getTableId().canonicalID().replaceAll(";", "\\\\;").replaceAll("\\\\",
+    String tableIdString = getTableId().canonical().replaceAll(";", "\\\\;").replaceAll("\\\\",
         "\\\\\\\\");
 
     if (getEndRow() == null)
@@ -431,12 +431,12 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       String decodedString = new String(
           Arrays.copyOfRange(flattenedExtent.getBytes(), 0, flattenedExtent.getLength() - 1),
           UTF_8);
-      Table.ID tableId = Table.ID.of(decodedString);
+      TableId tableId = TableId.of(decodedString);
       this.setTableId(tableId);
       this.setEndRow(null, false, false);
     } else {
 
-      Table.ID tableId = Table.ID
+      TableId tableId = TableId
           .of(new String(Arrays.copyOfRange(flattenedExtent.getBytes(), 0, semiPos), UTF_8));
 
       Text endRow = new Text();
@@ -452,7 +452,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   public static byte[] tableOfMetadataRow(Text row) {
     KeyExtent ke = new KeyExtent();
     ke.decodeMetadataRow(row);
-    return ke.getTableId().getUtf8();
+    return ke.getTableId().canonical().getBytes(UTF_8);
   }
 
   public boolean contains(final ByteSequence bsrow) {
@@ -640,7 +640,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public TKeyExtent toThrift() {
-    return new TKeyExtent(ByteBuffer.wrap(tableId.getUtf8()),
+    return new TKeyExtent(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
         textEndRow == null ? null : TextUtil.getByteBuffer(textEndRow),
         textPrevEndRow == null ? null : TextUtil.getByteBuffer(textPrevEndRow));
   }

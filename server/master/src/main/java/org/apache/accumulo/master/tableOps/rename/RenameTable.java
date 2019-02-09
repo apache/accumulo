@@ -21,12 +21,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -38,8 +38,8 @@ import org.slf4j.LoggerFactory;
 public class RenameTable extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
-  private Table.ID tableId;
-  private Namespace.ID namespaceId;
+  private TableId tableId;
+  private NamespaceId namespaceId;
   private String oldTableName;
   private String newTableName;
 
@@ -49,7 +49,7 @@ public class RenameTable extends MasterRepo {
         + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.RENAME);
   }
 
-  public RenameTable(Namespace.ID namespaceId, Table.ID tableId, String oldTableName,
+  public RenameTable(NamespaceId namespaceId, TableId tableId, String oldTableName,
       String newTableName) throws NamespaceNotFoundException {
     this.namespaceId = namespaceId;
     this.tableId = tableId;
@@ -65,7 +65,7 @@ public class RenameTable extends MasterRepo {
     // ensure no attempt is made to rename across namespaces
     if (newTableName.contains(".") && !namespaceId
         .equals(Namespaces.getNamespaceId(master.getContext(), qualifiedNewTableName.getFirst())))
-      throw new AcceptableThriftTableOperationException(tableId.canonicalID(), oldTableName,
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), oldTableName,
           TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
           "Namespace in new table name does not match the old table name");
 

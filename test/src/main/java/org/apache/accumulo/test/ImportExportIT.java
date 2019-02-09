@@ -33,9 +33,9 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -146,7 +146,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       log.info("Imported into table with ID: {}", tableId);
 
       try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        s.setRange(MetadataSchema.TabletsSection.getRange(Table.ID.of(tableId)));
+        s.setRange(MetadataSchema.TabletsSection.getRange(TableId.of(tableId)));
         s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
         MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
 

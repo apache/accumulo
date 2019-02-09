@@ -20,11 +20,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.io.Text;
@@ -46,13 +46,13 @@ public class MetadataSchema {
       return section.getRange();
     }
 
-    public static Range getRange(Table.ID tableId) {
-      return new Range(new Key(tableId.canonicalID() + ';'), true,
-          new Key(tableId.canonicalID() + '<').followingKey(PartialKey.ROW), false);
+    public static Range getRange(TableId tableId) {
+      return new Range(new Key(tableId.canonical() + ';'), true,
+          new Key(tableId.canonical() + '<').followingKey(PartialKey.ROW), false);
     }
 
-    public static Text getRow(Table.ID tableId, Text endRow) {
-      Text entry = new Text(tableId.getUtf8());
+    public static Text getRow(TableId tableId, Text endRow) {
+      Text entry = new Text(tableId.canonical());
 
       if (endRow == null) {
         // append delimiter for default tablet
@@ -291,9 +291,9 @@ public class MetadataSchema {
      * @param k
      *          Key to extract from
      */
-    public static Table.ID getTableId(Key k) {
+    public static TableId getTableId(Key k) {
       requireNonNull(k);
-      return Table.ID.of(k.getColumnQualifier().toString());
+      return TableId.of(k.getColumnQualifier().toString());
     }
 
     /**
