@@ -28,9 +28,6 @@ import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -90,8 +87,6 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.vfs2.FileObject;
-import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
@@ -156,91 +151,26 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return _exec(clazz, jvmArgs2, args);
   }
 
-  private boolean containsConfigFile(File f) {
-    if (!f.isDirectory()) {
-      return false;
+  private String getClasspath() {
+    StringBuilder classpathBuilder = new StringBuilder();
+    classpathBuilder.append(config.getConfDir().getAbsolutePath());
+
+    if (config.getHadoopConfDir() != null)
+      classpathBuilder.append(File.pathSeparator)
+          .append(config.getHadoopConfDir().getAbsolutePath());
+
+    if (config.getClasspathItems() == null) {
+      String javaClassPath = System.getProperty("java.class.path");
+      if (javaClassPath == null) {
+        throw new IllegalStateException("java.class.path is not set");
+      }
+      classpathBuilder.append(File.pathSeparator).append(javaClassPath);
     } else {
-      File[] files = f.listFiles(pathname -> pathname.getName().endsWith("site.xml")
-          || pathname.getName().equals("accumulo.properties"));
-      return files != null && files.length > 0;
+      for (String s : config.getClasspathItems())
+        classpathBuilder.append(File.pathSeparator).append(s);
     }
-  }
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "mini runs in the same security context as user providing the url")
-  private void append(StringBuilder classpathBuilder, URL url) throws URISyntaxException {
-    File file = new File(url.toURI());
-    // do not include dirs containing hadoop or accumulo config files
-    if (!containsConfigFile(file))
-      classpathBuilder.append(File.pathSeparator).append(file.getAbsolutePath());
-  }
-
-  private String getClasspath() throws IOException {
-
-    try {
-      ArrayList<ClassLoader> classloaders = new ArrayList<>();
-
-      ClassLoader cl = this.getClass().getClassLoader();
-
-      while (cl != null) {
-        classloaders.add(cl);
-        cl = cl.getParent();
-      }
-
-      Collections.reverse(classloaders);
-
-      StringBuilder classpathBuilder = new StringBuilder();
-      classpathBuilder.append(config.getConfDir().getAbsolutePath());
-
-      if (config.getHadoopConfDir() != null)
-        classpathBuilder.append(File.pathSeparator)
-            .append(config.getHadoopConfDir().getAbsolutePath());
-
-      if (config.getClasspathItems() == null) {
-
-        // assume 0 is the system classloader and skip it
-        for (int i = 1; i < classloaders.size(); i++) {
-          ClassLoader classLoader = classloaders.get(i);
-
-          if (classLoader instanceof URLClassLoader) {
-
-            for (URL u : ((URLClassLoader) classLoader).getURLs()) {
-              append(classpathBuilder, u);
-            }
-
-          } else if (classLoader instanceof VFSClassLoader) {
-
-            VFSClassLoader vcl = (VFSClassLoader) classLoader;
-            for (FileObject f : vcl.getFileObjects()) {
-              append(classpathBuilder, f.getURL());
-            }
-          } else {
-            if (classLoader.getClass().getName()
-                .equals("jdk.internal.loader.ClassLoaders$AppClassLoader")) {
-              log.debug("Detected Java 11 classloader: {}", classLoader.getClass().getName());
-            } else {
-              log.debug("Detected unknown classloader: {}", classLoader.getClass().getName());
-            }
-            String javaClassPath = System.getProperty("java.class.path");
-            if (javaClassPath == null) {
-              throw new IllegalStateException("java.class.path is not set");
-            } else {
-              log.debug("Using classpath set by java.class.path system property: {}",
-                  javaClassPath);
-            }
-            classpathBuilder.append(File.pathSeparator).append(javaClassPath);
-          }
-        }
-      } else {
-        for (String s : config.getClasspathItems())
-          classpathBuilder.append(File.pathSeparator).append(s);
-      }
-
-      return classpathBuilder.toString();
-
-    } catch (URISyntaxException e) {
-      throw new IOException(e);
-    }
+    return classpathBuilder.toString();
   }
 
   public static class ProcessInfo {
