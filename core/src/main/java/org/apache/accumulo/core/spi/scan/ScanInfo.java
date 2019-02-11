@@ -55,7 +55,9 @@ public interface ScanInfo {
   String getTableId();
 
   /**
-   * Returns the first time a tablet knew about a scan over its portion of data.
+   * Returns the first time a tablet knew about a scan over its portion of data. This is the time a
+   * scan session was created inside a tablet server. If the scan goes across multiple tablet
+   * servers then within each tablet server there will be a different creation time.
    */
   long getCreationTime();
 
