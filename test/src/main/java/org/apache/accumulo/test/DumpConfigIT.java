@@ -34,6 +34,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class DumpConfigIT extends ConfigurableMacBase {
 
   @Override
@@ -46,6 +48,8 @@ public class DumpConfigIT extends ConfigurableMacBase {
     cfg.setSiteConfig(Collections.singletonMap(Property.TABLE_FILE_BLOCK_SIZE.getKey(), "1234567"));
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "user.dir is suitable test input")
   @Test
   public void test() throws Exception {
     File target = new File(System.getProperty("user.dir"), "target");
