@@ -408,7 +408,9 @@ public class RFile {
      *          Configuration for summarizer to run.
      * @since 2.0.0
      */
-    WriterOptions withSummarizers(SummarizerConfiguration... summarizerConf);
+    default WriterOptions withSummarizers(SummarizerConfiguration... summarizerConf) {
+      throw new UnsupportedOperationException();
+    }
 
     /**
      * An option to store sample data in the generated RFile.

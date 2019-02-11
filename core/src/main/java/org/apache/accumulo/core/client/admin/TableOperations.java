@@ -950,8 +950,9 @@ public interface TableOperations {
    * @since 2.0.0
    * @see Summarizer
    */
-  SummaryRetriever summaries(String tableName)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+  default SummaryRetriever summaries(String tableName) {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Enables summary generation for this table for future compactions.
@@ -968,8 +969,10 @@ public interface TableOperations {
    * @see SummarizerConfiguration#toTableProperties(SummarizerConfiguration...)
    * @see SummarizerConfiguration#toTableProperties(Collection)
    */
-  void addSummarizers(String tableName, SummarizerConfiguration... summarizers)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+  default void addSummarizers(String tableName, SummarizerConfiguration... summarizers)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Removes summary generation for this table for the matching summarizers.
@@ -980,8 +983,10 @@ public interface TableOperations {
    *          removes all summarizers whose configuration that matches this predicate
    * @since 2.0.0
    */
-  void removeSummarizers(String tableName, Predicate<SummarizerConfiguration> predicate)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException;
+  default void removeSummarizers(String tableName, Predicate<SummarizerConfiguration> predicate)
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * @param tableName
@@ -990,6 +995,8 @@ public interface TableOperations {
    * @since 2.0.0
    * @see SummarizerConfiguration#fromTableProperties(Map)
    */
-  List<SummarizerConfiguration> listSummarizers(String tableName)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException;
+  default List<SummarizerConfiguration> listSummarizers(String tableName)
+      throws AccumuloException, TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
 }
