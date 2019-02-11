@@ -76,7 +76,7 @@ public class ConditionCheckerContext {
 
     tableIters = pic.getIterInfo();
     tableIterOpts = pic.getOpts();
-    context = pic.getContext();
+    context = pic.getServiceEnv();
 
     classCache = new HashMap<>();
 

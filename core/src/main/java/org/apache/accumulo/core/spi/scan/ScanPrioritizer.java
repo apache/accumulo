@@ -19,6 +19,8 @@ package org.apache.accumulo.core.spi.scan;
 import java.util.Comparator;
 import java.util.Map;
 
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+
 /**
  * A factory for creating comparators used for prioritizing scans. For information about
  * configuring, find the documentation for the {@code tserver.scan.executors.} property.
@@ -41,6 +43,8 @@ public interface ScanPrioritizer {
      *         {@code <key>=<value>} portions of those properties ends up in the returned map.
      */
     Map<String,String> getOptions();
+
+    ServiceEnvironment getServiceEnv();
   }
 
   Comparator<ScanInfo> createComparator(CreateParameters params);

@@ -17,6 +17,7 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.test.VolumeChooserIT.PERTABLE_CHOOSER_PROP;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -32,13 +33,13 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.server.fs.PerTableVolumeChooser;
 import org.apache.accumulo.test.ShellServerIT.TestShell;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class ShellConfigIT extends AccumuloClusterHarness {
+
   @Override
   public int defaultTimeoutSeconds() {
     return 30;
@@ -54,8 +55,8 @@ public class ShellConfigIT extends AccumuloClusterHarness {
       // This lets us run this test more generically rather than forcibly needing to update some
       // property in accumulo.properties
       origPropValue = client.instanceOperations().getSystemConfiguration()
-          .get(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER);
-      client.instanceOperations().setProperty(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER,
+          .get(PERTABLE_CHOOSER_PROP);
+      client.instanceOperations().setProperty(PERTABLE_CHOOSER_PROP,
           FairVolumeChooser.class.getName());
     }
   }
@@ -64,8 +65,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
   public void resetProperty() throws Exception {
     if (origPropValue != null) {
       try (AccumuloClient client = createAccumuloClient()) {
-        client.instanceOperations().setProperty(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER,
-            origPropValue);
+        client.instanceOperations().setProperty(PERTABLE_CHOOSER_PROP, origPropValue);
       }
     }
   }
@@ -111,7 +111,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
 
     String configOutput = ts.exec("config");
 
-    assertTrue(configOutput.contains(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER));
+    assertTrue(configOutput.contains(PERTABLE_CHOOSER_PROP));
     assertFalse(configOutput.contains(Property.INSTANCE_CRYPTO_SERVICE.getKey()));
   }
 }

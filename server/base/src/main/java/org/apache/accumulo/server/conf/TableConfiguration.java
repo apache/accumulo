@@ -35,10 +35,12 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -193,7 +195,7 @@ public class TableConfiguration extends ObservableConfiguration {
       return tableOpts;
     }
 
-    public String getContext() {
+    public String getServiceEnv() {
       return context;
     }
   }
@@ -242,7 +244,22 @@ public class TableConfiguration extends ObservableConfiguration {
 
       Map<String,String> opts = builder.build();
 
-      newDispatcher.init(() -> opts);
+      newDispatcher.init(new ScanDispatcher.InitParameters() {
+        @Override
+        public TableId getTableId() {
+          return tableId;
+        }
+
+        @Override
+        public Map<String,String> getOptions() {
+          return opts;
+        }
+
+        @Override
+        public ServiceEnvironment getServiceEnv() {
+          return new ServiceEnvironmentImpl(context);
+        }
+      });
 
       TablesScanDispatcher newRef = new TablesScanDispatcher(newDispatcher, count);
       scanDispatcherRef.compareAndSet(currRef, newRef);

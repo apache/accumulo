@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.test.VolumeChooserIT.PERTABLE_CHOOSER_PROP;
+import static org.apache.accumulo.test.VolumeChooserIT.PREFERRED_CHOOSER_PROP;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -66,8 +69,7 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
     Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), PerTableVolumeChooser.class.getName());
     // if a table doesn't have a volume chooser, use the preferred volume chooser
-    siteConfig.put(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER,
-        PreferredVolumeChooser.class.getName());
+    siteConfig.put(VolumeChooserIT.PERTABLE_CHOOSER_PROP, PreferredVolumeChooser.class.getName());
 
     // Set up 4 different volume paths
     File baseDir = cfg.getDir();
@@ -83,7 +85,7 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
 
     cfg.setSiteConfig(siteConfig);
 
-    siteConfig.put(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER),
+    siteConfig.put(VolumeChooserIT.getPerTableProp(ChooserScope.LOGGER),
         PreferredVolumeChooser.class.getName());
     // do not set preferred volumes
     cfg.setSiteConfig(siteConfig);
@@ -121,8 +123,8 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
       accumuloClient.namespaceOperations().create(namespace1);
 
       // Set properties on the namespace
-      accumuloClient.namespaceOperations().setProperty(namespace1,
-          PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, PreferredVolumeChooser.class.getName());
+      accumuloClient.namespaceOperations().setProperty(namespace1, PERTABLE_CHOOSER_PROP,
+          PreferredVolumeChooser.class.getName());
       // deliberately do not set preferred volumes
 
       // Create table1 on namespace1 (will fail)
@@ -144,13 +146,13 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
       accumuloClient.namespaceOperations().create(namespace1);
 
       // Set properties on the namespace
-      String propertyName = PerTableVolumeChooser.TABLE_VOLUME_CHOOSER;
+      String propertyName = PERTABLE_CHOOSER_PROP;
       String volume = PreferredVolumeChooser.class.getName();
       accumuloClient.namespaceOperations().setProperty(namespace1, propertyName, volume);
 
       // set to v3 which is not included in the list of instance volumes, so it should go to the
       // system default preferred volumes
-      propertyName = PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES;
+      propertyName = PREFERRED_CHOOSER_PROP;
       volume = v3.toString();
       accumuloClient.namespaceOperations().setProperty(namespace1, propertyName, volume);
 

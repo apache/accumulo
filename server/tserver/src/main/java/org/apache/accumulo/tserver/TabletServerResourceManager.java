@@ -55,6 +55,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters;
 import org.apache.accumulo.core.spi.scan.ScanExecutor;
@@ -65,6 +66,7 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -205,7 +207,19 @@ public class TabletServerResourceManager {
       if (factory == null) {
         queue = new LinkedBlockingQueue<>();
       } else {
-        Comparator<ScanInfo> comparator = factory.createComparator(() -> sec.prioritizerOpts);
+        Comparator<ScanInfo> comparator = factory
+            .createComparator(new ScanPrioritizer.CreateParameters() {
+
+              @Override
+              public Map<String,String> getOptions() {
+                return sec.prioritizerOpts;
+              }
+
+              @Override
+              public ServiceEnvironment getServiceEnv() {
+                return new ServiceEnvironmentImpl(context);
+              }
+            });
 
         // function to extract scan scan session from runnable
         Function<Runnable,ScanInfo> extractor = r -> ((ScanSession.ScanMeasurer) ((TraceRunnable) r)
@@ -932,6 +946,11 @@ public class TabletServerResourceManager {
         @Override
         public Map<String,ScanExecutor> getScanExecutors() {
           return scanExecutorChoices;
+        }
+
+        @Override
+        public ServiceEnvironment getServiceEnv() {
+          return new ServiceEnvironmentImpl(context);
         }
       });
       ExecutorService executor = scanExecutors.get(scanExecutorName);

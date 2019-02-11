@@ -18,6 +18,9 @@ package org.apache.accumulo.core.spi.scan;
 
 import java.util.Map;
 
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+
 import com.google.common.base.Preconditions;
 
 /**
@@ -44,6 +47,10 @@ public interface ScanDispatcher {
      *         {@code p1=abc} and {@code p9=123}.
      */
     Map<String,String> getOptions();
+
+    TableId getTableId();
+
+    ServiceEnvironment getServiceEnv();
   }
 
   /**
@@ -70,6 +77,8 @@ public interface ScanDispatcher {
      * @return the currently configured scan executors
      */
     Map<String,ScanExecutor> getScanExecutors();
+
+    ServiceEnvironment getServiceEnv();
   }
 
   /**

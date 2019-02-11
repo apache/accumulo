@@ -72,6 +72,7 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -659,7 +660,7 @@ abstract class TabletGroupWatcher extends Daemon {
       } else {
         // Recreate the default tablet to hold the end of the table
         Master.log.debug("Recreating the last tablet to point to {}", extent.getPrevEndRow());
-        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
+        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(extent.getTableId(),
             extent.getEndRow(), master.getContext());
 
         String tdir = master.getFileSystem().choose(chooserEnv,

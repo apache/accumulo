@@ -103,6 +103,7 @@ import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.init.Initialize;
@@ -287,7 +288,7 @@ public class Master
     if (!zoo.exists(dirZPath)) {
       Path oldPath = fs.getFullPath(FileType.TABLE, "/" + MetadataTable.ID + "/root_tablet");
       if (fs.exists(oldPath)) {
-        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(RootTable.ID,
+        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(RootTable.ID,
             RootTable.EXTENT.getEndRow(), context);
         String newPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(context))
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + RootTable.ID;

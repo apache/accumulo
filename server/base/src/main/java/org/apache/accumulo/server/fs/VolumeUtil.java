@@ -272,7 +272,7 @@ public class VolumeUtil {
       throw new IllegalArgumentException("Unexpected table dir " + dir);
     }
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(extent.getTableId(),
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(extent.getTableId(),
         extent.getEndRow(), context);
 
     Path newDir = new Path(vm.choose(chooserEnv, ServerConstants.getBaseUris(context))

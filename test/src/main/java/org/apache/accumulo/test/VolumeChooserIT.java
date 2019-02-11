@@ -59,6 +59,20 @@ import org.junit.Test;
 
 public class VolumeChooserIT extends ConfigurableMacBase {
 
+  private static final String TP = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
+  static final String PREFERRED_CHOOSER_PROP = TP + "volume.preferred";
+  static final String PERTABLE_CHOOSER_PROP = TP + "volume.chooser";
+
+  private static final String GP = Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey();
+
+  static final String getPreferredProp(ChooserScope scope) {
+    return GP + "volume.preferred." + scope.name().toLowerCase();
+  }
+
+  static final String getPerTableProp(ChooserScope scope) {
+    return GP + "volume.chooser." + scope.name().toLowerCase();
+  }
+
   private static final Text EMPTY = new Text();
   private static final Value EMPTY_VALUE = new Value(new byte[] {});
   private File volDirBase;
@@ -87,8 +101,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), PerTableVolumeChooser.class.getName());
     // if a table doesn't have a volume chooser, use the preferred volume chooser
-    siteConfig.put(PerTableVolumeChooser.TABLE_VOLUME_CHOOSER,
-        PreferredVolumeChooser.class.getName());
+    siteConfig.put(PERTABLE_CHOOSER_PROP, PreferredVolumeChooser.class.getName());
 
     // Set up 4 different volume paths
     File baseDir = cfg.getDir();
@@ -104,13 +117,11 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     systemPreferredVolumes = v1 + "," + v2;
     // exclude v4
-    siteConfig.put(PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, systemPreferredVolumes);
+    siteConfig.put(PREFERRED_CHOOSER_PROP, systemPreferredVolumes);
     cfg.setSiteConfig(siteConfig);
 
-    siteConfig.put(PerTableVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER),
-        PreferredVolumeChooser.class.getName());
-    siteConfig.put(PreferredVolumeChooser.getPropertyNameForScope(ChooserScope.LOGGER),
-        v2.toString());
+    siteConfig.put(getPerTableProp(ChooserScope.LOGGER), PreferredVolumeChooser.class.getName());
+    siteConfig.put(getPreferredProp(ChooserScope.LOGGER), v2.toString());
     cfg.setSiteConfig(siteConfig);
 
     // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in
@@ -207,10 +218,10 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       String configuredVolumes, String namespace) throws Exception {
     accumuloClient.namespaceOperations().create(namespace);
     // Set properties on the namespace
-    accumuloClient.namespaceOperations().setProperty(namespace,
-        PerTableVolumeChooser.TABLE_VOLUME_CHOOSER, volumeChooserClassName);
-    accumuloClient.namespaceOperations().setProperty(namespace,
-        PreferredVolumeChooser.TABLE_PREFERRED_VOLUMES, configuredVolumes);
+    accumuloClient.namespaceOperations().setProperty(namespace, PERTABLE_CHOOSER_PROP,
+        volumeChooserClassName);
+    accumuloClient.namespaceOperations().setProperty(namespace, PREFERRED_CHOOSER_PROP,
+        configuredVolumes);
   }
 
   private void verifyVolumesForWritesToNewTable(AccumuloClient accumuloClient, String myNamespace,
@@ -293,7 +304,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     accumuloClient.namespaceOperations().create(ns);
 
     // Set properties on the namespace
-    accumuloClient.namespaceOperations().setProperty(ns, PerTableVolumeChooser.TABLE_VOLUME_CHOOSER,
+    accumuloClient.namespaceOperations().setProperty(ns, PERTABLE_CHOOSER_PROP,
         RandomVolumeChooser.class.getName());
 
     verifyVolumesForWritesToNewTable(accumuloClient, ns, expectedVolumes);

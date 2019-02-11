@@ -20,13 +20,11 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsStatus;
-import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
@@ -35,13 +33,10 @@ import org.junit.Test;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 public class SpaceAwareVolumeChooserTest {
-  VolumeManager volumeManager = null;
+
   VolumeChooserEnvironment chooserEnv = null;
-  ServerContext serverContext = null;
-  ServerConfigurationFactory serverConfigurationFactory = null;
-  AccumuloConfiguration sysConfig = null;
-  Volume vol1 = null;
-  Volume vol2 = null;
+  ServiceEnvironment serviceEnv = null;
+  Configuration sysConfig = null;
   FileSystem fs1 = null;
   FileSystem fs2 = null;
   FsStatus status1 = null;
@@ -60,19 +55,13 @@ public class SpaceAwareVolumeChooserTest {
 
   @Before
   public void beforeTest() {
-    volumeManager = EasyMock.createMock(VolumeManager.class);
-    serverContext = EasyMock.createMock(ServerContext.class);
-    serverConfigurationFactory = EasyMock.createMock(ServerConfigurationFactory.class);
-    sysConfig = EasyMock.createMock(AccumuloConfiguration.class);
-    vol1 = EasyMock.createMock(Volume.class);
-    vol2 = EasyMock.createMock(Volume.class);
+    serviceEnv = EasyMock.createMock(ServiceEnvironment.class);
+    sysConfig = EasyMock.createMock(Configuration.class);
     fs1 = EasyMock.createMock(FileSystem.class);
     fs2 = EasyMock.createMock(FileSystem.class);
     status1 = EasyMock.createMock(FsStatus.class);
     status2 = EasyMock.createMock(FsStatus.class);
-    chooserEnv = new VolumeChooserEnvironment(VolumeChooserEnvironment.ChooserScope.DEFAULT,
-        serverContext);
-
+    chooserEnv = EasyMock.createMock(VolumeChooserEnvironment.class);
   }
 
   private void testSpecificSetup(long percentage1, long percentage2, String cacheDuration,
@@ -84,6 +73,7 @@ public class SpaceAwareVolumeChooserTest {
       max = iterations + 1;
       updatePropertyMax = max + 1;
     }
+
     // Volume 1 is percentage1 full
     EasyMock.expect(status1.getRemaining()).andReturn(percentage1).times(min, max);
     EasyMock.expect(status1.getCapacity()).andReturn(100L).times(min, max);
@@ -92,43 +82,33 @@ public class SpaceAwareVolumeChooserTest {
     EasyMock.expect(status2.getRemaining()).andReturn(percentage2).times(min, max);
     EasyMock.expect(status2.getCapacity()).andReturn(100L).times(min, max);
 
-    EasyMock.expect(sysConfig.get(SpaceAwareVolumeChooser.HDFS_SPACE_RECOMPUTE_INTERVAL))
+    EasyMock.expect(sysConfig.getCustom(SpaceAwareVolumeChooser.RECOMPUTE_INTERVAL))
         .andReturn(cacheDuration).times(1);
+
     EasyMock
-        .expect(sysConfig.get(PreferredVolumeChooser
-            .getPropertyNameForScope(VolumeChooserEnvironment.ChooserScope.DEFAULT)))
+        .expect(
+            sysConfig.getCustom("volume.preferred." + ChooserScope.DEFAULT.name().toLowerCase()))
         .andReturn(String.join(",", tableDirs)).times(timesToCallPreferredVolumeChooser);
 
-    EasyMock.expect(serverContext.getVolumeManager()).andReturn(volumeManager).times(min,
-        Math.max(max, updatePropertyMax));
-    EasyMock.expect(serverContext.getServerConfFactory()).andReturn(serverConfigurationFactory)
-        .times(min, updatePropertyMax);
-    EasyMock.expect(serverConfigurationFactory.getSystemConfiguration()).andReturn(sysConfig)
-        .times(1, updatePropertyMax);
+    EasyMock.expect(serviceEnv.getConfiguration()).andReturn(sysConfig).times(1, updatePropertyMax);
 
-    EasyMock.expect(volumeManager.getVolumeByPath(new Path(volumeOne))).andReturn(vol1).times(min,
-        max);
-    EasyMock.expect(volumeManager.getVolumeByPath(new Path(volumeTwo))).andReturn(vol2).times(min,
-        max);
-    EasyMock.expect(vol1.getFileSystem()).andReturn(fs1).times(min, max);
-    EasyMock.expect(vol2.getFileSystem()).andReturn(fs2).times(min, max);
     EasyMock.expect(fs1.getStatus()).andReturn(status1).times(min, max);
     EasyMock.expect(fs2.getStatus()).andReturn(status2).times(min, max);
 
-    EasyMock.replay(serverContext, vol1, vol2, fs1, fs2, status1, status2, volumeManager,
-        serverConfigurationFactory, sysConfig);
+    EasyMock.expect(chooserEnv.getFileSystem(volumeOne)).andReturn(fs1).times(min, max);
+    EasyMock.expect(chooserEnv.getFileSystem(volumeTwo)).andReturn(fs2).times(min, max);
+    EasyMock.expect(chooserEnv.getScope()).andReturn(ChooserScope.DEFAULT).times(min, max * 2);
+    EasyMock.expect(chooserEnv.getServiceEnv()).andReturn(serviceEnv).times(min, max);
+
+    EasyMock.replay(serviceEnv, fs1, fs2, status1, status2, sysConfig, chooserEnv);
   }
 
   @After
   public void afterTest() {
 
-    EasyMock.verify(serverContext, vol1, vol2, fs1, fs2, status1, status2, volumeManager,
-        serverConfigurationFactory, sysConfig);
+    EasyMock.verify(serviceEnv, fs1, fs2, status1, status2, sysConfig, chooserEnv);
 
-    volumeManager = null;
-    serverContext = null;
-    vol1 = null;
-    vol2 = null;
+    serviceEnv = null;
     fs1 = null;
     fs2 = null;
     status1 = null;

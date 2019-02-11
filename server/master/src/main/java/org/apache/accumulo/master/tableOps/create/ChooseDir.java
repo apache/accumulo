@@ -28,6 +28,7 @@ import org.apache.accumulo.master.tableOps.TableInfo;
 import org.apache.accumulo.master.tableOps.Utils;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -54,8 +55,8 @@ class ChooseDir extends MasterRepo {
     // Constants.DEFAULT_TABLET_LOCATION has a leading slash prepended to it so we don't need to add
     // one here
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(tableInfo.getTableId(), null,
-        master.getContext());
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(tableInfo.getTableId(),
+        null, master.getContext());
 
     String baseDir = master.getFileSystem().choose(chooserEnv,
         ServerConstants.getBaseUris(master.getContext())) + Constants.HDFS_TABLES_DIR
