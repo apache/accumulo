@@ -128,5 +128,5 @@
         </table>
       </div>
       <div>
-       <a href="javascript:clearLogs();">Clear Logs</a>
+       <a href="javascript:clearLogs();javascript:refresh()">Clear Logs</a>
       </div>
