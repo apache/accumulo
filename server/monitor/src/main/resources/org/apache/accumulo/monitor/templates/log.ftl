@@ -127,3 +127,6 @@
             <tbody></tbody>
         </table>
       </div>
+      <div>
+       <a href="javascript:clearLogs();">Clear Logs</a>
+      </div>
