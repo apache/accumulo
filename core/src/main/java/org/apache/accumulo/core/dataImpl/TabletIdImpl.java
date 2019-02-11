@@ -36,7 +36,7 @@ public class TabletIdImpl implements TabletId {
 
   @Override
   public Text getTableId() {
-    return new Text(ke.getTableId().getUtf8());
+    return new Text(ke.getTableId().canonical());
   }
 
   @Override

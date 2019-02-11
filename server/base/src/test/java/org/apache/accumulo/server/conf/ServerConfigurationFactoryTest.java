@@ -30,10 +30,10 @@ import static org.junit.Assert.assertSame;
 
 import java.util.Properties;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
@@ -119,7 +119,7 @@ public class ServerConfigurationFactoryTest {
     assertNotNull(c);
   }
 
-  private static final Namespace.ID NSID = Namespace.ID.of("NAMESPACE");
+  private static final NamespaceId NSID = NamespaceId.of("NAMESPACE");
 
   @Test
   public void testGetNamespaceConfiguration() {

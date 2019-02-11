@@ -26,10 +26,10 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize.Input;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -38,7 +38,7 @@ public class BulkSerializeTest {
 
   @Test
   public void writeReadLoadMapping() throws Exception {
-    Table.ID tableId = Table.ID.of("3");
+    TableId tableId = TableId.of("3");
     SortedMap<KeyExtent,Bulk.Files> mapping = generateMapping(tableId);
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -75,7 +75,7 @@ public class BulkSerializeTest {
 
   @Test
   public void testRemap() throws Exception {
-    Table.ID tableId = Table.ID.of("3");
+    TableId tableId = TableId.of("3");
     SortedMap<KeyExtent,Bulk.Files> mapping = generateMapping(tableId);
 
     SortedMap<KeyExtent,Bulk.Files> newNameMapping = new TreeMap<>();
@@ -117,7 +117,7 @@ public class BulkSerializeTest {
 
   }
 
-  public SortedMap<KeyExtent,Bulk.Files> generateMapping(Table.ID tableId) {
+  public SortedMap<KeyExtent,Bulk.Files> generateMapping(TableId tableId) {
     SortedMap<KeyExtent,Bulk.Files> mapping = new TreeMap<>();
     Bulk.Files testFiles = new Bulk.Files();
     Bulk.Files testFiles2 = new Bulk.Files();

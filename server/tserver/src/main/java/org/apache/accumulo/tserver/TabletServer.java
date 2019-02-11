@@ -70,9 +70,7 @@ import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.TabletType;
@@ -90,7 +88,9 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
@@ -584,8 +584,8 @@ public class TabletServer implements Runnable {
         org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
         TSampleNotPresentException {
 
-      Table.ID tableId = Table.ID.of(new String(textent.getTable(), UTF_8));
-      Namespace.ID namespaceId;
+      TableId tableId = TableId.of(new String(textent.getTable(), UTF_8));
+      NamespaceId namespaceId;
       try {
         namespaceId = Tables.getNamespaceId(context, tableId);
       } catch (TableNotFoundException e1) {
@@ -765,17 +765,17 @@ public class TabletServer implements Runnable {
         Map<String,String> executionHints)
         throws ThriftSecurityException, TSampleNotPresentException {
       // find all of the tables that need to be scanned
-      final HashSet<Table.ID> tables = new HashSet<>();
+      final HashSet<TableId> tables = new HashSet<>();
       for (TKeyExtent keyExtent : tbatch.keySet()) {
-        tables.add(Table.ID.of(new String(keyExtent.getTable(), UTF_8)));
+        tables.add(TableId.of(new String(keyExtent.getTable(), UTF_8)));
       }
 
       if (tables.size() != 1)
         throw new IllegalArgumentException("Cannot batch scan over multiple tables");
 
       // check if user has permission to the tables
-      for (Table.ID tableId : tables) {
-        Namespace.ID namespaceId = getNamespaceId(credentials, tableId);
+      for (TableId tableId : tables) {
+        NamespaceId namespaceId = getNamespaceId(credentials, tableId);
         if (!security.canScan(credentials, tableId, namespaceId, tbatch, tcolumns, ssiList, ssio,
             authorizations))
           throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -920,7 +920,7 @@ public class TabletServer implements Runnable {
         return;
       }
 
-      Table.ID tableId = null;
+      TableId tableId = null;
       try {
         // if user has no permission to write to this table, add it to
         // the failures list
@@ -1234,8 +1234,8 @@ public class TabletServer implements Runnable {
         TMutation tmutation, TDurability tdurability)
         throws NotServingTabletException, ConstraintViolationException, ThriftSecurityException {
 
-      final Table.ID tableId = Table.ID.of(new String(tkeyExtent.getTable(), UTF_8));
-      Namespace.ID namespaceId = getNamespaceId(credentials, tableId);
+      final TableId tableId = TableId.of(new String(tkeyExtent.getTable(), UTF_8));
+      NamespaceId namespaceId = getNamespaceId(credentials, tableId);
       if (!security.canWrite(credentials, tableId, namespaceId))
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED);
@@ -1306,7 +1306,7 @@ public class TabletServer implements Runnable {
       }
     }
 
-    private Namespace.ID getNamespaceId(TCredentials credentials, Table.ID tableId)
+    private NamespaceId getNamespaceId(TCredentials credentials, TableId tableId)
         throws ThriftSecurityException {
       try {
         return Tables.getNamespaceId(context, tableId);
@@ -1503,9 +1503,9 @@ public class TabletServer implements Runnable {
         List<ByteBuffer> authorizations, String tableIdStr, TDurability tdurabilty,
         String classLoaderContext) throws ThriftSecurityException, TException {
 
-      Table.ID tableId = Table.ID.of(tableIdStr);
+      TableId tableId = TableId.of(tableIdStr);
       Authorizations userauths = null;
-      Namespace.ID namespaceId = getNamespaceId(credentials, tableId);
+      NamespaceId namespaceId = getNamespaceId(credentials, tableId);
       if (!security.canConditionallyUpdate(credentials, tableId, namespaceId))
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED);
@@ -1544,7 +1544,7 @@ public class TabletServer implements Runnable {
         }
       }
 
-      Table.ID tid = cs.tableId;
+      TableId tid = cs.tableId;
       long opid = writeTracker.startWrite(TabletType.type(new KeyExtent(tid, null, null)));
 
       try {
@@ -1597,8 +1597,8 @@ public class TabletServer implements Runnable {
     public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent,
         ByteBuffer splitPoint) throws NotServingTabletException, ThriftSecurityException {
 
-      Table.ID tableId = Table.ID.of(new String(ByteBufferUtil.toBytes(tkeyExtent.table)));
-      Namespace.ID namespaceId = getNamespaceId(credentials, tableId);
+      TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tkeyExtent.table)));
+      NamespaceId namespaceId = getNamespaceId(credentials, tableId);
 
       if (!security.canSplitTablet(credentials, tableId, namespaceId))
         throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -1636,7 +1636,7 @@ public class TabletServer implements Runnable {
         onlineTabletsCopy = new TreeMap<>(onlineTablets);
       }
       List<TabletStats> result = new ArrayList<>();
-      Table.ID text = Table.ID.of(tableId);
+      TableId text = TableId.of(tableId);
       KeyExtent start = new KeyExtent(text, new Text(), null);
       for (Entry<KeyExtent,Tablet> entry : onlineTabletsCopy.tailMap(start).entrySet()) {
         KeyExtent ke = entry.getKey();
@@ -1824,7 +1824,7 @@ public class TabletServer implements Runnable {
 
       ArrayList<Tablet> tabletsToFlush = new ArrayList<>();
 
-      KeyExtent ke = new KeyExtent(Table.ID.of(tableId), ByteBufferUtil.toText(endRow),
+      KeyExtent ke = new KeyExtent(TableId.of(tableId), ByteBufferUtil.toText(endRow),
           ByteBufferUtil.toText(startRow));
 
       synchronized (onlineTablets) {
@@ -1948,7 +1948,7 @@ public class TabletServer implements Runnable {
         throw new RuntimeException(e);
       }
 
-      KeyExtent ke = new KeyExtent(Table.ID.of(tableId), ByteBufferUtil.toText(endRow),
+      KeyExtent ke = new KeyExtent(TableId.of(tableId), ByteBufferUtil.toText(endRow),
           ByteBufferUtil.toText(startRow));
 
       ArrayList<Tablet> tabletsToCompact = new ArrayList<>();
@@ -2051,12 +2051,12 @@ public class TabletServer implements Runnable {
     public TSummaries startGetSummaries(TInfo tinfo, TCredentials credentials,
         TSummaryRequest request)
         throws ThriftSecurityException, ThriftTableOperationException, TException {
-      Namespace.ID namespaceId;
-      Table.ID tableId = Table.ID.of(request.getTableId());
+      NamespaceId namespaceId;
+      TableId tableId = TableId.of(request.getTableId());
       try {
         namespaceId = Tables.getNamespaceId(context, tableId);
       } catch (TableNotFoundException e1) {
-        throw new ThriftTableOperationException(tableId.canonicalID(), null, null,
+        throw new ThriftTableOperationException(tableId.canonical(), null, null,
             TableOperationExceptionType.NOTFOUND, null);
       }
 
@@ -2086,7 +2086,7 @@ public class TabletServer implements Runnable {
       ServerConfigurationFactory factory = context.getServerConfFactory();
       ExecutorService spe = resourceManager.getSummaryRemoteExecutor();
       Future<SummaryCollection> future = new Gatherer(context, request,
-          factory.getTableConfiguration(Table.ID.of(request.getTableId())),
+          factory.getTableConfiguration(TableId.of(request.getTableId())),
           context.getCryptoService()).processPartition(spe, modulus, remainder);
 
       return startSummaryOperation(credentials, future);
@@ -2104,7 +2104,7 @@ public class TabletServer implements Runnable {
 
       ExecutorService srp = resourceManager.getSummaryRetrievalExecutor();
       TableConfiguration tableCfg = confFactory
-          .getTableConfiguration(Table.ID.of(request.getTableId()));
+          .getTableConfiguration(TableId.of(request.getTableId()));
       BlockCache summaryCache = resourceManager.getSummaryCache();
       BlockCache indexCache = resourceManager.getIndexCache();
       Cache<String,Long> fileLenCache = resourceManager.getFileLenCache();
@@ -2547,7 +2547,7 @@ public class TabletServer implements Runnable {
           log.warn("{}", e.getMessage());
         }
 
-        Table.ID tableId = extent.getTableId();
+        TableId tableId = extent.getTableId();
         ProblemReports.getInstance(context).report(new ProblemReport(tableId, TABLET_LOAD,
             extent.getUUID().toString(), getClientAddressString(), e));
       } finally {
@@ -3011,7 +3011,7 @@ public class TabletServer implements Runnable {
     if (extent.isRootTablet()) {
       return verifyRootTablet(context, instance);
     }
-    Table.ID tableToVerify = MetadataTable.ID;
+    TableId tableToVerify = MetadataTable.ID;
     if (extent.isMeta())
       tableToVerify = RootTable.ID;
 
@@ -3221,7 +3221,7 @@ public class TabletServer implements Runnable {
     SimpleTimer.getInstance(aconf).schedule(constraintTask, 0, 1000);
   }
 
-  public TabletServerStatus getStats(Map<Table.ID,MapCounter<ScanRunState>> scanCounts) {
+  public TabletServerStatus getStats(Map<TableId,MapCounter<ScanRunState>> scanCounts) {
     long start = System.currentTimeMillis();
     TabletServerStatus result = new TabletServerStatus();
 
@@ -3232,7 +3232,7 @@ public class TabletServer implements Runnable {
     Map<String,TableInfo> tables = new HashMap<>();
 
     for (Entry<KeyExtent,Tablet> entry : onlineTabletsCopy.entrySet()) {
-      String tableId = entry.getKey().getTableId().canonicalID();
+      String tableId = entry.getKey().getTableId().canonical();
       TableInfo table = tables.get(tableId);
       if (table == null) {
         table = new TableInfo();
@@ -3262,11 +3262,11 @@ public class TabletServer implements Runnable {
         table.majors.queued++;
     }
 
-    for (Entry<Table.ID,MapCounter<ScanRunState>> entry : scanCounts.entrySet()) {
-      TableInfo table = tables.get(entry.getKey().canonicalID());
+    for (Entry<TableId,MapCounter<ScanRunState>> entry : scanCounts.entrySet()) {
+      TableInfo table = tables.get(entry.getKey().canonical());
       if (table == null) {
         table = new TableInfo();
-        tables.put(entry.getKey().canonicalID(), table);
+        tables.put(entry.getKey().canonical(), table);
       }
 
       if (table.scans == null)
@@ -3285,7 +3285,7 @@ public class TabletServer implements Runnable {
     }
 
     for (KeyExtent extent : offlineTabletsCopy) {
-      String tableId = extent.getTableId().canonicalID();
+      String tableId = extent.getTableId().canonical();
       TableInfo table = tables.get(tableId);
       if (table == null) {
         table = new TableInfo();

@@ -18,7 +18,7 @@ package org.apache.accumulo.master.tableOps.namespace.create;
 
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -46,7 +46,7 @@ public class CreateNamespace extends MasterRepo {
     Utils.getIdLock().lock();
     try {
       namespaceInfo.namespaceId = Utils.getNextId(namespaceInfo.namespaceName, master.getContext(),
-          Namespace.ID::of);
+          NamespaceId::of);
       return new SetupNamespacePermissions(namespaceInfo);
     } finally {
       Utils.getIdLock().unlock();

@@ -46,6 +46,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -146,7 +147,7 @@ public class ThriftScanner {
   public static class ScanState {
 
     boolean isolated;
-    Table.ID tableId;
+    TableId tableId;
     Text startRow;
     boolean skipStartRow;
     long readaheadThreshold;
@@ -174,7 +175,7 @@ public class ThriftScanner {
     SamplerConfiguration samplerConfig;
     Map<String,String> executionHints;
 
-    public ScanState(ClientContext context, Table.ID tableId, Authorizations authorizations,
+    public ScanState(ClientContext context, TableId tableId, Authorizations authorizations,
         Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList,
         Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated,
@@ -267,7 +268,7 @@ public class ThriftScanner {
 
             if (loc == null) {
               if (!Tables.exists(context, scanState.tableId))
-                throw new TableDeletedException(scanState.tableId.canonicalID());
+                throw new TableDeletedException(scanState.tableId.canonical());
               else if (Tables.getTableState(context, scanState.tableId) == TableState.OFFLINE)
                 throw new TableOfflineException(
                     Tables.getTableOfflineMsg(context, scanState.tableId));
@@ -322,7 +323,7 @@ public class ThriftScanner {
         } catch (AccumuloSecurityException e) {
           Tables.clearCache(context);
           if (!Tables.exists(context, scanState.tableId))
-            throw new TableDeletedException(scanState.tableId.canonicalID());
+            throw new TableDeletedException(scanState.tableId.canonical());
           e.setTableInfo(Tables.getPrintableTableInfoFromId(context, scanState.tableId));
           throw e;
         } catch (TApplicationException tae) {

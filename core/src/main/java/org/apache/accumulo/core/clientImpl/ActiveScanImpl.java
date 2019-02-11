@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.ScanState;
 import org.apache.accumulo.core.client.admin.ScanType;
 import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -61,7 +62,7 @@ public class ActiveScanImpl extends ActiveScan {
     this.user = activeScan.user;
     this.age = activeScan.age;
     this.idle = activeScan.idleTime;
-    this.tableName = Tables.getTableName(context, Table.ID.of(activeScan.tableId));
+    this.tableName = Tables.getTableName(context, TableId.of(activeScan.tableId));
     this.type = ScanType.valueOf(activeScan.getType().name());
     this.state = ScanState.valueOf(activeScan.state.name());
     this.extent = new KeyExtent(activeScan.extent);

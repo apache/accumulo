@@ -27,7 +27,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
@@ -36,16 +36,16 @@ import org.junit.Test;
 public class MetadataServicerTest {
 
   private static final String userTableName = "tableName";
-  private static final Table.ID userTableId = Table.ID.of("tableId");
+  private static final TableId userTableId = TableId.of("tableId");
   private static ClientContext context;
 
   @BeforeClass
   public static void setupContext() {
     HashMap<String,String> tableNameToIdMap = new HashMap<>();
-    tableNameToIdMap.put(RootTable.NAME, RootTable.ID.canonicalID());
-    tableNameToIdMap.put(MetadataTable.NAME, MetadataTable.ID.canonicalID());
-    tableNameToIdMap.put(ReplicationTable.NAME, ReplicationTable.ID.canonicalID());
-    tableNameToIdMap.put(userTableName, userTableId.canonicalID());
+    tableNameToIdMap.put(RootTable.NAME, RootTable.ID.canonical());
+    tableNameToIdMap.put(MetadataTable.NAME, MetadataTable.ID.canonical());
+    tableNameToIdMap.put(ReplicationTable.NAME, ReplicationTable.ID.canonical());
+    tableNameToIdMap.put(userTableName, userTableId.canonical());
 
     context = EasyMock.createMock(ClientContext.class);
     TableOperations tableOps = EasyMock.createMock(TableOperations.class);

@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -106,7 +106,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
   }
 
   @Override
-  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) {
+  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId tableId) {
     List<TabletStats> tablets = new ArrayList<>();
     // Report assignment information
     for (Entry<KeyExtent,TServerInstance> e : this.assignments.entrySet()) {

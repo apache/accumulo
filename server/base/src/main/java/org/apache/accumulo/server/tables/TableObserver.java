@@ -16,13 +16,13 @@
  */
 package org.apache.accumulo.server.tables;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
 
 public interface TableObserver {
   void initialize();
 
-  void stateChanged(Table.ID tableId, TableState tState);
+  void stateChanged(TableId tableId, TableState tState);
 
   void sessionExpired();
 }

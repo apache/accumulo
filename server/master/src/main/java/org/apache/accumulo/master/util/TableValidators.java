@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.replication.ReplicationTable;
@@ -49,15 +49,15 @@ public class TableValidators {
     }
   };
 
-  public static final Validator<Table.ID> VALID_ID = new Validator<Table.ID>() {
+  public static final Validator<TableId> VALID_ID = new Validator<TableId>() {
     @Override
-    public boolean test(Table.ID tableId) {
+    public boolean test(TableId tableId) {
       return tableId != null && (RootTable.ID.equals(tableId) || MetadataTable.ID.equals(tableId)
-          || ReplicationTable.ID.equals(tableId) || tableId.canonicalID().matches(VALID_ID_REGEX));
+          || ReplicationTable.ID.equals(tableId) || tableId.canonical().matches(VALID_ID_REGEX));
     }
 
     @Override
-    public String invalidMessage(Table.ID tableId) {
+    public String invalidMessage(TableId tableId) {
       if (tableId == null)
         return "Table id cannot be null";
       return "Table IDs are base-36 numbers, represented with lowercase alphanumeric digits: "
@@ -84,24 +84,24 @@ public class TableValidators {
 
     @Override
     public boolean test(String tableName) {
-      return !Namespace.ACCUMULO.equals(qualify(tableName).getFirst());
+      return !Namespace.ACCUMULO.name().equals(qualify(tableName).getFirst());
     }
 
     @Override
     public String invalidMessage(String tableName) {
-      return "Table cannot be in the " + Namespace.ACCUMULO + " namespace";
+      return "Table cannot be in the " + Namespace.ACCUMULO.name() + " namespace";
     }
   };
 
-  public static final Validator<Table.ID> NOT_ROOT_ID = new Validator<Table.ID>() {
+  public static final Validator<TableId> NOT_ROOT_ID = new Validator<TableId>() {
 
     @Override
-    public boolean test(Table.ID tableId) {
+    public boolean test(TableId tableId) {
       return !RootTable.ID.equals(tableId);
     }
 
     @Override
-    public String invalidMessage(Table.ID tableId) {
+    public String invalidMessage(TableId tableId) {
       return "Table cannot be the " + RootTable.NAME + "(Id: " + RootTable.ID + ") table";
     }
   };

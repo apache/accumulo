@@ -19,8 +19,8 @@ package org.apache.accumulo.server.fs;
 import java.io.IOException;
 import java.util.Collection;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.fs.ContentSummary;
@@ -155,7 +155,7 @@ public interface VolumeManager {
   // Convert a file or directory metadata reference into a path
   Path getFullPath(Key key);
 
-  Path getFullPath(Table.ID tableId, String path);
+  Path getFullPath(TableId tableId, String path);
 
   // Given a filename, figure out the qualified path given multiple namespaces
   Path getFullPath(FileType fileType, String fileName);

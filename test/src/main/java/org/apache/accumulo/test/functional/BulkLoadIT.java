@@ -44,12 +44,12 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.LoadPlan.RangeType;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
@@ -395,7 +395,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
     Set<String> endRowsSeen = new HashSet<>();
 
     String id = client.tableOperations().tableIdMap().get(tableName);
-    try (TabletsMetadata tablets = TabletsMetadata.builder().forTable(Table.ID.of(id)).fetchFiles()
+    try (TabletsMetadata tablets = TabletsMetadata.builder().forTable(TableId.of(id)).fetchFiles()
         .fetchLoaded().fetchPrev().build(client)) {
       for (TabletMetadata tablet : tablets) {
         assertTrue(tablet.getLoaded().isEmpty());

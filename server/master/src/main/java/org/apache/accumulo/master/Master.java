@@ -48,7 +48,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -57,6 +56,8 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
@@ -404,11 +405,11 @@ public class Master
         // create initial namespaces
         String namespaces = getZooKeeperRoot() + Constants.ZNAMESPACES;
         zoo.putPersistentData(namespaces, new byte[0], NodeExistsPolicy.SKIP);
-        for (Pair<String,Namespace.ID> namespace : Iterables.concat(
-            Collections.singleton(new Pair<>(Namespace.ACCUMULO, Namespace.ID.ACCUMULO)),
-            Collections.singleton(new Pair<>(Namespace.DEFAULT, Namespace.ID.DEFAULT)))) {
+        for (Pair<String,NamespaceId> namespace : Iterables.concat(
+            Collections.singleton(new Pair<>(Namespace.ACCUMULO.name(), Namespace.ACCUMULO.id())),
+            Collections.singleton(new Pair<>(Namespace.DEFAULT.name(), Namespace.DEFAULT.id())))) {
           String ns = namespace.getFirst();
-          Namespace.ID id = namespace.getSecond();
+          NamespaceId id = namespace.getSecond();
           log.debug("Upgrade creating namespace \"{}\" (ID: {})", ns, id);
           if (!Namespaces.exists(context, id))
             TableManager.prepareNewNamespaceState(zoo, getInstanceID(), id, ns,
@@ -418,30 +419,30 @@ public class Master
         // create replication table in zk
         log.debug("Upgrade creating table {} (ID: {})", ReplicationTable.NAME, ReplicationTable.ID);
         TableManager.prepareNewTableState(zoo, getInstanceID(), ReplicationTable.ID,
-            Namespace.ID.ACCUMULO, ReplicationTable.NAME, TableState.OFFLINE,
+            Namespace.ACCUMULO.id(), ReplicationTable.NAME, TableState.OFFLINE,
             NodeExistsPolicy.SKIP);
 
         // create root table
         log.debug("Upgrade creating table {} (ID: {})", RootTable.NAME, RootTable.ID);
-        TableManager.prepareNewTableState(zoo, getInstanceID(), RootTable.ID, Namespace.ID.ACCUMULO,
-            RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.SKIP);
+        TableManager.prepareNewTableState(zoo, getInstanceID(), RootTable.ID,
+            Namespace.ACCUMULO.id(), RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.SKIP);
         Initialize.initSystemTablesConfig(context.getZooReaderWriter(), context.getZooKeeperRoot(),
             context.getHadoopConf());
         // ensure root user can flush root table
         security.grantTablePermission(context.rpcCreds(), security.getRootUsername(), RootTable.ID,
-            TablePermission.ALTER_TABLE, Namespace.ID.ACCUMULO);
+            TablePermission.ALTER_TABLE, Namespace.ACCUMULO.id());
 
         // put existing tables in the correct namespaces
         String tables = getZooKeeperRoot() + Constants.ZTABLES;
         for (String tableId : zoo.getChildren(tables)) {
-          Namespace.ID targetNamespace = (MetadataTable.ID.canonicalID().equals(tableId)
-              || RootTable.ID.canonicalID().equals(tableId)) ? Namespace.ID.ACCUMULO
-                  : Namespace.ID.DEFAULT;
+          NamespaceId targetNamespace = (MetadataTable.ID.canonical().equals(tableId)
+              || RootTable.ID.canonical().equals(tableId)) ? Namespace.ACCUMULO.id()
+                  : Namespace.DEFAULT.id();
           log.debug("Upgrade moving table {} (ID: {}) into namespace with ID {}",
               new String(zoo.getData(tables + "/" + tableId + Constants.ZTABLE_NAME, null), UTF_8),
               tableId, targetNamespace);
           zoo.putPersistentData(tables + "/" + tableId + Constants.ZTABLE_NAMESPACE,
-              targetNamespace.getUtf8(), NodeExistsPolicy.SKIP);
+              targetNamespace.canonical().getBytes(UTF_8), NodeExistsPolicy.SKIP);
         }
 
         // rename metadata table
@@ -466,7 +467,7 @@ public class Master
         for (String user : zoo.getChildren(users)) {
           zoo.putPersistentData(users + "/" + user + "/Namespaces", new byte[0],
               NodeExistsPolicy.SKIP);
-          perm.grantNamespacePermission(user, Namespace.ID.ACCUMULO.canonicalID(),
+          perm.grantNamespacePermission(user, Namespace.ACCUMULO.id().canonical(),
               NamespacePermission.READ);
         }
         // because we need to refer to the root username, we can't use the
@@ -476,7 +477,7 @@ public class Master
         // fail. Instead we should be able to use the security object since
         // the loop above should have made the needed structure in ZK.
         security.grantNamespacePermission(context.rpcCreds(), security.getRootUsername(),
-            Namespace.ID.ACCUMULO, NamespacePermission.ALTER_TABLE);
+            Namespace.ACCUMULO.id(), NamespacePermission.ALTER_TABLE);
 
         // add the currlog location for root tablet current logs
         zoo.putPersistentData(getZooKeeperRoot() + RootTable.ZROOT_TABLET_CURRENT_LOGS, new byte[0],
@@ -570,7 +571,7 @@ public class Master
     }
   }
 
-  private int assignedOrHosted(Table.ID tableId) {
+  private int assignedOrHosted(TableId tableId) {
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
       TableCounts count = watcher.getStats(tableId);
@@ -612,8 +613,8 @@ public class Master
         // Count offline tablets for online tables
         for (TabletGroupWatcher watcher : watchers) {
           TableManager manager = context.getTableManager();
-          for (Entry<Table.ID,TableCounts> entry : watcher.getStats().entrySet()) {
-            Table.ID tableId = entry.getKey();
+          for (Entry<TableId,TableCounts> entry : watcher.getStats().entrySet()) {
+            TableId tableId = entry.getKey();
             TableCounts counts = entry.getValue();
             TableState tableState = manager.getTableState(tableId);
             if (tableState != null && tableState.equals(TableState.ONLINE)) {
@@ -643,10 +644,10 @@ public class Master
     return result;
   }
 
-  public void mustBeOnline(final Table.ID tableId) throws ThriftTableOperationException {
+  public void mustBeOnline(final TableId tableId) throws ThriftTableOperationException {
     Tables.clearCache(context);
     if (!Tables.getTableState(context, tableId).equals(TableState.ONLINE))
-      throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.MERGE,
+      throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.MERGE,
           TableOperationExceptionType.OFFLINE, "table is not online");
   }
 
@@ -731,7 +732,7 @@ public class Master
     return tserverSet.getConnection(server);
   }
 
-  public MergeInfo getMergeInfo(Table.ID tableId) {
+  public MergeInfo getMergeInfo(TableId tableId) {
     synchronized (mergeLock) {
       try {
         String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
@@ -777,7 +778,7 @@ public class Master
     nextEvent.event("Merge state of %s set to %s", info.getExtent(), state);
   }
 
-  public void clearMergeState(Table.ID tableId) throws KeeperException, InterruptedException {
+  public void clearMergeState(TableId tableId) throws KeeperException, InterruptedException {
     synchronized (mergeLock) {
       String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
       context.getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
@@ -817,7 +818,7 @@ public class Master
     return true;
   }
 
-  public void clearMigrations(Table.ID tableId) {
+  public void clearMigrations(TableId tableId) {
     synchronized (migrations) {
       Iterator<KeyExtent> iterator = migrations.keySet().iterator();
       while (iterator.hasNext()) {
@@ -977,7 +978,7 @@ public class Master
      */
     private void cleanupOfflineMigrations() {
       TableManager manager = context.getTableManager();
-      for (Table.ID tableId : Tables.getIdToNameMap(context).keySet()) {
+      for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
         TableState state = manager.getTableState(tableId);
         if (state == TableState.OFFLINE) {
           clearMigrations(tableId);
@@ -1673,7 +1674,7 @@ public class Master
   }
 
   @Override
-  public void stateChanged(Table.ID tableId, TableState state) {
+  public void stateChanged(TableId tableId, TableState state) {
     nextEvent.event("Table state in zookeeper changed for %s to %s", tableId, state);
     if (state == TableState.OFFLINE) {
       clearMigrations(tableId);
@@ -1687,8 +1688,8 @@ public class Master
   public void sessionExpired() {}
 
   @Override
-  public Set<Table.ID> onlineTables() {
-    Set<Table.ID> result = new HashSet<>();
+  public Set<TableId> onlineTables() {
+    Set<TableId> result = new HashSet<>();
     if (getMasterState() != MasterState.NORMAL) {
       if (getMasterState() != MasterState.UNLOAD_METADATA_TABLETS)
         result.add(MetadataTable.ID);
@@ -1698,7 +1699,7 @@ public class Master
     }
     TableManager manager = context.getTableManager();
 
-    for (Table.ID tableId : Tables.getIdToNameMap(context).keySet()) {
+    for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
       TableState state = manager.getTableState(tableId);
       if (state != null) {
         if (state == TableState.ONLINE)
@@ -1716,7 +1717,7 @@ public class Master
   @Override
   public Collection<MergeInfo> merges() {
     List<MergeInfo> result = new ArrayList<>();
-    for (Table.ID tableId : Tables.getIdToNameMap(context).keySet()) {
+    for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
       result.add(getMergeInfo(tableId));
     }
     return result;

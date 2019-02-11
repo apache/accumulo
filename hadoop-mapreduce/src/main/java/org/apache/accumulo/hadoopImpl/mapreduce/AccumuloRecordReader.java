@@ -46,11 +46,11 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
@@ -203,11 +203,11 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
 
       try {
         if (isOffline) {
-          scanner = new OfflineScanner(context, Table.ID.of(split.getTableId()), authorizations);
+          scanner = new OfflineScanner(context, TableId.of(split.getTableId()), authorizations);
         } else {
           // Not using public API to create scanner so that we can use table ID
           // Table ID is used in case of renames during M/R job
-          scanner = new ScannerImpl(context, Table.ID.of(split.getTableId()), authorizations);
+          scanner = new ScannerImpl(context, TableId.of(split.getTableId()), authorizations);
         }
         if (isIsolated) {
           log.info("Creating isolated scanner");
@@ -306,7 +306,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
   }
 
   private static Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobContext context,
-      Table.ID tableId, List<Range> ranges, Class<?> callingClass)
+      TableId tableId, List<Range> ranges, Class<?> callingClass)
       throws TableNotFoundException, AccumuloException {
     try (AccumuloClient client = createClient(context, callingClass)) {
       return InputConfigurator.binOffline(tableId, ranges, (ClientContext) client);
@@ -327,7 +327,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
         InputTableConfig tableConfig = tableConfigEntry.getValue();
 
         ClientContext clientContext = (ClientContext) client;
-        Table.ID tableId;
+        TableId tableId;
         // resolve table name to id once, and use id from this point forward
         try {
           tableId = Tables.getTableId(clientContext, tableName);
@@ -375,7 +375,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
             tl.invalidateCache();
 
             while (!tl.binRanges(clientContext, ranges, binnedRanges).isEmpty()) {
-              String tableIdStr = tableId.canonicalID();
+              String tableIdStr = tableId.canonical();
               if (!Tables.exists(clientContext, tableId))
                 throw new TableDeletedException(tableIdStr);
               if (Tables.getTableState(clientContext, tableId) == TableState.OFFLINE)
@@ -425,7 +425,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
               for (Range r : extentRanges.getValue()) {
                 if (autoAdjust) {
                   // divide ranges into smaller ranges, based on the tablets
-                  RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
+                  RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonical(),
                       ke.clip(r), new String[] {location});
                   SplitUtils.updateSplit(split, tableConfig);
                   split.setOffline(tableConfig.isOfflineScan());
@@ -447,7 +447,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
 
         if (!autoAdjust)
           for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
-            RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonicalID(),
+            RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonical(),
                 entry.getKey(), entry.getValue().toArray(new String[0]));
             SplitUtils.updateSplit(split, tableConfig);
             split.setOffline(tableConfig.isOfflineScan());

@@ -28,10 +28,10 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -99,7 +99,7 @@ public class FinishedWorkUpdater implements Runnable {
         log.debug("Processing work progress for {} with {} columns",
             serializedRow.getKey().getRow(), wholeRow.size());
 
-        Map<Table.ID,Long> tableIdToProgress = new HashMap<>();
+        Map<TableId,Long> tableIdToProgress = new HashMap<>();
         boolean error = false;
         Text buffer = new Text();
 
@@ -134,7 +134,7 @@ public class FinishedWorkUpdater implements Runnable {
         }
 
         // Update the replication table for each source table we found work records for
-        for (Entry<Table.ID,Long> entry : tableIdToProgress.entrySet()) {
+        for (Entry<TableId,Long> entry : tableIdToProgress.entrySet()) {
           // If the progress is 0, then no one has replicated anything, and we don't need to update
           // anything
           if (entry.getValue() == 0) {
@@ -153,7 +153,7 @@ public class FinishedWorkUpdater implements Runnable {
           Value serializedUpdatedStatus = ProtobufUtil.toValue(updatedStatus);
 
           // Pull the sourceTableId into a Text
-          Table.ID srcTableId = entry.getKey();
+          TableId srcTableId = entry.getKey();
 
           // Make the mutation
           StatusSection.add(replMutation, srcTableId, serializedUpdatedStatus);

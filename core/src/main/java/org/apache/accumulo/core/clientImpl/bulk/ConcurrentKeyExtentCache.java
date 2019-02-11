@@ -31,8 +31,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table.ID;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport.KeyExtentCache;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -51,10 +51,10 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
   private ConcurrentSkipListMap<Text,KeyExtent> extents = new ConcurrentSkipListMap<>((t1, t2) -> {
     return (t1 == t2) ? 0 : (t1 == MAX ? 1 : (t2 == MAX ? -1 : t1.compareTo(t2)));
   });
-  private ID tableId;
+  private TableId tableId;
   private ClientContext ctx;
 
-  ConcurrentKeyExtentCache(ID tableId, ClientContext ctx) {
+  ConcurrentKeyExtentCache(TableId tableId, ClientContext ctx) {
     this.tableId = tableId;
     this.ctx = ctx;
   }

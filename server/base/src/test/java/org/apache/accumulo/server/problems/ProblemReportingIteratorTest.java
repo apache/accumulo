@@ -27,10 +27,10 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 import org.easymock.EasyMock;
@@ -38,7 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ProblemReportingIteratorTest {
-  private static final Table.ID TABLE_ID = Table.ID.of("table");
+  private static final TableId TABLE_ID = TableId.of("table");
   private static final String RESOURCE = "resource";
 
   private InterruptibleIterator ii;

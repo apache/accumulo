@@ -26,9 +26,8 @@ import java.util.SortedMap;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
-import org.apache.accumulo.core.clientImpl.Table.ID;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -62,11 +61,11 @@ public interface GarbageCollectionEnvironment {
   Iterator<String> getBlipIterator() throws TableNotFoundException;
 
   static class Reference {
-    public final ID id;
+    public final TableId id;
     public final String ref;
     public final boolean isDir;
 
-    Reference(ID id, String ref, boolean isDir) {
+    Reference(TableId id, String ref, boolean isDir) {
       this.id = id;
       this.ref = ref;
       this.isDir = isDir;
@@ -87,7 +86,7 @@ public interface GarbageCollectionEnvironment {
    *
    * @return The valueSet for the table name to table id map.
    */
-  Set<Table.ID> getTableIDs();
+  Set<TableId> getTableIDs();
 
   /**
    * Delete the given files from the provided {@link Map} of relative path to absolute path for each
@@ -104,7 +103,7 @@ public interface GarbageCollectionEnvironment {
    * @param tableID
    *          The id of the table whose directory we are to operate on
    */
-  void deleteTableDirIfEmpty(Table.ID tableID) throws IOException;
+  void deleteTableDirIfEmpty(TableId tableID) throws IOException;
 
   /**
    * Increment the number of candidates for deletion for the current garbage collection run

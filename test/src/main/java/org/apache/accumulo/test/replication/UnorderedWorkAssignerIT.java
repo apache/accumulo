@@ -27,8 +27,8 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
@@ -121,8 +121,8 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
   @Test
   public void createWorkForFilesNeedingIt() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", Table.ID.of("1")),
-        target2 = new ReplicationTarget("cluster1", "table2", Table.ID.of("2"));
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", TableId.of("1")),
+        target2 = new ReplicationTarget("cluster1", "table2", TableId.of("2"));
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
     String keyTarget1 = target1.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
         + target1.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
@@ -182,8 +182,8 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
   @Test
   public void doNotCreateWorkForFilesNotNeedingIt() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", Table.ID.of("1")),
-        target2 = new ReplicationTarget("cluster1", "table2", Table.ID.of("2"));
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", TableId.of("1")),
+        target2 = new ReplicationTarget("cluster1", "table2", TableId.of("2"));
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
 
     // Create two mutations, both of which need replication work done
@@ -220,7 +220,7 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
     assigner.setQueuedWork(queuedWork);
 
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", Table.ID.of("1"));
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", TableId.of("1"));
     String serializedTarget = target.getPeerName()
         + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier()
         + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getSourceTableId();

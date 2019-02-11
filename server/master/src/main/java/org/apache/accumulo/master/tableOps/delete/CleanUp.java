@@ -25,12 +25,12 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
@@ -60,8 +60,8 @@ class CleanUp extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private Table.ID tableId;
-  private Namespace.ID namespaceId;
+  private TableId tableId;
+  private NamespaceId namespaceId;
 
   private long creationTime;
 
@@ -77,7 +77,7 @@ class CleanUp extends MasterRepo {
 
   }
 
-  public CleanUp(Table.ID tableId, Namespace.ID namespaceId) {
+  public CleanUp(TableId tableId, NamespaceId namespaceId) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
     creationTime = System.currentTimeMillis();
@@ -175,7 +175,7 @@ class CleanUp extends MasterRepo {
       try {
         VolumeManager fs = master.getFileSystem();
         for (String dir : ServerConstants.getTablesDirs(master.getContext())) {
-          fs.deleteRecursively(new Path(dir, tableId.canonicalID()));
+          fs.deleteRecursively(new Path(dir, tableId.canonical()));
         }
       } catch (IOException e) {
         log.error("Unable to remove deleted table directory", e);

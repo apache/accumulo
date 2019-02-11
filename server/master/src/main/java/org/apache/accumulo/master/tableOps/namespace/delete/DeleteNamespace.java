@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.master.tableOps.namespace.delete;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -27,9 +27,9 @@ public class DeleteNamespace extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private Namespace.ID namespaceId;
+  private NamespaceId namespaceId;
 
-  public DeleteNamespace(Namespace.ID namespaceId) {
+  public DeleteNamespace(NamespaceId namespaceId) {
     this.namespaceId = namespaceId;
   }
 

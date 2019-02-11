@@ -18,7 +18,7 @@ package org.apache.accumulo.monitor.rest.problems;
 
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.monitor.util.JaxbAbstractIdSerializer;
 
 /**
@@ -32,7 +32,7 @@ public class ProblemSummaryInformation {
   public String tableName;
 
   @XmlJavaTypeAdapter(JaxbAbstractIdSerializer.class)
-  public Table.ID tableID;
+  public TableId tableID;
 
   public Integer fileRead;
   public Integer fileWrite;
@@ -54,7 +54,7 @@ public class ProblemSummaryInformation {
    * @param tableLoad
    *          Number of table loads
    */
-  public ProblemSummaryInformation(String tableName, Table.ID tableId, Integer fileRead,
+  public ProblemSummaryInformation(String tableName, TableId tableId, Integer fileRead,
       Integer fileWrite, Integer tableLoad) {
     this.tableName = tableName;
     this.tableID = tableId;

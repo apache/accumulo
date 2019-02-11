@@ -28,9 +28,9 @@ import java.net.UnknownHostException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -42,14 +42,14 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 
 public class ProblemReport {
-  private Table.ID tableId;
+  private TableId tableId;
   private ProblemType problemType;
   private String resource;
   private String exception;
   private String server;
   private long creationTime;
 
-  public ProblemReport(Table.ID tableId, ProblemType problemType, String resource, String server,
+  public ProblemReport(TableId tableId, ProblemType problemType, String resource, String server,
       Throwable e, long creationTime) {
     requireNonNull(tableId, "tableId is null");
     requireNonNull(problemType, "problemType is null");
@@ -75,16 +75,16 @@ public class ProblemReport {
     this.creationTime = creationTime;
   }
 
-  public ProblemReport(Table.ID tableId, ProblemType problemType, String resource, String server,
+  public ProblemReport(TableId tableId, ProblemType problemType, String resource, String server,
       Throwable e) {
     this(tableId, problemType, resource, server, e, System.currentTimeMillis());
   }
 
-  public ProblemReport(Table.ID tableId, ProblemType problemType, String resource, Throwable e) {
+  public ProblemReport(TableId tableId, ProblemType problemType, String resource, Throwable e) {
     this(tableId, problemType, resource, null, e);
   }
 
-  private ProblemReport(Table.ID table, ProblemType problemType, String resource, byte enc[])
+  private ProblemReport(TableId table, ProblemType problemType, String resource, byte enc[])
       throws IOException {
     requireNonNull(table, "table is null");
     requireNonNull(problemType, "problemType is null");
@@ -168,7 +168,7 @@ public class ProblemReport {
   private String getZPath(String zkRoot) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
-    dos.writeUTF(getTableId().canonicalID());
+    dos.writeUTF(getTableId().canonical());
     dos.writeUTF(getProblemType().name());
     dos.writeUTF(getResource());
     dos.close();
@@ -185,7 +185,7 @@ public class ProblemReport {
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
     DataInputStream dis = new DataInputStream(bais);
 
-    Table.ID tableId = Table.ID.of(dis.readUTF());
+    TableId tableId = TableId.of(dis.readUTF());
     String problemType = dis.readUTF();
     String resource = dis.readUTF();
 
@@ -197,7 +197,7 @@ public class ProblemReport {
   }
 
   public static ProblemReport decodeMetadataEntry(Entry<Key,Value> entry) throws IOException {
-    Table.ID tableId = Table.ID.of(entry.getKey().getRow().toString().substring("~err_".length()));
+    TableId tableId = TableId.of(entry.getKey().getRow().toString().substring("~err_".length()));
     String problemType = entry.getKey().getColumnFamily().toString();
     String resource = entry.getKey().getColumnQualifier().toString();
 
@@ -205,7 +205,7 @@ public class ProblemReport {
         entry.getValue().get());
   }
 
-  public Table.ID getTableId() {
+  public TableId getTableId() {
     return tableId;
   }
 

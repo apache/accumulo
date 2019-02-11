@@ -26,10 +26,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -361,7 +361,7 @@ public class MultiIteratorTest {
     List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
     skvil.add(new SortedMapIterator(tm1));
 
-    KeyExtent extent = new KeyExtent(Table.ID.of("tablename"), newRow(1), newRow(0));
+    KeyExtent extent = new KeyExtent(TableId.of("tablename"), newRow(1), newRow(0));
 
     MultiIterator mi = new MultiIterator(skvil, extent);
 

@@ -64,7 +64,7 @@ public class MultiScanSession extends ScanSession {
 
   @Override
   public String getTableId() {
-    return threadPoolExtent.getTableId().canonicalID();
+    return threadPoolExtent.getTableId().canonical();
   }
 
   @Override

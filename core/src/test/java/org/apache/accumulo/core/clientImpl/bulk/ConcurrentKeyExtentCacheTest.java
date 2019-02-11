@@ -32,7 +32,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
 import org.junit.BeforeClass;
@@ -50,11 +50,11 @@ public class ConcurrentKeyExtentCacheTest {
     Text prev = null;
     for (int i = 1; i < 255; i++) {
       Text endRow = new Text(String.format("%02x", i));
-      extents.add(new KeyExtent(Table.ID.of("1"), endRow, prev));
+      extents.add(new KeyExtent(TableId.of("1"), endRow, prev));
       prev = endRow;
     }
 
-    extents.add(new KeyExtent(Table.ID.of("1"), null, prev));
+    extents.add(new KeyExtent(TableId.of("1"), null, prev));
 
     extentsSet.addAll(extents);
   }

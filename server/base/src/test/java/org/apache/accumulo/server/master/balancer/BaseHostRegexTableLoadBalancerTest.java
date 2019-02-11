@@ -35,13 +35,13 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -58,9 +58,9 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   protected static class TestTable {
     private String tableName;
-    private Table.ID id;
+    private TableId id;
 
-    TestTable(String tableName, Table.ID id) {
+    TestTable(String tableName, TableId id) {
       this.tableName = tableName;
       this.id = id;
     }
@@ -69,7 +69,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
       return tableName;
     }
 
-    public Table.ID getId() {
+    public TableId getId() {
       return id;
     }
   }
@@ -106,10 +106,10 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     }
 
     @Override
-    public TableConfiguration getTableConfiguration(final Table.ID tableId) {
+    public TableConfiguration getTableConfiguration(final TableId tableId) {
       // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration
       // constructor
-      NamespaceConfiguration dummyConf = new NamespaceConfiguration(Namespace.ID.DEFAULT, context,
+      NamespaceConfiguration dummyConf = new NamespaceConfiguration(Namespace.DEFAULT.id(), context,
           DefaultConfiguration.getInstance());
       return new TableConfiguration(context, tableId, dummyConf) {
         @Override
@@ -134,13 +134,13 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     }
   }
 
-  protected static final TestTable FOO = new TestTable("foo", Table.ID.of("1"));
-  protected static final TestTable BAR = new TestTable("bar", Table.ID.of("2"));
-  protected static final TestTable BAZ = new TestTable("baz", Table.ID.of("3"));
+  protected static final TestTable FOO = new TestTable("foo", TableId.of("1"));
+  protected static final TestTable BAR = new TestTable("bar", TableId.of("2"));
+  protected static final TestTable BAZ = new TestTable("baz", TableId.of("3"));
 
   protected class TestDefaultBalancer extends DefaultLoadBalancer {
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId tableId) {
       String tableName = idToTableName(tableId);
       TServerInstance initialLocation = initialTableLocation.get(tableName);
       if (tserver.equals(initialLocation)) {
@@ -246,7 +246,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   }
 
   protected boolean tabletInBounds(KeyExtent ke, TServerInstance tsi) {
-    String tid = ke.getTableId().canonicalID();
+    String tid = ke.getTableId().canonical();
     String host = tsi.host();
     if (tid.equals("1")
         && (host.equals("192.168.0.1") || host.equals("192.168.0.2") || host.equals("192.168.0.3")
@@ -262,7 +262,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
           || host.equals("192.168.0.15"));
   }
 
-  protected String idToTableName(Table.ID id) {
+  protected String idToTableName(TableId id) {
     if (id.equals(FOO.getId())) {
       return FOO.getTableName();
     } else if (id.equals(BAR.getId())) {
@@ -280,9 +280,9 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
       @Override
       public Map<String,String> tableIdMap() {
         HashMap<String,String> tables = new HashMap<>();
-        tables.put(FOO.getTableName(), FOO.getId().canonicalID());
-        tables.put(BAR.getTableName(), BAR.getId().canonicalID());
-        tables.put(BAZ.getTableName(), BAZ.getId().canonicalID());
+        tables.put(FOO.getTableName(), FOO.getId().canonical());
+        tables.put(BAR.getTableName(), BAR.getId().canonical());
+        tables.put(BAZ.getTableName(), BAZ.getId().canonical());
         return tables;
       }
 
@@ -298,7 +298,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   }
 
   @Override
-  protected TabletBalancer getBalancerForTable(Table.ID table) {
+  protected TabletBalancer getBalancerForTable(TableId table) {
     return new TestDefaultBalancer();
   }
 
@@ -317,9 +317,9 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     for (int i = 1; i <= numTservers; i++) {
       TabletServerStatus status = new TabletServerStatus();
       Map<String,TableInfo> tableMap = new HashMap<>();
-      tableMap.put(FOO.getId().canonicalID(), new TableInfo());
-      tableMap.put(BAR.getId().canonicalID(), new TableInfo());
-      tableMap.put(BAZ.getId().canonicalID(), new TableInfo());
+      tableMap.put(FOO.getId().canonical(), new TableInfo());
+      tableMap.put(BAR.getId().canonical(), new TableInfo());
+      tableMap.put(BAZ.getId().canonical(), new TableInfo());
       status.setTableMap(tableMap);
       current.put(new TServerInstance(base + i + ":9997", 1), status);
     }

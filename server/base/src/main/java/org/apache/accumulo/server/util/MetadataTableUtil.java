@@ -50,12 +50,12 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.BatchWriterImpl;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Writer;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -361,7 +361,7 @@ public class MetadataTableUtil {
   public static void addDeleteEntries(KeyExtent extent, Set<FileRef> datafilesToDelete,
       ServerContext context) {
 
-    Table.ID tableId = extent.getTableId();
+    TableId tableId = extent.getTableId();
 
     // TODO could use batch writer,would need to handle failure and retry like update does -
     // ACCUMULO-1294
@@ -371,12 +371,12 @@ public class MetadataTableUtil {
     }
   }
 
-  public static void addDeleteEntry(ServerContext context, Table.ID tableId, String path) {
+  public static void addDeleteEntry(ServerContext context, TableId tableId, String path) {
     update(context, createDeleteMutation(context, tableId, path),
         new KeyExtent(tableId, null, null));
   }
 
-  public static Mutation createDeleteMutation(ServerContext context, Table.ID tableId,
+  public static Mutation createDeleteMutation(ServerContext context, TableId tableId,
       String pathToRemove) {
     Path path = context.getVolumeManager().getFullPath(tableId, pathToRemove);
     Mutation delFlag = new Mutation(new Text(MetadataSchema.DeletesSection.getRowPrefix() + path));
@@ -443,7 +443,7 @@ public class MetadataTableUtil {
     }
   }
 
-  public static void deleteTable(Table.ID tableId, boolean insertDeletes, ServerContext context,
+  public static void deleteTable(TableId tableId, boolean insertDeletes, ServerContext context,
       ZooLock lock) throws AccumuloException {
     try (Scanner ms = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY);
         BatchWriter bw = new BatchWriterImpl(context, MetadataTable.ID,
@@ -618,7 +618,7 @@ public class MetadataTableUtil {
   }
 
   private static Scanner getTabletLogScanner(ServerContext context, KeyExtent extent) {
-    Table.ID tableId = MetadataTable.ID;
+    TableId tableId = MetadataTable.ID;
     if (extent.isMeta())
       tableId = RootTable.ID;
     Scanner scanner = new ScannerImpl(context, tableId, Authorizations.EMPTY);
@@ -704,7 +704,7 @@ public class MetadataTableUtil {
   }
 
   private static void getFiles(Set<String> files, Collection<String> tabletFiles,
-      Table.ID srcTableId) {
+      TableId srcTableId) {
     for (String file : tabletFiles) {
       if (srcTableId != null && !file.startsWith("../") && !file.contains(":")) {
         file = "../" + srcTableId + file;
@@ -713,7 +713,7 @@ public class MetadataTableUtil {
     }
   }
 
-  private static Mutation createCloneMutation(Table.ID srcTableId, Table.ID tableId,
+  private static Mutation createCloneMutation(TableId srcTableId, TableId tableId,
       Map<Key,Value> tablet) {
 
     KeyExtent ke = new KeyExtent(tablet.keySet().iterator().next().getRow(), (Text) null);
@@ -740,7 +740,7 @@ public class MetadataTableUtil {
     return m;
   }
 
-  private static Iterable<TabletMetadata> createCloneScanner(String testTableName, Table.ID tableId,
+  private static Iterable<TabletMetadata> createCloneScanner(String testTableName, TableId tableId,
       AccumuloClient client) throws TableNotFoundException {
 
     String tableName;
@@ -763,7 +763,7 @@ public class MetadataTableUtil {
   }
 
   @VisibleForTesting
-  public static void initializeClone(String testTableName, Table.ID srcTableId, Table.ID tableId,
+  public static void initializeClone(String testTableName, TableId srcTableId, TableId tableId,
       AccumuloClient client, BatchWriter bw)
       throws TableNotFoundException, MutationsRejectedException {
 
@@ -779,12 +779,12 @@ public class MetadataTableUtil {
   }
 
   private static int compareEndRows(Text endRow1, Text endRow2) {
-    return new KeyExtent(Table.ID.of("0"), endRow1, null)
-        .compareTo(new KeyExtent(Table.ID.of("0"), endRow2, null));
+    return new KeyExtent(TableId.of("0"), endRow1, null)
+        .compareTo(new KeyExtent(TableId.of("0"), endRow2, null));
   }
 
   @VisibleForTesting
-  public static int checkClone(String testTableName, Table.ID srcTableId, Table.ID tableId,
+  public static int checkClone(String testTableName, TableId srcTableId, TableId tableId,
       AccumuloClient client, BatchWriter bw)
       throws TableNotFoundException, MutationsRejectedException {
 
@@ -866,7 +866,7 @@ public class MetadataTableUtil {
     return rewrites;
   }
 
-  public static void cloneTable(ServerContext context, Table.ID srcTableId, Table.ID tableId,
+  public static void cloneTable(ServerContext context, TableId srcTableId, TableId tableId,
       VolumeManager volumeManager) throws Exception {
 
     try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
@@ -932,7 +932,7 @@ public class MetadataTableUtil {
     update(context, zooLock, m, extent);
   }
 
-  public static void removeBulkLoadEntries(AccumuloClient client, Table.ID tableId, long tid)
+  public static void removeBulkLoadEntries(AccumuloClient client, TableId tableId, long tid)
       throws Exception {
     try (
         Scanner mscanner = new IsolatedScanner(
@@ -1005,7 +1005,7 @@ public class MetadataTableUtil {
     // new KeyExtent is only added to force update to write to the metadata table, not the root
     // table
     // because bulk loads aren't supported to the metadata table
-    update(context, m, new KeyExtent(Table.ID.of("anythingNotMetadata"), null, null));
+    update(context, m, new KeyExtent(TableId.of("anythingNotMetadata"), null, null));
   }
 
   public static void removeBulkLoadInProgressFlag(ServerContext context, String path) {
@@ -1016,7 +1016,7 @@ public class MetadataTableUtil {
     // new KeyExtent is only added to force update to write to the metadata table, not the root
     // table
     // because bulk loads aren't supported to the metadata table
-    update(context, m, new KeyExtent(Table.ID.of("anythingNotMetadata"), null, null));
+    update(context, m, new KeyExtent(TableId.of("anythingNotMetadata"), null, null));
   }
 
   /**
@@ -1066,7 +1066,7 @@ public class MetadataTableUtil {
   public static void moveMetaDeleteMarkersFrom14(ServerContext context) {
     // new KeyExtent is only added to force update to write to the metadata table, not the root
     // table
-    KeyExtent notMetadata = new KeyExtent(Table.ID.of("anythingNotMetadata"), null, null);
+    KeyExtent notMetadata = new KeyExtent(TableId.of("anythingNotMetadata"), null, null);
 
     // move delete markers from the normal delete keyspace to the root tablet delete keyspace if the
     // files are for the !METADATA table

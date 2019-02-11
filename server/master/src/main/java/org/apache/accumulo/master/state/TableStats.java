@@ -19,13 +19,13 @@ package org.apache.accumulo.master.state;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.server.master.state.TabletState;
 
 public class TableStats {
-  private Map<Table.ID,TableCounts> last = new HashMap<>();
-  private Map<Table.ID,TableCounts> next;
+  private Map<TableId,TableCounts> last = new HashMap<>();
+  private Map<TableId,TableCounts> next;
   private long startScan = 0;
   private long endScan = 0;
   private MasterState state;
@@ -35,7 +35,7 @@ public class TableStats {
     startScan = System.currentTimeMillis();
   }
 
-  public synchronized void update(Table.ID tableId, TabletState state) {
+  public synchronized void update(TableId tableId, TabletState state) {
     TableCounts counts = next.get(tableId);
     if (counts == null) {
       counts = new TableCounts();
@@ -51,7 +51,7 @@ public class TableStats {
     this.state = state;
   }
 
-  public synchronized Map<Table.ID,TableCounts> getLast() {
+  public synchronized Map<TableId,TableCounts> getLast() {
     return last;
   }
 
@@ -59,7 +59,7 @@ public class TableStats {
     return state;
   }
 
-  public synchronized TableCounts getLast(Table.ID tableId) {
+  public synchronized TableCounts getLast(TableId tableId) {
     TableCounts result = last.get(tableId);
     if (result == null)
       return new TableCounts();

@@ -18,15 +18,15 @@ package org.apache.accumulo.master.tableOps.tableExport;
 
 import java.io.Serializable;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 
 class ExportInfo implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
   public String tableName;
-  public Table.ID tableID;
+  public TableId tableID;
   public String exportDir;
-  public Namespace.ID namespaceID;
+  public NamespaceId namespaceID;
 }

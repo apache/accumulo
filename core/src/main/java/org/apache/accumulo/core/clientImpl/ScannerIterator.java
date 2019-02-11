@@ -34,6 +34,7 @@ import org.apache.accumulo.core.clientImpl.ThriftScanner.ScanState;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.NamingThreadFactory;
@@ -67,7 +68,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   private boolean closed = false;
 
-  ScannerIterator(ClientContext context, Table.ID tableId, Authorizations authorizations,
+  ScannerIterator(ClientContext context, TableId tableId, Authorizations authorizations,
       Range range, int size, long timeOut, ScannerOptions options, boolean isolated,
       long readaheadThreshold, ScannerImpl.Reporter reporter) {
     this.timeOut = timeOut;

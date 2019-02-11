@@ -23,8 +23,8 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.slf4j.Logger;
@@ -52,7 +52,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
   // The fraction of memory that needs to be used before we begin flushing.
   private double compactionThreshold;
   private long maxObserved;
-  private final HashMap<Table.ID,Long> mincIdleThresholds = new HashMap<>();
+  private final HashMap<TableId,Long> mincIdleThresholds = new HashMap<>();
   private ServerConfiguration config = null;
 
   private static class TabletInfo {
@@ -141,14 +141,14 @@ public class LargestFirstMemoryManager implements MemoryManager {
   }
 
   protected long getMinCIdleThreshold(KeyExtent extent) {
-    Table.ID tableId = extent.getTableId();
+    TableId tableId = extent.getTableId();
     if (!mincIdleThresholds.containsKey(tableId))
       mincIdleThresholds.put(tableId, config.getTableConfiguration(tableId)
           .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
     return mincIdleThresholds.get(tableId);
   }
 
-  protected boolean tableExists(Table.ID tableId) {
+  protected boolean tableExists(TableId tableId) {
     // make sure that the table still exists by checking if it has a configuration
     return config.getTableConfiguration(tableId) != null;
   }

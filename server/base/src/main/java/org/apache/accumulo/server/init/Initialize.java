@@ -41,7 +41,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -49,6 +48,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
@@ -523,12 +523,12 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static class Tablet {
-    Table.ID tableId;
+    TableId tableId;
     String dir;
     Text prevEndRow, endRow;
     String[] files;
 
-    Tablet(Table.ID tableId, String dir, Text prevEndRow, Text endRow, String... files) {
+    Tablet(TableId tableId, String dir, Text prevEndRow, Text endRow, String... files) {
       this.tableId = tableId;
       this.dir = dir;
       this.prevEndRow = prevEndRow;
@@ -617,15 +617,15 @@ public class Initialize implements KeywordExecutable {
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES, new byte[0],
         NodeExistsPolicy.FAIL);
-    TableManager.prepareNewNamespaceState(zoo, uuid, Namespace.ID.DEFAULT, Namespace.DEFAULT,
-        NodeExistsPolicy.FAIL);
-    TableManager.prepareNewNamespaceState(zoo, uuid, Namespace.ID.ACCUMULO, Namespace.ACCUMULO,
-        NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(zoo, uuid, RootTable.ID, Namespace.ID.ACCUMULO,
+    TableManager.prepareNewNamespaceState(zoo, uuid, Namespace.DEFAULT.id(),
+        Namespace.DEFAULT.name(), NodeExistsPolicy.FAIL);
+    TableManager.prepareNewNamespaceState(zoo, uuid, Namespace.ACCUMULO.id(),
+        Namespace.ACCUMULO.name(), NodeExistsPolicy.FAIL);
+    TableManager.prepareNewTableState(zoo, uuid, RootTable.ID, Namespace.ACCUMULO.id(),
         RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(zoo, uuid, MetadataTable.ID, Namespace.ID.ACCUMULO,
+    TableManager.prepareNewTableState(zoo, uuid, MetadataTable.ID, Namespace.ACCUMULO.id(),
         MetadataTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(zoo, uuid, ReplicationTable.ID, Namespace.ID.ACCUMULO,
+    TableManager.prepareNewTableState(zoo, uuid, ReplicationTable.ID, Namespace.ACCUMULO.id(),
         ReplicationTable.NAME, TableState.OFFLINE, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);

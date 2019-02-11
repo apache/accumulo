@@ -18,7 +18,7 @@ package org.apache.accumulo.monitor.rest.tservers;
 
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.monitor.util.JaxbAbstractIdSerializer;
 
 /**
@@ -33,7 +33,7 @@ public class CurrentOperations {
   public String tablet;
 
   @XmlJavaTypeAdapter(JaxbAbstractIdSerializer.class)
-  public Table.ID tableID;
+  public TableId tableID;
 
   public long entries;
   public double ingest;
@@ -75,9 +75,9 @@ public class CurrentOperations {
    * @param majorAvgES
    *          Major compaction average ES
    */
-  public CurrentOperations(String name, Table.ID tableId, String tablet, long entries,
-      double ingest, double query, Double minorAvg, Double minorStdDev, Double minorAvgES,
-      Double majorAvg, Double majorStdDev, Double majorAvgES) {
+  public CurrentOperations(String name, TableId tableId, String tablet, long entries, double ingest,
+      double query, Double minorAvg, Double minorStdDev, Double minorAvgES, Double majorAvg,
+      Double majorStdDev, Double majorAvgES) {
     this.name = name;
     this.tableID = tableId;
     this.tablet = tablet;

@@ -50,8 +50,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationArguments;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
-import org.apache.accumulo.core.clientImpl.Table.ID;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
@@ -67,6 +65,7 @@ import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.LoadPlan.Destination;
 import org.apache.accumulo.core.data.LoadPlan.RangeType;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
@@ -114,7 +113,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   public void load()
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException {
 
-    Table.ID tableId = Tables.getTableId(context, tableName);
+    TableId tableId = Tables.getTableId(context, tableName);
 
     Map<String,String> props = context.instanceOperations().getSystemConfiguration();
     AccumuloConfiguration conf = new ConfigurationCopy(props);
@@ -133,7 +132,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getUtf8()),
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
         ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
         ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
     new TableOperationsImpl(context).doBulkFateOperation(args, tableName);
@@ -339,7 +338,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     return fileLenCache;
   }
 
-  private SortedMap<KeyExtent,Files> computeMappingFromPlan(FileSystem fs, ID tableId, Path srcPath)
+  private SortedMap<KeyExtent,Files> computeMappingFromPlan(FileSystem fs, TableId tableId,
+      Path srcPath)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     Map<String,List<Destination>> fileDestinations = plan.getDestinations().stream()
@@ -393,7 +393,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     return row == null ? null : new Text(row);
   }
 
-  private Set<KeyExtent> mapDesitnationsToExtents(Table.ID tableId, KeyExtentCache kec,
+  private Set<KeyExtent> mapDesitnationsToExtents(TableId tableId, KeyExtentCache kec,
       List<Destination> destinations)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Set<KeyExtent> extents = new HashSet<>();
@@ -423,7 +423,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     return extents;
   }
 
-  private SortedMap<KeyExtent,Bulk.Files> computeMappingFromFiles(FileSystem fs, Table.ID tableId,
+  private SortedMap<KeyExtent,Bulk.Files> computeMappingFromFiles(FileSystem fs, TableId tableId,
       Path dirPath) throws IOException {
 
     Executor executor;
@@ -484,7 +484,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   public static SortedMap<KeyExtent,Bulk.Files> computeFileToTabletMappings(FileSystem fs,
-      Table.ID tableId, Path dirPath, Executor executor, ClientContext context) throws IOException {
+      TableId tableId, Path dirPath, Executor executor, ClientContext context) throws IOException {
 
     KeyExtentCache extentCache = new ConcurrentKeyExtentCache(tableId, context);
 

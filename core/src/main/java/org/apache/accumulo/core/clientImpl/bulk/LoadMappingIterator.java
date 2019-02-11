@@ -28,7 +28,7 @@ import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 
 import com.google.gson.Gson;
@@ -39,12 +39,12 @@ import com.google.gson.stream.JsonReader;
  */
 public class LoadMappingIterator
     implements Iterator<Map.Entry<KeyExtent,Bulk.Files>>, AutoCloseable {
-  private Table.ID tableId;
+  private TableId tableId;
   private JsonReader reader;
   private Gson gson = createGson();
   private Map<String,String> renameMap;
 
-  LoadMappingIterator(Table.ID tableId, InputStream loadMapFile) throws IOException {
+  LoadMappingIterator(TableId tableId, InputStream loadMapFile) throws IOException {
     this.tableId = tableId;
     this.reader = new JsonReader(new BufferedReader(new InputStreamReader(loadMapFile, UTF_8)));
     this.reader.beginArray();

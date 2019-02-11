@@ -22,12 +22,12 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.master.Master;
@@ -62,7 +62,7 @@ class ImportPopulateZookeeper extends MasterRepo {
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
       return TableOperationsImpl.getExportedProps(ns, path);
     } catch (IOException ioe) {
-      throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonicalID(),
+      throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
           tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Error reading table props from " + path + " " + ioe.getMessage());
     }
@@ -79,7 +79,7 @@ class ImportPopulateZookeeper extends MasterRepo {
           TableOperation.CREATE);
 
       String namespace = Tables.qualify(tableInfo.tableName).getFirst();
-      Namespace.ID namespaceId = Namespaces.getNamespaceId(env.getContext(), namespace);
+      NamespaceId namespaceId = Namespaces.getNamespaceId(env.getContext(), namespace);
       env.getTableManager().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName,
           NodeExistsPolicy.OVERWRITE);
 
@@ -91,7 +91,7 @@ class ImportPopulateZookeeper extends MasterRepo {
     for (Entry<String,String> entry : getExportedProps(env.getFileSystem()).entrySet())
       if (!TablePropUtil.setTableProperty(env.getContext(), tableInfo.tableId, entry.getKey(),
           entry.getValue())) {
-        throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonicalID(),
+        throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
             tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
             "Invalid table property " + entry.getKey());
       }

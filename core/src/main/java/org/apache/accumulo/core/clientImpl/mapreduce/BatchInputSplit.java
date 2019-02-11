@@ -24,10 +24,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 
 /**
  * The Class BatchInputSplit. Encapsulates a set of Accumulo ranges on a single tablet for use in
@@ -49,9 +49,9 @@ public class BatchInputSplit extends org.apache.accumulo.core.client.mapreduce.R
     this.setRanges(split.getRanges());
   }
 
-  public BatchInputSplit(String table, Table.ID tableId, Collection<Range> ranges,
+  public BatchInputSplit(String table, TableId tableId, Collection<Range> ranges,
       String[] locations) {
-    super(table, tableId.canonicalID(), new Range(), locations);
+    super(table, tableId.canonical(), new Range(), locations);
     this.ranges = ranges;
   }
 

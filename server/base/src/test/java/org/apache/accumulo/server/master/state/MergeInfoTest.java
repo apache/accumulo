@@ -31,7 +31,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -72,7 +72,7 @@ public class MergeInfoTest {
     String table = "table";
     Text endRow = new Text("end");
     Text prevEndRow = new Text("begin");
-    keyExtent = new KeyExtent(Table.ID.of(table), endRow, prevEndRow);
+    keyExtent = new KeyExtent(TableId.of(table), endRow, prevEndRow);
     mi = new MergeInfo(keyExtent, MergeInfo.Operation.DELETE);
     mi.setState(MergeState.STARTED);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -89,10 +89,10 @@ public class MergeInfoTest {
 
   @Test
   public void testNeedsToBeChopped_DifferentTables() {
-    expect(keyExtent.getTableId()).andReturn(Table.ID.of("table1"));
+    expect(keyExtent.getTableId()).andReturn(TableId.of("table1"));
     replay(keyExtent);
     KeyExtent keyExtent2 = createMock(KeyExtent.class);
-    expect(keyExtent2.getTableId()).andReturn(Table.ID.of("table2"));
+    expect(keyExtent2.getTableId()).andReturn(TableId.of("table2"));
     replay(keyExtent2);
     mi = new MergeInfo(keyExtent, MergeInfo.Operation.MERGE);
     assertFalse(mi.needsToBeChopped(keyExtent2));
@@ -100,9 +100,9 @@ public class MergeInfoTest {
 
   @Test
   public void testNeedsToBeChopped_NotDelete() {
-    expect(keyExtent.getTableId()).andReturn(Table.ID.of("table1"));
+    expect(keyExtent.getTableId()).andReturn(TableId.of("table1"));
     KeyExtent keyExtent2 = createMock(KeyExtent.class);
-    expect(keyExtent2.getTableId()).andReturn(Table.ID.of("table1"));
+    expect(keyExtent2.getTableId()).andReturn(TableId.of("table1"));
     replay(keyExtent2);
     expect(keyExtent.overlaps(keyExtent2)).andReturn(true);
     replay(keyExtent);
@@ -126,11 +126,11 @@ public class MergeInfoTest {
   }
 
   private void testNeedsToBeChopped_Delete(String prevEndRow, boolean expected) {
-    expect(keyExtent.getTableId()).andReturn(Table.ID.of("table1"));
+    expect(keyExtent.getTableId()).andReturn(TableId.of("table1"));
     expect(keyExtent.getEndRow()).andReturn(new Text("prev"));
     replay(keyExtent);
     KeyExtent keyExtent2 = createMock(KeyExtent.class);
-    expect(keyExtent2.getTableId()).andReturn(Table.ID.of("table1"));
+    expect(keyExtent2.getTableId()).andReturn(TableId.of("table1"));
     expect(keyExtent2.getPrevEndRow()).andReturn(prevEndRow != null ? new Text(prevEndRow) : null);
     expectLastCall().anyTimes();
     replay(keyExtent2);
@@ -151,9 +151,9 @@ public class MergeInfoTest {
   public void testOverlaps_DoesNotNeedChopping() {
     KeyExtent keyExtent2 = createMock(KeyExtent.class);
     expect(keyExtent.overlaps(keyExtent2)).andReturn(false);
-    expect(keyExtent.getTableId()).andReturn(Table.ID.of("table1"));
+    expect(keyExtent.getTableId()).andReturn(TableId.of("table1"));
     replay(keyExtent);
-    expect(keyExtent2.getTableId()).andReturn(Table.ID.of("table2"));
+    expect(keyExtent2.getTableId()).andReturn(TableId.of("table2"));
     replay(keyExtent2);
     mi = new MergeInfo(keyExtent, MergeInfo.Operation.MERGE);
     assertFalse(mi.overlaps(keyExtent2));
@@ -163,10 +163,10 @@ public class MergeInfoTest {
   public void testOverlaps_NeedsChopping() {
     KeyExtent keyExtent2 = createMock(KeyExtent.class);
     expect(keyExtent.overlaps(keyExtent2)).andReturn(false);
-    expect(keyExtent.getTableId()).andReturn(Table.ID.of("table1"));
+    expect(keyExtent.getTableId()).andReturn(TableId.of("table1"));
     expect(keyExtent.getEndRow()).andReturn(new Text("prev"));
     replay(keyExtent);
-    expect(keyExtent2.getTableId()).andReturn(Table.ID.of("table1"));
+    expect(keyExtent2.getTableId()).andReturn(TableId.of("table1"));
     expect(keyExtent2.getPrevEndRow()).andReturn(new Text("prev"));
     expectLastCall().anyTimes();
     replay(keyExtent2);
@@ -188,7 +188,7 @@ public class MergeInfoTest {
   }
 
   private static KeyExtent ke(String tableId, String endRow, String prevEndRow) {
-    return new KeyExtent(Table.ID.of(tableId), endRow == null ? null : new Text(endRow),
+    return new KeyExtent(TableId.of(tableId), endRow == null ? null : new Text(endRow),
         prevEndRow == null ? null : new Text(prevEndRow));
   }
 

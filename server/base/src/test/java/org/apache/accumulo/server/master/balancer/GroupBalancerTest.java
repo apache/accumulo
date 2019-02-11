@@ -33,7 +33,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Function;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.util.MapCounter;
@@ -72,7 +72,7 @@ public class GroupBalancerTest {
 
     public void addTablet(String er, String location) {
       TServerInstance tsi = new TServerInstance(location, 6);
-      tabletLocs.put(new KeyExtent(Table.ID.of("b"), er == null ? null : new Text(er), null),
+      tabletLocs.put(new KeyExtent(TableId.of("b"), er == null ? null : new Text(er), null),
           new TServerInstance(location, 6));
       tservers.add(tsi);
     }
@@ -82,7 +82,7 @@ public class GroupBalancerTest {
     }
 
     public void balance(final int maxMigrations) {
-      GroupBalancer balancer = new GroupBalancer(Table.ID.of("1")) {
+      GroupBalancer balancer = new GroupBalancer(TableId.of("1")) {
 
         @Override
         protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {

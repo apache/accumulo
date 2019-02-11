@@ -25,6 +25,8 @@ import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,14 +39,14 @@ import com.google.common.collect.ImmutableMap;
 public class TableMap {
   private static final Logger log = LoggerFactory.getLogger(TableMap.class);
 
-  private final Map<String,Table.ID> tableNameToIdMap;
-  private final Map<Table.ID,String> tableIdToNameMap;
+  private final Map<String,TableId> tableNameToIdMap;
+  private final Map<TableId,String> tableIdToNameMap;
 
   public TableMap(ClientContext context, ZooCache zooCache) {
     List<String> tableIds = zooCache.getChildren(context.getZooKeeperRoot() + Constants.ZTABLES);
-    Map<Namespace.ID,String> namespaceIdToNameMap = new HashMap<>();
-    ImmutableMap.Builder<String,Table.ID> tableNameToIdBuilder = new ImmutableMap.Builder<>();
-    ImmutableMap.Builder<Table.ID,String> tableIdToNameBuilder = new ImmutableMap.Builder<>();
+    Map<NamespaceId,String> namespaceIdToNameMap = new HashMap<>();
+    ImmutableMap.Builder<String,TableId> tableNameToIdBuilder = new ImmutableMap.Builder<>();
+    ImmutableMap.Builder<TableId,String> tableIdToNameBuilder = new ImmutableMap.Builder<>();
     // use StringBuilder to construct zPath string efficiently across many tables
     StringBuilder zPathBuilder = new StringBuilder();
     zPathBuilder.append(context.getZooKeeperRoot()).append(Constants.ZTABLES).append("/");
@@ -59,13 +61,13 @@ public class TableMap {
       zPathBuilder.append(tableIdStr).append(Constants.ZTABLE_NAMESPACE);
       byte[] nId = zooCache.get(zPathBuilder.toString());
 
-      String namespaceName = Namespace.DEFAULT;
+      String namespaceName = Namespace.DEFAULT.name();
       // create fully qualified table name
       if (nId == null) {
         namespaceName = null;
       } else {
-        Namespace.ID namespaceId = Namespace.ID.of(new String(nId, UTF_8));
-        if (!namespaceId.equals(Namespace.ID.DEFAULT)) {
+        NamespaceId namespaceId = NamespaceId.of(new String(nId, UTF_8));
+        if (!namespaceId.equals(Namespace.DEFAULT.id())) {
           try {
             namespaceName = namespaceIdToNameMap.get(namespaceId);
             if (namespaceName == null) {
@@ -81,7 +83,7 @@ public class TableMap {
       }
       if (tableName != null && namespaceName != null) {
         String tableNameStr = qualified(new String(tableName, UTF_8), namespaceName);
-        Table.ID tableId = Table.ID.of(tableIdStr);
+        TableId tableId = TableId.of(tableIdStr);
         tableNameToIdBuilder.put(tableNameStr, tableId);
         tableIdToNameBuilder.put(tableId, tableNameStr);
       }
@@ -90,11 +92,11 @@ public class TableMap {
     tableIdToNameMap = tableIdToNameBuilder.build();
   }
 
-  public Map<String,Table.ID> getNameToIdMap() {
+  public Map<String,TableId> getNameToIdMap() {
     return tableNameToIdMap;
   }
 
-  public Map<Table.ID,String> getIdtoNameMap() {
+  public Map<TableId,String> getIdtoNameMap() {
     return tableIdToNameMap;
   }
 }

@@ -18,7 +18,7 @@ package org.apache.accumulo.master.tableOps.bulkVer1;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -36,12 +36,12 @@ public class CleanUpBulkImport extends MasterRepo {
 
   private static final Logger log = LoggerFactory.getLogger(CleanUpBulkImport.class);
 
-  private Table.ID tableId;
+  private TableId tableId;
   private String source;
   private String bulk;
   private String error;
 
-  CleanUpBulkImport(Table.ID tableId, String source, String bulk, String error) {
+  CleanUpBulkImport(TableId tableId, String source, String bulk, String error) {
     this.tableId = tableId;
     this.source = source;
     this.bulk = bulk;

@@ -19,10 +19,10 @@ package org.apache.accumulo.server.fs;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
@@ -41,7 +41,7 @@ public class PerTableVolumeChooser implements VolumeChooser {
   private static final Logger log = LoggerFactory.getLogger(PerTableVolumeChooser.class);
   // TODO Add hint of expected size to construction, see ACCUMULO-3410
   /* Track VolumeChooser instances so they can keep state. */
-  private final ConcurrentHashMap<Table.ID,VolumeChooser> tableSpecificChooserCache = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<TableId,VolumeChooser> tableSpecificChooserCache = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<ChooserScope,VolumeChooser> scopeSpecificChooserCache = new ConcurrentHashMap<>();
   private final RandomVolumeChooser randomChooser = new RandomVolumeChooser();
 

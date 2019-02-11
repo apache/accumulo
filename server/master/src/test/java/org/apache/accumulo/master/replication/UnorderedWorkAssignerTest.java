@@ -34,8 +34,8 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -59,7 +59,7 @@ public class UnorderedWorkAssignerTest {
 
   @Test
   public void workQueuedUsingFileName() throws Exception {
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", Table.ID.of("1"));
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", TableId.of("1"));
 
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
     Set<String> queuedWork = new HashSet<>();

@@ -28,11 +28,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.volume.NonConfiguredVolume;
@@ -391,7 +391,7 @@ public class VolumeManagerImpl implements VolumeManager {
     // TODO sanity check col fam
     String relPath = key.getColumnQualifierData().toString();
     byte[] tableId = KeyExtent.tableOfMetadataRow(key.getRow());
-    return getFullPath(Table.ID.of(new String(tableId)), relPath);
+    return getFullPath(TableId.of(new String(tableId)), relPath);
   }
 
   @Override
@@ -418,14 +418,14 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public Path getFullPath(Table.ID tableId, String path) {
+  public Path getFullPath(TableId tableId, String path) {
     if (path.contains(":"))
       return new Path(path);
 
     if (path.startsWith("../"))
       path = path.substring(2);
     else if (path.startsWith("/"))
-      path = "/" + tableId.canonicalID() + path;
+      path = "/" + tableId.canonical() + path;
     else
       throw new IllegalArgumentException("Unexpected path prefix " + path);
 

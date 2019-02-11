@@ -18,10 +18,10 @@ package org.apache.accumulo.master.tableOps.namespace.rename;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter.Mutator;
@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 public class RenameNamespace extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
-  private Namespace.ID namespaceId;
+  private NamespaceId namespaceId;
   private String oldName;
   private String newName;
 
@@ -42,7 +42,7 @@ public class RenameNamespace extends MasterRepo {
     return Utils.reserveNamespace(environment, namespaceId, id, true, true, TableOperation.RENAME);
   }
 
-  public RenameNamespace(Namespace.ID namespaceId, String oldName, String newName) {
+  public RenameNamespace(NamespaceId namespaceId, String oldName, String newName) {
     this.namespaceId = namespaceId;
     this.oldName = oldName;
     this.newName = newName;

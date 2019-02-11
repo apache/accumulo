@@ -39,6 +39,7 @@ import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -47,7 +48,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class NamespaceConfigurationTest {
-  private static final Namespace.ID NSID = Namespace.ID.of("namespace");
+  private static final NamespaceId NSID = NamespaceId.of("namespace");
   private static final String ZOOKEEPERS = "localhost";
   private static final int ZK_SESSION_TIMEOUT = 120000;
 
@@ -110,10 +111,10 @@ public class NamespaceConfigurationTest {
 
   @Test
   public void testGet_SkipParentIfAccumuloNS() {
-    c = new NamespaceConfiguration(Namespace.ID.ACCUMULO, context, parent);
+    c = new NamespaceConfiguration(Namespace.ACCUMULO.id(), context, parent);
     c.setZooCacheFactory(zcf);
     Property p = Property.INSTANCE_SECRET;
-    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + Namespace.ID.ACCUMULO
+    expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + Namespace.ACCUMULO.id()
         + Constants.ZNAMESPACE_CONF + "/" + p.getKey())).andReturn(null);
     replay(zc);
     assertNull(c.get(Property.INSTANCE_SECRET));

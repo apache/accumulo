@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -48,10 +48,10 @@ public class ChaoticLoadBalancerTest {
       TabletServerStatus result = new TabletServerStatus();
       result.tableMap = new HashMap<>();
       for (KeyExtent extent : extents) {
-        Table.ID table = extent.getTableId();
-        TableInfo info = result.tableMap.get(table.canonicalID());
+        TableId table = extent.getTableId();
+        TableInfo info = result.tableMap.get(table.canonical());
         if (info == null)
-          result.tableMap.put(table.canonicalID(), info = new TableInfo());
+          result.tableMap.put(table.canonical(), info = new TableInfo());
         info.onlineTablets++;
         info.recs = info.onlineTablets;
         info.ingestRate = 123.;
@@ -66,7 +66,7 @@ public class ChaoticLoadBalancerTest {
   class TestChaoticLoadBalancer extends ChaoticLoadBalancer {
 
     @Override
-    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID table) {
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId table) {
       List<TabletStats> result = new ArrayList<>();
       for (KeyExtent extent : servers.get(tserver).extents) {
         if (extent.getTableId().equals(table)) {
@@ -156,7 +156,7 @@ public class ChaoticLoadBalancerTest {
   }
 
   private static KeyExtent makeExtent(String table, String end, String prev) {
-    return new KeyExtent(Table.ID.of(table), toText(end), toText(prev));
+    return new KeyExtent(TableId.of(table), toText(end), toText(prev));
   }
 
   private static Text toText(String value) {

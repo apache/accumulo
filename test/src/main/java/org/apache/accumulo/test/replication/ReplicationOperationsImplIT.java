@@ -30,9 +30,9 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ReplicationOperationsImpl;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -87,9 +87,9 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     final MasterClientServiceHandler mcsh = new MasterClientServiceHandler(master) {
       @Override
-      protected Table.ID getTableId(ClientContext context, String tableName) {
+      protected TableId getTableId(ClientContext context, String tableName) {
         try {
-          return Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
+          return TableId.of(client.tableOperations().tableIdMap().get(tableName));
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
@@ -113,7 +113,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   @Test
   public void waitsUntilEntriesAreReplicated() throws Exception {
     client.tableOperations().create("foo");
-    Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get("foo"));
+    TableId tableId = TableId.of(client.tableOperations().tableIdMap().get("foo"));
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID(),
         file2 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
@@ -134,12 +134,12 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
-    m.put(ReplicationSection.COLF, new Text(tableId.getUtf8()), ProtobufUtil.toValue(stat));
+    m.put(ReplicationSection.COLF, new Text(tableId.canonical()), ProtobufUtil.toValue(stat));
 
     bw.addMutation(m);
 
     m = new Mutation(ReplicationSection.getRowPrefix() + file2);
-    m.put(ReplicationSection.COLF, new Text(tableId.getUtf8()), ProtobufUtil.toValue(stat));
+    m.put(ReplicationSection.COLF, new Text(tableId.canonical()), ProtobufUtil.toValue(stat));
 
     bw.close();
 
@@ -163,14 +163,14 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
-    m.putDelete(ReplicationSection.COLF, new Text(tableId.getUtf8()));
+    m.putDelete(ReplicationSection.COLF, new Text(tableId.canonical()));
     bw.addMutation(m);
     bw.flush();
 
     assertFalse(done.get());
 
     m = new Mutation(ReplicationSection.getRowPrefix() + file2);
-    m.putDelete(ReplicationSection.COLF, new Text(tableId.getUtf8()));
+    m.putDelete(ReplicationSection.COLF, new Text(tableId.canonical()));
     bw.addMutation(m);
     bw.flush();
     bw.close();
@@ -181,14 +181,14 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     // Remove the replication entries too
     bw = ReplicationTable.getBatchWriter(client);
     m = new Mutation(file1);
-    m.putDelete(StatusSection.NAME, new Text(tableId.getUtf8()));
+    m.putDelete(StatusSection.NAME, new Text(tableId.canonical()));
     bw.addMutation(m);
     bw.flush();
 
     assertFalse(done.get());
 
     m = new Mutation(file2);
-    m.putDelete(StatusSection.NAME, new Text(tableId.getUtf8()));
+    m.putDelete(StatusSection.NAME, new Text(tableId.canonical()));
     bw.addMutation(m);
     bw.flush();
 
@@ -208,8 +208,8 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     client.tableOperations().create("foo");
     client.tableOperations().create("bar");
 
-    Table.ID tableId1 = Table.ID.of(client.tableOperations().tableIdMap().get("foo"));
-    Table.ID tableId2 = Table.ID.of(client.tableOperations().tableIdMap().get("bar"));
+    TableId tableId1 = TableId.of(client.tableOperations().tableIdMap().get("foo"));
+    TableId tableId2 = TableId.of(client.tableOperations().tableIdMap().get("bar"));
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID(),
         file2 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
@@ -230,12 +230,12 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
-    m.put(ReplicationSection.COLF, new Text(tableId1.getUtf8()), ProtobufUtil.toValue(stat));
+    m.put(ReplicationSection.COLF, new Text(tableId1.canonical()), ProtobufUtil.toValue(stat));
 
     bw.addMutation(m);
 
     m = new Mutation(ReplicationSection.getRowPrefix() + file2);
-    m.put(ReplicationSection.COLF, new Text(tableId2.getUtf8()), ProtobufUtil.toValue(stat));
+    m.put(ReplicationSection.COLF, new Text(tableId2.canonical()), ProtobufUtil.toValue(stat));
 
     bw.close();
 
@@ -261,7 +261,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
-    m.putDelete(ReplicationSection.COLF, new Text(tableId1.getUtf8()));
+    m.putDelete(ReplicationSection.COLF, new Text(tableId1.canonical()));
     bw.addMutation(m);
     bw.flush();
 
@@ -271,7 +271,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     // Remove the replication entries too
     bw = ReplicationTable.getBatchWriter(client);
     m = new Mutation(file1);
-    m.putDelete(StatusSection.NAME, new Text(tableId1.getUtf8()));
+    m.putDelete(StatusSection.NAME, new Text(tableId1.canonical()));
     bw.addMutation(m);
     bw.flush();
 
@@ -290,7 +290,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   public void inprogressReplicationRecordsBlockExecution() throws Exception {
     client.tableOperations().create("foo");
 
-    Table.ID tableId1 = Table.ID.of(client.tableOperations().tableIdMap().get("foo"));
+    TableId tableId1 = TableId.of(client.tableOperations().tableIdMap().get("foo"));
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false)
@@ -308,7 +308,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
-    m.put(ReplicationSection.COLF, new Text(tableId1.getUtf8()), ProtobufUtil.toValue(stat));
+    m.put(ReplicationSection.COLF, new Text(tableId1.canonical()), ProtobufUtil.toValue(stat));
     bw.addMutation(m);
 
     m = new Mutation(logEntry.getRow());
@@ -339,7 +339,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
         .setClosed(true).build();
     bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
-    m.put(ReplicationSection.COLF, new Text(tableId1.getUtf8()), ProtobufUtil.toValue(newStatus));
+    m.put(ReplicationSection.COLF, new Text(tableId1.canonical()), ProtobufUtil.toValue(newStatus));
     bw.addMutation(m);
     bw.flush();
 
@@ -349,7 +349,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     // Remove the replication entries too
     bw = ReplicationTable.getBatchWriter(client);
     m = new Mutation(file1);
-    m.put(StatusSection.NAME, new Text(tableId1.getUtf8()), ProtobufUtil.toValue(newStatus));
+    m.put(StatusSection.NAME, new Text(tableId1.canonical()), ProtobufUtil.toValue(newStatus));
     bw.addMutation(m);
     bw.flush();
 
@@ -368,7 +368,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   public void laterCreatedLogsDontBlockExecution() throws Exception {
     client.tableOperations().create("foo");
 
-    Table.ID tableId1 = Table.ID.of(client.tableOperations().tableIdMap().get("foo"));
+    TableId tableId1 = TableId.of(client.tableOperations().tableIdMap().get("foo"));
 
     String file1 = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(0).setEnd(10000).setInfiniteEnd(false)
@@ -382,7 +382,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
-    m.put(ReplicationSection.COLF, new Text(tableId1.getUtf8()), ProtobufUtil.toValue(stat));
+    m.put(ReplicationSection.COLF, new Text(tableId1.canonical()), ProtobufUtil.toValue(stat));
     bw.addMutation(m);
 
     bw.close();
@@ -414,10 +414,10 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
     m = new Mutation(
         ReplicationSection.getRowPrefix() + "/accumulo/wals/tserver+port/" + UUID.randomUUID());
-    m.put(ReplicationSection.COLF, new Text(tableId1.getUtf8()), ProtobufUtil.toValue(stat));
+    m.put(ReplicationSection.COLF, new Text(tableId1.canonical()), ProtobufUtil.toValue(stat));
     bw.addMutation(m);
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
-    m.putDelete(ReplicationSection.COLF, new Text(tableId1.getUtf8()));
+    m.putDelete(ReplicationSection.COLF, new Text(tableId1.canonical()));
     bw.addMutation(m);
     bw.close();
 
@@ -428,7 +428,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     bw = ReplicationTable.getBatchWriter(client);
     m = new Mutation(file1);
-    m.putDelete(StatusSection.NAME, new Text(tableId1.getUtf8()));
+    m.putDelete(StatusSection.NAME, new Text(tableId1.canonical()));
     bw.addMutation(m);
     bw.close();
 

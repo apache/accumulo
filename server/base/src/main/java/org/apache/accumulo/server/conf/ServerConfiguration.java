@@ -16,15 +16,15 @@
  */
 package org.apache.accumulo.server.conf;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 
 public abstract class ServerConfiguration {
 
-  public abstract TableConfiguration getTableConfiguration(Table.ID tableId);
+  public abstract TableConfiguration getTableConfiguration(TableId tableId);
 
-  public abstract NamespaceConfiguration getNamespaceConfiguration(Namespace.ID namespaceId);
+  public abstract NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId);
 
   public abstract AccumuloConfiguration getSystemConfiguration();
 

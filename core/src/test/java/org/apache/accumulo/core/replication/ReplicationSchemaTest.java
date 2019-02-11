@@ -18,9 +18,9 @@ package org.apache.accumulo.core.replication;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
@@ -63,15 +63,15 @@ public class ReplicationSchemaTest {
 
   @Test
   public void extractTableId() {
-    Table.ID tableId = Table.ID.of("1");
-    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId.getUtf8()));
+    TableId tableId = TableId.of("1");
+    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId.canonical()));
     assertEquals(tableId, StatusSection.getTableId(k));
   }
 
   @Test
   public void extractTableIdUsingText() {
-    Table.ID tableId = Table.ID.of("1");
-    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId.getUtf8()));
+    TableId tableId = TableId.of("1");
+    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId.canonical()));
     assertEquals(tableId, StatusSection.getTableId(k));
   }
 

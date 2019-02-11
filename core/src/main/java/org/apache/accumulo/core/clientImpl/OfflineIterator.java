@@ -40,6 +40,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
@@ -146,7 +147,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private SortedKeyValueIterator<Key,Value> iter;
   private Range range;
   private KeyExtent currentExtent;
-  private Table.ID tableId;
+  private TableId tableId;
   private Authorizations authorizations;
   private ClientContext context;
   private ScannerOptions options;
@@ -164,7 +165,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
           this.options.fetchedColumns.last());
     }
 
-    this.tableId = Table.ID.of(table.toString());
+    this.tableId = TableId.of(table.toString());
     this.authorizations = authorizations;
     this.readers = new ArrayList<>();
 

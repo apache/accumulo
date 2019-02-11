@@ -30,7 +30,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.trace.Span;
 import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
@@ -240,25 +240,25 @@ public class GarbageCollectionAlgorithm {
 
   private void cleanUpDeletedTableDirs(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws IOException {
-    HashSet<Table.ID> tableIdsWithDeletes = new HashSet<>();
+    HashSet<TableId> tableIdsWithDeletes = new HashSet<>();
 
     // find the table ids that had dirs deleted
     for (String delete : candidateMap.keySet()) {
       String[] tokens = delete.split("/");
       if (tokens.length == 2) {
         // its a directory
-        Table.ID tableId = Table.ID.of(delete.split("/")[0]);
+        TableId tableId = TableId.of(delete.split("/")[0]);
         tableIdsWithDeletes.add(tableId);
       }
     }
 
-    Set<Table.ID> tableIdsInZookeeper = gce.getTableIDs();
+    Set<TableId> tableIdsInZookeeper = gce.getTableIDs();
 
     tableIdsWithDeletes.removeAll(tableIdsInZookeeper);
 
     // tableIdsWithDeletes should now contain the set of deleted tables that had dirs deleted
 
-    for (Table.ID delTableId : tableIdsWithDeletes) {
+    for (TableId delTableId : tableIdsWithDeletes) {
       gce.deleteTableDirIfEmpty(delTableId);
     }
 

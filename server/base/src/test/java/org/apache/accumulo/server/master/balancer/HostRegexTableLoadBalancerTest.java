@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
@@ -36,11 +37,11 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -83,7 +84,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     assertEquals(Pattern.compile("r01.*").pattern(), patterns.get(FOO.getTableName()).pattern());
     assertTrue(patterns.containsKey(BAR.getTableName()));
     assertEquals(Pattern.compile("r02.*").pattern(), patterns.get(BAR.getTableName()).pattern());
-    Map<Table.ID,String> tids = this.getTableIdToTableName();
+    Map<TableId,String> tids = this.getTableIdToTableName();
     assertEquals(3, tids.size());
     assertTrue(tids.containsKey(FOO.getId()));
     assertEquals(FOO.getTableName(), tids.get(FOO.getId()));
@@ -194,8 +195,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     initFactory(new TestServerConfigurationFactory(context) {
 
       @Override
-      public TableConfiguration getTableConfiguration(Table.ID tableId) {
-        NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT,
+      public TableConfiguration getTableConfiguration(TableId tableId) {
+        NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.DEFAULT.id(),
             this.context, DefaultConfiguration.getInstance());
         return new TableConfiguration(this.context, tableId, defaultConf) {
           HashMap<String,String> tableProperties = new HashMap<>();
@@ -284,8 +285,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       }
 
       @Override
-      public TableConfiguration getTableConfiguration(Table.ID tableId) {
-        NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.ID.DEFAULT,
+      public TableConfiguration getTableConfiguration(TableId tableId) {
+        NamespaceConfiguration defaultConf = new NamespaceConfiguration(Namespace.DEFAULT.id(),
             this.context, DefaultConfiguration.getInstance());
         return new TableConfiguration(context, tableId, defaultConf) {
           HashMap<String,String> tableProperties = new HashMap<>();
@@ -511,13 +512,13 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   }
 
   @Override
-  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, Table.ID tableId) {
+  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId tableId) {
     // Report incorrect information so that balance will create an assignment
     List<TabletStats> tablets = new ArrayList<>();
     if (tableId.equals(BAR.getId()) && tserver.host().equals("192.168.0.1")) {
       // Report that we have a bar tablet on this server
       TKeyExtent tke = new TKeyExtent();
-      tke.setTable(BAR.getId().getUtf8());
+      tke.setTable(BAR.getId().canonical().getBytes(UTF_8));
       tke.setEndRow("11".getBytes());
       tke.setPrevEndRow("10".getBytes());
       TabletStats ts = new TabletStats();
@@ -526,7 +527,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     } else if (tableId.equals(FOO.getId()) && tserver.host().equals("192.168.0.6")) {
       // Report that we have a foo tablet on this server
       TKeyExtent tke = new TKeyExtent();
-      tke.setTable(FOO.getId().getUtf8());
+      tke.setTable(FOO.getId().canonical().getBytes(UTF_8));
       tke.setEndRow("1".getBytes());
       tke.setPrevEndRow("0".getBytes());
       TabletStats ts = new TabletStats();

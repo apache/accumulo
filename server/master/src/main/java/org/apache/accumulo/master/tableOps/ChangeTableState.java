@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.master.tableOps;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
@@ -27,11 +27,11 @@ import org.slf4j.LoggerFactory;
 public class ChangeTableState extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
-  private Table.ID tableId;
-  private Namespace.ID namespaceId;
+  private TableId tableId;
+  private NamespaceId namespaceId;
   private TableOperation top;
 
-  public ChangeTableState(Namespace.ID namespaceId, Table.ID tableId, TableOperation top) {
+  public ChangeTableState(NamespaceId namespaceId, TableId tableId, TableOperation top) {
     this.tableId = tableId;
     this.namespaceId = namespaceId;
     this.top = top;

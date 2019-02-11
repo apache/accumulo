@@ -19,8 +19,8 @@ package org.apache.accumulo.server.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -29,13 +29,13 @@ import org.apache.zookeeper.KeeperException;
 
 public class TablePropUtil {
 
-  public static boolean setTableProperty(ServerContext context, Table.ID tableId, String property,
+  public static boolean setTableProperty(ServerContext context, TableId tableId, String property,
       String value) throws KeeperException, InterruptedException {
     return setTableProperty(context.getZooReaderWriter(), context.getZooKeeperRoot(), tableId,
         property, value);
   }
 
-  public static boolean setTableProperty(ZooReaderWriter zoo, String zkRoot, Table.ID tableId,
+  public static boolean setTableProperty(ZooReaderWriter zoo, String zkRoot, TableId tableId,
       String property, String value) throws KeeperException, InterruptedException {
     if (!isPropertyValid(property, value))
       return false;
@@ -57,13 +57,13 @@ public class TablePropUtil {
         && Property.isValidTablePropertyKey(property);
   }
 
-  public static void removeTableProperty(ServerContext context, Table.ID tableId, String property)
+  public static void removeTableProperty(ServerContext context, TableId tableId, String property)
       throws InterruptedException, KeeperException {
     String zPath = getTablePath(context.getZooKeeperRoot(), tableId) + "/" + property;
     context.getZooReaderWriter().recursiveDelete(zPath, NodeMissingPolicy.SKIP);
   }
 
-  private static String getTablePath(String zkRoot, Table.ID tableId) {
-    return zkRoot + Constants.ZTABLES + "/" + tableId.canonicalID() + Constants.ZTABLE_CONF;
+  private static String getTablePath(String zkRoot, TableId tableId) {
+    return zkRoot + Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_CONF;
   }
 }

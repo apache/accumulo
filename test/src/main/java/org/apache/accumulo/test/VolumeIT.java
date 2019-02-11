@@ -45,12 +45,12 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -195,7 +195,7 @@ public class VolumeIT extends ConfigurableMacBase {
       accumuloClient.tableOperations().create(tableName,
           new NewTableConfiguration().withoutDefaultIterators());
 
-      Table.ID tableId = Table.ID.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
+      TableId tableId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
 
       SortedSet<Text> partitions = new TreeSet<>();
       // with some splits
@@ -388,7 +388,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
 
-    Table.ID tableId = Table.ID.of(client.tableOperations().tableIdMap().get(tableName));
+    TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
     try (Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(metaScanner);
       metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);

@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.master.tableOps.namespace.delete;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -33,9 +33,9 @@ class NamespaceCleanUp extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private Namespace.ID namespaceId;
+  private NamespaceId namespaceId;
 
-  public NamespaceCleanUp(Namespace.ID namespaceId) {
+  public NamespaceCleanUp(NamespaceId namespaceId) {
     this.namespaceId = namespaceId;
   }
 

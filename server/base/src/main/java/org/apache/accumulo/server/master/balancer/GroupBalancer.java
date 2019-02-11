@@ -33,7 +33,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.function.Function;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -64,7 +64,7 @@ import com.google.common.collect.Multimap;
  */
 public abstract class GroupBalancer extends TabletBalancer {
 
-  private final Table.ID tableId;
+  private final TableId tableId;
   private long lastRun = 0;
 
   /**
@@ -72,7 +72,7 @@ public abstract class GroupBalancer extends TabletBalancer {
    */
   protected abstract Function<KeyExtent,String> getPartitioner();
 
-  public GroupBalancer(Table.ID tableId) {
+  public GroupBalancer(TableId tableId) {
     this.tableId = tableId;
   }
 

@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.master.tableOps.bulkVer2.PrepBulkImport.TabletIterFactory;
 import org.apache.hadoop.io.Text;
@@ -45,7 +45,7 @@ public class PrepBulkImportTest {
     Text per = prev == null ? null : new Text(prev);
     Text er = end == null ? null : new Text(end);
 
-    return new KeyExtent(Table.ID.of("1"), er, per);
+    return new KeyExtent(TableId.of("1"), er, per);
   }
 
   List<KeyExtent> createExtents(Iterable<String> rowsIter) {

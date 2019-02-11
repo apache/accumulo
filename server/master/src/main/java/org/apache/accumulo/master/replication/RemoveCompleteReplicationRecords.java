@@ -30,10 +30,10 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
@@ -154,7 +154,7 @@ public class RemoveCompleteReplicationRecords implements Runnable {
     }
 
     Mutation m = new Mutation(row);
-    Map<Table.ID,Long> tableToTimeCreated = new HashMap<>();
+    Map<TableId,Long> tableToTimeCreated = new HashMap<>();
     for (Entry<Key,Value> entry : columns.entrySet()) {
       Status status = null;
       try {
@@ -178,9 +178,9 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
       m.putDelete(colf, colq);
 
-      Table.ID tableId;
+      TableId tableId;
       if (StatusSection.NAME.equals(colf)) {
-        tableId = Table.ID.of(colq.toString());
+        tableId = TableId.of(colq.toString());
       } else if (WorkSection.NAME.equals(colf)) {
         ReplicationTarget target = ReplicationTarget.from(colq);
         tableId = target.getSourceTableId();
@@ -203,11 +203,11 @@ public class RemoveCompleteReplicationRecords implements Runnable {
 
     List<Mutation> mutations = new ArrayList<>();
     mutations.add(m);
-    for (Entry<Table.ID,Long> entry : tableToTimeCreated.entrySet()) {
+    for (Entry<TableId,Long> entry : tableToTimeCreated.entrySet()) {
       log.info("Removing order mutation for table {} at {} for {}", entry.getKey(),
           entry.getValue(), row);
       Mutation orderMutation = OrderSection.createMutation(row.toString(), entry.getValue());
-      orderMutation.putDelete(OrderSection.NAME, new Text(entry.getKey().getUtf8()));
+      orderMutation.putDelete(OrderSection.NAME, new Text(entry.getKey().canonical()));
       mutations.add(orderMutation);
     }
 

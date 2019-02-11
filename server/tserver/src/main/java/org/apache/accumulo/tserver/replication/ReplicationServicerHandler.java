@@ -21,10 +21,10 @@ import java.util.Map;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.replication.AccumuloReplicationReplayer;
 import org.apache.accumulo.core.replication.thrift.KeyValues;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationErrorCode;
@@ -49,7 +49,7 @@ public class ReplicationServicerHandler implements Iface {
   @Override
   public long replicateLog(String tableIdStr, WalEdits data, TCredentials tcreds)
       throws TException {
-    Table.ID tableId = Table.ID.of(tableIdStr);
+    TableId tableId = TableId.of(tableIdStr);
     log.debug("Got replication request to tableID {} with {} edits", tableId, data.getEditsSize());
     tabletServer.getSecurityOperation().authenticateUser(tabletServer.getContext().rpcCreds(),
         tcreds);

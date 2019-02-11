@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -80,9 +81,9 @@ public abstract class TabletLocator {
 
   private static class LocatorKey {
     String instanceId;
-    Table.ID tableId;
+    TableId tableId;
 
-    LocatorKey(String instanceId, Table.ID table) {
+    LocatorKey(String instanceId, TableId table) {
       this.instanceId = instanceId;
       this.tableId = table;
     }
@@ -128,7 +129,7 @@ public abstract class TabletLocator {
     enabled = true;
   }
 
-  public static synchronized TabletLocator getLocator(ClientContext context, Table.ID tableId) {
+  public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected"
         + ".");

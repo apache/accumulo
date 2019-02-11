@@ -30,7 +30,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -40,6 +39,7 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
@@ -97,7 +97,7 @@ public class LocalityGroupUtil {
   }
 
   public static Map<String,Set<ByteSequence>> getLocalityGroupsIgnoringErrors(
-      AccumuloConfiguration acuconf, Table.ID tableId) {
+      AccumuloConfiguration acuconf, TableId tableId) {
     try {
       return getLocalityGroups(acuconf);
     } catch (LocalityGroupConfigurationError | RuntimeException e) {

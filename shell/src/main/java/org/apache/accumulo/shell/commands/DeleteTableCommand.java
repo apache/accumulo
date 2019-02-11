@@ -75,7 +75,7 @@ public class DeleteTableCommand extends TableOperation {
     while (tableNames.hasNext()) {
       String table = tableNames.next();
       Pair<String,String> qualifiedName = Tables.qualify(table);
-      if (Namespace.ACCUMULO.equals(qualifiedName.getFirst())) {
+      if (Namespace.ACCUMULO.name().equals(qualifiedName.getFirst())) {
         log.trace("Removing table from deletion set: {}", table);
         tableNames.remove();
       }

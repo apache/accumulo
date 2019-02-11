@@ -43,12 +43,12 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
@@ -116,11 +116,11 @@ abstract class TabletGroupWatcher extends Daemon {
   /** Should this {@code TabletGroupWatcher} suspend tablets? */
   abstract boolean canSuspendTablets();
 
-  Map<Table.ID,TableCounts> getStats() {
+  Map<TableId,TableCounts> getStats() {
     return stats.getLast();
   }
 
-  TableCounts getStats(Table.ID tableId) {
+  TableCounts getStats(TableId tableId) {
     return stats.getLast(tableId);
   }
 
@@ -148,8 +148,8 @@ abstract class TabletGroupWatcher extends Daemon {
       int unloaded = 0;
       ClosableIterator<TabletLocationState> iter = null;
       try {
-        Map<Table.ID,MergeStats> mergeStatsCache = new HashMap<>();
-        Map<Table.ID,MergeStats> currentMerges = new HashMap<>();
+        Map<TableId,MergeStats> mergeStatsCache = new HashMap<>();
+        Map<TableId,MergeStats> currentMerges = new HashMap<>();
         for (MergeInfo merge : master.merges()) {
           if (merge.getExtent() != null) {
             currentMerges.put(merge.getExtent().getTableId(), new MergeStats(merge));
@@ -213,7 +213,7 @@ abstract class TabletGroupWatcher extends Daemon {
             unloaded = 0;
             eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
           }
-          Table.ID tableId = tls.extent.getTableId();
+          TableId tableId = tls.extent.getTableId();
           TableConfiguration tableConf = this.master.getConfigurationFactory()
               .getTableConfiguration(tableId);
 
@@ -543,7 +543,7 @@ abstract class TabletGroupWatcher extends Daemon {
     }
   }
 
-  private void updateMergeState(Map<Table.ID,MergeStats> mergeStatsCache) {
+  private void updateMergeState(Map<TableId,MergeStats> mergeStatsCache) {
     for (MergeStats stats : mergeStatsCache.values()) {
       try {
         MergeState update = stats.nextMergeState(this.master.getContext(), this.master);

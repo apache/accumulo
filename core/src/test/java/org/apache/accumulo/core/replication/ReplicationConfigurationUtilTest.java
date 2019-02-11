@@ -22,10 +22,10 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -74,13 +74,13 @@ public class ReplicationConfigurationUtilTest {
 
   @Test
   public void regularTable() {
-    KeyExtent extent = new KeyExtent(Table.ID.of("1"), new Text("b"), new Text("a"));
+    KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("b"), new Text("a"));
     assertTrue("Table should be replicated", ReplicationConfigurationUtil.isEnabled(extent, conf));
   }
 
   @Test
   public void regularNonEnabledTable() {
-    KeyExtent extent = new KeyExtent(Table.ID.of("1"), new Text("b"), new Text("a"));
+    KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("b"), new Text("a"));
     assertFalse("Table should not be replicated",
         ReplicationConfigurationUtil.isEnabled(extent, new ConfigurationCopy(new HashMap<>())));
   }

@@ -41,11 +41,11 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
@@ -237,7 +237,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
     try {
 
-      Table.ID tableId = Tables.getTableId(context, tableName);
+      TableId tableId = Tables.getTableId(context, tableName);
 
       log.trace("tid: {}", tableId);
 
@@ -279,7 +279,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
    */
   private TableState getTableState(String tableName) throws TableNotFoundException {
 
-    Table.ID tableId = Tables.getTableId(context, tableName);
+    TableId tableId = Tables.getTableId(context, tableName);
 
     TableState tstate = Tables.getTableState(context, tableId);
 

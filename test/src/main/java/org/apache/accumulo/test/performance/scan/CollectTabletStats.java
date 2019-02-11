@@ -38,7 +38,6 @@ import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
@@ -47,6 +46,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -114,7 +114,7 @@ public class CollectTabletStats {
     final VolumeManager fs = context.getVolumeManager();
     ServerConfigurationFactory sconf = context.getServerConfFactory();
 
-    Table.ID tableId = Tables.getTableId(context, opts.getTableName());
+    TableId tableId = Tables.getTableId(context, opts.getTableName());
     if (tableId == null) {
       log.error("Unable to find table named {}", opts.getTableName());
       System.exit(-1);
@@ -351,7 +351,7 @@ public class CollectTabletStats {
   private static List<KeyExtent> findTablets(ClientContext context, boolean selectLocalTablets,
       String tableName, SortedMap<KeyExtent,String> tabletLocations) throws Exception {
 
-    Table.ID tableId = Tables.getTableId(context, tableName);
+    TableId tableId = Tables.getTableId(context, tableName);
     MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
 
     InetAddress localaddress = InetAddress.getLocalHost();

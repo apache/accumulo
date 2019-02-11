@@ -34,9 +34,9 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.MessageBodyWriter;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.view.WebViews;
 import org.apache.accumulo.server.ServerContext;
@@ -108,7 +108,7 @@ public class WebViewsIT extends JerseyTest {
     expect(Monitor.getContext()).andReturn(contextMock).anyTimes();
 
     PowerMock.mockStatic(Tables.class);
-    expect(Tables.getTableName(contextMock, Table.ID.of("foo"))).andReturn("bar");
+    expect(Tables.getTableName(contextMock, TableId.of("foo"))).andReturn("bar");
     PowerMock.replayAll();
     org.easymock.EasyMock.replay(contextMock);
 

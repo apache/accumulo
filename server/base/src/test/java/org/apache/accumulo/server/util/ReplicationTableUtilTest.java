@@ -39,11 +39,11 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Writer;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.Combiner;
@@ -88,7 +88,7 @@ public class ReplicationTableUtilTest {
     String myFile = "file:////home/user/accumulo/wal/server+port/" + uuid;
 
     long createdTime = System.currentTimeMillis();
-    ReplicationTableUtil.updateFiles(context, new KeyExtent(Table.ID.of("1"), null, null), myFile,
+    ReplicationTableUtil.updateFiles(context, new KeyExtent(TableId.of("1"), null, null), myFile,
         StatusUtil.fileCreated(createdTime));
 
     verify(writer);
@@ -116,7 +116,7 @@ public class ReplicationTableUtilTest {
     String file = "file:///accumulo/wal/127.0.0.1+9997" + UUID.randomUUID();
     Path filePath = new Path(file);
     Text row = new Text(filePath.toString());
-    KeyExtent extent = new KeyExtent(Table.ID.of("1"), new Text("b"), new Text("a"));
+    KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("b"), new Text("a"));
 
     Mutation m = ReplicationTableUtil.createUpdateMutation(filePath, ProtobufUtil.toValue(stat),
         extent);
@@ -127,7 +127,7 @@ public class ReplicationTableUtilTest {
     ColumnUpdate col = m.getUpdates().get(0);
 
     assertEquals(MetadataSchema.ReplicationSection.COLF, new Text(col.getColumnFamily()));
-    assertEquals(extent.getTableId().canonicalID(), new Text(col.getColumnQualifier()).toString());
+    assertEquals(extent.getTableId().canonical(), new Text(col.getColumnQualifier()).toString());
     assertEquals(0, col.getColumnVisibility().length);
     assertArrayEquals(stat.toByteArray(), col.getValue());
   }

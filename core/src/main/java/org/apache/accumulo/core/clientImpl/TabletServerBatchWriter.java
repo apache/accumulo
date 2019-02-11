@@ -54,6 +54,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -235,7 +236,7 @@ public class TabletServerBatchWriter {
     this.notifyAll();
   }
 
-  public synchronized void addMutation(Table.ID table, Mutation m)
+  public synchronized void addMutation(TableId table, Mutation m)
       throws MutationsRejectedException {
 
     if (closed)
@@ -285,7 +286,7 @@ public class TabletServerBatchWriter {
     }
   }
 
-  public void addMutation(Table.ID table, Iterator<Mutation> iterator)
+  public void addMutation(TableId table, Iterator<Mutation> iterator)
       throws MutationsRejectedException {
     while (iterator.hasNext()) {
       addMutation(table, iterator.next());
@@ -501,14 +502,14 @@ public class TabletServerBatchWriter {
     if (authorizationFailures.size() > 0) {
 
       // was a table deleted?
-      HashSet<Table.ID> tableIds = new HashSet<>();
+      HashSet<TableId> tableIds = new HashSet<>();
       for (KeyExtent ke : authorizationFailures.keySet())
         tableIds.add(ke.getTableId());
 
       Tables.clearCache(context);
-      for (Table.ID tableId : tableIds)
+      for (TableId tableId : tableIds)
         if (!Tables.exists(context, tableId))
-          throw new TableDeletedException(tableId.canonicalID());
+          throw new TableDeletedException(tableId.canonical());
 
       synchronized (this) {
         somethingFailed = true;
@@ -599,7 +600,7 @@ public class TabletServerBatchWriter {
       return recentFailures;
     }
 
-    synchronized void add(Table.ID table, ArrayList<Mutation> tableFailures) {
+    synchronized void add(TableId table, ArrayList<Mutation> tableFailures) {
       init().addAll(table, tableFailures);
     }
 
@@ -652,7 +653,7 @@ public class TabletServerBatchWriter {
     private final SimpleThreadPool binningThreadPool;
     private final Map<String,TabletServerMutations<Mutation>> serversMutations;
     private final Set<String> queued;
-    private final Map<Table.ID,TabletLocator> locators;
+    private final Map<TableId,TabletLocator> locators;
 
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
@@ -663,7 +664,7 @@ public class TabletServerBatchWriter {
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
-    private synchronized TabletLocator getLocator(Table.ID tableId) {
+    private synchronized TabletLocator getLocator(TableId tableId) {
       TabletLocator ret = locators.get(tableId);
       if (ret == null) {
         ret = new TimeoutTabletLocator(timeout, context, tableId);
@@ -675,10 +676,10 @@ public class TabletServerBatchWriter {
 
     private void binMutations(MutationSet mutationsToProcess,
         Map<String,TabletServerMutations<Mutation>> binnedMutations) {
-      Table.ID tableId = null;
+      TableId tableId = null;
       try {
-        Set<Entry<Table.ID,List<Mutation>>> es = mutationsToProcess.getMutations().entrySet();
-        for (Entry<Table.ID,List<Mutation>> entry : es) {
+        Set<Entry<TableId,List<Mutation>>> es = mutationsToProcess.getMutations().entrySet();
+        for (Entry<TableId,List<Mutation>> entry : es) {
           tableId = entry.getKey();
           TabletLocator locator = getLocator(tableId);
           List<Mutation> tableMutations = entry.getValue();
@@ -692,7 +693,7 @@ public class TabletServerBatchWriter {
 
               if (tableFailures.size() == tableMutations.size())
                 if (!Tables.exists(context, entry.getKey()))
-                  throw new TableDeletedException(entry.getKey().canonicalID());
+                  throw new TableDeletedException(entry.getKey().canonical());
                 else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
                   throw new TableOfflineException(
                       Tables.getTableOfflineMsg(context, entry.getKey()));
@@ -836,7 +837,7 @@ public class TabletServerBatchWriter {
 
           long count = 0;
 
-          Set<Table.ID> tableIds = new TreeSet<>();
+          Set<TableId> tableIds = new TreeSet<>();
           for (Map.Entry<KeyExtent,List<Mutation>> entry : mutationBatch.entrySet()) {
             count += entry.getValue().size();
             tableIds.add(entry.getKey().getTableId());
@@ -886,11 +887,11 @@ public class TabletServerBatchWriter {
           if (log.isTraceEnabled())
             log.trace("failed to send mutations to {} : {}", location, e.getMessage());
 
-          HashSet<Table.ID> tables = new HashSet<>();
+          HashSet<TableId> tables = new HashSet<>();
           for (KeyExtent ke : mutationBatch.keySet())
             tables.add(ke.getTableId());
 
-          for (Table.ID table : tables)
+          for (TableId table : tables)
             getLocator(table).invalidateCache(context, location);
 
           failedMutations.add(tsm);
@@ -974,7 +975,7 @@ public class TabletServerBatchWriter {
               int numCommitted = (int) (long) entry.getValue();
               totalCommitted += numCommitted;
 
-              Table.ID tableId = failedExtent.getTableId();
+              TableId tableId = failedExtent.getTableId();
 
               getLocator(tableId).invalidateCache(failedExtent);
 
@@ -1013,14 +1014,14 @@ public class TabletServerBatchWriter {
 
   private static class MutationSet {
 
-    private final HashMap<Table.ID,List<Mutation>> mutations;
+    private final HashMap<TableId,List<Mutation>> mutations;
     private int memoryUsed = 0;
 
     MutationSet() {
       mutations = new HashMap<>();
     }
 
-    void addMutation(Table.ID table, Mutation mutation) {
+    void addMutation(TableId table, Mutation mutation) {
       List<Mutation> tabMutList = mutations.get(table);
       if (tabMutList == null) {
         tabMutList = new ArrayList<>();
@@ -1032,7 +1033,7 @@ public class TabletServerBatchWriter {
       memoryUsed += mutation.estimatedMemoryUsed();
     }
 
-    Map<Table.ID,List<Mutation>> getMutations() {
+    Map<TableId,List<Mutation>> getMutations() {
       return mutations;
     }
 
@@ -1045,10 +1046,10 @@ public class TabletServerBatchWriter {
     }
 
     public void addAll(MutationSet failures) {
-      Set<Entry<Table.ID,List<Mutation>>> es = failures.getMutations().entrySet();
+      Set<Entry<TableId,List<Mutation>>> es = failures.getMutations().entrySet();
 
-      for (Entry<Table.ID,List<Mutation>> entry : es) {
-        Table.ID table = entry.getKey();
+      for (Entry<TableId,List<Mutation>> entry : es) {
+        TableId table = entry.getKey();
 
         for (Mutation mutation : entry.getValue()) {
           addMutation(table, mutation);
@@ -1056,7 +1057,7 @@ public class TabletServerBatchWriter {
       }
     }
 
-    public void addAll(Table.ID table, List<Mutation> mutations) {
+    public void addAll(TableId table, List<Mutation> mutations) {
       for (Mutation mutation : mutations) {
         addMutation(table, mutation);
       }

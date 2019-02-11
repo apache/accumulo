@@ -25,8 +25,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -56,7 +56,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
    * }
    */
   // @formatter:on
-  private Map<String,Map<Table.ID,String>> queuedWorkByPeerName;
+  private Map<String,Map<TableId,String>> queuedWorkByPeerName;
 
   public SequentialWorkAssigner() {}
 
@@ -69,7 +69,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
     return NAME;
   }
 
-  protected void setQueuedWork(Map<String,Map<Table.ID,String>> queuedWork) {
+  protected void setQueuedWork(Map<String,Map<TableId,String>> queuedWork) {
     this.queuedWorkByPeerName = queuedWork;
   }
 
@@ -97,12 +97,12 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
           .fromQueueKey(work);
       String filename = entry.getKey();
       String peerName = entry.getValue().getPeerName();
-      Table.ID sourceTableId = entry.getValue().getSourceTableId();
+      TableId sourceTableId = entry.getValue().getSourceTableId();
 
       log.debug("In progress replication of {} from table with ID {} to peer {}", filename,
           sourceTableId, peerName);
 
-      Map<Table.ID,String> replicationForPeer = queuedWorkByPeerName.get(peerName);
+      Map<TableId,String> replicationForPeer = queuedWorkByPeerName.get(peerName);
       if (replicationForPeer == null) {
         replicationForPeer = new HashMap<>();
         queuedWorkByPeerName.put(peerName, replicationForPeer);
@@ -117,7 +117,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
    */
   @Override
   protected void cleanupFinishedWork() {
-    final Iterator<Entry<String,Map<Table.ID,String>>> queuedWork = queuedWorkByPeerName.entrySet()
+    final Iterator<Entry<String,Map<TableId,String>>> queuedWork = queuedWorkByPeerName.entrySet()
         .iterator();
     final String instanceId = client.instanceOperations().getInstanceID();
 
@@ -125,17 +125,17 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
     // Check the status of all the work we've queued up
     while (queuedWork.hasNext()) {
       // {peer -> {tableId -> workKey, tableId -> workKey, ... }, peer -> ...}
-      Entry<String,Map<Table.ID,String>> workForPeer = queuedWork.next();
+      Entry<String,Map<TableId,String>> workForPeer = queuedWork.next();
 
       // TableID to workKey (filename and ReplicationTarget)
-      Map<Table.ID,String> queuedReplication = workForPeer.getValue();
+      Map<TableId,String> queuedReplication = workForPeer.getValue();
 
-      Iterator<Entry<Table.ID,String>> iter = queuedReplication.entrySet().iterator();
+      Iterator<Entry<TableId,String>> iter = queuedReplication.entrySet().iterator();
       // Loop over every target we need to replicate this file to, removing the target when
       // the replication task has finished
       while (iter.hasNext()) {
         // tableID -> workKey
-        Entry<Table.ID,String> entry = iter.next();
+        Entry<TableId,String> entry = iter.next();
         // Null equates to the work for this target was finished
         if (zooCache.get(ZooUtil.getRoot(instanceId) + ReplicationConstants.ZOO_WORK_QUEUE + "/"
             + entry.getValue()) == null) {
@@ -157,7 +157,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   @Override
   protected boolean shouldQueueWork(ReplicationTarget target) {
-    Map<Table.ID,String> queuedWorkForPeer = this.queuedWorkByPeerName.get(target.getPeerName());
+    Map<TableId,String> queuedWorkForPeer = this.queuedWorkByPeerName.get(target.getPeerName());
     if (queuedWorkForPeer == null) {
       return true;
     }
@@ -171,7 +171,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
   @Override
   protected boolean queueWork(Path path, ReplicationTarget target) {
     String queueKey = DistributedWorkQueueWorkAssignerHelper.getQueueKey(path.getName(), target);
-    Map<Table.ID,String> workForPeer = this.queuedWorkByPeerName.get(target.getPeerName());
+    Map<TableId,String> workForPeer = this.queuedWorkByPeerName.get(target.getPeerName());
     if (workForPeer == null) {
       workForPeer = new HashMap<>();
       this.queuedWorkByPeerName.put(target.getPeerName(), workForPeer);
@@ -201,7 +201,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   @Override
   protected Set<String> getQueuedWork(ReplicationTarget target) {
-    Map<Table.ID,String> queuedWorkForPeer = this.queuedWorkByPeerName.get(target.getPeerName());
+    Map<TableId,String> queuedWorkForPeer = this.queuedWorkByPeerName.get(target.getPeerName());
     if (queuedWorkForPeer == null) {
       return Collections.emptySet();
     }
@@ -216,7 +216,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   @Override
   protected void removeQueuedWork(ReplicationTarget target, String queueKey) {
-    Map<Table.ID,String> queuedWorkForPeer = this.queuedWorkByPeerName.get(target.getPeerName());
+    Map<TableId,String> queuedWorkForPeer = this.queuedWorkByPeerName.get(target.getPeerName());
     if (queuedWorkForPeer == null) {
       log.warn("removeQueuedWork called when no work was queued for {}", target.getPeerName());
       return;

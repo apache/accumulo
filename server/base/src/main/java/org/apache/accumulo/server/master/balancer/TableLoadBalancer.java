@@ -26,8 +26,8 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -41,9 +41,9 @@ public class TableLoadBalancer extends TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(TableLoadBalancer.class);
 
-  Map<Table.ID,TabletBalancer> perTableBalancers = new HashMap<>();
+  Map<TableId,TabletBalancer> perTableBalancers = new HashMap<>();
 
-  private TabletBalancer constructNewBalancerForTable(String clazzName, Table.ID tableId)
+  private TabletBalancer constructNewBalancerForTable(String clazzName, TableId tableId)
       throws Exception {
     String context = null;
     context = this.context.getServerConfFactory().getTableConfiguration(tableId)
@@ -54,11 +54,11 @@ public class TableLoadBalancer extends TabletBalancer {
           TabletBalancer.class);
     else
       clazz = AccumuloVFSClassLoader.loadClass(clazzName, TabletBalancer.class);
-    Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(Table.ID.class);
+    Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(TableId.class);
     return constructor.newInstance(tableId);
   }
 
-  protected String getLoadBalancerClassNameForTable(Table.ID table) {
+  protected String getLoadBalancerClassNameForTable(TableId table) {
     TableState tableState = context.getTableManager().getTableState(table);
     if (tableState == null)
       return null;
@@ -68,7 +68,7 @@ public class TableLoadBalancer extends TabletBalancer {
     return null;
   }
 
-  protected TabletBalancer getBalancerForTable(Table.ID tableId) {
+  protected TabletBalancer getBalancerForTable(TableId tableId) {
     TabletBalancer balancer = perTableBalancers.get(tableId);
 
     String clazzName = getLoadBalancerClassNameForTable(tableId);
@@ -115,7 +115,7 @@ public class TableLoadBalancer extends TabletBalancer {
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments) {
     // separate the unassigned into tables
-    Map<Table.ID,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
+    Map<TableId,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
     for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
       Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned
           .get(e.getKey().getTableId());
@@ -125,7 +125,7 @@ public class TableLoadBalancer extends TabletBalancer {
       }
       tableUnassigned.put(e.getKey(), e.getValue());
     }
-    for (Entry<Table.ID,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
+    for (Entry<TableId,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
       Map<KeyExtent,TServerInstance> newAssignments = new HashMap<>();
       getBalancerForTable(e.getKey()).getAssignments(current, e.getValue(), newAssignments);
       assignments.putAll(newAssignments);
@@ -150,7 +150,7 @@ public class TableLoadBalancer extends TabletBalancer {
       return minBalanceTime;
     for (String s : t.tableIdMap().values()) {
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      long tableBalanceTime = getBalancerForTable(Table.ID.of(s)).balance(current, migrations,
+      long tableBalanceTime = getBalancerForTable(TableId.of(s)).balance(current, migrations,
           newMigrations);
       if (tableBalanceTime < minBalanceTime)
         minBalanceTime = tableBalanceTime;

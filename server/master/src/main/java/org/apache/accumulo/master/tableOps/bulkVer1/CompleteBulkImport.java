@@ -17,7 +17,7 @@
 package org.apache.accumulo.master.tableOps.bulkVer1;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
@@ -27,12 +27,12 @@ public class CompleteBulkImport extends MasterRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private Table.ID tableId;
+  private TableId tableId;
   private String source;
   private String bulk;
   private String error;
 
-  public CompleteBulkImport(Table.ID tableId, String source, String bulk, String error) {
+  public CompleteBulkImport(TableId tableId, String source, String bulk, String error) {
     this.tableId = tableId;
     this.source = source;
     this.bulk = bulk;

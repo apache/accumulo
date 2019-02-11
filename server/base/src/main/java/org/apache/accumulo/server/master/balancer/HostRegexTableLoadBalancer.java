@@ -34,10 +34,10 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -106,7 +106,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   private static final long ONE_HOUR = 60 * 60 * 1000;
   private static final Set<KeyExtent> EMPTY_MIGRATIONS = Collections.emptySet();
 
-  private Map<Table.ID,String> tableIdToTableName = null;
+  private Map<TableId,String> tableIdToTableName = null;
   private Map<String,Pattern> poolNameToRegexPattern = null;
   private volatile long lastOOBCheck = System.currentTimeMillis();
   private volatile boolean isIpBasedRegex = false;
@@ -224,7 +224,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     tableIdToTableName = new HashMap<>();
     poolNameToRegexPattern = new HashMap<>();
     for (Entry<String,String> table : t.tableIdMap().entrySet()) {
-      Table.ID tableId = Table.ID.of(table.getValue());
+      TableId tableId = TableId.of(table.getValue());
       tableIdToTableName.put(tableId, table.getKey());
       conf.getTableConfiguration(tableId).addObserver(this);
       Map<String,String> customProps = conf.getTableConfiguration(tableId)
@@ -275,7 +275,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     return buf.toString();
   }
 
-  public Map<Table.ID,String> getTableIdToTableName() {
+  public Map<TableId,String> getTableIdToTableName() {
     return tableIdToTableName;
   }
 
@@ -311,7 +311,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
 
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = splitCurrentByRegex(current);
     // group the unassigned into tables
-    Map<Table.ID,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
+    Map<TableId,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
     for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
       Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned
           .get(e.getKey().getTableId());
@@ -322,7 +322,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
       tableUnassigned.put(e.getKey(), e.getValue());
     }
     // Send a view of the current servers to the tables tablet balancer
-    for (Entry<Table.ID,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
+    for (Entry<TableId,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
       Map<KeyExtent,TServerInstance> newAssignments = new HashMap<>();
       String tableName = tableIdToTableName.get(e.getKey());
       String poolName = getPoolNameForTable(tableName);
@@ -379,7 +379,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
             }
             try {
               List<TabletStats> outOfBoundsTablets = getOnlineTabletsForTable(e.getKey(),
-                  Table.ID.of(tid));
+                  TableId.of(tid));
               if (outOfBoundsTablets == null) {
                 continue;
               }
@@ -463,7 +463,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     }
 
     for (String s : tableIdMap.values()) {
-      Table.ID tableId = Table.ID.of(s);
+      TableId tableId = TableId.of(s);
       String tableName = tableIdToTableName.get(tableId);
       String regexTableName = getPoolNameForTable(tableName);
       SortedMap<TServerInstance,TabletServerStatus> currentView = currentGrouped

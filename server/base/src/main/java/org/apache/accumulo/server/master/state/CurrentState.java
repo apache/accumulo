@@ -19,13 +19,13 @@ package org.apache.accumulo.server.master.state;
 import java.util.Collection;
 import java.util.Set;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterState;
 
 public interface CurrentState {
 
-  Set<Table.ID> onlineTables();
+  Set<TableId> onlineTables();
 
   Set<TServerInstance> onlineTabletServers();
 

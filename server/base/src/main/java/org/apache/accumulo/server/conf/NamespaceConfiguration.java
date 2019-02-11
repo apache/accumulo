@@ -25,6 +25,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.ObservableConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
@@ -39,12 +40,12 @@ public class NamespaceConfiguration extends ObservableConfiguration {
 
   private final AccumuloConfiguration parent;
   private ZooCachePropertyAccessor propCacheAccessor = null;
-  protected Namespace.ID namespaceId = null;
+  protected NamespaceId namespaceId = null;
   protected ServerContext context;
   private ZooCacheFactory zcf = new ZooCacheFactory();
   private final String path;
 
-  public NamespaceConfiguration(Namespace.ID namespaceId, ServerContext context,
+  public NamespaceConfiguration(NamespaceId namespaceId, ServerContext context,
       AccumuloConfiguration parent) {
     this.context = context;
     this.parent = parent;
@@ -69,7 +70,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   private synchronized ZooCachePropertyAccessor getPropCacheAccessor() {
     if (propCacheAccessor == null) {
       synchronized (propCaches) {
-        PropCacheKey key = new PropCacheKey(context.getInstanceID(), namespaceId.canonicalID());
+        PropCacheKey key = new PropCacheKey(context.getInstanceID(), namespaceId.canonical());
         ZooCache propCache = propCaches.get(key);
         if (propCache == null) {
           propCache = zcf.getZooCache(context.getZooKeepers(),
@@ -90,7 +91,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   public String get(Property property) {
     String key = property.getKey();
     AccumuloConfiguration getParent;
-    if (!(namespaceId.equals(Namespace.ID.ACCUMULO) && isIteratorOrConstraint(key))) {
+    if (!(namespaceId.equals(Namespace.ACCUMULO.id()) && isIteratorOrConstraint(key))) {
       getParent = parent;
     } else {
       // ignore iterators from parent if system namespace
@@ -104,13 +105,13 @@ public class NamespaceConfiguration extends ObservableConfiguration {
     Predicate<String> parentFilter = filter;
     // exclude system iterators/constraints from the system namespace
     // so they don't affect the metadata or root tables.
-    if (getNamespaceId().equals(Namespace.ID.ACCUMULO))
+    if (getNamespaceId().equals(Namespace.ACCUMULO.id()))
       parentFilter = key -> isIteratorOrConstraint(key) ? false : filter.test(key);
 
     getPropCacheAccessor().getProperties(props, getPath(), filter, parent, parentFilter);
   }
 
-  protected Namespace.ID getNamespaceId() {
+  protected NamespaceId getNamespaceId() {
     return namespaceId;
   }
 

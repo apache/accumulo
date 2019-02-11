@@ -24,10 +24,10 @@ import java.util.UUID;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
@@ -70,7 +70,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
     Status stat = Status.newBuilder().setBegin(100).setEnd(200).setClosed(true)
         .setInfiniteEnd(false).build();
-    ReplicationTarget target = new ReplicationTarget("peer", "table1", Table.ID.of("1"));
+    ReplicationTarget target = new ReplicationTarget("peer", "table1", TableId.of("1"));
 
     // Create a single work record for a file to some peer
     BatchWriter bw = ReplicationTable.getBatchWriter(client);
@@ -88,7 +88,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
       assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
       assertEquals(entry.getKey().getColumnQualifier().toString(),
-          target.getSourceTableId().canonicalID());
+          target.getSourceTableId().canonical());
 
       // We should only rely on the correct begin attribute being returned
       Status actual = Status.parseFrom(entry.getValue().get());
@@ -111,9 +111,9 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
         .setInfiniteEnd(false).build();
     Status stat3 = Status.newBuilder().setBegin(1).setEnd(1000).setClosed(true)
         .setInfiniteEnd(false).build();
-    ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", Table.ID.of("1"));
-    ReplicationTarget target2 = new ReplicationTarget("peer2", "table2", Table.ID.of("1"));
-    ReplicationTarget target3 = new ReplicationTarget("peer3", "table3", Table.ID.of("1"));
+    ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", TableId.of("1"));
+    ReplicationTarget target2 = new ReplicationTarget("peer2", "table2", TableId.of("1"));
+    ReplicationTarget target3 = new ReplicationTarget("peer3", "table3", TableId.of("1"));
 
     // Create a single work record for a file to some peer
     BatchWriter bw = ReplicationTable.getBatchWriter(client);
@@ -133,7 +133,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
       assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
       assertEquals(entry.getKey().getColumnQualifier().toString(),
-          target1.getSourceTableId().canonicalID());
+          target1.getSourceTableId().canonical());
 
       // We should only rely on the correct begin attribute being returned
       Status actual = Status.parseFrom(entry.getValue().get());
@@ -156,9 +156,9 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
         .build();
     Status stat3 = Status.newBuilder().setBegin(500).setEnd(1000).setClosed(true)
         .setInfiniteEnd(true).build();
-    ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", Table.ID.of("1"));
-    ReplicationTarget target2 = new ReplicationTarget("peer2", "table2", Table.ID.of("1"));
-    ReplicationTarget target3 = new ReplicationTarget("peer3", "table3", Table.ID.of("1"));
+    ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", TableId.of("1"));
+    ReplicationTarget target2 = new ReplicationTarget("peer2", "table2", TableId.of("1"));
+    ReplicationTarget target3 = new ReplicationTarget("peer3", "table3", TableId.of("1"));
 
     // Create a single work record for a file to some peer
     BatchWriter bw = ReplicationTable.getBatchWriter(client);
@@ -178,7 +178,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
       assertEquals(entry.getKey().getColumnFamily(), StatusSection.NAME);
       assertEquals(entry.getKey().getColumnQualifier().toString(),
-          target1.getSourceTableId().canonicalID());
+          target1.getSourceTableId().canonical());
 
       // We should only rely on the correct begin attribute being returned
       Status actual = Status.parseFrom(entry.getValue().get());

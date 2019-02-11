@@ -38,7 +38,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ServerClient;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.Translator;
@@ -48,6 +47,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
@@ -124,7 +124,7 @@ public class BulkImporter {
         .synchronizedSortedMap(new TreeMap<>());
 
     ClientService.Client client = null;
-    final TabletLocator locator = TabletLocator.getLocator(context, Table.ID.of(tableId));
+    final TabletLocator locator = TabletLocator.getLocator(context, TableId.of(tableId));
 
     try {
       final Map<Path,List<TabletLocation>> assignments = Collections

@@ -87,7 +87,7 @@ class BulkImportMove extends MasterRepo {
 
       return new LoadFiles(bulkInfo);
     } catch (Exception ex) {
-      throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonicalID(), null,
+      throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_INPUT_DIRECTORY,
           bulkInfo.sourceDir + ": " + ex);
     }
@@ -121,12 +121,12 @@ class BulkImportMove extends MasterRepo {
     for (Future<Boolean> future : results) {
       try {
         if (!future.get()) {
-          throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonicalID(), null,
+          throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
               TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,
               "Failed to move files from " + bulkInfo.sourceDir);
         }
       } catch (ExecutionException ee) {
-        throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonicalID(), null,
+        throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
             TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,
             ee.getCause().getMessage());
       }

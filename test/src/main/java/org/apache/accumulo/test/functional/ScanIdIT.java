@@ -199,8 +199,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
       assertNotNull("Repeatedly got exception trying to active scans", activeScans);
 
-      activeScans
-          .removeIf(scan -> scan.getTable().startsWith(Namespace.ACCUMULO + Namespace.SEPARATOR));
+      activeScans.removeIf(
+          scan -> scan.getTable().startsWith(Namespace.ACCUMULO.name() + Namespace.SEPARATOR));
       log.debug("TServer {} has {} active non-metadata scans", tserver, activeScans.size());
 
       for (ActiveScan scan : activeScans) {

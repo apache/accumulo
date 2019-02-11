@@ -35,8 +35,6 @@ import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.DelegationTokenConfigSerializer;
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -46,7 +44,9 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -110,8 +110,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
   @Override
   public long initiateFlush(TInfo tinfo, TCredentials c, String tableIdStr)
       throws ThriftSecurityException, ThriftTableOperationException {
-    Table.ID tableId = Table.ID.of(tableIdStr);
-    Namespace.ID namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
+    TableId tableId = TableId.of(tableIdStr);
+    NamespaceId namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
     String zTablePath = Constants.ZROOT + "/" + master.getInstanceID() + Constants.ZTABLES + "/"
@@ -129,11 +129,11 @@ public class MasterClientServiceHandler extends FateServiceHandler
         }
       });
     } catch (NoNodeException nne) {
-      throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH,
+      throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
           TableOperationExceptionType.NOTFOUND, null);
     } catch (Exception e) {
       Master.log.warn("{}", e.getMessage(), e);
-      throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH,
+      throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
           TableOperationExceptionType.OTHER, null);
     }
     return Long.parseLong(new String(fid));
@@ -143,15 +143,15 @@ public class MasterClientServiceHandler extends FateServiceHandler
   public void waitForFlush(TInfo tinfo, TCredentials c, String tableIdStr, ByteBuffer startRowBB,
       ByteBuffer endRowBB, long flushID, long maxLoops)
       throws ThriftSecurityException, ThriftTableOperationException {
-    Table.ID tableId = Table.ID.of(tableIdStr);
-    Namespace.ID namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
+    TableId tableId = TableId.of(tableIdStr);
+    NamespaceId namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
     master.security.canFlush(c, tableId, namespaceId);
 
     Text startRow = ByteBufferUtil.toText(startRowBB);
     Text endRow = ByteBufferUtil.toText(endRowBB);
 
     if (endRow != null && startRow != null && startRow.compareTo(endRow) >= 0)
-      throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH,
+      throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
           TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
 
     Set<TServerInstance> serversToFlush = new HashSet<>(master.tserverSet.getCurrentServers());
@@ -204,7 +204,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
         // TODO detect case of table offline AND tablets w/ logs? - ACCUMULO-1296
 
         if (tabletCount == 0 && !Tables.exists(master.getContext(), tableId))
-          throw new ThriftTableOperationException(tableId.canonicalID(), null, TableOperation.FLUSH,
+          throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
               TableOperationExceptionType.NOTFOUND, null);
 
       } catch (TabletDeletedException e) {
@@ -215,13 +215,13 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
   }
 
-  private Namespace.ID getNamespaceIdFromTableId(TableOperation tableOp, Table.ID tableId)
+  private NamespaceId getNamespaceIdFromTableId(TableOperation tableOp, TableId tableId)
       throws ThriftTableOperationException {
-    Namespace.ID namespaceId;
+    NamespaceId namespaceId;
     try {
       namespaceId = Tables.getNamespaceId(master.getContext(), tableId);
     } catch (TableNotFoundException e) {
-      throw new ThriftTableOperationException(tableId.canonicalID(), null, tableOp,
+      throw new ThriftTableOperationException(tableId.canonical(), null, tableOp,
           TableOperationExceptionType.NOTFOUND, e.getMessage());
     }
     return namespaceId;
@@ -385,7 +385,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       String value, TableOperation op)
       throws ThriftSecurityException, ThriftTableOperationException {
 
-    Namespace.ID namespaceId = null;
+    NamespaceId namespaceId = null;
     namespaceId = ClientServiceHandler.checkNamespaceId(master.getContext(), namespace, op);
 
     if (!master.security.canAlterNamespace(c, namespaceId))
@@ -402,19 +402,19 @@ public class MasterClientServiceHandler extends FateServiceHandler
       // namespace was deleted:
       ClientServiceHandler.checkNamespaceId(master.getContext(), namespace, op);
       log.info("Error altering namespace property", e);
-      throw new ThriftTableOperationException(namespaceId.canonicalID(), namespace, op,
+      throw new ThriftTableOperationException(namespaceId.canonical(), namespace, op,
           TableOperationExceptionType.OTHER, "Problem altering namespaceproperty");
     } catch (Exception e) {
       log.error("Problem altering namespace property", e);
-      throw new ThriftTableOperationException(namespaceId.canonicalID(), namespace, op,
+      throw new ThriftTableOperationException(namespaceId.canonical(), namespace, op,
           TableOperationExceptionType.OTHER, "Problem altering namespace property");
     }
   }
 
   private void alterTableProperty(TCredentials c, String tableName, String property, String value,
       TableOperation op) throws ThriftSecurityException, ThriftTableOperationException {
-    final Table.ID tableId = ClientServiceHandler.checkTableId(master.getContext(), tableName, op);
-    Namespace.ID namespaceId = getNamespaceIdFromTableId(op, tableId);
+    final TableId tableId = ClientServiceHandler.checkTableId(master.getContext(), tableName, op);
+    NamespaceId namespaceId = getNamespaceIdFromTableId(op, tableId);
     if (!master.security.canAlterTable(c, tableId, namespaceId))
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
@@ -429,11 +429,11 @@ public class MasterClientServiceHandler extends FateServiceHandler
       // was deleted:
       ClientServiceHandler.checkTableId(master.getContext(), tableName, op);
       log.info("Error altering table property", e);
-      throw new ThriftTableOperationException(tableId.canonicalID(), tableName, op,
+      throw new ThriftTableOperationException(tableId.canonical(), tableName, op,
           TableOperationExceptionType.OTHER, "Problem altering table property");
     } catch (Exception e) {
       log.error("Problem altering table property", e);
-      throw new ThriftTableOperationException(tableId.canonicalID(), tableName, op,
+      throw new ThriftTableOperationException(tableId.canonical(), tableName, op,
           TableOperationExceptionType.OTHER, "Problem altering table property");
     }
   }
@@ -497,7 +497,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
       Set<String> logsToWatch) throws TException {
     AccumuloClient client = master.getContext();
 
-    final Text tableId = new Text(getTableId(master.getContext(), tableName).getUtf8());
+    final Text tableId = new Text(getTableId(master.getContext(), tableName).canonical());
 
     drainLog.trace("Waiting for {} to be replicated for {}", logsToWatch, tableId);
 
@@ -535,7 +535,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
     }
   }
 
-  protected Table.ID getTableId(ClientContext context, String tableName)
+  protected TableId getTableId(ClientContext context, String tableName)
       throws ThriftTableOperationException {
     return ClientServiceHandler.checkTableId(context, tableName, null);
   }

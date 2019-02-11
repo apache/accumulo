@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 
@@ -76,6 +76,6 @@ public class DistributedWorkQueueWorkAssignerHelper {
     return Maps.immutableEntry(filename,
         new ReplicationTarget(queueKey.substring(index + 1, secondIndex),
             queueKey.substring(secondIndex + 1, thirdIndex),
-            Table.ID.of(queueKey.substring(thirdIndex + 1))));
+            TableId.of(queueKey.substring(thirdIndex + 1))));
   }
 }

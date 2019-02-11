@@ -19,9 +19,9 @@ package org.apache.accumulo.tserver;
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
@@ -186,7 +186,7 @@ public class TabletServerSyncCheckTest {
     }
 
     @Override
-    public Path getFullPath(Table.ID tableId, String path) {
+    public Path getFullPath(TableId tableId, String path) {
       return null;
     }
 

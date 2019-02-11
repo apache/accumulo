@@ -22,12 +22,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
@@ -72,12 +72,12 @@ public class LargestFirstMemoryManagerTest {
       }
 
       @Override
-      public TableConfiguration getTableConfiguration(Table.ID tableId) {
+      public TableConfiguration getTableConfiguration(TableId tableId) {
         return delegate.getTableConfiguration(tableId);
       }
 
       @Override
-      public NamespaceConfiguration getNamespaceConfiguration(Namespace.ID namespaceId) {
+      public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
         return delegate.getNamespaceConfiguration(namespaceId);
       }
 
@@ -193,8 +193,8 @@ public class LargestFirstMemoryManagerTest {
   @Test
   public void testDeletedTable() {
     final String deletedTableId = "1";
-    Function<Table.ID,Boolean> existenceCheck = tableId -> !deletedTableId
-        .contentEquals(tableId.canonicalID());
+    Function<TableId,Boolean> existenceCheck = tableId -> !deletedTableId
+        .contentEquals(tableId.canonical());
     // @formatter:off
     LargestFirstMemoryManagerWithExistenceCheck mgr =
       new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
@@ -208,12 +208,12 @@ public class LargestFirstMemoryManagerTest {
       }
 
       @Override
-      public TableConfiguration getTableConfiguration(Table.ID tableId) {
+      public TableConfiguration getTableConfiguration(TableId tableId) {
         return delegate.getTableConfiguration(tableId);
       }
 
       @Override
-      public NamespaceConfiguration getNamespaceConfiguration(Namespace.ID namespaceId) {
+      public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
         return delegate.getNamespaceConfiguration(namespaceId);
       }
 
@@ -221,7 +221,7 @@ public class LargestFirstMemoryManagerTest {
     mgr.init(config);
     MemoryManagementActions result;
     // one tablet is really big and the other is for a nonexistent table
-    KeyExtent extent = new KeyExtent(Table.ID.of("2"), new Text("j"), null);
+    KeyExtent extent = new KeyExtent(TableId.of("2"), new Text("j"), null);
     result = mgr.getMemoryManagementActions(
         tablets(t(extent, ZERO, ONE_GIG, 0), t(k("j"), ZERO, ONE_GIG, 0)));
     assertEquals(1, result.tabletsToMinorCompact.size());
@@ -243,7 +243,7 @@ public class LargestFirstMemoryManagerTest {
     }
 
     @Override
-    protected boolean tableExists(Table.ID tableId) {
+    protected boolean tableExists(TableId tableId) {
       return true;
     }
   }
@@ -251,21 +251,21 @@ public class LargestFirstMemoryManagerTest {
   private static class LargestFirstMemoryManagerWithExistenceCheck
       extends LargestFirstMemoryManagerUnderTest {
 
-    Function<Table.ID,Boolean> existenceCheck;
+    Function<TableId,Boolean> existenceCheck;
 
-    public LargestFirstMemoryManagerWithExistenceCheck(Function<Table.ID,Boolean> existenceCheck) {
+    public LargestFirstMemoryManagerWithExistenceCheck(Function<TableId,Boolean> existenceCheck) {
       super();
       this.existenceCheck = existenceCheck;
     }
 
     @Override
-    protected boolean tableExists(Table.ID tableId) {
+    protected boolean tableExists(TableId tableId) {
       return existenceCheck.apply(tableId);
     }
   }
 
   private static KeyExtent k(String endRow) {
-    return new KeyExtent(Table.ID.of("1"), new Text(endRow), null);
+    return new KeyExtent(TableId.of("1"), new Text(endRow), null);
   }
 
   private static class TestTabletState implements TabletState {

@@ -52,6 +52,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
@@ -453,8 +454,8 @@ public class ClientContext implements AccumuloClient {
     return zooCache;
   }
 
-  Table.ID getTableId(String tableName) throws TableNotFoundException {
-    Table.ID tableId = Tables.getTableId(this, tableName);
+  TableId getTableId(String tableName) throws TableNotFoundException {
+    TableId tableId = Tables.getTableId(this, tableName);
     if (Tables.getTableState(this, tableId) == TableState.OFFLINE)
       throw new TableOfflineException(Tables.getTableOfflineMsg(this, tableId));
     return tableId;

@@ -27,8 +27,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
@@ -92,7 +92,7 @@ public class ZKAuthorizor implements Authorizor {
     Set<SystemPermission> rootPerms = new TreeSet<>();
     for (SystemPermission p : SystemPermission.values())
       rootPerms.add(p);
-    Map<Table.ID,Set<TablePermission>> tablePerms = new HashMap<>();
+    Map<TableId,Set<TablePermission>> tablePerms = new HashMap<>();
     // Allow the root user to flush the metadata tables
     tablePerms.put(MetadataTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
     tablePerms.put(RootTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));

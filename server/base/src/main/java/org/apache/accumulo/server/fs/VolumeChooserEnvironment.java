@@ -18,7 +18,7 @@ package org.apache.accumulo.server.fs;
 
 import java.util.Objects;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 
@@ -35,7 +35,7 @@ public class VolumeChooserEnvironment {
 
   private final ServerContext context;
   private final ChooserScope scope;
-  private final Table.ID tableId;
+  private final TableId tableId;
   private final Text endRow;
 
   public VolumeChooserEnvironment(ChooserScope scope, ServerContext context) {
@@ -45,7 +45,7 @@ public class VolumeChooserEnvironment {
     this.endRow = null;
   }
 
-  public VolumeChooserEnvironment(Table.ID tableId, Text endRow, ServerContext context) {
+  public VolumeChooserEnvironment(TableId tableId, Text endRow, ServerContext context) {
     this.context = context;
     this.scope = ChooserScope.TABLE;
     this.tableId = Objects.requireNonNull(tableId);
@@ -65,7 +65,7 @@ public class VolumeChooserEnvironment {
     return endRow;
   }
 
-  public Table.ID getTableId() {
+  public TableId getTableId() {
     return tableId;
   }
 

@@ -19,8 +19,8 @@ package org.apache.accumulo.hadoopImpl.mapred;
 import java.io.IOException;
 import java.util.Collection;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.mapred.InputSplit;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -42,7 +42,7 @@ public class BatchInputSplit extends org.apache.accumulo.hadoopImpl.mapreduce.Ba
     super(split);
   }
 
-  public BatchInputSplit(String table, Table.ID tableId, Collection<Range> ranges,
+  public BatchInputSplit(String table, TableId tableId, Collection<Range> ranges,
       String[] location) {
     super(table, tableId, ranges, location);
   }

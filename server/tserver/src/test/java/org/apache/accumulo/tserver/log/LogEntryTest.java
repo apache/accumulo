@@ -18,8 +18,8 @@ package org.apache.accumulo.tserver.log;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -30,7 +30,7 @@ public class LogEntryTest {
 
   @Test
   public void test() throws Exception {
-    KeyExtent extent = new KeyExtent(Table.ID.of("1"), null, new Text(""));
+    KeyExtent extent = new KeyExtent(TableId.of("1"), null, new Text(""));
     long ts = 12345678L;
     String server = "localhost:1234";
     String filename = "default/foo";

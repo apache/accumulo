@@ -34,9 +34,9 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -57,12 +57,12 @@ public class TableDiskUsage {
 
   private static final Logger log = LoggerFactory.getLogger(TableDiskUsage.class);
   private int nextInternalId = 0;
-  private Map<Table.ID,Integer> internalIds = new HashMap<>();
-  private Map<Integer,Table.ID> externalIds = new HashMap<>();
+  private Map<TableId,Integer> internalIds = new HashMap<>();
+  private Map<Integer,TableId> externalIds = new HashMap<>();
   private Map<String,Integer[]> tableFiles = new HashMap<>();
   private Map<String,Long> fileSizes = new HashMap<>();
 
-  void addTable(Table.ID tableId) {
+  void addTable(TableId tableId) {
     if (internalIds.containsKey(tableId))
       throw new IllegalArgumentException("Already added table " + tableId);
 
@@ -75,7 +75,7 @@ public class TableDiskUsage {
     externalIds.put(iid, tableId);
   }
 
-  void linkFileAndTable(Table.ID tableId, String file) {
+  void linkFileAndTable(TableId tableId, String file) {
     // get the internal id for this table
     int internalId = internalIds.get(tableId);
 
@@ -96,7 +96,7 @@ public class TableDiskUsage {
     fileSizes.put(file, size);
   }
 
-  Map<List<Table.ID>,Long> calculateUsage() {
+  Map<List<TableId>,Long> calculateUsage() {
 
     // Bitset of tables that contain a file and total usage by all files that share that usage
     Map<List<Integer>,Long> usage = new HashMap<>();
@@ -122,10 +122,10 @@ public class TableDiskUsage {
 
     }
 
-    Map<List<Table.ID>,Long> externalUsage = new HashMap<>();
+    Map<List<TableId>,Long> externalUsage = new HashMap<>();
 
     for (Entry<List<Integer>,Long> entry : usage.entrySet()) {
-      List<Table.ID> externalKey = new ArrayList<>();
+      List<TableId> externalKey = new ArrayList<>();
       List<Integer> key = entry.getKey();
       // table bitset
       for (int i = 0; i < key.size(); i++)
@@ -151,20 +151,20 @@ public class TableDiskUsage {
     printDiskUsage(tableNames, fs, client, line -> System.out.println(line), humanReadable);
   }
 
-  public static Map<TreeSet<String>,Long> getDiskUsage(Set<Table.ID> tableIds, VolumeManager fs,
+  public static Map<TreeSet<String>,Long> getDiskUsage(Set<TableId> tableIds, VolumeManager fs,
       AccumuloClient client) throws IOException {
     TableDiskUsage tdu = new TableDiskUsage();
 
     // Add each tableID
-    for (Table.ID tableId : tableIds)
+    for (TableId tableId : tableIds)
       tdu.addTable(tableId);
 
-    HashSet<Table.ID> tablesReferenced = new HashSet<>(tableIds);
-    HashSet<Table.ID> emptyTableIds = new HashSet<>();
+    HashSet<TableId> tablesReferenced = new HashSet<>(tableIds);
+    HashSet<TableId> emptyTableIds = new HashSet<>();
     HashSet<String> nameSpacesReferenced = new HashSet<>();
 
     // For each table ID
-    for (Table.ID tableId : tableIds) {
+    for (TableId tableId : tableIds) {
       Scanner mdScanner;
       try {
         mdScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
@@ -187,8 +187,8 @@ public class TableDiskUsage {
         if (file.contains(":") || file.startsWith("../")) {
           String ref = parts[parts.length - 3];
           // Track any tables which are referenced externally by the current table
-          if (!ref.equals(tableId.canonicalID())) {
-            tablesReferenced.add(Table.ID.of(ref));
+          if (!ref.equals(tableId.canonical())) {
+            tablesReferenced.add(TableId.of(ref));
           }
           if (file.contains(":") && parts.length > 3) {
             List<String> base = Arrays.asList(Arrays.copyOf(parts, parts.length - 3));
@@ -202,7 +202,7 @@ public class TableDiskUsage {
     }
 
     // Each table seen (provided by user, or reference by table the user provided)
-    for (Table.ID tableId : tablesReferenced) {
+    for (TableId tableId : tablesReferenced) {
       for (String tableDir : nameSpacesReferenced) {
         // Find each file and add its size
         FileStatus[] files = fs.globStatus(new Path(tableDir + "/" + tableId + "/*/*"));
@@ -216,7 +216,7 @@ public class TableDiskUsage {
       }
     }
 
-    Map<Table.ID,String> reverseTableIdMap = Tables.getIdToNameMap((ClientContext) client);
+    Map<TableId,String> reverseTableIdMap = Tables.getIdToNameMap((ClientContext) client);
 
     TreeMap<TreeSet<String>,Long> usage = new TreeMap<>((o1, o2) -> {
       int len1 = o1.size();
@@ -244,10 +244,10 @@ public class TableDiskUsage {
       return len1 - len2;
     });
 
-    for (Entry<List<Table.ID>,Long> entry : tdu.calculateUsage().entrySet()) {
+    for (Entry<List<TableId>,Long> entry : tdu.calculateUsage().entrySet()) {
       TreeSet<String> tableNames = new TreeSet<>();
       // Convert size shared by each table id into size shared by each table name
-      for (Table.ID tableId : entry.getKey())
+      for (TableId tableId : entry.getKey())
         tableNames.add(reverseTableIdMap.get(tableId));
 
       // Make table names to shared file size
@@ -256,7 +256,7 @@ public class TableDiskUsage {
 
     if (!emptyTableIds.isEmpty()) {
       TreeSet<String> emptyTables = new TreeSet<>();
-      for (Table.ID tableId : emptyTableIds) {
+      for (TableId tableId : emptyTableIds) {
         emptyTables.add(reverseTableIdMap.get(tableId));
       }
       usage.put(emptyTables, 0L);
@@ -269,11 +269,11 @@ public class TableDiskUsage {
       AccumuloClient client, Printer printer, boolean humanReadable)
       throws TableNotFoundException, IOException {
 
-    HashSet<Table.ID> tableIds = new HashSet<>();
+    HashSet<TableId> tableIds = new HashSet<>();
 
     // Get table IDs for all tables requested to be 'du'
     for (String tableName : tableNames) {
-      Table.ID tableId = Tables.getTableId((ClientContext) client, tableName);
+      TableId tableId = Tables.getTableId((ClientContext) client, tableName);
       if (tableId == null)
         throw new TableNotFoundException(null, tableName, "Table " + tableName + " not found");
 

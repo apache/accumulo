@@ -22,9 +22,9 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -137,7 +137,7 @@ public class VolumeManagerImplTest {
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
     thrown.expect(RuntimeException.class);
     VolumeManager vm = VolumeManagerImpl.get(conf, hadoopConf);
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(Table.ID.of("sometable"),
+    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironment(TableId.of("sometable"),
         null, null);
     String choice = vm.choose(chooserEnv, volumes.toArray(new String[0]));
     assertTrue("shouldn't see invalid options from misbehaving chooser.", volumes.contains(choice));

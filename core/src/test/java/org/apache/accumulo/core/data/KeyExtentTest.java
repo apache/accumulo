@@ -30,7 +30,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
@@ -38,7 +37,7 @@ import org.junit.Test;
 
 public class KeyExtentTest {
   KeyExtent nke(String t, String er, String per) {
-    return new KeyExtent(Table.ID.of(t), er == null ? null : new Text(er),
+    return new KeyExtent(TableId.of(t), er == null ? null : new Text(er),
         per == null ? null : new Text(per));
   }
 
@@ -57,7 +56,7 @@ public class KeyExtentTest {
     ke = new KeyExtent(flattenedExtent, (Text) null);
 
     assertEquals(new Text("bar"), ke.getEndRow());
-    assertEquals("foo", ke.getTableId().canonicalID());
+    assertEquals("foo", ke.getTableId().canonical());
     assertNull(ke.getPrevEndRow());
 
     flattenedExtent = new Text("foo<");
@@ -65,7 +64,7 @@ public class KeyExtentTest {
     ke = new KeyExtent(flattenedExtent, (Text) null);
 
     assertNull(ke.getEndRow());
-    assertEquals("foo", ke.getTableId().canonicalID());
+    assertEquals("foo", ke.getTableId().canonical());
     assertNull(ke.getPrevEndRow());
 
     flattenedExtent = new Text("foo;bar;");
@@ -73,7 +72,7 @@ public class KeyExtentTest {
     ke = new KeyExtent(flattenedExtent, (Text) null);
 
     assertEquals(new Text("bar;"), ke.getEndRow());
-    assertEquals("foo", ke.getTableId().canonicalID());
+    assertEquals("foo", ke.getTableId().canonical());
     assertNull(ke.getPrevEndRow());
 
   }

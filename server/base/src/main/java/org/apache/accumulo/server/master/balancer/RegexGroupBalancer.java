@@ -22,9 +22,9 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
 
@@ -53,9 +53,9 @@ public class RegexGroupBalancer extends GroupBalancer {
   public static final String WAIT_TIME_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
       + "balancer.group.regex.wait.time";
 
-  private final Table.ID tableId;
+  private final TableId tableId;
 
-  public RegexGroupBalancer(Table.ID tableId) {
+  public RegexGroupBalancer(TableId tableId) {
     super(tableId);
     this.tableId = tableId;
   }

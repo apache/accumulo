@@ -18,7 +18,7 @@ package org.apache.accumulo.master.tableOps.bulkVer2;
 
 import java.io.Serializable;
 
-import org.apache.accumulo.core.clientImpl.Table;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
 
 /**
@@ -27,7 +27,7 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 class BulkInfo implements Serializable {
   private static final long serialVersionUID = 1L;
 
-  Table.ID tableId;
+  TableId tableId;
   String sourceDir;
   String bulkDir;
   boolean setTime;

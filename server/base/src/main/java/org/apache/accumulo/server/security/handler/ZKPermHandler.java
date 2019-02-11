@@ -29,8 +29,9 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -395,15 +396,15 @@ public class ZKPermHandler implements PermissionHandler {
     Set<SystemPermission> rootPerms = new TreeSet<>();
     for (SystemPermission p : SystemPermission.values())
       rootPerms.add(p);
-    Map<Table.ID,Set<TablePermission>> tablePerms = new HashMap<>();
+    Map<TableId,Set<TablePermission>> tablePerms = new HashMap<>();
     // Allow the root user to flush the system tables
     tablePerms.put(RootTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
     tablePerms.put(MetadataTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
     // essentially the same but on the system namespace, the ALTER_TABLE permission is now redundant
-    Map<Namespace.ID,Set<NamespacePermission>> namespacePerms = new HashMap<>();
-    namespacePerms.put(Namespace.ID.ACCUMULO,
+    Map<NamespaceId,Set<NamespacePermission>> namespacePerms = new HashMap<>();
+    namespacePerms.put(Namespace.ACCUMULO.id(),
         Collections.singleton(NamespacePermission.ALTER_NAMESPACE));
-    namespacePerms.put(Namespace.ID.ACCUMULO,
+    namespacePerms.put(Namespace.ACCUMULO.id(),
         Collections.singleton(NamespacePermission.ALTER_TABLE));
 
     try {
@@ -414,9 +415,9 @@ public class ZKPermHandler implements PermissionHandler {
       initUser(rootuser);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserSysPerms,
           ZKSecurityTool.convertSystemPermissions(rootPerms), NodeExistsPolicy.FAIL);
-      for (Entry<Table.ID,Set<TablePermission>> entry : tablePerms.entrySet())
+      for (Entry<TableId,Set<TablePermission>> entry : tablePerms.entrySet())
         createTablePerm(rootuser, entry.getKey(), entry.getValue());
-      for (Entry<Namespace.ID,Set<NamespacePermission>> entry : namespacePerms.entrySet())
+      for (Entry<NamespaceId,Set<NamespacePermission>> entry : namespacePerms.entrySet())
         createNamespacePerm(rootuser, entry.getKey(), entry.getValue());
     } catch (KeeperException | InterruptedException e) {
       log.error("{}", e.getMessage(), e);
@@ -445,7 +446,7 @@ public class ZKPermHandler implements PermissionHandler {
    * Sets up a new table configuration for the provided user/table. No checking for existence is
    * done here, it should be done before calling.
    */
-  private void createTablePerm(String user, Table.ID table, Set<TablePermission> perms)
+  private void createTablePerm(String user, TableId table, Set<TablePermission> perms)
       throws KeeperException, InterruptedException {
     synchronized (zooCache) {
       zooCache.clear();
@@ -458,7 +459,7 @@ public class ZKPermHandler implements PermissionHandler {
    * Sets up a new namespace configuration for the provided user/table. No checking for existence is
    * done here, it should be done before calling.
    */
-  private void createNamespacePerm(String user, Namespace.ID namespace,
+  private void createNamespacePerm(String user, NamespaceId namespace,
       Set<NamespacePermission> perms) throws KeeperException, InterruptedException {
     synchronized (zooCache) {
       zooCache.clear();

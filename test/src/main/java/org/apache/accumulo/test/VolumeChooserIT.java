@@ -35,11 +35,11 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -218,7 +218,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     String tableName = myNamespace + ".1";
 
     accumuloClient.tableOperations().create(tableName);
-    Table.ID tableID = Table.ID.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
+    TableId tableID = TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
 
     // Add 10 splits to the table
     addSplits(accumuloClient, tableName);

@@ -34,9 +34,9 @@ import java.util.UUID;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -45,7 +45,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TableConfigurationTest {
-  private static final Table.ID TID = Table.ID.of("table");
+  private static final TableId TID = TableId.of("table");
   private static final String ZOOKEEPERS = "localhost";
   private static final int ZK_SESSION_TIMEOUT = 120000;
 

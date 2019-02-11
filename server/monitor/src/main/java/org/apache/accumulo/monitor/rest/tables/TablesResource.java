@@ -33,9 +33,9 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.clientImpl.Table;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
@@ -72,25 +72,24 @@ public class TablesResource {
   public static TableInformationList getTables() {
 
     TableInformationList tableList = new TableInformationList();
-    SortedMap<Table.ID,TableInfo> tableStats = new TreeMap<>();
+    SortedMap<TableId,TableInfo> tableStats = new TreeMap<>();
 
     if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
       for (Map.Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
-        tableStats.put(Table.ID.of(te.getKey()), te.getValue());
+        tableStats.put(TableId.of(te.getKey()), te.getValue());
 
     Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
     TableManager tableManager = Monitor.getContext().getTableManager();
 
     // Add tables to the list
-    for (Map.Entry<String,Table.ID> entry : Tables.getNameToIdMap(Monitor.getContext())
-        .entrySet()) {
+    for (Map.Entry<String,TableId> entry : Tables.getNameToIdMap(Monitor.getContext()).entrySet()) {
       String tableName = entry.getKey();
-      Table.ID tableId = entry.getValue();
+      TableId tableId = entry.getValue();
       TableInfo tableInfo = tableStats.get(tableId);
       TableState tableState = tableManager.getTableState(tableId);
 
       if (tableInfo != null && !tableState.equals(TableState.OFFLINE)) {
-        Double holdTime = compactingByTable.get(tableId.canonicalID());
+        Double holdTime = compactingByTable.get(tableId.canonical());
         if (holdTime == null)
           holdTime = 0.;
 
@@ -115,7 +114,7 @@ public class TablesResource {
   public TabletServers getParticipatingTabletServers(@PathParam("tableId") @NotNull @Pattern(
       regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) {
     String rootTabletLocation = Monitor.getContext().getRootTabletLocation();
-    Table.ID tableId = Table.ID.of(tableIdStr);
+    TableId tableId = TableId.of(tableIdStr);
 
     TabletServers tabletServers = new TabletServers(Monitor.getMmi().tServerInfo.size());
 
@@ -166,7 +165,7 @@ public class TablesResource {
         status = NO_STATUS;
       TableInfo summary = TableInfoUtil.summarizeTableStats(status);
       if (tableId != null)
-        summary = status.tableMap.get(tableId.canonicalID());
+        summary = status.tableMap.get(tableId.canonical());
       if (summary == null)
         continue;
 
