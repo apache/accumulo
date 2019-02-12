@@ -35,15 +35,11 @@ public interface IteratorEnvironment {
   }
 
   /**
-   * @deprecated since 2.0.0 use {@link #getServiceEnv()} and
-   *             {@link ServiceEnvironment#getConfiguration()}
+   * @deprecated since 2.0.0. This method was using an unstable non public type. Use
+   *             {@link #getServiceEnv()} and {@link ServiceEnvironment#getConfiguration()}
    */
   @Deprecated
   default AccumuloConfiguration getConfig() {
-    throw new UnsupportedOperationException();
-  }
-
-  default ServiceEnvironment getServiceEnv() {
     throw new UnsupportedOperationException();
   }
 
@@ -52,10 +48,6 @@ public interface IteratorEnvironment {
   }
 
   default boolean isFullMajorCompaction() {
-    throw new UnsupportedOperationException();
-  }
-
-  default boolean isUserCompaction() {
     throw new UnsupportedOperationException();
   }
 
@@ -121,6 +113,24 @@ public interface IteratorEnvironment {
    * @since 1.8.0
    */
   default SamplerConfiguration getSamplerConfiguration() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * True if compaction was user initiated.
+   *
+   * @since 2.0.0
+   */
+  default boolean isUserCompaction() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Returns an object containing information about the server where this iterator was run.
+   *
+   * @since 2.0.0
+   */
+  default ServiceEnvironment getServiceEnv() {
     throw new UnsupportedOperationException();
   }
 }
