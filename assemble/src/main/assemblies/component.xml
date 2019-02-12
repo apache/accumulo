@@ -41,6 +41,8 @@
         <include>com.google.code.gson:gson</include>
         <include>com.google.guava:guava</include>
         <include>com.google.protobuf:protobuf-java</include>
+        <include>com.sun.xml.bind:jaxb-core</include>
+        <include>com.sun.xml.bind:jaxb-impl</include>
         <include>commons-cli:commons-cli</include>
         <include>commons-codec:commons-codec</include>
         <include>commons-collections:commons-collections</include>
@@ -48,11 +50,13 @@
         <include>commons-io:commons-io</include>
         <include>commons-lang:commons-lang</include>
         <include>commons-logging:commons-logging</include>
+        <include>javax.activation:activation</include>
         <include>javax.annotation:javax.annotation-api</include>
         <include>javax.el:javax.el-api</include>
         <include>javax.servlet:javax.servlet-api</include>
         <include>javax.validation:validation-api</include>
         <include>javax.ws.rs:javax.ws.rs-api</include>
+        <include>javax.xml.bind:jaxb-api</include>
         <include>jline:jline</include>
         <include>log4j:log4j</include>
         <include>org.apache.commons:commons-math3</include>
