@@ -32,7 +32,9 @@ import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.tserver.FileManager.ScanFileManager;
@@ -42,6 +44,7 @@ import org.apache.hadoop.fs.Path;
 public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
 
   private final ServerContext context;
+  private final ServiceEnvironment serviceEnvironment;
   private final ScanFileManager trm;
   private final IteratorScope scope;
   private final boolean fullMajorCompaction;
@@ -58,6 +61,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
       throw new IllegalArgumentException("must set if compaction is full");
 
     this.context = context;
+    this.serviceEnvironment = new ServiceEnvironmentImpl(context);
     this.scope = scope;
     this.trm = null;
     this.fullMajorCompaction = false;
@@ -74,6 +78,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
       throw new IllegalArgumentException("must set if compaction is full");
 
     this.context = context;
+    this.serviceEnvironment = new ServiceEnvironmentImpl(context);
     this.scope = scope;
     this.trm = trm;
     this.fullMajorCompaction = false;
@@ -96,6 +101,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
           "Tried to set maj compaction type when scope was " + scope);
 
     this.context = context;
+    this.serviceEnvironment = new ServiceEnvironmentImpl(context);
     this.scope = scope;
     this.trm = null;
     this.fullMajorCompaction = fullMajC;
@@ -191,5 +197,10 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   @Override
   public ServerContext getServerContext() {
     return context;
+  }
+
+  @Override
+  public ServiceEnvironment getServiceEnv() {
+    return serviceEnvironment;
   }
 }
