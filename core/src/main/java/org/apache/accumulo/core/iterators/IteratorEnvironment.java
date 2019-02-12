@@ -25,24 +25,47 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
 public interface IteratorEnvironment {
 
-  SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException;
+  default SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
+      throws IOException {
+    throw new UnsupportedOperationException();
+  }
 
-  AccumuloConfiguration getConfig();
+  /**
+   * @deprecated since 2.0.0 use {@link #getServiceEnv()} and
+   *             {@link ServiceEnvironment#getConfiguration()}
+   */
+  @Deprecated
+  default AccumuloConfiguration getConfig() {
+    throw new UnsupportedOperationException();
+  }
 
-  IteratorScope getIteratorScope();
+  default ServiceEnvironment getServiceEnv() {
+    throw new UnsupportedOperationException();
+  }
 
-  boolean isFullMajorCompaction();
+  default IteratorScope getIteratorScope() {
+    throw new UnsupportedOperationException();
+  }
+
+  default boolean isFullMajorCompaction() {
+    throw new UnsupportedOperationException();
+  }
 
   default boolean isUserCompaction() {
     throw new UnsupportedOperationException();
   }
 
-  void registerSideChannel(SortedKeyValueIterator<Key,Value> iter);
+  default void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
+    throw new UnsupportedOperationException();
+  }
 
-  Authorizations getAuthorizations();
+  default Authorizations getAuthorizations() {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Returns a new iterator environment object that can be used to create deep copies over sample
@@ -75,7 +98,9 @@ public interface IteratorEnvironment {
    *           when sampling is not configured for table.
    * @since 1.8.0
    */
-  IteratorEnvironment cloneWithSamplingEnabled();
+  default IteratorEnvironment cloneWithSamplingEnabled() {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * There are at least two conditions under which sampling will be enabled for an environment. One
@@ -86,12 +111,16 @@ public interface IteratorEnvironment {
    * @return true if sampling is enabled for this environment.
    * @since 1.8.0
    */
-  boolean isSamplingEnabled();
+  default boolean isSamplingEnabled() {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    *
    * @return sampling configuration is sampling is enabled for environment, otherwise returns null.
    * @since 1.8.0
    */
-  SamplerConfiguration getSamplerConfiguration();
+  default SamplerConfiguration getSamplerConfiguration() {
+    throw new UnsupportedOperationException();
+  }
 }

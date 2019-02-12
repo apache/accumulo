@@ -35,7 +35,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.clientImpl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -745,7 +744,7 @@ public class TransformingIteratorTest {
     }
   }
 
-  private static class MajCIteratorEnvironmentAdapter extends BaseIteratorEnvironment {
+  private static class MajCIteratorEnvironmentAdapter implements IteratorEnvironment {
     @Override
     public IteratorScope getIteratorScope() {
       return IteratorScope.majc;

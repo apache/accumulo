@@ -23,7 +23,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -47,7 +46,6 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   private final IteratorScope scope;
   private final boolean fullMajorCompaction;
   private boolean userCompaction;
-  private final AccumuloConfiguration config;
   private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators;
   private Map<FileRef,DataFileValue> files;
 
@@ -55,24 +53,22 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   private SamplerConfiguration samplerConfig;
   private boolean enableSampleForDeepCopy;
 
-  public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
-      AccumuloConfiguration config) {
+  public TabletIteratorEnvironment(ServerContext context, IteratorScope scope) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
 
     this.context = context;
     this.scope = scope;
     this.trm = null;
-    this.config = config;
     this.fullMajorCompaction = false;
     this.userCompaction = false;
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
   }
 
-  private TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
-      AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files,
-      Authorizations authorizations, SamplerConfigurationImpl samplerConfig,
+  public TabletIteratorEnvironment(ServerContext context, IteratorScope scope, ScanFileManager trm,
+      Map<FileRef,DataFileValue> files, Authorizations authorizations,
+      SamplerConfigurationImpl samplerConfig,
       ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
@@ -80,7 +76,6 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.context = context;
     this.scope = scope;
     this.trm = trm;
-    this.config = config;
     this.fullMajorCompaction = false;
     this.files = files;
     this.authorizations = authorizations;
@@ -94,14 +89,8 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.topLevelIterators = topLevelIterators;
   }
 
-  public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
-      AccumuloConfiguration config, ScanFileManager trm, Map<FileRef,DataFileValue> files,
-      Authorizations authorizations, SamplerConfigurationImpl samplerConfig) {
-    this(context, scope, config, trm, files, authorizations, samplerConfig, new ArrayList<>());
-  }
-
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope, boolean fullMajC,
-      AccumuloConfiguration config, MajorCompactionReason reason) {
+      MajorCompactionReason reason) {
     if (scope != IteratorScope.majc)
       throw new IllegalArgumentException(
           "Tried to set maj compaction type when scope was " + scope);
@@ -109,16 +98,10 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.context = context;
     this.scope = scope;
     this.trm = null;
-    this.config = config;
     this.fullMajorCompaction = fullMajC;
     this.userCompaction = reason.equals(MajorCompactionReason.USER);
     this.authorizations = Authorizations.EMPTY;
     this.topLevelIterators = new ArrayList<>();
-  }
-
-  @Override
-  public AccumuloConfiguration getConfig() {
-    return config;
   }
 
   @Override
@@ -179,7 +162,8 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   public SamplerConfiguration getSamplerConfiguration() {
     if (samplerConfig == null) {
       // only create this once so that it stays the same, even if config changes
-      SamplerConfigurationImpl sci = SamplerConfigurationImpl.newSamplerConfig(config);
+      SamplerConfigurationImpl sci = SamplerConfigurationImpl
+          .newSamplerConfig(context.getConfiguration());
       if (sci == null) {
         return null;
       }
@@ -194,12 +178,13 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
       throw new UnsupportedOperationException();
     }
 
-    SamplerConfigurationImpl sci = SamplerConfigurationImpl.newSamplerConfig(config);
+    SamplerConfigurationImpl sci = SamplerConfigurationImpl
+        .newSamplerConfig(context.getConfiguration());
     if (sci == null) {
       throw new SampleNotPresentException();
     }
 
-    return new TabletIteratorEnvironment(context, scope, config, trm, files, authorizations, sci,
+    return new TabletIteratorEnvironment(context, scope, trm, files, authorizations, sci,
         topLevelIterators);
   }
 

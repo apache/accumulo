@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
@@ -86,17 +85,6 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     }
 
     @Override
-    public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
-        throws IOException {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public AccumuloConfiguration getConfig() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
     public IteratorScope getIteratorScope() {
       return IteratorScope.scan;
     }
@@ -109,11 +97,6 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     @Override
     public boolean isUserCompaction() {
       return false;
-    }
-
-    @Override
-    public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
-      throw new UnsupportedOperationException();
     }
 
     @Override

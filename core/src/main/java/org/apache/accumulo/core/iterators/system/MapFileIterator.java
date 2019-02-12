@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -52,8 +51,7 @@ public class MapFileIterator implements FileSKVIterator {
   private FileSystem fs;
   private String dirName;
 
-  public MapFileIterator(AccumuloConfiguration acuconf, FileSystem fs, String dir,
-      Configuration conf) throws IOException {
+  public MapFileIterator(FileSystem fs, String dir, Configuration conf) throws IOException {
     this.reader = MapFileUtil.openMapFile(fs, dir, conf);
     this.fs = fs;
     this.dirName = dir;

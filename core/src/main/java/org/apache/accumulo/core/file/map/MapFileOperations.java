@@ -139,8 +139,8 @@ public class MapFileOperations extends FileOperations {
 
   @Override
   protected FileSKVIterator openReader(FileOptions options) throws IOException {
-    FileSKVIterator iter = new RangeIterator(new MapFileIterator(options.getTableConfiguration(),
-        options.getFileSystem(), options.getFilename(), options.getConfiguration()));
+    FileSKVIterator iter = new RangeIterator(new MapFileIterator(options.getFileSystem(),
+        options.getFilename(), options.getConfiguration()));
     if (options.isSeekToBeginning()) {
       iter.seek(new Range(new Key(), null), new ArrayList<>(), false);
     }
@@ -166,8 +166,8 @@ public class MapFileOperations extends FileOperations {
 
   @Override
   protected FileSKVIterator openScanReader(FileOptions options) throws IOException {
-    MapFileIterator mfIter = new MapFileIterator(options.getTableConfiguration(),
-        options.getFileSystem(), options.getFilename(), options.getConfiguration());
+    MapFileIterator mfIter = new MapFileIterator(options.getFileSystem(), options.getFilename(),
+        options.getConfiguration());
 
     FileSKVIterator iter = new RangeIterator(mfIter);
     iter.seek(options.getRange(), options.getColumnFamilies(), options.isRangeInclusive());
