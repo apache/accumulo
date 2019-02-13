@@ -29,6 +29,10 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
 public interface IteratorEnvironment {
 
+  /**
+   * @deprecated since 2.0.0. This is a legacy method used for internal backwards compatibility.
+   */
+  @Deprecated
   default SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
       throws IOException {
     throw new UnsupportedOperationException();
@@ -43,18 +47,34 @@ public interface IteratorEnvironment {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Return the executed scope of the Iterator.  Value will be one of the following:
+   * {@link IteratorScope#scan}, {@link IteratorScope#minc}, {@link IteratorScope#majc}
+   */
   default IteratorScope getIteratorScope() {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Return true if the compaction is a full major compaction.  Will throw IllegalStateException if
+   * {@link #getIteratorScope()} != {@link IteratorScope#majc}.
+   */
   default boolean isFullMajorCompaction() {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * @deprecated since 2.0.0. This was an experimental feature and was never tested or documented.
+   */
+  @Deprecated
   default void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Return the Scan Authorizations used in this Iterator. Will throw UnsupportedOperationException
+   * if {@link #getIteratorScope()} != {@link IteratorScope#scan}.
+   */
   default Authorizations getAuthorizations() {
     throw new UnsupportedOperationException();
   }
