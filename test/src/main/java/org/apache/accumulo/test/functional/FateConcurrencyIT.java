@@ -55,28 +55,53 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ACCUMULO-4574. Test to verify that changing table state to online / offline
+ * IT Tests that create / run a "slow" FATE transaction so that other operations can be checked.
+ * Included tests for:
+ * <ul>
+ * <li>ACCUMULO-4574. Test to verify that changing table state to online / offline
  * {@link org.apache.accumulo.core.client.admin.TableOperations#online(String)} when the table is
- * already in that state returns without blocking.
+ * already in that state returns without blocking.</li>
+ * <li>AdminUtil refactor to provide methods that provide FATE status, one with table lock info
+ * (original) and additional method without.</li>
+ *</ul>
  */
-public class TableChangeStateIT extends AccumuloClusterHarness {
+public class FateConcurrencyIT extends AccumuloClusterHarness {
 
-  private static final Logger log = LoggerFactory.getLogger(TableChangeStateIT.class);
+  private static final Logger log = LoggerFactory.getLogger(FateConcurrencyIT.class);
 
   private static final int NUM_ROWS = 1000;
-  private static final long SLOW_SCAN_SLEEP_MS = 100L;
+  private static final long SLOW_SCAN_SLEEP_MS = 250L;
 
   private Connector connector;
 
+  private static final ExecutorService pool = Executors.newCachedThreadPool();
+
+  private String tableName;
+
+  private String secret;
+
   @Before
   public void setup() {
+
     connector = getConnector();
+
+    tableName = getUniqueNames(1)[0];
+
+    secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
+
+    createData(tableName);
+  }
+
+  @AfterClass
+  public static void cleanup() {
+    pool.shutdownNow();
   }
 
   @Override
@@ -96,12 +121,6 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
    */
   @Test
   public void changeTableStateTest() throws Exception {
-
-    ExecutorService pool = Executors.newCachedThreadPool();
-
-    String tableName = getUniqueNames(1)[0];
-
-    createData(tableName);
 
     assertEquals("verify table online after created", TableState.ONLINE, getTableState(tableName));
 
@@ -135,9 +154,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
     // launch a full table compaction with the slow iterator to ensure table lock is acquired and
     // held by the compaction
 
-    Future<?> compactTask = pool.submit(new SlowCompactionRunner(tableName));
-    assertTrue("verify that compaction running and fate transaction exists",
-        blockUntilCompactionRunning(tableName));
+    Future<?> compactTask = startCompactTask();
 
     // try to set online while fate transaction is in progress - before ACCUMULO-4574 this would
     // block
@@ -171,6 +188,88 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
     // block if compaction still running
     compactTask.get();
 
+  }
+
+  /**
+   * Validate the the AdminUtil.getStatus works correctly after refactor and validate that
+   * getTransactionStatus can be called without lock map(s). The test starts a long running fate
+   * transaction (slow compaction) and the calls AdminUtil functions to get the FATE.
+   *
+   * @throws Exception
+   *           any exception is a test failure
+   */
+  @Test
+  public void getFateStatus() throws Exception {
+
+    assertEquals("verify table online after created", TableState.ONLINE, getTableState(tableName));
+
+    Future<?> compactTask = startCompactTask();
+
+    assertTrue("compaction fate transaction exits", findFate(tableName));
+
+    Instance instance = connector.getInstance();
+    AdminUtil<String> admin = new AdminUtil<>(false);
+
+    try {
+
+      String tableId = Tables.getTableId(instance, tableName);
+
+      log.trace("tid: {}", tableId);
+
+      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
+          instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
+      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
+
+      AdminUtil.FateStatus withLocks = admin.getStatus(zs, zk,
+          ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
+
+      // call method that does not use locks.
+      List<AdminUtil.TransactionStatus> noLocks = admin.getTransactionStatus(zs, null, null);
+
+      // fast check - count number of transactions
+      assertEquals(withLocks.getTransactions().size(), noLocks.size());
+
+      int matchCount = 0;
+
+      for (AdminUtil.TransactionStatus tx : withLocks.getTransactions()) {
+
+        log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
+
+        if (tx.getTop().contains("CompactionDriver") && tx.getDebug().contains("CompactRange")) {
+
+          for (AdminUtil.TransactionStatus tx2 : noLocks) {
+            if (tx2.getTxid().equals(tx.getTxid())) {
+              matchCount++;
+            }
+          }
+        }
+      }
+
+      assertTrue("Number of fates matches should be > 0", matchCount > 0);
+
+    } catch (KeeperException | TableNotFoundException | InterruptedException ex) {
+      throw new IllegalStateException(ex);
+    }
+
+    // test complete, cancel compaction and move on.
+    connector.tableOperations().cancelCompaction(tableName);
+
+    // block if compaction still running
+    compactTask.get();
+
+  }
+
+  /**
+   * Create and run a slow running compaction task. The method will block until the compaction has
+   * been started.
+   *
+   * @return a reference to the running compaction task.
+   */
+  private Future<?> startCompactTask() {
+    Future<?> compactTask = pool.submit(new SlowCompactionRunner(tableName));
+    assertTrue("verify that compaction running and fate transaction exists",
+        blockUntilCompactionRunning(tableName));
+    return compactTask;
   }
 
   /**
@@ -231,14 +330,17 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
 
       log.trace("tid: {}", tableId);
 
-      String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
       IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
           instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
       ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
       AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk,
           ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
 
+      log.trace("current fates: {}", fateStatus.getTransactions().size());
+
       for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
+
+        log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
 
         if (tx.getTop().contains("CompactionDriver") && tx.getDebug().contains("CompactRange")) {
           return true;
@@ -291,8 +393,7 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
       // populate
       for (int i = 0; i < NUM_ROWS; i++) {
         Mutation m = new Mutation(new Text(String.format("%05d", i)));
-        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"),
-            new Value("junk".getBytes(UTF_8)));
+        m.put(new Text("col" + ((i % 3) + 1)), new Text("qual"), new Value("junk".getBytes(UTF_8)));
         bw.addMutation(m);
       }
       bw.close();
@@ -323,11 +424,11 @@ public class TableChangeStateIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Provides timing information for oline operation.
+   * Provides timing information for online operation.
    */
   private static class OnlineOpTiming {
 
-    private long started = 0L;
+    private final long started;
     private long completed = 0L;
 
     OnlineOpTiming() {
