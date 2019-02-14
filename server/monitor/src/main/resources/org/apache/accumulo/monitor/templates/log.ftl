@@ -127,3 +127,6 @@
             <tbody></tbody>
         </table>
       </div>
+      <div>
+       <button type="button" class="btn btn-info" onclick="clearLogs();refresh();">Clear Logs</button>
+      </div>
