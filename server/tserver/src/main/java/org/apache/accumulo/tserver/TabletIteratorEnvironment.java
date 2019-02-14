@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -51,6 +52,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   private final boolean fullMajorCompaction;
   private boolean userCompaction;
   private final AccumuloConfiguration tableConfig;
+  private final TableId tableId;
   private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators;
   private Map<FileRef,DataFileValue> files;
 
@@ -59,7 +61,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   private boolean enableSampleForDeepCopy;
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
-      AccumuloConfiguration tableConfig) {
+      AccumuloConfiguration tableConfig, TableId tableId) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
 
@@ -68,6 +70,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.scope = scope;
     this.trm = null;
     this.tableConfig = tableConfig;
+    this.tableId = tableId;
     this.fullMajorCompaction = false;
     this.userCompaction = false;
     this.authorizations = Authorizations.EMPTY;
@@ -75,8 +78,9 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   }
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
-      AccumuloConfiguration tableConfig, ScanFileManager trm, Map<FileRef,DataFileValue> files,
-      Authorizations authorizations, SamplerConfigurationImpl samplerConfig,
+      AccumuloConfiguration tableConfig, TableId tableId, ScanFileManager trm,
+      Map<FileRef,DataFileValue> files, Authorizations authorizations,
+      SamplerConfigurationImpl samplerConfig,
       ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators) {
     if (scope == IteratorScope.majc)
       throw new IllegalArgumentException("must set if compaction is full");
@@ -86,6 +90,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.scope = scope;
     this.trm = trm;
     this.tableConfig = tableConfig;
+    this.tableId = tableId;
     this.fullMajorCompaction = false;
     this.files = files;
     this.authorizations = authorizations;
@@ -100,7 +105,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   }
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope, boolean fullMajC,
-      AccumuloConfiguration tableConfig, MajorCompactionReason reason) {
+      AccumuloConfiguration tableConfig, TableId tableId, MajorCompactionReason reason) {
     if (scope != IteratorScope.majc)
       throw new IllegalArgumentException(
           "Tried to set maj compaction type when scope was " + scope);
@@ -110,6 +115,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.scope = scope;
     this.trm = null;
     this.tableConfig = tableConfig;
+    this.tableId = tableId;
     this.fullMajorCompaction = fullMajC;
     this.userCompaction = reason.equals(MajorCompactionReason.USER);
     this.authorizations = Authorizations.EMPTY;
@@ -117,6 +123,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public AccumuloConfiguration getConfig() {
     return tableConfig;
   }
@@ -142,6 +149,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
       throws IOException {
     FileRef ref = new FileRef(mapFileName, new Path(mapFileName));
@@ -149,6 +157,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
     topLevelIterators.add(iter);
   }
@@ -199,8 +208,8 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
       throw new SampleNotPresentException();
     }
 
-    return new TabletIteratorEnvironment(context, scope, tableConfig, trm, files, authorizations,
-        sci, topLevelIterators);
+    return new TabletIteratorEnvironment(context, scope, tableConfig, tableId, trm, files,
+        authorizations, sci, topLevelIterators);
   }
 
   @Override
@@ -211,5 +220,15 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   @Override
   public ServiceEnvironment getServiceEnv() {
     return serviceEnvironment;
+  }
+
+  @Override
+  public ServiceEnvironment.Configuration getTableConfiguration() {
+    return serviceEnvironment.getConfiguration(tableId);
+  }
+
+  @Override
+  public TableId getTableId() {
+    return tableId;
   }
 }

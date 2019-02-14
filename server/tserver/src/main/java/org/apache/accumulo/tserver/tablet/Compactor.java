@@ -359,9 +359,10 @@ public class Compactor implements Callable<CompactionStats> {
       TabletIteratorEnvironment iterEnv;
       if (env.getIteratorScope() == IteratorScope.majc)
         iterEnv = new TabletIteratorEnvironment(context, IteratorScope.majc, !propogateDeletes,
-            acuTableConf, getMajorCompactionReason());
+            acuTableConf, getExtent().getTableId(), getMajorCompactionReason());
       else if (env.getIteratorScope() == IteratorScope.minc)
-        iterEnv = new TabletIteratorEnvironment(context, IteratorScope.minc, acuTableConf);
+        iterEnv = new TabletIteratorEnvironment(context, IteratorScope.minc, acuTableConf,
+            getExtent().getTableId());
       else
         throw new IllegalArgumentException();
 

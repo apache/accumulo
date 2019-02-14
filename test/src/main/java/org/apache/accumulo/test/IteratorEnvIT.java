@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
@@ -5,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -12,6 +29,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -40,7 +59,7 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-                     IteratorEnvironment env) throws IOException {
+        IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
       testEnv(env, scope);
     }
@@ -51,7 +70,7 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-                     IteratorEnvironment env) throws IOException {
+        IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
       testEnv(env, scope);
     }
@@ -63,12 +82,13 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   public static class BadStateIter extends WrappingIterator {
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-                     IteratorEnvironment env) throws IOException {
+        IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
       try {
         assertFalse(env.isUserCompaction());
         fail("Expected to throw IllegalStateException when checking compaction on a scan.");
-      } catch (IllegalStateException e){};
+      } catch (IllegalStateException e) {}
+      ;
     }
   }
 
@@ -76,8 +96,12 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
    * Test the environment methods return what is expected.
    */
   public static void testEnv(IteratorEnvironment env, IteratorScope scope) {
-    //env.getConfig();
-    //env.getServiceEnv();
+    assertEquals("value1", env.getConfig().get("table.custom.iterator.env.test"));
+    System.out.println("MIKE got conf in iter:");
+    env.getServiceEnv().getConfiguration()
+        .forEach(e -> System.out.println(e.getKey() + "=" + e.getValue()));
+    assertEquals("value1",
+        env.getServiceEnv().getConfiguration().getTableCustom("iterator.env.test"));
     assertEquals(scope, env.getIteratorScope());
     assertFalse(env.isSamplingEnabled());
     if (scope != IteratorScope.scan) {
@@ -92,14 +116,8 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   }
 
   @After
-  public void finish() { client.close(); }
-
-  /**
-   * Checking for compaction on a scan should throw an error.
-   */
-  @Test
-  public void testBadState() throws Exception {
-    testScan(BadStateIter.class);
+  public void finish() {
+    client.close();
   }
 
   /**
@@ -107,13 +125,28 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
    */
   @Test
   public void testScanEnv() throws Exception {
-    testScan(ScanIter.class);
+    String[] tables = getUniqueNames(2);
+    testScan(tables[0], ScanIter.class);
+    testScan(tables[1], BadStateIter.class);
   }
 
-  private void testScan(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass)
-      throws Exception {
+  public void testCompactEnv() throws Exception {
     String tableName = getUniqueNames(1)[0];
+    IteratorSetting cfg = new IteratorSetting(1, MajcIter.class);
     client.tableOperations().create(tableName);
+
+    writeData(tableName);
+
+    CompactionConfig config = new CompactionConfig();
+    config.setIterators(Collections.singletonList(cfg));
+    client.tableOperations().compact(tableName, config);
+  }
+
+  private void testScan(String tableName,
+      Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) throws Exception {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    ntc.setProperties(Collections.singletonMap("table.custom.iterator.env.test", "value1"));
+    client.tableOperations().create(tableName, ntc);
 
     writeData(tableName);
 
@@ -121,8 +154,7 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     try (Scanner scan = client.createScanner(tableName)) {
       scan.addScanIterator(cfg);
       Iterator<Map.Entry<Key,Value>> iter = scan.iterator();
-      iter.forEachRemaining(e ->
-          assertEquals("cf1", e.getKey().getColumnFamily().toString()));
+      iter.forEachRemaining(e -> assertEquals("cf1", e.getKey().getColumnFamily().toString()));
     }
   }
 

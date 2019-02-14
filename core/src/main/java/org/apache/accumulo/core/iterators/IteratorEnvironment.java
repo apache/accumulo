@@ -22,6 +22,7 @@ import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
@@ -40,7 +41,7 @@ public interface IteratorEnvironment {
 
   /**
    * @deprecated since 2.0.0. This method was using an unstable non public type. Use
-   *             {@link #getServiceEnv()} and {@link ServiceEnvironment#getConfiguration()}
+   *             {@link #getTableConfiguration()}
    */
   @Deprecated
   default AccumuloConfiguration getConfig() {
@@ -48,7 +49,7 @@ public interface IteratorEnvironment {
   }
 
   /**
-   * Return the executed scope of the Iterator.  Value will be one of the following:
+   * Return the executed scope of the Iterator. Value will be one of the following:
    * {@link IteratorScope#scan}, {@link IteratorScope#minc}, {@link IteratorScope#majc}
    */
   default IteratorScope getIteratorScope() {
@@ -56,7 +57,7 @@ public interface IteratorEnvironment {
   }
 
   /**
-   * Return true if the compaction is a full major compaction.  Will throw IllegalStateException if
+   * Return true if the compaction is a full major compaction. Will throw IllegalStateException if
    * {@link #getIteratorScope()} != {@link IteratorScope#majc}.
    */
   default boolean isFullMajorCompaction() {
@@ -151,6 +152,24 @@ public interface IteratorEnvironment {
    * @since 2.0.0
    */
   default ServiceEnvironment getServiceEnv() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Returns an object containing the table configuration for this iterator.
+   *
+   * @since 2.0.0
+   */
+  default ServiceEnvironment.Configuration getTableConfiguration() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Return the table Id associated with this iterator.
+   *
+   * @since 2.0.0
+   */
+  default TableId getTableId() {
     throw new UnsupportedOperationException();
   }
 }
