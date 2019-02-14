@@ -298,7 +298,7 @@ public class MetadataConstraints implements Constraint {
   }
 
   protected Arbitrator getArbitrator(ServerContext context) {
-    Objects.nonNull(context);
+    Objects.requireNonNull(context);
     return new ZooArbitrator(context);
   }
 
