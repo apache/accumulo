@@ -25,9 +25,8 @@ public interface ParameterValidator {
   // Allow the special default table IDs
   String ALPHA_NUM_REGEX_TABLE_ID = "[!+]?\\w+";
   String ALPHA_NUM_REGEX_BLANK_OK = "\\w*";
-
-  String RESOURCE_REGEX = "(?:\\w|:)+";
-
+  String PROBLEM_TYPE_REGEX = "FILE_READ|FILE_WRITE|TABLET_LOAD";
+  String RESOURCE_REGEX = "(?:)(.*)";
   // host name and port
   String HOSTNAME_PORT_REGEX = "[a-zA-Z0-9.-]+:[0-9]{2,5}";
 }
