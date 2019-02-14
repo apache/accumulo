@@ -657,7 +657,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public String getDefaultPrompt() {
-    Objects.nonNull(accumuloClient);
+    Objects.requireNonNull(accumuloClient);
     ClientInfo info = ClientInfo.from(accumuloClient.properties());
     return accumuloClient.whoami() + "@" + info.getInstanceName()
         + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
