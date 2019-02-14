@@ -136,12 +136,6 @@ public class Proxy implements KeywordExecutable {
     boolean useMini = Boolean
         .parseBoolean(proxyProps.getProperty(USE_MINI_ACCUMULO_KEY, USE_MINI_ACCUMULO_DEFAULT));
 
-    if (!useMini && clientProps == null) {
-      System.err.println("The '-c' option must be set with an accumulo-client.properties file or"
-          + " proxy.properties must contain either useMiniAccumulo=true");
-      System.exit(1);
-    }
-
     if (!proxyProps.containsKey("port")) {
       System.err.println("No port property");
       System.exit(1);
@@ -152,10 +146,7 @@ public class Proxy implements KeywordExecutable {
       final File folder = Files.createTempDirectory(System.currentTimeMillis() + "").toFile();
       final MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder, "secret");
       accumulo.start();
-      clientProps.setProperty(ClientProperty.INSTANCE_NAME.getKey(),
-          accumulo.getConfig().getInstanceName());
-      clientProps.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(),
-          accumulo.getZooKeepers());
+      clientProps = accumulo.getClientProperties();
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void start() {
@@ -169,6 +160,10 @@ public class Proxy implements KeywordExecutable {
           }
         }
       });
+    } else if (clientProps == null) {
+      System.err.println("The '-c' option must be set with an accumulo-client.properties file or"
+          + " proxy.properties must contain either useMiniAccumulo=true");
+      System.exit(1);
     }
 
     Class<? extends TProtocolFactory> protoFactoryClass = Class

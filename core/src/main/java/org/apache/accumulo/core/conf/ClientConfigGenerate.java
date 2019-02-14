@@ -102,7 +102,7 @@ class ClientConfigGenerate {
 
     @Override
     void property(ClientProperty prop) {
-      Objects.nonNull(prop);
+      Objects.requireNonNull(prop);
       doc.print("| <a name=\"" + prop.getKey().replace(".", "_") + "\" class=\"prop\"></a> "
           + prop.getKey() + " | ");
       String defaultValue = sanitize(prop.getDefaultValue()).trim();
@@ -163,7 +163,7 @@ class ClientConfigGenerate {
   private final TreeMap<String,ClientProperty> sortedProps = new TreeMap<>();
 
   private ClientConfigGenerate(PrintStream doc) {
-    Objects.nonNull(doc);
+    Objects.requireNonNull(doc);
     this.doc = doc;
     for (ClientProperty prop : ClientProperty.values()) {
       this.sortedProps.put(prop.getKey(), prop);
@@ -190,14 +190,15 @@ class ClientConfigGenerate {
   public static void main(String[] args)
       throws FileNotFoundException, UnsupportedEncodingException {
     if (args.length == 2) {
-      ClientConfigGenerate clientConfigGenerate = new ClientConfigGenerate(
-          new PrintStream(args[1], UTF_8.name()));
-      if (args[0].equals("--generate-markdown")) {
-        clientConfigGenerate.generateMarkdown();
-        return;
-      } else if (args[0].equals("--generate-config")) {
-        clientConfigGenerate.generateConfigFile();
-        return;
+      try (PrintStream stream = new PrintStream(args[1], UTF_8.name())) {
+        ClientConfigGenerate clientConfigGenerate = new ClientConfigGenerate(stream);
+        if (args[0].equals("--generate-markdown")) {
+          clientConfigGenerate.generateMarkdown();
+          return;
+        } else if (args[0].equals("--generate-config")) {
+          clientConfigGenerate.generateConfigFile();
+          return;
+        }
       }
     }
     throw new IllegalArgumentException("Usage: " + ClientConfigGenerate.class.getName()
