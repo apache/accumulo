@@ -264,7 +264,7 @@ public class MiniAccumuloConfig {
    * @return the current instance
    * @since 2.0.0
    */
-  public MiniAccumuloConfig setClasspathItems(String... classpathItems) {
+  public MiniAccumuloConfig setClasspath(String... classpathItems) {
     impl.setClasspathItems(classpathItems);
     return this;
   }
