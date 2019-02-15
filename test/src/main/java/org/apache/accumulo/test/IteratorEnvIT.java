@@ -18,10 +18,12 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -33,27 +35,39 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 /**
  * Test that objects in IteratorEnvironment returned from the server are as expected.
  */
 public class IteratorEnvIT extends AccumuloClusterHarness {
-  @ClassRule
-  public static ExpectedException exception = ExpectedException.none();
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setNumTservers(1);
+  }
+
+  @Override
+  protected int defaultTimeoutSeconds() {
+    return 60;
+  }
 
   private AccumuloClient client;
 
+  /**
+   * Basic scan iterator to test IteratorEnvironment returns what is expected.
+   */
   public static class ScanIter extends WrappingIterator {
     IteratorScope scope = IteratorScope.scan;
 
@@ -61,10 +75,23 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
-      testEnv(env, scope);
+      testEnv(scope, options, env);
+
+      // Checking for compaction on a scan should throw an error.
+      try {
+        assertFalse(env.isUserCompaction());
+        fail("Expected to throw IllegalStateException when checking compaction on a scan.");
+      } catch (IllegalStateException e) {}
+      try {
+        assertFalse(env.isFullMajorCompaction());
+        fail("Expected to throw IllegalStateException when checking compaction on a scan.");
+      } catch (IllegalStateException e) {}
     }
   }
 
+  /**
+   * Basic compaction iterator to test IteratorEnvironment returns what is expected.
+   */
   public static class MajcIter extends WrappingIterator {
     IteratorScope scope = IteratorScope.majc;
 
@@ -72,42 +99,47 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
-      testEnv(env, scope);
+      testEnv(scope, options, env);
+      assertTrue(env.isUserCompaction());
+      assertTrue(env.isFullMajorCompaction());
     }
   }
 
   /**
-   * Checking for compaction on a scan should throw an error.
+   *
    */
-  public static class BadStateIter extends WrappingIterator {
+  public static class MincIter extends WrappingIterator {
+    IteratorScope scope = IteratorScope.minc;
+
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
+      testEnv(scope, options, env);
       try {
-        assertFalse(env.isUserCompaction());
+        assertTrue(env.isUserCompaction());
         fail("Expected to throw IllegalStateException when checking compaction on a scan.");
       } catch (IllegalStateException e) {}
-      ;
+      try {
+        assertFalse(env.isFullMajorCompaction());
+        fail("Expected to throw IllegalStateException when checking compaction on a scan.");
+      } catch (IllegalStateException e) {}
     }
   }
 
   /**
    * Test the environment methods return what is expected.
    */
-  public static void testEnv(IteratorEnvironment env, IteratorScope scope) {
-    assertEquals("value1", env.getConfig().get("table.custom.iterator.env.test"));
-    System.out.println("MIKE got conf in iter:");
-    env.getServiceEnv().getConfiguration()
-        .forEach(e -> System.out.println(e.getKey() + "=" + e.getValue()));
-    assertEquals("value1",
-        env.getServiceEnv().getConfiguration().getTableCustom("iterator.env.test"));
-    assertEquals(scope, env.getIteratorScope());
-    assertFalse(env.isSamplingEnabled());
-    if (scope != IteratorScope.scan) {
-      assertFalse(env.isUserCompaction());
-      assertFalse(env.isFullMajorCompaction());
-    }
+  private static void testEnv(IteratorScope scope, Map<String,String> opts,
+      IteratorEnvironment env) {
+    TableId expectedTableId = TableId.of(opts.get("expected.table.id"));
+    assertEquals("Expected table property not found", "value1",
+        env.getConfig().get("table.custom.iterator.env.test"));
+    assertEquals("Expected table property not found", "value1",
+        env.getTableConfiguration().getTableCustom("iterator.env.test"));
+    assertEquals("Error getting iterator scope", scope, env.getIteratorScope());
+    assertFalse("isSamplingEnabled returned true, expected false", env.isSamplingEnabled());
+    assertEquals("Error getting Table ID", expectedTableId, env.getTableId());
   }
 
   @Before
@@ -120,37 +152,20 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     client.close();
   }
 
-  /**
-   * Test the scan environment methods return what is expected.
-   */
   @Test
-  public void testScanEnv() throws Exception {
-    String[] tables = getUniqueNames(2);
+  public void test() throws Exception {
+    String[] tables = getUniqueNames(3);
     testScan(tables[0], ScanIter.class);
-    testScan(tables[1], BadStateIter.class);
-  }
-
-  public void testCompactEnv() throws Exception {
-    String tableName = getUniqueNames(1)[0];
-    IteratorSetting cfg = new IteratorSetting(1, MajcIter.class);
-    client.tableOperations().create(tableName);
-
-    writeData(tableName);
-
-    CompactionConfig config = new CompactionConfig();
-    config.setIterators(Collections.singletonList(cfg));
-    client.tableOperations().compact(tableName, config);
+    testCompact(tables[1], MajcIter.class);
+    testMinCompact(tables[2], MincIter.class);
   }
 
   private void testScan(String tableName,
       Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) throws Exception {
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    ntc.setProperties(Collections.singletonMap("table.custom.iterator.env.test", "value1"));
-    client.tableOperations().create(tableName, ntc);
-
     writeData(tableName);
 
     IteratorSetting cfg = new IteratorSetting(1, iteratorClass);
+    cfg.addOption("expected.table.id", client.tableOperations().tableIdMap().get(tableName));
     try (Scanner scan = client.createScanner(tableName)) {
       scan.addScanIterator(cfg);
       Iterator<Map.Entry<Key,Value>> iter = scan.iterator();
@@ -158,7 +173,38 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     }
   }
 
+  public void testCompact(String tableName,
+      Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) throws Exception {
+    writeData(tableName);
+
+    IteratorSetting cfg = new IteratorSetting(1, iteratorClass);
+    cfg.addOption("expected.table.id", client.tableOperations().tableIdMap().get(tableName));
+    CompactionConfig config = new CompactionConfig();
+    config.setIterators(Collections.singletonList(cfg));
+    client.tableOperations().compact(tableName, config);
+  }
+
+  public void testMinCompact(String tableName,
+      Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) throws Exception {
+    writeData(tableName);
+
+    IteratorSetting cfg = new IteratorSetting(1, iteratorClass);
+    cfg.addOption("expected.table.id", client.tableOperations().tableIdMap().get(tableName));
+
+    client.tableOperations().attachIterator(tableName, cfg, EnumSet.of(IteratorScope.minc));
+
+    client.tableOperations().flush(tableName);
+  }
+
+  private NewTableConfiguration getTableConfig() {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    ntc.setProperties(Collections.singletonMap("table.custom.iterator.env.test", "value1"));
+    return ntc;
+  }
+
   private void writeData(String tableName) throws Exception {
+    client.tableOperations().create(tableName, getTableConfig());
+
     try (BatchWriter bw = client.createBatchWriter(tableName)) {
       Mutation m = new Mutation("row1");
       m.at().family("cf1").qualifier("cq1").put("val1");
