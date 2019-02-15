@@ -24,14 +24,18 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
+
 /**
  * When configured for a scan executor, this prioritizer allows scanners to set priorities as
- * integers.
+ * integers. Lower integers result in higher priority.
  *
  * <p>
- * Scanners should put the key/value {@code priority=<integer>} in the map passed to
- * {@link ScannerBase#setExecutionHints(Map)} to set the priority. Lower integers result in higher
- * priority.
+ * Scanners can put the key/values {@code priority=<integer>} and/or {@code scan_type=<type>} in the
+ * map passed to {@link ScannerBase#setExecutionHints(Map)} to set the priority. When a
+ * {@code priority} hint is set it takes precedence and the value is used as the priority. When a
+ * {@code scan_type} hint is set the priority is looked up using the value.
  *
  * <p>
  * This prioritizer accepts the option {@code default_priority=<integer>} which determines what
@@ -43,6 +47,10 @@ import org.slf4j.LoggerFactory;
  * what happens when a priority hint is not an integer. It defaults to {@code log} which logs a
  * warning. The {@code fail} option throws an exception which may fail the scan. The {@code none}
  * option silently ignores invalid hints.
+ *
+ * <p>
+ * This prioritizer accepts the option {@code priority.<type>=<integer>} which maps a scan type hint
+ * to a priority.
  *
  * <p>
  * When two scans have the same priority, the scan is prioritized based on last run time and then
@@ -61,11 +69,14 @@ public class HintScanPrioritizer implements ScanPrioritizer {
 
   private static final Logger log = LoggerFactory.getLogger(HintScanPrioritizer.class);
 
+  private final String PRIO_PREFIX = "priority.";
+
   private enum HintProblemAction {
     NONE, LOG, FAIL
   }
 
-  private static int getPriority(ScanInfo si, int defaultPriority, HintProblemAction hpa) {
+  private static int getPriority(ScanInfo si, int defaultPriority, HintProblemAction hpa,
+      Map<String,Integer> typePriorities) {
     String prio = si.getExecutionHints().get("priority");
     if (prio != null) {
       try {
@@ -86,6 +97,16 @@ public class HintScanPrioritizer implements ScanPrioritizer {
       }
     }
 
+    if (!typePriorities.isEmpty()) {
+      String scanType = si.getExecutionHints().get("scan_type");
+      if (scanType != null) {
+        Integer typePrio = typePriorities.get(scanType);
+        if (typePrio != null) {
+          return typePrio;
+        }
+      }
+    }
+
     return defaultPriority;
   }
 
@@ -94,10 +115,22 @@ public class HintScanPrioritizer implements ScanPrioritizer {
     int defaultPriority = Integer
         .parseInt(params.getOptions().getOrDefault("default_priority", Integer.MAX_VALUE + ""));
 
+    Builder<String,Integer> tpb = ImmutableMap.builder();
+
+    params.getOptions().forEach((k, v) -> {
+      if (k.startsWith(PRIO_PREFIX)) {
+        String type = k.substring(PRIO_PREFIX.length());
+        tpb.put(type, Integer.parseInt(v));
+      }
+    });
+
+    ImmutableMap<String,Integer> typePriorities = tpb.build();
+
     HintProblemAction hpa = HintProblemAction.valueOf(params.getOptions()
         .getOrDefault("bad_hint_action", HintProblemAction.LOG.name()).toUpperCase());
 
-    Comparator<ScanInfo> cmp = Comparator.comparingInt(si -> getPriority(si, defaultPriority, hpa));
+    Comparator<ScanInfo> cmp = Comparator
+        .comparingInt(si -> getPriority(si, defaultPriority, hpa, typePriorities));
 
     return cmp.thenComparingLong(si -> si.getLastRunTime().orElse(0))
         .thenComparingLong(ScanInfo::getCreationTime);
