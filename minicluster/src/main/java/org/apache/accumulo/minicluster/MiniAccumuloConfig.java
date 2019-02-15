@@ -255,4 +255,17 @@ public class MiniAccumuloConfig {
     impl.setNativeLibPaths(nativePathItems);
     return this;
   }
+
+  /**
+   * Sets the classpath elements to use when spawning processes.
+   *
+   * @param classpathItems
+   *          the classpathItems to set
+   * @return the current instance
+   * @since 2.0.0
+   */
+  public MiniAccumuloConfig setClasspath(String... classpathItems) {
+    impl.setClasspathItems(classpathItems);
+    return this;
+  }
 }
