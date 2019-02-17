@@ -26,7 +26,7 @@ public interface CryptoEnvironment {
    * Where in Accumulo the on-disk file encryption takes place.
    */
   enum Scope {
-    WAL, RFILE;
+    WAL, RFILE
   }
 
   Scope getScope();

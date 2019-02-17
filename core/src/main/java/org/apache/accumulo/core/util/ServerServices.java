@@ -20,7 +20,7 @@ import java.util.EnumMap;
 
 public class ServerServices implements Comparable<ServerServices> {
   public static enum Service {
-    TSERV_CLIENT, GC_CLIENT;
+    TSERV_CLIENT, GC_CLIENT
   }
 
   public static final String SERVICE_SEPARATOR = ";";

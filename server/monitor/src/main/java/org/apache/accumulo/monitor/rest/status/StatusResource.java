@@ -41,7 +41,7 @@ import org.apache.log4j.Level;
 public class StatusResource {
 
   public enum Status {
-    OK, ERROR, WARN;
+    OK, ERROR, WARN
   }
 
   /**
