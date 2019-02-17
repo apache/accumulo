@@ -48,7 +48,7 @@ public class DeleteFailIT extends AccumuloClusterHarness {
         writer.addMutation(m);
       }
 
-      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);) {
+      try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.forEach(e -> {});
         fail("Expected scan to fail because  deletes are present.");
       } catch (RuntimeException e) {}

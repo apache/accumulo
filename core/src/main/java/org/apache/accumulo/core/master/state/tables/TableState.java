@@ -31,5 +31,5 @@ public enum TableState {
 
   // UNKNOWN is NOT a valid state; it is reserved for unrecognized serialized
   // representations of table state
-  UNKNOWN;
+  UNKNOWN
 }

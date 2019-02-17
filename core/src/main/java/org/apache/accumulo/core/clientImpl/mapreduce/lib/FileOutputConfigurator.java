@@ -41,7 +41,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    * @since 1.6.0
    */
   public static enum Opts {
-    ACCUMULO_PROPERTIES;
+    ACCUMULO_PROPERTIES
   }
 
   /**

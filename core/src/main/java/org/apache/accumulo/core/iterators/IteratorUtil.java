@@ -68,7 +68,7 @@ public class IteratorUtil {
    * Also this type can not be moved.
    */
   public static enum IteratorScope {
-    majc, minc, scan;
+    majc, minc, scan
   }
 
   private static Comparator<IterInfo> ITER_INFO_COMPARATOR = Comparator

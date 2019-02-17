@@ -17,6 +17,6 @@
 package org.apache.accumulo.server;
 
 public enum TabletLevel {
-  ROOT, META, NORMAL;
+  ROOT, META, NORMAL
 
 }

@@ -42,7 +42,7 @@ import java.util.ServiceLoader;
 public interface KeywordExecutable {
 
   enum UsageGroup {
-    CORE, PROCESS, OTHER;
+    CORE, PROCESS, OTHER
   }
 
   /**

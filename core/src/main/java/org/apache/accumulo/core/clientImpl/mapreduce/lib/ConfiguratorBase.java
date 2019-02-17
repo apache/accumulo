@@ -82,7 +82,7 @@ public class ConfiguratorBase {
    * @since 1.6.0
    */
   public enum InstanceOpts {
-    TYPE, NAME, ZOO_KEEPERS, CLIENT_CONFIG;
+    TYPE, NAME, ZOO_KEEPERS, CLIENT_CONFIG
   }
 
   /**
