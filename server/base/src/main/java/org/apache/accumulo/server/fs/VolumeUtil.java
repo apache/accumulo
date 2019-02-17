@@ -123,8 +123,7 @@ public class VolumeUtil {
     else
       switchedPath = le.filename;
 
-    String switchedLog = switchVolume(le.filename, FileType.WAL, replacements);
-    if (switchedLog != null) {
+    if (switchVolume(le.filename, FileType.WAL, replacements) != null) {
       numSwitched++;
     }
 
