@@ -111,6 +111,11 @@ public class WholeColumnFamilyIterator
     return map;
   }
 
+  private static void encode(DataOutputStream dout, ByteSequence bs) throws IOException {
+    dout.writeInt(bs.length());
+    dout.write(bs.getBackingArray(), bs.offset(), bs.length());
+  }
+
   /**
    * Encode row/cf. Take a stream of keys and values and output a value that encodes everything but
    * their row and column families keys and values must be paired one for one
@@ -131,18 +136,9 @@ public class WholeColumnFamilyIterator
     for (int i = 0; i < keys.size(); i++) {
       Key k = keys.get(i);
       Value v = values.get(i);
-      // write the colqual
-      {
-        ByteSequence bs = k.getColumnQualifierData();
-        dout.writeInt(bs.length());
-        dout.write(bs.getBackingArray(), bs.offset(), bs.length());
-      }
-      // write the column visibility
-      {
-        ByteSequence bs = k.getColumnVisibilityData();
-        dout.writeInt(bs.length());
-        dout.write(bs.getBackingArray(), bs.offset(), bs.length());
-      }
+      // write column qualifier & visibility
+      encode(dout, k.getColumnQualifierData());
+      encode(dout, k.getColumnVisibilityData());
       // write the timestamp
       dout.writeLong(k.getTimestamp());
       // write the value
@@ -150,7 +146,6 @@ public class WholeColumnFamilyIterator
       dout.writeInt(valBytes.length);
       dout.write(valBytes);
     }
-
     return new Value(out.toByteArray());
   }
 

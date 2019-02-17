@@ -536,7 +536,7 @@ class FateServiceHandler implements FateService.Iface {
             autoCleanup);
         break;
       }
-      case TABLE_BULK_IMPORT2: {
+      case TABLE_BULK_IMPORT2:
         TableOperation tableOp = TableOperation.BULK_IMPORT;
         TableId tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
         String dir = ByteBufferUtil.toString(arguments.get(1));
@@ -565,7 +565,6 @@ class FateServiceHandler implements FateService.Iface {
         master.fate.seedTransaction(opid,
             new TraceRepo<>(new PrepBulkImport(tableId, dir, setTime)), autoCleanup);
         break;
-      }
       default:
         throw new UnsupportedOperationException();
     }

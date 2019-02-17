@@ -324,7 +324,7 @@ public class ColumnVisibility {
 
       while (index < expression.length) {
         switch (expression[index++]) {
-          case '&': {
+          case '&':
             expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.AND))
@@ -338,8 +338,7 @@ public class ColumnVisibility {
             subtermStart = index;
             subtermComplete = false;
             break;
-          }
-          case '|': {
+          case '|':
             expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.OR))
@@ -353,8 +352,7 @@ public class ColumnVisibility {
             subtermStart = index;
             subtermComplete = false;
             break;
-          }
-          case '(': {
+          case '(':
             parens++;
             if (subtermStart != index - 1 || expr != null)
               throw new BadArgumentException("expression needs & or |",
@@ -363,8 +361,7 @@ public class ColumnVisibility {
             subtermStart = index;
             subtermComplete = false;
             break;
-          }
-          case ')': {
+          case ')':
             parens--;
             Node child = processTerm(subtermStart, index - 1, expr, expression);
             if (child == null && result == null)
@@ -379,8 +376,7 @@ public class ColumnVisibility {
               result.add(child);
             result.end = index - 1;
             return result;
-          }
-          case '"': {
+          case '"':
             if (subtermStart != index - 1)
               throw new BadArgumentException("expression needs & or |",
                   new String(expression, UTF_8), index - 1);
@@ -408,8 +404,7 @@ public class ColumnVisibility {
             subtermComplete = true;
 
             break;
-          }
-          default: {
+          default:
             if (subtermComplete)
               throw new BadArgumentException("expression needs & or |",
                   new String(expression, UTF_8), index - 1);
@@ -418,7 +413,6 @@ public class ColumnVisibility {
             if (!Authorizations.isValidAuthChar(c))
               throw new BadArgumentException("bad character (" + c + ")",
                   new String(expression, UTF_8), index - 1);
-          }
         }
       }
       Node child = processTerm(subtermStart, index, expr, expression);

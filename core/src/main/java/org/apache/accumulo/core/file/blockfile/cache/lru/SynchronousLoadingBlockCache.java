@@ -69,7 +69,7 @@ public abstract class SynchronousLoadingBlockCache implements BlockCache {
         }
         break;
       }
-      default: {
+      default:
         depData = new HashMap<>();
         Set<Entry<String,Loader>> es = loaderDeps.entrySet();
         for (Entry<String,Loader> entry : es) {
@@ -82,7 +82,6 @@ public abstract class SynchronousLoadingBlockCache implements BlockCache {
           depData.put(entry.getKey(), dce.getBuffer());
         }
         break;
-      }
     }
 
     return depData;

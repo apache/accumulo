@@ -94,14 +94,12 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
     c.tableOperations().create(t1);
     Key k = new Key(new Text("row"), new Text("cf"), new Text("cq"));
     Value v = new Value("1".getBytes());
-    {
-      BatchWriterConfig config = new BatchWriterConfig();
-      config.setMaxMemory(0);
-      BatchWriter writer = c.createBatchWriter(t1, config);
+    BatchWriterConfig config = new BatchWriterConfig();
+    config.setMaxMemory(0);
+    try (BatchWriter writer = c.createBatchWriter(t1, config)) {
       Mutation m = new Mutation(k.getRow());
       m.put(k.getColumnFamily(), k.getColumnQualifier(), v);
       writer.addMutation(m);
-      writer.close();
     }
 
     // Create t2 with a combiner to count entries written to it
