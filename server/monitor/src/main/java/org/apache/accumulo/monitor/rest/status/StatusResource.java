@@ -16,16 +16,11 @@
  */
 package org.apache.accumulo.monitor.rest.status;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.master.thrift.DeadServer;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
@@ -64,15 +59,7 @@ public class StatusResource {
         gcStatus = Status.ERROR;
       }
 
-      List<String> tservers = new ArrayList<>();
-      for (TabletServerStatus up : Monitor.getMmi().tServerInfo) {
-        tservers.add(up.name);
-      }
-      for (DeadServer down : Monitor.getMmi().deadTabletServers) {
-        tservers.add(down.server);
-      }
       List<String> masters = Monitor.getContext().getMasterLocations();
-
       masterStatus = masters.size() == 0 ? Status.ERROR : Status.OK;
 
       int tServerUp = Monitor.getMmi().getTServerInfoSize();

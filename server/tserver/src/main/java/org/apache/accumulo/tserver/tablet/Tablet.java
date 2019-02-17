@@ -2076,7 +2076,7 @@ public class Tablet {
 
     PriorityQueue<Pair<FileRef,Long>> fileHeap = new PriorityQueue<>(filesToCompact.size(),
         (o1, o2) -> {
-          if (o1.getSecond() == o2.getSecond())
+          if (o1.getSecond().equals(o2.getSecond()))
             return o1.getFirst().compareTo(o2.getFirst());
           if (o1.getSecond() < o2.getSecond())
             return -1;

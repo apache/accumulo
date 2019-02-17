@@ -16,10 +16,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.TokenProperty;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -52,13 +48,6 @@ public class LoginProperties implements KeywordExecutable {
       Authenticator authenticator = AccumuloVFSClassLoader.getClassLoader()
           .loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))
           .asSubclass(Authenticator.class).newInstance();
-
-      List<Set<TokenProperty>> tokenProps = new ArrayList<>();
-
-      for (Class<? extends AuthenticationToken> tokenType : authenticator
-          .getSupportedTokenTypes()) {
-        tokenProps.add(tokenType.newInstance().getProperties());
-      }
 
       System.out
           .println("Supported token types for " + authenticator.getClass().getName() + " are : ");

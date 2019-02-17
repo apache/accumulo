@@ -19,21 +19,11 @@ package org.apache.accumulo.server.security.handler;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -87,16 +77,7 @@ public class ZKAuthorizor implements Authorizor {
       throws AccumuloSecurityException {
     ZooReaderWriter zoo = context.getZooReaderWriter();
 
-    // create the root user with all system privileges, no table privileges, and no record-level
-    // authorizations
-    Set<SystemPermission> rootPerms = new TreeSet<>();
-    for (SystemPermission p : SystemPermission.values())
-      rootPerms.add(p);
-    Map<TableId,Set<TablePermission>> tablePerms = new HashMap<>();
-    // Allow the root user to flush the metadata tables
-    tablePerms.put(MetadataTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
-    tablePerms.put(RootTable.ID, Collections.singleton(TablePermission.ALTER_TABLE));
-
+    // create the root user with no record-level authorizations
     try {
       // prep parent node of users with root username
       if (!zoo.exists(ZKUserPath))
