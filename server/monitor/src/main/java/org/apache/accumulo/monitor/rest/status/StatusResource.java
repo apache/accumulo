@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.monitor.rest.status;
 
+import java.util.List;
+
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -25,8 +27,6 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.log4j.Level;
-
-import java.util.List;
 
 /**
  * Generates the status for master, gc, and tservers as well as log and problem reports
