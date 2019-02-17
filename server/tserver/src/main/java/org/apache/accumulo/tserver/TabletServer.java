@@ -3116,7 +3116,7 @@ public class TabletServer implements Runnable {
     }
 
     if (future == null) {
-      log.info("The master has not assigned {} to ", extent, instance);
+      log.info("The master has not assigned {} to {}", extent, instance);
       return null;
     }
 

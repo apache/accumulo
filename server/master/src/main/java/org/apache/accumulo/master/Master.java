@@ -1300,7 +1300,7 @@ public class Master
     zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
       @Override
       public void process(WatchedEvent event) {
-        nextEvent.event("Noticed recovery changes", event.getType());
+        nextEvent.event("Noticed recovery changes %s", event.getType());
         try {
           // watcher only fires once, add it back
           zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, this);

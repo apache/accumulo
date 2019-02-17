@@ -92,17 +92,12 @@ public class RemoveCompleteReplicationRecords implements Runnable {
       sw.start();
       recordsRemoved = removeCompleteRecords(client, bs, bw);
     } finally {
-      if (bs != null) {
-        bs.close();
+      bs.close();
+      try {
+        bw.close();
+      } catch (MutationsRejectedException e) {
+        log.error("Error writing mutations to {}, will retry", ReplicationTable.NAME, e);
       }
-      if (bw != null) {
-        try {
-          bw.close();
-        } catch (MutationsRejectedException e) {
-          log.error("Error writing mutations to {}, will retry", ReplicationTable.NAME, e);
-        }
-      }
-
       sw.stop();
     }
 

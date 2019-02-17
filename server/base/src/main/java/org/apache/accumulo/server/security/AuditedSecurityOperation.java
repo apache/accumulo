@@ -286,10 +286,10 @@ public class AuditedSecurityOperation extends SecurityOperation {
     String tableName = getTableName(tableId);
     try {
       boolean result = super.canDeleteTable(c, tableId, namespaceId);
-      audit(c, result, CAN_DELETE_TABLE_AUDIT_TEMPLATE, tableName, tableId);
+      audit(c, result, CAN_DELETE_TABLE_AUDIT_TEMPLATE, tableName);
       return result;
     } catch (ThriftSecurityException ex) {
-      audit(c, ex, CAN_DELETE_TABLE_AUDIT_TEMPLATE, tableName, tableId);
+      audit(c, ex, CAN_DELETE_TABLE_AUDIT_TEMPLATE, tableName);
       throw ex;
     }
   }
@@ -709,12 +709,10 @@ public class AuditedSecurityOperation extends SecurityOperation {
       operation = "offlineTable";
     try {
       boolean result = super.canOnlineOfflineTable(credentials, tableId, op, namespaceId);
-      audit(credentials, result, CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, operation, tableName,
-          tableId);
+      audit(credentials, result, CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, operation, tableName);
       return result;
     } catch (ThriftSecurityException ex) {
-      audit(credentials, ex, CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, operation, tableName,
-          tableId);
+      audit(credentials, ex, CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, operation, tableName);
       throw ex;
     }
   }
