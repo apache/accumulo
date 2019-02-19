@@ -161,38 +161,32 @@ package org.apache.accumulo.server.replication.proto;
             case 0:
               done = true;
               break;
-            default: {
+            default:
               if (!parseUnknownField(input, unknownFields,
                                      extensionRegistry, tag)) {
                 done = true;
               }
               break;
-            }
-            case 8: {
+            case 8:
               bitField0_ |= 0x00000001;
               begin_ = input.readInt64();
               break;
-            }
-            case 16: {
+            case 16:
               bitField0_ |= 0x00000002;
               end_ = input.readInt64();
               break;
-            }
-            case 24: {
+            case 24:
               bitField0_ |= 0x00000004;
               infiniteEnd_ = input.readBool();
               break;
-            }
-            case 32: {
+            case 32:
               bitField0_ |= 0x00000008;
               closed_ = input.readBool();
               break;
-            }
-            case 40: {
+            case 40:
               bitField0_ |= 0x00000010;
               createdTime_ = input.readInt64();
               break;
-            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {

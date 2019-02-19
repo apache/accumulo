@@ -1053,7 +1053,7 @@ public class Master
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                 }
                   break;
-                case UNLOAD_ROOT_TABLET: {
+                case UNLOAD_ROOT_TABLET:
                   int count = assignedOrHosted(MetadataTable.ID);
                   if (count > 0 && goodStats()) {
                     log.debug(String.format("%d metadata tablets online", count));
@@ -1078,7 +1078,6 @@ public class Master
                     if (currentServers.size() == 0)
                       setMasterState(MasterState.STOP);
                   }
-                }
                   break;
                 default:
                   break;

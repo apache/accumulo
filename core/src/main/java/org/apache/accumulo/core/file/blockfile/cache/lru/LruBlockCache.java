@@ -334,18 +334,15 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
       // Scan entire map putting into appropriate buckets
       for (CachedBlock cachedBlock : map.values()) {
         switch (cachedBlock.getPriority()) {
-          case SINGLE: {
+          case SINGLE:
             bucketSingle.add(cachedBlock);
             break;
-          }
-          case MULTI: {
+          case MULTI:
             bucketMulti.add(cachedBlock);
             break;
-          }
-          case MEMORY: {
+          case MEMORY:
             bucketMemory.add(cachedBlock);
             break;
-          }
         }
       }
 
