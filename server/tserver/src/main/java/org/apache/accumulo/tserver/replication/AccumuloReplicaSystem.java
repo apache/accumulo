@@ -623,7 +623,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
   protected Set<Integer> consumeWalPrefix(ReplicationTarget target, DataInputStream wal,
       Status status) throws IOException {
-    Set<Integer> tids = new HashSet<>();
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
 
@@ -647,7 +646,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       }
     }
 
-    return tids;
+    return desiredTids;
   }
 
   public DataInputStream getWalStream(Path p, FSDataInputStream input) throws IOException {

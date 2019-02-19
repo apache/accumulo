@@ -3085,7 +3085,7 @@ public class TabletServer implements Runnable {
         }
         future = new TServerInstance(entry.getValue(), key.getColumnQualifier());
       } else if (cf.equals(TabletsSection.CurrentLocationColumnFamily.NAME)) {
-        log.info("Tablet seems to be already assigned to {} {}",
+        log.info("Tablet seems to be already assigned to {}",
             new TServerInstance(entry.getValue(), key.getColumnQualifier()));
         return null;
       } else if (TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {

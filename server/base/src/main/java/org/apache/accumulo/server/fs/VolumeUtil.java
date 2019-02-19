@@ -123,13 +123,8 @@ public class VolumeUtil {
     else
       switchedPath = le.filename;
 
-    ArrayList<String> switchedLogs = new ArrayList<>();
-    String switchedLog = switchVolume(le.filename, FileType.WAL, replacements);
-    if (switchedLog != null) {
-      switchedLogs.add(switchedLog);
+    if (switchVolume(le.filename, FileType.WAL, replacements) != null) {
       numSwitched++;
-    } else {
-      switchedLogs.add(le.filename);
     }
 
     if (numSwitched == 0) {

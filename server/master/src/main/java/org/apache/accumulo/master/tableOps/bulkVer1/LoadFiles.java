@@ -189,9 +189,6 @@ class LoadFiles extends MasterRepo {
           }));
         }
       }
-      Set<String> failures = new HashSet<>();
-      for (Future<List<String>> f : results)
-        failures.addAll(f.get());
       filesToLoad.removeAll(loaded);
       if (filesToLoad.size() > 0) {
         log.debug("tid " + tid + " attempt " + (attempt + 1) + " " + sampleList(filesToLoad, 10)

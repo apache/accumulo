@@ -267,10 +267,6 @@ public class TabletStateChangeIterator extends SkippingIterator {
 
   public static void setShuttingDown(IteratorSetting cfg, Set<TServerInstance> servers) {
     if (servers != null) {
-      List<String> serverList = new ArrayList<>();
-      for (TServerInstance server : servers) {
-        serverList.add(server.toString());
-      }
       cfg.addOption(SHUTTING_DOWN_OPTION, Joiner.on(",").join(servers));
     }
   }
