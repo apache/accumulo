@@ -126,7 +126,7 @@ class LoadFiles extends MasterRepo {
 
     final int RETRIES = Math.max(1, conf.getCount(Property.MASTER_BULK_RETRIES));
     for (int attempt = 0; attempt < RETRIES && filesToLoad.size() > 0; attempt++) {
-      List<Future<List<String>>> results = new ArrayList<>();
+      List<Future<Void>> results = new ArrayList<>();
 
       if (master.onlineTabletServers().size() == 0)
         log.warn("There are no tablet server to process bulk import, waiting (tid = " + tid + ")");
@@ -159,7 +159,6 @@ class LoadFiles extends MasterRepo {
       if (servers.length > 0) {
         for (final String file : filesToLoad) {
           results.add(executor.submit(() -> {
-            List<String> failures = new ArrayList<>();
             ClientService.Client client = null;
             HostAndPort server = null;
             try {
@@ -177,17 +176,18 @@ class LoadFiles extends MasterRepo {
                   setTime);
               if (fail.isEmpty()) {
                 loaded.add(file);
-              } else {
-                failures.addAll(fail);
               }
             } catch (Exception ex) {
               log.error("rpc failed server:" + server + ", tid:" + tid + " " + ex);
             } finally {
               ThriftUtil.returnClient(client);
             }
-            return failures;
+            return null;
           }));
         }
+      }
+      for (Future<Void> f : results) {
+        f.get();
       }
       filesToLoad.removeAll(loaded);
       if (filesToLoad.size() > 0) {
