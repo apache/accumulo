@@ -223,11 +223,6 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   }
 
   @Override
-  public ServiceEnvironment.Configuration getTableConfiguration() {
-    return serviceEnvironment.getConfiguration(tableId);
-  }
-
-  @Override
   public TableId getTableId() {
     return tableId;
   }

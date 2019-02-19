@@ -130,13 +130,14 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   /**
    * Test the environment methods return what is expected.
    */
+  @SuppressWarnings("deprecation")
   private static void testEnv(IteratorScope scope, Map<String,String> opts,
       IteratorEnvironment env) {
     TableId expectedTableId = TableId.of(opts.get("expected.table.id"));
     assertEquals("Expected table property not found", "value1",
         env.getConfig().get("table.custom.iterator.env.test"));
     assertEquals("Expected table property not found", "value1",
-        env.getTableConfiguration().getTableCustom("iterator.env.test"));
+        env.getServiceEnv().getConfiguration(env.getTableId()).getTableCustom("iterator.env.test"));
     assertEquals("Error getting iterator scope", scope, env.getIteratorScope());
     assertFalse("isSamplingEnabled returned true, expected false", env.isSamplingEnabled());
     assertEquals("Error getting Table ID", expectedTableId, env.getTableId());

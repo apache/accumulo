@@ -41,7 +41,7 @@ public interface IteratorEnvironment {
 
   /**
    * @deprecated since 2.0.0. This method was using an unstable non public type. Use
-   *             {@link #getTableConfiguration()}
+   *             {@link #getServiceEnv()}
    */
   @Deprecated
   default AccumuloConfiguration getConfig() {
@@ -147,20 +147,16 @@ public interface IteratorEnvironment {
   }
 
   /**
-   * Returns an object containing information about the server where this iterator was run.
+   * Returns an object containing information about the server where this iterator was run. To
+   * obtain a table configuration, use the following methods:
+   *
+   * <pre>
+   * iterEnv.getServiceEnv().getConfiguration(env.getTableId())
+   * </pre>
    *
    * @since 2.0.0
    */
   default ServiceEnvironment getServiceEnv() {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Returns an object containing the table configuration for this iterator.
-   *
-   * @since 2.0.0
-   */
-  default ServiceEnvironment.Configuration getTableConfiguration() {
     throw new UnsupportedOperationException();
   }
 
