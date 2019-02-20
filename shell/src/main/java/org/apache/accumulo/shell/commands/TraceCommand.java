@@ -26,13 +26,14 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.tracer.TraceDump;
-import org.apache.accumulo.tracer.TraceDump.Printer;
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Sampler;
+import org.apache.htrace.Trace;
 
 public class TraceCommand extends DebugCommand {
 
@@ -41,11 +42,11 @@ public class TraceCommand extends DebugCommand {
       throws IOException {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {
-        Trace.on("shell:" + shellState.getAccumuloClient().whoami());
+        Trace.startSpan("shell:" + shellState.getAccumuloClient().whoami(), Sampler.ALWAYS);
       } else if (cl.getArgs()[0].equalsIgnoreCase("off")) {
         if (Trace.isTracing()) {
-          final long trace = Trace.currentTraceId();
-          Trace.off();
+          final long trace = Trace.currentSpan().getTraceId();
+          TraceUtil.off();
           StringBuilder sb = new StringBuilder();
           int traceCount = 0;
           for (int i = 0; i < 30; i++) {
@@ -60,14 +61,11 @@ public class TraceCommand extends DebugCommand {
               final Scanner scanner = shellState.getAccumuloClient().createScanner(table, auths);
               scanner.setRange(new Range(new Text(Long.toHexString(trace))));
               final StringBuilder finalSB = sb;
-              traceCount = TraceDump.printTrace(scanner, new Printer() {
-                @Override
-                public void print(final String line) {
-                  try {
-                    finalSB.append(line + "\n");
-                  } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                  }
+              traceCount = TraceDump.printTrace(scanner, line -> {
+                try {
+                  finalSB.append(line + "\n");
+                } catch (Exception ex) {
+                  throw new RuntimeException(ex);
                 }
               });
               if (traceCount > 0) {

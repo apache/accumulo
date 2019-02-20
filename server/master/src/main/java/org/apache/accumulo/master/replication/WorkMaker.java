@@ -36,14 +36,14 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,8 +72,7 @@ public class WorkMaker {
       return;
     }
 
-    Span span = Trace.start("replicationWorkMaker");
-    try {
+    try (TraceScope span = Trace.startSpan("replicationWorkMaker")) {
       final Scanner s;
       try {
         s = ReplicationTable.getScanner(client);
@@ -129,18 +128,13 @@ public class WorkMaker {
         // TODO Don't replicate if it's a only a newFile entry (nothing to replicate yet)
         // -- Another scanner over the WorkSection can make this relatively cheap
         if (!replicationTargets.isEmpty()) {
-          Span workSpan = Trace.start("createWorkMutations");
-          try {
+          try (TraceScope workSpan = Trace.startSpan("createWorkMutations")) {
             addWorkRecord(file, entry.getValue(), replicationTargets, tableId);
-          } finally {
-            workSpan.stop();
           }
         } else {
           log.warn("No configured targets for table with ID {}", tableId);
         }
       }
-    } finally {
-      span.stop();
     }
   }
 

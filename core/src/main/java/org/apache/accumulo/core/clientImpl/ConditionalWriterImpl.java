@@ -71,8 +71,7 @@ import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.accumulo.core.security.VisibilityParseException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -245,7 +244,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
         if (!sid.isActive())
           continue;
 
-        TInfo tinfo = Tracer.traceInfo();
+        TInfo tinfo = TraceUtil.traceInfo();
         try {
           client = getClient(sid.location);
           client.closeConditionalUpdate(tinfo, sid.sessionID);
@@ -329,7 +328,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       serverQueue.queue.add(mutations);
       // never execute more than one task per server
       if (!serverQueue.taskQueued) {
-        threadPool.execute(new LoggingRunnable(log, Trace.wrap(new SendTask(location))));
+        threadPool.execute(new LoggingRunnable(log, TraceUtil.wrap(new SendTask(location))));
         serverQueue.taskQueued = true;
       }
     }
@@ -348,7 +347,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
     synchronized (serverQueue) {
       if (serverQueue.queue.size() > 0)
-        threadPool.execute(new LoggingRunnable(log, Trace.wrap(task)));
+        threadPool.execute(new LoggingRunnable(log, TraceUtil.wrap(task)));
       else
         serverQueue.taskQueued = false;
     }
@@ -570,7 +569,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private void sendToServer(HostAndPort location, TabletServerMutations<QCMutation> mutations) {
     TabletClientService.Iface client = null;
 
-    TInfo tinfo = Tracer.traceInfo();
+    TInfo tinfo = TraceUtil.traceInfo();
 
     Map<Long,CMK> cmidToCm = new HashMap<>();
     MutableLong cmid = new MutableLong(0);
@@ -720,7 +719,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private void invalidateSession(long sessionId, HostAndPort location) throws TException {
     TabletClientService.Iface client = null;
 
-    TInfo tinfo = Tracer.traceInfo();
+    TInfo tinfo = TraceUtil.traceInfo();
 
     try {
       client = getClient(location);

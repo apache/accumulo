@@ -78,7 +78,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
-import org.apache.accumulo.core.trace.wrappers.TraceWrap;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.AgeOffStore;
@@ -1264,7 +1264,7 @@ public class Master
     clientHandler = new MasterClientServiceHandler(this);
     // Ensure that calls before the master gets the lock fail
     Iface haProxy = HighlyAvailableServiceWrapper.service(clientHandler, this);
-    Iface rpcProxy = TraceWrap.service(haProxy);
+    Iface rpcProxy = TraceUtil.wrapService(haProxy);
     final Processor<Iface> processor;
     if (context.getThriftServerType() == ThriftServerType.SASL) {
       Iface tcredsProxy = TCredentialsUpdatingWrapper.service(rpcProxy, clientHandler.getClass(),
@@ -1450,7 +1450,7 @@ public class Master
         this);
     // @formatter:off
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
-            new ReplicationCoordinator.Processor<>(TraceWrap.service(haReplicationProxy));
+            new ReplicationCoordinator.Processor<>(TraceUtil.wrapService(haReplicationProxy));
     // @formatter:on
     ServerAddress replAddress = TServerUtils.startServer(context, hostname,
         Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,

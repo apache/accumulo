@@ -37,8 +37,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -47,6 +45,8 @@ import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,27 +84,23 @@ public class CloseWriteAheadLogReferences implements Runnable {
       return;
     }
 
-    Span findWalsSpan = Trace.start("findReferencedWals");
     HashSet<String> closed = null;
-    try {
+    try (TraceScope findWalsSpan = Trace.startSpan("findReferencedWals")) {
       sw.start();
       closed = getClosedLogs();
     } finally {
       sw.stop();
-      findWalsSpan.stop();
     }
 
     log.info("Found {} WALs referenced in metadata in {}", closed.size(), sw);
     sw.reset();
 
-    Span updateReplicationSpan = Trace.start("updateReplicationTable");
     long recordsClosed = 0;
-    try {
+    try (TraceScope updateReplicationSpan = Trace.startSpan("updateReplicationTable")) {
       sw.start();
       recordsClosed = updateReplicationEntries(context, closed);
     } finally {
       sw.stop();
-      updateReplicationSpan.stop();
     }
 
     log.info("Closed {} WAL replication references in replication table in {}", recordsClosed, sw);

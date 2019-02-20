@@ -36,8 +36,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -50,6 +48,8 @@ import org.apache.accumulo.server.util.MasterMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -173,8 +173,7 @@ class DatafileManager {
     long startTime = System.currentTimeMillis();
     TreeSet<FileRef> inUse = new TreeSet<>();
 
-    Span waitForScans = Trace.start("waitForScans");
-    try {
+    try (TraceScope waitForScans = Trace.startSpan("waitForScans")) {
       synchronized (tablet) {
         if (blockNewScans) {
           if (reservationsBlocked)
@@ -205,8 +204,6 @@ class DatafileManager {
         }
 
       }
-    } finally {
-      waitForScans.stop();
     }
     return inUse;
   }

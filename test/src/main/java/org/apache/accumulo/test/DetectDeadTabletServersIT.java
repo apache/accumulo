@@ -32,7 +32,7 @@ import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -92,7 +92,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
       try {
         client = MasterClient.getConnectionWithRetry(context);
         log.info("Fetching master stats");
-        return client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
+        return client.getMasterStats(TraceUtil.traceInfo(), context.rpcCreds());
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);

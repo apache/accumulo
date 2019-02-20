@@ -30,7 +30,9 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.htrace.Sampler;
+import org.apache.htrace.Trace;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -138,12 +140,12 @@ public class ClientOpts extends Help {
 
   public void startTracing(String applicationName) {
     if (trace) {
-      Trace.on(applicationName);
+      Trace.startSpan(applicationName, Sampler.ALWAYS);
     }
   }
 
   public void stopTracing() {
-    Trace.off();
+    TraceUtil.off();
   }
 
   @Override

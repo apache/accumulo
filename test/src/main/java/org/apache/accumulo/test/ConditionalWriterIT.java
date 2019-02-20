@@ -86,9 +86,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.trace.DistributedTrace;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -97,10 +95,12 @@ import org.apache.accumulo.test.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.tracer.TraceDump;
-import org.apache.accumulo.tracer.TraceDump.Printer;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Sampler;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -1546,11 +1546,13 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
 
-      DistributedTrace.enable("localhost", "testTrace", mac.getClientProperties());
+      TraceUtil.enableClientTraces("localhost", "testTrace", mac.getClientProperties());
       sleepUninterruptibly(1, TimeUnit.SECONDS);
-      Span root = Trace.on("traceTest");
-      try (ConditionalWriter cw = client.createConditionalWriter(tableName,
-          new ConditionalWriterConfig())) {
+      long rootTraceId;
+      try (TraceScope root = Trace.startSpan("traceTest", Sampler.ALWAYS);
+          ConditionalWriter cw = client.createConditionalWriter(tableName,
+              new ConditionalWriterConfig())) {
+        rootTraceId = root.getSpan().getTraceId();
 
         // mutation conditional on column tx:seq not exiting
         ConditionalMutation cm0 = new ConditionalMutation("99006", new Condition("tx", "seq"));
@@ -1558,21 +1560,17 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
         cm0.put("name", "first", "john");
         cm0.put("tx", "seq", "1");
         assertEquals(Status.ACCEPTED, cw.write(cm0).getStatus());
-        root.stop();
       }
 
       try (Scanner scanner = client.createScanner("trace", Authorizations.EMPTY)) {
-        scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
+        scanner.setRange(new Range(new Text(Long.toHexString(rootTraceId))));
         loop: while (true) {
           final StringBuilder finalBuffer = new StringBuilder();
-          int traceCount = TraceDump.printTrace(scanner, new Printer() {
-            @Override
-            public void print(final String line) {
-              try {
-                finalBuffer.append(line).append("\n");
-              } catch (Exception ex) {
-                throw new RuntimeException(ex);
-              }
+          int traceCount = TraceDump.printTrace(scanner, line -> {
+            try {
+              finalBuffer.append(line).append("\n");
+            } catch (Exception ex) {
+              throw new RuntimeException(ex);
             }
           });
           String traceOutput = finalBuffer.toString();

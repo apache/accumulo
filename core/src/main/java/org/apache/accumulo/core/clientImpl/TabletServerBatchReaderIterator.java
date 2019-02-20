@@ -62,7 +62,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.OpTimer;
@@ -674,7 +674,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         Map<String,String> execHints = options.executionHints.size() == 0 ? null
             : options.executionHints;
 
-        InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), context.rpcCreds(),
+        InitialMultiScan imsr = client.startMultiScan(TraceUtil.traceInfo(), context.rpcCreds(),
             thriftTabletRanges, Translator.translate(columns, Translators.CT),
             options.serverSideIteratorList, options.serverSideIteratorOptions,
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
@@ -718,7 +718,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             timer.reset().start();
           }
 
-          scanResult = client.continueMultiScan(Tracer.traceInfo(), imsr.scanID);
+          scanResult = client.continueMultiScan(TraceUtil.traceInfo(), imsr.scanID);
 
           if (timer != null) {
             timer.stop();
@@ -742,7 +742,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           trackScanning(failures, unscanned, scanResult);
         }
 
-        client.closeMultiScan(Tracer.traceInfo(), imsr.scanID);
+        client.closeMultiScan(TraceUtil.traceInfo(), imsr.scanID);
 
       } finally {
         ThriftUtil.returnClient(client);

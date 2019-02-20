@@ -147,10 +147,8 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
@@ -264,6 +262,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
@@ -366,18 +366,15 @@ public class TabletServer implements Runnable {
     this.logSorter = new LogSorter(context, fs, aconf);
     this.replWorker = new ReplicationWorker(context, fs);
     this.statsKeeper = new TabletStatsKeeper();
-    SimpleTimer.getInstance(aconf).schedule(new Runnable() {
-      @Override
-      public void run() {
-        synchronized (onlineTablets) {
-          long now = System.currentTimeMillis();
-          for (Tablet tablet : onlineTablets.values())
-            try {
-              tablet.updateRates(now);
-            } catch (Exception ex) {
-              log.error("Error updating rates for {}", tablet.getExtent(), ex);
-            }
-        }
+    SimpleTimer.getInstance(aconf).schedule(() -> {
+      synchronized (onlineTablets) {
+        long now = System.currentTimeMillis();
+        for (Tablet tablet : onlineTablets.values())
+          try {
+            tablet.updateRates(now);
+          } catch (Exception ex) {
+            log.error("Error updating rates for {}", tablet.getExtent(), ex);
+          }
       }
     }, 5000, 5000);
 
@@ -420,12 +417,8 @@ public class TabletServer implements Runnable {
     updateMetrics = metricsFactory.createUpdateMetrics();
     scanMetrics = metricsFactory.createScanMetrics();
     mincMetrics = metricsFactory.createMincMetrics();
-    SimpleTimer.getInstance(aconf).schedule(new Runnable() {
-      @Override
-      public void run() {
-        TabletLocator.clearLocators();
-      }
-    }, jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS), jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS));
+    SimpleTimer.getInstance(aconf).schedule(() -> TabletLocator.clearLocators(),
+        jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS), jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS));
     walMarker = new WalStateManager(context);
 
     // Create the secret manager
@@ -1035,8 +1028,7 @@ public class TabletServer implements Runnable {
       if (!containsMetadataTablet && us.queuedMutations.size() > 0)
         TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
 
-      Span prep = Trace.start("prep");
-      try {
+      try (TraceScope prep = Trace.startSpan("prep")) {
         for (Entry<Tablet,? extends List<Mutation>> entry : us.queuedMutations.entrySet()) {
 
           Tablet tablet = entry.getKey();
@@ -1088,8 +1080,6 @@ public class TabletServer implements Runnable {
             }
           }
         }
-      } finally {
-        prep.stop();
       }
 
       long pt2 = System.currentTimeMillis();
@@ -1101,8 +1091,7 @@ public class TabletServer implements Runnable {
         throw new RuntimeException(error);
       }
       try {
-        Span wal = Trace.start("wal");
-        try {
+        try (TraceScope wal = Trace.startSpan("wal")) {
           while (true) {
             try {
               long t1 = System.currentTimeMillis();
@@ -1121,12 +1110,9 @@ public class TabletServer implements Runnable {
               throw new RuntimeException(t);
             }
           }
-        } finally {
-          wal.stop();
         }
 
-        Span commit = Trace.start("commit");
-        try {
+        try (TraceScope commit = Trace.startSpan("commit")) {
           long t1 = System.currentTimeMillis();
           sendables.forEach((commitSession, mutations) -> {
             commitSession.commit(mutations);
@@ -1147,8 +1133,6 @@ public class TabletServer implements Runnable {
           us.commitTimes.addStat(t2 - t1);
 
           updateAvgCommitTime(t2 - t1, sendables.size());
-        } finally {
-          commit.stop();
         }
       } finally {
         us.queuedMutations.clear();
@@ -1263,13 +1247,10 @@ public class TabletServer implements Runnable {
         final Mutation mutation = new ServerMutation(tmutation);
         final List<Mutation> mutations = Collections.singletonList(mutation);
 
-        final Span prep = Trace.start("prep");
         CommitSession cs;
-        try {
+        try (TraceScope prep = Trace.startSpan("prep")) {
           cs = tablet.prepareMutationsForCommit(
               new TservConstraintEnv(context, security, credentials), mutations);
-        } finally {
-          prep.stop();
         }
         if (cs == null) {
           throw new NotServingTabletException(tkeyExtent);
@@ -1280,11 +1261,8 @@ public class TabletServer implements Runnable {
         // instead of always looping on true, skip completely when durability is NONE
         while (durability != Durability.NONE) {
           try {
-            final Span wal = Trace.start("wal");
-            try {
+            try (TraceScope wal = Trace.startSpan("wal")) {
               logger.log(cs, mutation, durability);
-            } finally {
-              wal.stop();
             }
             break;
           } catch (IOException ex) {
@@ -1292,11 +1270,8 @@ public class TabletServer implements Runnable {
           }
         }
 
-        final Span commit = Trace.start("commit");
-        try {
+        try (TraceScope commit = Trace.startSpan("commit")) {
           cs.commit(mutations);
-        } finally {
-          commit.stop();
         }
       } catch (TConstraintViolationException e) {
         throw new ConstraintViolationException(
@@ -1372,8 +1347,7 @@ public class TabletServer implements Runnable {
 
       boolean sessionCanceled = sess.interruptFlag.get();
 
-      Span prepSpan = Trace.start("prep");
-      try {
+      try (TraceScope prepSpan = Trace.startSpan("prep")) {
         long t1 = System.currentTimeMillis();
         for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : es) {
           final Tablet tablet = onlineTablets.get(entry.getKey());
@@ -1426,12 +1400,9 @@ public class TabletServer implements Runnable {
 
         long t2 = System.currentTimeMillis();
         updateAvgPrepTime(t2 - t1, es.size());
-      } finally {
-        prepSpan.stop();
       }
 
-      Span walSpan = Trace.start("wal");
-      try {
+      try (TraceScope walSpan = Trace.startSpan("wal")) {
         while (loggables.size() > 0) {
           try {
             long t1 = System.currentTimeMillis();
@@ -1447,18 +1418,13 @@ public class TabletServer implements Runnable {
             throw new RuntimeException(t);
           }
         }
-      } finally {
-        walSpan.stop();
       }
 
-      Span commitSpan = Trace.start("commit");
-      try {
+      try (TraceScope commitSpan = Trace.startSpan("commit")) {
         long t1 = System.currentTimeMillis();
         sendables.forEach(CommitSession::commit);
         long t2 = System.currentTimeMillis();
         updateAvgCommitTime(t2 - t1, sendables.size());
-      } finally {
-        commitSpan.stop();
       }
 
     }
@@ -1479,18 +1445,12 @@ public class TabletServer implements Runnable {
       // get as many locks as possible w/o blocking... defer any rows that are locked
       List<RowLock> locks = rowLocks.acquireRowlocks(updates, deferred);
       try {
-        Span checkSpan = Trace.start("Check conditions");
-        try {
+        try (TraceScope checkSpan = Trace.startSpan("Check conditions")) {
           checkConditions(updates, results, cs, symbols);
-        } finally {
-          checkSpan.stop();
         }
 
-        Span updateSpan = Trace.start("apply conditional mutations");
-        try {
+        try (TraceScope updateSpan = Trace.startSpan("apply conditional mutations")) {
           writeConditionalMutations(updates, results, cs);
-        } finally {
-          updateSpan.stop();
         }
       } finally {
         rowLocks.releaseRowLocks(locks);
@@ -1680,13 +1640,10 @@ public class TabletServer implements Runnable {
 
       if (tabletServerLock != null && tabletServerLock.wasLockAcquired()
           && !tabletServerLock.isLocked()) {
-        Halt.halt(1, new Runnable() {
-          @Override
-          public void run() {
-            log.info("Tablet server no longer holds lock during checkPermission() : {}, exiting",
-                request);
-            gcLogger.logGCInfo(TabletServer.this.getConfiguration());
-          }
+        Halt.halt(1, () -> {
+          log.info("Tablet server no longer holds lock during checkPermission() : {}, exiting",
+              request);
+          gcLogger.logGCInfo(TabletServer.this.getConfiguration());
         });
       }
 
@@ -1879,17 +1836,14 @@ public class TabletServer implements Runnable {
 
       checkPermission(credentials, lock, "halt");
 
-      Halt.halt(0, new Runnable() {
-        @Override
-        public void run() {
-          log.info("Master requested tablet server halt");
-          gcLogger.logGCInfo(TabletServer.this.getConfiguration());
-          serverStopRequested = true;
-          try {
-            tabletServerLock.unlock();
-          } catch (Exception e) {
-            log.error("Caught exception unlocking TabletServer lock", e);
-          }
+      Halt.halt(0, () -> {
+        log.info("Master requested tablet server halt");
+        gcLogger.logGCInfo(TabletServer.this.getConfiguration());
+        serverStopRequested = true;
+        try {
+          tabletServerLock.unlock();
+        } catch (Exception e) {
+          log.error("Caught exception unlocking TabletServer lock", e);
         }
       });
     }
@@ -2648,7 +2602,7 @@ public class TabletServer implements Runnable {
   private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
     clientHandler = new ThriftClientHandler();
-    Iface rpcProxy = TraceWrap.service(clientHandler);
+    Iface rpcProxy = TraceUtil.wrapService(clientHandler);
     final Processor<Iface> processor;
     if (context.getThriftServerType() == ThriftServerType.SASL) {
       Iface tcredProxy = TCredentialsUpdatingWrapper.service(rpcProxy, ThriftClientHandler.class,
@@ -2665,7 +2619,7 @@ public class TabletServer implements Runnable {
 
   private void startReplicationService() throws UnknownHostException {
     final ReplicationServicerHandler handler = new ReplicationServicerHandler(this);
-    ReplicationServicer.Iface rpcProxy = TraceWrap.service(handler);
+    ReplicationServicer.Iface rpcProxy = TraceUtil.wrapService(handler);
     ReplicationServicer.Iface repl = TCredentialsUpdatingWrapper.service(rpcProxy,
         handler.getClass(), getConfiguration());
     // @formatter:off
@@ -2722,24 +2676,16 @@ public class TabletServer implements Runnable {
 
         @Override
         public void lostLock(final LockLossReason reason) {
-          Halt.halt(serverStopRequested ? 0 : 1, new Runnable() {
-            @Override
-            public void run() {
-              if (!serverStopRequested)
-                log.error("Lost tablet server lock (reason = {}), exiting.", reason);
-              gcLogger.logGCInfo(getConfiguration());
-            }
+          Halt.halt(serverStopRequested ? 0 : 1, () -> {
+            if (!serverStopRequested)
+              log.error("Lost tablet server lock (reason = {}), exiting.", reason);
+            gcLogger.logGCInfo(getConfiguration());
           });
         }
 
         @Override
         public void unableToMonitorLockNode(final Throwable e) {
-          Halt.halt(1, new Runnable() {
-            @Override
-            public void run() {
-              log.error("Lost ability to monitor tablet server lock, exiting.", e);
-            }
-          });
+          Halt.halt(1, () -> log.error("Lost ability to monitor tablet server lock, exiting.", e));
 
         }
       };
@@ -3169,22 +3115,19 @@ public class TabletServer implements Runnable {
     }
 
     // A task that cleans up unused classloader contexts
-    Runnable contextCleaner = new Runnable() {
-      @Override
-      public void run() {
-        Set<String> contextProperties = context.getServerConfFactory().getSystemConfiguration()
-            .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY).keySet();
-        Set<String> configuredContexts = new HashSet<>();
-        for (String prop : contextProperties) {
-          configuredContexts
-              .add(prop.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.name().length()));
-        }
+    Runnable contextCleaner = () -> {
+      Set<String> contextProperties = context.getServerConfFactory().getSystemConfiguration()
+          .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY).keySet();
+      Set<String> configuredContexts = new HashSet<>();
+      for (String prop : contextProperties) {
+        configuredContexts
+            .add(prop.substring(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.name().length()));
+      }
 
-        try {
-          AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(configuredContexts);
-        } catch (IOException e) {
-          log.warn("{}", e.getMessage(), e);
-        }
+      try {
+        AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(configuredContexts);
+      } catch (IOException e) {
+        log.warn("{}", e.getMessage(), e);
       }
     };
 
@@ -3193,28 +3136,19 @@ public class TabletServer implements Runnable {
 
     FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
 
-    Runnable gcDebugTask = new Runnable() {
-      @Override
-      public void run() {
-        gcLogger.logGCInfo(getConfiguration());
-      }
-    };
+    Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
 
     SimpleTimer.getInstance(aconf).schedule(gcDebugTask, 0, TIME_BETWEEN_GC_CHECKS);
 
-    Runnable constraintTask = new Runnable() {
+    Runnable constraintTask = () -> {
+      ArrayList<Tablet> tablets;
 
-      @Override
-      public void run() {
-        ArrayList<Tablet> tablets;
+      synchronized (onlineTablets) {
+        tablets = new ArrayList<>(onlineTablets.values());
+      }
 
-        synchronized (onlineTablets) {
-          tablets = new ArrayList<>(onlineTablets.values());
-        }
-
-        for (Tablet tablet : tablets) {
-          tablet.checkConstraints();
-        }
+      for (Tablet tablet : tablets) {
+        tablet.checkConstraints();
       }
     };
 
@@ -3502,14 +3436,11 @@ public class TabletServer implements Runnable {
       closedCopy = copyClosedLogs(closedLogs);
     }
 
-    ReferencedRemover refRemover = new ReferencedRemover() {
-      @Override
-      public void removeInUse(Set<DfsLogger> candidates) {
-        for (Tablet tablet : getOnlineTablets()) {
-          tablet.removeInUseLogs(candidates);
-          if (candidates.isEmpty()) {
-            break;
-          }
+    ReferencedRemover refRemover = candidates -> {
+      for (Tablet tablet : getOnlineTablets()) {
+        tablet.removeInUseLogs(candidates);
+        if (candidates.isEmpty()) {
+          break;
         }
       }
     };

@@ -65,12 +65,12 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -298,9 +298,7 @@ public class TabletServerBatchWriter {
     if (closed)
       throw new IllegalStateException("Closed");
 
-    Span span = Trace.start("flush");
-
-    try {
+    try (TraceScope span = Trace.startSpan("flush")) {
       checkForFailures();
 
       if (flushing) {
@@ -323,9 +321,6 @@ public class TabletServerBatchWriter {
       this.notifyAll();
 
       checkForFailures();
-    } finally {
-      span.stop();
-      // somethingFailed = false;
     }
   }
 
@@ -334,8 +329,7 @@ public class TabletServerBatchWriter {
     if (closed)
       return;
 
-    Span span = Trace.start("close");
-    try {
+    try (TraceScope span = Trace.startSpan("close")) {
       closed = true;
 
       startProcessing();
@@ -350,7 +344,6 @@ public class TabletServerBatchWriter {
       writer.binningThreadPool.shutdownNow();
       writer.sendThreadPool.shutdownNow();
       jtimer.cancel();
-      span.stop();
     }
   }
 
@@ -722,7 +715,7 @@ public class TabletServerBatchWriter {
     void queueMutations(final MutationSet mutationsToSend) {
       if (mutationsToSend == null)
         return;
-      binningThreadPool.execute(Trace.wrap(() -> {
+      binningThreadPool.execute(TraceUtil.wrap(() -> {
         if (mutationsToSend != null) {
           try {
             log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
@@ -737,14 +730,11 @@ public class TabletServerBatchWriter {
 
     private void addMutations(MutationSet mutationsToSend) {
       Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
-      Span span = Trace.start("binMutations");
-      try {
+      try (TraceScope span = Trace.startSpan("binMutations")) {
         long t1 = System.currentTimeMillis();
         binMutations(mutationsToSend, binnedMutations);
         long t2 = System.currentTimeMillis();
         updateBinningStats(mutationsToSend.size(), (t2 - t1), binnedMutations);
-      } finally {
-        span.stop();
       }
       addMutations(binnedMutations);
     }
@@ -787,7 +777,7 @@ public class TabletServerBatchWriter {
 
       for (String server : servers)
         if (!queued.contains(server)) {
-          sendThreadPool.submit(Trace.wrap(new SendTask(server)));
+          sendThreadPool.submit(TraceUtil.wrap(new SendTask(server)));
           queued.add(server);
         }
     }
@@ -848,8 +838,7 @@ public class TabletServerBatchWriter {
               + Joiner.on(',').join(tableIds) + ']';
           Thread.currentThread().setName(msg);
 
-          Span span = Trace.start("sendMutations");
-          try {
+          try (TraceScope span = Trace.startSpan("sendMutations")) {
 
             TimeoutTracker timeoutTracker = timeoutTrackers.get(location);
             if (timeoutTracker == null) {
@@ -880,8 +869,6 @@ public class TabletServerBatchWriter {
             updateSendStats(count, st2 - st1);
             decrementMemUsed(successBytes);
 
-          } finally {
-            span.stop();
           }
         } catch (IOException e) {
           if (log.isTraceEnabled())
@@ -907,7 +894,7 @@ public class TabletServerBatchWriter {
       if (tabMuts.size() == 0) {
         return new MutationSet();
       }
-      TInfo tinfo = Tracer.traceInfo();
+      TInfo tinfo = TraceUtil.traceInfo();
 
       timeoutTracker.startingWrite();
 

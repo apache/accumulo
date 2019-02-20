@@ -18,6 +18,9 @@ package org.apache.accumulo.tracer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,9 +31,15 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.trace.DistributedTrace;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
+import org.apache.accumulo.tracer.thrift.RemoteSpan;
+import org.apache.accumulo.tracer.thrift.SpanReceiver.Client;
 import org.apache.htrace.HTraceConfiguration;
+import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -40,10 +49,12 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Find a Span collector via zookeeper and push spans there via Thrift RPC
  */
-public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
+public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements Watcher {
   private static final Logger log = LoggerFactory.getLogger(ZooTraceClient.class);
 
   private static final int DEFAULT_TIMEOUT = 30 * 1000;
@@ -55,18 +66,17 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
   final List<String> hosts = new ArrayList<>();
   long retryPause = 5000L;
 
-  // Visible for testing
   ZooTraceClient() {}
 
   public ZooTraceClient(HTraceConfiguration conf) {
     super(conf);
 
-    String keepers = conf.get(DistributedTrace.TRACER_ZK_HOST);
+    String keepers = conf.get(TraceUtil.TRACER_ZK_HOST);
     if (keepers == null)
-      throw new IllegalArgumentException("Must configure " + DistributedTrace.TRACER_ZK_HOST);
-    int timeout = conf.getInt(DistributedTrace.TRACER_ZK_TIMEOUT, DEFAULT_TIMEOUT);
+      throw new IllegalArgumentException("Must configure " + TraceUtil.TRACER_ZK_HOST);
+    int timeout = conf.getInt(TraceUtil.TRACER_ZK_TIMEOUT, DEFAULT_TIMEOUT);
     zoo = new ZooReader(keepers, timeout);
-    path = conf.get(DistributedTrace.TRACER_ZK_PATH, Constants.ZTRACERS);
+    path = conf.get(TraceUtil.TRACER_ZK_PATH, Constants.ZTRACERS);
     setInitialTraceHosts();
   }
 
@@ -156,6 +166,44 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
       log.debug("Trace hosts: {}", this.hosts);
     } catch (Exception ex) {
       log.error("unable to get destination hosts in zookeeper", ex);
+    }
+  }
+
+  @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET",
+      justification = "insecure, known risk; this is user-configurable to avoid insecure transfer")
+  @Override
+  protected Client createDestination(String destination) {
+    if (destination == null)
+      return null;
+    try {
+      int portSeparatorIndex = destination.lastIndexOf(':');
+      String host = destination.substring(0, portSeparatorIndex);
+      int port = Integer.parseInt(destination.substring(portSeparatorIndex + 1));
+      log.debug("Connecting to {}:{}", host, port);
+      InetSocketAddress addr = new InetSocketAddress(host, port);
+      Socket sock = new Socket();
+      sock.connect(addr);
+      TTransport transport = new TSocket(sock);
+      TProtocol prot = new TBinaryProtocol(transport);
+      return new Client(prot);
+    } catch (IOException ex) {
+      log.trace("{}", ex, ex);
+      return null;
+    } catch (Exception ex) {
+      log.error("{}", ex.getMessage(), ex);
+      return null;
+    }
+  }
+
+  @Override
+  protected void send(Client client, RemoteSpan s) throws Exception {
+    if (client != null) {
+      try {
+        client.span(s);
+      } catch (Exception ex) {
+        client.getInputProtocol().getTransport().close();
+        throw ex;
+      }
     }
   }
 }

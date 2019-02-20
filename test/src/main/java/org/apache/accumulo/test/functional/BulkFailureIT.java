@@ -58,7 +58,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.master.tableOps.bulkVer1.BulkImport;
@@ -258,7 +258,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       Map<String,MapFileInfo> val = ImmutableMap.of(path.toString(), new MapFileInfo(size));
       Map<KeyExtent,Map<String,MapFileInfo>> files = ImmutableMap.of(extent, val);
 
-      client.bulkImport(Tracer.traceInfo(), context.rpcCreds(), txid,
+      client.bulkImport(TraceUtil.traceInfo(), context.rpcCreds(), txid,
           Translator.translate(files, Translators.KET), false);
       if (expectFailure) {
         fail("Expected RPC to fail");
@@ -280,7 +280,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       Map<String,MapFileInfo> val = ImmutableMap.of(path.getName(), new MapFileInfo(size));
       Map<KeyExtent,Map<String,MapFileInfo>> files = ImmutableMap.of(extent, val);
 
-      client.loadFiles(Tracer.traceInfo(), context.rpcCreds(), txid, path.getParent().toString(),
+      client.loadFiles(TraceUtil.traceInfo(), context.rpcCreds(), txid, path.getParent().toString(),
           Translator.translate(files, Translators.KET), false);
 
       if (!expectFailure) {

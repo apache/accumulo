@@ -44,7 +44,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.fate.Repo;
@@ -171,7 +171,7 @@ class LoadFiles extends MasterRepo {
               client = ThriftUtil.getTServerClient(server, master.getContext(), timeInMillis);
               List<String> attempt1 = Collections.singletonList(file);
               log.debug("Asking " + server + " to bulk import " + file);
-              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(),
+              List<String> fail = client.bulkImportFiles(TraceUtil.traceInfo(),
                   master.getContext().rpcCreds(), tid, tableId.canonical(), attempt1, errorDir,
                   setTime);
               if (fail.isEmpty()) {

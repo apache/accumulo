@@ -31,12 +31,12 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -266,31 +266,22 @@ public class GarbageCollectionAlgorithm {
 
   private boolean getCandidates(GarbageCollectionEnvironment gce, String lastCandidate,
       List<String> candidates) throws TableNotFoundException {
-    Span candidatesSpan = Trace.start("getCandidates");
-    try {
+    try (TraceScope candidatesSpan = Trace.startSpan("getCandidates")) {
       return gce.getCandidates(lastCandidate, candidates);
-    } finally {
-      candidatesSpan.stop();
     }
   }
 
   private void confirmDeletesTrace(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws TableNotFoundException {
-    Span confirmDeletesSpan = Trace.start("confirmDeletes");
-    try {
+    try (TraceScope confirmDeletesSpan = Trace.startSpan("confirmDeletes")) {
       confirmDeletes(gce, candidateMap);
-    } finally {
-      confirmDeletesSpan.stop();
     }
   }
 
   private void deleteConfirmed(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws IOException, TableNotFoundException {
-    Span deleteSpan = Trace.start("deleteFiles");
-    try {
+    try (TraceScope deleteSpan = Trace.startSpan("deleteFiles")) {
       gce.delete(candidateMap);
-    } finally {
-      deleteSpan.stop();
     }
 
     cleanUpDeletedTableDirs(gce, candidateMap);

@@ -18,6 +18,8 @@ package org.apache.accumulo.tracer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.AbstractQueue;
@@ -31,7 +33,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.accumulo.core.trace.DistributedTrace;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.tracer.thrift.Annotation;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.htrace.HTraceConfiguration;
@@ -61,6 +63,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
 
   protected String host = null;
   protected String service = null;
+  protected String processId = null;
 
   protected abstract Destination createDestination(SpanKey key);
 
@@ -79,7 +82,16 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
   AsyncSpanReceiver() {}
 
   public AsyncSpanReceiver(HTraceConfiguration conf) {
-    host = conf.get(DistributedTrace.TRACE_HOST_PROPERTY, host);
+    try {
+      if (System.getProperty("os.name", "unknown").toLowerCase().contains("linux")) {
+        processId = new File("/proc/self").getCanonicalFile().getName();
+      }
+    } catch (IOException e) {
+      // can't get the PID; no big deal
+      log.debug("Unable to read canonical filename /proc/self to get the PID");
+    }
+
+    host = conf.get(TraceUtil.TRACE_HOST_PROPERTY, host);
     if (host == null) {
       try {
         host = InetAddress.getLocalHost().getCanonicalHostName().toString();
@@ -87,7 +99,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
         host = "unknown";
       }
     }
-    service = conf.get(DistributedTrace.TRACE_SERVICE_PROPERTY, service);
+    service = conf.get(TraceUtil.TRACE_SERVICE_PROPERTY, service);
     maxQueueSize = conf.getInt(QUEUE_SIZE, maxQueueSize);
     minSpanSize = conf.getInt(SPAN_MIN_MS, minSpanSize);
 
@@ -179,9 +191,9 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
         }
         return;
       }
-      sendQueue.add(new RemoteSpan(host, service == null ? s.getProcessId() : service,
-          s.getTraceId(), s.getSpanId(), s.getParentId(), s.getStartTimeMillis(),
-          s.getStopTimeMillis(), s.getDescription(), data, annotations));
+      sendQueue.add(new RemoteSpan(host, service == null ? processId : service, s.getTraceId(),
+          s.getSpanId(), s.getParentId(), s.getStartTimeMillis(), s.getStopTimeMillis(),
+          s.getDescription(), data, annotations));
       sendQueueSize.incrementAndGet();
     }
   }

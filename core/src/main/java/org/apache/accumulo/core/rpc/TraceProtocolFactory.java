@@ -16,19 +16,37 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
+import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.protocol.TMessage;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TTransport;
 
 /**
- * {@link org.apache.thrift.protocol.TCompactProtocol.Factory} implementation which injects
- * {@link TraceProtocol} instead of {@link TCompactProtocol}
+ * {@link org.apache.thrift.protocol.TCompactProtocol.Factory} implementation which uses a protocol
+ * which traces
  */
 public class TraceProtocolFactory extends TCompactProtocol.Factory {
   private static final long serialVersionUID = 1L;
 
   @Override
   public TProtocol getProtocol(TTransport trans) {
-    return new TraceProtocol(trans);
+    return new TCompactProtocol(trans) {
+      private TraceScope span = null;
+
+      @Override
+      public void writeMessageBegin(TMessage message) throws TException {
+        span = Trace.startSpan("client:" + message.name);
+        super.writeMessageBegin(message);
+      }
+
+      @Override
+      public void writeMessageEnd() throws TException {
+        super.writeMessageEnd();
+        span.close();
+      }
+    };
   }
 }

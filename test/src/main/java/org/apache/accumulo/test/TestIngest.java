@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
@@ -48,7 +49,7 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.trace.DistributedTrace;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -190,7 +191,7 @@ public class TestIngest {
     opts.parseArgs(TestIngest.class.getName(), args, bwOpts);
 
     String name = TestIngest.class.getSimpleName();
-    DistributedTrace.enable(name);
+    TraceUtil.enableClientTraces(null, name, new Properties());
     try {
       opts.startTracing(name);
       if (opts.debug)
@@ -203,7 +204,7 @@ public class TestIngest {
       throw new RuntimeException(e);
     } finally {
       opts.stopTracing();
-      DistributedTrace.disable();
+      TraceUtil.disable();
     }
   }
 

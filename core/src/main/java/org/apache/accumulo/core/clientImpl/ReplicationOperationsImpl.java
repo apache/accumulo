@@ -43,7 +43,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -90,7 +90,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     requireNonNull(tableName);
 
-    final TInfo tinfo = Tracer.traceInfo();
+    final TInfo tinfo = TraceUtil.traceInfo();
     final TCredentials rpcCreds = context.rpcCreds();
 
     // Ask the master if the table is fully replicated given these WALs, but don't poll inside the

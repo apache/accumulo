@@ -16,9 +16,12 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Random;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -32,9 +35,11 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.trace.DistributedTrace;
-import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Sampler;
+import org.apache.htrace.Span;
+import org.apache.htrace.Trace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,9 +71,12 @@ public class VerifyIngest {
     try {
       if (opts.trace) {
         String name = VerifyIngest.class.getSimpleName();
-        DistributedTrace.enable();
-        Trace.on(name);
-        Trace.data("cmdLine", Arrays.asList(args).toString());
+        TraceUtil.enableClientTraces(null, null, new Properties());
+        Trace.startSpan(name, Sampler.ALWAYS);
+        Span span = Trace.currentSpan();
+        if (span != null)
+          span.addKVAnnotation("cmdLine".getBytes(UTF_8),
+              Arrays.asList(args).toString().getBytes(UTF_8));
       }
 
       try (AccumuloClient client = opts.createClient()) {
@@ -76,8 +84,8 @@ public class VerifyIngest {
       }
 
     } finally {
-      Trace.off();
-      DistributedTrace.disable();
+      TraceUtil.off();
+      TraceUtil.disable();
     }
   }
 

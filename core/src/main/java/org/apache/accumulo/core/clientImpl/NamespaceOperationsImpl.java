@@ -50,7 +50,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.master.thrift.FateOperation;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.OpTimer;
@@ -175,8 +175,9 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
 
-    MasterClient.executeNamespace(context, client -> client.setNamespaceProperty(Tracer.traceInfo(),
-        context.rpcCreds(), namespace, property, value));
+    MasterClient.executeNamespace(context,
+        client -> client.setNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
+            property, value));
     checkLocalityGroups(namespace, property);
   }
 
@@ -187,7 +188,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(property != null, "property is null");
 
     MasterClient.executeNamespace(context, client -> client
-        .removeNamespaceProperty(Tracer.traceInfo(), context.rpcCreds(), namespace, property));
+        .removeNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace, property));
     checkLocalityGroups(namespace, property);
   }
 
@@ -197,7 +198,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(namespace != null, "namespace is null");
     try {
       return ServerClient.executeRaw(context, client -> client
-          .getNamespaceConfiguration(Tracer.traceInfo(), context.rpcCreds(), namespace)).entrySet();
+          .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace))
+          .entrySet();
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NAMESPACE_NOTFOUND:
@@ -232,7 +234,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     try {
       return ServerClient.executeRaw(context,
-          client -> client.checkNamespaceClass(Tracer.traceInfo(), context.rpcCreds(), namespace,
+          client -> client.checkNamespaceClass(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
               className, asTypeName));
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {

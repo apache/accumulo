@@ -32,7 +32,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -229,7 +229,7 @@ public abstract class TabletBalancer {
     Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(),
         tserver.getLocation(), context);
     try {
-      return client.getTabletStats(Tracer.traceInfo(), context.rpcCreds(), tableId.canonical());
+      return client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical());
     } catch (TTransportException e) {
       log.error("Unable to connect to {}: ", tserver, e);
     } finally {

@@ -35,7 +35,7 @@ import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TDurability;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -68,7 +68,7 @@ public class Writer {
     TabletClientService.Iface client = null;
     try {
       client = ThriftUtil.getTServerClient(server, context);
-      client.update(Tracer.traceInfo(), context.rpcCreds(), extent.toThrift(), m.toThrift(),
+      client.update(TraceUtil.traceInfo(), context.rpcCreds(), extent.toThrift(), m.toThrift(),
           TDurability.DEFAULT);
       return;
     } catch (ThriftSecurityException e) {

@@ -40,7 +40,7 @@ import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 
 /**
  * This class now delegates to {@link ClientContext}, except for the methods which were not copied
@@ -64,7 +64,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
     final String tokenClassName = context.getCredentials().getToken().getClass().getName();
     if (!SYSTEM_TOKEN_NAME.equals(tokenClassName)) {
       ServerClient.executeVoid(context, iface -> {
-        if (!iface.authenticate(Tracer.traceInfo(), context.rpcCreds()))
+        if (!iface.authenticate(TraceUtil.traceInfo(), context.rpcCreds()))
           throw new AccumuloSecurityException("Authentication failed, access denied",
               SecurityErrorCode.BAD_CREDENTIALS);
       });
