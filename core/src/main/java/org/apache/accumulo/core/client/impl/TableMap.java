@@ -42,7 +42,15 @@ public class TableMap {
   private final Map<String,String> tableNameToIdMap;
   private final Map<String,String> tableIdToNameMap;
 
+  private final ZooCache zooCache;
+  private final long updateCount;
+
   public TableMap(Instance instance, ZooCache zooCache) {
+
+    this.zooCache = zooCache;
+    // important to read this first
+    this.updateCount = zooCache.getUpdateCount();
+
     List<String> tableIds = zooCache.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES);
     Map<String,String> namespaceIdToNameMap = new HashMap<>();
     ImmutableMap.Builder<String,String> tableNameToIdBuilder = new ImmutableMap.Builder<>();
@@ -97,5 +105,9 @@ public class TableMap {
 
   public Map<String,String> getIdtoNameMap() {
     return tableIdToNameMap;
+  }
+
+  public boolean isCurrent(ZooCache zc) {
+    return this.zooCache == zc && this.updateCount == zc.getUpdateCount();
   }
 }

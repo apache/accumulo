@@ -36,8 +36,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -52,8 +50,6 @@ public class Tables {
   // frequently
   private static Cache<String,TableMap> instanceToMapCache = CacheBuilder.newBuilder()
       .expireAfterAccess(10, TimeUnit.MINUTES).build();
-  private static Cache<String,ZooCache> instanceToZooCache = CacheBuilder.newBuilder()
-      .expireAfterAccess(10, TimeUnit.MINUTES).build();
 
   /**
    * Return the cached ZooCache for provided instance. ZooCache is initially created with a watcher
@@ -65,25 +61,8 @@ public class Tables {
       sm.checkPermission(TABLES_PERMISSION);
     }
 
-    final String uuid = instance.getInstanceID();
-
-    try {
-      return instanceToZooCache.get(uuid, new Callable<ZooCache>() {
-        @Override
-        public ZooCache call() {
-          final String zks = instance.getZooKeepers();
-          final int timeOut = instance.getZooKeepersSessionTimeOut();
-          return new ZooCacheFactory().getZooCache(zks, timeOut, new Watcher() {
-            @Override
-            public void process(WatchedEvent watchedEvent) {
-              instanceToMapCache.invalidate(uuid);
-            }
-          });
-        }
-      });
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e);
-    }
+    return new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
+        instance.getZooKeepersSessionTimeOut());
   }
 
   public static String getTableId(Instance instance, String tableName)
@@ -132,22 +111,35 @@ public class Tables {
 
   /**
    * Get the TableMap from the cache. A new one will be populated when needed. Cache is cleared
-   * manually by calling {@link #clearCache(Instance)} or automatically cleared by ZooCache watcher
-   * created in {@link #getZooCache(Instance)}. See ACCUMULO-4778.
+   * manually by calling {@link #clearCache(Instance)}
    */
   private static TableMap getTableMap(final Instance instance) {
+
     TableMap map;
+
+    final ZooCache zc = getZooCache(instance);
+
+    map = getTableMap(instance, zc);
+
+    if (!map.isCurrent(zc)) {
+      instanceToMapCache.invalidate(instance.getInstanceID());
+      map = getTableMap(instance, zc);
+    }
+
+    return map;
+  }
+
+  private static TableMap getTableMap(final Instance instance, final ZooCache zc) {
     try {
-      map = instanceToMapCache.get(instance.getInstanceID(), new Callable<TableMap>() {
+      return instanceToMapCache.get(instance.getInstanceID(), new Callable<TableMap>() {
         @Override
         public TableMap call() {
-          return new TableMap(instance, getZooCache(instance));
+          return new TableMap(instance, zc);
         }
       });
     } catch (ExecutionException e) {
       throw new RuntimeException(e);
     }
-    return map;
   }
 
   public static boolean exists(Instance instance, String tableId) {

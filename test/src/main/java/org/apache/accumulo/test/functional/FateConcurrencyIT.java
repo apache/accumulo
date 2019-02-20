@@ -70,7 +70,7 @@ import org.slf4j.LoggerFactory;
  * already in that state returns without blocking.</li>
  * <li>AdminUtil refactor to provide methods that provide FATE status, one with table lock info
  * (original) and additional method without.</li>
- *</ul>
+ * </ul>
  */
 public class FateConcurrencyIT extends AccumuloClusterHarness {
 
