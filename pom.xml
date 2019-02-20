@@ -846,6 +846,8 @@
             <compilerArgs>
               <arg>-Xlint:all</arg>
               <arg>-Xlint:-processing</arg>
+              <!-- suppress try to ignore unused variable in try-with-resources -->
+              <arg>-Xlint:-try</arg>
               <arg>-Xmaxwarns</arg>
               <arg>5</arg>
             </compilerArgs>
