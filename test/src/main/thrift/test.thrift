@@ -14,11 +14,10 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-
 namespace java org.apache.accumulo.test.rpc.thrift
 
-service SimpleThriftService
-{
+service SimpleThriftService {
+
   string echoPass(1:string value)
   oneway void onewayPass(1:string value)
 
@@ -27,4 +26,5 @@ service SimpleThriftService
 
   string echoRuntimeFail(1:string value)
   oneway void onewayRuntimeFail(1:string value)
+
 }

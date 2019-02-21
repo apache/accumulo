@@ -79,7 +79,7 @@ enum SecurityErrorCode {
   TOKEN_EXPIRED = 15
   SERIALIZATION_ERROR = 16
   INSUFFICIENT_PROPERTIES = 17
-  NAMESPACE_DOESNT_EXIST = 18;
+  NAMESPACE_DOESNT_EXIST = 18
 }
 
 exception ThriftSecurityException {
@@ -95,9 +95,7 @@ exception ThriftTableOperationException {
   5:string description
 }
 
-exception ThriftNotActiveServiceException {
-
-}
+exception ThriftNotActiveServiceException {}
 
 struct TDiskUsage {
   1:list<string> tables
@@ -112,52 +110,262 @@ service ClientService {
   string getZooKeepers()
 
   // deprecated for new bulkImport
-  list<string> bulkImportFiles(1:trace.TInfo tinfo, 8:security.TCredentials credentials, 3:i64 tid, 4:string tableId, 5:list<string> files, 6:string errorDir, 7:bool setTime) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope);
+  list<string> bulkImportFiles(
+    1:trace.TInfo tinfo
+    8:security.TCredentials credentials
+    3:i64 tid
+    4:string tableId
+    5:list<string> files
+    6:string errorDir
+    7:bool setTime
+  ) throws (
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
+  )
 
   // ensures that nobody is working on the transaction id above
-  bool isActive(1:trace.TInfo tinfo, 2:i64 tid)
+  bool isActive(
+    1:trace.TInfo tinfo
+    2:i64 tid
+  )
 
-  void ping(2:security.TCredentials credentials) throws (1:ThriftSecurityException sec)
+  void ping(
+    2:security.TCredentials credentials
+  ) throws (
+    1:ThriftSecurityException sec
+  )
 
-  list<TDiskUsage> getDiskUsage(2:set<string> tables, 1:security.TCredentials credentials) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException toe)
+  list<TDiskUsage> getDiskUsage(
+    2:set<string> tables
+    1:security.TCredentials credentials
+  ) throws (
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException toe
+  )
 
   // user management methods
-  set<string> listLocalUsers(2:trace.TInfo tinfo, 3:security.TCredentials credentials) throws (1:ThriftSecurityException sec)
-  void createLocalUser(5:trace.TInfo tinfo, 6:security.TCredentials credentials, 2:string principal, 3:binary password) throws (1:ThriftSecurityException sec)
-  void dropLocalUser(3:trace.TInfo tinfo, 4:security.TCredentials credentials, 2:string principal) throws (1:ThriftSecurityException sec)
-  void changeLocalUserPassword(4:trace.TInfo tinfo, 5:security.TCredentials credentials, 2:string principal, 3:binary password) throws (1:ThriftSecurityException sec)
+  set<string> listLocalUsers(
+    2:trace.TInfo tinfo
+    3:security.TCredentials credentials
+  ) throws (
+    1:ThriftSecurityException sec
+  )
+
+  void createLocalUser(
+    5:trace.TInfo tinfo
+    6:security.TCredentials credentials
+    2:string principal
+    3:binary password
+  ) throws (
+    1:ThriftSecurityException sec
+  )
+
+  void dropLocalUser(
+    3:trace.TInfo tinfo
+    4:security.TCredentials credentials
+    2:string principal
+  ) throws (
+    1:ThriftSecurityException sec
+  )
+
+  void changeLocalUserPassword(
+    4:trace.TInfo tinfo
+    5:security.TCredentials credentials
+    2:string principal
+    3:binary password
+  ) throws (
+    1:ThriftSecurityException sec
+  )
 
   // authentication-related methods
-  bool authenticate(1:trace.TInfo tinfo, 2:security.TCredentials credentials) throws (1:ThriftSecurityException sec)
-  bool authenticateUser(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:security.TCredentials toAuth) throws (1:ThriftSecurityException sec)
+  bool authenticate(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+  ) throws (
+    1:ThriftSecurityException sec
+  )
+
+  bool authenticateUser(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:security.TCredentials toAuth
+  ) throws (
+    1:ThriftSecurityException sec
+  )
 
   // authorization-related methods
-  void changeAuthorizations(4:trace.TInfo tinfo, 5:security.TCredentials credentials, 2:string principal, 3:list<binary> authorizations) throws (1:ThriftSecurityException sec)
-  list<binary> getUserAuthorizations(3:trace.TInfo tinfo, 4:security.TCredentials credentials, 2:string principal) throws (1:ThriftSecurityException sec)
+  void changeAuthorizations(
+    4:trace.TInfo tinfo
+    5:security.TCredentials credentials
+    2:string principal
+    3:list<binary> authorizations
+  ) throws (
+    1:ThriftSecurityException sec
+  )
+
+  list<binary> getUserAuthorizations(
+    3:trace.TInfo tinfo
+    4:security.TCredentials credentials
+    2:string principal
+  ) throws (
+    1:ThriftSecurityException sec
+  )
 
   // permissions-related methods
-  bool hasSystemPermission(4:trace.TInfo tinfo, 5:security.TCredentials credentials, 2:string principal, 3:i8 sysPerm) throws (1:ThriftSecurityException sec)
-  bool hasTablePermission(5:trace.TInfo tinfo, 6:security.TCredentials credentials, 2:string principal, 3:string tableName, 4:i8 tblPerm) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope)
-  bool hasNamespacePermission(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:string principal, 4:string ns, 5:i8 tblNspcPerm) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope)
-  void grantSystemPermission(4:trace.TInfo tinfo, 5:security.TCredentials credentials, 2:string principal, 3:i8 permission) throws (1:ThriftSecurityException sec)
-  void revokeSystemPermission(4:trace.TInfo tinfo, 5:security.TCredentials credentials, 2:string principal, 3:i8 permission) throws (1:ThriftSecurityException sec)
-  void grantTablePermission(5:trace.TInfo tinfo, 6:security.TCredentials credentials, 2:string principal, 3:string tableName, 4:i8 permission) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope)
-  void revokeTablePermission(5:trace.TInfo tinfo, 6:security.TCredentials credentials, 2:string principal, 3:string tableName, 4:i8 permission) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope)
-  void grantNamespacePermission(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:string principal, 4:string ns, 5:i8 permission) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope)
-  void revokeNamespacePermission(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:string principal, 4:string ns, 5:i8 permission) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope)
+  bool hasSystemPermission(
+    4:trace.TInfo tinfo
+    5:security.TCredentials credentials
+    2:string principal
+    3:i8 sysPerm
+  ) throws (
+    1:ThriftSecurityException sec
+  )
+
+  bool hasTablePermission(
+    5:trace.TInfo tinfo
+    6:security.TCredentials credentials
+    2:string principal
+    3:string tableName
+    4:i8 tblPerm
+  ) throws (
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
+  )
+
+  bool hasNamespacePermission(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string principal
+    4:string ns
+    5:i8 tblNspcPerm
+  ) throws (
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
+  )
+
+  void grantSystemPermission(
+    4:trace.TInfo tinfo
+    5:security.TCredentials credentials
+    2:string principal
+    3:i8 permission
+  ) throws (
+    1:ThriftSecurityException sec
+  )
+
+  void revokeSystemPermission(
+    4:trace.TInfo tinfo
+    5:security.TCredentials credentials
+    2:string principal
+    3:i8 permission
+  ) throws (
+    1:ThriftSecurityException sec
+  )
+
+  void grantTablePermission(
+    5:trace.TInfo tinfo
+    6:security.TCredentials credentials
+    2:string principal
+    3:string tableName
+    4:i8 permission
+  ) throws (
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
+  )
+
+  void revokeTablePermission(
+    5:trace.TInfo tinfo
+    6:security.TCredentials credentials
+    2:string principal
+    3:string tableName
+    4:i8 permission
+  ) throws (
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
+  )
+
+  void grantNamespacePermission(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string principal
+    4:string ns
+    5:i8 permission
+  ) throws (
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
+  )
+
+  void revokeNamespacePermission(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string principal
+    4:string ns
+    5:i8 permission
+  ) throws (
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
+  )
 
   // configuration methods
-  map<string, string> getConfiguration(2:trace.TInfo tinfo, 3:security.TCredentials credentials, 1:ConfigurationType type);
-  map<string, string> getTableConfiguration(1:trace.TInfo tinfo, 3:security.TCredentials credentials, 2:string tableName) throws (1:ThriftTableOperationException tope);
-  map<string, string> getNamespaceConfiguration(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:string ns) throws (1:ThriftTableOperationException tope);
-  bool checkClass(1:trace.TInfo tinfo, 4:security.TCredentials credentials, 2:string className, 3:string interfaceMatch);
-  bool checkTableClass(1:trace.TInfo tinfo, 5:security.TCredentials credentials, 2:string tableId, 3:string className, 4:string interfaceMatch) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope);
-  bool checkNamespaceClass(1:trace.TInfo tinfo, 2:security.TCredentials credentials, 3:string namespaceId, 4:string className, 5:string interfaceMatch) throws (1:ThriftSecurityException sec, 2:ThriftTableOperationException tope);
+  map<string, string> getConfiguration(
+    2:trace.TInfo tinfo
+    3:security.TCredentials credentials
+    1:ConfigurationType type
+  )
+
+  map<string, string> getTableConfiguration(
+    1:trace.TInfo tinfo
+    3:security.TCredentials credentials
+    2:string tableName
+  ) throws (
+    1:ThriftTableOperationException tope
+  )
+
+  map<string, string> getNamespaceConfiguration(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string ns
+  ) throws (
+    1:ThriftTableOperationException tope
+  )
+
+  bool checkClass(
+    1:trace.TInfo tinfo
+    4:security.TCredentials credentials
+    2:string className
+    3:string interfaceMatch
+  )
+
+  bool checkTableClass(
+    1:trace.TInfo tinfo
+    5:security.TCredentials credentials
+    2:string tableId
+    3:string className
+    4:string interfaceMatch
+  ) throws (
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
+  )
+
+  bool checkNamespaceClass(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string namespaceId
+    4:string className
+    5:string interfaceMatch
+  ) throws (
+    1:ThriftSecurityException sec
+    2:ThriftTableOperationException tope
+  )
+
 }
 
 // Only used for a unit test
 service ThriftTest {
-  bool success();
-  bool fails();
-  bool throwsError() throws (1:ThriftSecurityException ex);
+
+  bool success()
+  bool fails()
+  bool throwsError() throws (
+    1:ThriftSecurityException ex
+  )
+
 }

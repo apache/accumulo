@@ -18,32 +18,32 @@ namespace java org.apache.accumulo.core.securityImpl.thrift
 namespace cpp org.apache.accumulo.core.securityImpl.thrift
 
 struct TCredentials {
-    1:string principal,
-    2:string tokenClassName,
-    3:binary token,
-    4:string instanceId
+  1:string principal
+  2:string tokenClassName
+  3:binary token
+  4:string instanceId
 }
 
 struct TAuthenticationTokenIdentifier {
-    1:string principal,
-    2:optional i32 keyId,
-    3:optional i64 issueDate,
-    4:optional i64 expirationDate,
-    5:optional string instanceId
+  1:string principal
+  2:optional i32 keyId
+  3:optional i64 issueDate
+  4:optional i64 expirationDate
+  5:optional string instanceId
 }
 
 struct TAuthenticationKey {
-    1:binary secret,
-    2:optional i32 keyId,
-    3:optional i64 expirationDate,
-    4:optional i64 creationDate
+  1:binary secret
+  2:optional i32 keyId
+  3:optional i64 expirationDate
+  4:optional i64 creationDate
 }
 
 struct TDelegationToken {
-    1:binary password,
-    2:TAuthenticationTokenIdentifier identifier
+  1:binary password
+  2:TAuthenticationTokenIdentifier identifier
 }
 
 struct TDelegationTokenConfig {
-    1:optional i64 lifetime
+  1:optional i64 lifetime
 }

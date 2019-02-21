@@ -18,6 +18,6 @@ namespace java org.apache.accumulo.core.trace.thrift
 namespace cpp org.apache.accumulo.core.trace.thrift
 
 struct TInfo {
-   1:i64 traceId,
-   2:i64 parentId,
+  1:i64 traceId
+  2:i64 parentId
 }

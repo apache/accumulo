@@ -41,8 +41,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
   private static final org.apache.thrift.protocol.TField FLUSHS_FIELD_DESC = new org.apache.thrift.protocol.TField("flushs", org.apache.thrift.protocol.TType.I64, (short)15);
   private static final org.apache.thrift.protocol.TField SYNCS_FIELD_DESC = new org.apache.thrift.protocol.TField("syncs", org.apache.thrift.protocol.TType.I64, (short)16);
   private static final org.apache.thrift.protocol.TField BULK_IMPORTS_FIELD_DESC = new org.apache.thrift.protocol.TField("bulkImports", org.apache.thrift.protocol.TType.LIST, (short)17);
-  private static final org.apache.thrift.protocol.TField VERSION_FIELD_DESC = new org.apache.thrift.protocol.TField("version", org.apache.thrift.protocol.TType.STRING, (short)18);
-  private static final org.apache.thrift.protocol.TField RESPONSE_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("responseTime", org.apache.thrift.protocol.TType.I64, (short)19);
+  private static final org.apache.thrift.protocol.TField VERSION_FIELD_DESC = new org.apache.thrift.protocol.TField("version", org.apache.thrift.protocol.TType.STRING, (short)19);
+  private static final org.apache.thrift.protocol.TField RESPONSE_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("responseTime", org.apache.thrift.protocol.TType.I64, (short)18);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TabletServerStatusStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TabletServerStatusTupleSchemeFactory();
@@ -80,8 +80,8 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
     FLUSHS((short)15, "flushs"),
     SYNCS((short)16, "syncs"),
     BULK_IMPORTS((short)17, "bulkImports"),
-    VERSION((short)18, "version"),
-    RESPONSE_TIME((short)19, "responseTime");
+    VERSION((short)19, "version"),
+    RESPONSE_TIME((short)18, "responseTime");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -124,9 +124,9 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
           return SYNCS;
         case 17: // BULK_IMPORTS
           return BULK_IMPORTS;
-        case 18: // VERSION
+        case 19: // VERSION
           return VERSION;
-        case 19: // RESPONSE_TIME
+        case 18: // RESPONSE_TIME
           return RESPONSE_TIME;
         default:
           return null;
@@ -1680,7 +1680,7 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 18: // VERSION
+          case 19: // VERSION
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
               struct.version = iprot.readString();
               struct.setVersionIsSet(true);
@@ -1688,7 +1688,7 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 19: // RESPONSE_TIME
+          case 18: // RESPONSE_TIME
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
               struct.responseTime = iprot.readI64();
               struct.setResponseTimeIsSet(true);
@@ -1783,14 +1783,14 @@ public class TabletServerStatus implements org.apache.thrift.TBase<TabletServerS
         }
         oprot.writeFieldEnd();
       }
+      oprot.writeFieldBegin(RESPONSE_TIME_FIELD_DESC);
+      oprot.writeI64(struct.responseTime);
+      oprot.writeFieldEnd();
       if (struct.version != null) {
         oprot.writeFieldBegin(VERSION_FIELD_DESC);
         oprot.writeString(struct.version);
         oprot.writeFieldEnd();
       }
-      oprot.writeFieldBegin(RESPONSE_TIME_FIELD_DESC);
-      oprot.writeI64(struct.responseTime);
-      oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
