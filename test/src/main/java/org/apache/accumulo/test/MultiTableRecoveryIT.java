@@ -20,6 +20,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -29,6 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -113,26 +115,22 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
   }
 
   private Thread agitator(final AtomicBoolean stop) {
-    return new Thread() {
-      @Override
-      public void run() {
-        try (AccumuloClient client = createClient()) {
-          int i = 0;
-          while (!stop.get()) {
-            sleepUninterruptibly(10, TimeUnit.SECONDS);
-            System.out.println("Restarting");
-            getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
-            getCluster().start();
-            // read the metadata table to know everything is back up
-            Iterators
-                .size(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
-            i++;
-          }
-          System.out.println("Restarted " + i + " times");
-        } catch (Exception ex) {
-          log.error("{}", ex.getMessage(), ex);
+    return new Thread(() -> {
+      try (AccumuloClient client = createClient()) {
+        int i = 0;
+        while (!stop.get()) {
+          sleepUninterruptibly(10, TimeUnit.SECONDS);
+          System.out.println("Restarting");
+          getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
+          getCluster().start();
+          // read the metadata table to know everything is back up
+          Iterators.size(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+          i++;
         }
+        System.out.println("Restarted " + i + " times");
+      } catch (IOException | InterruptedException | TableNotFoundException ex) {
+        log.error("{}", ex.getMessage(), ex);
       }
-    };
+    });
   }
 }

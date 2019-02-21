@@ -352,16 +352,13 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     int i;
     for (i = 0; i < ROWS; i += CHUNKSIZE) {
       final int start = i;
-      Thread verify = new Thread() {
-        @Override
-        public void run() {
-          try {
-            verify(accumuloClient, getClientInfo(), CHUNKSIZE, 1, 50, start, tableName);
-          } catch (Exception ex) {
-            fail.set(true);
-          }
+      Thread verify = new Thread(() -> {
+        try {
+          verify(accumuloClient, getClientInfo(), CHUNKSIZE, 1, 50, start, tableName);
+        } catch (Exception ex) {
+          fail.set(true);
         }
-      };
+      });
       verify.start();
       ingest(accumuloClient, getClientInfo(), CHUNKSIZE, 1, 50, i + CHUNKSIZE, tableName);
       verify.join();

@@ -76,16 +76,13 @@ public class SplitCancelsMajCIT extends SharedMiniClusterBase {
       }
       // start majc
       final AtomicReference<Exception> ex = new AtomicReference<>();
-      Thread thread = new Thread() {
-        @Override
-        public void run() {
-          try {
-            c.tableOperations().compact(tableName, null, null, true, true);
-          } catch (Exception e) {
-            ex.set(e);
-          }
+      Thread thread = new Thread(() -> {
+        try {
+          c.tableOperations().compact(tableName, null, null, true, true);
+        } catch (Exception e) {
+          ex.set(e);
         }
-      };
+      });
       thread.start();
 
       long now = System.currentTimeMillis();
