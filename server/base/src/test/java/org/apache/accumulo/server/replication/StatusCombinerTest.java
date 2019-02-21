@@ -29,10 +29,10 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
-import org.apache.accumulo.core.clientImpl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.DevNull;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
@@ -45,7 +45,7 @@ public class StatusCombinerTest {
   private Key key;
   private Status.Builder builder;
 
-  private static class TestIE extends BaseIteratorEnvironment {
+  private static class TestIE implements IteratorEnvironment {
     @Override
     public IteratorScope getIteratorScope() {
       return IteratorScope.scan;

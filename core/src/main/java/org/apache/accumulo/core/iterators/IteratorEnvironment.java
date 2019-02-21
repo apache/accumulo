@@ -22,27 +22,63 @@ import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
 public interface IteratorEnvironment {
 
-  SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException;
-
-  AccumuloConfiguration getConfig();
-
-  IteratorScope getIteratorScope();
-
-  boolean isFullMajorCompaction();
-
-  default boolean isUserCompaction() {
+  /**
+   * @deprecated since 2.0.0. This is a legacy method used for internal backwards compatibility.
+   */
+  @Deprecated
+  default SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
+      throws IOException {
     throw new UnsupportedOperationException();
   }
 
-  void registerSideChannel(SortedKeyValueIterator<Key,Value> iter);
+  /**
+   * @deprecated since 2.0.0. This method was using an unstable non public type. Use
+   *             {@link #getServiceEnv()}
+   */
+  @Deprecated
+  default AccumuloConfiguration getConfig() {
+    throw new UnsupportedOperationException();
+  }
 
-  Authorizations getAuthorizations();
+  /**
+   * Return the executed scope of the Iterator. Value will be one of the following:
+   * {@link IteratorScope#scan}, {@link IteratorScope#minc}, {@link IteratorScope#majc}
+   */
+  default IteratorScope getIteratorScope() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Return true if the compaction is a full major compaction. Will throw IllegalStateException if
+   * {@link #getIteratorScope()} != {@link IteratorScope#majc}.
+   */
+  default boolean isFullMajorCompaction() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * @deprecated since 2.0.0. This was an experimental feature and was never tested or documented.
+   */
+  @Deprecated
+  default void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Return the Scan Authorizations used in this Iterator. Will throw UnsupportedOperationException
+   * if {@link #getIteratorScope()} != {@link IteratorScope#scan}.
+   */
+  default Authorizations getAuthorizations() {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Returns a new iterator environment object that can be used to create deep copies over sample
@@ -75,7 +111,9 @@ public interface IteratorEnvironment {
    *           when sampling is not configured for table.
    * @since 1.8.0
    */
-  IteratorEnvironment cloneWithSamplingEnabled();
+  default IteratorEnvironment cloneWithSamplingEnabled() {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * There are at least two conditions under which sampling will be enabled for an environment. One
@@ -86,12 +124,48 @@ public interface IteratorEnvironment {
    * @return true if sampling is enabled for this environment.
    * @since 1.8.0
    */
-  boolean isSamplingEnabled();
+  default boolean isSamplingEnabled() {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    *
    * @return sampling configuration is sampling is enabled for environment, otherwise returns null.
    * @since 1.8.0
    */
-  SamplerConfiguration getSamplerConfiguration();
+  default SamplerConfiguration getSamplerConfiguration() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * True if compaction was user initiated.
+   *
+   * @since 2.0.0
+   */
+  default boolean isUserCompaction() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Returns an object containing information about the server where this iterator was run. To
+   * obtain a table configuration, use the following methods:
+   *
+   * <pre>
+   * iterEnv.getServiceEnv().getConfiguration(env.getTableId())
+   * </pre>
+   *
+   * @since 2.0.0
+   */
+  default ServiceEnvironment getServiceEnv() {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Return the table Id associated with this iterator.
+   *
+   * @since 2.0.0
+   */
+  default TableId getTableId() {
+    throw new UnsupportedOperationException();
+  }
 }

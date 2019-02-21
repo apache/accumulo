@@ -32,10 +32,10 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.clientImpl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.commons.collections.BufferOverflowException;
@@ -44,7 +44,7 @@ import org.junit.Test;
 
 public class RowEncodingIteratorTest {
 
-  private static final class DummyIteratorEnv extends BaseIteratorEnvironment {
+  private static final class DummyIteratorEnv implements IteratorEnvironment {
     @Override
     public IteratorUtil.IteratorScope getIteratorScope() {
       return IteratorUtil.IteratorScope.scan;

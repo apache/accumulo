@@ -59,7 +59,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -79,11 +78,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       this.conf = acuTableConf;
       this.useSample = useSample;
       this.sampleConf = samplerConf;
-    }
-
-    @Override
-    public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) {
-      throw new NotImplementedException();
     }
 
     @Override
