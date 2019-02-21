@@ -99,7 +99,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     if (UGIAssumingProcessor.rpcMechanism() == SaslMechanism.DIGEST_MD5
         && DelegationTokenImpl.class.isAssignableFrom(tokenClass)) {
       if (!principal.equals(tcreds.principal)) {
-        log.warn("{} issued RPC with delegation token over DIGEST-MD5 as the"
+        log.warn("{} issued RPC with delegation token over DIGEST-MD5 as the "
             + "Accumulo principal {}. Disallowing RPC", principal, tcreds.principal);
         throw new ThriftSecurityException("RPC principal did not match provided Accumulo principal",
             SecurityErrorCode.BAD_CREDENTIALS);

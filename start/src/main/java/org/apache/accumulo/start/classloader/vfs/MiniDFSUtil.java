@@ -36,7 +36,7 @@ public class MiniDFSUtil {
         if (line == null) {
           throw new IOException("umask input stream closed prematurely");
         }
-        Short umask = Short.parseShort(line.trim(), 8);
+        short umask = Short.parseShort(line.trim(), 8);
         // Need to set permission to 777 xor umask
         // leading zero makes java interpret as base 8
         int newPermission = 0777 ^ umask;

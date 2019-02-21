@@ -46,14 +46,14 @@ public class AgeOffStoreTest {
 
     aoStore.ageOff();
 
-    Long txid1 = aoStore.create();
+    long txid1 = aoStore.create();
     aoStore.reserve(txid1);
     aoStore.setStatus(txid1, TStatus.IN_PROGRESS);
     aoStore.unreserve(txid1, 0);
 
     aoStore.ageOff();
 
-    Long txid2 = aoStore.create();
+    long txid2 = aoStore.create();
     aoStore.reserve(txid2);
     aoStore.setStatus(txid2, TStatus.IN_PROGRESS);
     aoStore.setStatus(txid2, TStatus.FAILED);
@@ -61,7 +61,7 @@ public class AgeOffStoreTest {
 
     tts.time = 6;
 
-    Long txid3 = aoStore.create();
+    long txid3 = aoStore.create();
     aoStore.reserve(txid3);
     aoStore.setStatus(txid3, TStatus.IN_PROGRESS);
     aoStore.setStatus(txid3, TStatus.SUCCESSFUL);
@@ -96,18 +96,18 @@ public class AgeOffStoreTest {
 
     TestTimeSource tts = new TestTimeSource();
     SimpleStore<String> sstore = new SimpleStore<>();
-    Long txid1 = sstore.create();
+    long txid1 = sstore.create();
     sstore.reserve(txid1);
     sstore.setStatus(txid1, TStatus.IN_PROGRESS);
     sstore.unreserve(txid1, 0);
 
-    Long txid2 = sstore.create();
+    long txid2 = sstore.create();
     sstore.reserve(txid2);
     sstore.setStatus(txid2, TStatus.IN_PROGRESS);
     sstore.setStatus(txid2, TStatus.FAILED);
     sstore.unreserve(txid2, 0);
 
-    Long txid3 = sstore.create();
+    long txid3 = sstore.create();
     sstore.reserve(txid3);
     sstore.setStatus(txid3, TStatus.IN_PROGRESS);
     sstore.setStatus(txid3, TStatus.SUCCESSFUL);

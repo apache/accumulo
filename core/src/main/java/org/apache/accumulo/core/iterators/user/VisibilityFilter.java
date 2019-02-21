@@ -94,7 +94,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         return b;
 
       try {
-        Boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));
+        boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));
         cache.put(testVis, bb);
         return bb;
       } catch (VisibilityParseException | BadArgumentException e) {

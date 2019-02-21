@@ -113,7 +113,7 @@ public class ServerConstants {
     for (String baseDir : configuredBaseDirs) {
       Path path = new Path(baseDir, INSTANCE_ID_DIR);
       String currentIid;
-      Integer currentVersion;
+      int currentVersion;
       try {
         currentIid = ZooUtil.getInstanceIDFromHdfs(path, conf, hadoopConf);
         Path vpath = new Path(baseDir, VERSION_DIR);

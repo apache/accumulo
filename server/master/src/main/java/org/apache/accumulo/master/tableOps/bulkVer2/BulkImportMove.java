@@ -109,7 +109,7 @@ class BulkImportMove extends MasterRepo {
       results.add(workers.submit(() -> {
         final Path originalPath = new Path(sourceDir, renameEntry.getKey());
         Path newPath = new Path(bulkDir, renameEntry.getValue());
-        Boolean success = fs.rename(originalPath, newPath);
+        boolean success = fs.rename(originalPath, newPath);
         if (success && log.isTraceEnabled())
           log.trace("tid {} moved {} to {}", fmtTid, originalPath, newPath);
         return success;

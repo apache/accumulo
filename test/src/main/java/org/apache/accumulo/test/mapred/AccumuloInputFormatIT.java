@@ -112,7 +112,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       }
 
       String table = args[0];
-      Boolean batchScan = false;
+      boolean batchScan = false;
       boolean sample = false;
       if (args.length == 3) {
         batchScan = Boolean.parseBoolean(args[1]);
