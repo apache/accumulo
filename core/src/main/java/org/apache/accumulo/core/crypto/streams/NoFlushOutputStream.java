@@ -31,7 +31,7 @@ public class NoFlushOutputStream extends DataOutputStream {
    * calls write a single byte at a time and will kill performance.
    */
   @Override
-  public void write(byte[] b, int off, int len) throws IOException {
+  public synchronized void write(byte[] b, int off, int len) throws IOException {
     out.write(b, off, len);
   }
 
