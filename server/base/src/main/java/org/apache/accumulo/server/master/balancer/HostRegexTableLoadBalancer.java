@@ -412,7 +412,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
                 }
               }
             } catch (TException e1) {
-              LOG.error("Error in OOB check getting tablets for table {} from server {}", tid,
+              LOG.error("Error in OOB check getting tablets for table {} from server {} {}", tid,
                   e.getKey().host(), e);
             }
           }

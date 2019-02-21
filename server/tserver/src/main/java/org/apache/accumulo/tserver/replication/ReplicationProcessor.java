@@ -103,7 +103,7 @@ public class ReplicationProcessor implements Processor {
       log.error("Could not look for replication record", e);
       throw new IllegalStateException("Could not look for replication record", e);
     } catch (InvalidProtocolBufferException e) {
-      log.error("Could not deserialize Status from Work section for {} and ", file, target);
+      log.error("Could not deserialize Status from Work section for {} and {}", file, target);
       throw new RuntimeException("Could not parse Status for work record", e);
     } catch (NoSuchElementException e) {
       log.error("Assigned work for {} to {} but could not find work record", file, target);

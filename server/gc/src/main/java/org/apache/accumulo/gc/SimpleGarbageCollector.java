@@ -161,7 +161,7 @@ public class SimpleGarbageCollector implements Iface {
     log.info("time delay: {} milliseconds", gcDelay);
     log.info("safemode: {}", opts.safeMode);
     log.info("verbose: {}", opts.verbose);
-    log.info("memory threshold: {} of bytes", CANDIDATE_MEMORY_PERCENTAGE,
+    log.info("memory threshold: {} of {} bytes", CANDIDATE_MEMORY_PERCENTAGE,
         Runtime.getRuntime().maxMemory());
     log.info("delete threads: {}", getNumDeleteThreads());
   }
@@ -368,7 +368,7 @@ public class SimpleGarbageCollector implements Iface {
                 // uses suffixes to compare delete entries, there is no danger
                 // of deleting something that should not be deleted. Must not change value of delete
                 // variable because thats whats stored in metadata table.
-                log.debug("Volume replaced {} -> ", delete, switchedDelete);
+                log.debug("Volume replaced {} -> {}", delete, switchedDelete);
                 fullPath = fs.getFullPath(FileType.TABLE, switchedDelete);
               } else {
                 fullPath = fs.getFullPath(FileType.TABLE, delete);

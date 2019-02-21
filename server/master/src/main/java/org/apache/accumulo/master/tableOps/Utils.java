@@ -104,7 +104,7 @@ public class Utils {
 
   public static void unreserveTable(Master env, TableId tableId, long tid, boolean writeLock) {
     getLock(env.getContext(), tableId, tid, writeLock).unlock();
-    log.info("table {} ({}) unlocked for ", tableId, Long.toHexString(tid),
+    log.info("table {} ({}) unlocked for {}", tableId, Long.toHexString(tid),
         (writeLock ? "write" : "read"));
   }
 
