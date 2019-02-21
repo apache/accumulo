@@ -56,18 +56,15 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
       cluster.getMiniDfs().shutdown();
       // ask the tserver to do something
       final AtomicReference<Exception> ex = new AtomicReference<>();
-      Thread splitter = new Thread() {
-        @Override
-        public void run() {
-          try {
-            TreeSet<Text> splits = new TreeSet<>();
-            splits.add(new Text("X"));
-            client.tableOperations().addSplits(tableName, splits);
-          } catch (Exception e) {
-            ex.set(e);
-          }
+      Thread splitter = new Thread(() -> {
+        try {
+          TreeSet<Text> splits = new TreeSet<>();
+          splits.add(new Text("X"));
+          client.tableOperations().addSplits(tableName, splits);
+        } catch (Exception e) {
+          ex.set(e);
         }
-      };
+      });
       splitter.start();
       // wait for the tserver to give up on writing to the WAL
       while (client.instanceOperations().getTabletServers().size() == 1) {

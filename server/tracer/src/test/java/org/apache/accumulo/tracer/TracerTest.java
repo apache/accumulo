@@ -168,12 +168,7 @@ public class TracerTest {
     TThreadPoolServer.Args args = new TThreadPoolServer.Args(transport);
     args.processor(new Processor<Iface>(TraceWrap.service(new Service())));
     final TServer tserver = new TThreadPoolServer(args);
-    Thread t = new Thread() {
-      @Override
-      public void run() {
-        tserver.serve();
-      }
-    };
+    Thread t = new Thread(() -> tserver.serve());
     t.start();
     TTransport clientTransport = new TSocket(new Socket("localhost", socket.getLocalPort()));
     TestService.Iface client = new TestService.Client(new TBinaryProtocol(clientTransport),

@@ -1570,16 +1570,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SlowIterator.setSleepTime(cfg, 500);
       s.addScanIterator(cfg);
 
-      Thread thread = new Thread() {
-        @Override
-        public void run() {
-          try {
-            Iterators.size(s.iterator());
-          } catch (Exception ex) {
-            throw new RuntimeException(ex);
-          }
+      Thread thread = new Thread(() -> {
+        try {
+          Iterators.size(s.iterator());
+        } catch (Exception ex) {
+          throw new RuntimeException(ex);
         }
-      };
+      });
       thread.start();
 
       List<String> scans = new ArrayList<>();

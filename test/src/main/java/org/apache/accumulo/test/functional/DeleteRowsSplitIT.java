@@ -85,21 +85,18 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
 
         // initiate the delete range
         final boolean fail[] = {false};
-        Thread t = new Thread() {
-          @Override
-          public void run() {
-            try {
-              // split the table
-              final SortedSet<Text> afterEnd = SPLITS.tailSet(new Text(end + "\0"));
-              client.tableOperations().addSplits(tableName, afterEnd);
-            } catch (Exception ex) {
-              log.error("Exception", ex);
-              synchronized (fail) {
-                fail[0] = true;
-              }
+        Thread t = new Thread(() -> {
+          try {
+            // split the table
+            final SortedSet<Text> afterEnd = SPLITS.tailSet(new Text(end + "\0"));
+            client.tableOperations().addSplits(tableName, afterEnd);
+          } catch (Exception ex) {
+            log.error("Exception", ex);
+            synchronized (fail) {
+              fail[0] = true;
             }
           }
-        };
+        });
         t.start();
 
         sleepUninterruptibly(test * 2, TimeUnit.MILLISECONDS);

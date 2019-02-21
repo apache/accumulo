@@ -538,16 +538,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       final FileHistory history = new FileHistory(new File(historyPath));
       reader.setHistory(history);
       // Add shutdown hook to flush file history, per jline javadocs
-      Runtime.getRuntime().addShutdownHook(new Thread() {
-        @Override
-        public void run() {
-          try {
-            history.flush();
-          } catch (IOException e) {
-            log.warn("Could not flush history to file.");
-          }
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        try {
+          history.flush();
+        } catch (IOException e) {
+          log.warn("Could not flush history to file.");
         }
-      });
+      }));
     } catch (IOException e) {
       log.warn("Unable to load history file at " + historyPath);
     }

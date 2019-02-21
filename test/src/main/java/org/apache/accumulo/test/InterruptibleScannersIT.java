@@ -62,37 +62,34 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
         scanner.addScanIterator(cfg);
         // create a thread to interrupt the slow scan
         final Thread scanThread = Thread.currentThread();
-        Thread thread = new Thread() {
-          @Override
-          public void run() {
-            try {
-              // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
-              String tserver = client.instanceOperations().getTabletServers().iterator().next();
-              do {
-                ArrayList<ActiveScan> scans = new ArrayList<>(
-                    client.instanceOperations().getActiveScans(tserver));
-                Iterator<ActiveScan> iter = scans.iterator();
-                while (iter.hasNext()) {
-                  ActiveScan scan = iter.next();
-                  // Remove scans not against our table and not owned by us
-                  if (!getAdminPrincipal().equals(scan.getUser())
-                      || !tableName.equals(scan.getTable())) {
-                    iter.remove();
-                  }
+        Thread thread = new Thread(() -> {
+          try {
+            // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
+            String tserver = client.instanceOperations().getTabletServers().iterator().next();
+            do {
+              ArrayList<ActiveScan> scans = new ArrayList<>(
+                  client.instanceOperations().getActiveScans(tserver));
+              Iterator<ActiveScan> iter = scans.iterator();
+              while (iter.hasNext()) {
+                ActiveScan scan = iter.next();
+                // Remove scans not against our table and not owned by us
+                if (!getAdminPrincipal().equals(scan.getUser())
+                    || !tableName.equals(scan.getTable())) {
+                  iter.remove();
                 }
+              }
 
-                if (!scans.isEmpty()) {
-                  // We found our scan
-                  break;
-                }
-              } while (true);
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
-            // BAM!
-            scanThread.interrupt();
+              if (!scans.isEmpty()) {
+                // We found our scan
+                break;
+              }
+            } while (true);
+          } catch (Exception e) {
+            e.printStackTrace();
           }
-        };
+          // BAM!
+          scanThread.interrupt();
+        });
         thread.start();
         try {
           // Use the scanner, expect problems

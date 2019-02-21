@@ -113,26 +113,23 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
   }
 
   private Thread agitator(final AtomicBoolean stop) {
-    return new Thread() {
-      @Override
-      public void run() {
-        try (AccumuloClient client = createClient()) {
-          int i = 0;
-          while (!stop.get()) {
-            sleepUninterruptibly(10, TimeUnit.SECONDS);
-            System.out.println("Restarting");
-            getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
-            getCluster().start();
-            // read the metadata table to know everything is back up
-            Iterators
-                .size(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
-            i++;
-          }
-          System.out.println("Restarted " + i + " times");
-        } catch (Exception ex) {
-          log.error("{}", ex.getMessage(), ex);
+    return new Thread(() -> {
+      try (AccumuloClient client = createClient()) {
+        int i = 0;
+        while (!stop.get()) {
+          sleepUninterruptibly(10, TimeUnit.SECONDS);
+          System.out.println("Restarting");
+          getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
+          getCluster().start();
+          // read the metadata table to know everything is back up
+          Iterators
+              .size(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
+          i++;
         }
+        System.out.println("Restarted " + i + " times");
+      } catch (Exception ex) {
+        log.error("{}", ex.getMessage(), ex);
       }
-    };
+    });
   }
 }

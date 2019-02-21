@@ -82,17 +82,14 @@ public class ShutdownIT extends ConfigurableMacBase {
         c.tableOperations().create("table" + i);
       }
       final AtomicReference<Exception> ref = new AtomicReference<>();
-      Thread async = new Thread() {
-        @Override
-        public void run() {
-          try {
-            for (int i = 0; i < 10; i++)
-              c.tableOperations().delete("table" + i);
-          } catch (Exception ex) {
-            ref.set(ex);
-          }
+      Thread async = new Thread(() -> {
+        try {
+          for (int i = 0; i < 10; i++)
+            c.tableOperations().delete("table" + i);
+        } catch (Exception ex) {
+          ref.set(ex);
         }
-      };
+      });
       async.start();
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
