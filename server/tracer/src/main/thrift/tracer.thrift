@@ -29,7 +29,7 @@ struct RemoteSpan {
   2:string svc
   3:i64 traceId
   4:i64 spanId
-  5:i64 parentId
+  11:list<i64> parentIds
   6:i64 start
   7:i64 stop
   8:string description

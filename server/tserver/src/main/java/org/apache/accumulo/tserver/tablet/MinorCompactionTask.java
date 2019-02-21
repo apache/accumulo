@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
 
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -94,12 +92,10 @@ class MinorCompactionTask implements Runnable {
         }
 
         if (minorCompaction.getSpan() != null) {
-          minorCompaction.getSpan().addKVAnnotation("extent".getBytes(UTF_8),
-              tablet.getExtent().toString().getBytes(UTF_8));
-          minorCompaction.getSpan().addKVAnnotation("numEntries".getBytes(UTF_8),
-              Long.toString(this.stats.getNumEntries()).getBytes(UTF_8));
-          minorCompaction.getSpan().addKVAnnotation("size".getBytes(UTF_8),
-              Long.toString(this.stats.getSize()).getBytes(UTF_8));
+          minorCompaction.getSpan().addKVAnnotation("extent", tablet.getExtent().toString());
+          minorCompaction.getSpan().addKVAnnotation("numEntries",
+              Long.toString(this.stats.getNumEntries()));
+          minorCompaction.getSpan().addKVAnnotation("size", Long.toString(this.stats.getSize()));
         }
       }
 

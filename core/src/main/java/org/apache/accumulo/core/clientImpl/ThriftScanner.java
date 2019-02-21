@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -316,8 +314,7 @@ public class ThriftScanner {
 
         try (TraceScope scanLocation = Trace.startSpan("scan:location")) {
           if (scanLocation.getSpan() != null) {
-            scanLocation.getSpan().addKVAnnotation("tserver".getBytes(UTF_8),
-                loc.tablet_location.getBytes(UTF_8));
+            scanLocation.getSpan().addKVAnnotation("tserver", loc.tablet_location);
           }
           results = scan(loc, scanState, context);
         } catch (AccumuloSecurityException e) {

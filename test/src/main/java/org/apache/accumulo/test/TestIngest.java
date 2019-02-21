@@ -54,6 +54,7 @@ import org.apache.accumulo.core.util.FastFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.TraceScope;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -188,12 +189,10 @@ public class TestIngest {
 
     Opts opts = new Opts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
-    opts.parseArgs(TestIngest.class.getName(), args, bwOpts);
 
     String name = TestIngest.class.getSimpleName();
     TraceUtil.enableClientTraces(null, name, new Properties());
-    try {
-      opts.startTracing(name);
+    try (TraceScope clientSpan = opts.parseArgsAndTrace(name, args, bwOpts)) {
       if (opts.debug)
         Logger.getLogger(TabletServerBatchWriter.class.getName()).setLevel(Level.TRACE);
 
@@ -203,7 +202,6 @@ public class TestIngest {
     } catch (Exception e) {
       throw new RuntimeException(e);
     } finally {
-      opts.stopTracing();
       TraceUtil.disable();
     }
   }

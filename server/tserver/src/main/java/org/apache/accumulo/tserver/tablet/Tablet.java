@@ -1998,12 +1998,9 @@ public class Tablet {
           CompactionStats mcs = compactor.call();
 
           if (span.getSpan() != null) {
-            span.getSpan().addKVAnnotation("files".getBytes(UTF_8),
-                ("" + smallestFiles.size()).getBytes(UTF_8));
-            span.getSpan().addKVAnnotation("read".getBytes(UTF_8),
-                ("" + mcs.getEntriesRead()).getBytes(UTF_8));
-            span.getSpan().addKVAnnotation("written".getBytes(UTF_8),
-                ("" + mcs.getEntriesWritten()).getBytes(UTF_8));
+            span.getSpan().addKVAnnotation("files", ("" + smallestFiles.size()));
+            span.getSpan().addKVAnnotation("read", ("" + mcs.getEntriesRead()));
+            span.getSpan().addKVAnnotation("written", ("" + mcs.getEntriesWritten()));
           }
           majCStats.add(mcs);
 
@@ -2124,13 +2121,10 @@ public class Tablet {
             .enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, extent));
       }
       if (span.getSpan() != null) {
-        span.getSpan().addKVAnnotation("extent".getBytes(UTF_8),
-            ("" + getExtent()).getBytes(UTF_8));
+        span.getSpan().addKVAnnotation("extent", ("" + getExtent()));
         if (majCStats != null) {
-          span.getSpan().addKVAnnotation("read".getBytes(UTF_8),
-              ("" + majCStats.getEntriesRead()).getBytes(UTF_8));
-          span.getSpan().addKVAnnotation("written".getBytes(UTF_8),
-              ("" + majCStats.getEntriesWritten()).getBytes(UTF_8));
+          span.getSpan().addKVAnnotation("read", ("" + majCStats.getEntriesRead()));
+          span.getSpan().addKVAnnotation("written", ("" + majCStats.getEntriesWritten()));
         }
       }
       success = true;

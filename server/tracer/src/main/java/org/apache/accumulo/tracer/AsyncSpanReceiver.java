@@ -43,6 +43,8 @@ import org.apache.htrace.TimelineAnnotation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.primitives.Longs;
+
 /**
  * Deliver Span information periodically to a destination.
  * <ul>
@@ -175,7 +177,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
       return;
     }
 
-    Map<String,String> data = convertToStrings(s.getKVAnnotations());
+    Map<String,String> data = s.getKVAnnotations();
 
     SpanKey dest = getSpanKey(data);
     if (dest != null) {
@@ -192,8 +194,8 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
         return;
       }
       sendQueue.add(new RemoteSpan(host, service == null ? processId : service, s.getTraceId(),
-          s.getSpanId(), s.getParentId(), s.getStartTimeMillis(), s.getStopTimeMillis(),
-          s.getDescription(), data, annotations));
+          s.getSpanId(), Longs.asList(s.getParents()), s.getStartTimeMillis(),
+          s.getStopTimeMillis(), s.getDescription(), data, annotations));
       sendQueueSize.incrementAndGet();
     }
   }

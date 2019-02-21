@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Span;
 
 import com.beust.jcommander.Parameter;
 
@@ -126,7 +125,7 @@ public class TraceDump {
       RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
       tree.addNode(span);
       start = min(start, span.start);
-      if (span.parentId == Span.ROOT_SPAN_ID)
+      if (span.getParentIdsSize() == 0)
         count++;
     }
     if (start == Long.MAX_VALUE) {

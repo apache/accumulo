@@ -35,6 +35,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.TraceScope;
 
 public class CheckForMetadataProblems {
   private static boolean sawProblems = false;
@@ -165,13 +166,14 @@ public class CheckForMetadataProblems {
 
   public static void main(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
-    opts.parseArgs(CheckForMetadataProblems.class.getName(), args);
+    try (TraceScope clientSpan = opts.parseArgsAndTrace(CheckForMetadataProblems.class.getName(),
+        args)) {
 
-    checkMetadataAndRootTableEntries(RootTable.NAME, opts);
-    checkMetadataAndRootTableEntries(MetadataTable.NAME, opts);
-    opts.stopTracing();
-    if (sawProblems)
-      throw new RuntimeException();
+      checkMetadataAndRootTableEntries(RootTable.NAME, opts);
+      checkMetadataAndRootTableEntries(MetadataTable.NAME, opts);
+      if (sawProblems)
+        throw new RuntimeException();
+    }
   }
 
 }

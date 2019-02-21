@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -63,7 +64,6 @@ import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Iface;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Processor;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Span;
 import org.apache.thrift.TByteArrayOutputStream;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -149,14 +149,14 @@ public class TraceServer implements Watcher, AutoCloseable {
       ByteArrayTransport transport = new ByteArrayTransport();
       TCompactProtocol protocol = new TCompactProtocol(transport);
       s.write(protocol);
-      String parentString = Long.toHexString(s.parentId);
-      if (s.parentId == Span.ROOT_SPAN_ID)
-        parentString = "";
+      String parentString = s.getParentIdsSize() == 0 ? ""
+          : s.getParentIds().stream().map(x -> Long.toHexString(x)).collect(Collectors.toList())
+              .toString();
       put(spanMutation, "span", parentString + ":" + Long.toHexString(s.spanId), transport.get(),
           transport.len());
       // Map the root span to time so we can look up traces by time
       Mutation timeMutation = null;
-      if (s.parentId == Span.ROOT_SPAN_ID) {
+      if (s.getParentIdsSize() == 0) {
         timeMutation = new Mutation(new Text("start:" + startString));
         put(timeMutation, "id", idString, transport.get(), transport.len());
       }

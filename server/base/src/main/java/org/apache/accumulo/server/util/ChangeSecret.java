@@ -42,6 +42,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.htrace.TraceScope;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
@@ -69,19 +70,21 @@ public class ChangeSecret {
     argsList.add("--old");
     argsList.add("--new");
     argsList.addAll(Arrays.asList(args));
-    opts.parseArgs(ChangeSecret.class.getName(), argsList.toArray(new String[0]));
+    try (TraceScope clientSpan = opts.parseArgsAndTrace(ChangeSecret.class.getName(),
+        argsList.toArray(new String[0]))) {
 
-    ServerContext context = opts.getServerContext();
-    verifyAccumuloIsDown(context, opts.oldPass);
+      ServerContext context = opts.getServerContext();
+      verifyAccumuloIsDown(context, opts.oldPass);
 
-    final String newInstanceId = UUID.randomUUID().toString();
-    updateHdfs(fs, newInstanceId);
-    rewriteZooKeeperInstance(context, newInstanceId, opts.oldPass, opts.newPass);
-    if (opts.oldPass != null) {
-      deleteInstance(context, opts.oldPass);
+      final String newInstanceId = UUID.randomUUID().toString();
+      updateHdfs(fs, newInstanceId);
+      rewriteZooKeeperInstance(context, newInstanceId, opts.oldPass, opts.newPass);
+      if (opts.oldPass != null) {
+        deleteInstance(context, opts.oldPass);
+      }
+      System.out.println("New instance id is " + newInstanceId);
+      System.out.println("Be sure to put your new secret in accumulo.properties");
     }
-    System.out.println("New instance id is " + newInstanceId);
-    System.out.println("Be sure to put your new secret in accumulo.properties");
   }
 
   interface Visitor {

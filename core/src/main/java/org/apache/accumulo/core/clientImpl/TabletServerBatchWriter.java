@@ -715,7 +715,7 @@ public class TabletServerBatchWriter {
     void queueMutations(final MutationSet mutationsToSend) {
       if (mutationsToSend == null)
         return;
-      binningThreadPool.execute(TraceUtil.wrap(() -> {
+      binningThreadPool.execute(Trace.wrap(() -> {
         if (mutationsToSend != null) {
           try {
             log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
@@ -777,7 +777,7 @@ public class TabletServerBatchWriter {
 
       for (String server : servers)
         if (!queued.contains(server)) {
-          sendThreadPool.submit(TraceUtil.wrap(new SendTask(server)));
+          sendThreadPool.submit(Trace.wrap(new SendTask(server)));
           queued.add(server);
         }
     }

@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.tracer.TraceDump;
@@ -34,19 +33,26 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
 import org.apache.htrace.Sampler;
 import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 
 public class TraceCommand extends DebugCommand {
+
+  private TraceScope traceScope = null;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {
-        Trace.startSpan("shell:" + shellState.getAccumuloClient().whoami(), Sampler.ALWAYS);
+        if (traceScope == null) {
+          traceScope = Trace.startSpan("shell:" + shellState.getAccumuloClient().whoami(),
+              Sampler.ALWAYS);
+        }
       } else if (cl.getArgs()[0].equalsIgnoreCase("off")) {
-        if (Trace.isTracing()) {
-          final long trace = Trace.currentSpan().getTraceId();
-          TraceUtil.off();
+        if (traceScope != null) {
+          final long trace = traceScope.getSpan().getTraceId();
+          traceScope.close();
+          traceScope = null;
           StringBuilder sb = new StringBuilder();
           int traceCount = 0;
           for (int i = 0; i < 30; i++) {

@@ -41,6 +41,7 @@ import org.apache.htrace.Span;
 import org.apache.htrace.SpanReceiver;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
+import org.apache.htrace.Tracer;
 import org.apache.htrace.wrappers.TraceProxy;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
@@ -51,16 +52,18 @@ import org.apache.thrift.transport.TTransport;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.primitives.Longs;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class TracerTest {
   static class SpanStruct {
-    public SpanStruct(long traceId, long spanId, long parentId, long start, long stop,
-        String description, Map<byte[],byte[]> data) {
+    public SpanStruct(long traceId, long spanId, List<Long> parentIds, long start, long stop,
+        String description, Map<String,String> data) {
       super();
       this.traceId = traceId;
       this.spanId = spanId;
-      this.parentId = parentId;
+      this.parentIds = parentIds;
       this.start = start;
       this.stop = stop;
       this.description = description;
@@ -69,11 +72,11 @@ public class TracerTest {
 
     public long traceId;
     public long spanId;
-    public long parentId;
+    public List<Long> parentIds;
     public long start;
     public long stop;
     public String description;
-    public Map<byte[],byte[]> data;
+    public Map<String,String> data;
 
     public long millis() {
       return stop - start;
@@ -88,7 +91,7 @@ public class TracerTest {
     @Override
     public void receiveSpan(Span s) {
       long traceId = s.getTraceId();
-      SpanStruct span = new SpanStruct(traceId, s.getSpanId(), s.getParentId(),
+      SpanStruct span = new SpanStruct(traceId, s.getSpanId(), Longs.asList(s.getParents()),
           s.getStartTimeMillis(), s.getStopTimeMillis(), s.getDescription(), s.getKVAnnotations());
       if (!traces.containsKey(traceId))
         traces.put(traceId, new ArrayList<>());
@@ -134,13 +137,14 @@ public class TracerTest {
     assertEquals(2, tracer.traces.get(traceId).size());
     assertTrue(tracer.traces.get(traceId).get(1).millis() >= 100);
 
-    Thread t = new Thread(TraceUtil.wrap(() -> assertTrue(Trace.isTracing())), "My Task");
+    Thread t = new Thread(Trace.wrap(() -> assertTrue(Trace.isTracing())), "My Task");
     t.start();
     t.join();
 
     assertEquals(3, tracer.traces.get(traceId).size());
     assertEquals("My Task", tracer.traces.get(traceId).get(2).description);
-    TraceUtil.off();
+    Trace.currentSpan().stop();
+    Tracer.getInstance().continueSpan(null);
     assertFalse(Trace.isTracing());
   }
 

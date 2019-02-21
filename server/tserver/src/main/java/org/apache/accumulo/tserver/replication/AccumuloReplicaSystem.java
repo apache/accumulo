@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.tserver.replication;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
@@ -209,10 +208,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   private Status _replicate(final Path p, final Status status, final ReplicationTarget target,
       final ReplicaSystemHelper helper, final AccumuloConfiguration localConf,
       final ClientContext peerContext, final UserGroupInformation accumuloUgi) {
-    try {
-      double tracePercent = localConf.getFraction(Property.REPLICATION_TRACE_PERCENT);
-      ProbabilitySampler sampler = TraceUtil.probabilitySampler(tracePercent);
-      Trace.startSpan("AccumuloReplicaSystem", sampler);
+    double tracePercent = localConf.getFraction(Property.REPLICATION_TRACE_PERCENT);
+    ProbabilitySampler sampler = TraceUtil.probabilitySampler(tracePercent);
+    try (TraceScope replicaSpan = Trace.startSpan("AccumuloReplicaSystem", sampler)) {
 
       // Remote identifier is an integer (table id) in this case.
       final String remoteTableId = target.getRemoteIdentifier();
@@ -277,8 +275,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
       // We made no status, punt on it for now, and let it re-queue itself for work
       return status;
-    } finally {
-      TraceUtil.off();
     }
   }
 
@@ -337,7 +333,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       log.debug("Skipping unwanted data in WAL");
       try (TraceScope span = Trace.startSpan("Consume WAL prefix")) {
         if (span.getSpan() != null) {
-          span.getSpan().addKVAnnotation("file".getBytes(UTF_8), p.toString().getBytes(UTF_8));
+          span.getSpan().addKVAnnotation("file", p.toString());
         }
         // We want to read all records in the WAL up to the "begin" offset contained in the Status
         // message,
@@ -358,15 +354,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         try (TraceScope span = Trace.startSpan("Replicate WAL batch")) {
           if (span.getSpan() != null) {
             // Set some trace context
-            span.getSpan().addKVAnnotation("Batch size (bytes)".getBytes(UTF_8),
-                Long.toString(sizeLimit).getBytes(UTF_8));
-            span.getSpan().addKVAnnotation("File".getBytes(UTF_8), p.toString().getBytes(UTF_8));
-            span.getSpan().addKVAnnotation("Peer instance name".getBytes(UTF_8),
-                peerContext.getInstanceName().getBytes(UTF_8));
-            span.getSpan().addKVAnnotation("Peer tserver".getBytes(UTF_8),
-                peerTserver.toString().getBytes(UTF_8));
-            span.getSpan().addKVAnnotation("Remote table ID".getBytes(UTF_8),
-                remoteTableId.getBytes(UTF_8));
+            span.getSpan().addKVAnnotation("Batch size (bytes)", Long.toString(sizeLimit));
+            span.getSpan().addKVAnnotation("File", p.toString());
+            span.getSpan().addKVAnnotation("Peer instance name", peerContext.getInstanceName());
+            span.getSpan().addKVAnnotation("Peer tserver", peerTserver.toString());
+            span.getSpan().addKVAnnotation("Remote table ID", remoteTableId);
           }
 
           // Read and send a batch of mutations
@@ -634,7 +626,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   public DataInputStream getWalStream(Path p, FSDataInputStream input) throws IOException {
     try (TraceScope span = Trace.startSpan("Read WAL header")) {
       if (span.getSpan() != null) {
-        span.getSpan().addKVAnnotation("file".getBytes(UTF_8), p.toString().getBytes(UTF_8));
+        span.getSpan().addKVAnnotation("file", p.toString());
       }
       DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(input, conf);
       return streams.getDecryptingInputStream();

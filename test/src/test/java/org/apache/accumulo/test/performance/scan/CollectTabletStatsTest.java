@@ -58,7 +58,6 @@ public class CollectTabletStatsTest {
     assertEquals("Check tablename is set", 0, tablename.compareTo(opts.getTableName()));
     assertEquals("Check numThreads is set", 99, opts.numThreads);
 
-    System.out.println(opts.columns);
   }
 
 }

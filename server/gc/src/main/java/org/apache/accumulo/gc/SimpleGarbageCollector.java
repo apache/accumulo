@@ -522,67 +522,65 @@ public class SimpleGarbageCollector implements Iface {
         .probabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
 
     while (true) {
-      Trace.startSpan("gc", sampler);
+      try (TraceScope gcOuterSpan = Trace.startSpan("gc", sampler)) {
+        try (TraceScope gcSpan = Trace.startSpan("loop")) {
+          tStart = System.currentTimeMillis();
+          try {
+            System.gc(); // make room
 
-      try (TraceScope gcSpan = Trace.startSpan("loop")) {
-        tStart = System.currentTimeMillis();
+            status.current.started = System.currentTimeMillis();
+
+            new GarbageCollectionAlgorithm().collect(new GCEnv(RootTable.NAME));
+            new GarbageCollectionAlgorithm().collect(new GCEnv(MetadataTable.NAME));
+
+            log.info("Number of data file candidates for deletion: {}", status.current.candidates);
+            log.info("Number of data file candidates still in use: {}", status.current.inUse);
+            log.info("Number of successfully deleted data files: {}", status.current.deleted);
+            log.info("Number of data files delete failures: {}", status.current.errors);
+
+            status.current.finished = System.currentTimeMillis();
+            status.last = status.current;
+            status.current = new GcCycleStats();
+
+          } catch (Exception e) {
+            log.error("{}", e.getMessage(), e);
+          }
+
+          tStop = System.currentTimeMillis();
+          log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
+
+          /*
+           * We want to prune references to fully-replicated WALs from the replication table which
+           * are no longer referenced in the metadata table before running
+           * GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
+           */
+          try (TraceScope replSpan = Trace.startSpan("replicationClose")) {
+            CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(context);
+            closeWals.run();
+          } catch (Exception e) {
+            log.error("Error trying to close write-ahead logs for replication table", e);
+          }
+
+          // Clean up any unused write-ahead logs
+          try (TraceScope waLogs = Trace.startSpan("walogs")) {
+            GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(context,
+                fs, isUsingTrash());
+            log.info("Beginning garbage collection of write-ahead logs");
+            walogCollector.collect(status);
+          } catch (Exception e) {
+            log.error("{}", e.getMessage(), e);
+          }
+        }
+
+        // we just made a lot of metadata changes: flush them out
         try {
-          System.gc(); // make room
-
-          status.current.started = System.currentTimeMillis();
-
-          new GarbageCollectionAlgorithm().collect(new GCEnv(RootTable.NAME));
-          new GarbageCollectionAlgorithm().collect(new GCEnv(MetadataTable.NAME));
-
-          log.info("Number of data file candidates for deletion: {}", status.current.candidates);
-          log.info("Number of data file candidates still in use: {}", status.current.inUse);
-          log.info("Number of successfully deleted data files: {}", status.current.deleted);
-          log.info("Number of data files delete failures: {}", status.current.errors);
-
-          status.current.finished = System.currentTimeMillis();
-          status.last = status.current;
-          status.current = new GcCycleStats();
-
+          AccumuloClient accumuloClient = getClient();
+          accumuloClient.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
+          accumuloClient.tableOperations().compact(RootTable.NAME, null, null, true, true);
         } catch (Exception e) {
-          log.error("{}", e.getMessage(), e);
-        }
-
-        tStop = System.currentTimeMillis();
-        log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
-
-        /*
-         * We want to prune references to fully-replicated WALs from the replication table which are
-         * no longer referenced in the metadata table before running GarbageCollectWriteAheadLogs to
-         * ensure we delete as many files as possible.
-         */
-        try (TraceScope replSpan = Trace.startSpan("replicationClose")) {
-          CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(context);
-          closeWals.run();
-        } catch (Exception e) {
-          log.error("Error trying to close write-ahead logs for replication table", e);
-        }
-
-        // Clean up any unused write-ahead logs
-        try (TraceScope waLogs = Trace.startSpan("walogs")) {
-          GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(context,
-              fs, isUsingTrash());
-          log.info("Beginning garbage collection of write-ahead logs");
-          walogCollector.collect(status);
-        } catch (Exception e) {
-          log.error("{}", e.getMessage(), e);
+          log.warn("{}", e.getMessage(), e);
         }
       }
-
-      // we just made a lot of metadata changes: flush them out
-      try {
-        AccumuloClient accumuloClient = getClient();
-        accumuloClient.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
-        accumuloClient.tableOperations().compact(RootTable.NAME, null, null, true, true);
-      } catch (Exception e) {
-        log.warn("{}", e.getMessage(), e);
-      }
-
-      TraceUtil.off();
       try {
         long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for {} milliseconds", gcDelay);

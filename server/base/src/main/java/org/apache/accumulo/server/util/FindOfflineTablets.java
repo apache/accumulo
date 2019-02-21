@@ -38,6 +38,7 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
+import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,9 +47,10 @@ public class FindOfflineTablets {
 
   public static void main(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
-    opts.parseArgs(FindOfflineTablets.class.getName(), args);
-    ServerContext context = opts.getServerContext();
-    findOffline(context, null);
+    try (TraceScope clientSpan = opts.parseArgsAndTrace(FindOfflineTablets.class.getName(), args)) {
+      ServerContext context = opts.getServerContext();
+      findOffline(context, null);
+    }
   }
 
   static int findOffline(ServerContext context, String tableName) throws TableNotFoundException {

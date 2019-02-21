@@ -53,6 +53,7 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.TraceScope;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.slf4j.Logger;
@@ -71,11 +72,12 @@ public class VerifyTabletAssignments {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
-
-    try (AccumuloClient client = opts.createClient()) {
-      for (String table : client.tableOperations().list())
-        checkTable((ClientContext) client, opts, table, null);
+    try (TraceScope clientSpan = opts.parseArgsAndTrace(VerifyTabletAssignments.class.getName(),
+        args)) {
+      try (AccumuloClient client = opts.createClient()) {
+        for (String table : client.tableOperations().list())
+          checkTable((ClientContext) client, opts, table, null);
+      }
     }
   }
 

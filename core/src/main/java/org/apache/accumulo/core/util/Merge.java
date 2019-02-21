@@ -33,6 +33,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,24 +80,25 @@ public class Merge {
 
   public void start(String[] args) throws MergeException {
     Opts opts = new Opts();
-    opts.parseArgs(Merge.class.getName(), args);
+    try (TraceScope clientTrace = opts.parseArgsAndTrace(Merge.class.getName(), args)) {
 
-    try (AccumuloClient client = opts.createClient()) {
+      try (AccumuloClient client = opts.createClient()) {
 
-      if (!client.tableOperations().exists(opts.getTableName())) {
-        System.err.println("table " + opts.getTableName() + " does not exist");
-        return;
+        if (!client.tableOperations().exists(opts.getTableName())) {
+          System.err.println("table " + opts.getTableName() + " does not exist");
+          return;
+        }
+        if (opts.goalSize == null || opts.goalSize < 1) {
+          AccumuloConfiguration tableConfig = new ConfigurationCopy(
+              client.tableOperations().getProperties(opts.getTableName()));
+          opts.goalSize = tableConfig.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
+        }
+
+        message("Merging tablets in table %s to %d bytes", opts.getTableName(), opts.goalSize);
+        mergomatic(client, opts.getTableName(), opts.begin, opts.end, opts.goalSize, opts.force);
+      } catch (Exception ex) {
+        throw new MergeException(ex);
       }
-      if (opts.goalSize == null || opts.goalSize < 1) {
-        AccumuloConfiguration tableConfig = new ConfigurationCopy(
-            client.tableOperations().getProperties(opts.getTableName()));
-        opts.goalSize = tableConfig.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
-      }
-
-      message("Merging tablets in table %s to %d bytes", opts.getTableName(), opts.goalSize);
-      mergomatic(client, opts.getTableName(), opts.begin, opts.end, opts.goalSize, opts.force);
-    } catch (Exception ex) {
-      throw new MergeException(ex);
     }
   }
 

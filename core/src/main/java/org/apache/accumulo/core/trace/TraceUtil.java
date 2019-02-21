@@ -42,10 +42,8 @@ import org.apache.htrace.SpanReceiverBuilder;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceInfo;
 import org.apache.htrace.TraceScope;
-import org.apache.htrace.Tracer;
 import org.apache.htrace.impl.CountSampler;
 import org.apache.htrace.impl.ProbabilitySampler;
-import org.apache.htrace.wrappers.TraceRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,9 +114,7 @@ public class TraceUtil {
     if (service != null) {
       htraceConfigProps.put(TRACE_SERVICE_PROPERTY, service);
     }
-    Trace.setProcessId(service);
     ShutdownHookManager.get().addShutdownHook(() -> {
-      TraceUtil.off();
       disable();
     }, 0);
     synchronized (receivers) {
@@ -164,35 +160,11 @@ public class TraceUtil {
   }
 
   /**
-   * Finish the current trace.
-   */
-  public static void off() {
-    Span span = Trace.currentSpan();
-    if (span != null) {
-      span.stop();
-      // close() will no-op, but ensure safety if the implementation changes
-      // the main reason for doing the following is to remove the current span in the current thread
-      Tracer.getInstance().continueSpan(null).close();
-    }
-  }
-
-  /**
    * Continue a trace by starting a new span with a given parent and description.
    */
   public static TraceScope trace(TInfo info, String description) {
     return info.traceId == 0 ? NullScope.INSTANCE
         : Trace.startSpan(description, new TraceInfo(info.traceId, info.parentId));
-  }
-
-  /**
-   * Wrap a runnable in a TraceRunnable, if tracing.
-   */
-  public static Runnable wrap(Runnable runnable) {
-    if (Trace.isTracing()) {
-      return new TraceRunnable(Trace.currentSpan(), runnable);
-    } else {
-      return runnable;
-    }
   }
 
   private static final TInfo DONT_TRACE = new TInfo(0, 0);

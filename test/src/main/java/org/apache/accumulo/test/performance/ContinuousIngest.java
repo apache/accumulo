@@ -44,6 +44,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.TraceScope;
 import org.apache.htrace.wrappers.TraceProxy;
 
 public class ContinuousIngest {
@@ -82,79 +83,64 @@ public class ContinuousIngest {
     ContinuousOpts opts = new ContinuousOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
     ClientOnDefaultTable clientOpts = new ClientOnDefaultTable("ci");
-    clientOpts.parseArgs(ContinuousIngest.class.getName(), args, bwOpts, opts);
+    try (TraceScope clientSpan = clientOpts.parseArgsAndTrace(ContinuousIngest.class.getName(),
+        args, bwOpts, opts)) {
 
-    initVisibilities(opts);
+      initVisibilities(opts);
 
-    if (opts.min < 0 || opts.max < 0 || opts.max <= opts.min) {
-      throw new IllegalArgumentException("bad min and max");
-    }
-    try (AccumuloClient client = clientOpts.createClient()) {
-
-      if (!client.tableOperations().exists(clientOpts.getTableName())) {
-        throw new TableNotFoundException(null, clientOpts.getTableName(),
-            "Consult the README and create the table before starting ingest.");
+      if (opts.min < 0 || opts.max < 0 || opts.max <= opts.min) {
+        throw new IllegalArgumentException("bad min and max");
       }
+      try (AccumuloClient client = clientOpts.createClient()) {
 
-      BatchWriter bw = client.createBatchWriter(clientOpts.getTableName(),
-          bwOpts.getBatchWriterConfig());
-      bw = TraceProxy.trace(bw, TraceUtil.countSampler(1024));
-
-      Random r = new SecureRandom();
-
-      byte[] ingestInstanceId = UUID.randomUUID().toString().getBytes(UTF_8);
-
-      System.out.printf("UUID %d %s%n", System.currentTimeMillis(),
-          new String(ingestInstanceId, UTF_8));
-
-      long count = 0;
-      final int flushInterval = 1000000;
-      final int maxDepth = 25;
-
-      // always want to point back to flushed data. This way the previous item should
-      // always exist in accumulo when verifying data. To do this make insert N point
-      // back to the row from insert (N - flushInterval). The array below is used to keep
-      // track of this.
-      long prevRows[] = new long[flushInterval];
-      long firstRows[] = new long[flushInterval];
-      int firstColFams[] = new int[flushInterval];
-      int firstColQuals[] = new int[flushInterval];
-
-      long lastFlushTime = System.currentTimeMillis();
-
-      out: while (true) {
-        // generate first set of nodes
-        ColumnVisibility cv = getVisibility(r);
-
-        for (int index = 0; index < flushInterval; index++) {
-          long rowLong = genLong(opts.min, opts.max, r);
-          prevRows[index] = rowLong;
-          firstRows[index] = rowLong;
-
-          int cf = r.nextInt(opts.maxColF);
-          int cq = r.nextInt(opts.maxColQ);
-
-          firstColFams[index] = cf;
-          firstColQuals[index] = cq;
-
-          Mutation m = genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null,
-              opts.checksum);
-          count++;
-          bw.addMutation(m);
+        if (!client.tableOperations().exists(clientOpts.getTableName())) {
+          throw new TableNotFoundException(null, clientOpts.getTableName(),
+              "Consult the README and create the table before starting ingest.");
         }
 
-        lastFlushTime = flush(bw, count, flushInterval, lastFlushTime);
-        if (count >= opts.num)
-          break out;
+        BatchWriter bw = client.createBatchWriter(clientOpts.getTableName(),
+            bwOpts.getBatchWriterConfig());
+        bw = TraceProxy.trace(bw, TraceUtil.countSampler(1024));
 
-        // generate subsequent sets of nodes that link to previous set of nodes
-        for (int depth = 1; depth < maxDepth; depth++) {
+        Random r = new SecureRandom();
+
+        byte[] ingestInstanceId = UUID.randomUUID().toString().getBytes(UTF_8);
+
+        System.out.printf("UUID %d %s%n", System.currentTimeMillis(),
+            new String(ingestInstanceId, UTF_8));
+
+        long count = 0;
+        final int flushInterval = 1000000;
+        final int maxDepth = 25;
+
+        // always want to point back to flushed data. This way the previous item should
+        // always exist in accumulo when verifying data. To do this make insert N point
+        // back to the row from insert (N - flushInterval). The array below is used to keep
+        // track of this.
+        long prevRows[] = new long[flushInterval];
+        long firstRows[] = new long[flushInterval];
+        int firstColFams[] = new int[flushInterval];
+        int firstColQuals[] = new int[flushInterval];
+
+        long lastFlushTime = System.currentTimeMillis();
+
+        out: while (true) {
+          // generate first set of nodes
+          ColumnVisibility cv = getVisibility(r);
+
           for (int index = 0; index < flushInterval; index++) {
             long rowLong = genLong(opts.min, opts.max, r);
-            byte[] prevRow = genRow(prevRows[index]);
             prevRows[index] = rowLong;
-            Mutation m = genMutation(rowLong, r.nextInt(opts.maxColF), r.nextInt(opts.maxColQ), cv,
-                ingestInstanceId, count, prevRow, opts.checksum);
+            firstRows[index] = rowLong;
+
+            int cf = r.nextInt(opts.maxColF);
+            int cq = r.nextInt(opts.maxColQ);
+
+            firstColFams[index] = cf;
+            firstColQuals[index] = cq;
+
+            Mutation m = genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null,
+                opts.checksum);
             count++;
             bw.addMutation(m);
           }
@@ -162,23 +148,39 @@ public class ContinuousIngest {
           lastFlushTime = flush(bw, count, flushInterval, lastFlushTime);
           if (count >= opts.num)
             break out;
+
+          // generate subsequent sets of nodes that link to previous set of nodes
+          for (int depth = 1; depth < maxDepth; depth++) {
+            for (int index = 0; index < flushInterval; index++) {
+              long rowLong = genLong(opts.min, opts.max, r);
+              byte[] prevRow = genRow(prevRows[index]);
+              prevRows[index] = rowLong;
+              Mutation m = genMutation(rowLong, r.nextInt(opts.maxColF), r.nextInt(opts.maxColQ),
+                  cv, ingestInstanceId, count, prevRow, opts.checksum);
+              count++;
+              bw.addMutation(m);
+            }
+
+            lastFlushTime = flush(bw, count, flushInterval, lastFlushTime);
+            if (count >= opts.num)
+              break out;
+          }
+
+          // create one big linked list, this makes all of the first inserts
+          // point to something
+          for (int index = 0; index < flushInterval - 1; index++) {
+            Mutation m = genMutation(firstRows[index], firstColFams[index], firstColQuals[index],
+                cv, ingestInstanceId, count, genRow(prevRows[index + 1]), opts.checksum);
+            count++;
+            bw.addMutation(m);
+          }
+          lastFlushTime = flush(bw, count, flushInterval, lastFlushTime);
+          if (count >= opts.num)
+            break out;
         }
 
-        // create one big linked list, this makes all of the first inserts
-        // point to something
-        for (int index = 0; index < flushInterval - 1; index++) {
-          Mutation m = genMutation(firstRows[index], firstColFams[index], firstColQuals[index], cv,
-              ingestInstanceId, count, genRow(prevRows[index + 1]), opts.checksum);
-          count++;
-          bw.addMutation(m);
-        }
-        lastFlushTime = flush(bw, count, flushInterval, lastFlushTime);
-        if (count >= opts.num)
-          break out;
+        bw.close();
       }
-
-      bw.close();
-      clientOpts.stopTracing();
     }
   }
 
