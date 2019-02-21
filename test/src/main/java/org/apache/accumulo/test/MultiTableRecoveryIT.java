@@ -20,6 +20,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -29,6 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -126,7 +128,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
           i++;
         }
         System.out.println("Restarted " + i + " times");
-      } catch (Exception ex) {
+      } catch (IOException | InterruptedException | TableNotFoundException ex) {
         log.error("{}", ex.getMessage(), ex);
       }
     });
