@@ -341,6 +341,11 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * scan, only how quickly it is returned.
    *
    * <p>
+   * Using the hint {@code scan_type=<type>} and documenting all of the types for your application
+   * is one strategy to consider. This allows administrators to adjust executor and prioritizer
+   * config for your application scan types without having to change the application source code.
+   *
+   * <p>
    * The default configuration for Accumulo will ignore hints. See {@link HintScanPrioritizer} and
    * {@link SimpleScanDispatcher} for examples of classes that can react to hints.
    *
