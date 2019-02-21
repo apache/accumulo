@@ -219,7 +219,7 @@ public class ScannerOptions implements ScannerBase {
   }
 
   @Override
-  public synchronized Authorizations getAuthorizations() {
+  public Authorizations getAuthorizations() {
     throw new UnsupportedOperationException("No authorizations to return");
   }
 

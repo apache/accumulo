@@ -36,13 +36,13 @@ public class RateLimitedOutputStream extends DataOutputStream {
   }
 
   @Override
-  public void write(int i) throws IOException {
+  public synchronized void write(int i) throws IOException {
     writeLimiter.acquire(1);
     out.write(i);
   }
 
   @Override
-  public void write(byte[] buffer, int offset, int length) throws IOException {
+  public synchronized void write(byte[] buffer, int offset, int length) throws IOException {
     writeLimiter.acquire(length);
     out.write(buffer, offset, length);
   }

@@ -106,12 +106,12 @@ public class SeekableByteArrayInputStream extends InputStream {
   }
 
   @Override
-  public void mark(int readAheadLimit) {
+  public synchronized void mark(int readAheadLimit) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public void reset() {
+  public synchronized void reset() {
     throw new UnsupportedOperationException();
   }
 

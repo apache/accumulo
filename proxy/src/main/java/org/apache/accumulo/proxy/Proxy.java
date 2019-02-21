@@ -147,19 +147,16 @@ public class Proxy implements KeywordExecutable {
       final MiniAccumuloCluster accumulo = new MiniAccumuloCluster(folder, "secret");
       accumulo.start();
       clientProps = accumulo.getClientProperties();
-      Runtime.getRuntime().addShutdownHook(new Thread() {
-        @Override
-        public void start() {
-          try {
-            accumulo.stop();
-          } catch (Exception e) {
-            throw new RuntimeException();
-          } finally {
-            if (!folder.delete())
-              log.warn("Unexpected error removing {}", folder);
-          }
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        try {
+          accumulo.stop();
+        } catch (Exception e) {
+          throw new RuntimeException();
+        } finally {
+          if (!folder.delete())
+            log.warn("Unexpected error removing {}", folder);
         }
-      });
+      }));
     } else if (clientProps == null) {
       System.err.println("The '-c' option must be set with an accumulo-client.properties file or"
           + " proxy.properties must contain either useMiniAccumulo=true");

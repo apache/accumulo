@@ -115,12 +115,12 @@ public class BoundedRangeFileInputStream extends InputStream {
   }
 
   @Override
-  public void mark(int readlimit) {
+  public synchronized void mark(int readlimit) {
     mark = pos;
   }
 
   @Override
-  public void reset() throws IOException {
+  public synchronized void reset() throws IOException {
     if (mark < 0)
       throw new IOException("Resetting to invalid mark");
     pos = mark;
