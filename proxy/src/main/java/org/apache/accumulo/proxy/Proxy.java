@@ -150,7 +150,7 @@ public class Proxy implements KeywordExecutable {
       Runtime.getRuntime().addShutdownHook(new Thread(() -> {
         try {
           accumulo.stop();
-        } catch (InterruptedException|IOException e) {
+        } catch (InterruptedException | IOException e) {
           throw new RuntimeException(e);
         } finally {
           if (!folder.delete())
