@@ -71,8 +71,6 @@ function setStats() {
     adjustMax[val.name] = val.adjustMax;
     significance[val.name] = val.significance;
   });
-
-  var numNormalStats = 8;
 }
 
 // size and spacing variables
@@ -169,10 +167,8 @@ function handleNewData() {
   }
 
   initDerivedInfo(newstats);
-  var oldstats = stats;
   while (drawing) {}
   stats = newstats;
-  delete oldstats;
   xmlReturned = true;
 }
 
@@ -184,7 +180,7 @@ function setDerivedStats(serverStats) {
   for (var s in statNames) {
     if (statNames[s])
       continue;
-    normStat = serverStats[s] / maxStatValues[s];
+    var normStat = serverStats[s] / maxStatValues[s];
     if (normStat > 0)
       avgStat += normStat;
     if (maxStat < normStat) {
@@ -461,7 +457,7 @@ function showId(e) {
   var relx = x - canvas.offsetLeft - main.offsetLeft;
   var rely = y - canvas.offsetTop - main.offsetTop;
   var width = Math.ceil(Math.sqrt(stats.servers.length));
-  gotDot = Math.floor(relx / (dotSpacing * 2)) + width *
+  var gotDot = Math.floor(relx / (dotSpacing * 2)) + width *
       Math.floor(rely / (dotSpacing * 2));
   mousedDot = -1;
   if (relx < (width * dotSpacing * 2) && gotDot >= 0 &&

@@ -21,7 +21,7 @@ var tabletResults;
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshServer() {
-  getTServer(serv).then(function() {;
+  getTServer(serv).then(function() {
     refreshDetailTable();
     refreshHistoryTable();
     refreshCurrentTable();
@@ -96,7 +96,6 @@ function refreshHistoryTable() {
       totalTimeSpent += val.timeSpent;
     });
 
-    var count = 0;
     $.each(data.allTimeTabletResults, function(key, val) {
       var row = [];
 

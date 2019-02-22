@@ -47,39 +47,39 @@ function refreshSideBarNotifications() {
       undefined : JSON.parse(sessionStorage.status);
 
   // Setting individual status notification
-  if (data.masterStatus == 'OK') {
+  if (data.masterStatus === 'OK') {
     $('#masterStatusNotification').removeClass('error').addClass('normal');
   } else {
     $('#masterStatusNotification').removeClass('normal').addClass('error');
   }
-  if (data.tServerStatus == 'OK') {
+  if (data.tServerStatus === 'OK') {
     $('#serverStatusNotification').removeClass('error').removeClass('warning').
         addClass('normal');
-  } else if (data.tServerStatus == 'WARN') {
+  } else if (data.tServerStatus === 'WARN') {
     $('#serverStatusNotification').removeClass('error').removeClass('normal').
         addClass('warning');
   } else {
     $('#serverStatusNotification').removeClass('normal').removeClass('warning').
         addClass('error');
   }
-  if (data.gcStatus == 'OK') {
+  if (data.gcStatus === 'OK') {
     $('#gcStatusNotification').removeClass('error').addClass('normal');
   } else {
     $('#gcStatusNotification').addClass('error').removeClass('normal');
   }
 
   // Setting overall status notification
-  if (data.masterStatus == 'OK' &&
-      data.tServerStatus == 'OK' &&
-      data.gcStatus == 'OK') {
+  if (data.masterStatus === 'OK' &&
+      data.tServerStatus === 'OK' &&
+      data.gcStatus === 'OK') {
     $('#statusNotification').removeClass('error').removeClass('warning').
         addClass('normal');
-  } else if (data.masterStatus == 'ERROR' ||
-      data.tServerStatus == 'ERROR' ||
-      data.gcStatus == 'ERROR') {
+  } else if (data.masterStatus === 'ERROR' ||
+      data.tServerStatus === 'ERROR' ||
+      data.gcStatus === 'ERROR') {
     $('#statusNotification').removeClass('normal').removeClass('warning').
         addClass('error');
-  } else if (data.tServerStatus == 'WARN') {
+  } else if (data.tServerStatus === 'WARN') {
     $('#statusNotification').removeClass('normal').removeClass('error').
         addClass('warning');
   }
