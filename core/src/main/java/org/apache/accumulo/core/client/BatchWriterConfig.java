@@ -61,7 +61,8 @@ public class BatchWriterConfig implements Writable {
   private boolean isDurabilitySet = false;
 
   private static long getDefaultTimeout() {
-    long defVal = ConfigurationTypeHelper.getTimeInMillis(BATCH_WRITER_TIMEOUT_MAX.getDefaultValue());
+    long defVal = ConfigurationTypeHelper
+        .getTimeInMillis(BATCH_WRITER_TIMEOUT_MAX.getDefaultValue());
     if (defVal == 0L)
       return Long.MAX_VALUE;
     else

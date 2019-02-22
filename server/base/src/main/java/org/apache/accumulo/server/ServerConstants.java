@@ -134,7 +134,7 @@ public class ServerConstants {
         throw new IllegalArgumentException("Configuration " + Property.INSTANCE_VOLUMES.getKey()
             + " contains paths that have different instance ids " + baseDir + " has " + currentIid
             + " and " + firstDir + " has " + firstIid);
-      } else if (!currentVersion.equals(firstVersion)) {
+      } else if (currentVersion != firstVersion) {
         throw new IllegalArgumentException("Configuration " + Property.INSTANCE_VOLUMES.getKey()
             + " contains paths that have different versions " + baseDir + " has " + currentVersion
             + " and " + firstDir + " has " + firstVersion);
