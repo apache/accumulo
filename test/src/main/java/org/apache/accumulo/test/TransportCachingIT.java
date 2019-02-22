@@ -88,7 +88,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
           break;
         else {
           if (ATTEMPTS < 100) {
-            log.warn("Making another attemp to add ThriftTransportKey servers");
+            log.warn("Making another attempt to add ThriftTransportKey servers");
             Thread.sleep(100);
           } else {
             log.error("Failed to add ThriftTransportKey servers - Failing TransportCachingIT test");
