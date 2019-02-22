@@ -19,6 +19,7 @@ package org.apache.accumulo.monitor.rest.trace;
 import static java.lang.Math.min;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX;
+import static org.apache.accumulo.monitor.util.ParameterValidator.RESOURCE_REGEX;
 
 import java.io.IOException;
 import java.security.PrivilegedAction;
@@ -137,7 +138,7 @@ public class TracesResource {
   @Path("listType/{type}/{minutes}")
   @GET
   public TraceType getTracesType(
-      @PathParam("type") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) final String type,
+      @PathParam("type") @NotNull @Pattern(regexp = RESOURCE_REGEX) final String type,
       @PathParam("minutes") @Min(0) @Max(2592000) int minutes) throws Exception {
 
     TraceType typeTraces = new TraceType(type);

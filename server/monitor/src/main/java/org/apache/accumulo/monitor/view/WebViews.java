@@ -20,6 +20,7 @@ import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGE
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_BLANK_OK;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
 import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
+import static org.apache.accumulo.monitor.util.ParameterValidator.RESOURCE_REGEX;
 import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isEmpty;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
@@ -340,7 +341,7 @@ public class WebViews {
   @Path("trace/listType")
   @Template(name = "/default.ftl")
   public Map<String,Object> getTracesForType(
-      @QueryParam("type") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String type,
+      @QueryParam("type") @NotNull @Pattern(regexp = RESOURCE_REGEX) String type,
       @QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
     Map<String,Object> model = getModel();
     model.put("title",
