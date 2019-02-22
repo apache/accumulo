@@ -50,7 +50,7 @@ public class BatchWriterConfig implements Writable {
       .getTimeInMillis(BATCH_WRITER_LATENCY_MAX.getDefaultValue());
   private Long maxLatency = null;
 
-  private static final Long DEFAULT_TIMEOUT = getDefaultTimeout();
+  private static final long DEFAULT_TIMEOUT = getDefaultTimeout();
   private Long timeout = null;
 
   private static final Integer DEFAULT_MAX_WRITE_THREADS = Integer
@@ -60,12 +60,13 @@ public class BatchWriterConfig implements Writable {
   private Durability durability = Durability.DEFAULT;
   private boolean isDurabilitySet = false;
 
-  private static Long getDefaultTimeout() {
-    Long def = ConfigurationTypeHelper.getTimeInMillis(BATCH_WRITER_TIMEOUT_MAX.getDefaultValue());
-    if (def.equals(0L))
+  private static long getDefaultTimeout() {
+    long defVal = ConfigurationTypeHelper
+        .getTimeInMillis(BATCH_WRITER_TIMEOUT_MAX.getDefaultValue());
+    if (defVal == 0L)
       return Long.MAX_VALUE;
     else
-      return def;
+      return defVal;
   }
 
   /**

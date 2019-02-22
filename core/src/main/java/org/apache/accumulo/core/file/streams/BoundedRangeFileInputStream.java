@@ -87,7 +87,7 @@ public class BoundedRangeFileInputStream extends InputStream {
     final int n = (int) Math.min(Integer.MAX_VALUE, Math.min(len, (end - pos)));
     if (n == 0)
       return -1;
-    Integer ret = 0;
+    int ret = 0;
     synchronized (in) {
       // ensuring we are not closed which would be followed by someone else reusing the decompressor
       if (closed) {

@@ -37,7 +37,7 @@ public class NamespaceIdTest {
   @Test
   public void testCacheIncreases() {
     String namespaceString = "namespace-" + name.getMethodName();
-    Long initialSize = NamespaceId.cache.asMap().entrySet().stream().count();
+    long initialSize = NamespaceId.cache.asMap().entrySet().stream().count();
     NamespaceId nsId = NamespaceId.of(namespaceString);
     assertEquals(initialSize + 1, NamespaceId.cache.asMap().entrySet().stream().count());
     assertEquals(namespaceString, nsId.canonical());
@@ -50,7 +50,7 @@ public class NamespaceIdTest {
     assertNotSame(Namespace.ACCUMULO.id(), Namespace.DEFAULT.id());
 
     String namespaceString = "namespace-" + name.getMethodName();
-    Long initialSize = NamespaceId.cache.asMap().entrySet().stream().count();
+    long initialSize = NamespaceId.cache.asMap().entrySet().stream().count();
     NamespaceId nsId = NamespaceId.of(namespaceString);
     assertEquals(initialSize + 1, NamespaceId.cache.asMap().entrySet().stream().count());
     assertEquals(namespaceString, nsId.canonical());

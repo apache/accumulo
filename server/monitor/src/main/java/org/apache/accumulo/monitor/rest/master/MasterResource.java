@@ -101,10 +101,10 @@ public class MasterResource {
 
       String master = masters.size() == 0 ? "Down"
           : AddressUtil.parseAddress(masters.get(0), false).getHost();
-      Integer onlineTabletServers = mmi.tServerInfo.size();
-      Integer totalTabletServers = tservers.size();
-      Integer tablets = Monitor.getTotalTabletCount();
-      Integer unassignedTablets = mmi.unassignedTablets;
+      int onlineTabletServers = mmi.tServerInfo.size();
+      int totalTabletServers = tservers.size();
+      int tablets = Monitor.getTotalTabletCount();
+      int unassignedTablets = mmi.unassignedTablets;
       long entries = Monitor.getTotalEntries();
       double ingest = Monitor.getTotalIngestRate();
       double entriesRead = Monitor.getTotalScanRate();

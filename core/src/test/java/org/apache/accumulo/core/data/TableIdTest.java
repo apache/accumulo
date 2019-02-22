@@ -38,7 +38,7 @@ public class TableIdTest {
 
   @Test
   public void testCacheIncreases() {
-    Long initialSize = TableId.cache.asMap().entrySet().stream().count();
+    long initialSize = TableId.cache.asMap().entrySet().stream().count();
     String tableString = "table-" + name.getMethodName();
     TableId table1 = TableId.of(tableString);
     assertEquals(initialSize + 1, TableId.cache.asMap().entrySet().stream().count());
@@ -53,7 +53,7 @@ public class TableIdTest {
     assertNotSame(RootTable.ID, ReplicationTable.ID);
 
     String tableString = "table-" + name.getMethodName();
-    Long initialSize = TableId.cache.asMap().entrySet().stream().count();
+    long initialSize = TableId.cache.asMap().entrySet().stream().count();
     TableId table1 = TableId.of(tableString);
     assertEquals(initialSize + 1, TableId.cache.asMap().entrySet().stream().count());
     assertEquals(tableString, table1.canonical());

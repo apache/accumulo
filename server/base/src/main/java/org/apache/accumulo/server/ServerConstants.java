@@ -113,7 +113,7 @@ public class ServerConstants {
     for (String baseDir : configuredBaseDirs) {
       Path path = new Path(baseDir, INSTANCE_ID_DIR);
       String currentIid;
-      Integer currentVersion;
+      int currentVersion;
       try {
         currentIid = ZooUtil.getInstanceIDFromHdfs(path, conf, hadoopConf);
         Path vpath = new Path(baseDir, VERSION_DIR);
@@ -134,7 +134,7 @@ public class ServerConstants {
         throw new IllegalArgumentException("Configuration " + Property.INSTANCE_VOLUMES.getKey()
             + " contains paths that have different instance ids " + baseDir + " has " + currentIid
             + " and " + firstDir + " has " + firstIid);
-      } else if (!currentVersion.equals(firstVersion)) {
+      } else if (currentVersion != firstVersion) {
         throw new IllegalArgumentException("Configuration " + Property.INSTANCE_VOLUMES.getKey()
             + " contains paths that have different versions " + baseDir + " has " + currentVersion
             + " and " + firstDir + " has " + firstVersion);

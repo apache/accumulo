@@ -249,7 +249,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         + "\n, jvmOpts: " + extraJvmOpts + "\n, classpath: " + classpath + "\n, args: " + argList
         + "\n, environment: " + builder.environment());
 
-    Integer hashcode = builder.hashCode();
+    int hashcode = builder.hashCode();
 
     File stdOut = new File(config.getLogDir(), clazz.getSimpleName() + "_" + hashcode + ".out");
     File stdErr = new File(config.getLogDir(), clazz.getSimpleName() + "_" + hashcode + ".err");
@@ -276,7 +276,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     if (config.isJDWPEnabled()) {
-      Integer port = PortUtils.getRandomFreePort();
+      int port = PortUtils.getRandomFreePort();
       jvmOpts.addAll(buildRemoteDebugParams(port));
       debugPorts.add(new Pair<>(serverType, port));
     }
