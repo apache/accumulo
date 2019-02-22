@@ -549,7 +549,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       try {
         mtbw.close();
       } catch (MutationsRejectedException e) {
-        if (e.getSecurityErrorCodes().size() >= 0) {
+        if (e.getSecurityErrorCodes().size() > 0) {
           HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<>();
           for (Entry<TabletId,Set<SecurityErrorCode>> ke : e.getSecurityErrorCodes().entrySet()) {
             String tableId = ke.getKey().getTableId().toString();
