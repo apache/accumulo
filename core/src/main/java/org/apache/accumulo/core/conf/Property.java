@@ -525,6 +525,9 @@ public enum Property {
   TSERV_SLOW_FLUSH_MILLIS("tserver.slow.flush.time", "100ms", PropertyType.TIMEDURATION,
       "If a flush to the write-ahead log takes longer than this period of time,"
           + " debugging information will written, and may result in a log rollover."),
+  TSERV_SLOW_FILEPERMIT_MILLIS("tserver.slow.filepermit.time", "100ms", PropertyType.TIMEDURATION,
+      "If a thread blocks more than this period of time waiting to get file permits,"
+          + " debugging information will be written."),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
