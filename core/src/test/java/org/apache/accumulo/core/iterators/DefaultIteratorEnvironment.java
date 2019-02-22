@@ -40,6 +40,7 @@ public class DefaultIteratorEnvironment implements IteratorEnvironment {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
       throws IOException {
     FileSystem fs = FileSystem.get(hadoopConf);
