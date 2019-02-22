@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
  */
 public class TransportCachingIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(TransportCachingIT.class);
+  private static int ATTEMPTS = 0;
 
   @Test
   public void testCachedTransport() throws InterruptedException {
@@ -70,14 +71,30 @@ public class TransportCachingIT extends AccumuloClusterHarness {
       }
 
       ArrayList<ThriftTransportKey> servers = new ArrayList<>();
-      for (String tserver : children) {
-        String path = zkRoot + Constants.ZTSERVERS + "/" + tserver;
-        byte[] data = ZooUtil.getLockData(zc, path);
-        if (data != null) {
-          String strData = new String(data, UTF_8);
-          if (!strData.equals("master"))
-            servers.add(new ThriftTransportKey(
-                new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
+      while (servers.isEmpty()) {
+        for (String tserver : children) {
+          String path = zkRoot + Constants.ZTSERVERS + "/" + tserver;
+          byte[] data = ZooUtil.getLockData(zc, path);
+          if (data != null) {
+            String strData = new String(data, UTF_8);
+            if (!strData.equals("master"))
+              servers.add(new ThriftTransportKey(
+                  new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout,
+                  context));
+          }
+        }
+        ATTEMPTS++;
+        if (!servers.isEmpty())
+          break;
+        else {
+          if (ATTEMPTS < 100) {
+            log.warn("Making another attempt to add ThriftTransportKey servers");
+            Thread.sleep(100);
+          } else {
+            log.error("Failed to add ThriftTransportKey servers - Failing TransportCachingIT test");
+            org.junit.Assert
+                .fail("Failed to add ThriftTransportKey servers - Failing TransportCachingIT test");
+          }
         }
       }
 
