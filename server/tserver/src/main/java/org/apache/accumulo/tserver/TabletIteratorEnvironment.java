@@ -122,8 +122,8 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.topLevelIterators = new ArrayList<>();
   }
 
+  @Deprecated
   @Override
-  @SuppressWarnings("deprecation")
   public AccumuloConfiguration getConfig() {
     return tableConfig;
   }
@@ -148,16 +148,16 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     return userCompaction;
   }
 
+  @Deprecated
   @Override
-  @SuppressWarnings("deprecation")
   public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
       throws IOException {
     FileRef ref = new FileRef(mapFileName, new Path(mapFileName));
     return trm.openFiles(Collections.singletonMap(ref, files.get(ref)), false, null).get(0);
   }
 
+  @Deprecated
   @Override
-  @SuppressWarnings("deprecation")
   public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
     topLevelIterators.add(iter);
   }

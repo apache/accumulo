@@ -119,6 +119,7 @@ public class MapFileIterator implements FileSKVIterator {
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     try {
+      @SuppressWarnings("deprecation")
       SortedKeyValueIterator<Key,Value> other = env.reserveMapFileReader(dirName);
       ((InterruptibleIterator) other).setInterruptFlag(interruptFlag);
       log.debug("deep copying MapFile: {} -> {}", this, other);
