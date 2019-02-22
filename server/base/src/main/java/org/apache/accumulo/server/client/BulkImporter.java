@@ -55,7 +55,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.StopWatch;
@@ -624,8 +624,8 @@ public class BulkImporter {
         }
 
         log.debug("Asking {} to bulk load {}", location, files);
-        List<TKeyExtent> failures = client.bulkImport(Tracer.traceInfo(), context.rpcCreds(), tid,
-            Translator.translate(files, Translators.KET), setTime);
+        List<TKeyExtent> failures = client.bulkImport(TraceUtil.traceInfo(), context.rpcCreds(),
+            tid, Translator.translate(files, Translators.KET), setTime);
 
         return Translator.translate(failures, Translators.TKET);
       } finally {

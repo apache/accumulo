@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,24 +97,26 @@ public class RandomWriter {
     Opts opts = new Opts(table_name);
     opts.setPrincipal("root");
     BatchWriterOpts bwOpts = new BatchWriterOpts();
-    opts.parseArgs(RandomWriter.class.getName(), args, bwOpts);
+    try (TraceScope clientSpan = opts.parseArgsAndTrace(RandomWriter.class.getName(), args,
+        bwOpts)) {
 
-    long start = System.currentTimeMillis();
-    log.info("starting at {} for user {}", start, opts.getPrincipal());
-    try (AccumuloClient accumuloClient = opts.createClient()) {
-      BatchWriter bw = accumuloClient.createBatchWriter(opts.getTableName(),
-          bwOpts.getBatchWriterConfig());
-      log.info("Writing {} mutations...", opts.count);
-      bw.addMutations(new RandomMutationGenerator(opts.count));
-      bw.close();
-    } catch (Exception e) {
-      log.error("{}", e.getMessage(), e);
-      throw e;
+      long start = System.currentTimeMillis();
+      log.info("starting at {} for user {}", start, opts.getPrincipal());
+      try (AccumuloClient accumuloClient = opts.createClient()) {
+        BatchWriter bw = accumuloClient.createBatchWriter(opts.getTableName(),
+            bwOpts.getBatchWriterConfig());
+        log.info("Writing {} mutations...", opts.count);
+        bw.addMutations(new RandomMutationGenerator(opts.count));
+        bw.close();
+      } catch (Exception e) {
+        log.error("{}", e.getMessage(), e);
+        throw e;
+      }
+      long stop = System.currentTimeMillis();
+
+      log.info("stopping at {}", stop);
+      log.info("elapsed: {}", (((double) stop - (double) start) / 1000.0));
     }
-    long stop = System.currentTimeMillis();
-
-    log.info("stopping at {}", stop);
-    log.info("elapsed: {}", (((double) stop - (double) start) / 1000.0));
   }
 
 }

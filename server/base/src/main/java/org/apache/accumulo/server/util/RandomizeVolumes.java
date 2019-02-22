@@ -46,6 +46,7 @@ import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,14 +55,15 @@ public class RandomizeVolumes {
 
   public static void main(String[] args) {
     ServerUtilOnRequiredTable opts = new ServerUtilOnRequiredTable();
-    opts.parseArgs(RandomizeVolumes.class.getName(), args);
-    ServerContext context = opts.getServerContext();
-    try {
-      int status = randomize(context, opts.getTableName());
-      System.exit(status);
-    } catch (Exception ex) {
-      log.error("{}", ex.getMessage(), ex);
-      System.exit(4);
+    try (TraceScope clientSpan = opts.parseArgsAndTrace(RandomizeVolumes.class.getName(), args)) {
+      ServerContext context = opts.getServerContext();
+      try {
+        int status = randomize(context, opts.getTableName());
+        System.exit(status);
+      } catch (Exception ex) {
+        log.error("{}", ex.getMessage(), ex);
+        System.exit(4);
+      }
     }
   }
 

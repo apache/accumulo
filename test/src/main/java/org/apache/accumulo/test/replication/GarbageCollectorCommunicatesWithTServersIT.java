@@ -49,7 +49,7 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
@@ -383,7 +383,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     // Get the tservers which the master deems as active
     final ClientContext context = (ClientContext) client;
     List<String> tservers = MasterClient.execute(context,
-        cli -> cli.getActiveTservers(Tracer.traceInfo(), context.rpcCreds()));
+        cli -> cli.getActiveTservers(TraceUtil.traceInfo(), context.rpcCreds()));
 
     assertEquals("Expected only one active tservers", 1, tservers.size());
 
@@ -393,7 +393,8 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     log.info("Fetching active WALs from {}", tserver);
 
     Client cli = ThriftUtil.getTServerClient(tserver, context);
-    List<String> activeWalsForTserver = cli.getActiveLogs(Tracer.traceInfo(), context.rpcCreds());
+    List<String> activeWalsForTserver = cli.getActiveLogs(TraceUtil.traceInfo(),
+        context.rpcCreds());
 
     log.info("Active wals: {}", activeWalsForTserver);
 

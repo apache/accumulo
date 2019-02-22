@@ -34,7 +34,7 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
@@ -105,7 +105,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
         while (true) {
           try {
             client = MasterClient.getConnectionWithRetry((ClientContext) c);
-            stats = client.getMasterStats(Tracer.traceInfo(),
+            stats = client.getMasterStats(TraceUtil.traceInfo(),
                 creds.toThrift(c.instanceOperations().getInstanceID()));
             break;
           } catch (ThriftNotActiveServiceException e) {

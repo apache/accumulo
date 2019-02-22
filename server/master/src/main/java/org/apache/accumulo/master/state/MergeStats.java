@@ -46,6 +46,7 @@ import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationSt
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.TraceScope;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -260,24 +261,25 @@ public class MergeStats {
 
   public static void main(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
-    opts.parseArgs(MergeStats.class.getName(), args);
+    try (TraceScope clientSpan = opts.parseArgsAndTrace(MergeStats.class.getName(), args)) {
 
-    try (AccumuloClient client = opts.createClient()) {
-      Map<String,String> tableIdMap = client.tableOperations().tableIdMap();
-      ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooReaderWriter();
-      for (Entry<String,String> entry : tableIdMap.entrySet()) {
-        final String table = entry.getKey(), tableId = entry.getValue();
-        String path = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
-            + Constants.ZTABLES + "/" + tableId + "/merge";
-        MergeInfo info = new MergeInfo();
-        if (zooReaderWriter.exists(path)) {
-          byte[] data = zooReaderWriter.getData(path, new Stat());
-          DataInputBuffer in = new DataInputBuffer();
-          in.reset(data, data.length);
-          info.readFields(in);
+      try (AccumuloClient client = opts.createClient()) {
+        Map<String,String> tableIdMap = client.tableOperations().tableIdMap();
+        ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooReaderWriter();
+        for (Entry<String,String> entry : tableIdMap.entrySet()) {
+          final String table = entry.getKey(), tableId = entry.getValue();
+          String path = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+              + Constants.ZTABLES + "/" + tableId + "/merge";
+          MergeInfo info = new MergeInfo();
+          if (zooReaderWriter.exists(path)) {
+            byte[] data = zooReaderWriter.getData(path, new Stat());
+            DataInputBuffer in = new DataInputBuffer();
+            in.reset(data, data.length);
+            info.readFields(in);
+          }
+          System.out.println(String.format("%25s  %10s %10s %s", table, info.getState(),
+              info.getOperation(), info.getExtent()));
         }
-        System.out.println(String.format("%25s  %10s %10s %s", table, info.getState(),
-            info.getOperation(), info.getExtent()));
       }
     }
   }

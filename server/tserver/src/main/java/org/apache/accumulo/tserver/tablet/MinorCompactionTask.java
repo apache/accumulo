@@ -19,12 +19,12 @@ package org.apache.accumulo.tserver.tablet;
 import java.io.IOException;
 
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.trace.TraceSamplers;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.apache.htrace.impl.ProbabilitySampler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,45 +57,47 @@ class MinorCompactionTask implements Runnable {
   @Override
   public void run() {
     tablet.minorCompactionStarted();
-    ProbabilitySampler sampler = TraceSamplers.probabilitySampler(tracePercent);
-    Span minorCompaction = Trace.on("minorCompaction", sampler);
+    ProbabilitySampler sampler = TraceUtil.probabilitySampler(tracePercent);
     try {
-      FileRef newMapfileLocation = tablet.getNextMapFilename(mergeFile == null ? "F" : "M");
-      FileRef tmpFileRef = new FileRef(newMapfileLocation.path() + "_tmp");
-      Span span = Trace.start("waitForCommits");
-      synchronized (tablet) {
-        commitSession.waitForCommitsToFinish();
-      }
-      span.stop();
-      span = Trace.start("start");
-      while (true) {
-        try {
-          // the purpose of the minor compaction start event is to keep track of the filename... in
-          // the case
-          // where the metadata table write for the minor compaction finishes and the process dies
-          // before
-          // writing the minor compaction finish event, then the start event+filename in metadata
-          // table will
-          // prevent recovery of duplicate data... the minor compaction start event could be written
-          // at any time
-          // before the metadata write for the minor compaction
-          tablet.getTabletServer().minorCompactionStarted(commitSession,
-              commitSession.getWALogSeq() + 1, newMapfileLocation.path().toString());
-          break;
-        } catch (IOException e) {
-          log.warn("Failed to write to write ahead log {}", e.getMessage(), e);
+      try (TraceScope minorCompaction = Trace.startSpan("minorCompaction", sampler)) {
+        FileRef newMapfileLocation = tablet.getNextMapFilename(mergeFile == null ? "F" : "M");
+        FileRef tmpFileRef = new FileRef(newMapfileLocation.path() + "_tmp");
+        try (TraceScope span = Trace.startSpan("waitForCommits")) {
+          synchronized (tablet) {
+            commitSession.waitForCommitsToFinish();
+          }
+        }
+        try (TraceScope span = Trace.startSpan("start")) {
+          while (true) {
+            try {
+              /*
+               * the purpose of the minor compaction start event is to keep track of the filename...
+               * in the case where the metadata table write for the minor compaction finishes and
+               * the process dies before writing the minor compaction finish event, then the start
+               * event+filename in metadata table will prevent recovery of duplicate data... the
+               * minor compaction start event could be written at any time before the metadata write
+               * for the minor compaction
+               */
+              tablet.getTabletServer().minorCompactionStarted(commitSession,
+                  commitSession.getWALogSeq() + 1, newMapfileLocation.path().toString());
+              break;
+            } catch (IOException e) {
+              log.warn("Failed to write to write ahead log {}", e.getMessage(), e);
+            }
+          }
+        }
+        try (TraceScope span = Trace.startSpan("compact")) {
+          this.stats = tablet.minorCompact(tablet.getTabletMemory().getMinCMemTable(), tmpFileRef,
+              newMapfileLocation, mergeFile, true, queued, commitSession, flushId, mincReason);
+        }
+
+        if (minorCompaction.getSpan() != null) {
+          minorCompaction.getSpan().addKVAnnotation("extent", tablet.getExtent().toString());
+          minorCompaction.getSpan().addKVAnnotation("numEntries",
+              Long.toString(this.stats.getNumEntries()));
+          minorCompaction.getSpan().addKVAnnotation("size", Long.toString(this.stats.getSize()));
         }
       }
-      span.stop();
-      span = Trace.start("compact");
-      this.stats = tablet.minorCompact(tablet.getTabletMemory().getMinCMemTable(), tmpFileRef,
-          newMapfileLocation, mergeFile, true, queued, commitSession, flushId, mincReason);
-      span.stop();
-
-      minorCompaction.data("extent", tablet.getExtent().toString());
-      minorCompaction.data("numEntries", Long.toString(this.stats.getNumEntries()));
-      minorCompaction.data("size", Long.toString(this.stats.getSize()));
-      minorCompaction.stop();
 
       if (tablet.needsSplit()) {
         tablet.getTabletServer().executeSplit(tablet);
@@ -107,7 +109,6 @@ class MinorCompactionTask implements Runnable {
       throw new RuntimeException(t);
     } finally {
       tablet.minorCompactionComplete();
-      minorCompaction.stop();
     }
   }
 }

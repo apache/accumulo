@@ -33,7 +33,7 @@ import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
@@ -45,7 +45,7 @@ public class GetMasterStats {
     while (true) {
       try {
         client = MasterClient.getConnectionWithRetry(context);
-        stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
+        stats = client.getMasterStats(TraceUtil.traceInfo(), context.rpcCreds());
         break;
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location

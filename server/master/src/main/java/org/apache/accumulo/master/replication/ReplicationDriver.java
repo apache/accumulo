@@ -19,11 +19,12 @@ package org.apache.accumulo.master.replication;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.trace.TraceSamplers;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.master.Master;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.apache.htrace.impl.ProbabilitySampler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +53,7 @@ public class ReplicationDriver extends Daemon {
 
   @Override
   public void run() {
-    ProbabilitySampler sampler = TraceSamplers
+    ProbabilitySampler sampler = TraceUtil
         .probabilitySampler(conf.getFraction(Property.REPLICATION_TRACE_PERCENT));
 
     long millisToWait = conf.getTimeInMillis(Property.REPLICATION_DRIVER_DELAY);
@@ -70,42 +71,43 @@ public class ReplicationDriver extends Daemon {
         rcrr = new RemoveCompleteReplicationRecords(client);
       }
 
-      Trace.on("masterReplicationDriver", sampler);
+      try (TraceScope replicationDriver = Trace.startSpan("masterReplicationDriver", sampler)) {
 
-      // Make status markers from replication records in metadata, removing entries in
-      // metadata which are no longer needed (closed records)
-      // This will end up creating the replication table too
-      try {
-        statusMaker.run();
-      } catch (Exception e) {
-        log.error("Caught Exception trying to create Replication status records", e);
+        // Make status markers from replication records in metadata, removing entries in
+        // metadata which are no longer needed (closed records)
+        // This will end up creating the replication table too
+        try {
+          statusMaker.run();
+        } catch (Exception e) {
+          log.error("Caught Exception trying to create Replication status records", e);
+        }
+
+        // Tell the work maker to make work
+        try {
+          workMaker.run();
+        } catch (Exception e) {
+          log.error("Caught Exception trying to create Replication work records", e);
+        }
+
+        // Update the status records from the work records
+        try {
+          finishedWorkUpdater.run();
+        } catch (Exception e) {
+          log.error(
+              "Caught Exception trying to update Replication records using finished work records",
+              e);
+        }
+
+        // Clean up records we no longer need.
+        // It must be running at the same time as the StatusMaker or WorkMaker
+        // So it's important that we run these sequentially and not concurrently
+        try {
+          rcrr.run();
+        } catch (Exception e) {
+          log.error("Caught Exception trying to remove finished Replication records", e);
+        }
+
       }
-
-      // Tell the work maker to make work
-      try {
-        workMaker.run();
-      } catch (Exception e) {
-        log.error("Caught Exception trying to create Replication work records", e);
-      }
-
-      // Update the status records from the work records
-      try {
-        finishedWorkUpdater.run();
-      } catch (Exception e) {
-        log.error(
-            "Caught Exception trying to update Replication records using finished work records", e);
-      }
-
-      // Clean up records we no longer need.
-      // It must be running at the same time as the StatusMaker or WorkMaker
-      // So it's important that we run these sequentially and not concurrently
-      try {
-        rcrr.run();
-      } catch (Exception e) {
-        log.error("Caught Exception trying to remove finished Replication records", e);
-      }
-
-      Trace.off();
 
       // Sleep for a bit
       long sleepMillis = conf.getTimeInMillis(Property.MASTER_REPLICATION_SCAN_INTERVAL);

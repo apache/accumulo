@@ -37,46 +37,48 @@ import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.htrace.TraceScope;
 
 public class LocalityCheck {
 
   public int run(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
-    opts.parseArgs(LocalityCheck.class.getName(), args);
+    try (TraceScope clientSpan = opts.parseArgsAndTrace(LocalityCheck.class.getName(), args)) {
 
-    VolumeManager fs = opts.getServerContext().getVolumeManager();
-    try (AccumuloClient accumuloClient = opts.createClient()) {
-      Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
-      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      scanner.setRange(MetadataSchema.TabletsSection.getRange());
+      VolumeManager fs = opts.getServerContext().getVolumeManager();
+      try (AccumuloClient accumuloClient = opts.createClient()) {
+        Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+        scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
+        scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+        scanner.setRange(MetadataSchema.TabletsSection.getRange());
 
-      Map<String,Long> totalBlocks = new HashMap<>();
-      Map<String,Long> localBlocks = new HashMap<>();
-      ArrayList<String> files = new ArrayList<>();
+        Map<String,Long> totalBlocks = new HashMap<>();
+        Map<String,Long> localBlocks = new HashMap<>();
+        ArrayList<String> files = new ArrayList<>();
 
-      for (Entry<Key,Value> entry : scanner) {
-        Key key = entry.getKey();
-        if (key.compareColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
-          String location = entry.getValue().toString();
-          String[] parts = location.split(":");
-          String host = parts[0];
-          addBlocks(fs, host, files, totalBlocks, localBlocks);
-          files.clear();
-        } else if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
+        for (Entry<Key,Value> entry : scanner) {
+          Key key = entry.getKey();
+          if (key.compareColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME) == 0) {
+            String location = entry.getValue().toString();
+            String[] parts = location.split(":");
+            String host = parts[0];
+            addBlocks(fs, host, files, totalBlocks, localBlocks);
+            files.clear();
+          } else if (key.compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
 
-          files.add(fs.getFullPath(key).toString());
+            files.add(fs.getFullPath(key).toString());
+          }
+        }
+        System.out.println(" Server         %local  total blocks");
+        for (Entry<String,Long> entry : totalBlocks.entrySet()) {
+          final String host = entry.getKey();
+          final Long blocksForHost = entry.getValue();
+          System.out.println(String.format("%15s %5.1f %8d", host,
+              (localBlocks.get(host) * 100.) / blocksForHost, blocksForHost));
         }
       }
-      System.out.println(" Server         %local  total blocks");
-      for (Entry<String,Long> entry : totalBlocks.entrySet()) {
-        final String host = entry.getKey();
-        final Long blocksForHost = entry.getValue();
-        System.out.println(String.format("%15s %5.1f %8d", host,
-            (localBlocks.get(host) * 100.) / blocksForHost, blocksForHost));
-      }
+      return 0;
     }
-    return 0;
   }
 
   private void addBlocks(VolumeManager fs, String host, ArrayList<String> files,

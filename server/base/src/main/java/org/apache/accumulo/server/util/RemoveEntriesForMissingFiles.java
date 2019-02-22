@@ -48,6 +48,7 @@ import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.Path;
+import org.apache.htrace.TraceScope;
 
 import com.beust.jcommander.Parameter;
 
@@ -205,8 +206,9 @@ public class RemoveEntriesForMissingFiles {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     BatchWriterOpts bwOpts = new BatchWriterOpts();
-    opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args, scanOpts, bwOpts);
-
-    checkAllTables(opts.getServerContext(), opts.fix);
+    try (TraceScope clientSpan = opts
+        .parseArgsAndTrace(RemoveEntriesForMissingFiles.class.getName(), args, scanOpts, bwOpts)) {
+      checkAllTables(opts.getServerContext(), opts.fix);
+    }
   }
 }

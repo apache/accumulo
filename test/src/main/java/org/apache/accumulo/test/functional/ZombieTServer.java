@@ -30,7 +30,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
@@ -122,7 +122,7 @@ public class ZombieTServer {
       @Override
       public void lostLock(final LockLossReason reason) {
         try {
-          tch.halt(Tracer.traceInfo(), null, null);
+          tch.halt(TraceUtil.traceInfo(), null, null);
         } catch (Exception ex) {
           log.error("Exception", ex);
           System.exit(1);
@@ -134,7 +134,7 @@ public class ZombieTServer {
       @Override
       public void unableToMonitorLockNode(Throwable e) {
         try {
-          tch.halt(Tracer.traceInfo(), null, null);
+          tch.halt(TraceUtil.traceInfo(), null, null);
         } catch (Exception ex) {
           log.error("Exception", ex);
           System.exit(1);

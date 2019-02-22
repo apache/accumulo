@@ -19,6 +19,7 @@ package org.apache.accumulo.test;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Random;
 
 import org.apache.accumulo.core.cli.ScannerOpts;
@@ -32,9 +33,12 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.trace.DistributedTrace;
-import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Sampler;
+import org.apache.htrace.Span;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,21 +67,21 @@ public class VerifyIngest {
     Opts opts = new Opts();
     ScannerOpts scanOpts = new ScannerOpts();
     opts.parseArgs(VerifyIngest.class.getName(), args, scanOpts);
-    try {
-      if (opts.trace) {
-        String name = VerifyIngest.class.getSimpleName();
-        DistributedTrace.enable();
-        Trace.on(name);
-        Trace.data("cmdLine", Arrays.asList(args).toString());
-      }
+    if (opts.trace) {
+      TraceUtil.enableClientTraces(null, null, new Properties());
+    }
+    try (TraceScope clientSpan = Trace.startSpan(VerifyIngest.class.getSimpleName(),
+        Sampler.ALWAYS)) {
+      Span span = clientSpan.getSpan();
+      if (span != null)
+        span.addKVAnnotation("cmdLine", Arrays.asList(args).toString());
 
       try (AccumuloClient client = opts.createClient()) {
         verifyIngest(client, opts, scanOpts);
       }
 
     } finally {
-      Trace.off();
-      DistributedTrace.disable();
+      TraceUtil.disable();
     }
   }
 

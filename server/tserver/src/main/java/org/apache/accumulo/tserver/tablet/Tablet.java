@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -87,9 +86,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.trace.TraceSamplers;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
@@ -136,7 +133,6 @@ import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.tserver.compaction.WriteParameters;
 import org.apache.accumulo.tserver.constraints.ConstraintChecker;
 import org.apache.accumulo.tserver.log.DfsLogger;
-import org.apache.accumulo.tserver.log.MutationReceiver;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
@@ -148,6 +144,8 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.apache.htrace.impl.ProbabilitySampler;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -431,21 +429,18 @@ public class Tablet {
           absPaths.add(ref.path().toString());
 
         tabletServer.recover(this.getTabletServer().getFileSystem(), extent, logEntries, absPaths,
-            new MutationReceiver() {
-              @Override
-              public void receive(Mutation m) {
-                // LogReader.printMutation(m);
-                Collection<ColumnUpdate> muts = m.getUpdates();
-                for (ColumnUpdate columnUpdate : muts) {
-                  if (!columnUpdate.hasTimestamp()) {
-                    // if it is not a user set timestamp, it must have been set
-                    // by the system
-                    maxTime.set(Math.max(maxTime.get(), columnUpdate.getTimestamp()));
-                  }
+            m -> {
+              // LogReader.printMutation(m);
+              Collection<ColumnUpdate> muts = m.getUpdates();
+              for (ColumnUpdate columnUpdate : muts) {
+                if (!columnUpdate.hasTimestamp()) {
+                  // if it is not a user set timestamp, it must have been set
+                  // by the system
+                  maxTime.set(Math.max(maxTime.get(), columnUpdate.getTimestamp()));
                 }
-                getTabletMemory().mutate(commitSession, Collections.singletonList(m), 1);
-                entriesUsedOnTablet.incrementAndGet();
               }
+              getTabletMemory().mutate(commitSession, Collections.singletonList(m), 1);
+              entriesUsedOnTablet.incrementAndGet();
             });
 
         if (maxTime.get() != Long.MIN_VALUE) {
@@ -869,10 +864,7 @@ public class Tablet {
    */
   boolean shutdownInProgress() {
     try {
-      Runtime.getRuntime().removeShutdownHook(new Thread(new Runnable() {
-        @Override
-        public void run() {}
-      }));
+      Runtime.getRuntime().removeShutdownHook(new Thread(() -> {}));
     } catch (IllegalStateException ise) {
       return true;
     }
@@ -905,9 +897,8 @@ public class Tablet {
     String oldName = Thread.currentThread().getName();
     try {
       Thread.currentThread().setName("Minor compacting " + this.extent);
-      Span span = Trace.start("write");
       CompactionStats stats;
-      try {
+      try (TraceScope span = Trace.startSpan("write")) {
         count = memTable.getNumEntries();
 
         DataFileValue dfv = null;
@@ -917,16 +908,12 @@ public class Tablet {
         MinorCompactor compactor = new MinorCompactor(tabletServer, this, memTable, mergeFile, dfv,
             tmpDatafile, mincReason, tableConfiguration);
         stats = compactor.call();
-      } finally {
-        span.stop();
       }
-      span = Trace.start("bringOnline");
-      try {
+
+      try (TraceScope span = Trace.startSpan("bringOnline")) {
         getDatafileManager().bringMinorCompactionOnline(tmpDatafile, newDatafile, mergeFile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId);
-      } finally {
-        span.stop();
       }
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
     } catch (Exception | Error e) {
@@ -1968,9 +1955,7 @@ public class Tablet {
 
         AccumuloConfiguration tableConf = createTableConfiguration(tableConfiguration, plan);
 
-        Span span = Trace.start("compactFiles");
-
-        try {
+        try (TraceScope span = Trace.startSpan("compactFiles")) {
           CompactionEnv cenv = new CompactionEnv() {
             @Override
             public boolean isCompactionEnabled() {
@@ -2012,9 +1997,11 @@ public class Tablet {
 
           CompactionStats mcs = compactor.call();
 
-          span.data("files", "" + smallestFiles.size());
-          span.data("read", "" + mcs.getEntriesRead());
-          span.data("written", "" + mcs.getEntriesWritten());
+          if (span.getSpan() != null) {
+            span.getSpan().addKVAnnotation("files", ("" + smallestFiles.size()));
+            span.getSpan().addKVAnnotation("read", ("" + mcs.getEntriesRead()));
+            span.getSpan().addKVAnnotation("written", ("" + mcs.getEntriesWritten()));
+          }
           majCStats.add(mcs);
 
           if (lastBatch && plan != null && plan.deleteFiles != null) {
@@ -2031,8 +2018,6 @@ public class Tablet {
             filesToCompact.put(fileName,
                 new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()));
           }
-        } finally {
-          span.stop();
         }
 
       } while (filesToCompact.size() > 0);
@@ -2083,9 +2068,7 @@ public class Tablet {
           return 1;
         });
 
-    for (Iterator<Entry<FileRef,DataFileValue>> iterator = filesToCompact.entrySet()
-        .iterator(); iterator.hasNext();) {
-      Entry<FileRef,DataFileValue> entry = iterator.next();
+    for (Entry<FileRef,DataFileValue> entry : filesToCompact.entrySet()) {
       fileHeap.add(new Pair<>(entry.getKey(), entry.getValue().getSize()));
     }
 
@@ -2125,13 +2108,10 @@ public class Tablet {
       majorCompactionState = CompactionState.WAITING_TO_START;
     }
 
-    Span span = null;
-
-    try {
-      double tracePercent = tabletServer.getConfiguration()
-          .getFraction(Property.TSERV_MAJC_TRACE_PERCENT);
-      ProbabilitySampler sampler = TraceSamplers.probabilitySampler(tracePercent);
-      span = Trace.on("majorCompaction", sampler);
+    double tracePercent = tabletServer.getConfiguration()
+        .getFraction(Property.TSERV_MAJC_TRACE_PERCENT);
+    ProbabilitySampler sampler = TraceUtil.probabilitySampler(tracePercent);
+    try (TraceScope span = Trace.startSpan("majorCompaction", sampler)) {
 
       majCStats = _majorCompact(reason);
       if (reason == MajorCompactionReason.CHOP) {
@@ -2139,6 +2119,13 @@ public class Tablet {
             this.getTabletServer().getLock());
         getTabletServer()
             .enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, extent));
+      }
+      if (span.getSpan() != null) {
+        span.getSpan().addKVAnnotation("extent", ("" + getExtent()));
+        if (majCStats != null) {
+          span.getSpan().addKVAnnotation("read", ("" + majCStats.getEntriesRead()));
+          span.getSpan().addKVAnnotation("written", ("" + majCStats.getEntriesWritten()));
+        }
       }
       success = true;
     } catch (CompactionCanceledException cce) {
@@ -2153,15 +2140,6 @@ public class Tablet {
       synchronized (this) {
         majorCompactionState = null;
         this.notifyAll();
-      }
-
-      if (span != null) {
-        span.data("extent", "" + getExtent());
-        if (majCStats != null) {
-          span.data("read", "" + majCStats.getEntriesRead());
-          span.data("written", "" + majCStats.getEntriesWritten());
-        }
-        span.stop();
       }
     }
     long count = 0;

@@ -40,12 +40,12 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,8 +82,7 @@ public class StatusMaker {
   }
 
   public void run() {
-    Span span = Trace.start("replicationStatusMaker");
-    try {
+    try (TraceScope span = Trace.startSpan("replicationStatusMaker")) {
       // Read from a source table (typically accumulo.metadata)
       final Scanner s;
       try {
@@ -126,36 +125,25 @@ public class StatusMaker {
         log.debug("Creating replication status record for {} on table {} with {}.", file, tableId,
             ProtobufUtil.toString(status));
 
-        Span workSpan = Trace.start("createStatusMutations");
-        try {
+        try (TraceScope workSpan = Trace.startSpan("createStatusMutations")) {
           // Create entries in the replication table from the metadata table
           if (!addStatusRecord(file, tableId, entry.getValue())) {
             continue;
           }
-        } finally {
-          workSpan.stop();
         }
 
         if (status.getClosed()) {
-          Span orderSpan = Trace.start("recordStatusOrder");
-          try {
+          try (TraceScope orderSpan = Trace.startSpan("recordStatusOrder")) {
             if (!addOrderRecord(file, tableId, status, entry.getValue())) {
               continue;
             }
-          } finally {
-            orderSpan.stop();
           }
 
-          Span deleteSpan = Trace.start("deleteClosedStatus");
-          try {
+          try (TraceScope deleteSpan = Trace.startSpan("deleteClosedStatus")) {
             deleteStatusRecord(entry.getKey());
-          } finally {
-            deleteSpan.stop();
           }
         }
       }
-    } finally {
-      span.stop();
     }
   }
 

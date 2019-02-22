@@ -31,7 +31,7 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
-import org.apache.accumulo.core.trace.wrappers.TraceWrap;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
@@ -208,7 +208,7 @@ public class Proxy implements KeywordExecutable {
     ProxyServer impl = new ProxyServer(props);
 
     // Wrap the implementation -- translate some exceptions
-    AccumuloProxy.Iface wrappedImpl = TraceWrap.service(impl);
+    AccumuloProxy.Iface wrappedImpl = TraceUtil.wrapService(impl);
 
     // Create the processor from the implementation
     TProcessor processor = new AccumuloProxy.Processor<>(wrappedImpl);

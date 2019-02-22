@@ -63,11 +63,8 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.trace.TraceSamplers;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.trace.wrappers.TraceWrap;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.Pair;
@@ -92,6 +89,8 @@ import org.apache.accumulo.server.util.Halt;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.apache.htrace.impl.ProbabilitySampler;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -351,75 +350,71 @@ public class SimpleGarbageCollector implements Iface {
 
       for (final String delete : confirmedDeletes.values()) {
 
-        Runnable deleteTask = new Runnable() {
-          @Override
-          public void run() {
-            boolean removeFlag;
+        Runnable deleteTask = () -> {
+          boolean removeFlag;
 
-            try {
-              Path fullPath;
-              String switchedDelete = VolumeUtil.switchVolume(delete, FileType.TABLE, replacements);
-              if (switchedDelete != null) {
-                // actually replacing the volumes in the metadata table would be tricky because the
-                // entries would be different rows. So it could not be
-                // atomically in one mutation and extreme care would need to be taken that delete
-                // entry was not lost. Instead of doing that, just deal with
-                // volume switching when something needs to be deleted. Since the rest of the code
-                // uses suffixes to compare delete entries, there is no danger
-                // of deleting something that should not be deleted. Must not change value of delete
-                // variable because thats whats stored in metadata table.
-                log.debug("Volume replaced {} -> {}", delete, switchedDelete);
-                fullPath = fs.getFullPath(FileType.TABLE, switchedDelete);
-              } else {
-                fullPath = fs.getFullPath(FileType.TABLE, delete);
-              }
-
-              log.debug("Deleting {}", fullPath);
-
-              if (moveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {
-                // delete succeeded, still want to delete
-                removeFlag = true;
-                synchronized (SimpleGarbageCollector.this) {
-                  ++status.current.deleted;
-                }
-              } else if (fs.exists(fullPath)) {
-                // leave the entry in the metadata; we'll try again later
-                removeFlag = false;
-                synchronized (SimpleGarbageCollector.this) {
-                  ++status.current.errors;
-                }
-                log.warn("File exists, but was not deleted for an unknown reason: {}", fullPath);
-              } else {
-                // this failure, we still want to remove the metadata entry
-                removeFlag = true;
-                synchronized (SimpleGarbageCollector.this) {
-                  ++status.current.errors;
-                }
-                String parts[] = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
-                if (parts.length > 2) {
-                  TableId tableId = TableId.of(parts[1]);
-                  String tabletDir = parts[2];
-                  context.getTableManager().updateTableStateCache(tableId);
-                  TableState tableState = context.getTableManager().getTableState(tableId);
-                  if (tableState != null && tableState != TableState.DELETING) {
-                    // clone directories don't always exist
-                    if (!tabletDir.startsWith(Constants.CLONE_PREFIX))
-                      log.debug("File doesn't exist: {}", fullPath);
-                  }
-                } else {
-                  log.warn("Very strange path name: {}", delete);
-                }
-              }
-
-              // proceed to clearing out the flags for successful deletes and
-              // non-existent files
-              if (removeFlag && finalWriter != null) {
-                putMarkerDeleteMutation(delete, finalWriter);
-              }
-            } catch (Exception e) {
-              log.error("{}", e.getMessage(), e);
+          try {
+            Path fullPath;
+            String switchedDelete = VolumeUtil.switchVolume(delete, FileType.TABLE, replacements);
+            if (switchedDelete != null) {
+              // actually replacing the volumes in the metadata table would be tricky because the
+              // entries would be different rows. So it could not be
+              // atomically in one mutation and extreme care would need to be taken that delete
+              // entry was not lost. Instead of doing that, just deal with
+              // volume switching when something needs to be deleted. Since the rest of the code
+              // uses suffixes to compare delete entries, there is no danger
+              // of deleting something that should not be deleted. Must not change value of delete
+              // variable because thats whats stored in metadata table.
+              log.debug("Volume replaced {} -> {}", delete, switchedDelete);
+              fullPath = fs.getFullPath(FileType.TABLE, switchedDelete);
+            } else {
+              fullPath = fs.getFullPath(FileType.TABLE, delete);
             }
 
+            log.debug("Deleting {}", fullPath);
+
+            if (moveToTrash(fullPath) || fs.deleteRecursively(fullPath)) {
+              // delete succeeded, still want to delete
+              removeFlag = true;
+              synchronized (SimpleGarbageCollector.this) {
+                ++status.current.deleted;
+              }
+            } else if (fs.exists(fullPath)) {
+              // leave the entry in the metadata; we'll try again later
+              removeFlag = false;
+              synchronized (SimpleGarbageCollector.this) {
+                ++status.current.errors;
+              }
+              log.warn("File exists, but was not deleted for an unknown reason: {}", fullPath);
+            } else {
+              // this failure, we still want to remove the metadata entry
+              removeFlag = true;
+              synchronized (SimpleGarbageCollector.this) {
+                ++status.current.errors;
+              }
+              String parts[] = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
+              if (parts.length > 2) {
+                TableId tableId = TableId.of(parts[1]);
+                String tabletDir = parts[2];
+                context.getTableManager().updateTableStateCache(tableId);
+                TableState tableState = context.getTableManager().getTableState(tableId);
+                if (tableState != null && tableState != TableState.DELETING) {
+                  // clone directories don't always exist
+                  if (!tabletDir.startsWith(Constants.CLONE_PREFIX))
+                    log.debug("File doesn't exist: {}", fullPath);
+                }
+              } else {
+                log.warn("Very strange path name: {}", delete);
+              }
+            }
+
+            // proceed to clearing out the flags for successful deletes and
+            // non-existent files
+            if (removeFlag && finalWriter != null) {
+              putMarkerDeleteMutation(delete, finalWriter);
+            }
+          } catch (Exception e) {
+            log.error("{}", e.getMessage(), e);
           }
 
         };
@@ -523,75 +518,69 @@ public class SimpleGarbageCollector implements Iface {
       return;
     }
 
-    ProbabilitySampler sampler = TraceSamplers
+    ProbabilitySampler sampler = TraceUtil
         .probabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
 
     while (true) {
-      Trace.on("gc", sampler);
+      try (TraceScope gcOuterSpan = Trace.startSpan("gc", sampler)) {
+        try (TraceScope gcSpan = Trace.startSpan("loop")) {
+          tStart = System.currentTimeMillis();
+          try {
+            System.gc(); // make room
 
-      Span gcSpan = Trace.start("loop");
-      tStart = System.currentTimeMillis();
-      try {
-        System.gc(); // make room
+            status.current.started = System.currentTimeMillis();
 
-        status.current.started = System.currentTimeMillis();
+            new GarbageCollectionAlgorithm().collect(new GCEnv(RootTable.NAME));
+            new GarbageCollectionAlgorithm().collect(new GCEnv(MetadataTable.NAME));
 
-        new GarbageCollectionAlgorithm().collect(new GCEnv(RootTable.NAME));
-        new GarbageCollectionAlgorithm().collect(new GCEnv(MetadataTable.NAME));
+            log.info("Number of data file candidates for deletion: {}", status.current.candidates);
+            log.info("Number of data file candidates still in use: {}", status.current.inUse);
+            log.info("Number of successfully deleted data files: {}", status.current.deleted);
+            log.info("Number of data files delete failures: {}", status.current.errors);
 
-        log.info("Number of data file candidates for deletion: {}", status.current.candidates);
-        log.info("Number of data file candidates still in use: {}", status.current.inUse);
-        log.info("Number of successfully deleted data files: {}", status.current.deleted);
-        log.info("Number of data files delete failures: {}", status.current.errors);
+            status.current.finished = System.currentTimeMillis();
+            status.last = status.current;
+            status.current = new GcCycleStats();
 
-        status.current.finished = System.currentTimeMillis();
-        status.last = status.current;
-        status.current = new GcCycleStats();
+          } catch (Exception e) {
+            log.error("{}", e.getMessage(), e);
+          }
 
-      } catch (Exception e) {
-        log.error("{}", e.getMessage(), e);
+          tStop = System.currentTimeMillis();
+          log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
+
+          /*
+           * We want to prune references to fully-replicated WALs from the replication table which
+           * are no longer referenced in the metadata table before running
+           * GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
+           */
+          try (TraceScope replSpan = Trace.startSpan("replicationClose")) {
+            CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(context);
+            closeWals.run();
+          } catch (Exception e) {
+            log.error("Error trying to close write-ahead logs for replication table", e);
+          }
+
+          // Clean up any unused write-ahead logs
+          try (TraceScope waLogs = Trace.startSpan("walogs")) {
+            GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(context,
+                fs, isUsingTrash());
+            log.info("Beginning garbage collection of write-ahead logs");
+            walogCollector.collect(status);
+          } catch (Exception e) {
+            log.error("{}", e.getMessage(), e);
+          }
+        }
+
+        // we just made a lot of metadata changes: flush them out
+        try {
+          AccumuloClient accumuloClient = getClient();
+          accumuloClient.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
+          accumuloClient.tableOperations().compact(RootTable.NAME, null, null, true, true);
+        } catch (Exception e) {
+          log.warn("{}", e.getMessage(), e);
+        }
       }
-
-      tStop = System.currentTimeMillis();
-      log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
-
-      // We want to prune references to fully-replicated WALs from the replication table which are
-      // no longer referenced in the metadata table
-      // before running GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
-      Span replSpan = Trace.start("replicationClose");
-      try {
-        CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(context);
-        closeWals.run();
-      } catch (Exception e) {
-        log.error("Error trying to close write-ahead logs for replication table", e);
-      } finally {
-        replSpan.stop();
-      }
-
-      // Clean up any unused write-ahead logs
-      Span waLogs = Trace.start("walogs");
-      try {
-        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(context, fs,
-            isUsingTrash());
-        log.info("Beginning garbage collection of write-ahead logs");
-        walogCollector.collect(status);
-      } catch (Exception e) {
-        log.error("{}", e.getMessage(), e);
-      } finally {
-        waLogs.stop();
-      }
-      gcSpan.stop();
-
-      // we just made a lot of metadata changes: flush them out
-      try {
-        AccumuloClient accumuloClient = getClient();
-        accumuloClient.tableOperations().compact(MetadataTable.NAME, null, null, true, true);
-        accumuloClient.tableOperations().compact(RootTable.NAME, null, null, true, true);
-      } catch (Exception e) {
-        log.warn("{}", e.getMessage(), e);
-      }
-
-      Trace.off();
       try {
         long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for {} milliseconds", gcDelay);
@@ -634,13 +623,7 @@ public class SimpleGarbageCollector implements Iface {
       @Override
       public void unableToMonitorLockNode(final Throwable e) {
         // ACCUMULO-3651 Level changed to error and FATAL added to message for slf4j compatibility
-        Halt.halt(-1, new Runnable() {
-
-          @Override
-          public void run() {
-            log.error("FATAL: No longer able to monitor lock node ", e);
-          }
-        });
+        Halt.halt(-1, () -> log.error("FATAL: No longer able to monitor lock node ", e));
 
       }
     };
@@ -658,7 +641,7 @@ public class SimpleGarbageCollector implements Iface {
   }
 
   private HostAndPort startStatsService() {
-    Iface rpcProxy = TraceWrap.service(this);
+    Iface rpcProxy = TraceUtil.wrapService(this);
     final Processor<Iface> processor;
     if (context.getThriftServerType() == ThriftServerType.SASL) {
       Iface tcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, getClass(), getConfiguration());

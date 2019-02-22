@@ -32,7 +32,7 @@ import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.trace.DistributedTrace;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -99,7 +99,7 @@ public class ServerContext extends ClientContext {
     log.info("Instance " + info.getInstanceID());
     ServerUtil.init(this, applicationName);
     MetricsSystemHelper.configure(applicationClassName);
-    DistributedTrace.enable(hostname, applicationName,
+    TraceUtil.enableServerTraces(hostname, applicationName,
         getServerConfFactory().getSystemConfiguration());
     if (getSaslParams() != null) {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
@@ -120,7 +120,7 @@ public class ServerContext extends ClientContext {
   }
 
   public void teardownServer() {
-    DistributedTrace.disable();
+    TraceUtil.disable();
   }
 
   public String getHostname() {

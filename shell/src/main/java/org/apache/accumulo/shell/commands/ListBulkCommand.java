@@ -28,7 +28,7 @@ import org.apache.accumulo.core.clientImpl.MasterClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -56,7 +56,7 @@ public class ListBulkCommand extends Command {
     while (true) {
       try {
         client = MasterClient.getConnectionWithRetry(context);
-        stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
+        stats = client.getMasterStats(TraceUtil.traceInfo(), context.rpcCreds());
         break;
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location

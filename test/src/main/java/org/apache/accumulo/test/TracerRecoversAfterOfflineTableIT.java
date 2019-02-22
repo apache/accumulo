@@ -27,17 +27,17 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.trace.DistributedTrace;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tracer.TraceDump;
-import org.apache.accumulo.tracer.TraceDump.Printer;
 import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Sampler;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.junit.Test;
 
 public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
@@ -73,14 +73,16 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
 
       log.info("Start a distributed trace span");
 
-      DistributedTrace.enable("localhost", "testTrace", getClientInfo().getProperties());
-      Span root = Trace.on("traceTest");
-      BatchWriter bw = client.createBatchWriter(tableName, null);
-      Mutation m = new Mutation("m");
-      m.put("a", "b", "c");
-      bw.addMutation(m);
-      bw.close();
-      root.stop();
+      TraceUtil.enableClientTraces("localhost", "testTrace", getClientInfo().getProperties());
+      long rootTraceId;
+      try (TraceScope root = Trace.startSpan("traceTest", Sampler.ALWAYS)) {
+        rootTraceId = root.getSpan().getTraceId();
+        BatchWriter bw = client.createBatchWriter(tableName, null);
+        Mutation m = new Mutation("m");
+        m.put("a", "b", "c");
+        bw.addMutation(m);
+        bw.close();
+      }
 
       log.info("Bringing trace table back online");
       client.tableOperations().online("trace", true);
@@ -88,17 +90,14 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
       log.info("Trace table is online, should be able to find trace");
 
       try (Scanner scanner = client.createScanner("trace", Authorizations.EMPTY)) {
-        scanner.setRange(new Range(new Text(Long.toHexString(root.traceId()))));
+        scanner.setRange(new Range(new Text(Long.toHexString(rootTraceId))));
         while (true) {
           final StringBuilder finalBuffer = new StringBuilder();
-          int traceCount = TraceDump.printTrace(scanner, new Printer() {
-            @Override
-            public void print(final String line) {
-              try {
-                finalBuffer.append(line).append("\n");
-              } catch (Exception ex) {
-                throw new RuntimeException(ex);
-              }
+          int traceCount = TraceDump.printTrace(scanner, line -> {
+            try {
+              finalBuffer.append(line).append("\n");
+            } catch (Exception ex) {
+              throw new RuntimeException(ex);
             }
           });
           String traceOutput = finalBuffer.toString();

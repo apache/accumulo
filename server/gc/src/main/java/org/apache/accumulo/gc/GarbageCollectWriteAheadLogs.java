@@ -40,8 +40,6 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -58,6 +56,8 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,81 +123,80 @@ public class GarbageCollectWriteAheadLogs {
   }
 
   public void collect(GCStatus status) {
-
-    Span span = Trace.start("getCandidates");
     try {
-      status.currentLog.started = System.currentTimeMillis();
+      long count;
+      long fileScanStop;
+      Map<TServerInstance,Set<UUID>> logsByServer;
+      Map<UUID,Pair<WalState,Path>> logsState;
+      Map<UUID,Path> recoveryLogs;
+      try (TraceScope span = Trace.startSpan("getCandidates")) {
+        status.currentLog.started = System.currentTimeMillis();
 
-      Map<UUID,Path> recoveryLogs = getSortedWALogs();
+        recoveryLogs = getSortedWALogs();
 
-      Map<TServerInstance,Set<UUID>> logsByServer = new HashMap<>();
-      Map<UUID,Pair<WalState,Path>> logsState = new HashMap<>();
-      // Scan for log file info first: the order is important
-      // Consider:
-      // * get live servers
-      // * new server gets a lock, creates a log
-      // * get logs
-      // * the log appears to belong to a dead server
-      long count = getCurrent(logsByServer, logsState);
-      long fileScanStop = System.currentTimeMillis();
+        logsByServer = new HashMap<>();
+        logsState = new HashMap<>();
+        // Scan for log file info first: the order is important
+        // Consider:
+        // * get live servers
+        // * new server gets a lock, creates a log
+        // * get logs
+        // * the log appears to belong to a dead server
+        count = getCurrent(logsByServer, logsState);
+        fileScanStop = System.currentTimeMillis();
 
-      log.info(String.format("Fetched %d files for %d servers in %.2f seconds", count,
-          logsByServer.size(), (fileScanStop - status.currentLog.started) / 1000.));
-      status.currentLog.candidates = count;
-      span.stop();
+        log.info(String.format("Fetched %d files for %d servers in %.2f seconds", count,
+            logsByServer.size(), (fileScanStop - status.currentLog.started) / 1000.));
+        status.currentLog.candidates = count;
+      }
 
       // now it's safe to get the liveServers
       Set<TServerInstance> currentServers = liveServers.getCurrentServers();
 
       Map<UUID,TServerInstance> uuidToTServer;
-      span = Trace.start("removeEntriesInUse");
-      try {
+      try (TraceScope span = Trace.startSpan("removeEntriesInUse")) {
         uuidToTServer = removeEntriesInUse(logsByServer, currentServers, logsState, recoveryLogs);
         count = uuidToTServer.size();
       } catch (Exception ex) {
         log.error("Unable to scan metadata table", ex);
         return;
-      } finally {
-        span.stop();
       }
 
       long logEntryScanStop = System.currentTimeMillis();
       log.info(String.format("%d log entries scanned in %.2f seconds", count,
           (logEntryScanStop - fileScanStop) / 1000.));
 
-      span = Trace.start("removeReplicationEntries");
-      try {
+      try (TraceScope span = Trace.startSpan("removeReplicationEntries")) {
         count = removeReplicationEntries(uuidToTServer);
       } catch (Exception ex) {
         log.error("Unable to scan replication table", ex);
         return;
-      } finally {
-        span.stop();
       }
 
       long replicationEntryScanStop = System.currentTimeMillis();
       log.info(String.format("%d replication entries scanned in %.2f seconds", count,
           (replicationEntryScanStop - logEntryScanStop) / 1000.));
 
-      span = Trace.start("removeFiles");
+      long removeStop;
+      try (TraceScope span = Trace.startSpan("removeFiles")) {
 
-      logsState.keySet().retainAll(uuidToTServer.keySet());
-      count = removeFiles(logsState.values(), status);
+        logsState.keySet().retainAll(uuidToTServer.keySet());
+        count = removeFiles(logsState.values(), status);
 
-      long removeStop = System.currentTimeMillis();
-      log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count,
-          logsByServer.size(), (removeStop - logEntryScanStop) / 1000.));
+        removeStop = System.currentTimeMillis();
+        log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count,
+            logsByServer.size(), (removeStop - logEntryScanStop) / 1000.));
 
-      count = removeFiles(recoveryLogs.values());
-      log.info("{} recovery logs removed", count);
-      span.stop();
+        count = removeFiles(recoveryLogs.values());
+        log.info("{} recovery logs removed", count);
+      }
 
-      span = Trace.start("removeMarkers");
-      count = removeTabletServerMarkers(uuidToTServer, logsByServer, currentServers);
-      long removeMarkersStop = System.currentTimeMillis();
-      log.info(String.format("%d markers removed in %.2f seconds", count,
-          (removeMarkersStop - removeStop) / 1000.));
-      span.stop();
+      try (TraceScope span = Trace.startSpan("removeMarkers")) {
+        count = removeTabletServerMarkers(uuidToTServer, logsByServer, currentServers);
+        long removeMarkersStop = System.currentTimeMillis();
+        log.info(String.format("%d markers removed in %.2f seconds", count,
+            (removeMarkersStop - removeStop) / 1000.));
+      }
 
       status.currentLog.finished = removeStop;
       status.lastLog = status.currentLog;
@@ -205,8 +204,6 @@ public class GarbageCollectWriteAheadLogs {
 
     } catch (Exception e) {
       log.error("exception occured while garbage collecting write ahead logs", e);
-    } finally {
-      span.stop();
     }
   }
 

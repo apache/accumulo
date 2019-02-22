@@ -62,13 +62,13 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -98,7 +98,7 @@ public class ThriftScanner {
 
     final HostAndPort parsedServer = HostAndPort.fromString(server);
     try {
-      TInfo tinfo = Tracer.traceInfo();
+      TInfo tinfo = TraceUtil.traceInfo();
       TabletClientService.Client client = ThriftUtil.getTServerClient(parsedServer, context);
       try {
         // not reading whole rows (or stopping on row boundaries) so there is no need to enable
@@ -246,8 +246,7 @@ public class ThriftScanner {
 
     List<KeyValue> results = null;
 
-    Span span = Trace.start("scan");
-    try {
+    try (TraceScope span = Trace.startSpan("scan")) {
       while (results == null && !scanState.finished) {
         if (Thread.currentThread().isInterrupted()) {
           throw new AccumuloException("Thread interrupted");
@@ -261,8 +260,7 @@ public class ThriftScanner {
           if ((currentTime - startTime) / 1000.0 > timeOut)
             throw new ScanTimedOutException();
 
-          Span locateSpan = Trace.start("scan:locateTablet");
-          try {
+          try (TraceScope locateSpan = Trace.startSpan("scan:locateTablet")) {
             loc = TabletLocator.getLocator(context, scanState.tableId).locateTablet(context,
                 scanState.startRow, scanState.skipStartRow, false);
 
@@ -311,14 +309,13 @@ public class ThriftScanner {
 
             lastError = error;
             sleepMillis = pause(sleepMillis, maxSleepTime);
-          } finally {
-            locateSpan.stop();
           }
         }
 
-        Span scanLocation = Trace.start("scan:location");
-        scanLocation.data("tserver", loc.tablet_location);
-        try {
+        try (TraceScope scanLocation = Trace.startSpan("scan:location")) {
+          if (scanLocation.getSpan() != null) {
+            scanLocation.getSpan().addKVAnnotation("tserver", loc.tablet_location);
+          }
           results = scan(loc, scanState, context);
         } catch (AccumuloSecurityException e) {
           Tables.clearCache(context);
@@ -406,8 +403,6 @@ public class ThriftScanner {
             throw new IsolationException();
 
           sleepMillis = pause(sleepMillis, maxSleepTime);
-        } finally {
-          scanLocation.stop();
         }
       }
 
@@ -418,8 +413,6 @@ public class ThriftScanner {
       return results;
     } catch (InterruptedException ex) {
       throw new AccumuloException(ex);
-    } finally {
-      span.stop();
     }
   }
 
@@ -431,7 +424,7 @@ public class ThriftScanner {
 
     OpTimer timer = null;
 
-    final TInfo tinfo = Tracer.traceInfo();
+    final TInfo tinfo = TraceUtil.traceInfo();
     final HostAndPort parsedLocation = HostAndPort.fromString(loc.tablet_location);
     TabletClientService.Client client = ThriftUtil.getTServerClient(parsedLocation, context);
 
@@ -561,7 +554,7 @@ public class ThriftScanner {
 
   static void close(ScanState scanState) {
     if (!scanState.finished && scanState.scanID != null && scanState.prevLoc != null) {
-      TInfo tinfo = Tracer.traceInfo();
+      TInfo tinfo = TraceUtil.traceInfo();
 
       log.debug("Closing active scan {} {}", scanState.prevLoc, scanState.scanID);
       HostAndPort parsedLocation = HostAndPort.fromString(scanState.prevLoc.tablet_location);

@@ -71,8 +71,7 @@ import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.accumulo.core.security.VisibilityParseException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -84,6 +83,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Trace;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -245,7 +245,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
         if (!sid.isActive())
           continue;
 
-        TInfo tinfo = Tracer.traceInfo();
+        TInfo tinfo = TraceUtil.traceInfo();
         try {
           client = getClient(sid.location);
           client.closeConditionalUpdate(tinfo, sid.sessionID);
@@ -570,7 +570,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private void sendToServer(HostAndPort location, TabletServerMutations<QCMutation> mutations) {
     TabletClientService.Iface client = null;
 
-    TInfo tinfo = Tracer.traceInfo();
+    TInfo tinfo = TraceUtil.traceInfo();
 
     Map<Long,CMK> cmidToCm = new HashMap<>();
     MutableLong cmid = new MutableLong(0);
@@ -720,7 +720,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private void invalidateSession(long sessionId, HostAndPort location) throws TException {
     TabletClientService.Iface client = null;
 
-    TInfo tinfo = Tracer.traceInfo();
+    TInfo tinfo = TraceUtil.traceInfo();
 
     try {
       client = getClient(location);

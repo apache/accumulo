@@ -21,7 +21,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Iface;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.thrift.TException;
 
 public class TabletStatusMessage implements MasterMessage {
@@ -37,6 +37,6 @@ public class TabletStatusMessage implements MasterMessage {
   @Override
   public void send(TCredentials auth, String serverName, Iface client)
       throws TException, ThriftSecurityException {
-    client.reportTabletStatus(Tracer.traceInfo(), auth, serverName, status, extent.toThrift());
+    client.reportTabletStatus(TraceUtil.traceInfo(), auth, serverName, status, extent.toThrift());
   }
 }

@@ -30,7 +30,10 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.trace.Trace;
+import org.apache.htrace.NullScope;
+import org.apache.htrace.Sampler;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -136,21 +139,15 @@ public class ClientOpts extends Help {
   @Parameter(names = "--keytab", description = "Kerberos keytab on the local filesystem")
   private String keytabPath = null;
 
-  public void startTracing(String applicationName) {
-    if (trace) {
-      Trace.on(applicationName);
-    }
-  }
-
-  public void stopTracing() {
-    Trace.off();
+  public TraceScope parseArgsAndTrace(String programName, String[] args, Object... others) {
+    parseArgs(programName, args, others);
+    return trace ? Trace.startSpan(programName, Sampler.ALWAYS) : NullScope.INSTANCE;
   }
 
   @Override
   public void parseArgs(String programName, String[] args, Object... others) {
     super.parseArgs(programName, args, others);
     startDebugLogging();
-    startTracing(programName);
   }
 
   private Properties cachedProps = null;

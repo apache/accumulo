@@ -24,25 +24,27 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
-import org.apache.htrace.Span;
 
 public class SpanTree {
   final Map<Long,List<Long>> parentChildren = new HashMap<>();
   public final Map<Long,RemoteSpan> nodes = new HashMap<>();
+  private final List<Long> rootSpans = new ArrayList<>();
 
   public void addNode(RemoteSpan span) {
     nodes.put(span.spanId, span);
-    if (parentChildren.get(span.parentId) == null)
-      parentChildren.put(span.parentId, new ArrayList<>());
-    parentChildren.get(span.parentId).add(span.spanId);
+    if (span.getParentIdsSize() == 0) {
+      rootSpans.add(span.spanId);
+    }
+    for (Long parentId : span.getParentIds()) {
+      parentChildren.computeIfAbsent(parentId, id -> new ArrayList<>()).add(span.spanId);
+    }
   }
 
   public Set<Long> visit(SpanTreeVisitor visitor) {
     Set<Long> visited = new HashSet<>();
-    List<Long> root = parentChildren.get(Span.ROOT_SPAN_ID);
-    if (root == null || root.isEmpty())
+    if (rootSpans.isEmpty())
       return visited;
-    RemoteSpan rootSpan = nodes.get(root.iterator().next());
+    RemoteSpan rootSpan = nodes.get(rootSpans.iterator().next());
     if (rootSpan == null)
       return visited;
     recurse(0, rootSpan, visitor, visited);

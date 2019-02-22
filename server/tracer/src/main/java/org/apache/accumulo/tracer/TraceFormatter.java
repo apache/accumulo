@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -83,7 +84,10 @@ public class TraceFormatter implements Formatter {
       result.append(String.format(" %12s:%s%n", "trace", Long.toHexString(span.traceId)));
       result.append(String.format(" %12s:%s%n", "loc", span.svc + "@" + span.sender));
       result.append(String.format(" %12s:%s%n", "span", Long.toHexString(span.spanId)));
-      result.append(String.format(" %12s:%s%n", "parent", Long.toHexString(span.parentId)));
+      String parentString = span.getParentIdsSize() == 0 ? ""
+          : span.getParentIds().stream().map(x -> Long.toHexString(x)).collect(Collectors.toList())
+              .toString();
+      result.append(String.format(" %12s:%s%n", "parent", parentString));
       result.append(String.format(" %12s:%s%n", "start", dateFormatter.format(span.start)));
       result.append(String.format(" %12s:%s%n", "ms", span.stop - span.start));
       if (span.data != null) {

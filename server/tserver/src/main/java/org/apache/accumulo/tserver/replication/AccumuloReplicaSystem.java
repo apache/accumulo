@@ -57,9 +57,7 @@ import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
-import org.apache.accumulo.core.trace.TraceSamplers;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -77,6 +75,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.apache.htrace.impl.ProbabilitySampler;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -163,20 +163,17 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
             keytab.getAbsolutePath());
 
         // Run inside a doAs to avoid nuking the Tserver's user
-        return ugi.doAs(new PrivilegedAction<Status>() {
-          @Override
-          public Status run() {
-            KerberosToken token;
-            try {
-              // Do *not* replace the current user
-              token = new KerberosToken(principal, keytab);
-            } catch (IOException e) {
-              log.error("Failed to create KerberosToken", e);
-              return status;
-            }
-            ClientContext peerContext = getContextForPeer(localConf, target, principal, token);
-            return _replicate(p, status, target, helper, localConf, peerContext, accumuloUgi);
+        return ugi.doAs((PrivilegedAction<Status>) () -> {
+          KerberosToken token;
+          try {
+            // Do *not* replace the current user
+            token = new KerberosToken(principal, keytab);
+          } catch (IOException e) {
+            log.error("Failed to create KerberosToken", e);
+            return status;
           }
+          ClientContext peerContext = getContextForPeer(localConf, target, principal, token);
+          return _replicate(p, status, target, helper, localConf, peerContext, accumuloUgi);
         });
       } catch (IOException e) {
         // Can't log in, can't replicate
@@ -211,10 +208,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   private Status _replicate(final Path p, final Status status, final ReplicationTarget target,
       final ReplicaSystemHelper helper, final AccumuloConfiguration localConf,
       final ClientContext peerContext, final UserGroupInformation accumuloUgi) {
-    try {
-      double tracePercent = localConf.getFraction(Property.REPLICATION_TRACE_PERCENT);
-      ProbabilitySampler sampler = TraceSamplers.probabilitySampler(tracePercent);
-      Trace.on("AccumuloReplicaSystem", sampler);
+    double tracePercent = localConf.getFraction(Property.REPLICATION_TRACE_PERCENT);
+    ProbabilitySampler sampler = TraceUtil.probabilitySampler(tracePercent);
+    try (TraceScope replicaSpan = Trace.startSpan("AccumuloReplicaSystem", sampler)) {
 
       // Remote identifier is an integer (table id) in this case.
       final String remoteTableId = target.getRemoteIdentifier();
@@ -226,8 +222,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         log.debug("Attempt {}", i);
         String peerTserverStr;
         log.debug("Fetching peer tserver address");
-        Span span = Trace.start("Fetch peer tserver");
-        try {
+        try (TraceScope span = Trace.startSpan("Fetch peer tserver")) {
           // Ask the master on the remote what TServer we should talk with to replicate the data
           peerTserverStr = ReplicationClient.executeCoordinatorWithReturn(peerContext,
               client -> client.getServicerAddress(remoteTableId, peerContext.rpcCreds()));
@@ -237,8 +232,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
               "Could not connect to master at {}, cannot proceed with replication. Will retry",
               target, e);
           continue;
-        } finally {
-          span.stop();
         }
 
         if (peerTserverStr == null) {
@@ -257,19 +250,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         final long sizeLimit = conf.getAsBytes(Property.REPLICATION_MAX_UNIT_SIZE);
         try {
           if (p.getName().endsWith(RFILE_SUFFIX)) {
-            span = Trace.start("RFile replication");
-            try {
+            try (TraceScope span = Trace.startSpan("RFile replication")) {
               finalStatus = replicateRFiles(peerContext, peerTserver, target, p, status, timeout);
-            } finally {
-              span.stop();
             }
           } else {
-            span = Trace.start("WAL replication");
-            try {
+            try (TraceScope span = Trace.startSpan("WAL replication")) {
               finalStatus = replicateLogs(peerContext, peerTserver, target, p, status, sizeLimit,
                   remoteTableId, peerContext.rpcCreds(), helper, accumuloUgi, timeout);
-            } finally {
-              span.stop();
             }
           }
 
@@ -288,8 +275,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
       // We made no status, punt on it for now, and let it re-queue itself for work
       return status;
-    } finally {
-      Trace.off();
     }
   }
 
@@ -346,9 +331,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     try (final FSDataInputStream fsinput = fs.open(p);
         final DataInputStream input = getWalStream(p, fsinput)) {
       log.debug("Skipping unwanted data in WAL");
-      Span span = Trace.start("Consume WAL prefix");
-      span.data("file", p.toString());
-      try {
+      try (TraceScope span = Trace.startSpan("Consume WAL prefix")) {
+        if (span.getSpan() != null) {
+          span.getSpan().addKVAnnotation("file", p.toString());
+        }
         // We want to read all records in the WAL up to the "begin" offset contained in the Status
         // message,
         // building a Set of tids from DEFINE_TABLET events which correspond to table ids for future
@@ -357,8 +343,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       } catch (IOException e) {
         log.warn("Unexpected error consuming file.");
         return status;
-      } finally {
-        span.stop();
       }
 
       log.debug("Sending batches of data to peer tserver");
@@ -366,16 +350,17 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       Status lastStatus = status, currentStatus = status;
       final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
       while (true) {
-        // Set some trace context
-        span = Trace.start("Replicate WAL batch");
-        span.data("Batch size (bytes)", Long.toString(sizeLimit));
-        span.data("File", p.toString());
-        span.data("Peer instance name", peerContext.getInstanceName());
-        span.data("Peer tserver", peerTserver.toString());
-        span.data("Remote table ID", remoteTableId);
-
         ReplicationStats replResult;
-        try {
+        try (TraceScope span = Trace.startSpan("Replicate WAL batch")) {
+          if (span.getSpan() != null) {
+            // Set some trace context
+            span.getSpan().addKVAnnotation("Batch size (bytes)", Long.toString(sizeLimit));
+            span.getSpan().addKVAnnotation("File", p.toString());
+            span.getSpan().addKVAnnotation("Peer instance name", peerContext.getInstanceName());
+            span.getSpan().addKVAnnotation("Peer tserver", peerTserver.toString());
+            span.getSpan().addKVAnnotation("Remote table ID", remoteTableId);
+          }
+
           // Read and send a batch of mutations
           replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver,
               new WalClientExecReturn(target, input, p, currentStatus, sizeLimit, remoteTableId,
@@ -385,8 +370,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           log.error("Caught exception replicating data to {} at {}", peerContext.getInstanceName(),
               peerTserver, e);
           throw e;
-        } finally {
-          span.stop();
         }
 
         // Catch the overflow
@@ -402,20 +385,16 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
         // If we got a different status
         if (!currentStatus.equals(lastStatus)) {
-          span = Trace.start("Update replication table");
-          try {
+          try (TraceScope span = Trace.startSpan("Update replication table")) {
             if (accumuloUgi != null) {
               final Status copy = currentStatus;
-              accumuloUgi.doAs(new PrivilegedAction<Void>() {
-                @Override
-                public Void run() {
-                  try {
-                    helper.recordNewStatus(p, copy, target);
-                  } catch (Exception e) {
-                    exceptionRef.set(e);
-                  }
-                  return null;
+              accumuloUgi.doAs((PrivilegedAction<Void>) () -> {
+                try {
+                  helper.recordNewStatus(p, copy, target);
+                } catch (Exception e) {
+                  exceptionRef.set(e);
                 }
+                return null;
               });
               Exception e = exceptionRef.get();
               if (e != null) {
@@ -438,8 +417,6 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
                     + " {}, but the table did not exist",
                 p, ProtobufUtil.toString(currentStatus), e);
             throw new RuntimeException("Replication table did not exist, will retry", e);
-          } finally {
-            span.stop();
           }
 
           log.debug("Recorded updated status for {}: {}", p, ProtobufUtil.toString(currentStatus));
@@ -471,16 +448,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       } else {
         newStatus = Status.newBuilder(status).setBegin(status.getEnd()).build();
       }
-      Span span = Trace.start("Update replication table");
-      try {
+      try (TraceScope span = Trace.startSpan("Update replication table")) {
         helper.recordNewStatus(p, newStatus, target);
       } catch (TableNotFoundException tnfe) {
         log.error(
             "Tried to update status in replication table for {} as {}, but the table did not exist",
             p, ProtobufUtil.toString(newStatus), e);
         throw new RuntimeException("Replication table did not exist, will retry", e);
-      } finally {
-        span.stop();
       }
       return newStatus;
     } catch (IOException e) {
@@ -650,13 +624,12 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   public DataInputStream getWalStream(Path p, FSDataInputStream input) throws IOException {
-    Span span = Trace.start("Read WAL header");
-    span.data("file", p.toString());
-    try {
+    try (TraceScope span = Trace.startSpan("Read WAL header")) {
+      if (span.getSpan() != null) {
+        span.getSpan().addKVAnnotation("file", p.toString());
+      }
       DFSLoggerInputStreams streams = DfsLogger.readHeaderAndReturnStream(input, conf);
       return streams.getDecryptingInputStream();
-    } finally {
-      span.stop();
     }
   }
 

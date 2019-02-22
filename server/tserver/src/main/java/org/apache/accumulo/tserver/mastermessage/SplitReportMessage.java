@@ -26,7 +26,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
@@ -48,7 +48,7 @@ public class SplitReportMessage implements MasterMessage {
     TabletSplit split = new TabletSplit();
     split.oldTablet = old_extent.toThrift();
     split.newTablets = Translator.translate(extents.keySet(), Translators.KET);
-    client.reportSplitExtent(Tracer.traceInfo(), credentials, serverName, split);
+    client.reportSplitExtent(TraceUtil.traceInfo(), credentials, serverName, split);
   }
 
 }

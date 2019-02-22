@@ -126,7 +126,7 @@
     <hadoop.version>3.1.1</hadoop.version>
     <hk2.version>2.5.0-b62</hk2.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
-    <htrace.version>3.1.0-incubating</htrace.version>
+    <htrace.version>3.2.0-incubating</htrace.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <jackson.version>2.9.8</jackson.version>
     <javax.el.version>2.2.4</javax.el.version>

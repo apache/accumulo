@@ -69,7 +69,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -751,7 +751,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     while (true) {
       try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
         client = MasterClient.getConnectionWithRetry((ClientContext) c);
-        return client.getMasterStats(Tracer.traceInfo(), ((ClientContext) c).rpcCreds());
+        return client.getMasterStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds());
       } catch (ThriftSecurityException exception) {
         throw new AccumuloSecurityException(exception);
       } catch (ThriftNotActiveServiceException e) {

@@ -48,8 +48,6 @@ import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.trace.Span;
-import org.apache.accumulo.core.trace.Trace;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
@@ -66,6 +64,8 @@ import org.apache.accumulo.tserver.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.compaction.MajorCompactionReason;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -339,8 +339,7 @@ public class Compactor implements Callable<CompactionStats> {
       boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats)
       throws IOException, CompactionCanceledException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
-    Span span = Trace.start("compact");
-    try {
+    try (TraceScope span = Trace.startSpan("compact")) {
       long entriesCompacted = 0;
       List<SortedKeyValueIterator<Key,Value>> iters = openMapDataFiles(readers);
 
@@ -377,8 +376,7 @@ public class Compactor implements Callable<CompactionStats> {
         mfw.startNewLocalityGroup(lgName, columnFamilies);
       }
 
-      Span write = Trace.start("write");
-      try {
+      try (TraceScope write = Trace.startSpan("write")) {
         while (itr.hasTop() && env.isCompactionEnabled()) {
           mfw.append(itr.getTopKey(), itr.getTopValue());
           itr.next();
@@ -408,7 +406,6 @@ public class Compactor implements Callable<CompactionStats> {
       } finally {
         CompactionStats lgMajcStats = new CompactionStats(citr.getCount(), entriesCompacted);
         majCStats.add(lgMajcStats);
-        write.stop();
       }
 
     } finally {
@@ -420,7 +417,6 @@ public class Compactor implements Callable<CompactionStats> {
           log.warn("Failed to close map file", e);
         }
       }
-      span.stop();
     }
   }
 
