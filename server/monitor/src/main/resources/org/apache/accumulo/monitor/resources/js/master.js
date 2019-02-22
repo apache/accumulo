@@ -65,16 +65,14 @@ function recoveryList() {
   } else {
     $('#recoveryList').show();
 
-    var items = [];
-
     // Creates the table for the recovery list
     $.each(data.recoveryList, function(key, val) {
       var items = [];
       items.push(createFirstCell(val.server, val.server));
       items.push(createRightCell(val.log, val.log));
       var date = new Date(parseInt(val.time));
-      date = date.toLocaleString().split(' ').join('&nbsp;');
-      items.push(createRightCell(val.time, date));
+      var dateStr = date.toLocaleString().split(' ').join('&nbsp;');
+      items.push(createRightCell(val.time, dateStr));
       items.push(createRightCell(val.progress, val.progress));
 
       $('<tr/>', {

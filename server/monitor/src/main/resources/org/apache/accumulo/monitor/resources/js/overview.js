@@ -119,7 +119,7 @@ function refreshZKTable() {
 var plotOptions = {
   colors: ['#d9534f', '#337ab7'],
   grid: {
-    backgroundColor: {colors: ['#fff', '#eee']},
+    backgroundColor: {colors: ['#fff', '#eee']}
   },
   lines: {
     show: true
@@ -166,7 +166,7 @@ function makePlots() {
     {label: 'Read', data: []},
     {label: 'Returned', data: []}
   ];
-  var data = sessionStorage.scanEntries === undefined ?
+  data = sessionStorage.scanEntries === undefined ?
       [] : JSON.parse(sessionStorage.scanEntries);
   $.each(data[0].second, function(key, val) {
     scanEntries[0].data.push([val.first - n, val.second]);
@@ -178,7 +178,7 @@ function makePlots() {
 
   // Create Ingest MB plot
   var ingestMB = [{data:[]}];
-  var data = sessionStorage.ingestMB === undefined ?
+  data = sessionStorage.ingestMB === undefined ?
       [] : JSON.parse(sessionStorage.ingestMB);
   $.each(data, function(key, val) {
     ingestMB[0].data.push([val.first - n, val.second]);
@@ -187,7 +187,7 @@ function makePlots() {
 
   // Create Query MB plot
   var queryMB = [{data:[]}];
-  var data = sessionStorage.queryMB === undefined ?
+  data = sessionStorage.queryMB === undefined ?
       [] : JSON.parse(sessionStorage.queryMB);
   $.each(data, function(key, val) {
     queryMB[0].data.push([val.first - n, val.second]);
@@ -196,7 +196,7 @@ function makePlots() {
 
   // Create Load Average plot
   var loadAvg = [{data:[]}];
-  var data = sessionStorage.loadAvg === undefined ?
+  data = sessionStorage.loadAvg === undefined ?
       [] : JSON.parse(sessionStorage.loadAvg);
   $.each(data, function(key, val) {
     loadAvg[0].data.push([val.first - n, val.second]);
@@ -205,7 +205,7 @@ function makePlots() {
 
   // Create Seeks plot
   var lookups = [{data:[]}];
-  var data = sessionStorage.lookups === undefined ?
+  data = sessionStorage.lookups === undefined ?
       [] : JSON.parse(sessionStorage.lookups);
   $.each(data, function(key, val) {
     lookups[0].data.push([val.first - n, val.second]);
@@ -214,7 +214,7 @@ function makePlots() {
 
   // Create Minor Compactions plot
   var minor = [{data:[]}];
-  var data = sessionStorage.minorCompactions === undefined ?
+  data = sessionStorage.minorCompactions === undefined ?
       [] : JSON.parse(sessionStorage.minorCompactions);
   $.each(data, function(key, val) {
     minor[0].data.push([val.first - n, val.second]);
@@ -223,7 +223,7 @@ function makePlots() {
 
   // Create Major Compaction plot
   var major = [{data:[]}];
-  var data = sessionStorage.majorCompactions === undefined ?
+  data = sessionStorage.majorCompactions === undefined ?
       [] : JSON.parse(sessionStorage.majorCompactions);
   $.each(data, function(key, val) {
     major[0].data.push([val.first - n, val.second]);
@@ -232,7 +232,7 @@ function makePlots() {
 
   // Create Index Cache plot
   var indexCache = [{data:[]}];
-  var data = sessionStorage.indexCache === undefined ?
+  data = sessionStorage.indexCache === undefined ?
       [] : JSON.parse(sessionStorage.indexCache);
   $.each(data, function(key, val) {
     indexCache[0].data.push([val.first - n, val.second]);
@@ -241,7 +241,7 @@ function makePlots() {
 
   // Create Data Cache plot
   var dataCache = [{data:[]}];
-  var data = sessionStorage.dataCache === undefined ?
+  data = sessionStorage.dataCache === undefined ?
       [] : JSON.parse(sessionStorage.dataCache);
   $.each(data, function(key, val) {
     dataCache[0].data.push([val.first - n, val.second]);

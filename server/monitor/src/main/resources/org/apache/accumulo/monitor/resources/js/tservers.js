@@ -103,7 +103,6 @@ function refreshBadTServersTable() {
     $('#badtservers').hide();
   } else {
     $('#badtservers').show();
-    var items = [];
     $.each(data.badServers, function(key, val) {
       var items = [];
       items.push(createFirstCell(val.id, val.id));
