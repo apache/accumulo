@@ -1130,10 +1130,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   private final void printHelp(String usage, String description, Options opts, int width)
       throws IOException {
-    try (PrintWriter pw = new PrintWriter(reader.getOutput())) {
-      new HelpFormatter().printHelp(pw, width, usage, description, opts, 2, 5, null, true);
-      reader.getOutput().flush();
-    }
+    new HelpFormatter().printHelp(new PrintWriter(reader.getOutput()), width, usage, description,
+        opts, 2, 5, null, true);
+    reader.getOutput().flush();
   }
 
   public int getExitCode() {
