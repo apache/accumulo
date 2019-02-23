@@ -30,14 +30,14 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.constraints.DefaultKeySizeConstraint;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,12 +175,9 @@ public class IterConfigUtil {
     return new IterLoad().iters(iters).iterOpts(allOptions);
   }
 
-  // @formatter:off
-  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V>
-  loadIterators(
-          // @formatter:on
-          IteratorScope scope, SortedKeyValueIterator<K,V> source, AccumuloConfiguration conf,
-          List<IteratorSetting> iterators, IteratorEnvironment env) throws IOException {
+  public static SortedKeyValueIterator<Key,Value> loadIterators(IteratorScope scope,
+      SortedKeyValueIterator<Key,Value> source, AccumuloConfiguration conf,
+      List<IteratorSetting> iterators, IteratorEnvironment env) throws IOException {
 
     List<IterInfo> ssiList = new ArrayList<>();
     Map<String,Map<String,String>> ssio = new HashMap<>();
@@ -195,27 +192,23 @@ public class IterConfigUtil {
         il.iterEnv(env).useAccumuloClassLoader(true).context(conf.get(Property.TABLE_CLASSPATH)));
   }
 
-  // @formatter:off
-  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V>
-  loadIterators(
-      // @formatter:on
-          SortedKeyValueIterator<K,V> source, IterLoad il) throws IOException {
+  public static SortedKeyValueIterator<Key,Value> loadIterators(
+      SortedKeyValueIterator<Key,Value> source, IterLoad il) throws IOException {
     return loadIterators(source, null, il);
   }
 
-  // @formatter:off
-  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V>
-  loadIterators(SortedKeyValueIterator<K,V> source,
-                Map<String,Class<? extends SortedKeyValueIterator<K,V>>> classCache,
-                IterLoad iterLoad) throws IOException {
+  public static SortedKeyValueIterator<Key,Value> loadIterators(
+      SortedKeyValueIterator<Key,Value> source,
+      Map<String,Class<? extends SortedKeyValueIterator<Key,Value>>> classCache, IterLoad iterLoad)
+      throws IOException {
     // wrap the source in a SynchronizedIterator in case any of the additional configured iterators
     // want to use threading
-    SortedKeyValueIterator<K,V> prev = source;
+    SortedKeyValueIterator<Key,Value> prev = source;
 
     try {
       for (IterInfo iterInfo : iterLoad.iters) {
 
-        Class<? extends SortedKeyValueIterator<K,V>> clazz = null;
+        Class<? extends SortedKeyValueIterator<Key,Value>> clazz = null;
         log.trace("Attempting to load iterator class {}", iterInfo.className);
         if (classCache != null) {
           clazz = classCache.get(iterInfo.className);
@@ -228,7 +221,7 @@ public class IterConfigUtil {
           clazz = loadClass(iterLoad.useAccumuloClassLoader, iterLoad.context, iterInfo);
         }
 
-        SortedKeyValueIterator<K,V> skvi = clazz.newInstance();
+        SortedKeyValueIterator<Key,Value> skvi = clazz.newInstance();
 
         Map<String,String> options = iterLoad.iterOpts.get(iterInfo.iterName);
 
@@ -246,29 +239,24 @@ public class IterConfigUtil {
   }
 
   @SuppressWarnings("unchecked")
-  // @formatter:off
-  private static
-  <K extends WritableComparable<?>,V extends Writable> Class<? extends SortedKeyValueIterator<K,V>>
-  loadClass(
-      // @formatter:on
-          boolean useAccumuloClassLoader, String context, IterInfo iterInfo)
-          throws ClassNotFoundException, IOException {
-    Class<? extends SortedKeyValueIterator<K,V>> clazz;
+  private static Class<SortedKeyValueIterator<Key,Value>> loadClass(boolean useAccumuloClassLoader,
+      String context, IterInfo iterInfo) throws ClassNotFoundException, IOException {
+    Class<SortedKeyValueIterator<Key,Value>> clazz;
     if (useAccumuloClassLoader) {
       if (context != null && !context.equals("")) {
-        clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloVFSClassLoader
+        clazz = (Class<SortedKeyValueIterator<Key,Value>>) AccumuloVFSClassLoader
             .getContextManager()
             .loadClass(context, iterInfo.className, SortedKeyValueIterator.class);
         log.trace("Iterator class {} loaded from context {}, classloader: {}", iterInfo.className,
             context, clazz.getClassLoader());
       } else {
-        clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloVFSClassLoader
+        clazz = (Class<SortedKeyValueIterator<Key,Value>>) AccumuloVFSClassLoader
             .loadClass(iterInfo.className, SortedKeyValueIterator.class);
         log.trace("Iterator class {} loaded from AccumuloVFSClassLoader: {}", iterInfo.className,
             clazz.getClassLoader());
       }
     } else {
-      clazz = (Class<? extends SortedKeyValueIterator<K,V>>) Class.forName(iterInfo.className)
+      clazz = (Class<SortedKeyValueIterator<Key,Value>>) Class.forName(iterInfo.className)
           .asSubclass(SortedKeyValueIterator.class);
       log.trace("Iterator class {} loaded from classpath", iterInfo.className);
     }
