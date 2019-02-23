@@ -72,7 +72,7 @@ import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class RFileTest {
+public class RFileClientTest {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path is set by test, not user")
   private String createTmpTestFile() throws IOException {
