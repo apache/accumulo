@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -65,15 +64,14 @@ public class CombinerIT extends AccumuloClusterHarness {
       SummingCombiner.setColumns(setting,
           Collections.singletonList(new IteratorSetting.Column("cf")));
       c.tableOperations().attachIterator(tableName, setting);
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-      for (int i = 0; i < 10; i++) {
-        Mutation m = new Mutation("row1");
-        m.put("cf".getBytes(), "col1".getBytes(), ("" + i).getBytes());
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < 10; i++) {
+          Mutation m = new Mutation("row1");
+          m.put("cf".getBytes(), "col1".getBytes(), ("" + i).getBytes());
+          bw.addMutation(m);
+        }
       }
-      bw.close();
       checkSum(tableName, c);
     }
   }
-
 }

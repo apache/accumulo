@@ -37,7 +37,6 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -202,23 +201,22 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       String table = getUniqueNames(1)[0];
       c.tableOperations().create(table);
 
-      BatchWriter bw2 = c.createBatchWriter(table, new BatchWriterConfig());
-      Mutation m1 = new Mutation("r1");
-      m1.put("cf1", "cq1", "v1");
-      bw2.addMutation(m1);
-      bw2.close();
+      try (BatchWriter bw = c.createBatchWriter(table)) {
+        Mutation m1 = new Mutation("r1");
+        m1.put("cf1", "cq1", "v1");
+        bw.addMutation(m1);
+      }
 
       c.tableOperations().flush(table, null, null, true);
 
       // ensure an invalid delete entry does not cause GC to go berserk ACCUMULO-2520
       c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME,
           TablePermission.WRITE);
-      BatchWriter bw3 = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-
-      bw3.addMutation(createDelMutation("", "", "", ""));
-      bw3.addMutation(createDelMutation("", "testDel", "test", "valueTest"));
-      bw3.addMutation(createDelMutation("/", "", "", ""));
-      bw3.close();
+      try (BatchWriter bw = c.createBatchWriter(MetadataTable.NAME)) {
+        bw.addMutation(createDelMutation("", "", "", ""));
+        bw.addMutation(createDelMutation("", "testDel", "test", "valueTest"));
+        bw.addMutation(createDelMutation("/", "", "", ""));
+      }
 
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
       try {
@@ -304,17 +302,18 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   public static void addEntries(AccumuloClient client, BatchWriterOpts bwOpts) throws Exception {
     client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
-    BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, bwOpts.getBatchWriterConfig());
-
-    for (int i = 0; i < 100000; ++i) {
-      final Text emptyText = new Text("");
-      Text row = new Text(String.format("%s/%020d/%s", MetadataSchema.DeletesSection.getRowPrefix(),
-          i, "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
-              + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"));
-      Mutation delFlag = new Mutation(row);
-      delFlag.put(emptyText, emptyText, new Value(new byte[] {}));
-      bw.addMutation(delFlag);
+    try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME,
+        bwOpts.getBatchWriterConfig())) {
+      for (int i = 0; i < 100000; ++i) {
+        final Text emptyText = new Text("");
+        Text row = new Text(
+            String.format("%s/%020d/%s", MetadataSchema.DeletesSection.getRowPrefix(), i,
+                "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
+                    + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"));
+        Mutation delFlag = new Mutation(row);
+        delFlag.put(emptyText, emptyText, new Value(new byte[] {}));
+        bw.addMutation(delFlag);
+      }
     }
-    bw.close();
   }
 }

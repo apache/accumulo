@@ -31,7 +31,6 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -75,16 +74,15 @@ public class ImportExportIT extends AccumuloClusterHarness {
       String srcTable = tableNames[0], destTable = tableNames[1];
       client.tableOperations().create(srcTable);
 
-      BatchWriter bw = client.createBatchWriter(srcTable, new BatchWriterConfig());
-      for (int row = 0; row < 1000; row++) {
-        Mutation m = new Mutation(Integer.toString(row));
-        for (int col = 0; col < 100; col++) {
-          m.put(Integer.toString(col), "", Integer.toString(col * 2));
+      try (BatchWriter bw = client.createBatchWriter(srcTable)) {
+        for (int row = 0; row < 1000; row++) {
+          Mutation m = new Mutation(Integer.toString(row));
+          for (int col = 0; col < 100; col++) {
+            m.put(Integer.toString(col), "", Integer.toString(col * 2));
+          }
+          bw.addMutation(m);
         }
-        bw.addMutation(m);
       }
-
-      bw.close();
 
       client.tableOperations().compact(srcTable, null, null, true, true);
 

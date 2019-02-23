@@ -51,7 +51,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Result;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
@@ -502,25 +501,24 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
       client.tableOperations().create(tableName,
           new NewTableConfiguration().withoutDefaultIterators());
 
-      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
 
-      Mutation m = new Mutation("ACCUMULO-1000");
-      m.put("count", "comments", "1");
-      bw.addMutation(m);
-      bw.addMutation(m);
-      bw.addMutation(m);
+        Mutation m = new Mutation("ACCUMULO-1000");
+        m.put("count", "comments", "1");
+        bw.addMutation(m);
+        bw.addMutation(m);
+        bw.addMutation(m);
 
-      m = new Mutation("ACCUMULO-1001");
-      m.put("count2", "comments", "1");
-      bw.addMutation(m);
-      bw.addMutation(m);
+        m = new Mutation("ACCUMULO-1001");
+        m.put("count2", "comments", "1");
+        bw.addMutation(m);
+        bw.addMutation(m);
 
-      m = new Mutation("ACCUMULO-1002");
-      m.put("count2", "comments", "1");
-      bw.addMutation(m);
-      bw.addMutation(m);
-
-      bw.close();
+        m = new Mutation("ACCUMULO-1002");
+        m.put("count2", "comments", "1");
+        bw.addMutation(m);
+        bw.addMutation(m);
+      }
 
       IteratorSetting iterConfig = new IteratorSetting(10, SummingCombiner.class);
       SummingCombiner.setEncodingType(iterConfig, Type.STRING);
@@ -658,21 +656,19 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
 
       client.tableOperations().create(tableName);
 
-      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("ACCUMULO-1000");
+        m.put("count", "comments", "6");
+        bw.addMutation(m);
 
-      Mutation m = new Mutation("ACCUMULO-1000");
-      m.put("count", "comments", "6");
-      bw.addMutation(m);
+        m = new Mutation("ACCUMULO-1001");
+        m.put("count", "comments", "7");
+        bw.addMutation(m);
 
-      m = new Mutation("ACCUMULO-1001");
-      m.put("count", "comments", "7");
-      bw.addMutation(m);
-
-      m = new Mutation("ACCUMULO-1002");
-      m.put("count", "comments", "8");
-      bw.addMutation(m);
-
-      bw.close();
+        m = new Mutation("ACCUMULO-1002");
+        m.put("count", "comments", "8");
+        bw.addMutation(m);
+      }
 
       client.tableOperations().attachIterator(tableName, aiConfig1, EnumSet.of(IteratorScope.scan));
       client.tableOperations().offline(tableName, true);

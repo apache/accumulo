@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -55,7 +54,7 @@ public class FindMaxIT extends AccumuloClusterHarness {
 
       client.tableOperations().create(tableName);
 
-      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
         bw.addMutation(nm(new byte[] {0}));
         bw.addMutation(nm(new byte[] {0, 0}));
         bw.addMutation(nm(new byte[] {0, 1}));

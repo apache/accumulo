@@ -23,7 +23,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -61,12 +60,11 @@ public class BadLocalityGroupMincIT extends AccumuloClusterHarness {
       c.tableOperations().offline(tableName, true);
       c.tableOperations().online(tableName, true);
 
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-      Mutation m = new Mutation(new Text("r1"));
-      m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes(UTF_8)));
-
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation(new Text("r1"));
+        m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes(UTF_8)));
+        bw.addMutation(m);
+      }
 
       FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
 

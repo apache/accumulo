@@ -26,11 +26,8 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -126,19 +123,14 @@ public class AddSplitIT extends AccumuloClusterHarness {
     }
   }
 
-  private void insertData(AccumuloClient client, String tableName, long ts)
-      throws AccumuloException, TableNotFoundException, MutationsRejectedException {
-    BatchWriter bw = client.createBatchWriter(tableName, null);
-
-    for (int i = 0; i < 10000; i++) {
-      String row = String.format("%09d", i);
-
-      Mutation m = new Mutation(new Text(row));
-      m.put(new Text("cf1"), new Text("cq1"), ts, new Value(Integer.toString(i).getBytes(UTF_8)));
-      bw.addMutation(m);
+  private void insertData(AccumuloClient client, String tableName, long ts) throws Exception {
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
+      for (int i = 0; i < 10000; i++) {
+        String row = String.format("%09d", i);
+        Mutation m = new Mutation(new Text(row));
+        m.put(new Text("cf1"), new Text("cq1"), ts, new Value(Integer.toString(i).getBytes(UTF_8)));
+        bw.addMutation(m);
+      }
     }
-
-    bw.close();
   }
-
 }

@@ -222,16 +222,16 @@ public class DurabilityIT extends ConfigurableMacBase {
     long[] attempts = new long[iterations];
     for (int attempt = 0; attempt < iterations; attempt++) {
       long now = System.currentTimeMillis();
-      BatchWriter bw = c.createBatchWriter(table, null);
-      for (int i = 1; i < count + 1; i++) {
-        Mutation m = new Mutation("" + i);
-        m.put("", "", "");
-        bw.addMutation(m);
-        if (i % (Math.max(1, count / 100)) == 0) {
-          bw.flush();
+      try (BatchWriter bw = c.createBatchWriter(table)) {
+        for (int i = 1; i < count + 1; i++) {
+          Mutation m = new Mutation("" + i);
+          m.put("", "", "");
+          bw.addMutation(m);
+          if (i % (Math.max(1, count / 100)) == 0) {
+            bw.flush();
+          }
         }
       }
-      bw.close();
       attempts[attempt] = System.currentTimeMillis() - now;
     }
     Arrays.sort(attempts);

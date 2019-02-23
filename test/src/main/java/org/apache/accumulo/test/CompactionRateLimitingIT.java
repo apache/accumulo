@@ -23,7 +23,6 @@ import java.util.Random;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -50,7 +49,7 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
     AccumuloClient client = getCluster().createAccumuloClient("root",
         new PasswordToken(ROOT_PASSWORD));
     client.tableOperations().create(tableName);
-    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
       Random r = new SecureRandom();
       while (bytesWritten < BYTES_TO_WRITE) {
         byte[] rowKey = new byte[32];

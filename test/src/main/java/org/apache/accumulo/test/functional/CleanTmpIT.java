@@ -25,7 +25,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -70,20 +69,18 @@ public class CleanTmpIT extends ConfigurableMacBase {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       // write to it
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-      Mutation m = new Mutation("row");
-      m.put("cf", "cq", "value");
-      bw.addMutation(m);
-      bw.flush();
-
-      // Compact memory to make a file
-      c.tableOperations().compact(tableName, null, null, true, true);
-
-      // Make sure that we'll have a WAL
-      m = new Mutation("row2");
-      m.put("cf", "cq", "value");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("row");
+        m.put("cf", "cq", "value");
+        bw.addMutation(m);
+        bw.flush();
+        // Compact memory to make a file
+        c.tableOperations().compact(tableName, null, null, true, true);
+        // Make sure that we'll have a WAL
+        m = new Mutation("row2");
+        m.put("cf", "cq", "value");
+        bw.addMutation(m);
+      }
 
       // create a fake _tmp file in its directory
       String id = c.tableOperations().tableIdMap().get(tableName);

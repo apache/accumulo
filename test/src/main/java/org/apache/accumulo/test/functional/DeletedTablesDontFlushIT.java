@@ -20,7 +20,6 @@ import java.util.EnumSet;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -64,12 +63,11 @@ public class DeletedTablesDontFlushIT extends SharedMiniClusterBase {
       for (int i = 0; i < 100; i++) {
         m.put("cf", "" + i, new Value(new byte[] {}));
       }
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        bw.addMutation(m);
+      }
       // should go fast
       c.tableOperations().delete(tableName);
     }
   }
-
 }

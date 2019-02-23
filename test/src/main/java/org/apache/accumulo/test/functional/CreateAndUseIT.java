@@ -28,7 +28,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -71,16 +70,14 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
       client.tableOperations().addSplits(tableName, splits);
-      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
-
-      for (int i = 1; i < 257; i++) {
-        Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
-        m.put(cf, cq, new Value(Integer.toString(i).getBytes(UTF_8)));
-
-        bw.addMutation(m);
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        for (int i = 1; i < 257; i++) {
+          Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
+          m.put(cf, cq, new Value(Integer.toString(i).getBytes(UTF_8)));
+          bw.addMutation(m);
+        }
       }
 
-      bw.close();
       try (Scanner scanner1 = client.createScanner(tableName, Authorizations.EMPTY)) {
 
         int ei = 1;

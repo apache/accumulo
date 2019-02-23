@@ -37,7 +37,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -263,7 +262,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
   private void writeData(AccumuloClient c, String table)
       throws TableNotFoundException, MutationsRejectedException {
-    try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+    try (BatchWriter bw = c.createBatchWriter(table)) {
       Random rand = new SecureRandom();
       for (int i = 0; i < 1000; i++) {
         Mutation m = new Mutation(String.format("%09x", rand.nextInt(100000 * 1000)));

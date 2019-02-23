@@ -24,7 +24,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -110,11 +109,11 @@ public class ConfigurableMajorCompactionIT extends ConfigurableMacBase {
   }
 
   private void writeFile(AccumuloClient client, String tableName) throws Exception {
-    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m = new Mutation("row");
-    m.put("cf", "cq", "value");
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
+      Mutation m = new Mutation("row");
+      m.put("cf", "cq", "value");
+      bw.addMutation(m);
+    }
     client.tableOperations().flush(tableName, null, null, true);
   }
 

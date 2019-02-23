@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -136,12 +135,12 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
   }
 
   private void fillTable(AccumuloClient client, String table) throws Exception {
-    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
-    for (String row : ROWS) {
-      Mutation m = new Mutation(row);
-      m.put("cf", "cq", "value");
-      bw.addMutation(m);
+    try (BatchWriter bw = client.createBatchWriter(table)) {
+      for (String row : ROWS) {
+        Mutation m = new Mutation(row);
+        m.put("cf", "cq", "value");
+        bw.addMutation(m);
+      }
     }
-    bw.close();
   }
 }

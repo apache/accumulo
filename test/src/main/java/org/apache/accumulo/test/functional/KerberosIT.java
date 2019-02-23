@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -289,11 +288,11 @@ public class KerberosIT extends AccumuloITBase {
       client.tableOperations().create(table);
 
       // Make sure we can actually use the table we made
-      BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
-      Mutation m = new Mutation("a");
-      m.put("b", "c", "d");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = client.createBatchWriter(table)) {
+        Mutation m = new Mutation("a");
+        m.put("b", "c", "d");
+        bw.addMutation(m);
+      }
 
       client.tableOperations().compact(table, new CompactionConfig().setWait(true).setFlush(true));
       return null;
@@ -362,11 +361,11 @@ public class KerberosIT extends AccumuloITBase {
 
       // Write data
       final long ts = 1000L;
-      BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
-      Mutation m = new Mutation("a");
-      m.put("b", "c", new ColumnVisibility(viz.getBytes()), ts, "d");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = client.createBatchWriter(table)) {
+        Mutation m = new Mutation("a");
+        m.put("b", "c", new ColumnVisibility(viz.getBytes()), ts, "d");
+        bw.addMutation(m);
+      }
 
       // Compact
       client.tableOperations().compact(table, new CompactionConfig().setWait(true).setFlush(true));
@@ -407,16 +406,16 @@ public class KerberosIT extends AccumuloITBase {
           assertEquals(rootUser.getPrincipal(), client.whoami());
 
           client.tableOperations().create(tableName);
-          BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
-          for (int r = 0; r < numRows; r++) {
-            Mutation m = new Mutation(Integer.toString(r));
-            for (int c = 0; c < numColumns; c++) {
-              String col = Integer.toString(c);
-              m.put(col, col, col);
+          try (BatchWriter bw = client.createBatchWriter(tableName)) {
+            for (int r = 0; r < numRows; r++) {
+              Mutation m = new Mutation(Integer.toString(r));
+              for (int c = 0; c < numColumns; c++) {
+                String col = Integer.toString(c);
+                m.put(col, col, col);
+              }
+              bw.addMutation(m);
             }
-            bw.addMutation(m);
           }
-          bw.close();
 
           return client.securityOperations().getDelegationToken(new DelegationTokenConfig());
         });
@@ -655,11 +654,11 @@ public class KerberosIT extends AccumuloITBase {
       AccumuloSecurityException, AccumuloException, TableExistsException {
     final String table = testName.getMethodName() + "_table";
     client.tableOperations().create(table);
-    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
-    Mutation m = new Mutation("a");
-    m.put("b", "c", "d");
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = client.createBatchWriter(table)) {
+      Mutation m = new Mutation("a");
+      m.put("b", "c", "d");
+      bw.addMutation(m);
+    }
     client.tableOperations().compact(table, new CompactionConfig().setFlush(true).setWait(true));
   }
 }

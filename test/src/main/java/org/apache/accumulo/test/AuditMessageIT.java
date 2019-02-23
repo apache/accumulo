@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -303,13 +302,12 @@ public class AuditMessageIT extends ConfigurableMacBase {
     auditAccumuloClient.tableOperations().create(OLD_TEST_TABLE_NAME);
 
     // Insert some play data
-    BatchWriter bw = auditAccumuloClient.createBatchWriter(OLD_TEST_TABLE_NAME,
-        new BatchWriterConfig());
-    Mutation m = new Mutation("myRow");
-    m.put("cf1", "cq1", "v1");
-    m.put("cf1", "cq2", "v3");
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = auditAccumuloClient.createBatchWriter(OLD_TEST_TABLE_NAME)) {
+      Mutation m = new Mutation("myRow");
+      m.put("cf1", "cq1", "v1");
+      m.put("cf1", "cq2", "v3");
+      bw.addMutation(m);
+    }
 
     // Prepare to export the table
     File exportDir = new File(getCluster().getConfig().getDir() + "/export");
@@ -392,13 +390,12 @@ public class AuditMessageIT extends ConfigurableMacBase {
     auditAccumuloClient.tableOperations().create(OLD_TEST_TABLE_NAME);
 
     // Insert some play data
-    BatchWriter bw = auditAccumuloClient.createBatchWriter(OLD_TEST_TABLE_NAME,
-        new BatchWriterConfig());
-    Mutation m = new Mutation("myRow");
-    m.put("cf1", "cq1", "v1");
-    m.put("cf1", "cq2", "v3");
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = auditAccumuloClient.createBatchWriter(OLD_TEST_TABLE_NAME)) {
+      Mutation m = new Mutation("myRow");
+      m.put("cf1", "cq1", "v1");
+      m.put("cf1", "cq2", "v3");
+      bw.addMutation(m);
+    }
 
     // Start testing activities here
     // A regular scan

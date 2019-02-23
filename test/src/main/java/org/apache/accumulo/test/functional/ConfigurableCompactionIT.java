@@ -30,7 +30,6 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -139,26 +138,26 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
   }
 
   private void writeFlush(AccumuloClient client, String tablename, String row) throws Exception {
-    BatchWriter bw = client.createBatchWriter(tablename, new BatchWriterConfig());
-    Mutation m = new Mutation(row);
-    m.put("", "", "");
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = client.createBatchWriter(tablename)) {
+      Mutation m = new Mutation(row);
+      m.put("", "", "");
+      bw.addMutation(m);
+    }
     client.tableOperations().flush(tablename, null, null, true);
   }
 
   static final Random r = new SecureRandom();
 
   private void makeFile(AccumuloClient client, String tablename) throws Exception {
-    BatchWriter bw = client.createBatchWriter(tablename, new BatchWriterConfig());
-    byte[] empty = {};
-    byte[] row = new byte[10];
-    r.nextBytes(row);
-    Mutation m = new Mutation(row, 0, 10);
-    m.put(empty, empty, empty);
-    bw.addMutation(m);
-    bw.flush();
-    bw.close();
+    try (BatchWriter bw = client.createBatchWriter(tablename)) {
+      byte[] empty = {};
+      byte[] row = new byte[10];
+      r.nextBytes(row);
+      Mutation m = new Mutation(row, 0, 10);
+      m.put(empty, empty, empty);
+      bw.addMutation(m);
+      bw.flush();
+    }
     client.tableOperations().flush(tablename, null, null, true);
   }
 

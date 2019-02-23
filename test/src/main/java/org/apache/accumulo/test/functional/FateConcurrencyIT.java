@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -403,15 +402,15 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       // create table.
       accumuloClient.tableOperations().create(tableName);
-      BatchWriter bw = accumuloClient.createBatchWriter(tableName, new BatchWriterConfig());
-
-      // populate
-      for (int i = 0; i < NUM_ROWS; i++) {
-        Mutation m = new Mutation(new Text(String.format("%05d", i)));
-        m.put(new Text("col" + ((i % 3) + 1)), new Text("qual"), new Value("junk".getBytes(UTF_8)));
-        bw.addMutation(m);
+      try (BatchWriter bw = accumuloClient.createBatchWriter(tableName)) {
+        // populate
+        for (int i = 0; i < NUM_ROWS; i++) {
+          Mutation m = new Mutation(new Text(String.format("%05d", i)));
+          m.put(new Text("col" + ((i % 3) + 1)), new Text("qual"),
+              new Value("junk".getBytes(UTF_8)));
+          bw.addMutation(m);
+        }
       }
-      bw.close();
 
       long startTimestamp = System.nanoTime();
 
