@@ -86,7 +86,8 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     assertTrue(client.tableOperations().exists(tableName));
   }
 
-  private void runTest(SortedSet<Text> expectedSplits) throws AccumuloSecurityException, TableNotFoundException, AccumuloException, TableExistsException {
+  private void runTest(SortedSet<Text> expectedSplits) throws AccumuloSecurityException,
+      TableNotFoundException, AccumuloException, TableExistsException {
     NewTableConfiguration ntc = new NewTableConfiguration().withSplits(expectedSplits);
     assertFalse(client.tableOperations().exists(tableName));
     client.tableOperations().create(tableName, ntc);
