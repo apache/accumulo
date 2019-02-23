@@ -36,7 +36,6 @@ import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
@@ -81,21 +80,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
           Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(), "2M");
       c.tableOperations().setProperty(table1, Property.TABLE_FILE_MAX.getKey(), "23");
 
-      BatchWriter bw = writeData(table1, c);
-
-      Map<String,String> props = new HashMap<>();
-      props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
-
-      Set<String> exclude = new HashSet<>();
-      exclude.add(Property.TABLE_FILE_MAX.getKey());
-
-      c.tableOperations().clone(table1, table2, true, props, exclude);
-
-      Mutation m3 = new Mutation("009");
-      m3.put("data", "x", "1");
-      m3.put("data", "y", "2");
-      bw.addMutation(m3);
-      bw.close();
+      writeDataAndClone(c, table1, table2);
 
       checkData(table2, c);
 
@@ -179,9 +164,8 @@ public class CloneTestIT extends AccumuloClusterHarness {
     }
   }
 
-  private BatchWriter writeData(String table1, AccumuloClient c)
-      throws TableNotFoundException, MutationsRejectedException {
-    BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
+  private BatchWriter writeData(String table1, AccumuloClient c) throws Exception {
+    BatchWriter bw = c.createBatchWriter(table1);
 
     Mutation m1 = new Mutation("001");
     m1.put("data", "x", "9");
@@ -196,6 +180,23 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
     bw.flush();
     return bw;
+  }
+
+  private void writeDataAndClone(AccumuloClient c, String table1, String table2) throws Exception {
+    try (BatchWriter bw = writeData(table1, c)) {
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
+
+      Set<String> exclude = new HashSet<>();
+      exclude.add(Property.TABLE_FILE_MAX.getKey());
+
+      c.tableOperations().clone(table1, table2, true, props, exclude);
+
+      Mutation m3 = new Mutation("009");
+      m3.put("data", "x", "1");
+      m3.put("data", "y", "2");
+      bw.addMutation(m3);
+    }
   }
 
   @Test
@@ -235,21 +236,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
       c.tableOperations().create(table1);
 
-      BatchWriter bw = writeData(table1, c);
-
-      Map<String,String> props = new HashMap<>();
-      props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "500K");
-
-      Set<String> exclude = new HashSet<>();
-      exclude.add(Property.TABLE_FILE_MAX.getKey());
-
-      c.tableOperations().clone(table1, table2, true, props, exclude);
-
-      Mutation m3 = new Mutation("009");
-      m3.put("data", "x", "1");
-      m3.put("data", "y", "2");
-      bw.addMutation(m3);
-      bw.close();
+      writeDataAndClone(c, table1, table2);
 
       // delete source table, should not affect clone
       c.tableOperations().delete(table1);
@@ -283,9 +270,9 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
       client.tableOperations().addSplits(tables[0], splits);
 
-      BatchWriter bw = client.createBatchWriter(tables[0], new BatchWriterConfig());
-      bw.addMutations(mutations);
-      bw.close();
+      try (BatchWriter bw = client.createBatchWriter(tables[0], new BatchWriterConfig())) {
+        bw.addMutations(mutations);
+      }
 
       client.tableOperations().clone(tables[0], tables[1], true, null, null);
 
