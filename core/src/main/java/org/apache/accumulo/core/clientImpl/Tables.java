@@ -51,8 +51,6 @@ public class Tables {
   // frequently
   private static Cache<String,TableMap> instanceToMapCache = CacheBuilder.newBuilder()
       .expireAfterAccess(10, TimeUnit.MINUTES).build();
-  private static Cache<String,ZooCache> instanceToZooCache = CacheBuilder.newBuilder()
-      .expireAfterAccess(10, TimeUnit.MINUTES).build();
 
   static {
     SingletonManager.register(new SingletonService() {
@@ -73,7 +71,6 @@ public class Tables {
       public synchronized void disable() {
         try {
           instanceToMapCache.invalidateAll();
-          instanceToZooCache.invalidateAll();
         } finally {
           enabled = false;
         }
@@ -105,18 +102,8 @@ public class Tables {
       sm.checkPermission(TABLES_PERMISSION);
     }
 
-    final String uuid = context.getInstanceID();
-
-    try {
-      return instanceToZooCache.get(uuid, () -> {
-        final String zks = context.getZooKeepers();
-        final int timeOut = context.getZooKeepersSessionTimeOut();
-        return new ZooCacheFactory().getZooCache(zks, timeOut,
-            watchedEvent -> instanceToMapCache.invalidate(uuid));
-      });
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e);
-    }
+    return new ZooCacheFactory().getZooCache(context.getZooKeepers(),
+        context.getZooKeepersSessionTimeOut());
   }
 
   /**
@@ -170,18 +157,29 @@ public class Tables {
 
   /**
    * Get the TableMap from the cache. A new one will be populated when needed. Cache is cleared
-   * manually by calling {@link #clearCache(ClientContext)} or automatically cleared by ZooCache
-   * watcher created in {@link #getZooCache(ClientContext)}. See ACCUMULO-4778.
+   * manually by calling {@link #clearCache(ClientContext)}
    */
   private static TableMap getTableMap(final ClientContext context) {
     TableMap map;
+
+    final ZooCache zc = getZooCache(context);
+
+    map = getTableMap(context, zc);
+
+    if (!map.isCurrent(zc)) {
+      instanceToMapCache.invalidate(context.getInstanceID());
+      map = getTableMap(context, zc);
+    }
+
+    return map;
+  }
+
+  private static TableMap getTableMap(final ClientContext context, final ZooCache zc) {
     try {
-      map = instanceToMapCache.get(context.getInstanceID(),
-          () -> new TableMap(context, getZooCache(context)));
+      return instanceToMapCache.get(context.getInstanceID(), () -> new TableMap(context, zc));
     } catch (ExecutionException e) {
       throw new RuntimeException(e);
     }
-    return map;
   }
 
   public static boolean exists(ClientContext context, TableId tableId) {

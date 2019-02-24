@@ -42,11 +42,20 @@ public class TableMap {
   private final Map<String,TableId> tableNameToIdMap;
   private final Map<TableId,String> tableIdToNameMap;
 
+  private final ZooCache zooCache;
+  private final long updateCount;
+
   public TableMap(ClientContext context, ZooCache zooCache) {
+
+    this.zooCache = zooCache;
+    // important to read this first
+    this.updateCount = zooCache.getUpdateCount();
+
     List<String> tableIds = zooCache.getChildren(context.getZooKeeperRoot() + Constants.ZTABLES);
     Map<NamespaceId,String> namespaceIdToNameMap = new HashMap<>();
     ImmutableMap.Builder<String,TableId> tableNameToIdBuilder = new ImmutableMap.Builder<>();
     ImmutableMap.Builder<TableId,String> tableIdToNameBuilder = new ImmutableMap.Builder<>();
+
     // use StringBuilder to construct zPath string efficiently across many tables
     StringBuilder zPathBuilder = new StringBuilder();
     zPathBuilder.append(context.getZooKeeperRoot()).append(Constants.ZTABLES).append("/");
@@ -98,5 +107,9 @@ public class TableMap {
 
   public Map<TableId,String> getIdtoNameMap() {
     return tableIdToNameMap;
+  }
+
+  public boolean isCurrent(ZooCache zc) {
+    return this.zooCache == zc && this.updateCount == zc.getUpdateCount();
   }
 }
