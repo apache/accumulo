@@ -21,8 +21,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.Random;
 
+import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache.Options;
 import org.junit.Test;
 
 /**
@@ -115,7 +117,7 @@ public class TestLruBlockCache {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false);
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, EnumSet.noneOf(Options.class));
 
     Block[] blocks = generateFixedBlocks(10, blockSize, "block");
 
@@ -153,7 +155,7 @@ public class TestLruBlockCache {
     long maxSize = 100000;
     long blockSize = calculateBlockSizeDefault(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false,
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, EnumSet.noneOf(Options.class),
         (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
         LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.98f, // min
         0.99f, // acceptable
@@ -216,7 +218,7 @@ public class TestLruBlockCache {
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false,
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, EnumSet.noneOf(Options.class),
         (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
         LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.98f, // min
         0.99f, // acceptable
@@ -336,7 +338,7 @@ public class TestLruBlockCache {
     long maxSize = 100000;
     long blockSize = calculateBlockSize(maxSize, 10);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false,
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, EnumSet.noneOf(Options.class),
         (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
         LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.66f, // min
         0.99f, // acceptable
@@ -397,7 +399,7 @@ public class TestLruBlockCache {
     long maxSize = 300000;
     long blockSize = calculateBlockSize(maxSize, 31);
 
-    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, false,
+    LruBlockCache cache = new LruBlockCache(maxSize, blockSize, EnumSet.noneOf(Options.class),
         (int) Math.ceil(1.2 * maxSize / blockSize), LruBlockCache.DEFAULT_LOAD_FACTOR,
         LruBlockCache.DEFAULT_CONCURRENCY_LEVEL, 0.98f, // min
         0.99f, // acceptable
