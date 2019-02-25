@@ -1161,7 +1161,8 @@ public enum Property {
       Property.TABLE_MINC_LOGS_MAX, Property.TSERV_MAJC_MAXCONCURRENT,
       Property.REPLICATION_WORKER_THREADS, Property.TABLE_DURABILITY, Property.INSTANCE_ZK_TIMEOUT,
       Property.TABLE_CLASSPATH, Property.MASTER_METADATA_SUSPENDABLE,
-      Property.TABLE_FAILURES_IGNORE, Property.TABLE_SCAN_MAXMEM);
+      Property.TABLE_FAILURES_IGNORE, Property.TABLE_SCAN_MAXMEM,
+      Property.TSERV_SLOW_FILEPERMIT_MILLIS);
 
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT,
       Property.TSERV_NATIVEMAP_ENABLED, Property.TSERV_SCAN_MAX_OPENFILES,
