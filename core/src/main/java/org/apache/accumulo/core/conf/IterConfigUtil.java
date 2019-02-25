@@ -94,13 +94,10 @@ public class IterConfigUtil {
     return props;
   }
 
-  public static void parseIterConf(IteratorScope scope, List<IterInfo> iters,
+  public static List<IterInfo> parseIterConf(IteratorScope scope, List<IterInfo> iters,
       Map<String,Map<String,String>> allOptions, AccumuloConfiguration conf) {
-    parseIterConf(scope, iters, allOptions, conf.getAllPropertiesWithPrefix(getProperty(scope)));
-  }
-
-  public static void parseIterConf(IteratorScope scope, List<IterInfo> iters,
-      Map<String,Map<String,String>> allOptions, Map<String,String> properties) {
+    Map<String,String> properties = conf.getAllPropertiesWithPrefix(getProperty(scope));
+    ArrayList<IterInfo> iterators = new ArrayList<>(iters);
     final Property scopeProperty = getProperty(scope);
     final String scopePropertyKey = scopeProperty.getKey();
 
@@ -112,7 +109,7 @@ public class IterConfigUtil {
         String sa[] = entry.getValue().split(",");
         int prio = Integer.parseInt(sa[0]);
         String className = sa[1];
-        iters.add(new IterInfo(prio, className, suffixSplit[0]));
+        iterators.add(new IterInfo(prio, className, suffixSplit[0]));
       } else if (suffixSplit.length == 3 && suffixSplit[1].equals("opt")) {
         String iterName = suffixSplit[0];
         String optName = suffixSplit[2];
@@ -130,7 +127,8 @@ public class IterConfigUtil {
       }
     }
 
-    Collections.sort(iters, ITER_INFO_COMPARATOR);
+    Collections.sort(iterators, ITER_INFO_COMPARATOR);
+    return iterators;
   }
 
   public static void mergeIteratorConfig(List<IterInfo> destList,
@@ -171,9 +169,9 @@ public class IterConfigUtil {
   public static IterLoad loadIterConf(IteratorScope scope, List<IterInfo> iters,
       Map<String,Map<String,String>> iterOpts, AccumuloConfiguration conf) {
     Map<String,Map<String,String>> allOptions = new HashMap<>();
-    parseIterConf(scope, iters, allOptions, conf);
+    List<IterInfo> iterators = parseIterConf(scope, iters, allOptions, conf);
     mergeOptions(iterOpts, allOptions);
-    return new IterLoad().iters(iters).iterOpts(allOptions);
+    return new IterLoad().iters(iterators).iterOpts(allOptions);
   }
 
   /**

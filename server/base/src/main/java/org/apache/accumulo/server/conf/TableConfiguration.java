@@ -205,10 +205,9 @@ public class TableConfiguration extends ObservableConfiguration {
     AtomicReference<ParsedIteratorConfig> ref = iteratorConfig.get(scope);
     ParsedIteratorConfig pic = ref.get();
     if (pic == null || pic.updateCount != count) {
-      List<IterInfo> iters = new ArrayList<>();
-      Map<String,Map<String,String>> allOptions = new HashMap<>();
-      IterConfigUtil.parseIterConf(scope, iters, allOptions, this);
-      ParsedIteratorConfig newPic = new ParsedIteratorConfig(iters, allOptions,
+      Map<String,Map<String,String>> allOpts = new HashMap<>();
+      List<IterInfo> iters = IterConfigUtil.parseIterConf(scope, new ArrayList<>(), allOpts, this);
+      ParsedIteratorConfig newPic = new ParsedIteratorConfig(iters, allOpts,
           get(Property.TABLE_CLASSPATH), count);
       ref.compareAndSet(pic, newPic);
       pic = newPic;
