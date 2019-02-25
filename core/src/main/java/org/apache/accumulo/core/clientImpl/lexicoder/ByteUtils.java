@@ -76,6 +76,9 @@ public class ByteUtils {
     for (int i = 0; i < in.length; i++) {
       if (in[i] == 0x01) {
         i++;
+        if (i >= in.length) {
+          return in;
+        }
         ret[index++] = (byte) (in[i] - 1);
       } else {
         ret[index++] = in[i];

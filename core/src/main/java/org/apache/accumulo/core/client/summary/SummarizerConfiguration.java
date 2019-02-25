@@ -253,7 +253,7 @@ public class SummarizerConfiguration {
       Preconditions.checkArgument(keyValuePairs.length % 2 == 0 && keyValuePairs.length > 0,
           "Require an even, positive number of arguments, got %s", keyValuePairs.length);
       for (int i = 0; i < keyValuePairs.length; i += 2) {
-        addOption(keyValuePairs[i], keyValuePairs[i + 1]);
+        addOption(keyValuePairs[i], keyValuePairs[i + 1]); // lgtm [java/index-out-of-bounds]
       }
       return this;
     }

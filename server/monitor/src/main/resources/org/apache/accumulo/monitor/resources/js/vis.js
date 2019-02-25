@@ -238,7 +238,6 @@ function getXML() {
 function drawDots() {
   requestAnimFrame(drawDots);
   var width = Math.ceil(Math.sqrt(stats.servers.length));
-  var height = Math.ceil(stats.servers.length / width);
   var x;
   var y;
   var server;

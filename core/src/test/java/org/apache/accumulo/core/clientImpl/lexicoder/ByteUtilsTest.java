@@ -46,6 +46,7 @@ public class ByteUtilsTest {
     assertArrayEquals("56789".getBytes(), result[1]);
   }
 
+  @Test
   public void testSplitWithOffset() {
     int offset;
     byte[][] result;
@@ -69,5 +70,20 @@ public class ByteUtilsTest {
     result = ByteUtils.split(splitAt5, offset, len);
     assertEquals(1, result.length);
     assertArrayEquals("5678".getBytes(), result[0]);
+  }
+
+  @Test
+  public void testEscape() {
+    byte[] bytes = {0x00, 0x01};
+    byte[] escaped = ByteUtils.escape(bytes);
+    assertArrayEquals(bytes, ByteUtils.unescape(escaped));
+
+    // these bytes would cause an ArrayIndexOutOfBounds in the past
+    byte[] errorBytes = {0x01, 0x01, 0x01};
+    assertArrayEquals(errorBytes, ByteUtils.unescape(errorBytes));
+
+    // no escaped bytes found so returns the input
+    byte[] notEscaped = {0x02, 0x02, 0x02};
+    assertArrayEquals(notEscaped, ByteUtils.unescape(notEscaped));
   }
 }
