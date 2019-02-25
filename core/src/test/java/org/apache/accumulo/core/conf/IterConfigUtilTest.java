@@ -320,8 +320,8 @@ public class IterConfigUtilTest {
 
     AccumuloConfiguration conf = new ConfigurationCopy(data);
 
-    List<IterInfo> iterators = IterConfigUtil.parseIterConf(IteratorScope.scan,
-        new ArrayList<>(), new HashMap<>(), conf);
+    List<IterInfo> iterators = IterConfigUtil.parseIterConf(IteratorScope.scan, new ArrayList<>(),
+        new HashMap<>(), conf);
 
     assertEquals(1, iterators.size());
     IterInfo ii = iterators.get(0);

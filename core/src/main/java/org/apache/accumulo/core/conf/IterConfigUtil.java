@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 public class IterConfigUtil {
   private static final Logger log = LoggerFactory.getLogger(IterConfigUtil.class);
 
-  public static Comparator<IterInfo> ITER_INFO_COMPARATOR = Comparator
+  public static final Comparator<IterInfo> ITER_INFO_COMPARATOR = Comparator
       .comparingInt(IterInfo::getPriority);
 
   /**
