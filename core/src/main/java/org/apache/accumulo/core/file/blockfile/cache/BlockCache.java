@@ -17,6 +17,8 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import java.util.concurrent.locks.Lock;
+
 /**
  * Block cache interface.
  */
@@ -52,10 +54,20 @@ public interface BlockCache {
    */
   CacheEntry getBlock(String blockName);
 
+  CacheEntry getBlockNoStats(String blockName);
+
   /**
    * Get the maximum size of this cache.
    *
    * @return max size in bytes
    */
   long getMaxSize();
+
+  /**
+   * Return a lock used for loading data not in the cache. Should always return the same lock for
+   * the same block name. Can return different locks for different block names. Its ok to return
+   * null if locking is not desired.
+   */
+  Lock getLoadLock(String blockName);
+
 }
