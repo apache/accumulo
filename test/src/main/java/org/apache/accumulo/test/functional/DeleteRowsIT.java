@@ -120,16 +120,16 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
       int entries) throws Exception {
     // Put a bunch of rows on each tablet
     c.tableOperations().create(table);
-    BatchWriter bw = c.createBatchWriter(table, null);
-    for (String row : ROWS) {
-      for (int j = 0; j < ROWS_PER_TABLET; j++) {
-        Mutation m = new Mutation(row + j);
-        m.put("cf", "cq", "value");
-        bw.addMutation(m);
+    try (BatchWriter bw = c.createBatchWriter(table)) {
+      for (String row : ROWS) {
+        for (int j = 0; j < ROWS_PER_TABLET; j++) {
+          Mutation m = new Mutation(row + j);
+          m.put("cf", "cq", "value");
+          bw.addMutation(m);
+        }
       }
+      bw.flush();
     }
-    bw.flush();
-    bw.close();
     // Split the table
     c.tableOperations().addSplits(table, SPLITS);
 

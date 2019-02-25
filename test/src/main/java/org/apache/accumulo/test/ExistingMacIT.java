@@ -31,7 +31,6 @@ import java.util.Set;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -92,14 +91,12 @@ public class ExistingMacIT extends ConfigurableMacBase {
 
     client.tableOperations().create("table1");
 
-    BatchWriter bw = client.createBatchWriter("table1", new BatchWriterConfig());
-
-    Mutation m1 = new Mutation("00081");
-    m1.put("math", "sqroot", "9");
-    m1.put("math", "sq", "6560");
-
-    bw.addMutation(m1);
-    bw.close();
+    try (BatchWriter bw = client.createBatchWriter("table1")) {
+      Mutation m1 = new Mutation("00081");
+      m1.put("math", "sqroot", "9");
+      m1.put("math", "sq", "6560");
+      bw.addMutation(m1);
+    }
 
     client.tableOperations().flush("table1", null, null, true);
     // TODO use constants
@@ -162,11 +159,11 @@ public class ExistingMacIT extends ConfigurableMacBase {
     try (AccumuloClient client = createClient()) {
       // Ensure that a master and tserver are up so the existing instance check won't fail.
       client.tableOperations().create(table);
-      BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
-      Mutation m = new Mutation("foo");
-      m.put("cf", "cq", "value");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = client.createBatchWriter(table)) {
+        Mutation m = new Mutation("foo");
+        m.put("cf", "cq", "value");
+        bw.addMutation(m);
+      }
 
       File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf_2");
       FileUtils.deleteQuietly(hadoopConfDir);

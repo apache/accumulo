@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -89,7 +88,7 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
   @Test
   public void testIntersect() throws Exception {
     client.tableOperations().create(tableName);
-    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
       Mutation m = new Mutation("part1");
       m.put("bar", "doc1", "value");
       m.put("bar", "doc2", "value");
@@ -122,7 +121,7 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     client.tableOperations().removeProperty(tableName, "table.iterator.scan.vers");
     client.tableOperations().removeProperty(tableName, "table.iterator.majc.vers");
     client.tableOperations().removeProperty(tableName, "table.iterator.minc.vers");
-    try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
       Mutation m = new Mutation("row1");
       m.put("colf", "colq", 1L, "value");
       m.put("colf", "colq", 2L, "value");

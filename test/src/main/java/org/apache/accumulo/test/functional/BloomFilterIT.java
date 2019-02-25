@@ -237,32 +237,27 @@ public class BloomFilterIT extends AccumuloClusterHarness {
   private void write(AccumuloClient c, String table, int depth, long start, long end, int step)
       throws Exception {
 
-    BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
-
-    for (long i = start; i < end; i += step) {
-      String key = String.format("k_%010d", i);
-
-      Mutation m = null;
-
-      switch (depth) {
-        case 1:
-          m = new Mutation(new Text(key));
-          m.put(new Text("cf"), new Text("cq"), new Value(("" + i).getBytes()));
-          break;
-        case 2:
-          m = new Mutation(new Text("row"));
-          m.put(new Text(key), new Text("cq"), new Value(("" + i).getBytes()));
-          break;
-        case 3:
-          m = new Mutation(new Text("row"));
-          m.put(new Text("cf"), new Text(key), new Value(("" + i).getBytes()));
-          break;
+    try (BatchWriter bw = c.createBatchWriter(table)) {
+      for (long i = start; i < end; i += step) {
+        String key = String.format("k_%010d", i);
+        Mutation m = null;
+        switch (depth) {
+          case 1:
+            m = new Mutation(new Text(key));
+            m.put(new Text("cf"), new Text("cq"), new Value(("" + i).getBytes()));
+            break;
+          case 2:
+            m = new Mutation(new Text("row"));
+            m.put(new Text(key), new Text("cq"), new Value(("" + i).getBytes()));
+            break;
+          case 3:
+            m = new Mutation(new Text("row"));
+            m.put(new Text("cf"), new Text(key), new Value(("" + i).getBytes()));
+            break;
+        }
+        bw.addMutation(m);
       }
-
-      bw.addMutation(m);
     }
-
-    bw.close();
 
     c.tableOperations().flush(table, null, null, true);
   }

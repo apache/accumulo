@@ -25,7 +25,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -57,11 +56,11 @@ public class CloneIT extends AccumuloClusterHarness {
       TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut,
           new Value("/default_tablet".getBytes()));
 
-      try (BatchWriter bw1 = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+      try (BatchWriter bw1 = client.createBatchWriter(tableName)) {
         bw1.addMutation(mut);
       }
 
-      try (BatchWriter bw2 = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+      try (BatchWriter bw2 = client.createBatchWriter(tableName)) {
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
         int rc = MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client,
             bw2);

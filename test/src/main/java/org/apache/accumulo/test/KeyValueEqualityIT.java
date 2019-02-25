@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -43,7 +42,6 @@ public class KeyValueEqualityIT extends AccumuloClusterHarness {
   @Test
   public void testEquality() throws Exception {
     try (AccumuloClient client = createAccumuloClient()) {
-      final BatchWriterConfig config = new BatchWriterConfig();
 
       final String[] tables = getUniqueNames(2);
       final String table1 = tables[0], table2 = tables[1];
@@ -51,20 +49,18 @@ public class KeyValueEqualityIT extends AccumuloClusterHarness {
       tops.create(table1);
       tops.create(table2);
 
-      final BatchWriter bw1 = client.createBatchWriter(table1, config),
-          bw2 = client.createBatchWriter(table2, config);
+      try (BatchWriter bw1 = client.createBatchWriter(table1);
+          BatchWriter bw2 = client.createBatchWriter(table2)) {
 
-      for (int row = 0; row < 100; row++) {
-        Mutation m = new Mutation(Integer.toString(row));
-        for (int col = 0; col < 10; col++) {
-          m.put(Integer.toString(col), "", System.currentTimeMillis(), Integer.toString(col * 2));
+        for (int row = 0; row < 100; row++) {
+          Mutation m = new Mutation(Integer.toString(row));
+          for (int col = 0; col < 10; col++) {
+            m.put(Integer.toString(col), "", System.currentTimeMillis(), Integer.toString(col * 2));
+          }
+          bw1.addMutation(m);
+          bw2.addMutation(m);
         }
-        bw1.addMutation(m);
-        bw2.addMutation(m);
       }
-
-      bw1.close();
-      bw2.close();
 
       Iterator<Entry<Key,Value>> t1 = client.createScanner(table1, Authorizations.EMPTY).iterator(),
           t2 = client.createScanner(table2, Authorizations.EMPTY).iterator();

@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -96,11 +95,11 @@ public class CleanWalIT extends AccumuloClusterHarness {
     try (AccumuloClient client = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
-      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
-      Mutation m = new Mutation("row");
-      m.put("cf", "cq", "value");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("row");
+        m.put("cf", "cq", "value");
+        bw.addMutation(m);
+      }
       getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       // all 3 tables should do recovery, but the bug doesn't really remove the log file references
 
@@ -115,11 +114,11 @@ public class CleanWalIT extends AccumuloClusterHarness {
         assertEquals("Found logs for " + table, 0, countLogs(client));
       }
 
-      bw = client.createBatchWriter(tableName, new BatchWriterConfig());
-      m = new Mutation("row");
-      m.putDelete("cf", "cq");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("row");
+        m.putDelete("cf", "cq");
+        bw.addMutation(m);
+      }
       assertEquals(0, count(tableName, client));
       client.tableOperations().flush(tableName, null, null, true);
       client.tableOperations().flush(MetadataTable.NAME, null, null, true);

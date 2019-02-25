@@ -36,13 +36,10 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -107,9 +104,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
     }
   }
 
-  private void runFlushTest(AccumuloClient client, String tableName) throws AccumuloException,
-      AccumuloSecurityException, TableNotFoundException, MutationsRejectedException, Exception {
-    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+  private void runFlushTest(AccumuloClient client, String tableName) throws Exception {
+    BatchWriter bw = client.createBatchWriter(tableName);
     try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
       Random r = new SecureRandom();
 

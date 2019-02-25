@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -66,16 +65,14 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
 
       int numRows = 1 << 18;
 
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-
-      for (int i = 0; i < numRows; i++) {
-        Mutation m = new Mutation(new Text(String.format("%09x", i)));
-        m.put(new Text("cf1"), new Text("cq1"),
-            new Value(String.format("%016x", numRows - i).getBytes(UTF_8)));
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < numRows; i++) {
+          Mutation m = new Mutation(new Text(String.format("%09x", i)));
+          m.put(new Text("cf1"), new Text("cq1"),
+              new Value(String.format("%016x", numRows - i).getBytes(UTF_8)));
+          bw.addMutation(m);
+        }
       }
-
-      bw.close();
 
       c.tableOperations().flush(tableName, null, null, true);
 

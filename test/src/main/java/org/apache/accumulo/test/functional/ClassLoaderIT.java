@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -91,11 +90,11 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-      Mutation m = new Mutation("row1");
-      m.put("cf", "col1", "Test");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("row1");
+        m.put("cf", "col1", "Test");
+        bw.addMutation(m);
+      }
       scanCheck(c, tableName, "Test");
       FileSystem fs = getCluster().getFileSystem();
       Path jarPath = new Path(rootPath + "/lib/ext/Test.jar");

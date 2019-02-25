@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Mutation;
@@ -53,13 +52,11 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       IteratorSetting is = new IteratorSetting(30, BadIterator.class);
       c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc));
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-
-      Mutation m = new Mutation(new Text("r1"));
-      m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes(UTF_8)));
-
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation(new Text("r1"));
+        m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes(UTF_8)));
+        bw.addMutation(m);
+      }
 
       c.tableOperations().flush(tableName, null, null, false);
       sleepUninterruptibly(1, TimeUnit.SECONDS);
@@ -88,11 +85,11 @@ public class BadIteratorMincIT extends AccumuloClusterHarness {
 
         // now try putting bad iterator back and deleting the table
         c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.minc));
-        bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-        m = new Mutation(new Text("r2"));
-        m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes(UTF_8)));
-        bw.addMutation(m);
-        bw.close();
+        try (BatchWriter bw = c.createBatchWriter(tableName)) {
+          Mutation m = new Mutation(new Text("r2"));
+          m.put(new Text("acf"), new Text(tableName), new Value("1".getBytes(UTF_8)));
+          bw.addMutation(m);
+        }
 
         // make sure property is given time to propagate
         sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
