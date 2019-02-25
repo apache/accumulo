@@ -19,8 +19,11 @@ package org.apache.accumulo.core.conf;
 import java.util.Collection;
 import java.util.Map;
 
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public class IterLoad {
 
@@ -29,6 +32,7 @@ public class IterLoad {
   IteratorEnvironment iteratorEnvironment;
   boolean useAccumuloClassLoader;
   String context;
+  Map<String,Class<SortedKeyValueIterator<Key,Value>>> classCache;
 
   public IterLoad iters(Collection<IterInfo> iters) {
     this.iters = iters;
@@ -52,6 +56,11 @@ public class IterLoad {
 
   public IterLoad context(String context) {
     this.context = context;
+    return this;
+  }
+
+  public IterLoad classCache(Map<String,Class<SortedKeyValueIterator<Key,Value>>> classCache) {
+    this.classCache = classCache;
     return this;
   }
 }

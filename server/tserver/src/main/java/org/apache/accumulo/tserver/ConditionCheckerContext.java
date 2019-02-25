@@ -55,7 +55,7 @@ public class ConditionCheckerContext {
   private Map<String,Map<String,String>> tableIterOpts;
   private TabletIteratorEnvironment tie;
   private String context;
-  private Map<String,Class<? extends SortedKeyValueIterator<Key,Value>>> classCache;
+  private Map<String,Class<SortedKeyValueIterator<Key,Value>>> classCache;
 
   private static class MergedIterConfig {
     List<IterInfo> mergedIters;
@@ -106,8 +106,8 @@ public class ConditionCheckerContext {
     }
 
     IterLoad iterLoad = new IterLoad().iters(mic.mergedIters).iterOpts(mic.mergedItersOpts)
-        .iterEnv(tie).useAccumuloClassLoader(true).context(context);
-    return IterConfigUtil.loadIterators(systemIter, classCache, iterLoad);
+        .iterEnv(tie).useAccumuloClassLoader(true).context(context).classCache(classCache);
+    return IterConfigUtil.loadIterators(systemIter, iterLoad);
   }
 
   boolean checkConditions(SortedKeyValueIterator<Key,Value> systemIter,

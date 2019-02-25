@@ -366,7 +366,7 @@ public class Compactor implements Callable<CompactionStats> {
         throw new IllegalArgumentException();
 
       SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IterConfigUtil
-          .loadIterators(env.getIteratorScope(), cfsi, acuTableConf, iterators, iterEnv));
+          .convertItersAndLoad(env.getIteratorScope(), cfsi, acuTableConf, iterators, iterEnv));
 
       itr.seek(extent.toDataRange(), columnFamilies, inclusive);
 

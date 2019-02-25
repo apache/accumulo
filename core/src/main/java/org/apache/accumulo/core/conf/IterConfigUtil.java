@@ -25,6 +25,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -103,7 +104,7 @@ public class IterConfigUtil {
     final Property scopeProperty = getProperty(scope);
     final String scopePropertyKey = scopeProperty.getKey();
 
-    for (Map.Entry<String,String> entry : properties.entrySet()) {
+    for (Entry<String,String> entry : properties.entrySet()) {
       String suffix = entry.getKey().substring(scopePropertyKey.length());
       String suffixSplit[] = suffix.split("\\.", 3);
 
@@ -138,10 +139,10 @@ public class IterConfigUtil {
       Map<String,Map<String,String>> ssio) {
     destList.addAll(tableIters);
     destList.addAll(ssi);
-    Collections.sort(destList, IterConfigUtil.ITER_INFO_COMPARATOR);
+    Collections.sort(destList, ITER_INFO_COMPARATOR);
 
-    Set<Map.Entry<String,Map<String,String>>> es = tableOpts.entrySet();
-    for (Map.Entry<String,Map<String,String>> entry : es) {
+    Set<Entry<String,Map<String,String>>> es = tableOpts.entrySet();
+    for (Entry<String,Map<String,String>> entry : es) {
       if (entry.getValue() == null) {
         destOpts.put(entry.getKey(), null);
       } else {
@@ -155,27 +156,30 @@ public class IterConfigUtil {
 
   private static void mergeOptions(Map<String,Map<String,String>> ssio,
       Map<String,Map<String,String>> allOptions) {
-    for (Map.Entry<String,Map<String,String>> entry : ssio.entrySet()) {
-      if (entry.getValue() == null)
-        continue;
-      Map<String,String> options = allOptions.get(entry.getKey());
-      if (options == null) {
-        allOptions.put(entry.getKey(), entry.getValue());
-      } else {
-        options.putAll(entry.getValue());
+    ssio.forEach((k, v) -> {
+      if (v != null) {
+        Map<String,String> options = allOptions.get(k);
+        if (options == null) {
+          allOptions.put(k, v);
+        } else {
+          options.putAll(v);
+        }
       }
-    }
+    });
   }
 
   public static IterLoad loadIterConf(IteratorScope scope, List<IterInfo> iters,
       Map<String,Map<String,String>> iterOpts, AccumuloConfiguration conf) {
     Map<String,Map<String,String>> allOptions = new HashMap<>();
-    IterConfigUtil.parseIterConf(scope, iters, allOptions, conf);
+    parseIterConf(scope, iters, allOptions, conf);
     mergeOptions(iterOpts, allOptions);
     return new IterLoad().iters(iters).iterOpts(allOptions);
   }
 
-  public static SortedKeyValueIterator<Key,Value> loadIterators(IteratorScope scope,
+  /**
+   * Convert the list of iterators to IterInfo objects and then load the stack.
+   */
+  public static SortedKeyValueIterator<Key,Value> convertItersAndLoad(IteratorScope scope,
       SortedKeyValueIterator<Key,Value> source, AccumuloConfiguration conf,
       List<IteratorSetting> iterators, IteratorEnvironment env) throws IOException {
 
@@ -188,34 +192,28 @@ public class IterConfigUtil {
     }
 
     IterLoad il = loadIterConf(scope, ssiList, ssio, conf);
-    return loadIterators(source,
-        il.iterEnv(env).useAccumuloClassLoader(true).context(conf.get(Property.TABLE_CLASSPATH)));
+    il = il.iterEnv(env).useAccumuloClassLoader(true).context(conf.get(Property.TABLE_CLASSPATH));
+    return loadIterators(source, il);
   }
 
+  /**
+   * Load a stack of iterators provided in the IterLoad, starting with source.
+   */
   public static SortedKeyValueIterator<Key,Value> loadIterators(
-      SortedKeyValueIterator<Key,Value> source, IterLoad il) throws IOException {
-    return loadIterators(source, null, il);
-  }
-
-  public static SortedKeyValueIterator<Key,Value> loadIterators(
-      SortedKeyValueIterator<Key,Value> source,
-      Map<String,Class<? extends SortedKeyValueIterator<Key,Value>>> classCache, IterLoad iterLoad)
-      throws IOException {
-    // wrap the source in a SynchronizedIterator in case any of the additional configured iterators
-    // want to use threading
+      SortedKeyValueIterator<Key,Value> source, IterLoad iterLoad) throws IOException {
     SortedKeyValueIterator<Key,Value> prev = source;
 
     try {
       for (IterInfo iterInfo : iterLoad.iters) {
 
-        Class<? extends SortedKeyValueIterator<Key,Value>> clazz = null;
+        Class<SortedKeyValueIterator<Key,Value>> clazz = null;
         log.trace("Attempting to load iterator class {}", iterInfo.className);
-        if (classCache != null) {
-          clazz = classCache.get(iterInfo.className);
+        if (iterLoad.classCache != null) {
+          clazz = iterLoad.classCache.get(iterInfo.className);
 
           if (clazz == null) {
             clazz = loadClass(iterLoad.useAccumuloClassLoader, iterLoad.context, iterInfo);
-            classCache.put(iterInfo.className, clazz);
+            iterLoad.classCache.put(iterInfo.className, clazz);
           }
         } else {
           clazz = loadClass(iterLoad.useAccumuloClassLoader, iterLoad.context, iterInfo);
