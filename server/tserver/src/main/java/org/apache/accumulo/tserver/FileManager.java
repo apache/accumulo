@@ -295,9 +295,8 @@ public class FileManager {
       long waitTime = System.currentTimeMillis() - start;
 
       if (waitTime >= slowFilePermitMillis) {
-        String message = new StringBuilder(128).append("Slow file permits request: ")
-            .append(waitTime).append(" ms, files requested: ").append(files.size()).toString();
-        log.info(message);
+        log.info("Slow file permits request: {} ms, files requested: {}, tablet: {}", waitTime,
+            files.size(), tablet);
       }
     }
 
