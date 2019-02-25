@@ -81,16 +81,14 @@ public class TimeoutIT extends AccumuloClusterHarness {
   public void testBatchScannerTimeout(AccumuloClient client, String tableName) throws Exception {
     client.tableOperations().create(tableName);
 
-    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
-
-    Mutation m = new Mutation("r1");
-    m.put("cf1", "cq1", "v1");
-    m.put("cf1", "cq2", "v2");
-    m.put("cf1", "cq3", "v3");
-    m.put("cf1", "cq4", "v4");
-
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
+      Mutation m = new Mutation("r1");
+      m.put("cf1", "cq1", "v1");
+      m.put("cf1", "cq2", "v2");
+      m.put("cf1", "cq3", "v3");
+      m.put("cf1", "cq4", "v4");
+      bw.addMutation(m);
+    }
 
     try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
       bs.setRanges(Collections.singletonList(new Range()));

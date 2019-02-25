@@ -60,13 +60,13 @@ public class MergeIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k".split(" ")));
-      BatchWriter bw = c.createBatchWriter(tableName, null);
-      for (String row : "a b c d e f g h i j k".split(" ")) {
-        Mutation m = new Mutation(row);
-        m.put("cf", "cq", "value");
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (String row : "a b c d e f g h i j k".split(" ")) {
+          Mutation m = new Mutation(row);
+          m.put("cf", "cq", "value");
+          bw.addMutation(m);
+        }
       }
-      bw.close();
       c.tableOperations().flush(tableName, null, null, true);
       c.tableOperations().merge(tableName, new Text("c1"), new Text("f1"));
       assertEquals(8, c.tableOperations().listSplits(tableName).size());
@@ -80,13 +80,13 @@ public class MergeIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       c.tableOperations().addSplits(tableName,
           splits("a b c d e f g h i j k l m n o p q r s t u v w x y z".split(" ")));
-      BatchWriter bw = c.createBatchWriter(tableName, null);
-      for (String row : "c e f y".split(" ")) {
-        Mutation m = new Mutation(row);
-        m.put("cf", "cq", "mersydotesanddozeydotesanlittolamsiedives");
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (String row : "c e f y".split(" ")) {
+          Mutation m = new Mutation(row);
+          m.put("cf", "cq", "mersydotesanddozeydotesanlittolamsiedives");
+          bw.addMutation(m);
+        }
       }
-      bw.close();
       c.tableOperations().flush(tableName, null, null, true);
       Merge merge = new Merge();
       merge.mergomatic(c, tableName, null, null, 100, false);
@@ -172,16 +172,15 @@ public class MergeIT extends AccumuloClusterHarness {
     }
     client.tableOperations().addSplits(table, splitSet);
 
-    BatchWriter bw = client.createBatchWriter(table, null);
     HashSet<String> expected = new HashSet<>();
-    for (String row : inserts) {
-      Mutation m = new Mutation(row);
-      m.put("cf", "cq", row);
-      bw.addMutation(m);
-      expected.add(row);
+    try (BatchWriter bw = client.createBatchWriter(table)) {
+      for (String row : inserts) {
+        Mutation m = new Mutation(row);
+        m.put("cf", "cq", row);
+        bw.addMutation(m);
+        expected.add(row);
+      }
     }
-
-    bw.close();
 
     client.tableOperations().merge(table, start == null ? null : new Text(start),
         end == null ? null : new Text(end));

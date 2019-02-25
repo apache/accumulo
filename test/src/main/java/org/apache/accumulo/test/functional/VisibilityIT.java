@@ -33,7 +33,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -118,43 +117,39 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   private void insertData(AccumuloClient c, String tableName) throws Exception {
 
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m1 = new Mutation(new Text("row1"));
-
-    mput(m1, "cf1", "cq1", "", "v1");
-    mput(m1, "cf1", "cq1", "A", "v2");
-    mput(m1, "cf1", "cq1", "B", "v3");
-    mput(m1, "cf1", "cq1", "A&B", "v4");
-    mput(m1, "cf1", "cq1", "A&(L|M)", "v5");
-    mput(m1, "cf1", "cq1", "B&(L|M)", "v6");
-    mput(m1, "cf1", "cq1", "A&B&(L|M)", "v7");
-    mput(m1, "cf1", "cq1", "A&B&(L)", "v8");
-    mput(m1, "cf1", "cq1", "A&FOO", "v9");
-    mput(m1, "cf1", "cq1", "A&FOO&(L|M)", "v10");
-    mput(m1, "cf1", "cq1", "FOO", "v11");
-    mput(m1, "cf1", "cq1", "(A|B)&FOO&(L|M)", "v12");
-    mput(m1, "cf1", "cq1", "A&B&(L|M|FOO)", "v13");
-
-    bw.addMutation(m1);
-    bw.close();
+    try (BatchWriter bw = c.createBatchWriter(tableName)) {
+      Mutation m1 = new Mutation(new Text("row1"));
+      mput(m1, "cf1", "cq1", "", "v1");
+      mput(m1, "cf1", "cq1", "A", "v2");
+      mput(m1, "cf1", "cq1", "B", "v3");
+      mput(m1, "cf1", "cq1", "A&B", "v4");
+      mput(m1, "cf1", "cq1", "A&(L|M)", "v5");
+      mput(m1, "cf1", "cq1", "B&(L|M)", "v6");
+      mput(m1, "cf1", "cq1", "A&B&(L|M)", "v7");
+      mput(m1, "cf1", "cq1", "A&B&(L)", "v8");
+      mput(m1, "cf1", "cq1", "A&FOO", "v9");
+      mput(m1, "cf1", "cq1", "A&FOO&(L|M)", "v10");
+      mput(m1, "cf1", "cq1", "FOO", "v11");
+      mput(m1, "cf1", "cq1", "(A|B)&FOO&(L|M)", "v12");
+      mput(m1, "cf1", "cq1", "A&B&(L|M|FOO)", "v13");
+      bw.addMutation(m1);
+    }
   }
 
   private void deleteData(AccumuloClient c, String tableName) throws Exception {
 
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m1 = new Mutation(new Text("row1"));
-
-    mputDelete(m1, "cf1", "cq1", "");
-    mputDelete(m1, "cf1", "cq1", "A");
-    mputDelete(m1, "cf1", "cq1", "A&B");
-    mputDelete(m1, "cf1", "cq1", "B&(L|M)");
-    mputDelete(m1, "cf1", "cq1", "A&B&(L)");
-    mputDelete(m1, "cf1", "cq1", "A&FOO&(L|M)");
-    mputDelete(m1, "cf1", "cq1", "(A|B)&FOO&(L|M)");
-    mputDelete(m1, "cf1", "cq1", "FOO&A"); // should not delete anything
-
-    bw.addMutation(m1);
-    bw.close();
+    try (BatchWriter bw = c.createBatchWriter(tableName)) {
+      Mutation m1 = new Mutation(new Text("row1"));
+      mputDelete(m1, "cf1", "cq1", "");
+      mputDelete(m1, "cf1", "cq1", "A");
+      mputDelete(m1, "cf1", "cq1", "A&B");
+      mputDelete(m1, "cf1", "cq1", "B&(L|M)");
+      mputDelete(m1, "cf1", "cq1", "A&B&(L)");
+      mputDelete(m1, "cf1", "cq1", "A&FOO&(L|M)");
+      mputDelete(m1, "cf1", "cq1", "(A|B)&FOO&(L|M)");
+      mputDelete(m1, "cf1", "cq1", "FOO&A"); // should not delete anything
+      bw.addMutation(m1);
+    }
 
     Map<Set<String>,Set<String>> expected = new HashMap<>();
 
@@ -173,15 +168,13 @@ public class VisibilityIT extends AccumuloClusterHarness {
   }
 
   private void insertDefaultData(AccumuloClient c, String tableName) throws Exception {
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m1 = new Mutation(new Text("row1"));
-
-    mput(m1, "cf1", "cq1", "BASE", "v1");
-    mput(m1, "cf1", "cq2", "DEFLABEL", "v2");
-    mput(m1, "cf1", "cq3", "", "v3");
-
-    bw.addMutation(m1);
-    bw.close();
+    try (BatchWriter bw = c.createBatchWriter(tableName)) {
+      Mutation m1 = new Mutation(new Text("row1"));
+      mput(m1, "cf1", "cq1", "BASE", "v1");
+      mput(m1, "cf1", "cq2", "DEFLABEL", "v2");
+      mput(m1, "cf1", "cq3", "", "v3");
+      bw.addMutation(m1);
+    }
   }
 
   private static void uniqueCombos(List<Set<String>> all, Set<String> prefix, Set<String> suffix) {

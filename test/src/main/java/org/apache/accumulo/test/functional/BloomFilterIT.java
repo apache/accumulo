@@ -28,7 +28,6 @@ import java.util.Random;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
@@ -95,11 +94,11 @@ public class BloomFilterIT extends AccumuloClusterHarness {
         log.info("Writing complete");
 
         // test inserting an empty key
-        BatchWriter bw = c.createBatchWriter(tables[3], new BatchWriterConfig());
-        Mutation m = new Mutation(new Text(""));
-        m.put(new Text(""), new Text(""), new Value("foo1".getBytes()));
-        bw.addMutation(m);
-        bw.close();
+        try (BatchWriter bw = c.createBatchWriter(tables[3])) {
+          Mutation m = new Mutation(new Text(""));
+          m.put(new Text(""), new Text(""), new Value("foo1".getBytes()));
+          bw.addMutation(m);
+        }
         c.tableOperations().flush(tables[3], null, null, true);
 
         for (String table : Arrays.asList(tables[0], tables[1], tables[2])) {

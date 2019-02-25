@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -99,17 +98,15 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
 
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < 100000; i++) {
+          Mutation m = new Mutation(new Text(String.format("%08d", i)));
+          for (int j = 0; j < 3; j++)
+            m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
 
-      for (int i = 0; i < 100000; i++) {
-        Mutation m = new Mutation(new Text(String.format("%08d", i)));
-        for (int j = 0; j < 3; j++)
-          m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
-
-        bw.addMutation(m);
+          bw.addMutation(m);
+        }
       }
-
-      bw.close();
 
       try (Scanner scanner = c.createScanner(tableName, new Authorizations())) {
         scanner.setBatchSize(1000);

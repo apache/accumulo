@@ -59,13 +59,9 @@ import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -387,9 +383,9 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       accumuloClient.tableOperations().setProperty(tableName, "table.groups.enabled", "g1");
       ingest(accumuloClient, getClientInfo(), 2000, 1, 50, 0, tableName);
       accumuloClient.tableOperations().compact(tableName, null, null, true, true);
-      BatchWriter bw = accumuloClient.createBatchWriter(tableName, new BatchWriterConfig());
-      bw.addMutation(m("zzzzzzzzzzz", "colf2", "cq", "value"));
-      bw.close();
+      try (BatchWriter bw = accumuloClient.createBatchWriter(tableName)) {
+        bw.addMutation(m("zzzzzzzzzzz", "colf2", "cq", "value"));
+      }
       long now = System.currentTimeMillis();
       try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.fetchColumnFamily(new Text("colf"));
@@ -402,7 +398,6 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         scanner.fetchColumnFamily(new Text("colf2"));
         Iterators.size(scanner.iterator());
       }
-      bw.close();
       long diff2 = System.currentTimeMillis() - now;
       assertTrue(diff2 < diff);
     }
@@ -442,8 +437,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   }
 
   private void verifyLocalityGroupsInRFile(final AccumuloClient accumuloClient,
-      final String tableName)
-      throws Exception, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      final String tableName) throws Exception {
     ingest(accumuloClient, getClientInfo(), 2000, 1, 50, 0, tableName);
     verify(accumuloClient, getClientInfo(), 2000, 1, 50, 0, tableName);
     accumuloClient.tableOperations().flush(tableName, null, null, true);

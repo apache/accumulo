@@ -90,13 +90,13 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   private void writeSome(AccumuloClient c, String tableName, int n, BatchWriterConfig cfg)
       throws Exception {
-    BatchWriter bw = c.createBatchWriter(tableName, cfg);
-    for (int i = 0; i < n; i++) {
-      Mutation m = new Mutation(i + "");
-      m.put("", "", "");
-      bw.addMutation(m);
+    try (BatchWriter bw = c.createBatchWriter(tableName, cfg)) {
+      for (int i = 0; i < n; i++) {
+        Mutation m = new Mutation(i + "");
+        m.put("", "", "");
+        bw.addMutation(m);
+      }
     }
-    bw.close();
   }
 
   @Test(timeout = 3 * 60 * 1000)

@@ -22,7 +22,6 @@ import static org.junit.Assert.assertNull;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -57,11 +56,11 @@ public class MasterAssignmentIT extends AccumuloClusterHarness {
       assertNull(newTablet.future);
 
       // put something in it
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-      Mutation m = new Mutation("a");
-      m.put("b", "c", "d");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("a");
+        m.put("b", "c", "d");
+        bw.addMutation(m);
+      }
       // give it a last location
       c.tableOperations().flush(tableName, null, null, true);
 

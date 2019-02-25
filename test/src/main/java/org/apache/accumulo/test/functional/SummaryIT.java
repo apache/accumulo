@@ -486,7 +486,7 @@ public class SummaryIT extends AccumuloClusterHarness {
       ntc.enableSummarization(sc1);
       c.tableOperations().create(table, ntc);
 
-      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+      try (BatchWriter bw = c.createBatchWriter(table)) {
         write(bw, "bar1", "f1", "q1", "v1");
         write(bw, "bar2", "f1", "q1", "v2");
         write(bw, "foo1", "f1", "q1", "v3");
@@ -515,7 +515,7 @@ public class SummaryIT extends AccumuloClusterHarness {
         assertEquals(2, counts.size());
       }
 
-      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+      try (BatchWriter bw = c.createBatchWriter(table)) {
         write(bw, "foo2", "f1", "q1", "v4");
         write(bw, "foo3", "f1", "q1", "v5");
         write(bw, "foo4", "f1", "q1", "v6");
@@ -558,7 +558,7 @@ public class SummaryIT extends AccumuloClusterHarness {
       // add a single split so that summary stats merge is forced
       c.tableOperations().addSplits(table, new TreeSet<>(Collections.singleton(new Text("g"))));
 
-      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+      try (BatchWriter bw = c.createBatchWriter(table)) {
         write(bw, "bar1", "f1", "q1", "v1");
         write(bw, "bar2", "f1", "q1", "v2");
         write(bw, "foo1", "f1", "q1", "v3");
@@ -582,7 +582,7 @@ public class SummaryIT extends AccumuloClusterHarness {
       ntc.enableSummarization(sc1);
       c.tableOperations().create(table, ntc);
 
-      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+      try (BatchWriter bw = c.createBatchWriter(table)) {
         write(bw, "bar1", "f1", "q1", "v1");
         write(bw, "bar2", "f1", "q1", "v2");
         write(bw, "foo1", "f1", "q1", "v3");
@@ -658,7 +658,7 @@ public class SummaryIT extends AccumuloClusterHarness {
       ntc.enableSummarization(sc1);
       c.tableOperations().create(table, ntc);
 
-      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+      try (BatchWriter bw = c.createBatchWriter(table)) {
         write(bw, "a_large", "f1", "q1", "v1");
         write(bw, "v_small", "f1", "q1", "v2");
       }
@@ -739,7 +739,7 @@ public class SummaryIT extends AccumuloClusterHarness {
       c.tableOperations().create(table, ntc);
 
       Map<Key,Value> expected = new HashMap<>();
-      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+      try (BatchWriter bw = c.createBatchWriter(table)) {
         write(bw, expected, "order:001", "chocolate", "dark", 3L, "99kg");
         write(bw, expected, "order:001", "chocolate", "light", 4L, "94kg");
         write(bw, expected, "order:001", "coffee", "dark", 5L, "33kg");
@@ -861,7 +861,7 @@ public class SummaryIT extends AccumuloClusterHarness {
 
       for (int t = 0; t < 20; t++) {
         // this loop should cause a varying number of files and compactions
-        try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+        try (BatchWriter bw = c.createBatchWriter(table)) {
           for (int i = 0; i < 10000; i++) {
             String row = String.format("%06d", rand.nextInt(1_000_000));
             String fam = String.format("%03d", rand.nextInt(100));
