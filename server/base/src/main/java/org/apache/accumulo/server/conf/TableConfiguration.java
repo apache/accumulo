@@ -18,7 +18,7 @@ package org.apache.accumulo.server.conf;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -29,11 +29,11 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
+import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.ObservableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
@@ -205,10 +205,10 @@ public class TableConfiguration extends ObservableConfiguration {
     AtomicReference<ParsedIteratorConfig> ref = iteratorConfig.get(scope);
     ParsedIteratorConfig pic = ref.get();
     if (pic == null || pic.updateCount != count) {
-      List<IterInfo> iters = new ArrayList<>();
-      Map<String,Map<String,String>> allOptions = new HashMap<>();
-      IteratorUtil.parseIterConf(scope, iters, allOptions, this);
-      ParsedIteratorConfig newPic = new ParsedIteratorConfig(iters, allOptions,
+      Map<String,Map<String,String>> allOpts = new HashMap<>();
+      List<IterInfo> iters = IterConfigUtil.parseIterConf(scope, Collections.emptyList(), allOpts,
+          this);
+      ParsedIteratorConfig newPic = new ParsedIteratorConfig(iters, allOpts,
           get(Property.TABLE_CLASSPATH), count);
       ref.compareAndSet(pic, newPic);
       pic = newPic;

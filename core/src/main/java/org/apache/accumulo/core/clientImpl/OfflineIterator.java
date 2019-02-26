@@ -34,6 +34,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.IterConfigUtil;
+import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
@@ -46,7 +48,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
@@ -58,6 +59,7 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.SystemIteratorUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -344,12 +346,14 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
         acuTableConf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
     defaultSecurityLabel = cv.getExpression();
 
-    SortedKeyValueIterator<Key,Value> visFilter = IteratorUtil.setupSystemScanIterators(multiIter,
-        new HashSet<>(options.fetchedColumns), authorizations, defaultSecurityLabel, acuTableConf);
+    SortedKeyValueIterator<Key,Value> visFilter = SystemIteratorUtil.setupSystemScanIterators(
+        multiIter, new HashSet<>(options.fetchedColumns), authorizations, defaultSecurityLabel,
+        acuTableConf);
+    IterLoad iterLoad = IterConfigUtil.loadIterConf(IteratorScope.scan,
+        options.serverSideIteratorList, options.serverSideIteratorOptions, acuTableConf);
 
-    return iterEnv.getTopLevelIterator(
-        IteratorUtil.loadIterators(IteratorScope.scan, visFilter, extent, acuTableConf,
-            options.serverSideIteratorList, options.serverSideIteratorOptions, iterEnv, false));
+    return iterEnv.getTopLevelIterator(IterConfigUtil.loadIterators(visFilter,
+        iterLoad.iterEnv(iterEnv).useAccumuloClassLoader(false)));
   }
 
   @Override
