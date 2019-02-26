@@ -29,7 +29,6 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
@@ -93,13 +92,13 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       // Insert rows with the word "Test" in the value.
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-      for (int i = 0; i < ITERATIONS; i++) {
-        Mutation m = new Mutation("row" + i);
-        m.put("cf", "col1", "Test");
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < ITERATIONS; i++) {
+          Mutation m = new Mutation("row" + i);
+          m.put("cf", "col1", "Test");
+          bw.addMutation(m);
+        }
       }
-      bw.close();
       // Ensure that we can get the data back
       scanCheck(c, tableName, null, null, "Test");
       batchCheck(c, tableName, null, null, "Test");
@@ -150,13 +149,13 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       // Set the FOO context on the table
       c.tableOperations().setProperty(tableName, Property.TABLE_CLASSPATH.getKey(), tableContext);
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-      for (int i = 0; i < ITERATIONS; i++) {
-        Mutation m = new Mutation("row" + i);
-        m.put("cf", "col1", "Test");
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < ITERATIONS; i++) {
+          Mutation m = new Mutation("row" + i);
+          m.put("cf", "col1", "Test");
+          bw.addMutation(m);
+        }
       }
-      bw.close();
       scanCheck(c, tableName, null, null, "Test");
       batchCheck(c, tableName, null, null, "Test");
       // This iterator is in the test iterators jar file
@@ -198,13 +197,13 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       // Insert rows with the word "Test" in the value.
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-      for (int i = 0; i < ITERATIONS; i++) {
-        Mutation m = new Mutation("row" + i);
-        m.put("cf", "col1", "Test");
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < ITERATIONS; i++) {
+          Mutation m = new Mutation("row" + i);
+          m.put("cf", "col1", "Test");
+          bw.addMutation(m);
+        }
       }
-      bw.close();
 
       try (Scanner one = c.createScanner(tableName, Authorizations.EMPTY);
           Scanner two = c.createScanner(tableName, Authorizations.EMPTY)) {
@@ -244,13 +243,13 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       // Insert rows with the word "Test" in the value.
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-      for (int i = 0; i < ITERATIONS; i++) {
-        Mutation m = new Mutation("row" + i);
-        m.put("cf", "col1", "Test");
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < ITERATIONS; i++) {
+          Mutation m = new Mutation("row" + i);
+          m.put("cf", "col1", "Test");
+          bw.addMutation(m);
+        }
       }
-      bw.close();
 
       try (Scanner one = c.createScanner(tableName, Authorizations.EMPTY)) {
         IteratorSetting cfg = new IteratorSetting(21, "reverse",

@@ -23,7 +23,6 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -227,23 +226,19 @@ public class ScanRangeIT extends AccumuloClusterHarness {
 
   private void insertData(AccumuloClient c, String table) throws Exception {
 
-    BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
-
-    for (int i = 0; i < ROW_LIMIT; i++) {
-      Mutation m = new Mutation(createRow(i));
-
-      for (int j = 0; j < CF_LIMIT; j++) {
-        for (int k = 0; k < CQ_LIMIT; k++) {
-          for (int t = 0; t < TS_LIMIT; t++) {
-            m.put(createCF(j), createCQ(k), t,
-                new Value(String.format("%06d_%03d_%03d_%03d", i, j, k, t).getBytes(UTF_8)));
+    try (BatchWriter bw = c.createBatchWriter(table)) {
+      for (int i = 0; i < ROW_LIMIT; i++) {
+        Mutation m = new Mutation(createRow(i));
+        for (int j = 0; j < CF_LIMIT; j++) {
+          for (int k = 0; k < CQ_LIMIT; k++) {
+            for (int t = 0; t < TS_LIMIT; t++) {
+              m.put(createCF(j), createCQ(k), t,
+                  new Value(String.format("%06d_%03d_%03d_%03d", i, j, k, t).getBytes(UTF_8)));
+            }
           }
         }
+        bw.addMutation(m);
       }
-
-      bw.addMutation(m);
     }
-
-    bw.close();
   }
 }

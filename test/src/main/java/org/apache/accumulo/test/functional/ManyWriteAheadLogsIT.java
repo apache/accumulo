@@ -31,7 +31,6 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -108,9 +107,8 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
       // WALs. If nothing is done about all of these closed WALs, then it could cause a large burden
       // at recovery time.
 
-      try (BatchWriter manyWALsWriter = c.createBatchWriter(manyWALsTable, new BatchWriterConfig());
-          BatchWriter rollWALsWriter = c.createBatchWriter(rollWALsTable,
-              new BatchWriterConfig())) {
+      try (BatchWriter manyWALsWriter = c.createBatchWriter(manyWALsTable);
+          BatchWriter rollWALsWriter = c.createBatchWriter(rollWALsTable)) {
 
         byte[] val = new byte[768];
 

@@ -25,7 +25,6 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -80,16 +79,15 @@ public class TabletIT extends AccumuloClusterHarness {
       accumuloClient.tableOperations().setProperty(tableName,
           Property.TABLE_SPLIT_THRESHOLD.getKey(), "200");
       accumuloClient.tableOperations().addSplits(tableName, keys);
-      BatchWriter b = accumuloClient.createBatchWriter(tableName, new BatchWriterConfig());
-
-      // populate
-      for (int i = 0; i < N; i++) {
-        Mutation m = new Mutation(new Text(String.format("%05d", i)));
-        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"),
-            new Value("junk".getBytes(UTF_8)));
-        b.addMutation(m);
+      try (BatchWriter b = accumuloClient.createBatchWriter(tableName)) {
+        // populate
+        for (int i = 0; i < N; i++) {
+          Mutation m = new Mutation(new Text(String.format("%05d", i)));
+          m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"),
+              new Value("junk".getBytes(UTF_8)));
+          b.addMutation(m);
+        }
       }
-      b.close();
     }
 
     try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {

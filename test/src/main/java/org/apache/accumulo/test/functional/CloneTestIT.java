@@ -35,7 +35,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
@@ -270,7 +269,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
       client.tableOperations().addSplits(tables[0], splits);
 
-      try (BatchWriter bw = client.createBatchWriter(tables[0], new BatchWriterConfig())) {
+      try (BatchWriter bw = client.createBatchWriter(tables[0])) {
         bw.addMutations(mutations);
       }
 

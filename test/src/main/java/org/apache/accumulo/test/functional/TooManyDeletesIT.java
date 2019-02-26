@@ -24,7 +24,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
@@ -59,7 +58,7 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
 
       c.tableOperations().create(table, ntc);
 
-      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+      try (BatchWriter bw = c.createBatchWriter(table)) {
         for (int i = 0; i < 1000; i++) {
           Mutation m = new Mutation("row" + i);
           m.put("f", "q", "v" + i);
@@ -76,7 +75,7 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
       assertEquals(1000L, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
       assertEquals(0L, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
 
-      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+      try (BatchWriter bw = c.createBatchWriter(table)) {
         for (int i = 0; i < 100; i++) {
           Mutation m = new Mutation("row" + i);
           m.putDelete("f", "q");
@@ -92,7 +91,7 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
       assertEquals(1100L, (long) summary.getStatistics().get(DeletesSummarizer.TOTAL_STAT));
       assertEquals(100L, (long) summary.getStatistics().get(DeletesSummarizer.DELETES_STAT));
 
-      try (BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig())) {
+      try (BatchWriter bw = c.createBatchWriter(table)) {
         for (int i = 100; i < 300; i++) {
           Mutation m = new Mutation("row" + i);
           m.putDelete("f", "q");

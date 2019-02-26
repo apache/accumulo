@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -184,11 +183,11 @@ public class KerberosRenewalIT extends AccumuloITBase {
       AccumuloSecurityException, AccumuloException, TableExistsException {
     final String table = testName.getMethodName() + "_table";
     client.tableOperations().create(table);
-    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
-    Mutation m = new Mutation("a");
-    m.put("b", "c", "d");
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = client.createBatchWriter(table)) {
+      Mutation m = new Mutation("a");
+      m.put("b", "c", "d");
+      bw.addMutation(m);
+    }
     client.tableOperations().compact(table, new CompactionConfig().setFlush(true).setWait(true));
     try (Scanner s = client.createScanner(table, Authorizations.EMPTY)) {
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);

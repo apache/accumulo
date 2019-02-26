@@ -29,7 +29,6 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -110,19 +109,16 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = createAccumuloClient()) {
 
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-
-      for (int i = 0; i < 1000; i++) {
-        Mutation m = new Mutation(new Text(String.format("%06d", i)));
-        m.put(new Text("cf1"), new Text("cq1"),
-            new Value(Integer.toString(1000 - i).getBytes(UTF_8)));
-        m.put(new Text("cf1"), new Text("cq2"),
-            new Value(Integer.toString(i - 1000).getBytes(UTF_8)));
-
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < 1000; i++) {
+          Mutation m = new Mutation(new Text(String.format("%06d", i)));
+          m.put(new Text("cf1"), new Text("cq1"),
+              new Value(Integer.toString(1000 - i).getBytes(UTF_8)));
+          m.put(new Text("cf1"), new Text("cq2"),
+              new Value(Integer.toString(i - 1000).getBytes(UTF_8)));
+          bw.addMutation(m);
+        }
       }
-
-      bw.close();
 
       try (Scanner scanner = c.createScanner(tableName, new Authorizations());
           BatchScanner bscanner = c.createBatchScanner(tableName, new Authorizations(), 3)) {
@@ -243,13 +239,11 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
   private void writeTestMutation(AccumuloClient userC)
       throws TableNotFoundException, MutationsRejectedException {
-    BatchWriter batchWriter = userC.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m = new Mutation("1");
-    m.put(new Text("2"), new Text("3"), new Value("".getBytes()));
-    batchWriter.addMutation(m);
-    batchWriter.flush();
-    batchWriter.close();
-
+    try (BatchWriter batchWriter = userC.createBatchWriter(tableName)) {
+      Mutation m = new Mutation("1");
+      m.put(new Text("2"), new Text("3"), new Value("".getBytes()));
+      batchWriter.addMutation(m);
+      batchWriter.flush();
+    }
   }
-
 }

@@ -147,9 +147,9 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     Mutation m = new Mutation(new KeyExtent(tableIdToModify, null, null).getMetadataEntry());
     m.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME, new Text("1234567"),
         new Value("fake:9005".getBytes(UTF_8)));
-    BatchWriter bw = client.createBatchWriter(table, null);
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = client.createBatchWriter(table)) {
+      bw.addMutation(m);
+    }
   }
 
   private void reassignLocation(AccumuloClient client, String table, String tableNameToModify)
@@ -165,9 +165,9 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
           entry.getKey().getTimestamp());
       m.put(entry.getKey().getColumnFamily(), new Text("1234567"),
           entry.getKey().getTimestamp() + 1, new Value("fake:9005".getBytes(UTF_8)));
-      BatchWriter bw = client.createBatchWriter(table, null);
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = client.createBatchWriter(table)) {
+        bw.addMutation(m);
+      }
     }
   }
 

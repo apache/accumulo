@@ -170,25 +170,25 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
   private void writeSomeData(AccumuloClient client, String tableName, int row, int col)
       throws Exception {
     Random rand = new SecureRandom();
-    BatchWriter bw = client.createBatchWriter(tableName, null);
-    byte[] rowData = new byte[10];
-    byte[] cq = new byte[10];
-    byte[] value = new byte[10];
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
+      byte[] rowData = new byte[10];
+      byte[] cq = new byte[10];
+      byte[] value = new byte[10];
 
-    for (int r = 0; r < row; r++) {
-      rand.nextBytes(rowData);
-      Mutation m = new Mutation(rowData);
-      for (int c = 0; c < col; c++) {
-        rand.nextBytes(cq);
-        rand.nextBytes(value);
-        m.put(CF, new Text(cq), new Value(value));
-      }
-      bw.addMutation(m);
-      if (r % 100 == 0) {
-        bw.flush();
+      for (int r = 0; r < row; r++) {
+        rand.nextBytes(rowData);
+        Mutation m = new Mutation(rowData);
+        for (int c = 0; c < col; c++) {
+          rand.nextBytes(cq);
+          rand.nextBytes(value);
+          m.put(CF, new Text(cq), new Value(value));
+        }
+        bw.addMutation(m);
+        if (r % 100 == 0) {
+          bw.flush();
+        }
       }
     }
-    bw.close();
   }
 
   private Map<KeyExtent,List<String>> getRecoveryMarkers(AccumuloClient c) throws Exception {

@@ -21,7 +21,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -48,25 +47,24 @@ public class SparseColumnFamilyIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(scftt);
 
-      BatchWriter bw = c.createBatchWriter(scftt, new BatchWriterConfig());
+      try (BatchWriter bw = c.createBatchWriter(scftt)) {
 
-      // create file in the tablet that has mostly column family 0, with a few entries for column
-      // family 1
+        // create file in the tablet that has mostly column family 0, with a few entries for column
+        // family 1
+        bw.addMutation(nm(0, 1, 0));
+        for (int i = 1; i < 99999; i++) {
+          bw.addMutation(nm(i * 2, 0, i));
+        }
+        bw.addMutation(nm(99999 * 2, 1, 99999));
+        bw.flush();
 
-      bw.addMutation(nm(0, 1, 0));
-      for (int i = 1; i < 99999; i++) {
-        bw.addMutation(nm(i * 2, 0, i));
+        c.tableOperations().flush(scftt, null, null, true);
+
+        // create a file that has column family 1 and 0 interleaved
+        for (int i = 0; i < 100000; i++) {
+          bw.addMutation(nm(i * 2 + 1, i % 2 == 0 ? 0 : 1, i));
+        }
       }
-      bw.addMutation(nm(99999 * 2, 1, 99999));
-      bw.flush();
-
-      c.tableOperations().flush(scftt, null, null, true);
-
-      // create a file that has column family 1 and 0 interleaved
-      for (int i = 0; i < 100000; i++) {
-        bw.addMutation(nm(i * 2 + 1, i % 2 == 0 ? 0 : 1, i));
-      }
-      bw.close();
 
       c.tableOperations().flush(scftt, null, null, true);
 

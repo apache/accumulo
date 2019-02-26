@@ -61,11 +61,11 @@ public class ZookeeperRestartIT extends ConfigurableMacBase {
   public void test() throws Exception {
     try (AccumuloClient c = createClient()) {
       c.tableOperations().create("test_ingest");
-      BatchWriter bw = c.createBatchWriter("test_ingest", null);
-      Mutation m = new Mutation("row");
-      m.put("cf", "cq", "value");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = c.createBatchWriter("test_ingest")) {
+        Mutation m = new Mutation("row");
+        m.put("cf", "cq", "value");
+        bw.addMutation(m);
+      }
 
       // kill zookeeper
       for (ProcessReference proc : cluster.getProcesses().get(ServerType.ZOOKEEPER))

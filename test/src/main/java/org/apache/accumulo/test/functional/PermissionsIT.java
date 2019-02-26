@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -605,16 +604,16 @@ public class PermissionsIT extends AccumuloClusterHarness {
   }
 
   private void createTestTable(AccumuloClient c, String testUser, String tableName)
-      throws Exception, MutationsRejectedException {
+      throws Exception {
     if (!c.tableOperations().exists(tableName)) {
       // create the test table
       c.tableOperations().create(tableName);
       // put in some initial data
-      BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig());
-      Mutation m = new Mutation(new Text("row"));
-      m.put(new Text("cf"), new Text("cq"), new Value("val".getBytes()));
-      writer.addMutation(m);
-      writer.close();
+      try (BatchWriter writer = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation(new Text("row"));
+        m.put(new Text("cf"), new Text("cq"), new Value("val".getBytes()));
+        writer.addMutation(m);
+      }
 
       // verify proper permissions for creator and test user
       verifyHasOnlyTheseTablePermissions(c, c.whoami(), tableName, TablePermission.values());
@@ -647,12 +646,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case WRITE:
         try {
-          writer = test_user_client.createBatchWriter(tableName, new BatchWriterConfig());
-          m = new Mutation(new Text("row"));
-          m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
-          writer.addMutation(m);
-          try {
-            writer.close();
+          try (BatchWriter bw = test_user_client.createBatchWriter(tableName)) {
+            m = new Mutation(new Text("row"));
+            m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
+            bw.addMutation(m);
           } catch (MutationsRejectedException e1) {
             if (e1.getSecurityErrorCodes().size() > 0)
               throw new AccumuloSecurityException(test_user_client.whoami(),
@@ -713,10 +710,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
   }
 
   private void testGrantedTablePermission(AccumuloClient test_user_client, TablePermission perm,
-      String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      MutationsRejectedException {
-    BatchWriter writer;
-    Mutation m;
+      String tableName)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     log.debug("Confirming that the presence of the {} permission properly permits the user", perm);
 
     // test permission after granting it
@@ -729,11 +724,11 @@ public class PermissionsIT extends AccumuloClusterHarness {
         }
         break;
       case WRITE:
-        writer = test_user_client.createBatchWriter(tableName, new BatchWriterConfig());
-        m = new Mutation(new Text("row"));
-        m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
-        writer.addMutation(m);
-        writer.close();
+        try (BatchWriter bw = test_user_client.createBatchWriter(tableName)) {
+          Mutation m = new Mutation(new Text("row"));
+          m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
+          bw.addMutation(m);
+        }
         break;
       case BULK_IMPORT:
         // test for bulk import permission would go here

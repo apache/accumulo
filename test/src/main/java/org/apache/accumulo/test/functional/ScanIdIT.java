@@ -44,7 +44,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -362,9 +361,7 @@ public class ScanIdIT extends AccumuloClusterHarness {
    */
   private void generateSampleData(AccumuloClient accumuloClient, final String tablename) {
 
-    try {
-
-      BatchWriter bw = accumuloClient.createBatchWriter(tablename, new BatchWriterConfig());
+    try (BatchWriter bw = accumuloClient.createBatchWriter(tablename)) {
 
       ColumnVisibility vis = new ColumnVisibility("public");
 
@@ -383,8 +380,6 @@ public class ScanIdIT extends AccumuloClusterHarness {
 
         bw.addMutation(m);
       }
-
-      bw.close();
     } catch (TableNotFoundException | MutationsRejectedException ex) {
       throw new IllegalStateException("Initialization failed. Could not create test data", ex);
     }

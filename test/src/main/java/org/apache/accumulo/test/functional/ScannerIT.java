@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -51,15 +50,13 @@ public class ScannerIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(table);
 
-      BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
-
-      Mutation m = new Mutation("a");
-      for (int i = 0; i < 10; i++) {
-        m.put(Integer.toString(i), "", "");
+      try (BatchWriter bw = c.createBatchWriter(table)) {
+        Mutation m = new Mutation("a");
+        for (int i = 0; i < 10; i++) {
+          m.put(Integer.toString(i), "", "");
+        }
+        bw.addMutation(m);
       }
-
-      bw.addMutation(m);
-      bw.close();
 
       IteratorSetting cfg;
       Stopwatch sw;

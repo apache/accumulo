@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -156,24 +155,20 @@ public class LargeRowIT extends AccumuloClusterHarness {
   @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
       justification = "predictable random is okay for testing")
   private void basicTest(AccumuloClient c, String table, int expectedSplits) throws Exception {
-    BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
+    try (BatchWriter bw = c.createBatchWriter(table)) {
 
-    Random r = new Random();
-    byte rowData[] = new byte[ROW_SIZE];
+      Random r = new Random();
+      byte rowData[] = new byte[ROW_SIZE];
+      r.setSeed(SEED);
 
-    r.setSeed(SEED);
-
-    for (int i = 0; i < NUM_ROWS; i++) {
-
-      r.nextBytes(rowData);
-      TestIngest.toPrintableChars(rowData);
-
-      Mutation mut = new Mutation(new Text(rowData));
-      mut.put(new Text(""), new Text(""), new Value(Integer.toString(i).getBytes(UTF_8)));
-      bw.addMutation(mut);
+      for (int i = 0; i < NUM_ROWS; i++) {
+        r.nextBytes(rowData);
+        TestIngest.toPrintableChars(rowData);
+        Mutation mut = new Mutation(new Text(rowData));
+        mut.put(new Text(""), new Text(""), new Value(Integer.toString(i).getBytes(UTF_8)));
+        bw.addMutation(mut);
+      }
     }
-
-    bw.close();
 
     FunctionalTestUtils.checkSplits(c, table, expectedSplits, expectedSplits);
 
