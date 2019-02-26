@@ -83,13 +83,13 @@ public class ByteUtilsTest {
     byte[] escaped = ByteUtils.escape(bytes);
     assertArrayEquals(bytes, ByteUtils.unescape(escaped));
 
+    // no escaped bytes found so returns the input
+    byte[] notEscaped = {0x02, 0x02, 0x02};
+    assertArrayEquals(notEscaped, ByteUtils.unescape(notEscaped));
+
     // incomplete bytes would cause an ArrayIndexOutOfBounds in the past
     exception.expect(IllegalArgumentException.class);
     byte[] errorBytes = {0x01};
     assertArrayEquals(errorBytes, ByteUtils.unescape(errorBytes));
-
-    // no escaped bytes found so returns the input
-    byte[] notEscaped = {0x02, 0x02, 0x02};
-    assertArrayEquals(notEscaped, ByteUtils.unescape(notEscaped));
   }
 }
