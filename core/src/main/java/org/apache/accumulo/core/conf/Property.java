@@ -525,6 +525,9 @@ public enum Property {
   TSERV_SLOW_FLUSH_MILLIS("tserver.slow.flush.time", "100ms", PropertyType.TIMEDURATION,
       "If a flush to the write-ahead log takes longer than this period of time,"
           + " debugging information will written, and may result in a log rollover."),
+  TSERV_SLOW_FILEPERMIT_MILLIS("tserver.slow.filepermit.time", "100ms", PropertyType.TIMEDURATION,
+      "If a thread blocks more than this period of time waiting to get file permits,"
+          + " debugging information will be written."),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
@@ -1158,7 +1161,8 @@ public enum Property {
       Property.TABLE_MINC_LOGS_MAX, Property.TSERV_MAJC_MAXCONCURRENT,
       Property.REPLICATION_WORKER_THREADS, Property.TABLE_DURABILITY, Property.INSTANCE_ZK_TIMEOUT,
       Property.TABLE_CLASSPATH, Property.MASTER_METADATA_SUSPENDABLE,
-      Property.TABLE_FAILURES_IGNORE, Property.TABLE_SCAN_MAXMEM);
+      Property.TABLE_FAILURES_IGNORE, Property.TABLE_SCAN_MAXMEM,
+      Property.TSERV_SLOW_FILEPERMIT_MILLIS);
 
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT,
       Property.TSERV_NATIVEMAP_ENABLED, Property.TSERV_SCAN_MAX_OPENFILES,
