@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,7 @@ public class IterConfigUtilTest {
 
   private static final Logger log = LoggerFactory.getLogger(IterConfigUtilTest.class);
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
+  private static final List<IterInfo> EMPTY_ITERS = Collections.emptyList();
 
   static class WrappedIter implements SortedKeyValueIterator<Key,Value> {
 
@@ -131,8 +133,7 @@ public class IterConfigUtilTest {
 
   private SortedKeyValueIterator<Key,Value> createIter(IteratorScope scope,
       SortedMapIterator source, AccumuloConfiguration conf) throws IOException {
-    IterLoad iterLoad = IterConfigUtil.loadIterConf(scope, new ArrayList<>(), new HashMap<>(),
-        conf);
+    IterLoad iterLoad = IterConfigUtil.loadIterConf(scope, EMPTY_ITERS, new HashMap<>(), conf);
     iterLoad = iterLoad.iterEnv(new DefaultIteratorEnvironment(conf)).useAccumuloClassLoader(true);
     return IterConfigUtil.loadIterators(source, iterLoad);
   }
@@ -320,7 +321,7 @@ public class IterConfigUtilTest {
 
     AccumuloConfiguration conf = new ConfigurationCopy(data);
 
-    List<IterInfo> iterators = IterConfigUtil.parseIterConf(IteratorScope.scan, new ArrayList<>(),
+    List<IterInfo> iterators = IterConfigUtil.parseIterConf(IteratorScope.scan, EMPTY_ITERS,
         new HashMap<>(), conf);
 
     assertEquals(1, iterators.size());

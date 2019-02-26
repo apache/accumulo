@@ -18,7 +18,7 @@ package org.apache.accumulo.server.conf;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -206,7 +206,8 @@ public class TableConfiguration extends ObservableConfiguration {
     ParsedIteratorConfig pic = ref.get();
     if (pic == null || pic.updateCount != count) {
       Map<String,Map<String,String>> allOpts = new HashMap<>();
-      List<IterInfo> iters = IterConfigUtil.parseIterConf(scope, new ArrayList<>(), allOpts, this);
+      List<IterInfo> iters = IterConfigUtil.parseIterConf(scope, Collections.emptyList(), allOpts,
+          this);
       ParsedIteratorConfig newPic = new ParsedIteratorConfig(iters, allOpts,
           get(Property.TABLE_CLASSPATH), count);
       ref.compareAndSet(pic, newPic);
