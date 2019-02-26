@@ -146,12 +146,16 @@ public class ColumnSet {
       if (sb[i] != '%') {
         t.append(new byte[] {sb[i]}, 0, 1);
       } else {
-        i++;
-        if (i < sb.length) {
-          byte[] hex = {sb[i], sb[i]};
+        int x = ++i;
+        int y = ++i;
+        if (y < sb.length) {
+          byte[] hex = {sb[x], sb[y]};
           String hs = new String(hex, UTF_8);
           int b = Integer.parseInt(hs, 16);
-          t.append(new byte[]{(byte) b}, 0, 1);
+          t.append(new byte[] {(byte) b}, 0, 1);
+        } else {
+          throw new IllegalArgumentException("Invalid characters in encoded string (" + s + ")."
+              + " Expected two characters after '%'");
         }
       }
     }

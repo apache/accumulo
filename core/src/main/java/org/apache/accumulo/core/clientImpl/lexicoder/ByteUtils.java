@@ -77,7 +77,8 @@ public class ByteUtils {
       if (in[i] == 0x01) {
         i++;
         if (i >= in.length) {
-          return in;
+          throw new IllegalArgumentException("Bad bytes when attempting to unescape. Expected "
+              + "more bytes after last byte " + in[in.length - 1]);
         }
         ret[index++] = (byte) (in[i] - 1);
       } else {

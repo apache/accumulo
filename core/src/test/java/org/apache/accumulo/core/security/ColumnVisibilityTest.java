@@ -151,6 +151,7 @@ public class ColumnVisibilityTest {
     shouldThrow("\"B");
     shouldThrow("A&\"B");
     shouldThrow("A&\"B\\'");
+    shouldThrow("A&\"B\\");
 
     shouldNotThrow("\"A\"");
     shouldNotThrow("(\"A\")");
