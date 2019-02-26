@@ -118,6 +118,7 @@ public class FileManager {
   private Cache<String,Long> fileLenCache;
 
   private long maxIdleTime;
+  private long slowFilePermitMillis;
 
   private final ServerContext context;
 
@@ -188,6 +189,8 @@ public class FileManager {
     SimpleTimer.getInstance(context.getConfiguration()).schedule(new IdleFileCloser(), maxIdleTime,
         maxIdleTime / 2);
 
+    this.slowFilePermitMillis = context.getConfiguration()
+        .getTimeInMillis(Property.TSERV_SLOW_FILEPERMIT_MILLIS);
   }
 
   private static int countReaders(Map<String,List<OpenReader>> files) {
@@ -287,7 +290,14 @@ public class FileManager {
     Map<FileSKVIterator,String> readersReserved = new HashMap<>();
 
     if (!tablet.isMeta()) {
+      long start = System.currentTimeMillis();
       filePermits.acquireUninterruptibly(files.size());
+      long waitTime = System.currentTimeMillis() - start;
+
+      if (waitTime >= slowFilePermitMillis) {
+        log.info("Slow file permits request: {} ms, files requested: {}, tablet: {}", waitTime,
+            files.size(), tablet);
+      }
     }
 
     // now that the we are past the semaphore, we have the authority
