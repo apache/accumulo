@@ -25,7 +25,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -188,16 +187,15 @@ public class TestIngest {
   public static void main(String[] args) {
 
     Opts opts = new Opts();
-    BatchWriterOpts bwOpts = new BatchWriterOpts();
 
     String name = TestIngest.class.getSimpleName();
     TraceUtil.enableClientTraces(null, name, new Properties());
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(name, args, bwOpts)) {
+    try (TraceScope clientSpan = opts.parseArgsAndTrace(name, args)) {
       if (opts.debug)
         Logger.getLogger(TabletServerBatchWriter.class.getName()).setLevel(Level.TRACE);
 
       try (AccumuloClient client = opts.createClient()) {
-        ingest(client, opts, bwOpts);
+        ingest(client, opts);
       }
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -208,9 +206,9 @@ public class TestIngest {
 
   @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
       justification = "predictable random is okay for testing")
-  public static void ingest(AccumuloClient accumuloClient, FileSystem fs, Opts opts,
-      BatchWriterOpts bwOpts) throws IOException, AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, MutationsRejectedException, TableExistsException {
+  public static void ingest(AccumuloClient accumuloClient, FileSystem fs, Opts opts)
+      throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      MutationsRejectedException, TableExistsException {
     long stopTime;
 
     byte[][] bytevals = generateValues(opts.dataSize);
@@ -233,7 +231,7 @@ public class TestIngest {
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
       writer.startDefaultLocalityGroup();
     } else {
-      bw = accumuloClient.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
+      bw = accumuloClient.createBatchWriter(opts.getTableName());
       accumuloClient.securityOperations().changeUserAuthorizations(opts.getPrincipal(), AUTHS);
     }
     Text labBA = new Text(opts.columnVisibility.getExpression());
@@ -353,10 +351,10 @@ public class TestIngest {
         elapsed);
   }
 
-  public static void ingest(AccumuloClient c, Opts opts, BatchWriterOpts batchWriterOpts)
+  public static void ingest(AccumuloClient c, Opts opts)
       throws MutationsRejectedException, IOException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException, TableExistsException {
     ClientContext cc = (ClientContext) c;
-    ingest(c, FileSystem.get(cc.getHadoopConf()), opts, batchWriterOpts);
+    ingest(c, FileSystem.get(cc.getHadoopConf()), opts);
   }
 }

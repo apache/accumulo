@@ -20,8 +20,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -70,9 +68,9 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
       vopts.setTableName(tableName);
       opts.setClientProperties(getClientProperties());
       vopts.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, opts, new BatchWriterOpts());
+      TestIngest.ingest(c, opts);
       c.tableOperations().flush(tableName, null, null, true);
-      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      VerifyIngest.verifyIngest(c, vopts);
     }
   }
 }

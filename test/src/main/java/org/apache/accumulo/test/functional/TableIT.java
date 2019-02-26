@@ -23,8 +23,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.FileNotFoundException;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -73,10 +71,10 @@ public class TableIT extends AccumuloClusterHarness {
       opts.setClientProperties(getClientProperties());
       vopts.setClientProperties(getClientProperties());
       opts.setTableName(tableName);
-      TestIngest.ingest(c, opts, new BatchWriterOpts());
+      TestIngest.ingest(c, opts);
       to.flush(tableName, null, null, true);
       vopts.setTableName(tableName);
-      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      VerifyIngest.verifyIngest(c, vopts);
       TableId id = TableId.of(to.tableIdMap().get(tableName));
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         s.setRange(new KeyExtent(id, null, null).toMetadataRange());
@@ -95,8 +93,8 @@ public class TableIT extends AccumuloClusterHarness {
         }
         assertNull(to.tableIdMap().get(tableName));
         to.create(tableName);
-        TestIngest.ingest(c, opts, new BatchWriterOpts());
-        VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+        TestIngest.ingest(c, opts);
+        VerifyIngest.verifyIngest(c, vopts);
         to.delete(tableName);
       }
     }

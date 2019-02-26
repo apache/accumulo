@@ -26,8 +26,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterUser;
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -135,11 +133,11 @@ public class SplitIT extends AccumuloClusterHarness {
       opts.setTableName(table);
       opts.setClientProperties(getClientProperties());
 
-      TestIngest.ingest(c, opts, new BatchWriterOpts());
+      TestIngest.ingest(c, opts);
       vopts.rows = opts.rows;
       vopts.setTableName(table);
       vopts.setClientProperties(getClientProperties());
-      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      VerifyIngest.verifyIngest(c, vopts);
       while (c.tableOperations().listSplits(table).size() < 10) {
         sleepUninterruptibly(15, TimeUnit.SECONDS);
       }

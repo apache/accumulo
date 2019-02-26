@@ -20,7 +20,6 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -119,7 +118,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
       opts.setTableName(tableName);
 
       opts.setClientProperties(getClientProperties());
-      VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
+      VerifyIngest.verifyIngest(c, opts);
 
       // ensure each tablet does not have all map files, should be ~2.5 files per tablet
       FunctionalTestUtils.checkRFiles(c, tableName, 50, 100, 1, 4);

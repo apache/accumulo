@@ -19,8 +19,6 @@ package org.apache.accumulo.test.functional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestBinaryRows;
@@ -57,32 +55,30 @@ public class BinaryIT extends AccumuloClusterHarness {
   }
 
   public static void runTest(AccumuloClient c, String tableName) throws Exception {
-    BatchWriterOpts bwOpts = new BatchWriterOpts();
-    ScannerOpts scanOpts = new ScannerOpts();
     TestBinaryRows.Opts opts = new TestBinaryRows.Opts();
     opts.setTableName(tableName);
     opts.start = 0;
     opts.num = 100000;
     opts.mode = "ingest";
-    TestBinaryRows.runTest(c, opts, bwOpts, scanOpts);
+    TestBinaryRows.runTest(c, opts);
     opts.mode = "verify";
-    TestBinaryRows.runTest(c, opts, bwOpts, scanOpts);
+    TestBinaryRows.runTest(c, opts);
     opts.start = 25000;
     opts.num = 50000;
     opts.mode = "delete";
-    TestBinaryRows.runTest(c, opts, bwOpts, scanOpts);
+    TestBinaryRows.runTest(c, opts);
     opts.start = 0;
     opts.num = 25000;
     opts.mode = "verify";
-    TestBinaryRows.runTest(c, opts, bwOpts, scanOpts);
+    TestBinaryRows.runTest(c, opts);
     opts.start = 75000;
     opts.num = 25000;
     opts.mode = "randomLookups";
-    TestBinaryRows.runTest(c, opts, bwOpts, scanOpts);
+    TestBinaryRows.runTest(c, opts);
     opts.start = 25000;
     opts.num = 50000;
     opts.mode = "verifyDeleted";
-    TestBinaryRows.runTest(c, opts, bwOpts, scanOpts);
+    TestBinaryRows.runTest(c, opts);
   }
 
 }

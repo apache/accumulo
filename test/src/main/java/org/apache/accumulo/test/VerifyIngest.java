@@ -22,7 +22,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -65,8 +64,7 @@ public class VerifyIngest {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    ScannerOpts scanOpts = new ScannerOpts();
-    opts.parseArgs(VerifyIngest.class.getName(), args, scanOpts);
+    opts.parseArgs(VerifyIngest.class.getName(), args);
     if (opts.trace) {
       TraceUtil.enableClientTraces(null, null, new Properties());
     }
@@ -77,7 +75,7 @@ public class VerifyIngest {
         span.addKVAnnotation("cmdLine", Arrays.asList(args).toString());
 
       try (AccumuloClient client = opts.createClient()) {
-        verifyIngest(client, opts, scanOpts);
+        verifyIngest(client, opts);
       }
 
     } finally {
@@ -87,7 +85,7 @@ public class VerifyIngest {
 
   @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
       justification = "predictable random is okay for testing")
-  public static void verifyIngest(AccumuloClient accumuloClient, Opts opts, ScannerOpts scanOpts)
+  public static void verifyIngest(AccumuloClient accumuloClient, Opts opts)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     byte[][] bytevals = TestIngest.generateValues(opts.dataSize);
 
@@ -162,7 +160,6 @@ public class VerifyIngest {
         Key startKey = new Key(new Text("row_" + String.format("%010d", expectedRow)));
 
         try (Scanner scanner = accumuloClient.createScanner(opts.getTableName(), labelAuths)) {
-          scanner.setBatchSize(scanOpts.scanBatchSize);
           scanner.setRange(new Range(startKey, endKey));
           for (int j = 0; j < opts.cols; j++) {
             scanner.fetchColumn(new Text(opts.columnFamily),

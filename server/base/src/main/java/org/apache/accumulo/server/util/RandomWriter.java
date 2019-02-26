@@ -20,7 +20,6 @@ import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.Random;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -96,18 +95,13 @@ public class RandomWriter {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts(table_name);
     opts.setPrincipal("root");
-    BatchWriterOpts bwOpts = new BatchWriterOpts();
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(RandomWriter.class.getName(), args,
-        bwOpts)) {
-
+    try (TraceScope clientSpan = opts.parseArgsAndTrace(RandomWriter.class.getName(), args)) {
       long start = System.currentTimeMillis();
       log.info("starting at {} for user {}", start, opts.getPrincipal());
-      try (AccumuloClient accumuloClient = opts.createClient()) {
-        BatchWriter bw = accumuloClient.createBatchWriter(opts.getTableName(),
-            bwOpts.getBatchWriterConfig());
+      try (AccumuloClient accumuloClient = opts.createClient();
+          BatchWriter bw = accumuloClient.createBatchWriter(opts.getTableName())) {
         log.info("Writing {} mutations...", opts.count);
         bw.addMutations(new RandomMutationGenerator(opts.count));
-        bw.close();
       } catch (Exception e) {
         log.error("{}", e.getMessage(), e);
         throw e;

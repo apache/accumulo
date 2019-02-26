@@ -22,7 +22,6 @@ import static org.junit.Assert.fail;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
@@ -90,7 +89,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
       opts.createTable = true;
       opts.setTableName(firstTable);
       opts.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, opts, new BatchWriterOpts());
+      TestIngest.ingest(c, opts);
       c.tableOperations().flush(firstTable, null, null, true);
       for (int i = 1; i < tables.length; i++)
         c.tableOperations().clone(firstTable, tables[i], true, null, null);

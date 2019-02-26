@@ -18,8 +18,6 @@ package org.apache.accumulo.test.functional;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -38,8 +36,6 @@ public class BulkIT extends AccumuloClusterHarness {
 
   private static final int N = 100000;
   private static final int COUNT = 5;
-  private static final BatchWriterOpts BWOPTS = new BatchWriterOpts();
-  private static final ScannerOpts SOPTS = new ScannerOpts();
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -89,13 +85,13 @@ public class BulkIT extends AccumuloClusterHarness {
     for (int i = 0; i < COUNT; i++) {
       opts.outputFile = new Path(files, String.format(fileFormat, i)).toString();
       opts.startRow = N * i;
-      TestIngest.ingest(c, fs, opts, BWOPTS);
+      TestIngest.ingest(c, fs, opts);
     }
     opts.outputFile = new Path(files, String.format(fileFormat, N)).toString();
     opts.startRow = N;
     opts.rows = 1;
     // create an rfile with one entry, there was a bug with this:
-    TestIngest.ingest(c, fs, opts, BWOPTS);
+    TestIngest.ingest(c, fs, opts);
 
     bulkLoad(c, tableName, bulkFailures, files, useOld);
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
@@ -105,11 +101,11 @@ public class BulkIT extends AccumuloClusterHarness {
     for (int i = 0; i < COUNT; i++) {
       vopts.startRow = i * N;
       vopts.rows = N;
-      VerifyIngest.verifyIngest(c, vopts, SOPTS);
+      VerifyIngest.verifyIngest(c, vopts);
     }
     vopts.startRow = N;
     vopts.rows = 1;
-    VerifyIngest.verifyIngest(c, vopts, SOPTS);
+    VerifyIngest.verifyIngest(c, vopts);
   }
 
   @SuppressWarnings("deprecation")

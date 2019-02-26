@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
@@ -177,7 +176,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
           VerifyIngest.Opts vopts = new VerifyIngest.Opts();
           vopts.rows = rows;
           vopts.setClientProperties(getClientProperties());
-          VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+          VerifyIngest.verifyIngest(c, vopts);
         } else {
           sleepUninterruptibly(5, TimeUnit.SECONDS);
           tserver.waitFor();

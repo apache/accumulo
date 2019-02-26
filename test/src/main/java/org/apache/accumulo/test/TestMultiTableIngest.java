@@ -22,9 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -50,15 +48,14 @@ public class TestMultiTableIngest {
     String prefix = "test_";
   }
 
-  private static void readBack(Opts opts, ScannerOpts scanOpts, AccumuloClient client,
-      List<String> tableNames) throws Exception {
+  private static void readBack(Opts opts, AccumuloClient client, List<String> tableNames)
+      throws Exception {
     int i = 0;
     for (String table : tableNames) {
       // wait for table to exist
       while (!client.tableOperations().exists(table))
         UtilWaitThread.sleep(100);
       try (Scanner scanner = client.createScanner(table, opts.auths)) {
-        scanner.setBatchSize(scanOpts.scanBatchSize);
         int count = i;
         for (Entry<Key,Value> elt : scanner) {
           String expected = String.format("%06d", count);
@@ -76,9 +73,7 @@ public class TestMultiTableIngest {
     ArrayList<String> tableNames = new ArrayList<>();
 
     Opts opts = new Opts();
-    ScannerOpts scanOpts = new ScannerOpts();
-    BatchWriterOpts bwOpts = new BatchWriterOpts();
-    opts.parseArgs(TestMultiTableIngest.class.getName(), args, scanOpts, bwOpts);
+    opts.parseArgs(TestMultiTableIngest.class.getName(), args);
     // create the test table within accumulo
     try (AccumuloClient accumuloClient = opts.createClient()) {
       for (int i = 0; i < opts.tables; i++) {
@@ -91,7 +86,7 @@ public class TestMultiTableIngest {
 
         MultiTableBatchWriter b;
         try {
-          b = accumuloClient.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
+          b = accumuloClient.createMultiTableBatchWriter();
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
@@ -110,7 +105,7 @@ public class TestMultiTableIngest {
         }
       }
       try {
-        readBack(opts, scanOpts, accumuloClient, tableNames);
+        readBack(opts, accumuloClient, tableNames);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

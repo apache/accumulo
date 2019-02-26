@@ -29,7 +29,6 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -81,10 +80,9 @@ public class ContinuousIngest {
   public static void main(String[] args) throws Exception {
 
     ContinuousOpts opts = new ContinuousOpts();
-    BatchWriterOpts bwOpts = new BatchWriterOpts();
     ClientOnDefaultTable clientOpts = new ClientOnDefaultTable("ci");
     try (TraceScope clientSpan = clientOpts.parseArgsAndTrace(ContinuousIngest.class.getName(),
-        args, bwOpts, opts)) {
+        args, opts)) {
 
       initVisibilities(opts);
 
@@ -98,8 +96,7 @@ public class ContinuousIngest {
               "Consult the README and create the table before starting ingest.");
         }
 
-        BatchWriter bw = client.createBatchWriter(clientOpts.getTableName(),
-            bwOpts.getBatchWriterConfig());
+        BatchWriter bw = client.createBatchWriter(clientOpts.getTableName());
         bw = TraceProxy.trace(bw, TraceUtil.countSampler(1024));
 
         Random r = new SecureRandom();

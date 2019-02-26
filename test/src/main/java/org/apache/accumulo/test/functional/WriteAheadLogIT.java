@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -67,12 +65,12 @@ public class WriteAheadLogIT extends AccumuloClusterHarness {
     opts.setClientProperties(getClientProperties());
     vopts.setClientProperties(getClientProperties());
 
-    TestIngest.ingest(c, opts, new BatchWriterOpts());
+    TestIngest.ingest(c, opts);
     vopts.setTableName(tableName);
-    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+    VerifyIngest.verifyIngest(c, vopts);
     getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
     getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+    VerifyIngest.verifyIngest(c, vopts);
   }
 
 }
