@@ -38,7 +38,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.ComparablePair;
-import org.apache.accumulo.core.util.MapCounter;
+import org.apache.accumulo.core.util.MapCounterInt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
@@ -227,7 +227,7 @@ public abstract class GroupBalancer extends TabletBalancer {
       return 5000;
     }
 
-    MapCounter<String> groupCounts = new MapCounter<>();
+    MapCounterInt<String> groupCounts = new MapCounterInt<>();
     Map<TServerInstance,TserverGroupInfo> tservers = new HashMap<>();
 
     for (TServerInstance tsi : current.keySet()) {

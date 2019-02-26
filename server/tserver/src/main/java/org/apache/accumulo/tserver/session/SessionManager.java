@@ -39,7 +39,7 @@ import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ScanState;
 import org.apache.accumulo.core.tabletserver.thrift.ScanType;
-import org.apache.accumulo.core.util.MapCounter;
+import org.apache.accumulo.core.util.MapCounterInt;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.scan.ScanTask;
@@ -294,8 +294,8 @@ public class SessionManager {
     }
   }
 
-  public Map<TableId,MapCounter<ScanRunState>> getActiveScansPerTable() {
-    Map<TableId,MapCounter<ScanRunState>> counts = new HashMap<>();
+  public Map<TableId,MapCounterInt<ScanRunState>> getActiveScansPerTable() {
+    Map<TableId,MapCounterInt<ScanRunState>> counts = new HashMap<>();
 
     Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
@@ -333,9 +333,9 @@ public class SessionManager {
       if (srs == ScanRunState.FINISHED)
         continue;
 
-      MapCounter<ScanRunState> stateCounts = counts.get(tableID);
+      MapCounterInt<ScanRunState> stateCounts = counts.get(tableID);
       if (stateCounts == null) {
-        stateCounts = new MapCounter<>();
+        stateCounts = new MapCounterInt<>();
         counts.put(tableID, stateCounts);
       }
 
