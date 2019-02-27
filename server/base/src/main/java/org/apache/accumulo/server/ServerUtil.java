@@ -218,27 +218,24 @@ public class ServerUtil {
         log.warn("Waiting for the NameNode to leave safemode");
       } catch (IOException ex) {
         log.warn("Unable to connect to HDFS", ex);
-      } catch (IllegalArgumentException exception) {
+      } catch (IllegalArgumentException e) {
         /* Unwrap the UnknownHostException so we can deal with it directly */
-        if (exception.getCause() instanceof UnknownHostException) {
+        if (e.getCause() instanceof UnknownHostException) {
           if (unknownHostTries > 0) {
-            log.warn("Unable to connect to HDFS, will retry. cause: {}", exception.getCause());
+            log.warn("Unable to connect to HDFS, will retry. cause: {}", e.getCause());
             /*
              * We need to make sure our sleep period is long enough to avoid getting a cached
              * failure of the host lookup.
              */
-            sleep = Math.max(sleep,
-                (AddressUtil
-                    .getAddressCacheNegativeTtl((UnknownHostException) (exception.getCause())) + 1)
-                    * 1000);
+            long ttl = AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e.getCause());
+            sleep = Math.max(sleep, (ttl + 1) * 1000);
           } else {
-            log.error("Unable to connect to HDFS and have exceeded the maximum number of retries.",
-                exception);
-            throw exception;
+            log.error("Unable to connect to HDFS and exceeded the maximum number of retries.", e);
+            throw e;
           }
           unknownHostTries--;
         } else {
-          throw exception;
+          throw e;
         }
       }
       log.info("Backing off due to failure; current sleep period is {} seconds", sleep / 1000.);

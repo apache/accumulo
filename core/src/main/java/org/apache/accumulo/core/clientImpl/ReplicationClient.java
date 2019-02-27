@@ -56,7 +56,7 @@ public class ReplicationClient {
       log.debug("Could not get ReplicationCoordinator connection to {}, will retry",
           context.getInstanceName());
       try {
-        Thread.sleep(attempts * 250);
+        Thread.sleep((long) attempts * 250);
       } catch (InterruptedException e) {
         throw new AccumuloException(e);
       }

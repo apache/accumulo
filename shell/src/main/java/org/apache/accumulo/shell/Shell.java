@@ -1010,7 +1010,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public final void printLines(Iterator<String> lines, boolean paginate, PrintLine out)
       throws IOException {
-    int linesPrinted = 0;
+    double linesPrinted = 0;
     String prompt = "-- hit any key to continue or 'q' to quit --";
     int lastPromptLength = prompt.length();
     int termWidth = reader.getTerminal().getWidth();

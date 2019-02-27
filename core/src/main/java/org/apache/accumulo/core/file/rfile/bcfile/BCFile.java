@@ -620,7 +620,7 @@ public final class BCFile {
         this.in.seek(fileLength - Magic.size() - Version.size() - Long.BYTES);
         offsetIndexMeta = this.in.readLong();
       } else {
-        this.in.seek(fileLength - Magic.size() - Version.size() - (2 * Long.BYTES));
+        this.in.seek(fileLength - Magic.size() - Version.size() - 16); // 2 * Long.BYTES = 16
         offsetIndexMeta = this.in.readLong();
         offsetCryptoParameters = this.in.readLong();
       }
