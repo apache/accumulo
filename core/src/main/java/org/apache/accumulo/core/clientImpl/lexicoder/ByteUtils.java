@@ -78,7 +78,7 @@ public class ByteUtils {
         i++;
         if (i >= in.length) {
           throw new IllegalArgumentException("Bad bytes when attempting to unescape. Expected "
-              + "more bytes after last byte " + in[in.length - 1]);
+              + "more bytes after last byte " + String.format("x%02x", in[in.length - 1]));
         }
         ret[index++] = (byte) (in[i] - 1);
       } else {
