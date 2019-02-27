@@ -34,7 +34,7 @@ public class FastFormat {
   }
 
   public static int toZeroPaddedString(byte[] output, int outputOffset, long num, int width,
-                                       int radix, byte[] prefix) {
+      int radix, byte[] prefix) {
     Preconditions.checkArgument(num >= 0);
 
     String strNum = Long.toString(num, radix);
@@ -43,7 +43,7 @@ public class FastFormat {
   }
 
   private static int toZeroPaddedString(byte[] output, int outputOffset, String strNum, int width,
-                                        byte[] prefix) {
+      byte[] prefix) {
 
     int index = outputOffset;
 

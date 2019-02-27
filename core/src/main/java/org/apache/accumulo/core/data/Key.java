@@ -95,7 +95,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   private final void init(byte[] r, int rOff, int rLen, byte[] cf, int cfOff, int cfLen, byte[] cq,
-                          int cqOff, int cqLen, byte[] cv, int cvOff, int cvLen, long ts, boolean del, boolean copy) {
+      int cqOff, int cqLen, byte[] cv, int cvOff, int cvLen, long ts, boolean del, boolean copy) {
     row = copyIfNeeded(r, rOff, rLen, copy);
     colFamily = copyIfNeeded(cf, cfOff, cfLen, copy);
     colQualifier = copyIfNeeded(cq, cqOff, cqLen, copy);
@@ -216,7 +216,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * @see #builder()
    */
   public Key(byte[] row, int rOff, int rLen, byte[] cf, int cfOff, int cfLen, byte[] cq, int cqOff,
-             int cqLen, byte[] cv, int cvOff, int cvLen, long ts) {
+      int cqLen, byte[] cv, int cvOff, int cvLen, long ts) {
     init(row, rOff, rLen, cf, cfOff, cfLen, cq, cqOff, cqLen, cv, cvOff, cvLen, ts, false, true);
   }
 
@@ -1068,7 +1068,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * @return given <code>StringBuilder</code>
    */
   public static StringBuilder appendPrintableString(byte[] ba, int offset, int len, int maxLen,
-                                                    StringBuilder sb) {
+      StringBuilder sb) {
     int plen = Math.min(len, maxLen);
 
     for (int i = 0; i < plen; i++) {

@@ -182,7 +182,7 @@ public class DefaultFormatter implements Formatter {
   }
 
   static StringBuilder appendBytes(StringBuilder sb, byte[] ba, int offset, int len,
-                                   int shownLength) {
+      int shownLength) {
     int length = Math.min(len, shownLength);
     return DefaultFormatter.appendBytes(sb, ba, offset, length);
   }
