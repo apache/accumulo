@@ -263,7 +263,7 @@ public class MultiLevelIndex {
     private int offset;
     private boolean hasNext;
 
-    private byte data[];
+    private byte[] data;
     private int[] offsetsArray;
     private int numOffsets;
     private int offsetsOffset;
@@ -382,7 +382,7 @@ public class MultiLevelIndex {
         hasNext = false;
 
         int numIndexEntries = in.readInt();
-        int offsets[] = new int[numIndexEntries];
+        int[] offsets = new int[numIndexEntries];
         for (int i = 0; i < numIndexEntries; i++) {
           offsets[i] = in.readInt();
         }

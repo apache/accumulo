@@ -130,7 +130,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
         // verify the tablets went online
         try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
           int i = 0;
-          String expected[] = {"a", "b", "c"};
+          String[] expected = {"a", "b", "c"};
           for (Entry<Key,Value> entry : scanner) {
             assertEquals(expected[i], entry.getKey().getRow().toString());
             i++;

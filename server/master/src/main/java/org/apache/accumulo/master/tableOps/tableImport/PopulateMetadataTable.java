@@ -75,7 +75,7 @@ class PopulateMetadataTable extends MasterRepo {
 
       String line = null;
       while ((line = in.readLine()) != null) {
-        String sa[] = line.split(":", 2);
+        String[] sa = line.split(":", 2);
         map.put(sa[0], sa[1]);
       }
 

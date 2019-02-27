@@ -145,7 +145,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
       long t1 = System.currentTimeMillis();
 
-      byte rval[] = new byte[50];
+      byte[] rval = new byte[50];
       Random random = new Random();
 
       for (Entry<Key,Value> entry : bs) {

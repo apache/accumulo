@@ -42,7 +42,7 @@ public class UUIDLexicoder extends AbstractLexicoder<UUID> {
   @Override
   public byte[] encode(UUID uuid) {
     try {
-      byte ret[] = new byte[16];
+      byte[] ret = new byte[16];
       DataOutputStream out = new DataOutputStream(new FixedByteArrayOutputStream(ret));
 
       out.writeLong(uuid.getMostSignificantBits() ^ 0x8000000000000000L);

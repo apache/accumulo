@@ -150,8 +150,8 @@ public class WalStateManager {
     updateState(tsi, path, WalState.UNREFERENCED);
   }
 
-  private static Pair<WalState,Path> parse(byte data[]) {
-    String parts[] = new String(data, UTF_8).split(",");
+  private static Pair<WalState,Path> parse(byte[] data) {
+    String[] parts = new String(data, UTF_8).split(",");
     return new Pair<>(WalState.valueOf(parts[0]), new Path(parts[1]));
   }
 

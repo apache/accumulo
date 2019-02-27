@@ -48,10 +48,10 @@ public class KeyTest {
 
   @Test
   public void testCopyData() {
-    byte row[] = "r".getBytes();
-    byte cf[] = "cf".getBytes();
-    byte cq[] = "cq".getBytes();
-    byte cv[] = "cv".getBytes();
+    byte[] row = "r".getBytes();
+    byte[] cf = "cf".getBytes();
+    byte[] cq = "cq".getBytes();
+    byte[] cv = "cv".getBytes();
 
     Key k1 = new Key(row, cf, cq, cv, 5L, false, false);
     Key k2 = new Key(row, cf, cq, cv, 5L, false, true);

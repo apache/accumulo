@@ -99,7 +99,7 @@ public class VerifyIngest {
     long bytesRead = 0;
     long t1 = System.currentTimeMillis();
 
-    byte randomValue[] = new byte[opts.dataSize];
+    byte[] randomValue = new byte[opts.dataSize];
     Random random = new Random();
 
     Key endKey = new Key(new Text("row_" + String.format("%010d", opts.rows + opts.startRow)));
@@ -127,7 +127,7 @@ public class VerifyIngest {
             val = iter.next().getValue().get();
           }
 
-          byte ev[];
+          byte[] ev;
           if (opts.random != null) {
             ev = TestIngest.genRandomValue(random, randomValue, opts.random, expectedRow,
                 expectedCol);
@@ -199,7 +199,7 @@ public class VerifyIngest {
               break;
             }
 
-            byte value[];
+            byte[] value;
             if (opts.random != null) {
               value = TestIngest.genRandomValue(random, randomValue, opts.random, expectedRow,
                   colNum);

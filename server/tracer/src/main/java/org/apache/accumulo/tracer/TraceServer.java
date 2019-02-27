@@ -202,7 +202,7 @@ public class TraceServer implements Watcher, AutoCloseable {
     tableName = conf.get(Property.TRACE_TABLE);
     accumuloClient = ensureTraceTableExists(conf);
 
-    int ports[] = conf.getPort(Property.TRACE_PORT);
+    int[] ports = conf.getPort(Property.TRACE_PORT);
     ServerSocket sock = null;
     for (int port : ports) {
       ServerSocket s = ServerSocketChannel.open().socket();

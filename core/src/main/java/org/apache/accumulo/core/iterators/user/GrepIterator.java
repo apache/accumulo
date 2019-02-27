@@ -36,8 +36,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  */
 public class GrepIterator extends Filter {
 
-  private byte term[];
-  private int right[] = new int[256];
+  private byte[] term;
+  private int[] right = new int[256];
 
   @Override
   public boolean accept(Key k, Value v) {

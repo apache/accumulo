@@ -40,7 +40,7 @@ public class UIntegerLexicoder extends AbstractLexicoder<Integer> {
       shift -= 8;
     }
 
-    byte ret[] = new byte[5 - index];
+    byte[] ret = new byte[5 - index];
     ret[0] = (byte) (4 - index);
     for (index = 1; index < ret.length; index++) {
       ret[index] = (byte) (i >>> shift);

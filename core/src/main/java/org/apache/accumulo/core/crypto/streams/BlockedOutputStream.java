@@ -79,7 +79,7 @@ public class BlockedOutputStream extends OutputStream {
   }
 
   @Override
-  public void write(byte b[], int off, int len) throws IOException {
+  public void write(byte[] b, int off, int len) throws IOException {
     // Can't recurse here in case the len is large and the blocksize is small (and the stack is
     // small)
     // So we'll just fill up the buffer over and over
@@ -97,7 +97,7 @@ public class BlockedOutputStream extends OutputStream {
   }
 
   @Override
-  public void write(byte b[]) throws IOException {
+  public void write(byte[] b) throws IOException {
     write(b, 0, b.length);
   }
 

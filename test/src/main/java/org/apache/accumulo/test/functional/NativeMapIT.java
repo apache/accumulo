@@ -420,8 +420,8 @@ public class NativeMapIT {
           "Memory changed after inserting duplicate data " + mem1 + " " + mem3);
     }
 
-    byte bigrow[] = new byte[1000000];
-    byte bigvalue[] = new byte[bigrow.length];
+    byte[] bigrow = new byte[1000000];
+    byte[] bigvalue = new byte[bigrow.length];
 
     for (int i = 0; i < bigrow.length; i++) {
       bigrow[i] = (byte) (0xff & (i % 256));
@@ -458,7 +458,7 @@ public class NativeMapIT {
   private static byte[] getRandomBytes(Random r, int maxLen) {
     int len = r.nextInt(maxLen);
 
-    byte f[] = new byte[len];
+    byte[] f = new byte[len];
     r.nextBytes(f);
 
     return f;
@@ -533,12 +533,12 @@ public class NativeMapIT {
   public void testBinary() {
     NativeMap nm = new NativeMap();
 
-    byte emptyBytes[] = new byte[0];
+    byte[] emptyBytes = new byte[0];
 
     for (int i = 0; i < 256; i++) {
       for (int j = 0; j < 256; j++) {
-        byte row[] = {'r', (byte) (0xff & i), (byte) (0xff & j)};
-        byte data[] = {'v', (byte) (0xff & i), (byte) (0xff & j)};
+        byte[] row = {'r', (byte) (0xff & i), (byte) (0xff & j)};
+        byte[] data = {'v', (byte) (0xff & i), (byte) (0xff & j)};
 
         Key k = new Key(row, emptyBytes, emptyBytes, emptyBytes, 1);
         Value v = new Value(data);
@@ -550,8 +550,8 @@ public class NativeMapIT {
     Iterator<Entry<Key,Value>> iter = nm.iterator();
     for (int i = 0; i < 256; i++) {
       for (int j = 0; j < 256; j++) {
-        byte row[] = {'r', (byte) (0xff & i), (byte) (0xff & j)};
-        byte data[] = {'v', (byte) (0xff & i), (byte) (0xff & j)};
+        byte[] row = {'r', (byte) (0xff & i), (byte) (0xff & j)};
+        byte[] data = {'v', (byte) (0xff & i), (byte) (0xff & j)};
 
         Key k = new Key(row, emptyBytes, emptyBytes, emptyBytes, 1);
         Value v = new Value(data);
@@ -569,8 +569,8 @@ public class NativeMapIT {
 
     for (int i = 0; i < 256; i++) {
       for (int j = 0; j < 256; j++) {
-        byte row[] = {'r', (byte) (0xff & i), (byte) (0xff & j)};
-        byte data[] = {'v', (byte) (0xff & i), (byte) (0xff & j)};
+        byte[] row = {'r', (byte) (0xff & i), (byte) (0xff & j)};
+        byte[] data = {'v', (byte) (0xff & i), (byte) (0xff & j)};
 
         Key k = new Key(row, emptyBytes, emptyBytes, emptyBytes, 1);
         Value v = new Value(data);

@@ -37,7 +37,7 @@ public enum NamespacePermission {
 
   private final byte permID;
 
-  private static final NamespacePermission mapping[] = new NamespacePermission[9];
+  private static final NamespacePermission[] mapping = new NamespacePermission[9];
   static {
     for (NamespacePermission perm : NamespacePermission.values())
       mapping[perm.permID] = perm;

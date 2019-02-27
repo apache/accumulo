@@ -112,7 +112,7 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
               entry.getValue().toString().contains(v1.toString()));
           count++;
           if (count % 2 == 0) {
-            String parts[] = entry.getValue().toString().split("/");
+            String[] parts = entry.getValue().toString().split("/");
             Key key = entry.getKey();
             Mutation m = new Mutation(key.getRow());
             m.put(key.getColumnFamily(), key.getColumnQualifier(),

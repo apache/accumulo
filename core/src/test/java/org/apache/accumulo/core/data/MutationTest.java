@@ -148,7 +148,7 @@ public class MutationTest {
     Mutation m = new Mutation(new Text("r1"));
     for (int i = 0; i < 5; i++) {
       int len = Mutation.VALUE_SIZE_COPY_CUTOFF - 2 + i;
-      byte val[] = new byte[len];
+      byte[] val = new byte[len];
       for (int j = 0; j < len; j++)
         val[j] = (byte) i;
 

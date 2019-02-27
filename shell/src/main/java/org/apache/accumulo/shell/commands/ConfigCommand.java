@@ -118,7 +118,7 @@ public class ConfigCommand extends Command {
         throw new BadArgumentException("Missing '=' operator in set operation.", fullCommand,
             fullCommand.indexOf(property));
       }
-      final String pair[] = property.split("=", 2);
+      final String[] pair = property.split("=", 2);
       property = pair[0];
       value = pair[1];
 

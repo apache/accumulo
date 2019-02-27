@@ -88,7 +88,7 @@ public class TabletLocatorImplTest {
 
     for (int i = 0; i < data.length; i += 2) {
       String loc = (String) data[i];
-      Object binData[] = (Object[]) data[i + 1];
+      Object[] binData = (Object[]) data[i + 1];
 
       HashMap<KeyExtent,List<Range>> binnedKE = new HashMap<>();
 

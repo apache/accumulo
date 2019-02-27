@@ -85,8 +85,8 @@ public class PrintInfo implements KeywordExecutable {
   }
 
   static class LogHistogram {
-    long countBuckets[] = new long[11];
-    long sizeBuckets[] = new long[countBuckets.length];
+    long[] countBuckets = new long[11];
+    long[] sizeBuckets = new long[countBuckets.length];
     long totalSize = 0;
 
     public void add(int size) {

@@ -517,7 +517,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
-  public static void main(String args[]) throws IOException {
+  public static void main(String[] args) throws IOException {
     new Shell(new ConsoleReader()).execute(args);
   }
 
@@ -680,7 +680,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       return;
     }
 
-    String fields[];
+    String[] fields;
     try {
       fields = new QuotedStringTokenizer(input).getTokens();
     } catch (BadArgumentException e) {

@@ -254,7 +254,7 @@ public class TableOperationsHelperTest {
   void check(TableOperationsHelper t, String tablename, String[] values) throws Exception {
     Map<String,String> expected = new TreeMap<>();
     for (String value : values) {
-      String parts[] = value.split("=", 2);
+      String[] parts = value.split("=", 2);
       expected.put(parts[0], parts[1]);
     }
     Map<String,String> actual = new TreeMap<>();

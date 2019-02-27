@@ -653,7 +653,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   }
 
   public String getLogger() {
-    String parts[] = logPath.split("/");
+    String[] parts = logPath.split("/");
     return Joiner.on(":").join(parts[parts.length - 2].split("[+]"));
   }
 

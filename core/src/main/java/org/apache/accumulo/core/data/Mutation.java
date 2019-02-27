@@ -294,11 +294,11 @@ public class Mutation implements Writable {
     return row;
   }
 
-  private void fill(byte b[]) {
+  private void fill(byte[] b) {
     fill(b, b.length);
   }
 
-  private void fill(byte b[], int length) {
+  private void fill(byte[] b, int length) {
     buffer.writeVLong(length);
     buffer.add(b, 0, length);
   }
@@ -355,7 +355,7 @@ public class Mutation implements Writable {
       if (values == null) {
         values = new ArrayList<>();
       }
-      byte copy[] = new byte[valLength];
+      byte[] copy = new byte[valLength];
       System.arraycopy(val, 0, copy, 0, valLength);
       values.add(copy);
       fill(-1 * values.size());
@@ -1293,7 +1293,7 @@ public class Mutation implements Writable {
         if (values == null) {
           values = new ArrayList<>();
         }
-        byte copy[] = new byte[val.length];
+        byte[] copy = new byte[val.length];
         System.arraycopy(val, 0, copy, 0, val.length);
         values.add(copy);
         fill(-1 * values.size());
@@ -1373,7 +1373,7 @@ public class Mutation implements Writable {
     if (len == 0)
       return EMPTY_BYTES;
 
-    byte bytes[] = new byte[len];
+    byte[] bytes = new byte[len];
     in.readBytes(bytes);
     return bytes;
   }
@@ -1383,7 +1383,7 @@ public class Mutation implements Writable {
     if (len == 0)
       return EMPTY_BYTES;
 
-    byte bytes[] = new byte[len];
+    byte[] bytes = new byte[len];
     in.readBytes(bytes);
     return bytes;
   }
@@ -1572,7 +1572,7 @@ public class Mutation implements Writable {
       int numValues = WritableUtils.readVInt(in);
       for (int i = 0; i < numValues; i++) {
         len = WritableUtils.readVInt(in);
-        byte val[] = new byte[len];
+        byte[] val = new byte[len];
         in.readFully(val);
         values.add(val);
       }
@@ -1612,7 +1612,7 @@ public class Mutation implements Writable {
       int numValues = in.readInt();
       for (int i = 0; i < numValues; i++) {
         len = in.readInt();
-        byte val[] = new byte[len];
+        byte[] val = new byte[len];
         in.readFully(val);
         localValues.add(val);
       }

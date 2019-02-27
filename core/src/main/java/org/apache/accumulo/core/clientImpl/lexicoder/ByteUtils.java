@@ -34,7 +34,7 @@ public class ByteUtils {
     if (escapeCount == 0)
       return in;
 
-    byte ret[] = new byte[escapeCount + in.length];
+    byte[] ret = new byte[escapeCount + in.length];
     int index = 0;
 
     for (int i = 0; i < in.length; i++) {
@@ -70,7 +70,7 @@ public class ByteUtils {
     if (escapeCount == 0)
       return in;
 
-    byte ret[] = new byte[in.length - escapeCount];
+    byte[] ret = new byte[in.length - escapeCount];
 
     int index = 0;
     for (int i = 0; i < in.length; i++) {
@@ -128,7 +128,7 @@ public class ByteUtils {
       len += field.length;
     }
 
-    byte ret[] = new byte[len + fields.length - 1];
+    byte[] ret = new byte[len + fields.length - 1];
     int index = 0;
 
     for (byte[] field : fields) {

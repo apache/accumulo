@@ -59,7 +59,7 @@ public class TestBinaryRows {
     return ba;
   }
 
-  static long decodeLong(byte ba[]) {
+  static long decodeLong(byte[] ba) {
     // validate byte array
     if (ba.length > Long.SIZE / Byte.SIZE)
       throw new IllegalArgumentException(

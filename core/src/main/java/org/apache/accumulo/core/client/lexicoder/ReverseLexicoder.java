@@ -56,7 +56,7 @@ public class ReverseLexicoder<T> extends AbstractLexicoder<T> {
 
   @Override
   protected T decodeUnchecked(byte[] data, int offset, int len) {
-    byte ret[] = new byte[len - 1];
+    byte[] ret = new byte[len - 1];
 
     int dataIndex;
     for (int i = 0; i < ret.length; i++) {

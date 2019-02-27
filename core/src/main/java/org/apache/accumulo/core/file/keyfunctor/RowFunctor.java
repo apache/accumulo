@@ -25,7 +25,7 @@ public class RowFunctor implements KeyFunctor {
 
   @Override
   public Key transform(org.apache.accumulo.core.data.Key acuKey) {
-    byte keyData[];
+    byte[] keyData;
 
     ByteSequence row = acuKey.getRowData();
     keyData = new byte[row.length()];

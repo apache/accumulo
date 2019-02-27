@@ -61,8 +61,8 @@ public class LocalityGroupUtilTest {
 
   @Test
   public void testEncoding() throws Exception {
-    byte test1[] = new byte[256];
-    byte test2[] = new byte[256];
+    byte[] test1 = new byte[256];
+    byte[] test2 = new byte[256];
     for (int i = 0; i < 256; i++) {
       test1[i] = (byte) (0xff & i);
       test2[i] = (byte) (0xff & (255 - i));

@@ -392,7 +392,7 @@ public class SimpleGarbageCollector implements Iface {
               synchronized (SimpleGarbageCollector.this) {
                 ++status.current.errors;
               }
-              String parts[] = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
+              String[] parts = fullPath.toString().split(Constants.ZTABLES)[1].split("/");
               if (parts.length > 2) {
                 TableId tableId = TableId.of(parts[1]);
                 String tabletDir = parts[2];
@@ -649,7 +649,7 @@ public class SimpleGarbageCollector implements Iface {
     } else {
       processor = new Processor<>(rpcProxy);
     }
-    int port[] = getConfiguration().getPort(Property.GC_PORT);
+    int[] port = getConfiguration().getPort(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {

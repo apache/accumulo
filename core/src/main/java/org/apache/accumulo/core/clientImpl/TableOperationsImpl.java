@@ -1455,7 +1455,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           try (BufferedReader in = new BufferedReader(new InputStreamReader(zis, UTF_8))) {
             String line;
             while ((line = in.readLine()) != null) {
-              String sa[] = line.split("=", 2);
+              String[] sa = line.split("=", 2);
               props.put(sa[0], sa[1]);
             }
           }

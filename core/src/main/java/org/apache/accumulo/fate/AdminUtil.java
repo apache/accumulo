@@ -505,7 +505,7 @@ public class AdminUtil<T> {
       for (String node : lockNodes) {
         String lockPath = path + "/" + id + "/" + node;
         byte[] data = zk.getData(path + "/" + id + "/" + node, null);
-        String lda[] = new String(data, UTF_8).split(":");
+        String[] lda = new String(data, UTF_8).split(":");
         if (lda[1].equals(txidStr))
           zk.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
       }

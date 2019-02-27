@@ -539,7 +539,7 @@ public class TestLruBlockCache {
 
   private static class Block implements HeapSize {
     String blockName;
-    byte buf[];
+    byte[] buf;
 
     Block(String blockName, int size) {
       this.blockName = blockName;

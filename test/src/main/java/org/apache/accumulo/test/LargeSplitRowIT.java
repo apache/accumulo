@@ -81,7 +81,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
       // Create a split point that is too large to be an end row and fill it with all 'm'
       SortedSet<Text> partitionKeys = new TreeSet<>();
-      byte data[] = new byte[(int) (ConfigurationTypeHelper
+      byte[] data = new byte[(int) (ConfigurationTypeHelper
           .getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
       for (int i = 0; i < data.length; i++) {
         data[i] = 'm';
@@ -136,7 +136,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       // end row
       // Fill this key with all m's except the last spot
       BatchWriter batchWriter = client.createBatchWriter(tableName, new BatchWriterConfig());
-      byte data[] = new byte[(int) (ConfigurationTypeHelper
+      byte[] data = new byte[(int) (ConfigurationTypeHelper
           .getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
       for (int i = 0; i < data.length - 1; i++) {
         data[i] = (byte) 'm';
@@ -213,7 +213,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       // Create a BatchWriter and key for a table entry that is longer than the allowed size for an
       // end row
       BatchWriter batchWriter = client.createBatchWriter(tableName, new BatchWriterConfig());
-      byte data[] = new byte[10];
+      byte[] data = new byte[10];
 
       // Fill key with all j's except for last spot which alternates through 1 through 10 for every
       // j
@@ -259,7 +259,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
     // Create a BatchWriter and key for a table entry that is longer than the allowed size for an
     // end row
     BatchWriter batchWriter = client.createBatchWriter(tableName, new BatchWriterConfig());
-    byte data[] = new byte[(int) (ConfigurationTypeHelper
+    byte[] data = new byte[(int) (ConfigurationTypeHelper
         .getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
 
     // Fill key with all j's except for last spot which alternates through 1 through 10 for every j

@@ -38,7 +38,7 @@ public class RowIteratorTest {
   Iterator<Entry<Key,Value>> makeIterator(final String... args) {
     final Map<Key,Value> result = new TreeMap<>();
     for (String s : args) {
-      final String parts[] = s.split("[ \t]");
+      final String[] parts = s.split("[ \t]");
       final Key key = new Key(parts[0], parts[1], parts[2]);
       final Value value = new Value(parts[3].getBytes());
       result.put(key, value);

@@ -296,7 +296,7 @@ public class KeyBuilder {
   static class KeyBuilderImpl
       implements RowStep, ColumnFamilyStep, ColumnQualifierStep, ColumnVisibilityStep {
 
-    protected static final byte EMPTY_BYTES[] = new byte[0];
+    protected static final byte[] EMPTY_BYTES = new byte[0];
 
     private final boolean copyBytes;
     private byte[] row = EMPTY_BYTES;

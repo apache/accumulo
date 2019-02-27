@@ -230,7 +230,7 @@ class WriteExportFiles extends MasterRepo {
 
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
         String path = fs.getFullPath(entry.getKey()).toString();
-        String tokens[] = path.split("/");
+        String[] tokens = path.split("/");
         if (tokens.length < 1) {
           throw new RuntimeException("Illegal path " + path);
         }

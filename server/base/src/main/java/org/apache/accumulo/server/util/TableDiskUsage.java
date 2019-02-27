@@ -182,7 +182,7 @@ public class TableDiskUsage {
       // Read each file referenced by that table
       for (Entry<Key,Value> entry : mdScanner) {
         String file = entry.getKey().getColumnQualifier().toString();
-        String parts[] = file.split("/");
+        String[] parts = file.split("/");
         // the filename
         String uniqueName = parts[parts.length - 1];
         if (file.contains(":") || file.startsWith("../")) {

@@ -104,7 +104,7 @@ public class IntersectingIteratorTest {
 
   private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows,
       int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies, HashSet<Text> docs) {
-    Text nullText[] = new Text[0];
+    Text[] nullText = new Text[0];
     return createIteratorStack(hitRatio, numRows, numDocsPerRow, columnFamilies,
         otherColumnFamilies, docs, nullText);
   }

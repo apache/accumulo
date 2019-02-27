@@ -34,7 +34,7 @@ public class UnsynchronizedBuffer {
   public static class Writer {
 
     int offset = 0;
-    byte data[];
+    byte[] data;
 
     /**
      * Creates a new writer.
@@ -102,7 +102,7 @@ public class UnsynchronizedBuffer {
      * @return byte buffer contents
      */
     public byte[] toArray() {
-      byte ret[] = new byte[offset];
+      byte[] ret = new byte[offset];
       System.arraycopy(data, 0, ret, 0, offset);
       return ret;
     }
@@ -151,7 +151,7 @@ public class UnsynchronizedBuffer {
    */
   public static class Reader {
     int offset;
-    byte data[];
+    byte[] data;
 
     /**
      * Creates a new reader.
@@ -159,7 +159,7 @@ public class UnsynchronizedBuffer {
      * @param b
      *          bytes to read
      */
-    public Reader(byte b[]) {
+    public Reader(byte[] b) {
       this.data = b;
     }
 
@@ -207,7 +207,7 @@ public class UnsynchronizedBuffer {
      * @param b
      *          byte array to fill
      */
-    public void readBytes(byte b[]) {
+    public void readBytes(byte[] b) {
       System.arraycopy(data, offset, b, 0, b.length);
       offset += b.length;
     }

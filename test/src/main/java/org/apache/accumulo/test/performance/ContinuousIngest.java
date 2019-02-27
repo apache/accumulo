@@ -121,10 +121,10 @@ public class ContinuousIngest {
         // always exist in accumulo when verifying data. To do this make insert N point
         // back to the row from insert (N - flushInterval). The array below is used to keep
         // track of this.
-        long prevRows[] = new long[flushInterval];
-        long firstRows[] = new long[flushInterval];
-        int firstColFams[] = new int[flushInterval];
-        int firstColQuals[] = new int[flushInterval];
+        long[] prevRows = new long[flushInterval];
+        long[] firstRows = new long[flushInterval];
+        int[] firstColFams = new int[flushInterval];
+        int[] firstColQuals = new int[flushInterval];
 
         long lastFlushTime = System.currentTimeMillis();
 
@@ -242,7 +242,7 @@ public class ContinuousIngest {
     int dataLen = ingestInstanceId.length + 16 + (prevRow == null ? 0 : prevRow.length) + 3;
     if (cksum != null)
       dataLen += 8;
-    byte val[] = new byte[dataLen];
+    byte[] val = new byte[dataLen];
     System.arraycopy(ingestInstanceId, 0, val, 0, ingestInstanceId.length);
     int index = ingestInstanceId.length;
     val[index++] = ':';

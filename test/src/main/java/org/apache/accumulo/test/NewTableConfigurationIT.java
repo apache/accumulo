@@ -660,7 +660,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       expected.put("table.iterator.scan.vers.opt.maxVersions", "1");
     }
     for (String value : values) {
-      String parts[] = value.split("=", 2);
+      String[] parts = value.split("=", 2);
       expected.put(parts[0], parts[1]);
     }
 

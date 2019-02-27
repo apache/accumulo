@@ -42,7 +42,7 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    final String tableNames[] = getUniqueNames(2);
+    final String[] tableNames = getUniqueNames(2);
     final String tableName = tableNames[0];
     // create a table with a bunch of splits
 

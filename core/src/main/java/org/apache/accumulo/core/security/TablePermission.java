@@ -39,7 +39,7 @@ public enum TablePermission {
 
   private final byte permID;
 
-  private static final TablePermission mapping[] = new TablePermission[9];
+  private static final TablePermission[] mapping = new TablePermission[9];
   static {
     for (TablePermission perm : TablePermission.values())
       mapping[perm.permID] = perm;

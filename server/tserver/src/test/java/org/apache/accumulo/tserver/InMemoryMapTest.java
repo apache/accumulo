@@ -520,7 +520,7 @@ public class InMemoryMapTest {
     List<Double> timings = new ArrayList<>();
     for (int threads : new int[] {1, 2, 16, /* 64, 256 */}) {
       final long now = System.currentTimeMillis();
-      final long counts[] = new long[threads];
+      final long[] counts = new long[threads];
       final InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
       ExecutorService e = Executors.newFixedThreadPool(threads);
       for (int j = 0; j < threads; j++) {

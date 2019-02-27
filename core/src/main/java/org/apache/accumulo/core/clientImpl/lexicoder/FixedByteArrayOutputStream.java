@@ -25,9 +25,9 @@ import java.io.OutputStream;
 public class FixedByteArrayOutputStream extends OutputStream {
 
   private int i;
-  byte out[];
+  byte[] out;
 
-  public FixedByteArrayOutputStream(byte out[]) {
+  public FixedByteArrayOutputStream(byte[] out) {
     this.out = out;
   }
 
@@ -37,7 +37,7 @@ public class FixedByteArrayOutputStream extends OutputStream {
   }
 
   @Override
-  public void write(byte b[], int off, int len) {
+  public void write(byte[] b, int off, int len) {
     System.arraycopy(b, off, out, i, len);
     i += len;
   }

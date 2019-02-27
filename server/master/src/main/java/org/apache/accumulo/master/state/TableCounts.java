@@ -19,7 +19,7 @@ package org.apache.accumulo.master.state;
 import org.apache.accumulo.server.master.state.TabletState;
 
 public class TableCounts {
-  int counts[] = new int[TabletState.values().length];
+  int[] counts = new int[TabletState.values().length];
 
   public int unassigned() {
     return counts[TabletState.UNASSIGNED.ordinal()];

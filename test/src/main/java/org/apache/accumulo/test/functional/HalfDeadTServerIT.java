@@ -216,7 +216,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
     String source = root + "/src/test/c/fake_disk_failure.c";
     String lib = root + "/target/fake_disk_failure.so";
     String platform = System.getProperty("os.name");
-    String cmd[];
+    String[] cmd;
     if (platform.equals("Darwin")) {
       cmd = new String[] {"gcc", "-arch", "x86_64", "-arch", "i386", "-dynamiclib", "-O3", "-fPIC",
           source, "-o", lib};

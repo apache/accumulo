@@ -1727,12 +1727,12 @@ public class RFileTest {
     InputStream in = this.getClass().getClassLoader()
         .getResourceAsStream("org/apache/accumulo/core/file/rfile/ver_" + version + ".rf");
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    byte buf[] = new byte[1024];
+    byte[] buf = new byte[1024];
     int read;
     while ((read = in.read(buf)) > 0)
       baos.write(buf, 0, read);
 
-    byte data[] = baos.toByteArray();
+    byte[] data = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in2 = new FSDataInputStream(bais);
     CachableBuilder cb = new CachableBuilder().input(in2).length(data.length).conf(hadoopConf)
@@ -2240,7 +2240,7 @@ public class RFileTest {
     // add a few keys with long rows
     for (int i = 0; i < 1000; i += 100) {
       String row = String.format("r%06d", i);
-      char ca[] = new char[1000];
+      char[] ca = new char[1000];
       Arrays.fill(ca, 'b');
       row = row + new String(ca);
       keys.add(new Key(row, "cf1", "cq1", 42));

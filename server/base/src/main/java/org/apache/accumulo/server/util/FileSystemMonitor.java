@@ -52,7 +52,7 @@ public class FileSystemMonitor {
     Set<String> options;
 
     Mount(String line) {
-      String tokens[] = line.split("\\s+");
+      String[] tokens = line.split("\\s+");
 
       device = tokens[0].trim();
       mountPoint = tokens[1].trim();

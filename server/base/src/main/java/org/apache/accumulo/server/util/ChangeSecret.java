@@ -145,7 +145,7 @@ public class ChangeSecret {
           // upgrade
           if (acls.containsAll(Ids.OPEN_ACL_UNSAFE)) {
             // make user nodes private, they contain the user's password
-            String parts[] = path.split("/");
+            String[] parts = path.split("/");
             if (parts[parts.length - 2].equals("users")) {
               new_.putPrivatePersistentData(newPath, data, NodeExistsPolicy.FAIL);
             } else {

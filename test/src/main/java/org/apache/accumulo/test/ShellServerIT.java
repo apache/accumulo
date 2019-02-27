@@ -1599,7 +1599,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
           log.info("Ignoring scan because it doesn't contain 'RUNNING': {}", scan);
           continue;
         }
-        String parts[] = scan.split("\\|");
+        String[] parts = scan.split("\\|");
         assertEquals("Expected 14 colums, but found " + parts.length + " instead for '"
             + Arrays.toString(parts) + "'", 14, parts.length);
         String tserver = parts[0].trim();

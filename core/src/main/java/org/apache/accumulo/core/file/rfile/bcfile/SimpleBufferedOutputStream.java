@@ -26,7 +26,7 @@ import java.io.OutputStream;
  * been buffered.
  */
 class SimpleBufferedOutputStream extends FilterOutputStream {
-  protected byte buf[]; // the borrowed buffer
+  protected byte[] buf; // the borrowed buffer
   protected int count = 0; // bytes used in buffer.
 
   // Constructor
@@ -51,7 +51,7 @@ class SimpleBufferedOutputStream extends FilterOutputStream {
   }
 
   @Override
-  public void write(byte b[], int off, int len) throws IOException {
+  public void write(byte[] b, int off, int len) throws IOException {
     if (len >= buf.length) {
       flushBuffer();
       out.write(b, off, len);

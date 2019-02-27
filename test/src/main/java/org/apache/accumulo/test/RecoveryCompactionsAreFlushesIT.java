@@ -94,7 +94,7 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
         s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
         for (Entry<Key,Value> entry : s) {
           String filename = entry.getKey().getColumnQualifier().toString();
-          String parts[] = filename.split("/");
+          String[] parts = filename.split("/");
           assertFalse(parts[parts.length - 1].startsWith("M"));
         }
       }

@@ -185,7 +185,7 @@ public class TracerTest {
     }
 
     assertNotNull(tracer.traces.get(startTraceId));
-    String traces[] = {"my test", "checkTrace", "client:checkTrace", "start"};
+    String[] traces = {"my test", "checkTrace", "client:checkTrace", "start"};
     assertEquals(tracer.traces.get(startTraceId).size(), traces.length);
     for (int i = 0; i < traces.length; i++)
       assertEquals(traces[i], tracer.traces.get(startTraceId).get(i).description);

@@ -344,7 +344,7 @@ public class CachableBlockFile {
             return null;
           }
 
-          byte b[] = null;
+          byte[] b = null;
           try {
             b = new byte[(int) _currBlock.getRawSize()];
             _currBlock.readFully(b);
@@ -486,7 +486,7 @@ public class CachableBlockFile {
       indexable = false;
     }
 
-    public CachedBlockRead(CacheEntry cb, byte buf[]) {
+    public CachedBlockRead(CacheEntry cb, byte[] buf) {
       this(new SeekableByteArrayInputStream(buf), cb);
     }
 

@@ -36,7 +36,7 @@ public interface BlockCache {
    * @param buf
    *          The block contents wrapped in a ByteBuffer.
    */
-  CacheEntry cacheBlock(String blockName, byte buf[]);
+  CacheEntry cacheBlock(String blockName, byte[] buf);
 
   /**
    * Fetch block from cache.

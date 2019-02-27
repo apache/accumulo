@@ -118,7 +118,7 @@ public class ZooLock implements Watcher {
 
   }
 
-  public synchronized boolean tryLock(LockWatcher lw, byte data[])
+  public synchronized boolean tryLock(LockWatcher lw, byte[] data)
       throws KeeperException, InterruptedException {
 
     TryLockAsyncLockWatcher tlalw = new TryLockAsyncLockWatcher(lw);
@@ -248,7 +248,7 @@ public class ZooLock implements Watcher {
     localLw.lostLock(reason);
   }
 
-  public synchronized void lockAsync(final AsyncLockWatcher lw, byte data[]) {
+  public synchronized void lockAsync(final AsyncLockWatcher lw, byte[] data) {
 
     if (lockWatcher != null || lock != null || asyncLock != null) {
       throw new IllegalStateException();
