@@ -159,7 +159,7 @@ public class VerifyIngest {
 
         Key startKey = new Key(new Text("row_" + String.format("%010d", expectedRow)));
 
-        try (Scanner scanner = accumuloClient.createScanner(opts.getTableName(), labelAuths)) {
+        try (Scanner scanner = accumuloClient.createScanner(opts.tableName, labelAuths)) {
           scanner.setRange(new Range(startKey, endKey));
           for (int j = 0; j < opts.cols; j++) {
             scanner.fetchColumn(new Text(opts.columnFamily),

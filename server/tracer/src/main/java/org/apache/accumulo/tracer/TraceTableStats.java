@@ -23,7 +23,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -33,14 +33,15 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 
+import com.beust.jcommander.Parameter;
+
 /**
  * Reads the trace table and prints out some stats about the spans found.
  */
 public class TraceTableStats {
-  static class Opts extends ClientOnDefaultTable {
-    public Opts() {
-      super("trace");
-    }
+  static class Opts extends ClientOpts {
+    @Parameter(names = "--table", description = "table to use")
+    String tableName = "trace";
   }
 
   static class SpanTypeCount {
@@ -82,7 +83,7 @@ public class TraceTableStats {
     double maxSpanLengthMS = 0;
 
     try (AccumuloClient client = opts.createClient()) {
-      Scanner scanner = client.createScanner(opts.getTableName(), Authorizations.EMPTY);
+      Scanner scanner = client.createScanner(opts.tableName, Authorizations.EMPTY);
       scanner.setRange(new Range(null, true, "idx:", false));
       for (Entry<Key,Value> entry : scanner) {
         numSpans++;

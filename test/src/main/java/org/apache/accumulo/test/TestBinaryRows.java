@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.server.cli.ServerUtilOnRequiredTable;
+import org.apache.accumulo.server.cli.ContextOpts;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -73,7 +73,7 @@ public class TestBinaryRows {
     return l;
   }
 
-  public static class Opts extends ServerUtilOnRequiredTable {
+  public static class Opts extends ContextOpts {
     @Parameter(names = "--mode",
         description = "either 'ingest', 'delete', 'randomLookups', 'split',"
             + " 'verify', 'verifyDeleted'",
@@ -83,6 +83,8 @@ public class TestBinaryRows {
     public long start = 0;
     @Parameter(names = "--count", description = "number of rows to ingest", required = true)
     public long num = 0;
+    @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
+    public String tableName;
   }
 
   public static void runTest(AccumuloClient accumuloClient, Opts opts) throws Exception {
@@ -90,7 +92,7 @@ public class TestBinaryRows {
     final Text CF = new Text("cf"), CQ = new Text("cq");
     final byte[] CF_BYTES = "cf".getBytes(UTF_8), CQ_BYTES = "cq".getBytes(UTF_8);
     if (opts.mode.equals("ingest") || opts.mode.equals("delete")) {
-      try (BatchWriter bw = accumuloClient.createBatchWriter(opts.getTableName())) {
+      try (BatchWriter bw = accumuloClient.createBatchWriter(opts.tableName)) {
         boolean delete = opts.mode.equals("delete");
 
         for (long i = 0; i < opts.num; i++) {
@@ -107,7 +109,7 @@ public class TestBinaryRows {
         }
       }
     } else if (opts.mode.equals("verifyDeleted")) {
-      try (Scanner s = accumuloClient.createScanner(opts.getTableName(), opts.auths)) {
+      try (Scanner s = accumuloClient.createScanner(opts.tableName, opts.auths)) {
         Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0],
             Long.MAX_VALUE);
         Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES,
@@ -123,7 +125,7 @@ public class TestBinaryRows {
     } else if (opts.mode.equals("verify")) {
       long t1 = System.currentTimeMillis();
 
-      try (Scanner s = accumuloClient.createScanner(opts.getTableName(), opts.auths)) {
+      try (Scanner s = accumuloClient.createScanner(opts.tableName, opts.auths)) {
         Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0],
             Long.MAX_VALUE);
         Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES,
@@ -161,7 +163,7 @@ public class TestBinaryRows {
       for (int i = 0; i < numLookups; i++) {
         long row = ((r.nextLong() & 0x7fffffffffffffffL) % opts.num) + opts.start;
 
-        try (Scanner s = accumuloClient.createScanner(opts.getTableName(), opts.auths)) {
+        try (Scanner s = accumuloClient.createScanner(opts.tableName, opts.auths)) {
           Key startKey = new Key(encodeLong(row), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
           Key stopKey = new Key(encodeLong(row), CF_BYTES, CQ_BYTES, new byte[0], 0);
           s.setRange(new Range(startKey, stopKey));
@@ -203,8 +205,8 @@ public class TestBinaryRows {
         System.out.printf("added split point 0x%016x  %,12d%n", splitPoint, splitPoint);
       }
 
-      accumuloClient.tableOperations().create(opts.getTableName());
-      accumuloClient.tableOperations().addSplits(opts.getTableName(), splits);
+      accumuloClient.tableOperations().create(opts.tableName);
+      accumuloClient.tableOperations().addSplits(opts.tableName, splits);
 
     } else {
       throw new Exception("ERROR : " + opts.mode + " is not a valid operation.");

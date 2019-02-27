@@ -29,7 +29,7 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
-import org.apache.accumulo.core.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -45,6 +45,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.htrace.TraceScope;
 import org.apache.htrace.wrappers.TraceProxy;
+
+import com.beust.jcommander.Parameter;
 
 public class ContinuousIngest {
 
@@ -77,10 +79,15 @@ public class ContinuousIngest {
     return visibilities.get(rand.nextInt(visibilities.size()));
   }
 
+  static class TestOpts extends ClientOpts {
+    @Parameter(names = "--table", description = "table to use")
+    String tableName = "ci";
+  }
+
   public static void main(String[] args) throws Exception {
 
     ContinuousOpts opts = new ContinuousOpts();
-    ClientOnDefaultTable clientOpts = new ClientOnDefaultTable("ci");
+    TestOpts clientOpts = new TestOpts();
     try (TraceScope clientSpan = clientOpts.parseArgsAndTrace(ContinuousIngest.class.getName(),
         args, opts)) {
 
@@ -91,12 +98,12 @@ public class ContinuousIngest {
       }
       try (AccumuloClient client = clientOpts.createClient()) {
 
-        if (!client.tableOperations().exists(clientOpts.getTableName())) {
-          throw new TableNotFoundException(null, clientOpts.getTableName(),
+        if (!client.tableOperations().exists(clientOpts.tableName)) {
+          throw new TableNotFoundException(null, clientOpts.tableName,
               "Consult the README and create the table before starting ingest.");
         }
 
-        BatchWriter bw = client.createBatchWriter(clientOpts.getTableName());
+        BatchWriter bw = client.createBatchWriter(clientOpts.tableName);
         bw = TraceProxy.trace(bw, TraceUtil.countSampler(1024));
 
         Random r = new SecureRandom();

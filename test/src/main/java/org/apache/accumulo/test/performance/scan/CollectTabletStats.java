@@ -67,7 +67,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOnRequiredTable;
+import org.apache.accumulo.server.cli.ContextOpts;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
@@ -88,7 +88,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class CollectTabletStats {
   private static final Logger log = LoggerFactory.getLogger(CollectTabletStats.class);
 
-  static class CollectOptions extends ServerUtilOnRequiredTable {
+  static class CollectOptions extends ContextOpts {
+    @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
+    String tableName;
     @Parameter(names = "--iterations", description = "number of iterations")
     int iterations = 3;
     @Parameter(names = "--numThreads", description = "number of threads")
@@ -113,14 +115,14 @@ public class CollectTabletStats {
     final VolumeManager fs = context.getVolumeManager();
     ServerConfigurationFactory sconf = context.getServerConfFactory();
 
-    TableId tableId = Tables.getTableId(context, opts.getTableName());
+    TableId tableId = Tables.getTableId(context, opts.tableName);
     if (tableId == null) {
-      log.error("Unable to find table named {}", opts.getTableName());
+      log.error("Unable to find table named {}", opts.tableName);
       System.exit(-1);
     }
 
     TreeMap<KeyExtent,String> tabletLocations = new TreeMap<>();
-    List<KeyExtent> candidates = findTablets(context, !opts.selectFarTablets, opts.getTableName(),
+    List<KeyExtent> candidates = findTablets(context, !opts.selectFarTablets, opts.tableName,
         tabletLocations);
 
     if (candidates.size() < opts.numThreads) {
@@ -142,7 +144,7 @@ public class CollectTabletStats {
     System.out.println("run location      : " + InetAddress.getLocalHost().getHostName() + "/"
         + InetAddress.getLocalHost().getHostAddress());
     System.out.println("num threads       : " + opts.numThreads);
-    System.out.println("table             : " + opts.getTableName());
+    System.out.println("table             : " + opts.tableName);
     System.out.println("table id          : " + tableId);
 
     for (KeyExtent ke : tabletsToTest) {
@@ -220,7 +222,7 @@ public class CollectTabletStats {
           Test test = new Test(ke) {
             @Override
             public int runTest() throws Exception {
-              return scanTablet(client, opts.getTableName(), opts.auths, ke.getPrevEndRow(),
+              return scanTablet(client, opts.tableName, opts.auths, ke.getPrevEndRow(),
                   ke.getEndRow(), columns);
             }
           };
@@ -232,7 +234,7 @@ public class CollectTabletStats {
       for (final KeyExtent ke : tabletsToTest) {
         threadPool.submit(() -> {
           try {
-            calcTabletStats(client, opts.getTableName(), opts.auths, ke, columns);
+            calcTabletStats(client, opts.tableName, opts.auths, ke, columns);
           } catch (Exception e) {
             log.error("Failed to calculate tablet stats.", e);
           }

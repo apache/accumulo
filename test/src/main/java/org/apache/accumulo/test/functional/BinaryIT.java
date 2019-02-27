@@ -56,7 +56,7 @@ public class BinaryIT extends AccumuloClusterHarness {
 
   public static void runTest(AccumuloClient c, String tableName) throws Exception {
     TestBinaryRows.Opts opts = new TestBinaryRows.Opts();
-    opts.setTableName(tableName);
+    opts.tableName = tableName;
     opts.start = 0;
     opts.num = 100000;
     opts.mode = "ingest";
