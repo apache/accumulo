@@ -20,6 +20,7 @@ import static java.lang.System.currentTimeMillis;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -64,9 +65,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -101,9 +100,6 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void closeClient() {
     client.close();
   }
-
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   /**
    * Tests several different paths through the getSplits() method by setting different properties
@@ -144,9 +140,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     // offline mode
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
         .auths(Authorizations.EMPTY).offlineScan(true).store(job);
-
-    exception.expect(IOException.class);
-    inputFormat.getSplits(job);
+    try {
+      inputFormat.getSplits(job);
+      fail("An IOException should have been thrown");
+    } catch (IOException e) {}
 
     client.tableOperations().offline(table, true);
     splits = inputFormat.getSplits(job);
@@ -157,22 +154,26 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     for (int i = 0; i < 5; i++)
       // overlapping ranges
       ranges.add(new Range(String.format("%09d", i), String.format("%09d", i + 2)));
+
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
         .auths(Authorizations.EMPTY).ranges(ranges).offlineScan(true).store(job);
     splits = inputFormat.getSplits(job);
     assertEquals(2, splits.size());
 
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
-        .auths(Authorizations.EMPTY).autoAdjustRanges(true).offlineScan(true).store(job);
+        .auths(Authorizations.EMPTY).ranges(ranges).autoAdjustRanges(false).offlineScan(true)
+        .store(job);
     splits = inputFormat.getSplits(job);
     assertEquals(ranges.size(), splits.size());
 
     // BatchScan not available for offline scans
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
-        .auths(Authorizations.EMPTY).batchScan(true).store(job);
+        .auths(Authorizations.EMPTY).batchScan(true).offlineScan(true).store(job);
 
-    exception.expect(IllegalArgumentException.class);
-    inputFormat.getSplits(job);
+    try {
+      inputFormat.getSplits(job);
+      fail("IllegalArgumentException should have been thrown trying to batch scan offline");
+    } catch (IllegalArgumentException e) {}
 
     // table online tests
     client.tableOperations().online(table, true);
@@ -184,17 +185,21 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     // BatchScan not available with isolated iterators
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
-        .auths(Authorizations.EMPTY).scanIsolation(true).store(job);
+        .auths(Authorizations.EMPTY).batchScan(true).scanIsolation(true).store(job);
 
-    splits = inputFormat.getSplits(job);
-    assertEquals(2, splits.size());
+    try {
+      inputFormat.getSplits(job);
+      fail("IllegalArgumentException should have been thrown trying to batch scan with isolation");
+    } catch (IllegalArgumentException e) {}
 
     // BatchScan not available with local iterators
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
-        .auths(Authorizations.EMPTY).localIterators(true).store(job);
+        .auths(Authorizations.EMPTY).batchScan(true).localIterators(true).store(job);
 
-    splits = inputFormat.getSplits(job);
-    assertEquals(2, splits.size());
+    try {
+      inputFormat.getSplits(job);
+      fail("IllegalArgumentException should have been thrown trying to batch scan locally");
+    } catch (IllegalArgumentException e) {}
 
     AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)
         .auths(Authorizations.EMPTY).batchScan(true).store(job);
@@ -204,8 +209,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     for (InputSplit split : splits)
       assert (split instanceof BatchInputSplit);
 
-    // We should divide along the tablet lines similar to when using `setAutoAdjustRanges(job,
-    // true)`
+    // We should split along the tablet lines
     assertEquals(2, splits.size());
   }
 
