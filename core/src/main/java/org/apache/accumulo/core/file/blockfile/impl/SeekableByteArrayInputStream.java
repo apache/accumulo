@@ -40,7 +40,7 @@ public class SeekableByteArrayInputStream extends InputStream {
   // thread 2 sees all of thread 1 changes before setting the volatile.
   @SuppressFBWarnings(value = "VO_VOLATILE_REFERENCE_TO_ARRAY",
       justification = "see explanation above")
-  private volatile byte buffer[];
+  private volatile byte[] buffer;
   private int cur;
   private int max;
 
@@ -54,7 +54,7 @@ public class SeekableByteArrayInputStream extends InputStream {
   }
 
   @Override
-  public int read(byte b[], int offset, int length) {
+  public int read(byte[] b, int offset, int length) {
     if (b == null) {
       throw new NullPointerException();
     }

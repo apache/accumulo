@@ -196,10 +196,10 @@ public class GroupBalancerTest {
   @Test
   public void testSingleGroup() {
 
-    String tests[][] = {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"},
-        new String[] {"a", "b", "c", "d", "e"}, new String[] {"a", "b", "c", "d", "e", "f", "g"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
+    String[][] tests = {new String[]{"a", "b", "c", "d"}, new String[]{"a", "b", "c"},
+        new String[]{"a", "b", "c", "d", "e"}, new String[]{"a", "b", "c", "d", "e", "f", "g"},
+        new String[]{"a", "b", "c", "d", "e", "f", "g", "h"},
+        new String[]{"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[]{"a"}};
 
     for (String[] suffixes : tests) {
       for (int maxTS = 1; maxTS <= 4; maxTS++) {
@@ -219,10 +219,10 @@ public class GroupBalancerTest {
 
   @Test
   public void testTwoGroups() {
-    String tests[][] = {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"},
-        new String[] {"a", "b", "c", "d", "e"}, new String[] {"a", "b", "c", "d", "e", "f", "g"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
+    String[][] tests = {new String[]{"a", "b", "c", "d"}, new String[]{"a", "b", "c"},
+        new String[]{"a", "b", "c", "d", "e"}, new String[]{"a", "b", "c", "d", "e", "f", "g"},
+        new String[]{"a", "b", "c", "d", "e", "f", "g", "h"},
+        new String[]{"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[]{"a"}};
 
     for (String[] suffixes1 : tests) {
       for (String[] suffixes2 : tests) {
@@ -248,10 +248,10 @@ public class GroupBalancerTest {
 
   @Test
   public void testThreeGroups() {
-    String tests[][] = {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"},
-        new String[] {"a", "b", "c", "d", "e"}, new String[] {"a", "b", "c", "d", "e", "f", "g"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
+    String[][] tests = {new String[]{"a", "b", "c", "d"}, new String[]{"a", "b", "c"},
+        new String[]{"a", "b", "c", "d", "e"}, new String[]{"a", "b", "c", "d", "e", "f", "g"},
+        new String[]{"a", "b", "c", "d", "e", "f", "g", "h"},
+        new String[]{"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[]{"a"}};
 
     for (String[] suffixes1 : tests) {
       for (String[] suffixes2 : tests) {

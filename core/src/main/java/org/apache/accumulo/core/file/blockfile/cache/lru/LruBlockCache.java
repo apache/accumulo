@@ -217,7 +217,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    * @param inMemory
    *          if block is in-memory
    */
-  public CacheEntry cacheBlock(String blockName, byte buf[], boolean inMemory) {
+  public CacheEntry cacheBlock(String blockName, byte[] buf, boolean inMemory) {
     CachedBlock cb = map.get(blockName);
     if (cb != null) {
       stats.duplicateReads();
@@ -255,7 +255,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    *          block buffer
    */
   @Override
-  public CacheEntry cacheBlock(String blockName, byte buf[]) {
+  public CacheEntry cacheBlock(String blockName, byte[] buf) {
     return cacheBlock(blockName, buf, false);
   }
 

@@ -295,7 +295,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
     return instance;
   }
 
-  public static void main(String args[]) {
+  public static void main(String[] args) {
     ServerContext context = new ServerContext(new SiteConfiguration());
     getInstance(context).printProblems();
   }

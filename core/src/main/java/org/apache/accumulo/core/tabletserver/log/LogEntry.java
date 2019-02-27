@@ -67,7 +67,7 @@ public class LogEntry {
     return Arrays.copyOf(out.getData(), out.getLength());
   }
 
-  public static LogEntry fromBytes(byte bytes[]) throws IOException {
+  public static LogEntry fromBytes(byte[] bytes) throws IOException {
     DataInputBuffer inp = new DataInputBuffer();
     inp.reset(bytes, bytes.length);
     KeyExtent extent = new KeyExtent();
@@ -108,7 +108,7 @@ public class LogEntry {
   }
 
   public String getUniqueID() {
-    String parts[] = filename.split("/");
+    String[] parts = filename.split("/");
     return parts[parts.length - 1];
   }
 

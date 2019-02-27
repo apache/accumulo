@@ -89,7 +89,7 @@ public class LogReader {
     if (opts.row != null)
       row = new Text(opts.row);
     if (opts.extent != null) {
-      String sa[] = opts.extent.split(";");
+      String[] sa = opts.extent.split(";");
       ke = new KeyExtent(TableId.of(sa[0]), new Text(sa[1]), new Text(sa[2]));
     }
     if (opts.regexp != null) {

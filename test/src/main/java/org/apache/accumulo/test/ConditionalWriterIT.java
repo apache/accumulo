@@ -1077,7 +1077,7 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     ByteSequence row = null;
     int seq;
     long sum;
-    int data[] = new int[10];
+    int[] data = new int[10];
 
     public Stats(Iterator<Entry<Key,Value>> iterator) {
       while (iterator.hasNext()) {

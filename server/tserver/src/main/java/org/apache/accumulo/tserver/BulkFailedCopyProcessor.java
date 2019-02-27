@@ -50,7 +50,7 @@ public class BulkFailedCopyProcessor implements Processor {
   @Override
   public void process(String workID, byte[] data) {
 
-    String paths[] = new String(data, UTF_8).split(",");
+    String[] paths = new String(data, UTF_8).split(",");
 
     Path orig = new Path(paths[0]);
     Path dest = new Path(paths[1]);

@@ -92,7 +92,7 @@ public class CacheTestWriter {
 
         // change values
         for (int i = 0; i < numData; i++) {
-          byte data[] = Long.toString(r.nextLong(), 16).getBytes(UTF_8);
+          byte[] data = Long.toString(r.nextLong(), 16).getBytes(UTF_8);
           zk.putPersistentData(rootDir + "/data" + i, data, NodeExistsPolicy.OVERWRITE);
           expectedData.put(rootDir + "/data" + i, new String(data, UTF_8));
         }
@@ -100,7 +100,7 @@ public class CacheTestWriter {
         // test a data node that does not always exists...
         if (r.nextFloat() < .5) {
 
-          byte data[] = Long.toString(r.nextLong(), 16).getBytes(UTF_8);
+          byte[] data = Long.toString(r.nextLong(), 16).getBytes(UTF_8);
 
           if (!dataSExists) {
             zk.putPersistentData(rootDir + "/dataS", data, NodeExistsPolicy.SKIP);

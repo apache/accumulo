@@ -80,9 +80,9 @@ public class Key implements WritableComparable<Key>, Cloneable {
     return false;
   }
 
-  private static final byte EMPTY_BYTES[] = new byte[0];
+  private static final byte[] EMPTY_BYTES = new byte[0];
 
-  static byte[] copyIfNeeded(byte ba[], int off, int len, boolean copyData) {
+  static byte[] copyIfNeeded(byte[] ba, int off, int len, boolean copyData) {
     if (len == 0)
       return EMPTY_BYTES;
 
@@ -94,8 +94,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
     return copy;
   }
 
-  private final void init(byte r[], int rOff, int rLen, byte cf[], int cfOff, int cfLen, byte cq[],
-      int cqOff, int cqLen, byte cv[], int cvOff, int cvLen, long ts, boolean del, boolean copy) {
+  private final void init(byte[] r, int rOff, int rLen, byte[] cf, int cfOff, int cfLen, byte[] cq,
+                          int cqOff, int cqLen, byte[] cv, int cvOff, int cvLen, long ts, boolean del, boolean copy) {
     row = copyIfNeeded(r, rOff, rLen, copy);
     colFamily = copyIfNeeded(cf, cfOff, cfLen, copy);
     colQualifier = copyIfNeeded(cq, cqOff, cqLen, copy);
@@ -215,8 +215,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          timestamp
    * @see #builder()
    */
-  public Key(byte row[], int rOff, int rLen, byte cf[], int cfOff, int cfLen, byte cq[], int cqOff,
-      int cqLen, byte cv[], int cvOff, int cvLen, long ts) {
+  public Key(byte[] row, int rOff, int rLen, byte[] cf, int cfOff, int cfLen, byte[] cq, int cqOff,
+             int cqLen, byte[] cv, int cvOff, int cvLen, long ts) {
     init(row, rOff, rLen, cf, cfOff, cfLen, cq, cqOff, cqLen, cv, cvOff, cvLen, ts, false, true);
   }
 
@@ -258,8 +258,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          if true, forces copy of byte array values into key
    * @see #builder()
    */
-  Key(byte row[], int rOff, int rLen, byte cf[], int cfOff, int cfLen, byte cq[], int cqOff,
-      int cqLen, byte cv[], int cvOff, int cvLen, long ts, boolean deleted, boolean copy) {
+  Key(byte[] row, int rOff, int rLen, byte[] cf, int cfOff, int cfLen, byte[] cq, int cqOff,
+      int cqLen, byte[] cv, int cvOff, int cvLen, long ts, boolean deleted, boolean copy) {
     init(row, rOff, rLen, cf, cfOff, cfLen, cq, cqOff, cqLen, cv, cvOff, cvLen, ts, deleted, copy);
   }
 
@@ -550,7 +550,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
         new Text(cv.getExpression()), ts);
   }
 
-  private byte[] followingArray(byte ba[]) {
+  private byte[] followingArray(byte[] ba) {
     byte[] fba = new byte[ba.length + 1];
     System.arraycopy(ba, 0, fba, 0, ba.length);
     fba[ba.length] = (byte) 0x00;
@@ -1045,7 +1045,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * @return printable string
    * @see #appendPrintableString(byte[], int, int, int, StringBuilder)
    */
-  public static String toPrintableString(byte ba[], int offset, int len, int maxLen) {
+  public static String toPrintableString(byte[] ba, int offset, int len, int maxLen) {
     return appendPrintableString(ba, offset, len, maxLen, new StringBuilder()).toString();
   }
 
@@ -1067,8 +1067,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          <code>StringBuilder</code> to append to
    * @return given <code>StringBuilder</code>
    */
-  public static StringBuilder appendPrintableString(byte ba[], int offset, int len, int maxLen,
-      StringBuilder sb) {
+  public static StringBuilder appendPrintableString(byte[] ba, int offset, int len, int maxLen,
+                                                    StringBuilder sb) {
     int plen = Math.min(len, maxLen);
 
     for (int i = 0; i < plen; i++) {
@@ -1156,7 +1156,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
     return getLength();
   }
 
-  private static boolean isEqual(byte a1[], byte a2[]) {
+  private static boolean isEqual(byte[] a1, byte[] a2) {
     if (a1 == a2)
       return true;
 

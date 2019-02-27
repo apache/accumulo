@@ -87,7 +87,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
 
   @Test
   public void testImportCompactionImport() throws Exception {
-    String tables[] = getUniqueNames(2);
+    String[] tables = getUniqueNames(2);
 
     // run test calling old bulk import RPCs
     runTest(tables[0], 99999999L, BulkFailureIT::oldLoad);

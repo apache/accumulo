@@ -36,7 +36,7 @@ public class NumericValueConstraint implements Constraint {
   private static final List<Short> VIOLATION_LIST = Collections
       .unmodifiableList(Arrays.asList(NON_NUMERIC_VALUE));
 
-  private boolean isNumeric(byte bytes[]) {
+  private boolean isNumeric(byte[] bytes) {
     for (byte b : bytes) {
       boolean ok = (b >= '0' && b <= '9');
       if (!ok)

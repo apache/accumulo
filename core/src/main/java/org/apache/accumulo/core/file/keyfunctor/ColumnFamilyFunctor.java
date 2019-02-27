@@ -28,7 +28,7 @@ public class ColumnFamilyFunctor implements KeyFunctor {
   @Override
   public Key transform(org.apache.accumulo.core.data.Key acuKey) {
 
-    byte keyData[];
+    byte[] keyData;
 
     ByteSequence row = acuKey.getRowData();
     ByteSequence cf = acuKey.getColumnFamilyData();

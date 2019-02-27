@@ -30,7 +30,7 @@ import org.apache.commons.math3.util.FastMath;
  */
 class RollingStats {
   private int position;
-  private double window[];
+  private double[] window;
 
   private double average;
   private double variance;

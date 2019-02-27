@@ -168,7 +168,7 @@ public class LocalityGroupUtil {
 
   public static ByteSequence decodeColumnFamily(String colFam)
       throws LocalityGroupConfigurationError {
-    byte output[] = new byte[colFam.length()];
+    byte[] output = new byte[colFam.length()];
     int pos = 0;
 
     for (int i = 0; i < colFam.length(); i++) {

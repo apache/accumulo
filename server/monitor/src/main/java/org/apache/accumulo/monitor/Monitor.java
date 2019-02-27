@@ -450,7 +450,7 @@ public class Monitor implements HighlyAvailableService {
 
   public void run() {
     Monitor.START_TIME = System.currentTimeMillis();
-    int ports[] = config.getSystemConfiguration().getPort(Property.MONITOR_PORT);
+    int[] ports = config.getSystemConfiguration().getPort(Property.MONITOR_PORT);
     for (int port : ports) {
       try {
         log.debug("Creating monitor on port {}", port);

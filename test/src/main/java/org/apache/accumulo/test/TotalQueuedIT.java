@@ -65,7 +65,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "999");
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       // get an idea of how fast the syncs occur
-      byte row[] = new byte[250];
+      byte[] row = new byte[250];
       BatchWriterConfig cfg = new BatchWriterConfig();
       cfg.setMaxWriteThreads(10);
       cfg.setMaxLatency(1, TimeUnit.SECONDS);

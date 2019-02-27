@@ -106,10 +106,10 @@ public class CollectTabletStats {
     final CollectOptions opts = new CollectOptions();
     opts.parseArgs(CollectTabletStats.class.getName(), args);
 
-    String columnsTmp[] = {};
+    String[] columnsTmp = {};
     if (opts.columns != null)
       columnsTmp = opts.columns.split(",");
-    final String columns[] = columnsTmp;
+    final String[] columns = columnsTmp;
 
     ServerContext context = opts.getServerContext();
     final VolumeManager fs = context.getVolumeManager();

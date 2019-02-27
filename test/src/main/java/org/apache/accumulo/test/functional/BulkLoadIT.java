@@ -418,8 +418,8 @@ public class BulkLoadIT extends AccumuloClusterHarness {
       justification = "path provided by test; sha-1 is okay for test")
   private String hash(String filename) {
     try {
-      byte data[] = Files.readAllBytes(Paths.get(filename.replaceFirst("^file:", "")));
-      byte hash[] = MessageDigest.getInstance("SHA1").digest(data);
+      byte[] data = Files.readAllBytes(Paths.get(filename.replaceFirst("^file:", "")));
+      byte[] hash = MessageDigest.getInstance("SHA1").digest(data);
       return new BigInteger(1, hash).toString(16);
     } catch (IOException | NoSuchAlgorithmException e) {
       throw new RuntimeException(e);

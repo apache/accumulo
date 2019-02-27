@@ -168,7 +168,7 @@ public class DefaultFormatter implements Formatter {
     return appendBytes(sb, value.get(), 0, value.get().length, shownLength);
   }
 
-  static StringBuilder appendBytes(StringBuilder sb, byte ba[], int offset, int len) {
+  static StringBuilder appendBytes(StringBuilder sb, byte[] ba, int offset, int len) {
     for (int i = 0; i < len; i++) {
       int c = 0xff & ba[offset + i];
       if (c == '\\')
@@ -181,8 +181,8 @@ public class DefaultFormatter implements Formatter {
     return sb;
   }
 
-  static StringBuilder appendBytes(StringBuilder sb, byte ba[], int offset, int len,
-      int shownLength) {
+  static StringBuilder appendBytes(StringBuilder sb, byte[] ba, int offset, int len,
+                                   int shownLength) {
     int length = Math.min(len, shownLength);
     return DefaultFormatter.appendBytes(sb, ba, offset, length);
   }

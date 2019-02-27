@@ -146,7 +146,7 @@ public class ColumnVisibility {
       return end;
     }
 
-    public ByteSequence getTerm(byte expression[]) {
+    public ByteSequence getTerm(byte[] expression) {
       if (type != NodeType.TERM)
         throw new RuntimeException();
 

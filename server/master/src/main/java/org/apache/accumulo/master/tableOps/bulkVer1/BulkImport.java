@@ -204,7 +204,7 @@ public class BulkImport extends MasterRepo {
       final FileStatus fileStatus = file;
       results.add(workers.submit(() -> {
         try {
-          String sa[] = fileStatus.getPath().getName().split("\\.");
+          String[] sa = fileStatus.getPath().getName().split("\\.");
           String extension = "";
           if (sa.length > 1) {
             extension = sa[sa.length - 1];

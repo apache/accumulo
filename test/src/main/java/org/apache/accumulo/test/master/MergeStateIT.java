@@ -113,7 +113,7 @@ public class MergeStateIT extends ConfigurableMacBase {
           new BatchWriterConfig());
 
       // Create a fake METADATA table with these splits
-      String splits[] = {"a", "e", "j", "o", "t", "z"};
+      String[] splits = {"a", "e", "j", "o", "t", "z"};
       // create metadata for a table "t" with the splits above
       TableId tableId = TableId.of("t");
       Text pr = null;

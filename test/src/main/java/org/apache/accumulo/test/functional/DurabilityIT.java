@@ -94,7 +94,7 @@ public class DurabilityIT extends ConfigurableMacBase {
   public void testWriteSpeed() throws Exception {
     try (AccumuloClient client = createClient()) {
       TableOperations tableOps = client.tableOperations();
-      String tableNames[] = init(client);
+      String[] tableNames = init(client);
       // write some gunk, delete the table to keep that table from messing with the performance
       // numbers of successive calls
       // sync
@@ -119,7 +119,7 @@ public class DurabilityIT extends ConfigurableMacBase {
   @Test(timeout = 4 * 60 * 1000)
   public void testSync() throws Exception {
     try (AccumuloClient client = createClient()) {
-      String tableNames[] = init(client);
+      String[] tableNames = init(client);
       // sync table should lose nothing
       writeSome(client, tableNames[0], N);
       restartTServer();
@@ -131,7 +131,7 @@ public class DurabilityIT extends ConfigurableMacBase {
   @Test(timeout = 4 * 60 * 1000)
   public void testFlush() throws Exception {
     try (AccumuloClient client = createClient()) {
-      String tableNames[] = init(client);
+      String[] tableNames = init(client);
       // flush table won't lose anything since we're not losing power/dfs
       writeSome(client, tableNames[1], N);
       restartTServer();
@@ -143,7 +143,7 @@ public class DurabilityIT extends ConfigurableMacBase {
   @Test(timeout = 4 * 60 * 1000)
   public void testLog() throws Exception {
     try (AccumuloClient client = createClient()) {
-      String tableNames[] = init(client);
+      String[] tableNames = init(client);
       // we're probably going to lose something the the log setting
       writeSome(client, tableNames[2], N);
       restartTServer();
@@ -156,7 +156,7 @@ public class DurabilityIT extends ConfigurableMacBase {
   @Test(timeout = 4 * 60 * 1000)
   public void testNone() throws Exception {
     try (AccumuloClient client = createClient()) {
-      String tableNames[] = init(client);
+      String[] tableNames = init(client);
       // probably won't get any data back without logging
       writeSome(client, tableNames[3], N);
       restartTServer();

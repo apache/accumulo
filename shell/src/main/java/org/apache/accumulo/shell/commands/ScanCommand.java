@@ -260,7 +260,7 @@ public class ScanCommand extends Command {
       final ScanInterpreter formatter) throws UnsupportedEncodingException {
     if (cl.hasOption(scanOptColumns.getOpt())) {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
-        final String sa[] = a.split(":", 2);
+        final String[] sa = a.split(":", 2);
         if (sa.length == 1) {
           scanner.fetchColumnFamily(
               formatter.interpretColumnFamily(new Text(a.getBytes(Shell.CHARSET))));

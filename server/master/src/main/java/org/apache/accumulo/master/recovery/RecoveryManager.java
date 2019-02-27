@@ -147,7 +147,7 @@ public class RecoveryManager {
           walog = switchedWalog;
         }
 
-        String parts[] = walog.split("/");
+        String[] parts = walog.split("/");
         String sortId = parts[parts.length - 1];
         String filename = master.getFileSystem().getFullPath(FileType.WAL, walog).toString();
         String dest = RecoveryPath.getRecoveryPath(new Path(filename)).toString();

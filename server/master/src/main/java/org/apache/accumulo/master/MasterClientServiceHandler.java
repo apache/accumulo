@@ -118,7 +118,7 @@ public class MasterClientServiceHandler extends FateServiceHandler
         + tableId + Constants.ZTABLE_FLUSH_ID;
 
     IZooReaderWriter zoo = master.getContext().getZooReaderWriter();
-    byte fid[];
+    byte[] fid;
     try {
       fid = zoo.mutate(zTablePath, null, null, new Mutator() {
         @Override

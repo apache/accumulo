@@ -188,7 +188,7 @@ public class ServerConstants {
 
       for (String pair : pairs) {
 
-        String uris[] = pair.split("\\s+");
+        String[] uris = pair.split("\\s+");
         if (uris.length != 2)
           throw new IllegalArgumentException(
               Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains malformed pair " + pair);

@@ -32,7 +32,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ColumnTest {
-  static Column col[];
+  static Column[] col;
 
   @BeforeClass
   public static void setup() {

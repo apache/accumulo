@@ -281,7 +281,7 @@ public class InMemoryMap {
     private PreAllocatedArray<Map<ByteSequence,MutableLong>> groupFams;
 
     // the last map in the array is the default locality group
-    private SimpleMap maps[];
+    private SimpleMap[] maps;
     private Partitioner partitioner;
     private PreAllocatedArray<List<Mutation>> partitioned;
 
@@ -322,7 +322,7 @@ public class InMemoryMap {
       if (samplerConfig != null)
         throw new SampleNotPresentException();
 
-      LocalityGroup groups[] = new LocalityGroup[maps.length];
+      LocalityGroup[] groups = new LocalityGroup[maps.length];
       for (int i = 0; i < groups.length; i++) {
         if (i < groupFams.length)
           groups[i] = new LocalityGroup(maps[i].skvIterator(null), groupFams.get(i), false);

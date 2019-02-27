@@ -48,7 +48,7 @@ public class OldMutation implements Writable {
   private static class ByteBuffer {
 
     int offset;
-    byte data[] = new byte[64];
+    byte[] data = new byte[64];
 
     private void reserve(int l) {
       if (offset + l > data.length) {
@@ -104,7 +104,7 @@ public class OldMutation implements Writable {
     }
 
     public byte[] toArray() {
-      byte ret[] = new byte[offset];
+      byte[] ret = new byte[offset];
       System.arraycopy(data, 0, ret, 0, offset);
       return ret;
     }
@@ -113,9 +113,9 @@ public class OldMutation implements Writable {
 
   private static class SimpleReader {
     int offset;
-    byte data[];
+    byte[] data;
 
-    SimpleReader(byte b[]) {
+    SimpleReader(byte[] b) {
       this.data = b;
     }
 
@@ -132,7 +132,7 @@ public class OldMutation implements Writable {
           + ((data[offset++] & 255) << 8) + ((data[offset++] & 255) << 0));
     }
 
-    void readBytes(byte b[]) {
+    void readBytes(byte[] b) {
       System.arraycopy(data, offset, b, 0, b.length);
       offset += b.length;
     }
@@ -186,7 +186,7 @@ public class OldMutation implements Writable {
     return row;
   }
 
-  private void put(byte b[]) {
+  private void put(byte[] b) {
     buffer.add(b.length);
     buffer.add(b);
   }
@@ -226,7 +226,7 @@ public class OldMutation implements Writable {
     } else {
       if (values == null)
         values = new ArrayList<>();
-      byte copy[] = new byte[val.length];
+      byte[] copy = new byte[val.length];
       System.arraycopy(val, 0, copy, 0, val.length);
       values.add(copy);
       put(-1 * values.size());
@@ -351,7 +351,7 @@ public class OldMutation implements Writable {
     if (len == 0)
       return EMPTY_BYTES;
 
-    byte bytes[] = new byte[len];
+    byte[] bytes = new byte[len];
     in.readBytes(bytes);
     return bytes;
   }
@@ -459,7 +459,7 @@ public class OldMutation implements Writable {
       int numValues = in.readInt();
       for (int i = 0; i < numValues; i++) {
         len = in.readInt();
-        byte val[] = new byte[len];
+        byte[] val = new byte[len];
         in.readFully(val);
         values.add(val);
       }

@@ -88,13 +88,13 @@ public class VolumeConfiguration {
   public static String[] getVolumeUris(AccumuloConfiguration conf, Configuration hadoopConfig) {
     String ns = conf.get(Property.INSTANCE_VOLUMES);
 
-    String configuredBaseDirs[];
+    String[] configuredBaseDirs;
 
     if (ns == null || ns.isEmpty()) {
       // Fall back to using the old config values
       configuredBaseDirs = new String[] {getConfiguredBaseDir(conf, hadoopConfig)};
     } else {
-      String namespaces[] = ns.split(",");
+      String[] namespaces = ns.split(",");
       configuredBaseDirs = new String[namespaces.length];
       int i = 0;
       for (String namespace : namespaces) {
@@ -116,10 +116,10 @@ public class VolumeConfiguration {
     return configuredBaseDirs;
   }
 
-  public static String[] prefix(String bases[], String suffix) {
+  public static String[] prefix(String[] bases, String suffix) {
     if (suffix.startsWith("/"))
       suffix = suffix.substring(1);
-    String result[] = new String[bases.length];
+    String[] result = new String[bases.length];
     for (int i = 0; i < bases.length; i++) {
       if (bases[i].endsWith("/")) {
         result[i] = bases[i] + suffix;

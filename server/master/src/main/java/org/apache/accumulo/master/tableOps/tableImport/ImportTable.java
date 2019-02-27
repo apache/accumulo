@@ -97,7 +97,7 @@ public class ImportTable extends MasterRepo {
           BufferedReader in = new BufferedReader(new InputStreamReader(zis, UTF_8));
           String line = null;
           while ((line = in.readLine()) != null) {
-            String sa[] = line.split(":", 2);
+            String[] sa = line.split(":", 2);
             if (sa[0].equals(ExportTable.EXPORT_VERSION_PROP)) {
               exportVersion = Integer.parseInt(sa[1]);
             } else if (sa[0].equals(ExportTable.DATA_VERSION_PROP)) {

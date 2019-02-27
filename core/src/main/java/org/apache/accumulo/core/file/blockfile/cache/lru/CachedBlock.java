@@ -61,7 +61,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
   private BlockPriority priority;
   private Weighable index;
 
-  public CachedBlock(String blockName, byte buf[], long accessTime, boolean inMemory) {
+  public CachedBlock(String blockName, byte[] buf, long accessTime, boolean inMemory) {
     this.buffer = buf;
     this.blockName = blockName;
     this.accessTime = accessTime;

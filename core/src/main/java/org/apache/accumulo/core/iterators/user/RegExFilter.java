@@ -83,7 +83,7 @@ public class RegExFilter extends Filter {
     return !orFields;
   }
 
-  private boolean matches(Matcher matcher, byte data[], int offset, int len) {
+  private boolean matches(Matcher matcher, byte[] data, int offset, int len) {
     if (matcher != null) {
       matcher.reset(new String(data, offset, len, encoding));
       return matchSubstring ? matcher.find() : matcher.matches();

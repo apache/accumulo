@@ -40,7 +40,7 @@ public class ULongLexicoder extends AbstractLexicoder<Long> {
       shift -= 8;
     }
 
-    byte ret[] = new byte[9 - index];
+    byte[] ret = new byte[9 - index];
     ret[0] = (byte) (8 - index);
     for (index = 1; index < ret.length; index++) {
       ret[index] = (byte) (l >>> shift);

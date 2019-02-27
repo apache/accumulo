@@ -129,7 +129,7 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
   private LocalityGroupSeekCache lgCache;
   private AtomicBoolean interruptFlag;
 
-  public LocalityGroupIterator(LocalityGroup groups[]) {
+  public LocalityGroupIterator(LocalityGroup[] groups) {
     super(groups.length);
     this.lgContext = new LocalityGroupContext(groups);
   }

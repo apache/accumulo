@@ -26,15 +26,15 @@ public class FastFormat {
   public static byte[] toZeroPaddedString(long num, int width, int radix, byte[] prefix) {
     Preconditions.checkArgument(num >= 0);
     String strNum = Long.toString(num, radix);
-    byte ret[] = new byte[Math.max(strNum.length(), width) + prefix.length];
+    byte[] ret = new byte[Math.max(strNum.length(), width) + prefix.length];
     if (toZeroPaddedString(ret, 0, strNum, width, prefix) != ret.length)
       throw new RuntimeException(" Did not format to expected width " + num + " " + width + " "
           + radix + " " + new String(prefix, UTF_8));
     return ret;
   }
 
-  public static int toZeroPaddedString(byte output[], int outputOffset, long num, int width,
-      int radix, byte[] prefix) {
+  public static int toZeroPaddedString(byte[] output, int outputOffset, long num, int width,
+                                       int radix, byte[] prefix) {
     Preconditions.checkArgument(num >= 0);
 
     String strNum = Long.toString(num, radix);
@@ -42,8 +42,8 @@ public class FastFormat {
     return toZeroPaddedString(output, outputOffset, strNum, width, prefix);
   }
 
-  private static int toZeroPaddedString(byte output[], int outputOffset, String strNum, int width,
-      byte[] prefix) {
+  private static int toZeroPaddedString(byte[] output, int outputOffset, String strNum, int width,
+                                        byte[] prefix) {
 
     int index = outputOffset;
 

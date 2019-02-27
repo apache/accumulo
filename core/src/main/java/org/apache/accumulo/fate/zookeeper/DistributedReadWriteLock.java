@@ -76,7 +76,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     }
 
     public byte[] getLockData() {
-      byte typeBytes[] = type.name().getBytes(UTF_8);
+      byte[] typeBytes = type.name().getBytes(UTF_8);
       byte[] result = new byte[userData.length + 1 + typeBytes.length];
       System.arraycopy(typeBytes, 0, result, 0, typeBytes.length);
       result[typeBytes.length] = ':';

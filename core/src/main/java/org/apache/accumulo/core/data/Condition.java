@@ -38,7 +38,7 @@ public class Condition {
   private ByteSequence cv;
   private ByteSequence val;
   private Long ts;
-  private IteratorSetting iterators[] = new IteratorSetting[0];
+  private IteratorSetting[] iterators = new IteratorSetting[0];
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[0]);
 
   /**

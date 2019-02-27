@@ -58,7 +58,7 @@ public class RFileCipherOutputStream extends CipherOutputStream {
    * This method now throws an exception if an attempt to write bytes beyond a maximum is made.
    */
   @Override
-  public void write(byte b[], int off, int len) throws IOException {
+  public void write(byte[] b, int off, int len) throws IOException {
     count += len;
     if (count > maxOutputSize) {
       throw new IOException("Attempt to write " + count + " bytes was made. A maximum of "
@@ -68,7 +68,7 @@ public class RFileCipherOutputStream extends CipherOutputStream {
   }
 
   @Override
-  public void write(byte b[]) throws IOException {
+  public void write(byte[] b) throws IOException {
     write(b, 0, b.length);
   }
 

@@ -62,7 +62,7 @@ public class MetadataIT extends AccumuloClusterHarness {
   @Test
   public void testFlushAndCompact() throws Exception {
     try (AccumuloClient c = createAccumuloClient()) {
-      String tableNames[] = getUniqueNames(2);
+      String[] tableNames = getUniqueNames(2);
 
       // create a table to write some data to metadata table
       c.tableOperations().create(tableNames[0]);

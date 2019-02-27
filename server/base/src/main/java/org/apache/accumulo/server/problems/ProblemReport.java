@@ -84,7 +84,7 @@ public class ProblemReport {
     this(tableId, problemType, resource, null, e);
   }
 
-  private ProblemReport(TableId table, ProblemType problemType, String resource, byte enc[])
+  private ProblemReport(TableId table, ProblemType problemType, String resource, byte[] enc)
       throws IOException {
     requireNonNull(table, "table is null");
     requireNonNull(problemType, "problemType is null");
@@ -118,7 +118,7 @@ public class ProblemReport {
     return baos.toByteArray();
   }
 
-  private void decode(byte enc[]) throws IOException {
+  private void decode(byte[] enc) throws IOException {
     ByteArrayInputStream bais = new ByteArrayInputStream(enc);
     DataInputStream dis = new DataInputStream(bais);
 
@@ -180,7 +180,7 @@ public class ProblemReport {
 
   static ProblemReport decodeZooKeeperEntry(ServerContext context, String node)
       throws IOException, KeeperException, InterruptedException {
-    byte bytes[] = Encoding.decodeBase64FileName(node);
+    byte[] bytes = Encoding.decodeBase64FileName(node);
 
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
     DataInputStream dis = new DataInputStream(bais);

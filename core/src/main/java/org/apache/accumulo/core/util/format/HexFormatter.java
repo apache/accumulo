@@ -29,7 +29,7 @@ import org.apache.hadoop.io.Text;
  */
 public class HexFormatter implements Formatter, ScanInterpreter {
 
-  private char chars[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e',
+  private char[] chars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e',
       'f'};
   private Iterator<Entry<Key,Value>> iter;
   private FormatterConfig config;

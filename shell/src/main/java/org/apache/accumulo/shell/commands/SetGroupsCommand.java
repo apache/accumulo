@@ -40,7 +40,7 @@ public class SetGroupsCommand extends Command {
     final HashMap<String,Set<Text>> groups = new HashMap<>();
 
     for (String arg : cl.getArgs()) {
-      final String sa[] = arg.split("=", 2);
+      final String[] sa = arg.split("=", 2);
       if (sa.length < 2) {
         throw new IllegalArgumentException("Missing '='");
       }

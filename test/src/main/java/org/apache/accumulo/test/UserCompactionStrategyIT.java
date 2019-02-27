@@ -317,7 +317,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   void writeRandomValue(AccumuloClient c, String tableName, int size) throws Exception {
     Random rand = new SecureRandom();
 
-    byte data1[] = new byte[size];
+    byte[] data1 = new byte[size];
     rand.nextBytes(data1);
 
     BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());

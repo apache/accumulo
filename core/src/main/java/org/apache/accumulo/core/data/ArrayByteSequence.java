@@ -31,7 +31,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  protected byte data[];
+  protected byte[] data;
   protected int offset;
   protected int length;
 
@@ -42,7 +42,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
    * @param data
    *          byte data
    */
-  public ArrayByteSequence(byte data[]) {
+  public ArrayByteSequence(byte[] data) {
     this.data = data;
     this.offset = 0;
     this.length = data.length;
@@ -62,7 +62,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
    * @throws IllegalArgumentException
    *           if the offset or length are out of bounds for the given byte array
    */
-  public ArrayByteSequence(byte data[], int offset, int length) {
+  public ArrayByteSequence(byte[] data, int offset, int length) {
 
     if (offset < 0 || offset > data.length || length < 0 || (offset + length) > data.length) {
       throw new IllegalArgumentException(" Bad offset and/or length data.length = " + data.length

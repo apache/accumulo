@@ -27,7 +27,7 @@ import org.junit.Test;
 
 public class KeyBuilderTest {
 
-  private static final byte EMPTY_BYTES[] = new byte[0];
+  private static final byte[] EMPTY_BYTES = new byte[0];
   byte[] rowBytes = "row".getBytes(UTF_8);
   byte[] familyBytes = "family".getBytes(UTF_8);
   byte[] qualifierBytes = "qualifier".getBytes(UTF_8);

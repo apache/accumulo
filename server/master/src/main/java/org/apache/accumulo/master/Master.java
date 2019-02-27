@@ -240,15 +240,15 @@ public class Master
   static final boolean X = true;
   static final boolean O = false;
   // @formatter:off
-  static final boolean transitionOK[][] = {
+  static final boolean[][] transitionOK = {
       //                            INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
-      /* INITIAL */                 {X,     X,        O,        O,      O,         O,          X},
-      /* HAVE_LOCK */               {O,     X,        X,        X,      O,         O,          X},
-      /* SAFE_MODE */               {O,     O,        X,        X,      X,         O,          X},
-      /* NORMAL */                  {O,     O,        X,        X,      X,         O,          X},
-      /* UNLOAD_METADATA_TABLETS */ {O,     O,        X,        X,      X,         X,          X},
-      /* UNLOAD_ROOT_TABLET */      {O,     O,        O,        X,      X,         X,          X},
-      /* STOP */                    {O,     O,        O,        O,      O,         X,          X}};
+      /* INITIAL */                 {X, X, O, O, O, O, X},
+      /* HAVE_LOCK */               {O, X, X, X, O, O, X},
+      /* SAFE_MODE */               {O, O, X, X, X, O, X},
+      /* NORMAL */                  {O, O, X, X, X, O, X},
+      /* UNLOAD_METADATA_TABLETS */ {O, O, X, X, X, X, X},
+      /* UNLOAD_ROOT_TABLET */      {O, O, O, X, X, X, X},
+      /* STOP */                    {O, O, O, O, O, X, X}};
   //@formatter:on
   synchronized void setMasterState(MasterState newState) {
     if (state.equals(newState))
@@ -371,7 +371,7 @@ public class Master
         // is the entire instance set to use flushing vs sync?
         boolean flushDefault = false;
         try {
-          byte data[] = zoo.getData(zpath, null);
+          byte[] data = zoo.getData(zpath, null);
           if (new String(data, UTF_8).endsWith("flush")) {
             flushDefault = true;
           }

@@ -84,7 +84,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
     return _numSubBins;
   }
 
-  private Text cutPointArray[] = null;
+  private Text[] cutPointArray = null;
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "path provided by distributed cache framework, not user input")

@@ -39,7 +39,7 @@ public class AlphaNumKeyConstraint implements Constraint {
   static final String COLF_VIOLATION_MESSAGE = "Column family was not alpha numeric";
   static final String COLQ_VIOLATION_MESSAGE = "Column qualifier was not alpha numeric";
 
-  private boolean isAlphaNum(byte bytes[]) {
+  private boolean isAlphaNum(byte[] bytes) {
     for (byte b : bytes) {
       boolean ok = ((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9'));
       if (!ok)

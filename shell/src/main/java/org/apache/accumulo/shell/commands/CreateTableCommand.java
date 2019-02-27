@@ -185,7 +185,7 @@ public class CreateTableCommand extends Command {
     HashMap<String,Set<Text>> localityGroupMap = new HashMap<>();
     String[] options = cl.getOptionValues(createTableOptLocalityProps.getOpt());
     for (String localityInfo : options) {
-      final String parts[] = localityInfo.split("=", 2);
+      final String[] parts = localityInfo.split("=", 2);
       if (parts.length < 2)
         throw new IllegalArgumentException("Missing '=' or there are spaces between entries");
       final String groupName = parts[0];

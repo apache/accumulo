@@ -103,10 +103,10 @@ public class IterConfigUtil {
 
     for (Entry<String,String> entry : properties.entrySet()) {
       String suffix = entry.getKey().substring(scopePropertyKey.length());
-      String suffixSplit[] = suffix.split("\\.", 3);
+      String[] suffixSplit = suffix.split("\\.", 3);
 
       if (suffixSplit.length == 1) {
-        String sa[] = entry.getValue().split(",");
+        String[] sa = entry.getValue().split(",");
         int prio = Integer.parseInt(sa[0]);
         String className = sa[1];
         iterators.add(new IterInfo(prio, className, suffixSplit[0]));

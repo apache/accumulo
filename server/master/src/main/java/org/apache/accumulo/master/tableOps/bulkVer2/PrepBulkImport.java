@@ -188,7 +188,7 @@ public class PrepBulkImport extends MasterRepo {
     for (FileStatus file : files) {
       final FileStatus fileStatus = file;
       final Path originalPath = fileStatus.getPath();
-      String fileNameParts[] = originalPath.getName().split("\\.");
+      String[] fileNameParts = originalPath.getName().split("\\.");
       String extension = "";
       boolean invalidFileName;
       if (fileNameParts.length > 1) {

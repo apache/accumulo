@@ -269,7 +269,7 @@ public class RFile {
 
         for (int i = 0; i < size; i++) {
           int len = in.readInt();
-          byte cf[] = new byte[len];
+          byte[] cf = new byte[len];
           in.readFully(cf);
           long count = in.readLong();
 
@@ -1135,9 +1135,9 @@ public class RFile {
     private final ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
     private final ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
 
-    private final LocalityGroupReader currentReaders[];
-    private final LocalityGroupReader readers[];
-    private final LocalityGroupReader sampleReaders[];
+    private final LocalityGroupReader[] currentReaders;
+    private final LocalityGroupReader[] readers;
+    private final LocalityGroupReader[] sampleReaders;
     private final LocalityGroupContext lgContext;
     private LocalityGroupSeekCache lgCache;
 
@@ -1206,7 +1206,7 @@ public class RFile {
       createHeap(currentReaders.length);
     }
 
-    private Reader(Reader r, LocalityGroupReader sampleReaders[]) {
+    private Reader(Reader r, LocalityGroupReader[] sampleReaders) {
       super(sampleReaders.length);
       this.reader = r.reader;
       this.currentReaders = new LocalityGroupReader[sampleReaders.length];

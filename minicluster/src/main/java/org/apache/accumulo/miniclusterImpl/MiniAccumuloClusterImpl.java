@@ -508,7 +508,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               s.setReuseAddress(true);
               s.getOutputStream().write("ruok\n".getBytes());
               s.getOutputStream().flush();
-              byte buffer[] = new byte[100];
+              byte[] buffer = new byte[100];
               int n = s.getInputStream().read(buffer);
               if (n >= 4 && new String(buffer, 0, 4).equals("imok"))
                 break;

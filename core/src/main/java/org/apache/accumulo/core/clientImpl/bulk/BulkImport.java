@@ -466,7 +466,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         continue;
       }
 
-      String sa[] = fname.split("\\.");
+      String[] sa = fname.split("\\.");
       String extension = "";
       if (sa.length > 1) {
         extension = sa[sa.length - 1];

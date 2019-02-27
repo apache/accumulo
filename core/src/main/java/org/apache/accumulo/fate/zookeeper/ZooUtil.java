@@ -73,7 +73,7 @@ public class ZooUtil {
     public String node;
 
     public LockID(String root, String serializedLID) {
-      String sa[] = serializedLID.split("\\$");
+      String[] sa = serializedLID.split("\\$");
       int lastSlash = sa[0].lastIndexOf('/');
 
       if (sa.length != 2 || lastSlash < 0) {

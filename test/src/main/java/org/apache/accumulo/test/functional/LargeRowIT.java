@@ -114,7 +114,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
   @Test
   public void run() throws Exception {
     Random r = new Random();
-    byte rowData[] = new byte[ROW_SIZE];
+    byte[] rowData = new byte[ROW_SIZE];
     r.setSeed(SEED + 1);
     TreeSet<Text> splitPoints = new TreeSet<>();
     for (int i = 0; i < NUM_PRE_SPLITS; i++) {
@@ -158,7 +158,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
     try (BatchWriter bw = c.createBatchWriter(table)) {
 
       Random r = new Random();
-      byte rowData[] = new byte[ROW_SIZE];
+      byte[] rowData = new byte[ROW_SIZE];
       r.setSeed(SEED);
 
       for (int i = 0; i < NUM_ROWS; i++) {
@@ -195,7 +195,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
       justification = "predictable random is okay for testing")
   private void verify(AccumuloClient c, String table) throws Exception {
     Random r = new Random();
-    byte rowData[] = new byte[ROW_SIZE];
+    byte[] rowData = new byte[ROW_SIZE];
 
     r.setSeed(SEED);
 

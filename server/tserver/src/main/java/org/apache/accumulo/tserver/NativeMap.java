@@ -192,13 +192,13 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   // private static native void putNM(long nmPointer, byte[] kd, int cfo, int cqo, int cvo, int tl,
   // long ts, boolean del, byte[] value);
 
-  private static native void singleUpdate(long nmPointer, byte[] row, byte cf[], byte cq[],
-      byte cv[], long ts, boolean del, byte[] value, int mutationCount);
+  private static native void singleUpdate(long nmPointer, byte[] row, byte[] cf, byte[] cq,
+                                          byte[] cv, long ts, boolean del, byte[] value, int mutationCount);
 
   private static native long startUpdate(long nmPointer, byte[] row);
 
-  private static native void update(long nmPointer, long updateID, byte cf[], byte cq[], byte cv[],
-      long ts, boolean del, byte[] value, int mutationCount);
+  private static native void update(long nmPointer, long updateID, byte[] cf, byte[] cq, byte[] cv,
+                                    long ts, boolean del, byte[] value, int mutationCount);
 
   private static native int sizeNM(long nmPointer);
 
@@ -248,15 +248,15 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
   }
 
-  private static native long createNMI(long nmp, int fieldLens[]);
+  private static native long createNMI(long nmp, int[] fieldLens);
 
-  private static native long createNMI(long nmp, byte[] row, byte cf[], byte cq[], byte cv[],
-      long ts, boolean del, int fieldLens[]);
+  private static native long createNMI(long nmp, byte[] row, byte[] cf, byte[] cq, byte[] cv,
+                                       long ts, boolean del, int[] fieldLens);
 
-  private static native boolean nmiNext(long nmiPointer, int fieldLens[]);
+  private static native boolean nmiNext(long nmiPointer, int[] fieldLens);
 
-  private static native void nmiGetData(long nmiPointer, byte[] row, byte cf[], byte cq[],
-      byte cv[], byte[] valData);
+  private static native void nmiGetData(long nmiPointer, byte[] row, byte[] cf, byte[] cq,
+                                        byte[] cv, byte[] valData);
 
   private static native long nmiGetTS(long nmiPointer);
 
@@ -389,7 +389,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     private boolean hasNext;
     private int expectedModCount;
     private int[] fieldsLens = new int[7];
-    private byte lastRow[];
+    private byte[] lastRow;
 
     // it is assumed the read lock is held when this method is called
     NMIterator(Key key) {
@@ -458,11 +458,11 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
         lastRow = row;
       }
 
-      byte cf[] = new byte[fieldsLens[1]];
-      byte cq[] = new byte[fieldsLens[2]];
-      byte cv[] = new byte[fieldsLens[3]];
+      byte[] cf = new byte[fieldsLens[1]];
+      byte[] cq = new byte[fieldsLens[2]];
+      byte[] cv = new byte[fieldsLens[3]];
       boolean deleted = fieldsLens[4] != 0;
-      byte val[] = new byte[fieldsLens[5]];
+      byte[] val = new byte[fieldsLens[5]];
 
       nmiGetData(nmiPointer, row, cf, cq, cv, val);
       long ts = nmiGetTS(nmiPointer);

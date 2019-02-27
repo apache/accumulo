@@ -80,7 +80,7 @@ public class ZooStore<T> implements TStore<T> {
   @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION",
       justification = "unsafe to store arbitrary serialized objects like this, but needed for now"
           + " for backwards compatibility")
-  private Object deserialize(byte ser[]) {
+  private Object deserialize(byte[] ser) {
     try {
       ByteArrayInputStream bais = new ByteArrayInputStream(ser);
       ObjectInputStream ois = new ObjectInputStream(bais);

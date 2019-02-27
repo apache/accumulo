@@ -83,7 +83,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
         generateRandomRange(start, end);
 
         // initiate the delete range
-        final boolean fail[] = {false};
+        final boolean[] fail = {false};
         Thread t = new Thread(() -> {
           try {
             // split the table

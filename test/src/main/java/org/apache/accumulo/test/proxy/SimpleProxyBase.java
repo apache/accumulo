@@ -1968,7 +1968,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     }
     client.deleteRows(creds, tableName, null, null);
     client.removeIterator(creds, tableName, "test", EnumSet.allOf(IteratorScope.class));
-    String expected[][] = new String[10][];
+    String[][] expected = new String[10][];
     for (int i = 0; i < 10; i++) {
       client.updateAndFlush(creds, tableName, mutation("row" + i, "cf", "cq", "" + i));
       expected[i] = new String[] {"row" + i, "cf", "cq", "" + i};
@@ -1981,7 +1981,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   public void cloneTable() throws Exception {
     String TABLE_TEST2 = getUniqueNames(2)[1];
 
-    String expected[][] = new String[10][];
+    String[][] expected = new String[10][];
     for (int i = 0; i < 10; i++) {
       client.updateAndFlush(creds, tableName, mutation("row" + i, "cf", "cq", "" + i));
       expected[i] = new String[] {"row" + i, "cf", "cq", "" + i};
@@ -2003,7 +2003,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
   @Test
   public void compactTable() throws Exception {
-    String expected[][] = new String[10][];
+    String[][] expected = new String[10][];
     for (int i = 0; i < 10; i++) {
       client.updateAndFlush(creds, tableName, mutation("row" + i, "cf", "cq", "" + i));
       expected[i] = new String[] {"row" + i, "cf", "cq", "" + i};
@@ -2022,7 +2022,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     String TABLE_TEST2 = getUniqueNames(2)[1];
 
     // Write some data
-    String expected[][] = new String[10][];
+    String[][] expected = new String[10][];
     for (int i = 0; i < 10; i++) {
       client.updateAndFlush(creds, tableName, mutation("row" + i, "cf", "cq", "" + i));
       expected[i] = new String[] {"row" + i, "cf", "cq", "" + i};
@@ -2070,7 +2070,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   @Test
   public void importExportTable() throws Exception {
     // Write some data
-    String expected[][] = new String[10][];
+    String[][] expected = new String[10][];
     for (int i = 0; i < 10; i++) {
       client.updateAndFlush(creds, tableName, mutation("row" + i, "cf", "cq", "" + i));
       expected[i] = new String[] {"row" + i, "cf", "cq", "" + i};

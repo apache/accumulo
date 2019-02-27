@@ -68,7 +68,7 @@ public class BlockedInputStream extends InputStream {
   }
 
   @Override
-  public int read(byte b[], int off, int len) throws IOException {
+  public int read(byte[] b, int off, int len) throws IOException {
     int toCopy = Math.min(len, remaining());
     if (toCopy > 0) {
       System.arraycopy(array, readPos, b, off, toCopy);

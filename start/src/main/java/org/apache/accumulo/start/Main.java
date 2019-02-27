@@ -180,7 +180,7 @@ public class Main {
 
   public static String[] stripArgs(final String[] originalArgs, int numToStrip) {
     int newSize = originalArgs.length - numToStrip;
-    String newArgs[] = new String[newSize];
+    String[] newArgs = new String[newSize];
     System.arraycopy(originalArgs, numToStrip, newArgs, 0, newSize);
     return newArgs;
   }
