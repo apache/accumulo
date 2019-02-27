@@ -25,7 +25,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -140,7 +139,7 @@ public class CompactionIT extends AccumuloClusterHarness {
                 opts.cols = 1;
                 opts.setTableName(tableName);
                 opts.setClientProperties(getClientProperties());
-                VerifyIngest.verifyIngest(c, opts, new ScannerOpts());
+                VerifyIngest.verifyIngest(c, opts);
               } catch (Exception ex) {
                 log.warn("Got exception verifying data", ex);
                 fail.set(true);

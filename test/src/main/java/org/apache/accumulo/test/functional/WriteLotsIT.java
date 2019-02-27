@@ -21,9 +21,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
@@ -38,7 +38,11 @@ public class WriteLotsIT extends AccumuloClusterHarness {
 
   @Test
   public void writeLots() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    BatchWriterConfig bwConfig = new BatchWriterConfig();
+    bwConfig.setMaxMemory(1024L * 1024);
+    bwConfig.setMaxWriteThreads(2);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties())
+        .batchWriterConfig(bwConfig).build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       final AtomicReference<Exception> ref = new AtomicReference<>();
@@ -47,22 +51,16 @@ public class WriteLotsIT extends AccumuloClusterHarness {
           new ArrayBlockingQueue<>(THREADS));
       for (int i = 0; i < THREADS; i++) {
         final int index = i;
-        Runnable r = new Runnable() {
-          @Override
-          public void run() {
-            try {
-              TestIngest.Opts opts = new TestIngest.Opts();
-              opts.startRow = index * 10000;
-              opts.rows = 10000;
-              opts.setTableName(tableName);
-              opts.setClientProperties(getClientProperties());
-              BatchWriterOpts bwOpts = new BatchWriterOpts();
-              bwOpts.batchMemory = 1024L * 1024;
-              bwOpts.batchThreads = 2;
-              TestIngest.ingest(c, opts, new BatchWriterOpts());
-            } catch (Exception ex) {
-              ref.set(ex);
-            }
+        Runnable r = () -> {
+          try {
+            TestIngest.Opts opts = new TestIngest.Opts();
+            opts.startRow = index * 10000;
+            opts.rows = 10000;
+            opts.setTableName(tableName);
+            opts.setClientProperties(getClientProperties());
+            TestIngest.ingest(c, opts);
+          } catch (Exception ex) {
+            ref.set(ex);
           }
         };
         tpe.execute(r);
@@ -76,7 +74,7 @@ public class WriteLotsIT extends AccumuloClusterHarness {
       vopts.rows = 10000 * THREADS;
       vopts.setTableName(tableName);
       vopts.setClientProperties(getClientProperties());
-      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      VerifyIngest.verifyIngest(c, vopts);
     }
   }
 

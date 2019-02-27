@@ -31,8 +31,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -75,10 +73,8 @@ public class RestartIT extends AccumuloClusterHarness {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  private static final ScannerOpts SOPTS = new ScannerOpts();
   private static final VerifyIngest.Opts VOPTS = new VerifyIngest.Opts();
   private static final TestIngest.Opts OPTS = new TestIngest.Opts();
-  private static final BatchWriterOpts BWOPTS = new BatchWriterOpts();
   static {
     OPTS.rows = VOPTS.rows = 10 * 1000;
   }
@@ -143,7 +139,7 @@ public class RestartIT extends AccumuloClusterHarness {
       control.stopAllServers(ServerType.MASTER);
       control.startAllServers(ServerType.MASTER);
       assertEquals(0, ret.get().intValue());
-      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+      VerifyIngest.verifyIngest(c, VOPTS);
     }
   }
 
@@ -156,7 +152,7 @@ public class RestartIT extends AccumuloClusterHarness {
       VOPTS.setTableName(tableName);
       OPTS.setClientProperties(getClientProperties());
       VOPTS.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, OPTS, BWOPTS);
+      TestIngest.ingest(c, OPTS);
       ClusterControl control = getCluster().getClusterControl();
 
       // TODO implement a kill all too?
@@ -194,7 +190,7 @@ public class RestartIT extends AccumuloClusterHarness {
         }
       } while (masterLockData != null);
       cluster.start();
-      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+      VerifyIngest.verifyIngest(c, VOPTS);
     }
   }
 
@@ -251,7 +247,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
       cluster.start();
       assertEquals(0, ret.get().intValue());
-      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+      VerifyIngest.verifyIngest(c, VOPTS);
     }
   }
 
@@ -264,11 +260,11 @@ public class RestartIT extends AccumuloClusterHarness {
       VOPTS.setTableName(tableName);
       OPTS.setClientProperties(getClientProperties());
       VOPTS.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, OPTS, BWOPTS);
-      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+      TestIngest.ingest(c, OPTS);
+      VerifyIngest.verifyIngest(c, VOPTS);
       cluster.getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       cluster.start();
-      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+      VerifyIngest.verifyIngest(c, VOPTS);
     }
   }
 
@@ -295,7 +291,7 @@ public class RestartIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       OPTS.setTableName(tableName);
       OPTS.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, OPTS, BWOPTS);
+      TestIngest.ingest(c, OPTS);
       try {
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
         getCluster().getClusterControl().adminStopAll();
@@ -328,9 +324,9 @@ public class RestartIT extends AccumuloClusterHarness {
         TestIngest.Opts opts = new TestIngest.Opts();
         opts.setTableName(tableName);
         opts.setClientProperties(getClientProperties());
-        TestIngest.ingest(c, opts, BWOPTS);
+        TestIngest.ingest(c, opts);
         c.tableOperations().flush(tableName, null, null, false);
-        VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+        VerifyIngest.verifyIngest(c, VOPTS);
         getCluster().stop();
       } finally {
         if (getClusterType() == ClusterType.STANDALONE) {

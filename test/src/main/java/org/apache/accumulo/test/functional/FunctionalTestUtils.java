@@ -35,7 +35,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -135,14 +134,11 @@ public class FunctionalTestUtils {
       opts.rows = rows / splits;
       opts.startRow = i;
       opts.cols = 1;
-      threadPool.execute(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            TestIngest.ingest(c, fs, opts, new BatchWriterOpts());
-          } catch (Exception e) {
-            fail.set(true);
-          }
+      threadPool.execute(() -> {
+        try {
+          TestIngest.ingest(c, fs, opts);
+        } catch (Exception e) {
+          fail.set(true);
         }
       });
     }

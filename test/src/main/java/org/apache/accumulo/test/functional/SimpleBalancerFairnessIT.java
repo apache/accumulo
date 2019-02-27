@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -75,7 +74,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       TestIngest.Opts opts = new TestIngest.Opts();
       opts.rows = 50000;
       opts.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, opts, new BatchWriterOpts());
+      TestIngest.ingest(c, opts);
       c.tableOperations().flush("test_ingest", null, null, false);
       sleepUninterruptibly(45, TimeUnit.SECONDS);
       Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));

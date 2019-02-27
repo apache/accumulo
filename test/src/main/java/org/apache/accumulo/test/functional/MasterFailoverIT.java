@@ -19,8 +19,6 @@ package org.apache.accumulo.test.functional;
 import java.util.Map;
 
 import org.apache.accumulo.cluster.ClusterControl;
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -55,7 +53,7 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
       TestIngest.Opts opts = new TestIngest.Opts();
       opts.setTableName(names[0]);
       opts.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, opts, new BatchWriterOpts());
+      TestIngest.ingest(c, opts);
 
       ClusterControl control = cluster.getClusterControl();
       control.stopAllServers(ServerType.MASTER);
@@ -66,7 +64,7 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
       VerifyIngest.Opts vopts = new VerifyIngest.Opts();
       vopts.setTableName(names[1]);
       vopts.setClientProperties(getClientProperties());
-      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      VerifyIngest.verifyIngest(c, vopts);
     }
   }
 }

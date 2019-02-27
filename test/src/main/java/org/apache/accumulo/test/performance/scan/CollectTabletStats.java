@@ -34,7 +34,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -103,8 +102,7 @@ public class CollectTabletStats {
   public static void main(String[] args) throws Exception {
 
     final CollectOptions opts = new CollectOptions();
-    final ScannerOpts scanOpts = new ScannerOpts();
-    opts.parseArgs(CollectTabletStats.class.getName(), args, scanOpts);
+    opts.parseArgs(CollectTabletStats.class.getName(), args);
 
     String columnsTmp[] = {};
     if (opts.columns != null)
@@ -222,8 +220,8 @@ public class CollectTabletStats {
           Test test = new Test(ke) {
             @Override
             public int runTest() throws Exception {
-              return scanTablet(client, opts.getTableName(), opts.auths, scanOpts.scanBatchSize,
-                  ke.getPrevEndRow(), ke.getEndRow(), columns);
+              return scanTablet(client, opts.getTableName(), opts.auths, ke.getPrevEndRow(),
+                  ke.getEndRow(), columns);
             }
           };
           tests.add(test);
@@ -234,8 +232,7 @@ public class CollectTabletStats {
       for (final KeyExtent ke : tabletsToTest) {
         threadPool.submit(() -> {
           try {
-            calcTabletStats(client, opts.getTableName(), opts.auths, scanOpts.scanBatchSize, ke,
-                columns);
+            calcTabletStats(client, opts.getTableName(), opts.auths, ke, columns);
           } catch (Exception e) {
             log.error("Failed to calculate tablet stats.", e);
           }
@@ -522,10 +519,9 @@ public class CollectTabletStats {
   }
 
   private static int scanTablet(AccumuloClient client, String table, Authorizations auths,
-      int batchSize, Text prevEndRow, Text endRow, String[] columns) throws Exception {
+      Text prevEndRow, Text endRow, String[] columns) throws Exception {
 
     try (Scanner scanner = client.createScanner(table, auths)) {
-      scanner.setBatchSize(batchSize);
       scanner.setRange(new Range(prevEndRow, false, endRow, true));
 
       for (String c : columns) {
@@ -543,12 +539,11 @@ public class CollectTabletStats {
   }
 
   private static void calcTabletStats(AccumuloClient client, String table, Authorizations auths,
-      int batchSize, KeyExtent ke, String[] columns) throws Exception {
+      KeyExtent ke, String[] columns) throws Exception {
 
     // long t1 = System.currentTimeMillis();
 
     try (Scanner scanner = client.createScanner(table, auths)) {
-      scanner.setBatchSize(batchSize);
       scanner.setRange(new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true));
 
       for (String c : columns) {

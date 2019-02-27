@@ -33,8 +33,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -120,7 +118,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       vopts.cols = opts.cols = 1;
       opts.setClientProperties(getClientProperties());
       vopts.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, cluster.getFileSystem(), opts, new BatchWriterOpts());
+      TestIngest.ingest(c, cluster.getFileSystem(), opts);
       c.tableOperations().compact("test_ingest", null, null, true, true);
       int before = countFiles();
       while (true) {
@@ -135,7 +133,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       getCluster().start();
       sleepUninterruptibly(15, TimeUnit.SECONDS);
       int after = countFiles();
-      VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+      VerifyIngest.verifyIngest(c, vopts);
       assertTrue(after < before);
     }
   }
@@ -146,7 +144,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
     log.info("Filling metadata table with bogus delete flags");
     try (AccumuloClient c = createClient()) {
-      addEntries(c, new BatchWriterOpts());
+      addEntries(c);
       cluster.getConfig().setDefaultMemory(10, MemoryUnit.MEGABYTE);
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
       sleepUninterruptibly(20, TimeUnit.SECONDS);
@@ -299,11 +297,10 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     return Iterators.size(Arrays.asList(cluster.getFileSystem().globStatus(path)).iterator());
   }
 
-  public static void addEntries(AccumuloClient client, BatchWriterOpts bwOpts) throws Exception {
+  public static void addEntries(AccumuloClient client) throws Exception {
     client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
-    try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME,
-        bwOpts.getBatchWriterConfig())) {
+    try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
       for (int i = 0; i < 100000; ++i) {
         final Text emptyText = new Text("");
         Text row = new Text(

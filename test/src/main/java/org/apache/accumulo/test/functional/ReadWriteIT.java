@@ -55,8 +55,6 @@ import javax.net.ssl.X509TrustManager;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -223,7 +221,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.setTableName(tableName);
     opts.setClientProperties(info.getProperties());
 
-    TestIngest.ingest(accumuloClient, opts, new BatchWriterOpts());
+    TestIngest.ingest(accumuloClient, opts);
   }
 
   public static void verify(AccumuloClient accumuloClient, ClientInfo info, int rows, int cols,
@@ -233,7 +231,6 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   private static void verify(AccumuloClient accumuloClient, ClientInfo info, int rows, int cols,
       int width, int offset, String colf, String tableName) throws Exception {
-    ScannerOpts scannerOpts = new ScannerOpts();
     VerifyIngest.Opts opts = new VerifyIngest.Opts();
     opts.rows = rows;
     opts.cols = cols;
@@ -243,7 +240,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     opts.setTableName(tableName);
     opts.setClientProperties(info.getProperties());
 
-    VerifyIngest.verifyIngest(accumuloClient, opts, scannerOpts);
+    VerifyIngest.verifyIngest(accumuloClient, opts);
   }
 
   public static String[] args(String... args) {

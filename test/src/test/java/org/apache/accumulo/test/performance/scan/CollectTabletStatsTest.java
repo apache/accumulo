@@ -18,7 +18,6 @@ package org.apache.accumulo.test.performance.scan;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.junit.Test;
 
 /**
@@ -34,8 +33,7 @@ public class CollectTabletStatsTest {
     String[] args = {"-t", tablename, "--iterations", "2"};
 
     final CollectTabletStats.CollectOptions opts = new CollectTabletStats.CollectOptions();
-    final ScannerOpts scanOpts = new ScannerOpts();
-    opts.parseArgs(CollectTabletStats.class.getName(), args, scanOpts);
+    opts.parseArgs(CollectTabletStats.class.getName(), args);
 
     assertEquals("Check iterations is set, default is 3", 2, opts.iterations);
     assertEquals("Check tablename is set", 0, tablename.compareTo(opts.getTableName()));
@@ -51,8 +49,7 @@ public class CollectTabletStatsTest {
     String[] args = {"-t", tablename, "--iterations", "2", "--numThreads", "99"};
 
     final CollectTabletStats.CollectOptions opts = new CollectTabletStats.CollectOptions();
-    final ScannerOpts scanOpts = new ScannerOpts();
-    opts.parseArgs(CollectTabletStats.class.getName(), args, scanOpts);
+    opts.parseArgs(CollectTabletStats.class.getName(), args);
 
     assertEquals("Check iterations is set, default is 3", 2, opts.iterations);
     assertEquals("Check tablename is set", 0, tablename.compareTo(opts.getTableName()));

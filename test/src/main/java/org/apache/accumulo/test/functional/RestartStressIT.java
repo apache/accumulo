@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.ClusterUser;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -94,7 +93,6 @@ public class RestartStressIT extends AccumuloClusterHarness {
     VOPTS = new VerifyIngest.Opts();
     VOPTS.rows = 10 * 1000;
   }
-  private static final ScannerOpts SOPTS = new ScannerOpts();
 
   @Test
   public void test() throws Exception {
@@ -136,7 +134,7 @@ public class RestartStressIT extends AccumuloClusterHarness {
       assertEquals(0, retCode.get().intValue());
       VOPTS.setTableName(tableName);
       VOPTS.setClientProperties(getClientProperties());
-      VerifyIngest.verifyIngest(c, VOPTS, SOPTS);
+      VerifyIngest.verifyIngest(c, VOPTS);
     }
   }
 

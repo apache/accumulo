@@ -24,8 +24,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -87,33 +85,29 @@ public class TestBinaryRows {
     public long num = 0;
   }
 
-  public static void runTest(AccumuloClient accumuloClient, Opts opts, BatchWriterOpts bwOpts,
-      ScannerOpts scanOpts) throws Exception {
+  public static void runTest(AccumuloClient accumuloClient, Opts opts) throws Exception {
 
     final Text CF = new Text("cf"), CQ = new Text("cq");
     final byte[] CF_BYTES = "cf".getBytes(UTF_8), CQ_BYTES = "cq".getBytes(UTF_8);
     if (opts.mode.equals("ingest") || opts.mode.equals("delete")) {
-      BatchWriter bw = accumuloClient.createBatchWriter(opts.getTableName(),
-          bwOpts.getBatchWriterConfig());
-      boolean delete = opts.mode.equals("delete");
+      try (BatchWriter bw = accumuloClient.createBatchWriter(opts.getTableName())) {
+        boolean delete = opts.mode.equals("delete");
 
-      for (long i = 0; i < opts.num; i++) {
-        byte[] row = encodeLong(i + opts.start);
-        String value = "" + (i + opts.start);
+        for (long i = 0; i < opts.num; i++) {
+          byte[] row = encodeLong(i + opts.start);
+          String value = "" + (i + opts.start);
 
-        Mutation m = new Mutation(new Text(row));
-        if (delete) {
-          m.putDelete(CF, CQ);
-        } else {
-          m.put(CF, CQ, new Value(value.getBytes(UTF_8)));
+          Mutation m = new Mutation(new Text(row));
+          if (delete) {
+            m.putDelete(CF, CQ);
+          } else {
+            m.put(CF, CQ, new Value(value.getBytes(UTF_8)));
+          }
+          bw.addMutation(m);
         }
-        bw.addMutation(m);
       }
-
-      bw.close();
     } else if (opts.mode.equals("verifyDeleted")) {
       try (Scanner s = accumuloClient.createScanner(opts.getTableName(), opts.auths)) {
-        s.setBatchSize(scanOpts.scanBatchSize);
         Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0],
             Long.MAX_VALUE);
         Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES,
@@ -134,7 +128,6 @@ public class TestBinaryRows {
             Long.MAX_VALUE);
         Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES,
             new byte[0], 0);
-        s.setBatchSize(scanOpts.scanBatchSize);
         s.setRange(new Range(startKey, stopKey));
 
         long i = opts.start;
@@ -169,7 +162,6 @@ public class TestBinaryRows {
         long row = ((r.nextLong() & 0x7fffffffffffffffL) % opts.num) + opts.start;
 
         try (Scanner s = accumuloClient.createScanner(opts.getTableName(), opts.auths)) {
-          s.setBatchSize(scanOpts.scanBatchSize);
           Key startKey = new Key(encodeLong(row), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
           Key stopKey = new Key(encodeLong(row), CF_BYTES, CQ_BYTES, new byte[0], 0);
           s.setRange(new Range(startKey, stopKey));
@@ -232,12 +224,10 @@ public class TestBinaryRows {
 
   public static void main(String[] args) {
     Opts opts = new Opts();
-    BatchWriterOpts bwOpts = new BatchWriterOpts();
-    ScannerOpts scanOpts = new ScannerOpts();
-    opts.parseArgs(TestBinaryRows.class.getName(), args, scanOpts, bwOpts);
+    opts.parseArgs(TestBinaryRows.class.getName(), args);
 
     try (AccumuloClient client = opts.createClient()) {
-      runTest(client, opts, bwOpts, scanOpts);
+      runTest(client, opts);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

@@ -25,8 +25,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -136,10 +134,10 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     vopts.setClientProperties(getClientProperties());
     vopts.rows = opts.rows = 200000;
     opts.setTableName(TEST_TABLE);
-    TestIngest.ingest(accumuloClient, opts, new BatchWriterOpts());
+    TestIngest.ingest(accumuloClient, opts);
     accumuloClient.tableOperations().flush(TEST_TABLE, null, null, true);
     vopts.setTableName(TEST_TABLE);
-    VerifyIngest.verifyIngest(accumuloClient, vopts, new ScannerOpts());
+    VerifyIngest.verifyIngest(accumuloClient, vopts);
 
     log.debug("waiting for balancing, up to ~5 minutes to allow for migration cleanup.");
     final long startTime = System.currentTimeMillis();

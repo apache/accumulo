@@ -22,8 +22,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -72,8 +70,7 @@ public class DeleteIT extends AccumuloClusterHarness {
     opts.setClientProperties(getClientProperties());
     vopts.setClientProperties(getClientProperties());
 
-    BatchWriterOpts BWOPTS = new BatchWriterOpts();
-    TestIngest.ingest(c, opts, BWOPTS);
+    TestIngest.ingest(c, opts);
 
     String[] args = null;
 
@@ -90,8 +87,8 @@ public class DeleteIT extends AccumuloClusterHarness {
     }
 
     assertEquals(0, cluster.getClusterControl().exec(TestRandomDeletes.class, args));
-    TestIngest.ingest(c, opts, BWOPTS);
-    VerifyIngest.verifyIngest(c, vopts, new ScannerOpts());
+    TestIngest.ingest(c, opts);
+    VerifyIngest.verifyIngest(c, vopts);
   }
 
 }

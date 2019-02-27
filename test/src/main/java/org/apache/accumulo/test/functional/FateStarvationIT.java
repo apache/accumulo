@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -55,7 +54,7 @@ public class FateStarvationIT extends AccumuloClusterHarness {
       opts.cols = 1;
       opts.setTableName(tableName);
       opts.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, opts, new BatchWriterOpts());
+      TestIngest.ingest(c, opts);
 
       c.tableOperations().flush(tableName, null, null, true);
 

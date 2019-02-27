@@ -25,8 +25,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -204,10 +202,8 @@ public class RemoveEntriesForMissingFiles {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    ScannerOpts scanOpts = new ScannerOpts();
-    BatchWriterOpts bwOpts = new BatchWriterOpts();
     try (TraceScope clientSpan = opts
-        .parseArgsAndTrace(RemoveEntriesForMissingFiles.class.getName(), args, scanOpts, bwOpts)) {
+        .parseArgsAndTrace(RemoveEntriesForMissingFiles.class.getName(), args)) {
       checkAllTables(opts.getServerContext(), opts.fix);
     }
   }
