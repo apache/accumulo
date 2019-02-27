@@ -40,7 +40,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOnRequiredTable;
+import org.apache.accumulo.server.cli.ContextOpts;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -50,15 +50,22 @@ import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.Parameter;
+
 public class RandomizeVolumes {
   private static final Logger log = LoggerFactory.getLogger(RandomizeVolumes.class);
 
+  static class RandomizeOpts extends ContextOpts {
+    @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
+    String tableName;
+  }
+
   public static void main(String[] args) {
-    ServerUtilOnRequiredTable opts = new ServerUtilOnRequiredTable();
+    RandomizeOpts opts = new RandomizeOpts();
     try (TraceScope clientSpan = opts.parseArgsAndTrace(RandomizeVolumes.class.getName(), args)) {
       ServerContext context = opts.getServerContext();
       try {
-        int status = randomize(context, opts.getTableName());
+        int status = randomize(context, opts.tableName);
         System.exit(status);
       } catch (Exception ex) {
         log.error("{}", ex.getMessage(), ex);

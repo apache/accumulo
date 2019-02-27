@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Tables;
@@ -63,7 +63,9 @@ public class Merge {
     }
   }
 
-  static class Opts extends ClientOnRequiredTable {
+  static class Opts extends ClientOpts {
+    @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
+    String tableName;
     @Parameter(names = {"-s", "--size"}, description = "merge goal size",
         converter = MemoryConverter.class)
     Long goalSize = null;
@@ -84,18 +86,18 @@ public class Merge {
 
       try (AccumuloClient client = opts.createClient()) {
 
-        if (!client.tableOperations().exists(opts.getTableName())) {
-          System.err.println("table " + opts.getTableName() + " does not exist");
+        if (!client.tableOperations().exists(opts.tableName)) {
+          System.err.println("table " + opts.tableName + " does not exist");
           return;
         }
         if (opts.goalSize == null || opts.goalSize < 1) {
           AccumuloConfiguration tableConfig = new ConfigurationCopy(
-              client.tableOperations().getProperties(opts.getTableName()));
+              client.tableOperations().getProperties(opts.tableName));
           opts.goalSize = tableConfig.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
         }
 
-        message("Merging tablets in table %s to %d bytes", opts.getTableName(), opts.goalSize);
-        mergomatic(client, opts.getTableName(), opts.begin, opts.end, opts.goalSize, opts.force);
+        message("Merging tablets in table %s to %d bytes", opts.tableName, opts.goalSize);
+        mergomatic(client, opts.tableName, opts.begin, opts.end, opts.goalSize, opts.force);
       } catch (Exception ex) {
         throw new MergeException(ex);
       }

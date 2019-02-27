@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -41,7 +41,9 @@ import com.beust.jcommander.Parameter;
 public class TraceDump {
   static final long DEFAULT_TIME_IN_MILLIS = 10 * 60 * 1000L;
 
-  static class Opts extends ClientOnDefaultTable {
+  static class Opts extends ClientOpts {
+    @Parameter(names = "--table", description = "table to use")
+    String tableName = "trace";
     @Parameter(names = {"-r", "--recent"}, description = "List recent traces")
     boolean list = false;
     @Parameter(names = {"-ms", "--ms"}, description = "Time period of recent traces to list in ms")
@@ -50,10 +52,6 @@ public class TraceDump {
     boolean dump = false;
     @Parameter(description = " <trace id> { <trace id> ... }")
     List<String> traceIds = new ArrayList<>();
-
-    Opts() {
-      super("trace");
-    }
   }
 
   public static void main(String[] args) throws Exception {
@@ -80,7 +78,7 @@ public class TraceDump {
     long endTime = System.currentTimeMillis();
     long startTime = endTime - opts.length;
     try (AccumuloClient client = opts.createClient()) {
-      Scanner scanner = client.createScanner(opts.getTableName(), opts.auths);
+      Scanner scanner = client.createScanner(opts.tableName, opts.auths);
       Range range = new Range(new Text("start:" + Long.toHexString(startTime)),
           new Text("start:" + Long.toHexString(endTime)));
       scanner.setRange(range);
@@ -104,7 +102,7 @@ public class TraceDump {
     int count = 0;
     try (AccumuloClient client = opts.createClient()) {
       for (String traceId : opts.traceIds) {
-        Scanner scanner = client.createScanner(opts.getTableName(), opts.auths);
+        Scanner scanner = client.createScanner(opts.tableName, opts.auths);
         Range range = new Range(new Text(traceId));
         scanner.setRange(range);
         count = printTrace(scanner, out::println);

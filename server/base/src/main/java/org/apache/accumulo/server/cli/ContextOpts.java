@@ -14,18 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.cli;
+package org.apache.accumulo.server.cli;
 
-import org.apache.accumulo.core.cli.ClientOpts.TimeConverter;
+import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.server.ServerContext;
 
-import com.beust.jcommander.Parameter;
+public class ContextOpts extends ClientOpts {
+  {
+    setPrincipal("root");
+  }
 
-public class BatchScannerOpts {
-  @Parameter(names = "--scanThreads", description = "Number of threads to use when batch scanning")
-  public Integer scanThreads = 10;
+  private ServerContext context;
 
-  @Parameter(names = "--scanTimeout", converter = TimeConverter.class,
-      description = "timeout used to fail a batch scan")
-  public Long scanTimeout = Long.MAX_VALUE;
-
+  public synchronized ServerContext getServerContext() {
+    if (context == null) {
+      if (instance == null) {
+        context = new ServerContext(new SiteConfiguration());
+      } else {
+        context = new ServerContext(new SiteConfiguration(), getClientProperties());
+      }
+    }
+    return context;
+  }
 }

@@ -25,7 +25,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -64,7 +64,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TestIngest {
   public static final Authorizations AUTHS = new Authorizations("L1", "L2", "G1", "GROUP2");
 
-  public static class Opts extends ClientOnDefaultTable {
+  public static class Opts extends ClientOpts {
+    @Parameter(names = "--table", description = "table to use")
+    String tableName = "test_ingest";
 
     @Parameter(names = "--createTable")
     public boolean createTable = false;
@@ -112,8 +114,8 @@ public class TestIngest {
     public Configuration conf = null;
     public FileSystem fs = null;
 
-    public Opts() {
-      super("test_ingest");
+    public void setTableName(String tableName) {
+      this.tableName = tableName;
     }
   }
 
@@ -123,10 +125,10 @@ public class TestIngest {
       TreeSet<Text> splits = getSplitPoints(args.startRow, args.startRow + args.rows,
           args.numsplits);
 
-      if (!client.tableOperations().exists(args.getTableName()))
-        client.tableOperations().create(args.getTableName());
+      if (!client.tableOperations().exists(args.tableName))
+        client.tableOperations().create(args.tableName);
       try {
-        client.tableOperations().addSplits(args.getTableName(), splits);
+        client.tableOperations().addSplits(args.tableName, splits);
       } catch (TableNotFoundException ex) {
         // unlikely
         throw new RuntimeException(ex);
@@ -231,7 +233,7 @@ public class TestIngest {
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
       writer.startDefaultLocalityGroup();
     } else {
-      bw = accumuloClient.createBatchWriter(opts.getTableName());
+      bw = accumuloClient.createBatchWriter(opts.tableName);
       accumuloClient.securityOperations().changeUserAuthorizations(opts.getPrincipal(), AUTHS);
     }
     Text labBA = new Text(opts.columnVisibility.getExpression());

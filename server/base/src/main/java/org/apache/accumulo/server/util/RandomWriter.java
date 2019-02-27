@@ -20,7 +20,7 @@ import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.Random;
 
-import org.apache.accumulo.core.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.data.Mutation;
@@ -34,7 +34,6 @@ import com.beust.jcommander.Parameter;
 
 public class RandomWriter {
 
-  private static String table_name = "test_write_table";
   private static int num_columns_per_row = 1;
   private static int num_payload_bytes = 1024;
   private static final Logger log = LoggerFactory.getLogger(RandomWriter.class);
@@ -83,23 +82,21 @@ public class RandomWriter {
     }
   }
 
-  static class Opts extends ClientOnDefaultTable {
+  static class Opts extends ClientOpts {
     @Parameter(names = "--count", description = "number of mutations to write", required = true)
     long count;
-
-    Opts(String table) {
-      super(table);
-    }
+    @Parameter(names = "--table", description = "table to use")
+    String tableName = "test_write_table";
   }
 
   public static void main(String[] args) throws Exception {
-    Opts opts = new Opts(table_name);
+    Opts opts = new Opts();
     opts.setPrincipal("root");
     try (TraceScope clientSpan = opts.parseArgsAndTrace(RandomWriter.class.getName(), args)) {
       long start = System.currentTimeMillis();
       log.info("starting at {} for user {}", start, opts.getPrincipal());
       try (AccumuloClient accumuloClient = opts.createClient();
-          BatchWriter bw = accumuloClient.createBatchWriter(opts.getTableName())) {
+          BatchWriter bw = accumuloClient.createBatchWriter(opts.tableName)) {
         log.info("Writing {} mutations...", opts.count);
         bw.addMutations(new RandomMutationGenerator(opts.count));
       } catch (Exception e) {
