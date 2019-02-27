@@ -18,14 +18,14 @@
 function main() {
 
   SOURCE="${BASH_SOURCE[0]}"
-  while [ -h "${SOURCE}" ]; do
+  while [[ -h "${SOURCE}" ]]; do
      bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
      SOURCE="$(readlink "${SOURCE}")"
      [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}"
   done
   # Set up variables needed by accumulo-env.sh
-  export bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
-  export basedir=$( cd -P "${bin}"/.. && pwd )
+  bin="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"; export bin
+  basedir=$( cd -P "${bin}"/.. && pwd ); export basedir
   export conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
   export lib="${basedir}/lib"
   export cmd="$1"
@@ -59,14 +59,14 @@ function main() {
   if [[ -x "$JAVA_HOME/bin/java" ]]; then
     JAVA="$JAVA_HOME/bin/java"
   else
-    JAVA=$(which java)
+    JAVA=$(type -P java)
   fi
   if [[ ! -x "$JAVA" ]]; then
     echo "Could not find any executable java binary. Please set java on your PATH or set JAVA_HOME"
     exit 1
   fi
   if [[ -n "$ACCUMULO_JAVA_PREFIX" ]]; then
-    JAVA=($ACCUMULO_JAVA_PREFIX $JAVA)
+    JAVA=("${ACCUMULO_JAVA_PREFIX[*]}" "$JAVA")
   fi
 
   exec "${JAVA[@]}" "${JAVA_OPTS[@]}" org.apache.accumulo.start.Main "$@"
