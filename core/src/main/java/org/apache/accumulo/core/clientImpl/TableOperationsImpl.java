@@ -123,7 +123,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
-import org.apache.accumulo.core.util.MapCounterLong;
+import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Pair;
@@ -1243,7 +1243,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       int waitFor = 0;
       int holes = 0;
       Text continueRow = null;
-      MapCounterLong<String> serverCounts = new MapCounterLong<>();
+      MapCounter<String> serverCounts = new MapCounter<>();
 
       for (TabletMetadata tablet : tablets) {
         total++;
@@ -1288,7 +1288,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         long waitTime;
         long maxPerServer = 0;
         if (serverCounts.size() > 0) {
-          maxPerServer = Collections.max(serverCounts.values());
+          maxPerServer = serverCounts.max();
           waitTime = maxPerServer * 10;
         } else
           waitTime = waitFor * 10;

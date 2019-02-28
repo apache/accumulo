@@ -16,63 +16,64 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.stream.LongStream;
 
 /**
- * A Map Counter for counting with Integers
+ * A Map counter for counting with longs or integers. Not thread safe.
  */
-public class MapCounterInt<KT> {
+public class MapCounter<KT> {
 
-  static class MutableInt {
-    int i = 0;
+  static class MutableLong {
+    long l = 0L;
   }
 
-  private HashMap<KT,MutableInt> map;
+  private HashMap<KT,MutableLong> map;
 
-  public MapCounterInt() {
+  public MapCounter() {
     map = new HashMap<>();
   }
 
-  public int increment(KT key, int i) {
-    MutableInt mutableInt = map.computeIfAbsent(key, KT -> new MutableInt());
+  public long increment(KT key, long l) {
+    MutableLong ml = map.computeIfAbsent(key, KT -> new MutableLong());
 
-    mutableInt.i += i;
+    ml.l += l;
 
-    if (mutableInt.i == 0) {
+    if (ml.l == 0) {
       map.remove(key);
     }
 
-    return mutableInt.i;
+    return ml.l;
   }
 
-  public int decrement(KT key, int i) {
-    return increment(key, -1 * i);
+  public long decrement(KT key, long l) {
+    return increment(key, -1 * l);
   }
 
-  public int get(KT key) {
-    MutableInt mutableInt = map.get(key);
-    if (mutableInt == null) {
+  public long get(KT key) {
+    MutableLong ml = map.get(key);
+    if (ml == null) {
       return 0;
     }
 
-    return mutableInt.i;
+    return ml.l;
+  }
+
+  public int getInt(KT key) {
+    return Math.toIntExact(get(key));
   }
 
   public Set<KT> keySet() {
     return map.keySet();
   }
 
-  public Collection<Integer> values() {
-    Collection<MutableInt> vals = map.values();
-    ArrayList<Integer> ret = new ArrayList<>(vals.size());
-    for (MutableInt mutableInt : vals) {
-      ret.add(mutableInt.i);
-    }
+  public LongStream values() {
+    return map.values().stream().mapToLong(mutLong -> mutLong.l);
+  }
 
-    return ret;
+  public long max() {
+    return values().max().orElse(0);
   }
 
   public int size() {

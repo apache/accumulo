@@ -38,7 +38,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.ComparablePair;
-import org.apache.accumulo.core.util.MapCounterInt;
+import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
@@ -227,7 +227,7 @@ public abstract class GroupBalancer extends TabletBalancer {
       return 5000;
     }
 
-    MapCounterInt<String> groupCounts = new MapCounterInt<>();
+    MapCounter<String> groupCounts = new MapCounter<>();
     Map<TServerInstance,TserverGroupInfo> tservers = new HashMap<>();
 
     for (TServerInstance tsi : current.keySet()) {
@@ -254,9 +254,9 @@ public abstract class GroupBalancer extends TabletBalancer {
 
     int totalExtra = 0;
     for (String group : groupCounts.keySet()) {
-      long groupCount = groupCounts.get(group);
+      int groupCount = groupCounts.getInt(group);
       totalExtra += groupCount % current.size();
-      expectedCounts.put(group, (int) (groupCount / current.size()));
+      expectedCounts.put(group, (groupCount / current.size()));
     }
 
     // The number of extra tablets from all groups that each tserver must have.

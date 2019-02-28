@@ -19,7 +19,6 @@ package org.apache.accumulo.master.tableOps.bulkVer2;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -49,7 +48,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.MapCounterLong;
+import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
@@ -128,7 +127,7 @@ class LoadFiles extends MasterRepo {
     int locationLess = 0;
 
     // track how many tablets were sent load messages per tablet server
-    MapCounterLong<HostAndPort> loadMsgs;
+    MapCounter<HostAndPort> loadMsgs;
 
     // Each RPC to a tablet server needs to check in zookeeper to see if the transaction is still
     // active. The purpose of this map is to group load request by tablet servers inorder to do less
@@ -143,7 +142,7 @@ class LoadFiles extends MasterRepo {
       timeInMillis = master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
       fmtTid = String.format("%016x", tid);
 
-      loadMsgs = new MapCounterLong<>();
+      loadMsgs = new MapCounter<>();
 
       loadQueue = new HashMap<>();
     }
@@ -234,7 +233,7 @@ class LoadFiles extends MasterRepo {
       if (loadMsgs.size() > 0) {
         // find which tablet server had the most load messages sent to it and sleep 13ms for each
         // load message
-        sleepTime = Collections.max(loadMsgs.values()) * 13;
+        sleepTime = loadMsgs.max() * 13;
       }
 
       if (locationLess > 0) {
@@ -251,14 +250,14 @@ class LoadFiles extends MasterRepo {
     BatchWriter bw;
 
     // track how many tablets were sent load messages per tablet server
-    MapCounterLong<HostAndPort> unloadingTablets;
+    MapCounter<HostAndPort> unloadingTablets;
 
     @Override
     void start(Path bulkDir, Master master, long tid, boolean setTime) throws Exception {
       Preconditions.checkArgument(!setTime);
       super.start(bulkDir, master, tid, setTime);
       bw = master.getContext().createBatchWriter(MetadataTable.NAME);
-      unloadingTablets = new MapCounterLong<>();
+      unloadingTablets = new MapCounter<>();
     }
 
     @Override
@@ -292,7 +291,7 @@ class LoadFiles extends MasterRepo {
       long sleepTime = 0;
       if (unloadingTablets.size() > 0) {
         // find which tablet server had the most tablets to unload and sleep 13ms for each tablet
-        sleepTime = Collections.max(unloadingTablets.values()) * 13;
+        sleepTime = unloadingTablets.max() * 13;
       }
 
       return sleepTime;

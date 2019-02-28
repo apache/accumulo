@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.master.tableOps.compact;
 
-import java.util.Collections;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Tables;
@@ -29,7 +27,7 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.MapCounterLong;
+import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.master.Master;
@@ -78,7 +76,7 @@ class CompactionDriver extends MasterRepo {
           TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Compaction canceled");
     }
 
-    MapCounterLong<TServerInstance> serversToFlush = new MapCounterLong<>();
+    MapCounter<TServerInstance> serversToFlush = new MapCounter<>();
     long t1 = System.currentTimeMillis();
 
     int tabletsToWaitFor = 0;
@@ -128,7 +126,7 @@ class CompactionDriver extends MasterRepo {
 
     // make wait time depend on the server with the most to compact
     if (serversToFlush.size() > 0)
-      sleepTime = Collections.max(serversToFlush.values()) * sleepTime;
+      sleepTime = serversToFlush.max() * sleepTime;
 
     sleepTime = Math.max(2 * scanTime, sleepTime);
 

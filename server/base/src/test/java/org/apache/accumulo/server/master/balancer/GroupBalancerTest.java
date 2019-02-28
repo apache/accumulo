@@ -36,7 +36,7 @@ import java.util.function.Function;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.util.MapCounterLong;
+import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
@@ -141,17 +141,17 @@ public class GroupBalancerTest {
     }
 
     void checkBalance() {
-      MapCounterLong<String> groupCounts = new MapCounterLong<>();
-      Map<TServerInstance, MapCounterLong<String>> tserverGroupCounts = new HashMap<>();
+      MapCounter<String> groupCounts = new MapCounter<>();
+      Map<TServerInstance,MapCounter<String>> tserverGroupCounts = new HashMap<>();
 
       for (Entry<KeyExtent,TServerInstance> entry : tabletLocs.entrySet()) {
         String group = partitioner.apply(entry.getKey());
         TServerInstance loc = entry.getValue();
 
         groupCounts.increment(group, 1);
-        MapCounterLong<String> tgc = tserverGroupCounts.get(loc);
+        MapCounter<String> tgc = tserverGroupCounts.get(loc);
         if (tgc == null) {
-          tgc = new MapCounterLong<>();
+          tgc = new MapCounter<>();
           tserverGroupCounts.put(loc, tgc);
         }
 
@@ -171,8 +171,8 @@ public class GroupBalancerTest {
       int expectedExtra = totalExtra / tservers.size();
       int maxExtraGroups = expectedExtra + ((totalExtra % tservers.size() > 0) ? 1 : 0);
 
-      for (Entry<TServerInstance, MapCounterLong<String>> entry : tserverGroupCounts.entrySet()) {
-        MapCounterLong<String> tgc = entry.getValue();
+      for (Entry<TServerInstance,MapCounter<String>> entry : tserverGroupCounts.entrySet()) {
+        MapCounter<String> tgc = entry.getValue();
         int tserverExtra = 0;
         for (String group : groupCounts.keySet()) {
           assertTrue(tgc.get(group) >= expectedCounts.get(group));

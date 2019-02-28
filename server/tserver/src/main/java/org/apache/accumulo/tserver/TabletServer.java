@@ -153,7 +153,7 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.MapCounterInt;
+import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
@@ -3155,7 +3155,7 @@ public class TabletServer implements Runnable {
     SimpleTimer.getInstance(aconf).schedule(constraintTask, 0, 1000);
   }
 
-  public TabletServerStatus getStats(Map<TableId,MapCounterInt<ScanRunState>> scanCounts) {
+  public TabletServerStatus getStats(Map<TableId,MapCounter<ScanRunState>> scanCounts) {
     long start = System.currentTimeMillis();
     TabletServerStatus result = new TabletServerStatus();
 
@@ -3195,7 +3195,7 @@ public class TabletServer implements Runnable {
         table.majors.queued++;
     });
 
-    scanCounts.forEach((tableId, mapCounterInt) -> {
+    scanCounts.forEach((tableId, mapCounter) -> {
       TableInfo table = tables.get(tableId.canonical());
       if (table == null) {
         table = new TableInfo();
@@ -3205,8 +3205,8 @@ public class TabletServer implements Runnable {
       if (table.scans == null)
         table.scans = new Compacting();
 
-      table.scans.queued += mapCounterInt.get(ScanRunState.QUEUED);
-      table.scans.running += mapCounterInt.get(ScanRunState.RUNNING);
+      table.scans.queued += mapCounter.getInt(ScanRunState.QUEUED);
+      table.scans.running += mapCounter.getInt(ScanRunState.RUNNING);
     });
 
     ArrayList<KeyExtent> offlineTabletsCopy = new ArrayList<>();
