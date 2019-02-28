@@ -19,7 +19,6 @@ package org.apache.accumulo.master.tableOps.bulkVer2;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -234,7 +233,7 @@ class LoadFiles extends MasterRepo {
       if (loadMsgs.size() > 0) {
         // find which tablet server had the most load messages sent to it and sleep 13ms for each
         // load message
-        sleepTime = Collections.max(loadMsgs.values()) * 13;
+        sleepTime = loadMsgs.max() * 13;
       }
 
       if (locationLess > 0) {
@@ -292,7 +291,7 @@ class LoadFiles extends MasterRepo {
       long sleepTime = 0;
       if (unloadingTablets.size() > 0) {
         // find which tablet server had the most tablets to unload and sleep 13ms for each tablet
-        sleepTime = Collections.max(unloadingTablets.values()) * 13;
+        sleepTime = unloadingTablets.max() * 13;
       }
 
       return sleepTime;

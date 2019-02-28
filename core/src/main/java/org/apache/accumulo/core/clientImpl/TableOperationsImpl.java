@@ -1288,7 +1288,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         long waitTime;
         long maxPerServer = 0;
         if (serverCounts.size() > 0) {
-          maxPerServer = Collections.max(serverCounts.values());
+          maxPerServer = serverCounts.max();
           waitTime = maxPerServer * 10;
         } else
           waitTime = waitFor * 10;

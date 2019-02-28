@@ -16,11 +16,13 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.stream.LongStream;
 
+/**
+ * A Map counter for counting with longs or integers. Not thread safe.
+ */
 public class MapCounter<KT> {
 
   static class MutableLong {
@@ -34,11 +36,7 @@ public class MapCounter<KT> {
   }
 
   public long increment(KT key, long l) {
-    MutableLong ml = map.get(key);
-    if (ml == null) {
-      ml = new MutableLong();
-      map.put(key, ml);
-    }
+    MutableLong ml = map.computeIfAbsent(key, KT -> new MutableLong());
 
     ml.l += l;
 
@@ -62,18 +60,20 @@ public class MapCounter<KT> {
     return ml.l;
   }
 
+  public int getInt(KT key) {
+    return Math.toIntExact(get(key));
+  }
+
   public Set<KT> keySet() {
     return map.keySet();
   }
 
-  public Collection<Long> values() {
-    Collection<MutableLong> vals = map.values();
-    ArrayList<Long> ret = new ArrayList<>(vals.size());
-    for (MutableLong ml : vals) {
-      ret.add(ml.l);
-    }
+  public LongStream values() {
+    return map.values().stream().mapToLong(mutLong -> mutLong.l);
+  }
 
-    return ret;
+  public long max() {
+    return values().max().orElse(0);
   }
 
   public int size() {

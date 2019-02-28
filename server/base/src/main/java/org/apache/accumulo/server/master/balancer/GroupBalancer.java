@@ -254,9 +254,9 @@ public abstract class GroupBalancer extends TabletBalancer {
 
     int totalExtra = 0;
     for (String group : groupCounts.keySet()) {
-      long groupCount = groupCounts.get(group);
+      int groupCount = groupCounts.getInt(group);
       totalExtra += groupCount % current.size();
-      expectedCounts.put(group, (int) (groupCount / current.size()));
+      expectedCounts.put(group, (groupCount / current.size()));
     }
 
     // The number of extra tablets from all groups that each tserver must have.

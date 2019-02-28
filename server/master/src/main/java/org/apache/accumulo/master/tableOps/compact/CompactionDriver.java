@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.master.tableOps.compact;
 
-import java.util.Collections;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Tables;
@@ -128,7 +126,7 @@ class CompactionDriver extends MasterRepo {
 
     // make wait time depend on the server with the most to compact
     if (serversToFlush.size() > 0)
-      sleepTime = Collections.max(serversToFlush.values()) * sleepTime;
+      sleepTime = serversToFlush.max() * sleepTime;
 
     sleepTime = Math.max(2 * scanTime, sleepTime);
 

@@ -3163,10 +3163,10 @@ public class TabletServer implements Runnable {
     synchronized (this.onlineTablets) {
       onlineTabletsCopy = new HashMap<>(this.onlineTablets);
     }
-    Map<String,TableInfo> tables = new HashMap<>();
+    final Map<String,TableInfo> tables = new HashMap<>();
 
-    for (Entry<KeyExtent,Tablet> entry : onlineTabletsCopy.entrySet()) {
-      String tableId = entry.getKey().getTableId().canonical();
+    onlineTabletsCopy.forEach((ke, tablet) -> {
+      String tableId = ke.getTableId().canonical();
       TableInfo table = tables.get(tableId);
       if (table == null) {
         table = new TableInfo();
@@ -3174,7 +3174,6 @@ public class TabletServer implements Runnable {
         table.majors = new Compacting();
         tables.put(tableId, table);
       }
-      Tablet tablet = entry.getValue();
       long recs = tablet.getNumEntries();
       table.tablets++;
       table.onlineTablets++;
@@ -3194,21 +3193,21 @@ public class TabletServer implements Runnable {
         table.majors.running++;
       if (tablet.isMajorCompactionQueued())
         table.majors.queued++;
-    }
+    });
 
-    for (Entry<TableId,MapCounter<ScanRunState>> entry : scanCounts.entrySet()) {
-      TableInfo table = tables.get(entry.getKey().canonical());
+    scanCounts.forEach((tableId, mapCounter) -> {
+      TableInfo table = tables.get(tableId.canonical());
       if (table == null) {
         table = new TableInfo();
-        tables.put(entry.getKey().canonical(), table);
+        tables.put(tableId.canonical(), table);
       }
 
       if (table.scans == null)
         table.scans = new Compacting();
 
-      table.scans.queued += entry.getValue().get(ScanRunState.QUEUED);
-      table.scans.running += entry.getValue().get(ScanRunState.RUNNING);
-    }
+      table.scans.queued += mapCounter.getInt(ScanRunState.QUEUED);
+      table.scans.running += mapCounter.getInt(ScanRunState.RUNNING);
+    });
 
     ArrayList<KeyExtent> offlineTabletsCopy = new ArrayList<>();
     synchronized (this.unopenedTablets) {
