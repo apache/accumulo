@@ -65,6 +65,8 @@ public class CredentialProviderToken extends PasswordToken {
 
   /**
    * @return Name used to extract Accumulo user password from CredentialProvider
+   *
+   * @since 2.0.0
    */
   public String getName() {
     return name;
@@ -72,6 +74,8 @@ public class CredentialProviderToken extends PasswordToken {
 
   /**
    * @return CSV list of CredentialProvider(s)
+   *
+   * @since 2.0.0
    */
   public String getCredentialProviders() {
     return credentialProviders;

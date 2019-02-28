@@ -176,6 +176,9 @@ public class SummarizerConfiguration {
     return SummarizerConfigurationUtil.getSummarizerConfigs(props);
   }
 
+  /**
+   * @since 2.0.0
+   */
   public static class Builder {
     private String className;
     private ImmutableMap.Builder<String,String> imBuilder;
