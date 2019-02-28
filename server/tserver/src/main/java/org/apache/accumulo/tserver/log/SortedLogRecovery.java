@@ -28,7 +28,6 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -157,15 +156,10 @@ public class SortedLogRecovery {
     }
 
     if (logsThatDefineTablet.isEmpty()) {
-      return new AbstractMap.SimpleEntry<Integer,List<Path>>(-1, Collections.<Path> emptyList());
+      return new AbstractMap.SimpleEntry<>(-1, Collections.<Path> emptyList());
     } else {
       return Collections.max(logsThatDefineTablet.entrySet(),
-          new Comparator<Entry<Integer,List<Path>>>() {
-            @Override
-            public int compare(Entry<Integer,List<Path>> o1, Entry<Integer,List<Path>> o2) {
-              return Integer.compare(o1.getKey(), o2.getKey());
-            }
-          });
+          (o1, o2) -> Integer.compare(o1.getKey(), o2.getKey()));
     }
   }
 

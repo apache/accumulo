@@ -382,6 +382,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
+    @Deprecated
     protected List<IteratorSetting> jobIterators(JobConf job, String tableName) {
       return getIterators(job);
     }

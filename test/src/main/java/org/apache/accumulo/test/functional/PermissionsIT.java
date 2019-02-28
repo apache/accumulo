@@ -624,7 +624,6 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
   private void testMissingTablePermission(AccumuloClient test_user_client, TablePermission perm,
       String tableName) throws Exception {
-    BatchWriter writer;
     Mutation m;
     log.debug("Confirming that the lack of the {} permission properly restricts the user", perm);
 
