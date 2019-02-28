@@ -97,7 +97,7 @@ public class CollectTabletStats {
     int numThreads = 1;
     @Parameter(names = "-f", description = "select far tablets, default is to use local tablets")
     boolean selectFarTablets = false;
-    @Parameter(names = "-c", description = "comma separated list of columns")
+    @Parameter(names = "--columns", description = "comma separated list of columns")
     String columns;
   }
 
