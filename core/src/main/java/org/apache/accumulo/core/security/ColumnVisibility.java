@@ -384,7 +384,8 @@ public class ColumnVisibility {
             while (index < expression.length && expression[index] != '"') {
               if (expression[index] == '\\') {
                 index++;
-                if (expression[index] != '\\' && expression[index] != '"')
+                if (index == expression.length
+                    || (expression[index] != '\\' && expression[index] != '"'))
                   throw new BadArgumentException("invalid escaping within quotes",
                       new String(expression, UTF_8), index - 1);
               }

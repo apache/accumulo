@@ -252,8 +252,8 @@ public class SummarizerConfiguration {
     public Builder addOptions(String... keyValuePairs) {
       Preconditions.checkArgument(keyValuePairs.length % 2 == 0 && keyValuePairs.length > 0,
           "Require an even, positive number of arguments, got %s", keyValuePairs.length);
-      for (int i = 0; i < keyValuePairs.length; i += 2) {
-        addOption(keyValuePairs[i], keyValuePairs[i + 1]);
+      for (int i = 1; i < keyValuePairs.length; i += 2) {
+        addOption(keyValuePairs[i - 1], keyValuePairs[i]);
       }
       return this;
     }

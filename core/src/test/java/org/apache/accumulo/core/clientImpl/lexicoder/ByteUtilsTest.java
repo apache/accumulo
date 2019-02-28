@@ -19,9 +19,14 @@ package org.apache.accumulo.core.clientImpl.lexicoder;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class ByteUtilsTest {
+
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
 
   private final byte[] empty = new byte[0];
   private final byte[] noSplits = "nosplits".getBytes();
@@ -46,6 +51,7 @@ public class ByteUtilsTest {
     assertArrayEquals("56789".getBytes(), result[1]);
   }
 
+  @Test
   public void testSplitWithOffset() {
     int offset;
     byte[][] result;
@@ -69,5 +75,24 @@ public class ByteUtilsTest {
     result = ByteUtils.split(splitAt5, offset, len);
     assertEquals(1, result.length);
     assertArrayEquals("5678".getBytes(), result[0]);
+  }
+
+  @Test
+  public void testEscape() {
+    byte[] bytes = {0x00, 0x01};
+    byte[] escaped = ByteUtils.escape(bytes);
+    assertArrayEquals(bytes, ByteUtils.unescape(escaped));
+
+    // no escaped bytes found so returns the input
+    byte[] notEscaped = {0x02, 0x02, 0x02};
+    assertArrayEquals(notEscaped, ByteUtils.unescape(notEscaped));
+  }
+
+  @Test
+  public void testIllegalArgument() {
+    // incomplete bytes would cause an ArrayIndexOutOfBounds in the past
+    exception.expect(IllegalArgumentException.class);
+    byte[] errorBytes = {0x01};
+    ByteUtils.unescape(errorBytes);
   }
 }
