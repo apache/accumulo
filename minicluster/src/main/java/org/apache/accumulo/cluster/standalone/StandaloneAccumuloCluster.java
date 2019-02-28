@@ -224,6 +224,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     return new File(serverAccumuloConfDir, "accumulo.properties").toString();
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+          justification = "code runs in same security context as user who provided input file name")
   @Override
   public String getClientPropsPath() {
     return new File(clientAccumuloConfDir, "accumulo-client.properties").toString();
