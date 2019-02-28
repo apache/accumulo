@@ -20,6 +20,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -332,8 +333,7 @@ public class FileUtil {
           // need to pass original map files, not possibly reduced indexes
           return findMidPoint(fs, acuConf, prevEndRow, endRow, origMapFiles, minSplit, false);
         }
-        throw new IOException("Failed to find mid point, no entries between " + prevEndRow + " and "
-            + endRow + " for " + mapFiles);
+        return Collections.emptySortedMap();
       }
 
       // @formatter:off
