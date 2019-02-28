@@ -798,4 +798,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public String getAccumuloPropertiesPath() {
     return new File(config.getConfDir(), "accumulo.properties").toString();
   }
+
+  @Override
+  public String getClientPropsPath() {
+    return config.getClientPropsFile().getAbsolutePath();
+  }
 }

@@ -40,7 +40,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ContextOpts;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -55,7 +55,7 @@ import com.beust.jcommander.Parameter;
 public class RandomizeVolumes {
   private static final Logger log = LoggerFactory.getLogger(RandomizeVolumes.class);
 
-  static class RandomizeOpts extends ContextOpts {
+  static class RandomizeOpts extends ServerUtilOpts {
     @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
     String tableName;
   }

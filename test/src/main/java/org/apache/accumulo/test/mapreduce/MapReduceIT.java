@@ -18,10 +18,7 @@ package org.apache.accumulo.test.mapreduce;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -37,7 +34,6 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -90,17 +86,9 @@ public class MapReduceIT extends ConfigurableMacBase {
       bw.addMutation(m);
     }
     bw.close();
-    String filename = MapReduceIT.class.getName() + "-client.properties";
-    File configFile = Paths.get(System.getProperty("user.dir"), "target", filename).toFile();
-    try (PrintStream out = new PrintStream(configFile)) {
-      c.properties().store(out, "Config file for " + MapReduceIT.class.getName());
-    }
-    ClientInfo info = ClientInfo.from(c.properties());
-    Process hash = cluster
-        .exec(RowHash.class, Collections.singletonList(hadoopTmpDirArg), "-i",
-            info.getInstanceName(), "-z", info.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD,
-            "-t", tablename, "--column", input_cfcq, "--config-file", configFile.getAbsolutePath())
-        .getProcess();
+
+    Process hash = cluster.exec(RowHash.class, Collections.singletonList(hadoopTmpDirArg), "-c",
+        cluster.getClientPropsPath(), "-t", tablename, "--column", input_cfcq).getProcess();
     assertEquals(0, hash.waitFor());
 
     try (Scanner s = c.createScanner(tablename, Authorizations.EMPTY)) {

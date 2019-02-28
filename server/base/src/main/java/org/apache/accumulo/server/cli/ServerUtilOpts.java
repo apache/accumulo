@@ -29,7 +29,7 @@ public class ServerUtilOpts extends ClientOpts {
 
   public synchronized ServerContext getServerContext() {
     if (context == null) {
-      if (instance == null) {
+      if (getClientConfigFile() == null) {
         context = new ServerContext(new SiteConfiguration());
       } else {
         context = new ServerContext(new SiteConfiguration(), getClientProperties());

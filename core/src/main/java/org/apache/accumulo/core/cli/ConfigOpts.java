@@ -72,8 +72,12 @@ public class ConfigOpts extends Help {
   }
 
   public Map<String,String> getOverrides() {
+    return getOverrides(overrides);
+  }
+
+  public static Map<String,String> getOverrides(List<String> args) {
     Map<String,String> config = new HashMap<>();
-    for (String prop : overrides) {
+    for (String prop : args) {
       String[] propArgs = prop.split("=", 2);
       if (propArgs.length == 2) {
         String key = propArgs[0].trim();

@@ -67,7 +67,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ContextOpts;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.FileRef;
@@ -88,7 +88,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class CollectTabletStats {
   private static final Logger log = LoggerFactory.getLogger(CollectTabletStats.class);
 
-  static class CollectOptions extends ContextOpts {
+  static class CollectOptions extends ServerUtilOpts {
     @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
     String tableName;
     @Parameter(names = "--iterations", description = "number of iterations")

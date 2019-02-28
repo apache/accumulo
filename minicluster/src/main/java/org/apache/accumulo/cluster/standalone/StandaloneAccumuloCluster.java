@@ -223,4 +223,9 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   public String getAccumuloPropertiesPath() {
     return new File(serverAccumuloConfDir, "accumulo.properties").toString();
   }
+
+  @Override
+  public String getClientPropsPath() {
+    return new File(clientAccumuloConfDir, "accumulo-client.properties").toString();
+  }
 }

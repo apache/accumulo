@@ -16,16 +16,10 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
@@ -44,20 +38,12 @@ public class DeleteIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      AuthenticationToken token = getAdminToken();
-      if (token instanceof KerberosToken) {
-        deleteTest(c, getCluster(), getAdminPrincipal(), null, tableName,
-            getAdminUser().getKeytab().getAbsolutePath());
-      } else if (token instanceof PasswordToken) {
-        PasswordToken passwdToken = (PasswordToken) token;
-        deleteTest(c, getCluster(), getAdminPrincipal(),
-            new String(passwdToken.getPassword(), UTF_8), tableName, null);
-      }
+      deleteTest(c, getCluster(), tableName);
     }
   }
 
-  public static void deleteTest(AccumuloClient c, AccumuloCluster cluster, String user,
-      String password, String tableName, String keytab) throws Exception {
+  public static void deleteTest(AccumuloClient c, AccumuloCluster cluster, String tableName)
+      throws Exception {
     VerifyIngest.Opts vopts = new VerifyIngest.Opts();
     TestIngest.Opts opts = new TestIngest.Opts();
     vopts.setTableName(tableName);
@@ -66,27 +52,13 @@ public class DeleteIT extends AccumuloClusterHarness {
     vopts.cols = opts.cols = 1;
     vopts.random = opts.random = 56;
 
-    assertTrue("Expected one of password or keytab", password != null || keytab != null);
     opts.setClientProperties(getClientProperties());
     vopts.setClientProperties(getClientProperties());
 
     TestIngest.ingest(c, opts);
 
-    String[] args = null;
-
-    assertTrue("Expected one of password or keytab", password != null || keytab != null);
-    if (password != null) {
-      assertNull("Given password, expected null keytab", keytab);
-      args = new String[] {"-u", user, "-p", password, "-i", cluster.getInstanceName(), "-z",
-          cluster.getZooKeepers(), "--table", tableName};
-    }
-    if (keytab != null) {
-      assertNull("Given keytab, expect null password", password);
-      args = new String[] {"-u", user, "-i", cluster.getInstanceName(), "-z",
-          cluster.getZooKeepers(), "--table", tableName, "--keytab", keytab};
-    }
-
-    assertEquals(0, cluster.getClusterControl().exec(TestRandomDeletes.class, args));
+    assertEquals(0, cluster.getClusterControl().exec(TestRandomDeletes.class,
+        new String[] {"-c", cluster.getClientPropsPath(), "--table", tableName}));
     TestIngest.ingest(c, opts);
     VerifyIngest.verifyIngest(c, vopts);
   }

@@ -14,27 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.cli;
+package org.apache.accumulo.core.cli;
 
-import org.apache.accumulo.core.cli.ClientOpts;
-import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.server.ServerContext;
+import static org.junit.Assert.assertEquals;
 
-public class ContextOpts extends ClientOpts {
-  {
-    setPrincipal("root");
-  }
+import org.junit.Test;
 
-  private ServerContext context;
+public class TestClientOpts {
 
-  public synchronized ServerContext getServerContext() {
-    if (context == null) {
-      if (instance == null) {
-        context = new ServerContext(new SiteConfiguration());
-      } else {
-        context = new ServerContext(new SiteConfiguration(), getClientProperties());
-      }
-    }
-    return context;
+  @Test
+  public void testBasic() {
+    ClientOpts opts = new ClientOpts();
+    opts.parseArgs("test", new String[] {"-u", "userabc"});
+    assertEquals("userabc", opts.getPrincipal());
+
+    opts = new ClientOpts();
+    opts.parseArgs("test", new String[] {"-u", "userabc", "-o", "auth.principal=user123"});
+    assertEquals("user123", opts.getPrincipal());
+
+    opts = new ClientOpts();
+    opts.parseArgs("test", new String[] {"-o", "instance.name=myinst"});
+    assertEquals("myinst", opts.getClientProperties().getProperty("instance.name"));
   }
 }

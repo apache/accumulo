@@ -20,7 +20,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
@@ -48,12 +47,10 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.TraceScope;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -175,7 +172,6 @@ public class TestIngest {
     random.setSeed((row ^ seed) ^ col);
     random.nextBytes(dest);
     toPrintableChars(dest);
-
     return dest;
   }
 
@@ -186,23 +182,16 @@ public class TestIngest {
     }
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
 
     Opts opts = new Opts();
+    opts.parseArgs(TestIngest.class.getSimpleName(), args);
 
-    String name = TestIngest.class.getSimpleName();
-    TraceUtil.enableClientTraces(null, name, new Properties());
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(name, args)) {
-      if (opts.debug)
-        Logger.getLogger(TabletServerBatchWriter.class.getName()).setLevel(Level.TRACE);
+    if (opts.debug)
+      Logger.getLogger(TabletServerBatchWriter.class.getName()).setLevel(Level.TRACE);
 
-      try (AccumuloClient client = opts.createClient()) {
-        ingest(client, opts);
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    } finally {
-      TraceUtil.disable();
+    try (AccumuloClient client = opts.createClient()) {
+      ingest(client, opts);
     }
   }
 
