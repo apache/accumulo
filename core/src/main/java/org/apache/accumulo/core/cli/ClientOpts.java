@@ -155,6 +155,7 @@ public class ClientOpts extends Help {
   }
 
   public void setClientProperties(Properties clientProps) {
+    ClientProperty.validate(clientProps);
     this.cachedProps = clientProps;
   }
 
