@@ -158,7 +158,7 @@ public class SortedLogRecovery {
     }
 
     if (logsThatDefineTablet.isEmpty()) {
-      return new AbstractMap.SimpleEntry<Integer,List<Path>>(-1, Collections.<Path> emptyList());
+      return new AbstractMap.SimpleEntry<>(-1, Collections.<Path> emptyList());
     } else {
       return Collections.max(logsThatDefineTablet.entrySet(),
           new Comparator<Entry<Integer,List<Path>>>() {
