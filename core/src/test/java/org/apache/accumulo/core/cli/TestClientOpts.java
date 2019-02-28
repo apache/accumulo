@@ -17,7 +17,9 @@
 package org.apache.accumulo.core.cli;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.junit.Test;
 
 public class TestClientOpts {
@@ -25,15 +27,20 @@ public class TestClientOpts {
   @Test
   public void testBasic() {
     ClientOpts opts = new ClientOpts();
-    opts.parseArgs("test", new String[] {"-u", "userabc"});
-    assertEquals("userabc", opts.getPrincipal());
-
-    opts = new ClientOpts();
-    opts.parseArgs("test", new String[] {"-u", "userabc", "-o", "auth.principal=user123"});
+    String[] args = new String[] {"-u", "userabc", "-o", "instance.name=myinst", "-o",
+        "instance.zookeepers=zoo1,zoo2", "-o", "auth.type=password", "-o", "auth.principal=user123",
+        "-o", "auth.token=mypass"};
+    opts.parseArgs("test", args);
     assertEquals("user123", opts.getPrincipal());
+    assertTrue(opts.getToken() instanceof PasswordToken);
+    assertEquals("myinst", opts.getClientProperties().getProperty("instance.name"));
 
     opts = new ClientOpts();
-    opts.parseArgs("test", new String[] {"-o", "instance.name=myinst"});
+    args = new String[] {"-o", "instance.name=myinst", "-o", "instance.zookeepers=zoo1,zoo2", "-o",
+        "auth.type=password", "-o", "auth.token=mypass", "-u", "userabc"};
+    opts.parseArgs("test", args);
+    assertEquals("userabc", opts.getPrincipal());
+    assertTrue(opts.getToken() instanceof PasswordToken);
     assertEquals("myinst", opts.getClientProperties().getProperty("instance.name"));
   }
 }

@@ -117,8 +117,8 @@ public class ClientOpts extends Help {
       + "If omitted, the classpath will be searched for file named accumulo-client.properties")
   private String clientConfigFile = null;
 
-  @Parameter(names = "-o", splitter = NullSplitter.class,
-      description = "Overrides accumulo-client.properties. Expected format: -o <key>=<value>")
+  @Parameter(names = "-o", splitter = NullSplitter.class, description = "Overrides property in "
+      + "accumulo-client.properties. Expected format: -o <key>=<value>")
   private List<String> overrides = new ArrayList<>();
 
   public void startDebugLogging() {
@@ -189,6 +189,7 @@ public class ClientOpts extends Help {
         ClientProperty.setPassword(cachedProps, securePassword.toString());
       }
       getOverrides().forEach((k, v) -> cachedProps.put(k, v));
+      ClientProperty.validate(cachedProps);
     }
     return cachedProps;
   }
