@@ -20,7 +20,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +58,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSortedMap;
 
 public class FileUtil {
 
@@ -333,7 +333,7 @@ public class FileUtil {
           // need to pass original map files, not possibly reduced indexes
           return findMidPoint(fs, acuConf, prevEndRow, endRow, origMapFiles, minSplit, false);
         }
-        return Collections.emptySortedMap();
+        return ImmutableSortedMap.of();
       }
 
       // @formatter:off
