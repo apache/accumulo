@@ -21,6 +21,8 @@ import java.util.Objects;
 
 /**
  * An abstract identifier class for comparing equality of identifiers of the same type.
+ *
+ * @since 2.0.0
  */
 public abstract class AbstractId<T extends AbstractId<T>> implements Comparable<T>, Serializable {
 
