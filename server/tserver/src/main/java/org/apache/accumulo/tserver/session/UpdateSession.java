@@ -26,14 +26,14 @@ import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.util.MapCounter;
+import org.apache.accumulo.core.util.MapCounterLong;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.tserver.TservConstraintEnv;
 import org.apache.accumulo.tserver.tablet.Tablet;
 
 public class UpdateSession extends Session {
   public final TservConstraintEnv cenv;
-  public final MapCounter<Tablet> successfulCommits = new MapCounter<>();
+  public final MapCounterLong<Tablet> successfulCommits = new MapCounterLong<>();
   public final Map<KeyExtent,Long> failures = new HashMap<>();
   public final HashMap<KeyExtent,SecurityErrorCode> authFailures = new HashMap<>();
   public final Stat prepareTimes = new Stat();

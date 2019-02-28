@@ -49,7 +49,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.MapCounter;
+import org.apache.accumulo.core.util.MapCounterLong;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
@@ -128,7 +128,7 @@ class LoadFiles extends MasterRepo {
     int locationLess = 0;
 
     // track how many tablets were sent load messages per tablet server
-    MapCounter<HostAndPort> loadMsgs;
+    MapCounterLong<HostAndPort> loadMsgs;
 
     // Each RPC to a tablet server needs to check in zookeeper to see if the transaction is still
     // active. The purpose of this map is to group load request by tablet servers inorder to do less
@@ -143,7 +143,7 @@ class LoadFiles extends MasterRepo {
       timeInMillis = master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
       fmtTid = String.format("%016x", tid);
 
-      loadMsgs = new MapCounter<>();
+      loadMsgs = new MapCounterLong<>();
 
       loadQueue = new HashMap<>();
     }
@@ -251,14 +251,14 @@ class LoadFiles extends MasterRepo {
     BatchWriter bw;
 
     // track how many tablets were sent load messages per tablet server
-    MapCounter<HostAndPort> unloadingTablets;
+    MapCounterLong<HostAndPort> unloadingTablets;
 
     @Override
     void start(Path bulkDir, Master master, long tid, boolean setTime) throws Exception {
       Preconditions.checkArgument(!setTime);
       super.start(bulkDir, master, tid, setTime);
       bw = master.getContext().createBatchWriter(MetadataTable.NAME);
-      unloadingTablets = new MapCounter<>();
+      unloadingTablets = new MapCounterLong<>();
     }
 
     @Override

@@ -21,7 +21,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Set;
 
-public class MapCounter<KT> {
+/**
+ * A Map counter for counting with longs
+ */
+public class MapCounterLong<KT> {
 
   static class MutableLong {
     long l = 0L;
@@ -29,16 +32,12 @@ public class MapCounter<KT> {
 
   private HashMap<KT,MutableLong> map;
 
-  public MapCounter() {
+  public MapCounterLong() {
     map = new HashMap<>();
   }
 
   public long increment(KT key, long l) {
-    MutableLong ml = map.get(key);
-    if (ml == null) {
-      ml = new MutableLong();
-      map.put(key, ml);
-    }
+    MutableLong ml = map.computeIfAbsent(key, KT -> new MutableLong());
 
     ml.l += l;
 

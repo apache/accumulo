@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Set;
 
 /**
- * A version of MapCounter for counting with Integers
+ * A Map Counter for counting with Integers
  */
 public class MapCounterInt<KT> {
 
@@ -37,11 +37,7 @@ public class MapCounterInt<KT> {
   }
 
   public int increment(KT key, int i) {
-    MutableInt mutableInt = map.get(key);
-    if (mutableInt == null) {
-      mutableInt = new MutableInt();
-      map.put(key, mutableInt);
-    }
+    MutableInt mutableInt = map.computeIfAbsent(key, KT -> new MutableInt());
 
     mutableInt.i += i;
 

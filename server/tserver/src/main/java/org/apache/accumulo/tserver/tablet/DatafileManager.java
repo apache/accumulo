@@ -36,7 +36,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
-import org.apache.accumulo.core.util.MapCounter;
+import org.apache.accumulo.core.util.MapCounterLong;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.ServerConstants;
@@ -74,7 +74,7 @@ class DatafileManager {
   private FileRef mergingMinorCompactionFile = null;
   private final Set<FileRef> filesToDeleteAfterScan = new HashSet<>();
   private final Map<Long,Set<FileRef>> scanFileReservations = new HashMap<>();
-  private final MapCounter<FileRef> fileScanReferenceCounts = new MapCounter<>();
+  private final MapCounterLong<FileRef> fileScanReferenceCounts = new MapCounterLong<>();
   private long nextScanReservationId = 0;
   private boolean reservationsBlocked = false;
 

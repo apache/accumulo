@@ -29,7 +29,7 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.MapCounter;
+import org.apache.accumulo.core.util.MapCounterLong;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.master.Master;
@@ -78,7 +78,7 @@ class CompactionDriver extends MasterRepo {
           TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Compaction canceled");
     }
 
-    MapCounter<TServerInstance> serversToFlush = new MapCounter<>();
+    MapCounterLong<TServerInstance> serversToFlush = new MapCounterLong<>();
     long t1 = System.currentTimeMillis();
 
     int tabletsToWaitFor = 0;
