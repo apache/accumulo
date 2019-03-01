@@ -138,8 +138,8 @@ public class ZooSession {
           /*
            * Make sure we wait at least as long as the JVM TTL for negative DNS responses
            */
-          long ttl = AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e);
-          sleepTime = Math.max(sleepTime, (ttl + 1) * 1000);
+          int ttl = AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e);
+          sleepTime = Math.max(sleepTime, (ttl + 1) * 1000L);
         }
         log.warn("Connection to zooKeeper failed, will try again in "
             + String.format("%.2f secs", sleepTime / 1000.0), e);
@@ -153,14 +153,14 @@ public class ZooSession {
           }
       }
 
-      if (System.currentTimeMillis() - startTime > 2 * (long) timeout) {
+      if (System.currentTimeMillis() - startTime > 2L * timeout) {
         throw new RuntimeException("Failed to connect to zookeeper (" + host
             + ") within 2x zookeeper timeout period " + timeout);
       }
 
       if (tryAgain) {
-        if (startTime + 2 * (long) timeout < System.currentTimeMillis() + sleepTime + connectTimeWait)
-          sleepTime = startTime + 2 * (long) timeout - System.currentTimeMillis() - connectTimeWait;
+        if (startTime + 2L * timeout < System.currentTimeMillis() + sleepTime + connectTimeWait)
+          sleepTime = startTime + 2L * timeout - System.currentTimeMillis() - connectTimeWait;
         if (sleepTime < 0) {
           connectTimeWait -= sleepTime;
           sleepTime = 0;

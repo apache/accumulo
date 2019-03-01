@@ -227,8 +227,8 @@ public class ServerUtil {
              * We need to make sure our sleep period is long enough to avoid getting a cached
              * failure of the host lookup.
              */
-            long ttl = AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e.getCause());
-            sleep = Math.max(sleep, (ttl + 1) * 1000);
+            int ttl = AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e.getCause());
+            sleep = Math.max(sleep, (ttl + 1) * 1000L);
           } else {
             log.error("Unable to connect to HDFS and exceeded the maximum number of retries.", e);
             throw e;
