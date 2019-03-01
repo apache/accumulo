@@ -51,7 +51,7 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_WAL_REPLICATION, "1");
     cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
-    cfg.setProperty(Property.TABLE_MINC_LOGS_MAX, "100");
+    cfg.setProperty(Property.TSERV_WALOG_MAX_REFERENCED, "100");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
     cfg.useMiniDFS(true);
