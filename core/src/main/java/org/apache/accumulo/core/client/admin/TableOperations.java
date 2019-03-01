@@ -83,6 +83,56 @@ public interface TableOperations {
   /**
    * @param tableName
    *          the name of the table
+   * @param limitVersion
+   *          Enables/disables the versioning iterator, which will limit the number of Key versions
+   *          kept.
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @throws TableExistsException
+   *           if the table already exists
+   * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
+   */
+  @Deprecated
+  default void create(String tableName, boolean limitVersion)
+      throws AccumuloException, AccumuloSecurityException, TableExistsException {
+    if (limitVersion)
+      create(tableName);
+    else
+      create(tableName, new NewTableConfiguration().withoutDefaultIterators());
+  }
+
+  /**
+   * @param tableName
+   *          the name of the table
+   * @param versioningIter
+   *          Enables/disables the versioning iterator, which will limit the number of Key versions
+   *          kept.
+   * @param timeType
+   *          specifies logical or real-time based time recording for entries in the table
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @throws TableExistsException
+   *           if the table already exists
+   * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
+   */
+  @Deprecated
+  default void create(String tableName, boolean versioningIter, TimeType timeType)
+      throws AccumuloException, AccumuloSecurityException, TableExistsException {
+    NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(timeType);
+
+    if (versioningIter)
+      create(tableName, ntc);
+    else
+      create(tableName, ntc.withoutDefaultIterators());
+  }
+
+  /**
+   * @param tableName
+   *          the name of the table
    * @param ntc
    *          specifies the new table's configuration variable, which are: 1. enable/disable the
    *          versioning iterator, which will limit the number of Key versions kept; 2. specifies
@@ -168,6 +218,23 @@ public interface TableOperations {
    * @return the split points (end-row names) for the table's current split profile
    * @throws TableNotFoundException
    *           if the table does not exist
+   * @deprecated since 1.5.0; use {@link #listSplits(String)} instead.
+   */
+  @Deprecated
+  default Collection<Text> getSplits(String tableName) throws TableNotFoundException {
+    try {
+      return listSplits(tableName);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * @param tableName
+   *          the name of the table
+   * @return the split points (end-row names) for the table's current split profile
+   * @throws TableNotFoundException
+   *           if the table does not exist
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
@@ -176,6 +243,25 @@ public interface TableOperations {
    */
   Collection<Text> listSplits(String tableName)
       throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
+
+  /**
+   * @param tableName
+   *          the name of the table
+   * @param maxSplits
+   *          specifies the maximum number of splits to return
+   * @return the split points (end-row names) for the table's current split profile, grouped into
+   *         fewer splits so as not to exceed maxSplits
+   * @deprecated since 1.5.0; use {@link #listSplits(String, int)} instead.
+   */
+  @Deprecated
+  default Collection<Text> getSplits(String tableName, int maxSplits)
+      throws TableNotFoundException {
+    try {
+      return listSplits(tableName, maxSplits);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   /**
    * @param tableName
