@@ -26,7 +26,7 @@
 #   INCLUDED_MODULES should be an array that includes other Maven modules with src/main/thrift directories
 #   Use INCLUDED_MODULES=(-) in calling scripts that require no other modules
 # ========================================================================================================================
-[[ -z $REQUIRED_THRIFT_VERSION ]] && REQUIRED_THRIFT_VERSION='0.11.0'
+[[ -z $REQUIRED_THRIFT_VERSION ]] && REQUIRED_THRIFT_VERSION='0.12.0'
 [[ -z $INCLUDED_MODULES ]]        && INCLUDED_MODULES=(../server/tracer)
 [[ -z $BASE_OUTPUT_PACKAGE ]]     && BASE_OUTPUT_PACKAGE='org.apache.accumulo.core'
 [[ -z $PACKAGES_TO_GENERATE ]]    && PACKAGES_TO_GENERATE=(gc master tabletserver securityImpl clientImpl dataImpl replication trace)
@@ -65,7 +65,7 @@ THRIFT_ARGS="${THRIFT_ARGS} -o $BUILD_DIR"
 mkdir -p $BUILD_DIR
 rm -rf $BUILD_DIR/gen-java
 for f in src/main/thrift/*.thrift; do
-  thrift ${THRIFT_ARGS} --gen java:generated_annotations=undated,handle_runtime_exceptions "$f" || fail unable to generate java thrift classes
+  thrift ${THRIFT_ARGS} --gen java:generated_annotations=undated "$f" || fail unable to generate java thrift classes
   thrift ${THRIFT_ARGS} --gen py "$f" || fail unable to generate python thrift classes
   thrift ${THRIFT_ARGS} --gen rb "$f" || fail unable to generate ruby thrift classes
   thrift ${THRIFT_ARGS} --gen cpp "$f" || fail unable to generate cpp thrift classes
