@@ -267,12 +267,7 @@ public abstract class TabletLocator {
     }
 
     public void addMutation(KeyExtent ke, T m) {
-      List<T> mutList = mutations.get(ke);
-      if (mutList == null) {
-        mutList = new ArrayList<>();
-        mutations.put(ke, mutList);
-      }
-
+      List<T> mutList = mutations.computeIfAbsent(ke, k -> new ArrayList<>());
       mutList.add(m);
     }
 
