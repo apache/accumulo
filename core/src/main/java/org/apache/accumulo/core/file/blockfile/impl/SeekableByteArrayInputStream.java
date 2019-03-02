@@ -84,12 +84,12 @@ public class SeekableByteArrayInputStream extends InputStream {
 
   @Override
   public long skip(long requestedSkip) {
-    long actualSkip = max - cur;
+    int actualSkip = max - cur;
     if (requestedSkip < actualSkip)
       if (requestedSkip < 0)
         actualSkip = 0;
       else
-        actualSkip = requestedSkip;
+        actualSkip = (int) requestedSkip;
 
     cur += actualSkip;
     return actualSkip;

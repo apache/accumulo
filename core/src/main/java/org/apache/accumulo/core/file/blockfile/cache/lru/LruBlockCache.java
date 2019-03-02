@@ -17,6 +17,10 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache.lru;
 
+import static org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize.CONCURRENT_HASHMAP;
+import static org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize.CONCURRENT_HASHMAP_ENTRY;
+import static org.apache.accumulo.core.file.blockfile.cache.impl.ClassSize.CONCURRENT_HASHMAP_SEGMENT;
+
 import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.PriorityQueue;
@@ -674,9 +678,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   }
 
   public static long calculateOverhead(long maxSize, long blockSize, int concurrency) {
-    return CACHE_FIXED_OVERHEAD + ClassSize.CONCURRENT_HASHMAP
-        + ((int) Math.ceil(maxSize * 1.2 / blockSize) * ClassSize.CONCURRENT_HASHMAP_ENTRY)
-        + (concurrency * ClassSize.CONCURRENT_HASHMAP_SEGMENT);
+    long entryPart = Math.round(maxSize * 1.2 / blockSize) * CONCURRENT_HASHMAP_ENTRY;
+    long segmentPart = (long) concurrency * CONCURRENT_HASHMAP_SEGMENT;
+    return CACHE_FIXED_OVERHEAD + CONCURRENT_HASHMAP + entryPart + segmentPart;
   }
 
   // Simple calculators of sizes given factors and maxSize

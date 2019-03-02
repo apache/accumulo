@@ -1291,7 +1291,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           maxPerServer = serverCounts.max();
           waitTime = maxPerServer * 10;
         } else
-          waitTime = waitFor * 10;
+          waitTime = waitFor * 10L;
         waitTime = Math.max(100, waitTime);
         waitTime = Math.min(5000, waitTime);
         log.trace("Waiting for {}({}) tablets, startRow = {} lastRow = {}, holes={} sleeping:{}ms",

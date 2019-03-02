@@ -1002,7 +1002,7 @@ public class TabletServerBatchWriter {
   private static class MutationSet {
 
     private final HashMap<TableId,List<Mutation>> mutations;
-    private int memoryUsed = 0;
+    private long memoryUsed = 0;
 
     MutationSet() {
       mutations = new HashMap<>();
@@ -1050,7 +1050,7 @@ public class TabletServerBatchWriter {
       }
     }
 
-    public int getMemoryUsed() {
+    public long getMemoryUsed() {
       return memoryUsed;
     }
 

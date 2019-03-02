@@ -117,14 +117,14 @@ public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
     return true;
   }
 
-  protected int getNumFilesPendingReplication() {
+  protected long getNumFilesPendingReplication() {
     // The total set of configured targets
     Set<ReplicationTarget> allConfiguredTargets = replicationUtil.getReplicationTargets();
 
     // Number of files per target we have to replicate
     Map<ReplicationTarget,Long> targetCounts = replicationUtil.getPendingReplications();
 
-    int filesPending = 0;
+    long filesPending = 0;
 
     // Sum pending replication over all targets
     for (ReplicationTarget configuredTarget : allConfiguredTargets) {

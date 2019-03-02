@@ -56,7 +56,7 @@ public class ReplicationMetrics extends AbstractMetricsImpl implements Replicati
   }
 
   @Override
-  public int getNumFilesPendingReplication() {
+  public long getNumFilesPendingReplication() {
 
     if (TableState.ONLINE != Tables.getTableState(master.getContext(), ReplicationTable.ID)) {
       return 0;
@@ -76,7 +76,7 @@ public class ReplicationMetrics extends AbstractMetricsImpl implements Replicati
     // Number of files per target we have to replicate
     Map<ReplicationTarget,Long> targetCounts = replicationUtil.getPendingReplications();
 
-    int filesPending = 0;
+    long filesPending = 0;
 
     // Sum pending replication over all targets
     for (ReplicationTarget configuredTarget : allConfiguredTargets) {

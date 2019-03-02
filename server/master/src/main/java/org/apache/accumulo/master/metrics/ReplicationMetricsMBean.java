@@ -24,7 +24,7 @@ public interface ReplicationMetricsMBean {
    *
    * @return The number of files pending replication across all targets
    */
-  int getNumFilesPendingReplication();
+  long getNumFilesPendingReplication();
 
   /**
    * The total number of threads available to replicate data to peers. Each TabletServer has a
