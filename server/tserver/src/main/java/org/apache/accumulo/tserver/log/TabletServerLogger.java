@@ -56,7 +56,6 @@ import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
 import org.apache.accumulo.tserver.log.DfsLogger.ServerResources;
 import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.hadoop.fs.Path;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -277,89 +276,72 @@ public class TabletServerLogger {
         final ServerResources conf = tserver.getServerConfig();
         final VolumeManager fs = conf.getFileSystem();
         while (!nextLogMaker.isShutdown()) {
-          DfsLogger alog = null;
-          boolean newMarkerAttempted = false;
+          log.debug("Creating next WAL");
+          DfsLogger alog = null;;
           try {
-            log.debug("Creating next WAL");
             alog = new DfsLogger(conf, syncCounter, flushCounter);
             alog.open(tserver.getClientAddressString());
-            String fileName = alog.getFileName();
-            log.debug("Created next WAL " + fileName);
-            newMarkerAttempted = true;
-            tserver.addNewLogMarker(alog);
-            while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
-              log.info("Our WAL was not used for 12 hours: " + fileName);
-            }
           } catch (Exception t) {
             log.error("Failed to open WAL", t);
-            if (null != alog) {
-              // It's possible that the sync of the header and OPEN record to the WAL failed
-              // We want to make sure that clean up the resources/thread inside the DfsLogger
-              // object before trying to create a new one.
+            // the log is not advertised in ZK yet, so we can just delete it if it exists
+            if (alog != null) {
               try {
                 alog.close();
               } catch (Exception e) {
                 log.error("Failed to close WAL after it failed to open", e);
               }
-              // Try to avoid leaving a bunch of empty WALs lying around
+
               try {
-                // determine whether or not it's safe to just delete the new WAL.
-                if (newMarkerAttempted && isPossibleSuccess(t)) {
-                  // if there's a chance the WAL marker may have been created,
-                  // this will ensure it's closed. Either the close will be written and
-                  // the GC will clean it up, or the tserver is about to die due to sesson
-                  // expiration and the GC will also clean it up.
-                  tserver.walogClosed(alog);
-                } else {
-                  Path path = alog.getPath();
-                  if (fs.exists(path)) {
-                    fs.delete(path);
-                  }
+                Path path = alog.getPath();
+                if (fs.exists(path)) {
+                  fs.delete(path);
                 }
               } catch (Exception e) {
                 log.warn("Failed to delete a WAL that failed to open", e);
               }
             }
+            
+            continue;
+          }
+          
+          String fileName = alog.getFileName();
+          log.debug("Created next WAL " + fileName);
+          
+          try {
+            tserver.addNewLogMarker(alog);
+          } catch (Exception t) {
+            log.error("Failed to add new WAL marker for " + fileName, t);
+              
             try {
-              nextLog.offer(t, 12, TimeUnit.HOURS);
-            } catch (InterruptedException ex) {
-              // ignore
+              alog.close();
+            } catch (Exception e) {
+              log.error("Failed to close WAL after it failed to open", e);
             }
+              
+            // it's possible the log was advertised in ZK even though we got an 
+            // exception. If there's a chance the WAL marker may have been created,
+            // this will ensure it's closed. Either the close will be written and
+            // the GC will clean it up, or the tserver is about to die due to sesson
+            // expiration and the GC will also clean it up.
+            try {
+              tserver.walogClosed(alog);
+            } catch (Exception e) {
+              log.error("Failed to close WAL that failed to open: " + fileName, e);
+            }
+            
+            continue;
+          }
+         
+          try {
+            while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
+              log.info("Our WAL was not used for 12 hours: " + fileName);
+            }
+          } catch (InterruptedException e) {
+            // ignore - server is shutting down
           }
         }
       }
     }));
-  }
-
-  /**
-   * Determines whether or not the specified exception indicates a zookeeper new WAL marker
-   * operation possibly succeeded
-   */
-  private boolean isPossibleSuccess(Throwable ex) {
-    if (ex instanceof KeeperException) {
-      switch (((KeeperException) ex).code()) {
-        // for sure, we should treat it as a success
-        case NODEEXISTS:
-          // questionable, but has a high chance that the operation succeeded
-        case OPERATIONTIMEOUT:
-        case CONNECTIONLOSS:
-          // probably didn't succeed, but air on the side of caution.
-        case SESSIONEXPIRED:
-          return true;
-        default:
-          // There may be other errors that it makes sense to
-          // treat as a possible success, but I'm not sure what
-          // they are at this point. We could just always return
-          // success on KeeperException, but that might be overkill.
-          return false;
-      }
-    } else if (ex.getCause() != null && ex.getCause() != ex) {
-      return isPossibleSuccess(ex.getCause());
-    } else {
-      // catches (probably rare) exceptions such as
-      // interrupt after the marker is successfully created.
-      return true;
-    }
   }
 
   synchronized private void close() throws IOException {
