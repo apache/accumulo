@@ -159,7 +159,7 @@ public class MergeStats {
       } else {
         log.info("{} tablets are chopped, {} are offline {}", chopped, unassigned,
             info.getExtent());
-        if (unassigned == total && chopped == needsToBeChopped) {
+        if (unassigned == total) {
           if (verifyMergeConsistency(accumuloClient, master))
             state = MergeState.MERGING;
           else

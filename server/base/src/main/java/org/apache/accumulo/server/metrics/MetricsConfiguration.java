@@ -116,8 +116,7 @@ public class MetricsConfiguration {
     if (notFound) {
       if (notFoundCount <= CONFIG_FILE_CHECK_COUNTER) {
         return null;
-      } else if ((notFoundCount > CONFIG_FILE_CHECK_COUNTER)
-          && ((System.currentTimeMillis() - lastCheckTime) > CONFIG_FILE_CHECK_INTERVAL)) {
+      } else if ((System.currentTimeMillis() - lastCheckTime) > CONFIG_FILE_CHECK_INTERVAL) {
         notFoundCount = 0;
         lastCheckTime = System.currentTimeMillis();
         notFound = false;

@@ -2630,13 +2630,13 @@ public class Tablet {
           rebuildReferencedLogs();
         }
 
-        if (numAdded > 0 && numAdded != 1) {
+        if (numAdded > 1) {
           // expect to add all or none
           throw new IllegalArgumentException(
               "Added subset of logs " + extent + " " + more + " " + currentLogs);
         }
 
-        if (numContained > 0 && numContained != 1) {
+        if (numContained > 1) {
           // expect to contain all or none
           throw new IllegalArgumentException(
               "Other logs contained subset of logs " + extent + " " + more + " " + otherLogs);
