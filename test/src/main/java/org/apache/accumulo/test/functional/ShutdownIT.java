@@ -42,8 +42,8 @@ public class ShutdownIT extends ConfigurableMacBase {
 
   @Test
   public void shutdownDuringIngest() throws Exception {
-    Process ingest = cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z",
-        cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable").getProcess();
+    Process ingest = cluster
+        .exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--createTable").getProcess();
     sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     ingest.destroy();
@@ -52,11 +52,10 @@ public class ShutdownIT extends ConfigurableMacBase {
   @Test
   public void shutdownDuringQuery() throws Exception {
     assertEquals(0,
-        cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z",
-            cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable")
+        cluster.exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--createTable")
             .getProcess().waitFor());
-    Process verify = cluster.exec(VerifyIngest.class, "-i", cluster.getInstanceName(), "-z",
-        cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD).getProcess();
+    Process verify = cluster.exec(VerifyIngest.class, "-c", cluster.getClientPropsPath())
+        .getProcess();
     sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     verify.destroy();
@@ -65,11 +64,10 @@ public class ShutdownIT extends ConfigurableMacBase {
   @Test
   public void shutdownDuringDelete() throws Exception {
     assertEquals(0,
-        cluster.exec(TestIngest.class, "-i", cluster.getInstanceName(), "-z",
-            cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD, "--createTable")
+        cluster.exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--createTable")
             .getProcess().waitFor());
-    Process deleter = cluster.exec(TestRandomDeletes.class, "-i", cluster.getInstanceName(), "-z",
-        cluster.getZooKeepers(), "-u", "root", "-p", ROOT_PASSWORD).getProcess();
+    Process deleter = cluster.exec(TestRandomDeletes.class, "-c", cluster.getClientPropsPath())
+        .getProcess();
     sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     deleter.destroy();
@@ -112,9 +110,8 @@ public class ShutdownIT extends ConfigurableMacBase {
 
   static void runAdminStopTest(AccumuloClient c, MiniAccumuloClusterImpl cluster)
       throws InterruptedException, IOException {
-    String confPath = cluster.getConfig().getClientPropsFile().getAbsolutePath();
-    int x = cluster.exec(TestIngest.class, "--config-file", confPath, "--createTable").getProcess()
-        .waitFor();
+    int x = cluster.exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--createTable")
+        .getProcess().waitFor();
     assertEquals(0, x);
     List<String> tabletServers = c.instanceOperations().getTabletServers();
     assertEquals(2, tabletServers.size());
@@ -125,5 +122,4 @@ public class ShutdownIT extends ConfigurableMacBase {
     assertEquals(1, tabletServers.size());
     assertNotEquals(tabletServers.get(0), doomed);
   }
-
 }

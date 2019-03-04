@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -25,11 +24,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -159,18 +156,8 @@ public class SplitIT extends AccumuloClusterHarness {
         assertTrue("Count should be cgreater than 10: " + count, count > 10);
       }
 
-      String[] args;
-      if (saslEnabled()) {
-        ClusterUser rootUser = getAdminUser();
-        args = new String[] {"-i", cluster.getInstanceName(), "-u", rootUser.getPrincipal(),
-            "--keytab", rootUser.getKeytab().getAbsolutePath(), "-z", cluster.getZooKeepers()};
-      } else {
-        PasswordToken token = (PasswordToken) getAdminToken();
-        args = new String[] {"-i", cluster.getInstanceName(), "-u", "root", "-p",
-            new String(token.getPassword(), UTF_8), "-z", cluster.getZooKeepers()};
-      }
-
-      assertEquals(0, getCluster().getClusterControl().exec(CheckForMetadataProblems.class, args));
+      assertEquals(0, getCluster().getClusterControl().exec(CheckForMetadataProblems.class,
+          new String[] {"-c", cluster.getClientPropsPath()}));
     }
   }
 
@@ -201,13 +188,7 @@ public class SplitIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-      String password = null, keytab = null;
-      if (saslEnabled()) {
-        keytab = getAdminUser().getKeytab().getAbsolutePath();
-      } else {
-        password = new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8);
-      }
-      DeleteIT.deleteTest(c, getCluster(), getAdminPrincipal(), password, tableName, keytab);
+      DeleteIT.deleteTest(c, getCluster(), tableName);
       c.tableOperations().flush(tableName, null, null, true);
       for (int i = 0; i < 5; i++) {
         sleepUninterruptibly(10, TimeUnit.SECONDS);

@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -29,12 +28,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterControl;
-import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -105,31 +100,15 @@ public class RestartIT extends AccumuloClusterHarness {
   public void restartMaster() throws Exception {
     try (AccumuloClient c = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
-      OPTS.setTableName(tableName);
-      VOPTS.setTableName(tableName);
       c.tableOperations().create(tableName);
-      final AuthenticationToken token = getAdminToken();
       final ClusterControl control = getCluster().getClusterControl();
-
-      final String[] args;
-      if (token instanceof PasswordToken) {
-        byte[] password = ((PasswordToken) token).getPassword();
-        args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i",
-            cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows", "" + OPTS.rows,
-            "--table", tableName};
-      } else if (token instanceof KerberosToken) {
-        ClusterUser rootUser = getAdminUser();
-        args = new String[] {"-u", getAdminPrincipal(), "--keytab",
-            rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
-            cluster.getZooKeepers(), "--rows", "" + OPTS.rows, "--table", tableName};
-      } else {
-        throw new RuntimeException("Unknown token");
-      }
-      OPTS.setClientProperties(getClientProperties());
+      VOPTS.setTableName(tableName);
+      VOPTS.setClientProperties(getClientProperties());
 
       Future<Integer> ret = svc.submit(() -> {
         try {
-          return control.exec(TestIngest.class, args);
+          return control.exec(TestIngest.class, new String[] {"-c", cluster.getClientPropsPath(),
+              "--rows", "" + OPTS.rows, "--table", tableName});
         } catch (IOException e) {
           log.error("Error running TestIngest", e);
           return -1;
@@ -198,32 +177,17 @@ public class RestartIT extends AccumuloClusterHarness {
   public void restartMasterSplit() throws Exception {
     try (AccumuloClient c = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
-      final AuthenticationToken token = getAdminToken();
       final ClusterControl control = getCluster().getClusterControl();
-      VOPTS.setTableName(tableName);
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
 
-      final String[] args;
-      if (token instanceof PasswordToken) {
-        byte[] password = ((PasswordToken) token).getPassword();
-        args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i",
-            cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows",
-            Integer.toString(VOPTS.rows), "--table", tableName};
-      } else if (token instanceof KerberosToken) {
-        ClusterUser rootUser = getAdminUser();
-        args = new String[] {"-u", getAdminPrincipal(), "--keytab",
-            rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
-            cluster.getZooKeepers(), "--rows", Integer.toString(VOPTS.rows), "--table", tableName};
-      } else {
-        throw new RuntimeException("Unknown token");
-      }
-      OPTS.setClientProperties(getClientProperties());
+      VOPTS.setTableName(tableName);
       VOPTS.setClientProperties(getClientProperties());
 
       Future<Integer> ret = svc.submit(() -> {
         try {
-          return control.exec(TestIngest.class, args);
+          return control.exec(TestIngest.class, new String[] {"-c", cluster.getClientPropsPath(),
+              "--rows", "" + VOPTS.rows, "--table", tableName});
         } catch (Exception e) {
           log.error("Error running TestIngest", e);
           return -1;

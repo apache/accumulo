@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 
@@ -27,11 +26,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterControl;
-import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -98,28 +93,14 @@ public class RestartStressIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     try (AccumuloClient c = createAccumuloClient()) {
       final String tableName = getUniqueNames(1)[0];
-      final AuthenticationToken token = getAdminToken();
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "500K");
       final ClusterControl control = getCluster().getClusterControl();
-      final String[] args;
-      if (token instanceof PasswordToken) {
-        byte[] password = ((PasswordToken) token).getPassword();
-        args = new String[] {"-u", getAdminPrincipal(), "-p", new String(password, UTF_8), "-i",
-            cluster.getInstanceName(), "-z", cluster.getZooKeepers(), "--rows", "" + VOPTS.rows,
-            "--table", tableName};
-      } else if (token instanceof KerberosToken) {
-        ClusterUser rootUser = getAdminUser();
-        args = new String[] {"-u", getAdminPrincipal(), "--keytab",
-            rootUser.getKeytab().getAbsolutePath(), "-i", cluster.getInstanceName(), "-z",
-            cluster.getZooKeepers(), "--rows", "" + VOPTS.rows, "--table", tableName};
-      } else {
-        throw new RuntimeException("Unrecognized token");
-      }
 
       Future<Integer> retCode = svc.submit(() -> {
         try {
-          return control.exec(TestIngest.class, args);
+          return control.exec(TestIngest.class, new String[] {"-c", cluster.getClientPropsPath(),
+              "--rows", "" + VOPTS.rows, "--table", tableName});
         } catch (Exception e) {
           log.error("Error running TestIngest", e);
           return -1;
@@ -137,5 +118,4 @@ public class RestartStressIT extends AccumuloClusterHarness {
       VerifyIngest.verifyIngest(c, VOPTS);
     }
   }
-
 }

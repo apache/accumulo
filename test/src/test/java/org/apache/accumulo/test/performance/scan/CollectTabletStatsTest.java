@@ -20,16 +20,11 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-/**
- * Created by etcoleman on 10/11/16.
- */
 public class CollectTabletStatsTest {
 
   @Test
   public void paramsDefaulThreadTest() {
-
     String tablename = "aTable";
-
     String[] args = {"-t", tablename, "--iterations", "2"};
 
     final CollectTabletStats.CollectOptions opts = new CollectTabletStats.CollectOptions();
@@ -38,14 +33,11 @@ public class CollectTabletStatsTest {
     assertEquals("Check iterations is set, default is 3", 2, opts.iterations);
     assertEquals("Check tablename is set", 0, tablename.compareTo(opts.tableName));
     assertEquals("Check default numThreads", 1, opts.numThreads);
-
   }
 
   @Test
   public void paramsSetThreadsTest() {
-
     String tablename = "aTable";
-
     String[] args = {"-t", tablename, "--iterations", "2", "--numThreads", "99"};
 
     final CollectTabletStats.CollectOptions opts = new CollectTabletStats.CollectOptions();
@@ -54,7 +46,5 @@ public class CollectTabletStatsTest {
     assertEquals("Check iterations is set, default is 3", 2, opts.iterations);
     assertEquals("Check tablename is set", 0, tablename.compareTo(opts.tableName));
     assertEquals("Check numThreads is set", 99, opts.numThreads);
-
   }
-
 }

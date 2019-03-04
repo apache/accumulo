@@ -16,10 +16,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -62,9 +60,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.Property;
@@ -250,33 +245,13 @@ public class ReadWriteIT extends AccumuloClusterHarness {
   @Test
   public void multiTableTest() throws Exception {
     // Write to multiple tables
-    final String instance = cluster.getInstanceName();
-    final String keepers = cluster.getZooKeepers();
     final ClusterControl control = cluster.getClusterControl();
     final String prefix = getClass().getSimpleName() + "_" + testName.getMethodName();
     ExecutorService svc = Executors.newFixedThreadPool(2);
     Future<Integer> p1 = svc.submit(() -> {
       try {
-        // Invocation is different for SASL. We're only logged in via this processes memory (not
-        // via some credentials cache on disk)
-        // Need to pass along the keytab because of that.
-        if (saslEnabled()) {
-          String principal = getAdminPrincipal();
-          AuthenticationToken token = getAdminToken();
-          assertTrue("Expected KerberosToken, but was " + token.getClass(),
-              token instanceof KerberosToken);
-          KerberosToken kt = (KerberosToken) token;
-          assertNotNull("Expected keytab in token", kt.getKeytab());
-          return control.exec(TestMultiTableIngest.class,
-              args("--count", Integer.toString(ROWS), "-i", instance, "-z", keepers,
-                  "--tablePrefix", prefix, "--keytab", kt.getKeytab().getAbsolutePath(), "-u",
-                  principal));
-        }
-
-        return control.exec(TestMultiTableIngest.class,
-            args("--count", Integer.toString(ROWS), "-u", getAdminPrincipal(), "-i", instance, "-z",
-                keepers, "-p", new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8),
-                "--tablePrefix", prefix));
+        return control.exec(TestMultiTableIngest.class, args("--count", Integer.toString(ROWS),
+            "-c", cluster.getClientPropsPath(), "--tablePrefix", prefix));
       } catch (IOException e) {
         log.error("Error running MultiTableIngest", e);
         return -1;
@@ -284,27 +259,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     });
     Future<Integer> p2 = svc.submit(() -> {
       try {
-        // Invocation is different for SASL. We're only logged in via this processes memory (not
-        // via some credentials cache on disk)
-        // Need to pass along the keytab because of that.
-        if (saslEnabled()) {
-          String principal = getAdminPrincipal();
-          AuthenticationToken token = getAdminToken();
-          assertTrue("Expected KerberosToken, but was " + token.getClass(),
-              token instanceof KerberosToken);
-          KerberosToken kt = (KerberosToken) token;
-          assertNotNull("Expected keytab in token", kt.getKeytab());
-          return control.exec(TestMultiTableIngest.class,
-              args("--count", Integer.toString(ROWS), "--readonly", "-i", instance, "-z", keepers,
-                  "--tablePrefix", prefix, "--keytab", kt.getKeytab().getAbsolutePath(), "-u",
-                  principal));
-        }
-
-        return control.exec(TestMultiTableIngest.class,
-            args("--count", Integer.toString(ROWS), "--readonly", "-u", getAdminPrincipal(), "-i",
-                instance, "-z", keepers, "-p",
-                new String(((PasswordToken) getAdminToken()).getPassword(), UTF_8), "--tablePrefix",
-                prefix));
+        return control.exec(TestMultiTableIngest.class, args("--count", Integer.toString(ROWS),
+            "--readonly", "-c", cluster.getClientPropsPath(), "--tablePrefix", prefix));
       } catch (IOException e) {
         log.error("Error running MultiTableIngest", e);
         return -1;
