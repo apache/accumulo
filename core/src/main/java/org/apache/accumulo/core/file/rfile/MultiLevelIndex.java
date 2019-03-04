@@ -400,7 +400,7 @@ public class MultiLevelIndex {
 
     }
 
-    List<IndexEntry> getIndex() {
+    SerializedIndex getIndex() {
       // create SerializedIndex on demand as each has an internal input stream over byte array...
       // keeping a SerializedIndex ref for the object could lead to
       // problems with deep copies.
@@ -848,8 +848,8 @@ public class MultiLevelIndex {
       if (count == null)
         count = 0L;
 
-      List<IndexEntry> index = ib.getIndex();
-      size += ((SerializedIndex) index).sizeInBytes();
+      SerializedIndex index = ib.getIndex();
+      size += index.sizeInBytes();
       count++;
 
       sizesByLevel.put(ib.getLevel(), size);

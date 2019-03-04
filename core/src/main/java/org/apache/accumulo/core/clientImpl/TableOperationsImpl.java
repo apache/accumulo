@@ -639,7 +639,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public Collection<Text> listSplits(String tableName)
       throws TableNotFoundException, AccumuloSecurityException {
+    return _listSplits(tableName);
+  }
 
+  private List<Text> _listSplits(String tableName)
+      throws TableNotFoundException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
 
     TableId tableId = Tables.getTableId(context, tableName);
@@ -675,12 +679,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
         endRows.add(ke.getEndRow());
 
     return endRows;
+
   }
 
   @Override
   public Collection<Text> listSplits(String tableName, int maxSplits)
       throws TableNotFoundException, AccumuloSecurityException {
-    Collection<Text> endRows = listSplits(tableName);
+    List<Text> endRows = _listSplits(tableName);
 
     if (endRows.size() <= maxSplits)
       return endRows;
@@ -694,7 +699,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     for (int i = 0; i < endRows.size() && j < maxSplits; i++) {
       pos += r;
       while (pos > 1) {
-        subset.add(((ArrayList<Text>) endRows).get(i));
+        subset.add(endRows.get(i));
         j++;
         pos -= 1;
       }

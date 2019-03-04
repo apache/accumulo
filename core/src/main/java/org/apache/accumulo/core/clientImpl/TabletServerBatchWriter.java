@@ -603,10 +603,7 @@ public class TabletServerBatchWriter {
 
     synchronized void add(TabletServerMutations<Mutation> tsm) {
       init();
-      for (Entry<KeyExtent,List<Mutation>> entry : tsm.getMutations().entrySet()) {
-        recentFailures.addAll(entry.getKey().getTableId(), entry.getValue());
-      }
-
+      tsm.getMutations().forEach((ke, muts) -> recentFailures.addAll(ke.getTableId(), muts));
     }
 
     @Override
@@ -966,7 +963,7 @@ public class TabletServerBatchWriter {
 
               getLocator(tableId).invalidateCache(failedExtent);
 
-              ArrayList<Mutation> mutations = (ArrayList<Mutation>) tabMuts.get(failedExtent);
+              List<Mutation> mutations = tabMuts.get(failedExtent);
               allFailures.addAll(tableId, mutations.subList(numCommitted, mutations.size()));
             }
 

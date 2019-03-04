@@ -372,13 +372,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
       for (int i = 1; i < mutations.size(); i++) {
         for (Entry<KeyExtent,List<QCMutation>> entry : mutations.get(i).getMutations().entrySet()) {
-          List<QCMutation> list = tsm.getMutations().get(entry.getKey());
-          if (list == null) {
-            list = new ArrayList<>();
-            tsm.getMutations().put(entry.getKey(), list);
-          }
-
-          list.addAll(entry.getValue());
+          tsm.getMutations().computeIfAbsent(entry.getKey(), k -> new ArrayList<>())
+              .addAll(entry.getValue());
         }
       }
 
