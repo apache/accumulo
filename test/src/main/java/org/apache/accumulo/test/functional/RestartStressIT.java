@@ -33,6 +33,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.After;
@@ -83,12 +84,6 @@ public class RestartStressIT extends AccumuloClusterHarness {
     }
   }
 
-  private static final VerifyIngest.Opts VOPTS;
-  static {
-    VOPTS = new VerifyIngest.Opts();
-    VOPTS.rows = 10 * 1000;
-  }
-
   @Test
   public void test() throws Exception {
     try (AccumuloClient c = createAccumuloClient()) {
@@ -97,10 +92,12 @@ public class RestartStressIT extends AccumuloClusterHarness {
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "500K");
       final ClusterControl control = getCluster().getClusterControl();
 
+      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000);
+
       Future<Integer> retCode = svc.submit(() -> {
         try {
           return control.exec(TestIngest.class, new String[] {"-c", cluster.getClientPropsPath(),
-              "--rows", "" + VOPTS.rows, "--table", tableName});
+              "--rows", "" + params.rows, "--table", tableName});
         } catch (Exception e) {
           log.error("Error running TestIngest", e);
           return -1;
@@ -113,9 +110,7 @@ public class RestartStressIT extends AccumuloClusterHarness {
         control.startAllServers(ServerType.TABLET_SERVER);
       }
       assertEquals(0, retCode.get().intValue());
-      VOPTS.setTableName(tableName);
-      VOPTS.setClientProperties(getClientProperties());
-      VerifyIngest.verifyIngest(c, VOPTS);
+      VerifyIngest.verifyIngest(c, params);
     }
   }
 }

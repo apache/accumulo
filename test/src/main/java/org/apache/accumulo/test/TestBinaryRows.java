@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -228,7 +229,7 @@ public class TestBinaryRows {
     Opts opts = new Opts();
     opts.parseArgs(TestBinaryRows.class.getName(), args);
 
-    try (AccumuloClient client = opts.createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
       runTest(client, opts);
     } catch (Exception e) {
       throw new RuntimeException(e);

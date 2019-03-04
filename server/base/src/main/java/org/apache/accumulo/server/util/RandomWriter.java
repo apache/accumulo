@@ -18,11 +18,14 @@ package org.apache.accumulo.server.util;
 
 import java.security.SecureRandom;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.Random;
 
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
@@ -91,11 +94,13 @@ public class RandomWriter {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.setPrincipal("root");
+    opts.principal = "root";
     try (TraceScope clientSpan = opts.parseArgsAndTrace(RandomWriter.class.getName(), args)) {
       long start = System.currentTimeMillis();
-      log.info("starting at {} for user {}", start, opts.getPrincipal());
-      try (AccumuloClient accumuloClient = opts.createClient();
+      Properties clientProps = opts.getClientProps();
+      String principal = ClientProperty.AUTH_PRINCIPAL.getValue(clientProps);
+      log.info("starting at {} for user {}", start, principal);
+      try (AccumuloClient accumuloClient = Accumulo.newClient().from(clientProps).build();
           BatchWriter bw = accumuloClient.createBatchWriter(opts.tableName)) {
         log.info("Writing {} mutations...", opts.count);
         bw.addMutations(new RandomMutationGenerator(opts.count));

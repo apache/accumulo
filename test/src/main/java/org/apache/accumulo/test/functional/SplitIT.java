@@ -42,6 +42,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.After;
 import org.junit.Assume;
@@ -124,17 +125,9 @@ public class SplitIT extends AccumuloClusterHarness {
       c.tableOperations().setProperty(table, Property.TABLE_SPLIT_THRESHOLD.getKey(), "256K");
       c.tableOperations().setProperty(table, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(),
           "1K");
-      TestIngest.Opts opts = new TestIngest.Opts();
-      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-      opts.rows = 100000;
-      opts.setTableName(table);
-      opts.setClientProperties(getClientProperties());
-
-      TestIngest.ingest(c, opts);
-      vopts.rows = opts.rows;
-      vopts.setTableName(table);
-      vopts.setClientProperties(getClientProperties());
-      VerifyIngest.verifyIngest(c, vopts);
+      VerifyParams params = new VerifyParams(getClientProperties(), table, 100_000);
+      TestIngest.ingest(c, params);
+      VerifyIngest.verifyIngest(c, params);
       while (c.tableOperations().listSplits(table).size() < 10) {
         sleepUninterruptibly(15, TimeUnit.SECONDS);
       }

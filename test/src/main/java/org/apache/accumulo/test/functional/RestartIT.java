@@ -42,7 +42,9 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
+import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.After;
@@ -66,12 +68,6 @@ public class RestartIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  private static final VerifyIngest.Opts VOPTS = new VerifyIngest.Opts();
-  private static final TestIngest.Opts OPTS = new TestIngest.Opts();
-  static {
-    OPTS.rows = VOPTS.rows = 10 * 1000;
   }
 
   private ExecutorService svc;
@@ -102,13 +98,13 @@ public class RestartIT extends AccumuloClusterHarness {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       final ClusterControl control = getCluster().getClusterControl();
-      VOPTS.setTableName(tableName);
-      VOPTS.setClientProperties(getClientProperties());
+
+      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000);
 
       Future<Integer> ret = svc.submit(() -> {
         try {
           return control.exec(TestIngest.class, new String[] {"-c", cluster.getClientPropsPath(),
-              "--rows", "" + OPTS.rows, "--table", tableName});
+              "--rows", "" + params.rows, "--table", tableName});
         } catch (IOException e) {
           log.error("Error running TestIngest", e);
           return -1;
@@ -118,7 +114,7 @@ public class RestartIT extends AccumuloClusterHarness {
       control.stopAllServers(ServerType.MASTER);
       control.startAllServers(ServerType.MASTER);
       assertEquals(0, ret.get().intValue());
-      VerifyIngest.verifyIngest(c, VOPTS);
+      VerifyIngest.verifyIngest(c, params);
     }
   }
 
@@ -127,11 +123,8 @@ public class RestartIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      OPTS.setTableName(tableName);
-      VOPTS.setTableName(tableName);
-      OPTS.setClientProperties(getClientProperties());
-      VOPTS.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, OPTS);
+      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000);
+      TestIngest.ingest(c, params);
       ClusterControl control = getCluster().getClusterControl();
 
       // TODO implement a kill all too?
@@ -169,7 +162,7 @@ public class RestartIT extends AccumuloClusterHarness {
         }
       } while (masterLockData != null);
       cluster.start();
-      VerifyIngest.verifyIngest(c, VOPTS);
+      VerifyIngest.verifyIngest(c, params);
     }
   }
 
@@ -181,13 +174,12 @@ public class RestartIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
 
-      VOPTS.setTableName(tableName);
-      VOPTS.setClientProperties(getClientProperties());
+      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000);
 
       Future<Integer> ret = svc.submit(() -> {
         try {
           return control.exec(TestIngest.class, new String[] {"-c", cluster.getClientPropsPath(),
-              "--rows", "" + VOPTS.rows, "--table", tableName});
+              "--rows", "" + params.rows, "--table", tableName});
         } catch (Exception e) {
           log.error("Error running TestIngest", e);
           return -1;
@@ -211,7 +203,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
       cluster.start();
       assertEquals(0, ret.get().intValue());
-      VerifyIngest.verifyIngest(c, VOPTS);
+      VerifyIngest.verifyIngest(c, params);
     }
   }
 
@@ -220,15 +212,12 @@ public class RestartIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      OPTS.setTableName(tableName);
-      VOPTS.setTableName(tableName);
-      OPTS.setClientProperties(getClientProperties());
-      VOPTS.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, OPTS);
-      VerifyIngest.verifyIngest(c, VOPTS);
+      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000);
+      TestIngest.ingest(c, params);
+      VerifyIngest.verifyIngest(c, params);
       cluster.getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       cluster.start();
-      VerifyIngest.verifyIngest(c, VOPTS);
+      VerifyIngest.verifyIngest(c, params);
     }
   }
 
@@ -253,9 +242,8 @@ public class RestartIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      OPTS.setTableName(tableName);
-      OPTS.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, OPTS);
+      IngestParams params = new IngestParams(getClientProperties(), tableName, 10_000);
+      TestIngest.ingest(c, params);
       try {
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
         getCluster().getClusterControl().adminStopAll();
@@ -269,9 +257,7 @@ public class RestartIT extends AccumuloClusterHarness {
   public void shutdownDuringCompactingSplitting() throws Exception {
     try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
-      VOPTS.setTableName(tableName);
-      OPTS.setClientProperties(getClientProperties());
-      VOPTS.setClientProperties(getClientProperties());
+      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000);
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
       String splitThreshold = null;
@@ -285,12 +271,9 @@ public class RestartIT extends AccumuloClusterHarness {
       try {
         c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
             "20K");
-        TestIngest.Opts opts = new TestIngest.Opts();
-        opts.setTableName(tableName);
-        opts.setClientProperties(getClientProperties());
-        TestIngest.ingest(c, opts);
+        TestIngest.ingest(c, params);
         c.tableOperations().flush(tableName, null, null, false);
-        VerifyIngest.verifyIngest(c, VOPTS);
+        VerifyIngest.verifyIngest(c, params);
         getCluster().stop();
       } finally {
         if (getClusterType() == ClusterType.STANDALONE) {

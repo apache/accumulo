@@ -174,10 +174,9 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
 
         if (seconds <= 10) {
           assertEquals(0, ingest.waitFor());
-          VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-          vopts.rows = rows;
-          vopts.setClientProperties(getClientProperties());
-          VerifyIngest.verifyIngest(c, vopts);
+          VerifyIngest.VerifyParams params = new VerifyIngest.VerifyParams(getClientProperties());
+          params.rows = rows;
+          VerifyIngest.verifyIngest(c, params);
         } else {
           sleepUninterruptibly(5, TimeUnit.SECONDS);
           tserver.waitFor();

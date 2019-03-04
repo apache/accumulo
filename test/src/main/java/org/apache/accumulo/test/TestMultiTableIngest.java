@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -75,18 +76,18 @@ public class TestMultiTableIngest {
     Opts opts = new Opts();
     opts.parseArgs(TestMultiTableIngest.class.getName(), args);
     // create the test table within accumulo
-    try (AccumuloClient accumuloClient = opts.createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
       for (int i = 0; i < opts.tables; i++) {
         tableNames.add(String.format(opts.prefix + "%04d", i));
       }
 
       if (!opts.readonly) {
         for (String table : tableNames)
-          accumuloClient.tableOperations().create(table);
+          client.tableOperations().create(table);
 
         MultiTableBatchWriter b;
         try {
-          b = accumuloClient.createMultiTableBatchWriter();
+          b = client.createMultiTableBatchWriter();
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
@@ -105,7 +106,7 @@ public class TestMultiTableIngest {
         }
       }
       try {
-        readBack(opts, accumuloClient, tableNames);
+        readBack(opts, client, tableNames);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

@@ -21,11 +21,13 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -56,6 +58,13 @@ public class Merge {
     log.info(String.format(format, args));
   }
 
+  public static class MemoryConverter implements IStringConverter<Long> {
+    @Override
+    public Long convert(String value) {
+      return ConfigurationTypeHelper.getFixedMemoryAsBytes(value);
+    }
+  }
+
   static class TextConverter implements IStringConverter<Text> {
     @Override
     public Text convert(String value) {
@@ -84,7 +93,7 @@ public class Merge {
     Opts opts = new Opts();
     try (TraceScope clientTrace = opts.parseArgsAndTrace(Merge.class.getName(), args)) {
 
-      try (AccumuloClient client = opts.createClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
 
         if (!client.tableOperations().exists(opts.tableName)) {
           System.err.println("table " + opts.tableName + " does not exist");

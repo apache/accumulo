@@ -26,7 +26,9 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
+import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.junit.Test;
 
 public class WriteLotsIT extends AccumuloClusterHarness {
@@ -53,12 +55,9 @@ public class WriteLotsIT extends AccumuloClusterHarness {
         final int index = i;
         Runnable r = () -> {
           try {
-            TestIngest.Opts opts = new TestIngest.Opts();
-            opts.startRow = index * 10000;
-            opts.rows = 10000;
-            opts.setTableName(tableName);
-            opts.setClientProperties(getClientProperties());
-            TestIngest.ingest(c, opts);
+            IngestParams ingestParams = new IngestParams(getClientProperties(), tableName, 10_000);
+            ingestParams.startRow = index * 10000;
+            TestIngest.ingest(c, ingestParams);
           } catch (Exception ex) {
             ref.set(ex);
           }
@@ -70,12 +69,8 @@ public class WriteLotsIT extends AccumuloClusterHarness {
       if (ref.get() != null) {
         throw ref.get();
       }
-      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-      vopts.rows = 10000 * THREADS;
-      vopts.setTableName(tableName);
-      vopts.setClientProperties(getClientProperties());
-      VerifyIngest.verifyIngest(c, vopts);
+      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000 * THREADS);
+      VerifyIngest.verifyIngest(c, params);
     }
   }
-
 }

@@ -26,6 +26,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -76,8 +77,8 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
     }
   }
 
-  static final int ROWS = 100000;
-  static final int SPLITS = 99;
+  private static final int ROWS = 100000;
+  private static final int SPLITS = 99;
 
   @Test
   public void testBulkSplitOptimization() throws Exception {
@@ -108,21 +109,16 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
       }
 
       FunctionalTestUtils.checkSplits(c, tableName, 50, 100);
-      VerifyIngest.Opts opts = new VerifyIngest.Opts();
-      opts.timestamp = 1;
-      opts.dataSize = 50;
-      opts.random = 56;
-      opts.rows = 100000;
-      opts.startRow = 0;
-      opts.cols = 1;
-      opts.setTableName(tableName);
-
-      opts.setClientProperties(getClientProperties());
-      VerifyIngest.verifyIngest(c, opts);
+      VerifyParams params = new VerifyParams(getClientProperties(), tableName, ROWS);
+      params.timestamp = 1;
+      params.dataSize = 50;
+      params.random = 56;
+      params.startRow = 0;
+      params.cols = 1;
+      VerifyIngest.verifyIngest(c, params);
 
       // ensure each tablet does not have all map files, should be ~2.5 files per tablet
       FunctionalTestUtils.checkRFiles(c, tableName, 50, 100, 1, 4);
     }
   }
-
 }

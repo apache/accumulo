@@ -25,9 +25,9 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
-import org.apache.accumulo.test.TestIngest.Opts;
+import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
@@ -72,40 +72,32 @@ public class BulkIT extends AccumuloClusterHarness {
     fs.mkdirs(bulkFailures);
     fs.mkdirs(files);
 
-    Opts opts = new Opts();
-    opts.timestamp = 1;
-    opts.random = 56;
-    opts.rows = N;
-    opts.cols = 1;
-    opts.setTableName(tableName);
-    opts.setClientProperties(info.getProperties());
-    opts.conf = new Configuration(false);
-    opts.fs = fs;
+    IngestParams params = new IngestParams(info.getProperties(), tableName, N);
+    params.timestamp = 1;
+    params.random = 56;
+    params.cols = 1;
     String fileFormat = filePrefix + "rf%02d";
     for (int i = 0; i < COUNT; i++) {
-      opts.outputFile = new Path(files, String.format(fileFormat, i)).toString();
-      opts.startRow = N * i;
-      TestIngest.ingest(c, fs, opts);
+      params.outputFile = new Path(files, String.format(fileFormat, i)).toString();
+      params.startRow = N * i;
+      TestIngest.ingest(c, fs, params);
     }
-    opts.outputFile = new Path(files, String.format(fileFormat, N)).toString();
-    opts.startRow = N;
-    opts.rows = 1;
+    params.outputFile = new Path(files, String.format(fileFormat, N)).toString();
+    params.startRow = N;
+    params.rows = 1;
     // create an rfile with one entry, there was a bug with this:
-    TestIngest.ingest(c, fs, opts);
+    TestIngest.ingest(c, fs, params);
 
     bulkLoad(c, tableName, bulkFailures, files, useOld);
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    vopts.setTableName(tableName);
-    vopts.random = 56;
-    vopts.setClientProperties(info.getProperties());
+    VerifyParams verifyParams = new VerifyParams(info.getProperties(), tableName, N);
+    verifyParams.random = 56;
     for (int i = 0; i < COUNT; i++) {
-      vopts.startRow = i * N;
-      vopts.rows = N;
-      VerifyIngest.verifyIngest(c, vopts);
+      verifyParams.startRow = i * N;
+      VerifyIngest.verifyIngest(c, verifyParams);
     }
-    vopts.startRow = N;
-    vopts.rows = 1;
-    VerifyIngest.verifyIngest(c, vopts);
+    verifyParams.startRow = N;
+    verifyParams.rows = 1;
+    VerifyIngest.verifyIngest(c, verifyParams);
   }
 
   @SuppressWarnings("deprecation")

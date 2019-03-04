@@ -126,17 +126,17 @@ public class FunctionalTestUtils {
     ExecutorService threadPool = Executors.newFixedThreadPool(threads);
     final AtomicBoolean fail = new AtomicBoolean(false);
     for (int i = 0; i < rows; i += rows / splits) {
-      final TestIngest.Opts opts = new TestIngest.Opts();
-      opts.outputFile = String.format("%s/mf%s", path, i);
-      opts.random = 56;
-      opts.timestamp = 1;
-      opts.dataSize = 50;
-      opts.rows = rows / splits;
-      opts.startRow = i;
-      opts.cols = 1;
+      TestIngest.IngestParams params = new TestIngest.IngestParams(c.properties());
+      params.outputFile = String.format("%s/mf%s", path, i);
+      params.random = 56;
+      params.timestamp = 1;
+      params.dataSize = 50;
+      params.rows = rows / splits;
+      params.startRow = i;
+      params.cols = 1;
       threadPool.execute(() -> {
         try {
-          TestIngest.ingest(c, fs, opts);
+          TestIngest.ingest(c, fs, params);
         } catch (Exception e) {
           fail.set(true);
         }

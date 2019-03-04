@@ -16,16 +16,16 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
+import java.util.Properties;
+
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,17 +33,15 @@ import org.slf4j.LoggerFactory;
 /**
  * Adds some MR awareness to the ClientOpts
  */
-public abstract class MapReduceClientOpts extends ClientOpts {
+public class MapReduceClientOpts extends ClientOpts {
+
   private static final Logger log = LoggerFactory.getLogger(MapReduceClientOpts.class);
 
-  public abstract void setAccumuloConfigs(Job job)
-      throws AccumuloException, AccumuloSecurityException;
-
-  @Override
-  public AuthenticationToken getToken() {
-    AuthenticationToken authToken = super.getToken();
+  public Properties getClientProps() {
+    Properties props = super.getClientProps();
     // For MapReduce, Kerberos credentials don't make it to the Mappers and Reducers,
     // so we need to request a delegation token and use that instead.
+    AuthenticationToken authToken = ClientProperty.getAuthenticationToken(props);
     if (authToken instanceof KerberosToken) {
       log.info("Received KerberosToken, fetching DelegationToken for MapReduce");
       final KerberosToken krbToken = (KerberosToken) authToken;
@@ -57,9 +55,8 @@ public abstract class MapReduceClientOpts extends ClientOpts {
         String newPrincipal = user.getUserName();
         log.info("Obtaining delegation token for {}", newPrincipal);
 
-        setPrincipal(newPrincipal);
-        try (AccumuloClient client = Accumulo.newClient().from(getClientProperties())
-            .as(newPrincipal, krbToken).build()) {
+        try (AccumuloClient client = Accumulo.newClient().from(props).as(newPrincipal, krbToken)
+            .build()) {
 
           // Do the explicit check to see if the user has the permission to get a delegation token
           if (!client.securityOperations().hasSystemPermission(client.whoami(),
@@ -75,7 +72,11 @@ public abstract class MapReduceClientOpts extends ClientOpts {
           }
 
           // Get the delegation token from Accumulo
-          return client.securityOperations().getDelegationToken(new DelegationTokenConfig());
+          AuthenticationToken token = client.securityOperations()
+              .getDelegationToken(new DelegationTokenConfig());
+
+          props.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), newPrincipal);
+          ClientProperty.setAuthenticationToken(props, token);
         }
       } catch (Exception e) {
         final String msg = "Failed to acquire DelegationToken for use with MapReduce";
@@ -83,6 +84,6 @@ public abstract class MapReduceClientOpts extends ClientOpts {
         throw new RuntimeException(msg, e);
       }
     }
-    return authToken;
+    return props;
   }
 }

@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -82,7 +83,7 @@ public class TraceTableStats {
     double maxSpanLength = 0;
     double maxSpanLengthMS = 0;
 
-    try (AccumuloClient client = opts.createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
       Scanner scanner = client.createScanner(opts.tableName, Authorizations.EMPTY);
       scanner.setRange(new Range(null, true, "idx:", false));
       for (Entry<Key,Value> entry : scanner) {

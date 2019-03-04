@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -81,7 +82,7 @@ public class TestRandomDeletes {
 
   private static TreeSet<RowColumn> scanAll(TestOpts opts) throws Exception {
     TreeSet<RowColumn> result = new TreeSet<>();
-    try (AccumuloClient client = opts.createClient();
+    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build();
         Scanner scanner = client.createScanner(opts.tableName, auths)) {
       for (Entry<Key,Value> entry : scanner) {
         Key key = entry.getKey();
@@ -100,8 +101,8 @@ public class TestRandomDeletes {
     ArrayList<RowColumn> entries = new ArrayList<>(rows);
     java.util.Collections.shuffle(entries);
 
-    try (AccumuloClient accumuloClient = opts.createClient();
-        BatchWriter bw = accumuloClient.createBatchWriter(opts.tableName)) {
+    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build();
+        BatchWriter bw = client.createBatchWriter(opts.tableName)) {
 
       for (int i = 0; i < (entries.size() + 1) / 2; i++) {
         RowColumn rc = entries.get(i);

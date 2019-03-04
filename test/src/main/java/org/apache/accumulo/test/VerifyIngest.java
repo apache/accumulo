@@ -22,11 +22,13 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -57,9 +59,31 @@ public class VerifyIngest {
     return Integer.parseInt(k.getColumnQualifier().toString().split("_")[1]);
   }
 
+  public static class VerifyParams extends TestIngest.IngestParams {
+    public boolean useGet = false;
+
+    public VerifyParams(Properties props) {
+      super(props);
+    }
+
+    public VerifyParams(Properties props, String table) {
+      super(props, table);
+    }
+
+    public VerifyParams(Properties props, String table, int rows) {
+      super(props, table, rows);
+    }
+  }
+
   public static class Opts extends TestIngest.Opts {
     @Parameter(names = "-useGet", description = "fetches values one at a time, instead of scanning")
     public boolean useGet = false;
+
+    public VerifyParams getVerifyParams() {
+      VerifyParams params = new VerifyParams(getClientProps(), tableName);
+      params.useGet = useGet;
+      return params;
+    }
   }
 
   public static void main(String[] args) throws Exception {
@@ -74,8 +98,8 @@ public class VerifyIngest {
       if (span != null)
         span.addKVAnnotation("cmdLine", Arrays.asList(args).toString());
 
-      try (AccumuloClient client = opts.createClient()) {
-        verifyIngest(client, opts);
+      try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
+        verifyIngest(client, opts.getVerifyParams());
       }
 
     } finally {
@@ -85,32 +109,33 @@ public class VerifyIngest {
 
   @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
       justification = "predictable random is okay for testing")
-  public static void verifyIngest(AccumuloClient accumuloClient, Opts opts)
+  public static void verifyIngest(AccumuloClient accumuloClient, VerifyParams params)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    byte[][] bytevals = TestIngest.generateValues(opts.dataSize);
+    byte[][] bytevals = TestIngest.generateValues(params.dataSize);
 
     Authorizations labelAuths = new Authorizations("L1", "L2", "G1", "GROUP2");
-    accumuloClient.securityOperations().changeUserAuthorizations(opts.getPrincipal(), labelAuths);
+    String principal = ClientProperty.AUTH_PRINCIPAL.getValue(params.clientProps);
+    accumuloClient.securityOperations().changeUserAuthorizations(principal, labelAuths);
 
-    int expectedRow = opts.startRow;
+    int expectedRow = params.startRow;
     int expectedCol = 0;
     int recsRead = 0;
 
     long bytesRead = 0;
     long t1 = System.currentTimeMillis();
 
-    byte[] randomValue = new byte[opts.dataSize];
+    byte[] randomValue = new byte[params.dataSize];
     Random random = new Random();
 
-    Key endKey = new Key(new Text("row_" + String.format("%010d", opts.rows + opts.startRow)));
+    Key endKey = new Key(new Text("row_" + String.format("%010d", params.rows + params.startRow)));
 
     int errors = 0;
 
-    while (expectedRow < (opts.rows + opts.startRow)) {
+    while (expectedRow < (params.rows + params.startRow)) {
 
-      if (opts.useGet) {
-        Text rowKey = new Text("row_" + String.format("%010d", expectedRow + opts.startRow));
-        Text colf = new Text(opts.columnFamily);
+      if (params.useGet) {
+        Text rowKey = new Text("row_" + String.format("%010d", expectedRow + params.startRow));
+        Text colf = new Text(params.columnFamily);
         Text colq = new Text("col_" + String.format("%07d", expectedCol));
 
         try (Scanner scanner = accumuloClient.createScanner("test_ingest", labelAuths)) {
@@ -128,8 +153,8 @@ public class VerifyIngest {
           }
 
           byte[] ev;
-          if (opts.random != null) {
-            ev = TestIngest.genRandomValue(random, randomValue, opts.random, expectedRow,
+          if (params.random != null) {
+            ev = TestIngest.genRandomValue(random, randomValue, params.random, expectedRow,
                 expectedCol);
           } else {
             ev = bytevals[expectedCol % bytevals.length];
@@ -150,7 +175,7 @@ public class VerifyIngest {
           }
 
           expectedCol++;
-          if (expectedCol >= opts.cols) {
+          if (expectedCol >= params.cols) {
             expectedCol = 0;
             expectedRow++;
           }
@@ -159,10 +184,10 @@ public class VerifyIngest {
 
         Key startKey = new Key(new Text("row_" + String.format("%010d", expectedRow)));
 
-        try (Scanner scanner = accumuloClient.createScanner(opts.tableName, labelAuths)) {
+        try (Scanner scanner = accumuloClient.createScanner(params.tableName, labelAuths)) {
           scanner.setRange(new Range(startKey, endKey));
-          for (int j = 0; j < opts.cols; j++) {
-            scanner.fetchColumn(new Text(opts.columnFamily),
+          for (int j = 0; j < params.cols; j++) {
+            scanner.fetchColumn(new Text(params.columnFamily),
                 new Text("col_" + String.format("%07d", j)));
           }
 
@@ -190,18 +215,18 @@ public class VerifyIngest {
               errors++;
             }
 
-            if (expectedRow >= (opts.rows + opts.startRow)) {
+            if (expectedRow >= (params.rows + params.startRow)) {
               log.error(
                   "expectedRow ({}) >= (ingestArgs.rows + ingestArgs.startRow)  ({}), get"
                       + " batch returned data passed end key",
-                  expectedRow, (opts.rows + opts.startRow));
+                  expectedRow, (params.rows + params.startRow));
               errors++;
               break;
             }
 
             byte[] value;
-            if (opts.random != null) {
-              value = TestIngest.genRandomValue(random, randomValue, opts.random, expectedRow,
+            if (params.random != null) {
+              value = TestIngest.genRandomValue(random, randomValue, params.random, expectedRow,
                   colNum);
             } else {
               value = bytevals[colNum % bytevals.length];
@@ -214,14 +239,14 @@ public class VerifyIngest {
               errors++;
             }
 
-            if (opts.timestamp >= 0 && entry.getKey().getTimestamp() != opts.timestamp) {
+            if (params.timestamp >= 0 && entry.getKey().getTimestamp() != params.timestamp) {
               log.error("unexpected timestamp {}, rowNum : {} colNum : {}",
                   entry.getKey().getTimestamp(), rowNum, colNum);
               errors++;
             }
 
             expectedCol++;
-            if (expectedCol >= opts.cols) {
+            if (expectedCol >= params.cols) {
               expectedCol = 0;
               expectedRow++;
             }
@@ -242,9 +267,9 @@ public class VerifyIngest {
       throw new AccumuloException("saw " + errors + " errors ");
     }
 
-    if (expectedRow != (opts.rows + opts.startRow)) {
+    if (expectedRow != (params.rows + params.startRow)) {
       throw new AccumuloException("Did not read expected number of rows. Saw "
-          + (expectedRow - opts.startRow) + " expected " + opts.rows);
+          + (expectedRow - params.startRow) + " expected " + params.rows);
     } else {
       System.out.printf(
           "%,12d records read | %,8d records/sec | %,12d bytes read |"

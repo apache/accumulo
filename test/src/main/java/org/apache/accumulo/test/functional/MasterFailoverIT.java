@@ -27,6 +27,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
@@ -50,10 +51,8 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       String[] names = getUniqueNames(2);
       c.tableOperations().create(names[0]);
-      TestIngest.Opts opts = new TestIngest.Opts();
-      opts.setTableName(names[0]);
-      opts.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, opts);
+      VerifyParams params = new VerifyParams(getClientProperties(), names[0]);
+      TestIngest.ingest(c, params);
 
       ClusterControl control = cluster.getClusterControl();
       control.stopAllServers(ServerType.MASTER);
@@ -61,10 +60,8 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
       control.startAllServers(ServerType.MASTER);
       // talk to it
       c.tableOperations().rename(names[0], names[1]);
-      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-      vopts.setTableName(names[1]);
-      vopts.setClientProperties(getClientProperties());
-      VerifyIngest.verifyIngest(c, vopts);
+      params.tableName = names[1];
+      VerifyIngest.verifyIngest(c, params);
     }
   }
 }

@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.clientImpl.ClientConfConverter;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -84,15 +85,14 @@ public class RowHash extends Configured implements Tool {
 
     public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
       org.apache.accumulo.core.client.ClientConfiguration clientConf = ClientConfConverter
-          .toClientConf(this.getClientProperties());
+          .toClientConf(this.getClientProps());
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setZooKeeperInstance(job,
           clientConf);
 
       org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setZooKeeperInstance(job,
           clientConf);
 
-      final String principal = getPrincipal();
-      getTableName();
+      final String principal = ClientProperty.AUTH_PRINCIPAL.getValue(this.getClientProps());
 
       AuthenticationToken token = getToken();
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setConnectorInfo(job, principal,
@@ -126,8 +126,7 @@ public class RowHash extends Configured implements Tool {
           String newPrincipal = user.getUserName();
           log.info("Obtaining delegation token for {}", newPrincipal);
 
-          setPrincipal(newPrincipal);
-          AccumuloClient client = Accumulo.newClient().from(getClientProperties())
+          AccumuloClient client = Accumulo.newClient().from(getClientProps())
               .as(newPrincipal, krbToken).build();
 
           // Do the explicit check to see if the user has the permission to get a delegation token

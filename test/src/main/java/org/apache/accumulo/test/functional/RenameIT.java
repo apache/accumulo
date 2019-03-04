@@ -21,6 +21,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.junit.Test;
 
 public class RenameIT extends AccumuloClusterHarness {
@@ -35,26 +36,20 @@ public class RenameIT extends AccumuloClusterHarness {
     String[] tableNames = getUniqueNames(2);
     String name1 = tableNames[0];
     String name2 = tableNames[1];
-    TestIngest.Opts opts = new TestIngest.Opts();
-    opts.createTable = true;
-    opts.setTableName(name1);
-    opts.setClientProperties(cluster.getClientProperties());
+    VerifyParams params = new VerifyParams(cluster.getClientProperties(), name1);
+    params.createTable = true;
 
     try (AccumuloClient c = createAccumuloClient()) {
-      TestIngest.ingest(c, opts);
+      TestIngest.ingest(c, params);
       c.tableOperations().rename(name1, name2);
-      TestIngest.ingest(c, opts);
-      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-      vopts.setClientProperties(cluster.getClientProperties());
-      vopts.setTableName(name2);
-      VerifyIngest.verifyIngest(c, vopts);
+      TestIngest.ingest(c, params);
+      params.tableName = name2;
+      VerifyIngest.verifyIngest(c, params);
       c.tableOperations().delete(name1);
       c.tableOperations().rename(name2, name1);
-      vopts.setTableName(name1);
-      VerifyIngest.verifyIngest(c, vopts);
-
+      params.tableName = name1;
+      VerifyIngest.verifyIngest(c, params);
       FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
     }
   }
-
 }

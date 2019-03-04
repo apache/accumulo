@@ -35,6 +35,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -66,15 +67,10 @@ public class TableIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       to.create(tableName);
 
-      TestIngest.Opts opts = new TestIngest.Opts();
-      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-      opts.setClientProperties(getClientProperties());
-      vopts.setClientProperties(getClientProperties());
-      opts.setTableName(tableName);
-      TestIngest.ingest(c, opts);
+      VerifyParams params = new VerifyParams(getClientProperties(), tableName);
+      TestIngest.ingest(c, params);
       to.flush(tableName, null, null, true);
-      vopts.setTableName(tableName);
-      VerifyIngest.verifyIngest(c, vopts);
+      VerifyIngest.verifyIngest(c, params);
       TableId id = TableId.of(to.tableIdMap().get(tableName));
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         s.setRange(new KeyExtent(id, null, null).toMetadataRange());
@@ -93,8 +89,8 @@ public class TableIT extends AccumuloClusterHarness {
         }
         assertNull(to.tableIdMap().get(tableName));
         to.create(tableName);
-        TestIngest.ingest(c, opts);
-        VerifyIngest.verifyIngest(c, vopts);
+        TestIngest.ingest(c, params);
+        VerifyIngest.verifyIngest(c, params);
         to.delete(tableName);
       }
     }

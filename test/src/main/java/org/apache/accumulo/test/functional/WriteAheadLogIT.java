@@ -23,6 +23,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.Test;
@@ -59,18 +60,11 @@ public class WriteAheadLogIT extends AccumuloClusterHarness {
   public static void testWAL(AccumuloClient c, String tableName) throws Exception {
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "750K");
-    TestIngest.Opts opts = new TestIngest.Opts();
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    opts.setTableName(tableName);
-    opts.setClientProperties(getClientProperties());
-    vopts.setClientProperties(getClientProperties());
-
-    TestIngest.ingest(c, opts);
-    vopts.setTableName(tableName);
-    VerifyIngest.verifyIngest(c, vopts);
+    VerifyParams params = new VerifyParams(getClientProperties(), tableName);
+    TestIngest.ingest(c, params);
+    VerifyIngest.verifyIngest(c, params);
     getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
     getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-    VerifyIngest.verifyIngest(c, vopts);
+    VerifyIngest.verifyIngest(c, params);
   }
-
 }

@@ -29,6 +29,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.master.balancer.ChaoticLoadBalancer;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
@@ -58,19 +59,13 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
       ntc.setProperties(Stream
           .of(new Pair<>(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K"),
               new Pair<>(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K"))
-          .collect(Collectors.toMap(k -> k.getFirst(), v -> v.getSecond())));
+          .collect(Collectors.toMap(Pair::getFirst, Pair::getSecond)));
       c.tableOperations().create(tableName, ntc);
 
-      TestIngest.Opts opts = new TestIngest.Opts();
-      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-      vopts.rows = opts.rows = 20000;
-      opts.setTableName(tableName);
-      vopts.setTableName(tableName);
-      opts.setClientProperties(getClientProperties());
-      vopts.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, opts);
+      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 20_000);
+      TestIngest.ingest(c, params);
       c.tableOperations().flush(tableName, null, null, true);
-      VerifyIngest.verifyIngest(c, vopts);
+      VerifyIngest.verifyIngest(c, params);
     }
   }
 }

@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
+import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -46,15 +47,12 @@ public class FateStarvationIT extends AccumuloClusterHarness {
 
       c.tableOperations().addSplits(tableName, TestIngest.getSplitPoints(0, 100000, 50));
 
-      TestIngest.Opts opts = new TestIngest.Opts();
-      opts.random = 89;
-      opts.timestamp = 7;
-      opts.dataSize = 50;
-      opts.rows = 100000;
-      opts.cols = 1;
-      opts.setTableName(tableName);
-      opts.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, opts);
+      IngestParams params = new IngestParams(getClientProperties(), tableName, 100_000);
+      params.random = 89;
+      params.timestamp = 7;
+      params.dataSize = 50;
+      params.cols = 1;
+      TestIngest.ingest(c, params);
 
       c.tableOperations().flush(tableName, null, null, true);
 

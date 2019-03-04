@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -77,7 +78,7 @@ public class TraceDump {
     PrintStream out = System.out;
     long endTime = System.currentTimeMillis();
     long startTime = endTime - opts.length;
-    try (AccumuloClient client = opts.createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
       Scanner scanner = client.createScanner(opts.tableName, opts.auths);
       Range range = new Range(new Text("start:" + Long.toHexString(startTime)),
           new Text("start:" + Long.toHexString(endTime)));
@@ -100,7 +101,7 @@ public class TraceDump {
   private static int dumpTrace(Opts opts) throws Exception {
     final PrintStream out = System.out;
     int count = 0;
-    try (AccumuloClient client = opts.createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
       for (String traceId : opts.traceIds) {
         Scanner scanner = client.createScanner(opts.tableName, opts.auths);
         Range range = new Range(new Text(traceId));

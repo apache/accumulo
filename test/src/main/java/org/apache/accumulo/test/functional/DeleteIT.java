@@ -24,6 +24,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.junit.Test;
 
 public class DeleteIT extends AccumuloClusterHarness {
@@ -44,23 +45,14 @@ public class DeleteIT extends AccumuloClusterHarness {
 
   public static void deleteTest(AccumuloClient c, AccumuloCluster cluster, String tableName)
       throws Exception {
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    TestIngest.Opts opts = new TestIngest.Opts();
-    vopts.setTableName(tableName);
-    opts.setTableName(tableName);
-    vopts.rows = opts.rows = 1000;
-    vopts.cols = opts.cols = 1;
-    vopts.random = opts.random = 56;
-
-    opts.setClientProperties(getClientProperties());
-    vopts.setClientProperties(getClientProperties());
-
-    TestIngest.ingest(c, opts);
+    VerifyParams params = new VerifyParams(getClientProperties(), tableName, 1000);
+    params.cols = 1;
+    params.random = 56;
+    TestIngest.ingest(c, params);
 
     assertEquals(0, cluster.getClusterControl().exec(TestRandomDeletes.class,
         new String[] {"-c", cluster.getClientPropsPath(), "--table", tableName}));
-    TestIngest.ingest(c, opts);
-    VerifyIngest.verifyIngest(c, vopts);
+    TestIngest.ingest(c, params);
+    VerifyIngest.verifyIngest(c, params);
   }
-
 }
