@@ -97,7 +97,7 @@ public class AgeOffFilter extends Filter {
       return false;
     try {
       Long.parseLong(options.get(TTL));
-    } catch (Exception e) {
+    } catch (NumberFormatException e) {
       throw new IllegalArgumentException("bad long " + TTL + ":" + options.get(TTL));
     }
     return true;

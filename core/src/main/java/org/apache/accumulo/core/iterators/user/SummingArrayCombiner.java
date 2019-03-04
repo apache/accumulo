@@ -141,7 +141,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       return false;
     try {
       setEncoder(options);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       throw new IllegalArgumentException("bad encoder option", e);
     }
     return true;

@@ -85,7 +85,7 @@ public class ZooStore<T> implements TStore<T> {
       ByteArrayInputStream bais = new ByteArrayInputStream(ser);
       ObjectInputStream ois = new ObjectInputStream(bais);
       return ois.readObject();
-    } catch (Exception e) {
+    } catch (ClassNotFoundException | IOException e) {
       throw new RuntimeException(e);
     }
   }
@@ -120,7 +120,7 @@ public class ZooStore<T> implements TStore<T> {
         return tid;
       } catch (NodeExistsException nee) {
         // exist, so just try another random #
-      } catch (Exception e) {
+      } catch (KeeperException | InterruptedException e) {
         throw new RuntimeException(e);
       }
     }
@@ -180,7 +180,7 @@ public class ZooStore<T> implements TStore<T> {
           } catch (NoNodeException nne) {
             // node deleted after we got the list of children, its ok
             unreserve(tid);
-          } catch (Exception e) {
+          } catch (KeeperException | InterruptedException | IllegalArgumentException e) {
             unreserve(tid);
             throw e;
           }
@@ -198,7 +198,7 @@ public class ZooStore<T> implements TStore<T> {
           }
         }
       }
-    } catch (Exception e) {
+    } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
   }
@@ -289,7 +289,7 @@ public class ZooStore<T> implements TStore<T> {
         log.debug("zookeeper error reading " + txpath + ": " + ex, ex);
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         continue;
-      } catch (Exception e) {
+      } catch (KeeperException | InterruptedException | RuntimeException e) {
         throw new RuntimeException(e);
       }
     }
@@ -327,7 +327,7 @@ public class ZooStore<T> implements TStore<T> {
       zk.putPersistentSequential(txpath + "/repo_", serialize(repo));
     } catch (StackOverflowException soe) {
       throw soe;
-    } catch (Exception e) {
+    } catch (KeeperException | InterruptedException | NumberFormatException e) {
       throw new RuntimeException(e);
     }
   }
@@ -342,7 +342,7 @@ public class ZooStore<T> implements TStore<T> {
       if (top == null)
         throw new IllegalStateException("Tried to pop when empty " + tid);
       zk.recursiveDelete(txpath + "/" + top, NodeMissingPolicy.SKIP);
-    } catch (Exception e) {
+    } catch (KeeperException | InterruptedException | IllegalStateException e) {
       throw new RuntimeException(e);
     }
   }
@@ -352,7 +352,7 @@ public class ZooStore<T> implements TStore<T> {
       return TStatus.valueOf(new String(zk.getData(getTXPath(tid), null), UTF_8));
     } catch (NoNodeException nne) {
       return TStatus.UNKNOWN;
-    } catch (Exception e) {
+    } catch (KeeperException | InterruptedException | IllegalArgumentException e) {
       throw new RuntimeException(e);
     }
   }
@@ -394,7 +394,7 @@ public class ZooStore<T> implements TStore<T> {
     try {
       zk.putPersistentData(getTXPath(tid), status.name().getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
-    } catch (Exception e) {
+    } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
 
@@ -410,7 +410,7 @@ public class ZooStore<T> implements TStore<T> {
 
     try {
       zk.recursiveDelete(getTXPath(tid), NodeMissingPolicy.SKIP);
-    } catch (Exception e) {
+    } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
   }
@@ -431,7 +431,7 @@ public class ZooStore<T> implements TStore<T> {
         data[1] = ' ';
         zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, data, NodeExistsPolicy.OVERWRITE);
       }
-    } catch (Exception e2) {
+    } catch (KeeperException | InterruptedException e2) {
       throw new RuntimeException(e2);
     }
   }
@@ -454,7 +454,7 @@ public class ZooStore<T> implements TStore<T> {
       }
     } catch (NoNodeException nne) {
       return null;
-    } catch (Exception e) {
+    } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
   }
@@ -468,7 +468,7 @@ public class ZooStore<T> implements TStore<T> {
         l.add(parseTid(txid));
       }
       return l;
-    } catch (Exception e) {
+    } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
   }

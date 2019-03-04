@@ -104,7 +104,7 @@ public class AgeOffStore<T> implements TStore<T> {
         } finally {
           store.unreserve(txid, 0);
         }
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         log.warn("Failed to age off FATE tx " + String.format("%016x", txid), e);
       }
     }

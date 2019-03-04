@@ -150,7 +150,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       lookup(ranges, rr);
     } catch (RuntimeException re) {
       throw re;
-    } catch (Exception e) {
+    } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
       throw new RuntimeException("Failed to create iterator", e);
     }
   }
@@ -386,7 +386,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           fatalException = e;
       } catch (SampleNotPresentException e) {
         fatalException = e;
-      } catch (Throwable t) {
+      } catch (AccumuloServerException t) {
         if (queryThreadPool.isShutdown())
           log.debug("Caught exception, but queryThreadPool is shutdown", t);
         else

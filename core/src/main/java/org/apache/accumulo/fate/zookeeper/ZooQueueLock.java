@@ -61,7 +61,7 @@ public class ZooQueueLock implements QueueLock {
           zoo.putPersistentData(path, new byte[] {}, NodeExistsPolicy.SKIP);
         }
       }
-    } catch (Exception ex) {
+    } catch (KeeperException | InterruptedException | NumberFormatException ex) {
       throw new RuntimeException(ex);
     }
   }
@@ -89,7 +89,7 @@ public class ZooQueueLock implements QueueLock {
           // ignored
         }
       }
-    } catch (Exception ex) {
+    } catch (KeeperException | InterruptedException | NumberFormatException ex) {
       throw new RuntimeException(ex);
     }
     return result;
@@ -105,7 +105,7 @@ public class ZooQueueLock implements QueueLock {
       } catch (NotEmptyException | NoNodeException nee) {
         // the path had other lock nodes, no big deal
       }
-    } catch (Exception ex) {
+    } catch (KeeperException | InterruptedException ex) {
       throw new RuntimeException(ex);
     }
   }

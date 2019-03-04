@@ -157,7 +157,7 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
     int i;
     try {
       i = Integer.parseInt(options.get(MAXVERSIONS_OPT));
-    } catch (Exception e) {
+    } catch (NumberFormatException e) {
       throw new IllegalArgumentException(
           "bad integer " + MAXVERSIONS_OPT + ":" + options.get(MAXVERSIONS_OPT));
     }

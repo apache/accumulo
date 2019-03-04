@@ -19,6 +19,7 @@ package org.apache.accumulo.core.rpc;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -113,7 +114,8 @@ public class SaslConnectionParams {
   static {
     try {
       defaultRealm = KerberosUtil.getDefaultRealm();
-    } catch (Exception ke) {
+    } catch (InvocationTargetException | ClassNotFoundException | NoSuchMethodException
+        | IllegalAccessException ke) {
       log.debug("Kerberos krb5 configuration not found, setting default realm to empty");
       defaultRealm = "UNKNOWN";
     }

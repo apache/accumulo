@@ -384,7 +384,7 @@ public class Gatherer {
         // when all processing is done, check for failed files... and if found starting processing
         // again
         future.thenRun(this::updateFuture);
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         future = CompletableFuture.completedFuture(new ProcessedFiles());
         // force future to have this exception
         future.obtrudeException(e);

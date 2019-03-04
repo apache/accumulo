@@ -41,14 +41,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ConditionalWriter;
-import org.apache.accumulo.core.client.ConditionalWriterConfig;
-import org.apache.accumulo.core.client.Durability;
-import org.apache.accumulo.core.client.TableDeletedException;
-import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -249,7 +242,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
         try {
           client = getClient(sid.location);
           client.closeConditionalUpdate(tinfo, sid.sessionID);
-        } catch (Exception e) {} finally {
+        } catch (TException e) {} finally {
           ThriftUtil.returnClient((TServiceClient) client);
         }
 
@@ -303,7 +296,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
         else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
           throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
-    } catch (Exception e) {
+    } catch (TableOfflineException | AccumuloException | AccumuloSecurityException
+        | TableNotFoundException e) {
       for (QCMutation qcm : mutations)
         qcm.queueResult(new Result(e, qcm, null));
 
@@ -627,7 +621,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     } catch (TException e) {
       locator.invalidateCache(context, location.toString());
       invalidateSession(location, cmidToCm, sessionId);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       queueException(location, cmidToCm, e);
     } finally {
       if (sessionId != null)
@@ -657,7 +651,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
         invalidateSession(sessionId, location);
         for (CMK cmk : cmidToCm.values())
           cmk.cm.queueResult(new Result(Status.UNKNOWN, cmk.cm, location.toString()));
-      } catch (Exception e2) {
+      } catch (AccumuloException e2) {
         queueException(location, cmidToCm, e2);
       }
     }

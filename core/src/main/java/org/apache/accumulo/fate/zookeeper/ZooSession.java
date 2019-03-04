@@ -224,7 +224,7 @@ public class ZooSession {
     for (ZooSessionInfo zsi : sessions.values()) {
       try {
         zsi.zooKeeper.close();
-      } catch (Exception e) {
+      } catch (InterruptedException e) {
         log.debug("Error closing zookeeper during shutdown", e);
       }
     }

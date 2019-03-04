@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -174,7 +175,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       while (iter != null && !iter.hasTop())
         nextTablet();
 
-    } catch (Exception e) {
+    } catch (IOException | RuntimeException | AccumuloException | AccumuloSecurityException
+        | TableNotFoundException e) {
       if (e instanceof RuntimeException)
         throw (RuntimeException) e;
       throw new RuntimeException(e);
@@ -199,7 +201,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
         nextTablet();
 
       return ret;
-    } catch (Exception e) {
+    } catch (AccumuloException | TableNotFoundException | IOException e) {
       throw new RuntimeException(e);
     }
   }

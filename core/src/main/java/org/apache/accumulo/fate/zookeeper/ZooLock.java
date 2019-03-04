@@ -83,7 +83,7 @@ public class ZooLock implements Watcher {
     try {
       zooKeeper.getStatus(path, this);
       watchingParent = true;
-    } catch (Exception ex) {
+    } catch (KeeperException | InterruptedException ex) {
       log.warn("Error getting setting initial watch on ZooLock", ex);
       throw new RuntimeException(ex);
     }
@@ -202,7 +202,7 @@ public class ZooLock implements Watcher {
               } else if (log.isTraceEnabled()) {
                 log.trace("While waiting for another lock {} {} was deleted", lockToWatch, myLock);
               }
-            } catch (Exception e) {
+            } catch (KeeperException | InterruptedException e) {
               if (lock == null) {
                 // have not acquired lock yet
                 lw.failedToAcquireLock(e);
@@ -286,7 +286,7 @@ public class ZooLock implements Watcher {
                   else if (asyncLock != null)
                     failedToAcquireLock();
                 }
-              } catch (Throwable e) {
+              } catch (KeeperException | InterruptedException e) {
                 lockWatcher.unableToMonitorLockNode(e);
                 log.error("Failed to stat lock node " + asyncLockPath, e);
               }
@@ -396,7 +396,7 @@ public class ZooLock implements Watcher {
       } catch (KeeperException.ConnectionLossException ex) {
         // we can't look at the lock because we aren't connected, but our session is still good
         log.warn("lost connection to zookeeper");
-      } catch (Exception ex) {
+      } catch (KeeperException | InterruptedException ex) {
         if (lock != null || asyncLock != null) {
           lockWatcher.unableToMonitorLockNode(ex);
           log.error("Error resetting watch on ZooLock {} {}", lock != null ? lock : asyncLock,

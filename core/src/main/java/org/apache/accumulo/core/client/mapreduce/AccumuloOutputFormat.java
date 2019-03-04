@@ -111,7 +111,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       try {
         ClientContext client = OutputConfigurator.client(CLASS, job.getConfiguration());
         token = client.securityOperations().getDelegationToken(new DelegationTokenConfig());
-      } catch (Exception e) {
+      } catch (AccumuloSecurityException | AccumuloException e) {
         log.warn("Failed to automatically obtain DelegationToken, "
             + "Mappers/Reducers will likely fail to communicate with Accumulo", e);
       }
@@ -469,7 +469,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       if (!bws.containsKey(table))
         try {
           addTable(table);
-        } catch (Exception e) {
+        } catch (AccumuloException | AccumuloSecurityException e) {
           log.error("Could not add table '" + table + "'", e);
           throw new IOException(e);
         }
@@ -599,7 +599,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       throws IOException {
     try {
       return new AccumuloRecordWriter(attempt);
-    } catch (Exception e) {
+    } catch (AccumuloException | AccumuloSecurityException e) {
       throw new IOException(e);
     }
   }

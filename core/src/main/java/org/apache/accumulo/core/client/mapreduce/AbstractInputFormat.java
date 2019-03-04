@@ -142,7 +142,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       try {
         ClientContext client = InputConfigurator.client(CLASS, job.getConfiguration());
         token = client.securityOperations().getDelegationToken(new DelegationTokenConfig());
-      } catch (Exception e) {
+      } catch (AccumuloSecurityException | AccumuloException e) {
         log.warn("Failed to automatically obtain DelegationToken, "
             + "Mappers/Reducers will likely fail to communicate with Accumulo", e);
       }
@@ -520,7 +520,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           if (classLoaderContext != null) {
             scanner.setClassLoaderContext(classLoaderContext);
           }
-        } catch (Exception e) {
+        } catch (TableNotFoundException e) {
           e.printStackTrace();
           throw new IOException(e);
         }
@@ -563,7 +563,7 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           }
 
           setupIterators(attempt, scanner, split.getTableName(), split);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
           throw new IOException(e);
         }
 
@@ -738,7 +738,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             tl.invalidateCache();
           }
         }
-      } catch (Exception e) {
+      } catch (TableOfflineException | AccumuloException | AccumuloSecurityException
+          | TableNotFoundException e) {
         throw new IOException(e);
       }
 

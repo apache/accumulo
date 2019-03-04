@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 
 import org.junit.Test;
 
@@ -58,7 +59,7 @@ public class TTimeoutTransportTest {
 
     // Connect to the addr
     s.connect(addr);
-    expectLastCall().andThrow(new IOException());
+    expectLastCall().andThrow(new SocketException());
 
     // The socket should be closed after the above IOException
     s.close();
@@ -68,7 +69,7 @@ public class TTimeoutTransportTest {
     try {
       timeoutTransport.openSocket(addr);
       fail("Expected to catch IOException but got none");
-    } catch (IOException e) {
+    } catch (SocketException e) {
       // Expected
     }
 

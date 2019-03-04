@@ -384,7 +384,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         default:
           throw new AccumuloException(e.description, e);
       }
-    } catch (Exception e) {
+    } catch (TException e) {
       throw new AccumuloException(e.getMessage(), e);
     } finally {
       Tables.clearCache(context);
@@ -392,7 +392,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       if (opid != null)
         try {
           finishFateOperation(opid);
-        } catch (Exception e) {
+        } catch (TException e) {
           log.warn("Exception thrown while finishing fate table operation", e);
         }
     }
@@ -449,7 +449,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         env.executor.execute(new SplitTask(env, splits.subList(0, mid)));
         env.executor.execute(new SplitTask(env, splits.subList(mid + 1, splits.size())));
 
-      } catch (Throwable t) {
+      } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException t) {
         env.exception.compareAndSet(null, t);
       }
     }
@@ -658,12 +658,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
         break;
       } catch (AccumuloSecurityException ase) {
         throw ase;
-      } catch (Exception e) {
+      } catch (TableNotFoundException | AccumuloException e) {
         if (!Tables.exists(context, tableId)) {
           throw new TableNotFoundException(tableId.canonical(), tableName, null);
         }
 
-        if (e instanceof RuntimeException && e.getCause() instanceof AccumuloSecurityException) {
+        if (e instanceof TableNotFoundException
+            && e.getCause() instanceof AccumuloSecurityException) {
           throw (AccumuloSecurityException) e.getCause();
         }
 
@@ -938,7 +939,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         default:
           throw new AccumuloException(e.description, e);
       }
-    } catch (Exception e) {
+    } catch (TException e) {
       throw new AccumuloException(e);
     }
   }

@@ -43,7 +43,7 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
     Filter newInstance;
     try {
       newInstance = this.getClass().newInstance();
-    } catch (Exception e) {
+    } catch (IllegalAccessException | InstantiationException e) {
       throw new RuntimeException(e);
     }
     newInstance.setSource(getSource().deepCopy(env));
@@ -110,7 +110,7 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
     if (options.get(NEGATE) != null) {
       try {
         Boolean.parseBoolean(options.get(NEGATE));
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         throw new IllegalArgumentException("bad boolean " + NEGATE + ":" + options.get(NEGATE));
       }
     }

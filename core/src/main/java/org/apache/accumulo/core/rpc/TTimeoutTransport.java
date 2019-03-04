@@ -25,6 +25,7 @@ import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.nio.channels.spi.SelectorProvider;
 
 import org.apache.accumulo.core.util.HostAndPort;
@@ -59,7 +60,7 @@ public class TTimeoutTransport {
           try {
             GET_INPUT_STREAM_METHOD = NetUtils.class.getMethod("getInputStream", Socket.class,
                 Long.TYPE);
-          } catch (Exception e) {
+          } catch (SecurityException | NoSuchMethodException e) {
             throw new RuntimeException(e);
           }
         }
@@ -196,7 +197,7 @@ public class TTimeoutTransport {
       socket.setTcpNoDelay(true);
       socket.connect(addr);
       return socket;
-    } catch (IOException e) {
+    } catch (SocketException e) {
       try {
         if (socket != null)
           socket.close();

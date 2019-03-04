@@ -129,7 +129,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
         try {
           closed = true;
           ThriftScanner.close(scanState);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
           LoggerFactory.getLogger(ScannerIterator.class)
               .debug("Exception when closing scan session", e);
         }

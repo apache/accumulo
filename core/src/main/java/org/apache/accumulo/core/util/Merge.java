@@ -23,6 +23,9 @@ import java.util.List;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -107,7 +110,7 @@ public class Merge {
 
         message("Merging tablets in table %s to %d bytes", opts.tableName, opts.goalSize);
         mergomatic(client, opts.tableName, opts.begin, opts.end, opts.goalSize, opts.force);
-      } catch (Exception ex) {
+      } catch (MergeException | AccumuloException | TableNotFoundException ex) {
         throw new MergeException(ex);
       }
     }
@@ -148,7 +151,7 @@ public class Merge {
       }
       if (sizes.size() > 1)
         mergeMany(client, table, sizes, goalSize, force, true);
-    } catch (Exception ex) {
+    } catch (MergeException ex) {
       throw new MergeException(ex);
     }
   }
@@ -216,7 +219,7 @@ public class Merge {
       message("Merging %d tablets from (%s to %s]", numToMerge, start == null ? "-inf" : start,
           end == null ? "+inf" : end);
       client.tableOperations().merge(table, start, end);
-    } catch (Exception ex) {
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException ex) {
       throw new MergeException(ex);
     }
   }
@@ -233,7 +236,7 @@ public class Merge {
       tablets = TabletsMetadata.builder().scanMetadataTable()
           .overRange(new KeyExtent(tableId, end, start).toMetadataRange()).fetchFiles().fetchPrev()
           .build(context);
-    } catch (Exception e) {
+    } catch (TableNotFoundException e) {
       throw new MergeException(e);
     }
 

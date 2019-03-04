@@ -97,7 +97,7 @@ public class Fate<T> {
               }
             }
           }
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
           runnerLog.error("Uncaught exception in FATE runner thread.", e);
         } finally {
           if (tid != null) {

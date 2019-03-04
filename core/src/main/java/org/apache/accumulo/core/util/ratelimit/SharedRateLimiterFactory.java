@@ -113,7 +113,7 @@ public class SharedRateLimiterFactory {
     for (Map.Entry<String,SharedRateLimiter> entry : limitersCopy.entrySet()) {
       try {
         entry.getValue().update();
-      } catch (Exception ex) {
+      } catch (RuntimeException ex) {
         log.error(String.format("Failed to update limiter %s", entry.getKey()), ex);
       }
     }
@@ -131,7 +131,7 @@ public class SharedRateLimiterFactory {
     for (Map.Entry<String,SharedRateLimiter> entry : limitersCopy.entrySet()) {
       try {
         entry.getValue().report();
-      } catch (Exception ex) {
+      } catch (RuntimeException ex) {
         log.error(String.format("Failed to report limiter %s", entry.getKey()), ex);
       }
     }

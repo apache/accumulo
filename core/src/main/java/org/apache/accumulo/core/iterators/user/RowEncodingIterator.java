@@ -89,7 +89,7 @@ public abstract class RowEncodingIterator
     RowEncodingIterator newInstance;
     try {
       newInstance = this.getClass().newInstance();
-    } catch (Exception e) {
+    } catch (IllegalAccessException | InstantiationException e) {
       throw new RuntimeException(e);
     }
     newInstance.sourceIter = sourceIter.deepCopy(env);
@@ -186,7 +186,7 @@ public abstract class RowEncodingIterator
     String maxBufferSizeStr = options.get(MAX_BUFFER_SIZE_OPT);
     try {
       ConfigurationTypeHelper.getFixedMemoryAsBytes(maxBufferSizeStr);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       throw new IllegalArgumentException(
           "Failed to parse opt " + MAX_BUFFER_SIZE_OPT + " " + maxBufferSizeStr, e);
     }

@@ -718,7 +718,7 @@ public class TabletServerBatchWriter {
             log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
                 mutationsToSend.size());
             addMutations(mutationsToSend);
-          } catch (Exception e) {
+          } catch (RuntimeException e) {
             updateUnknownErrors("Error processing mutation set", e);
           }
         }
@@ -806,7 +806,7 @@ public class TabletServerBatchWriter {
           }
 
           return;
-        } catch (Throwable t) {
+        } catch (AccumuloServerException | AccumuloSecurityException t) {
           updateUnknownErrors(
               "Failed to send tablet server " + location + " its batch : " + t.getMessage(), t);
         }

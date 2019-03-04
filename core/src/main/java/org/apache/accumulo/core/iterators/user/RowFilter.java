@@ -152,7 +152,7 @@ public abstract class RowFilter extends WrappingIterator {
     RowFilter newInstance;
     try {
       newInstance = getClass().newInstance();
-    } catch (Exception e) {
+    } catch (InstantiationException | IllegalAccessException e) {
       throw new RuntimeException(e);
     }
     newInstance.setSource(getSource().deepCopy(env));

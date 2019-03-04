@@ -307,7 +307,7 @@ public class AdminUtil<T> {
 
             tables.add(lda[0].charAt(0) + ":" + id);
 
-          } catch (Exception e) {
+          } catch (NumberFormatException e) {
             log.error("{}", e.getMessage(), e);
           }
           pos++;

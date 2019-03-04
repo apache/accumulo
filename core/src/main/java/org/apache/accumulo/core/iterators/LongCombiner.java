@@ -116,7 +116,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
       return false;
     try {
       setEncoder(options);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       throw new IllegalArgumentException("bad encoder option", e);
     }
     return true;

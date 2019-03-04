@@ -64,7 +64,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
       T type = null;
       try {
         type = tokenType.newInstance();
-      } catch (Exception e) {
+      } catch (IllegalAccessException | InstantiationException e) {
         throw new IllegalArgumentException("Cannot instantiate " + tokenType.getName(), e);
       }
       ByteArrayInputStream bais = new ByteArrayInputStream(tokenBytes);

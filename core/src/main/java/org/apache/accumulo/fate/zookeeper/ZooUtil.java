@@ -260,7 +260,7 @@ public class ZooUtil {
             // If the stat is null, the node is now gone which is fine.
             return;
           }
-        } catch (KeeperException e) {
+        } catch (NoNodeException e) {
           final Code c = e.code();
           if (c == Code.CONNECTIONLOSS || c == Code.OPERATIONTIMEOUT || c == Code.SESSIONEXPIRED) {
             retryOrThrow(retry, e);

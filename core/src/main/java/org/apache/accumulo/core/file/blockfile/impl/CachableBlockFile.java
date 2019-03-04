@@ -178,7 +178,7 @@ public class CachableBlockFile {
             long len = getCachedFileLen();
             try {
               tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
-            } catch (Exception e) {
+            } catch (IOException e) {
               log.debug("Failed to open {}, clearing file length cache and retrying", cacheId, e);
               fileLenCache.invalidate(cacheId);
             }

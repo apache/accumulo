@@ -65,7 +65,7 @@ public class ConfigurationTypeHelper {
           return Long.parseLong(str);
       }
       return Long.parseLong(str.substring(0, str.length() - 1)) << multiplier;
-    } catch (Exception ex) {
+    } catch (NumberFormatException ex) {
       throw new IllegalArgumentException(
           "The value '" + str + "' is not a valid memory setting. A valid value would a number "
               + "possibly followed by an optional 'G', 'M', 'K', or 'B'.");
@@ -90,7 +90,7 @@ public class ConfigurationTypeHelper {
               "The value '" + str + "' is not a valid memory setting.");
         }
         return Runtime.getRuntime().maxMemory() * percent / 100;
-      } catch (Exception ex) {
+      } catch (NumberFormatException ex) {
         throw new IllegalArgumentException(
             "The value '" + str + "' is not a valid memory setting.");
       }

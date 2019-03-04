@@ -18,6 +18,7 @@ package org.apache.accumulo.core.rpc;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Arrays;
 
@@ -149,7 +150,7 @@ public class SslConnectionParams {
             return file.getAbsolutePath();
         }
       }
-    } catch (Exception e) {
+    } catch (URISyntaxException e) {
       log.warn("Exception finding keystore", e);
     }
     throw new FileNotFoundException("Failed to load SSL keystore from " + keystorePath);

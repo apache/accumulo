@@ -366,7 +366,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         .map(Text::new).sorted().distinct().forEach(row -> {
           try {
             extentCache.lookup(row);
-          } catch (Exception e) {
+          } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
             throw new RuntimeException(e);
           }
         });
@@ -516,7 +516,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
           log.trace("Mapped {} to {} tablets in {}ms", fileStatus.getPath(), pathLocations.size(),
               t2 - t1);
           return pathLocations;
-        } catch (Exception e) {
+        } catch (AccumuloException | IOException | AccumuloSecurityException
+            | TableNotFoundException e) {
           throw new CompletionException(e);
         }
       }, executor);

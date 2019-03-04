@@ -136,7 +136,8 @@ public class BloomFilterLayer {
 
         transformer = clazz.newInstance();
 
-      } catch (Exception e) {
+      } catch (IllegalAccessException | InstantiationException | ClassNotFoundException
+          | IOException e) {
         LOG.error("Failed to find KeyFunctor: " + acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR), e);
         throw new IllegalArgumentException(
             "Failed to find KeyFunctor: " + acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR));

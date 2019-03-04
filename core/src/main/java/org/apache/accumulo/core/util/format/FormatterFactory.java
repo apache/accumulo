@@ -31,7 +31,7 @@ public class FormatterFactory {
     Formatter formatter = null;
     try {
       formatter = formatterClass.newInstance();
-    } catch (Exception e) {
+    } catch (IllegalAccessException | InstantiationException e) {
       log.warn("Unable to instantiate formatter. Using default formatter.", e);
       formatter = new DefaultFormatter();
     }

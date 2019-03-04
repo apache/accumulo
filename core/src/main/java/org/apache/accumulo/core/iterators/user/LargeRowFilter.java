@@ -278,7 +278,7 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
           "Bad # of options, must supply: " + MAX_COLUMNS + " as value");
     try {
       maxColumns = Integer.parseInt(options.get(MAX_COLUMNS));
-    } catch (Exception e) {
+    } catch (NumberFormatException e) {
       throw new IllegalArgumentException(
           "bad integer " + MAX_COLUMNS + ":" + options.get(MAX_COLUMNS));
     }

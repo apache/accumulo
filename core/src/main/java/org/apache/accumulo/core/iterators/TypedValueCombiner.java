@@ -213,7 +213,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
       return false;
     try {
       setLossyness(options);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       throw new IllegalArgumentException("bad boolean " + LOSSY + ":" + options.get(LOSSY));
     }
     return true;

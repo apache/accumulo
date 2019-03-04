@@ -162,7 +162,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
         } else if (option.getKey().equals(MAX_BUFFER_SIZE_OPT)) {
           ConfigurationTypeHelper.getFixedMemoryAsBytes(option.getValue());
         }
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         throw new IllegalArgumentException(
             "Failed to parse opt " + option.getKey() + " " + option.getValue(), e);
       }
@@ -177,7 +177,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
 
     try {
       copy = getClass().newInstance();
-    } catch (Exception e) {
+    } catch (IllegalAccessException | InstantiationException e) {
       throw new RuntimeException(e);
     }
 

@@ -100,7 +100,7 @@ public class TimestampFilter extends Filter {
         else
           end = dateParser.parse(s).getTime();
       }
-    } catch (Exception e) {
+    } catch (ParseException e) {
       throw new IllegalArgumentException(e);
     }
     if (options.get(START_INCL) != null)
@@ -162,7 +162,7 @@ public class TimestampFilter extends Filter {
         Boolean.parseBoolean(options.get(START_INCL));
       if (options.get(END_INCL) != null)
         Boolean.parseBoolean(options.get(END_INCL));
-    } catch (Exception e) {
+    } catch (NumberFormatException | ParseException e) {
       throw new IllegalArgumentException("invalid options", e);
     }
     return true;

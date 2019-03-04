@@ -588,7 +588,7 @@ public class ThriftTransportPool {
     for (CachedConnection cachedConnection : closeList) {
       try {
         cachedConnection.transport.close();
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         log.debug("Failed to close connection w/ errors", e);
       }
     }
@@ -679,7 +679,7 @@ public class ThriftTransportPool {
             cachedConn.unreserved)) {
           try {
             cc.transport.close();
-          } catch (Exception e) {
+          } catch (RuntimeException e) {
             log.debug("Error closing transport during shutdown", e);
           }
         }

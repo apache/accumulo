@@ -154,7 +154,7 @@ public abstract class SeekingFilter extends WrappingIterator {
     SeekingFilter newInstance;
     try {
       newInstance = this.getClass().newInstance();
-    } catch (Exception e) {
+    } catch (IllegalAccessException | InstantiationException e) {
       throw new RuntimeException(e);
     }
     newInstance.setSource(getSource().deepCopy(env));

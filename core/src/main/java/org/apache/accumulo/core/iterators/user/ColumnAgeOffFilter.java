@@ -110,7 +110,7 @@ public class ColumnAgeOffFilter extends Filter {
       return false;
     try {
       this.ttls = new TTLSet(options);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       throw new IllegalArgumentException("bad TTL options", e);
     }
     return true;

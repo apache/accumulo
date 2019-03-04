@@ -313,7 +313,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     Combiner newInstance;
     try {
       newInstance = this.getClass().newInstance();
-    } catch (Exception e) {
+    } catch (IllegalAccessException | InstantiationException e) {
       throw new RuntimeException(e);
     }
     newInstance.setSource(getSource().deepCopy(env));
@@ -344,7 +344,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     if (options.containsKey(ALL_OPTION)) {
       try {
         combineAllColumns = Boolean.parseBoolean(options.get(ALL_OPTION));
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         throw new IllegalArgumentException(
             "bad boolean " + ALL_OPTION + ":" + options.get(ALL_OPTION));
       }

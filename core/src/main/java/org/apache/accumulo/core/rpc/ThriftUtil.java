@@ -19,8 +19,13 @@ package org.apache.accumulo.core.rpc;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -488,7 +493,8 @@ public class ThriftUtil {
         ctx.init(null, tmf.getTrustManagers(), null);
       }
 
-    } catch (Exception e) {
+    } catch (KeyManagementException | KeyStoreException | IOException | NoSuchAlgorithmException
+        | CertificateException | UnrecoverableKeyException e) {
       throw new TTransportException("Error creating the transport", e);
     }
     return ctx;
@@ -514,7 +520,7 @@ public class ThriftUtil {
       socket = (SSLSocket) factory.createSocket(host, port);
       socket.setSoTimeout(timeout);
       return new TSocket(socket);
-    } catch (Exception e) {
+    } catch (TTransportException | IOException e) {
       try {
         if (socket != null)
           socket.close();

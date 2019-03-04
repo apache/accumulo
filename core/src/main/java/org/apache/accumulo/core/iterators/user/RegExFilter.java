@@ -183,7 +183,7 @@ public class RegExFilter extends Filter {
 
       if (options.containsKey(VALUE_REGEX))
         Pattern.compile(options.get(VALUE_REGEX)).matcher("");
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       throw new IllegalArgumentException("bad regex", e);
     }
 
