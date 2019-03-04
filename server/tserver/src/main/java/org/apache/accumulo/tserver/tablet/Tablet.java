@@ -2463,7 +2463,9 @@ public class Tablet {
   public void checkIfMinorCompactionNeededForLogs(List<DfsLogger> closedLogs) {
 
     // grab this outside of tablet lock.
-    int maxLogs = tableConfiguration.getCount(Property.TABLE_MINC_LOGS_MAX);
+    @SuppressWarnings("deprecation")
+    int maxLogs = tableConfiguration.getCount(tableConfiguration
+        .resolve(Property.TSERV_WALOG_MAX_REFERENCED, Property.TABLE_MINC_LOGS_MAX));
 
     String reason = null;
     synchronized (this) {

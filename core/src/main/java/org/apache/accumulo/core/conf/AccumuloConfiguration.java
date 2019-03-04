@@ -89,6 +89,19 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public abstract String get(Property property);
 
   /**
+   * Given a property and a deprecated property determine which one to use base on which one is set.
+   */
+  public Property resolve(Property property, Property deprecatedProperty) {
+    if (isPropertySet(property, true)) {
+      return property;
+    } else if (isPropertySet(deprecatedProperty, true)) {
+      return deprecatedProperty;
+    } else {
+      return property;
+    }
+  }
+
+  /**
    * Returns property key/value pairs in this configuration. The pairs include those defined in this
    * configuration which pass the given filter, and those supplied from the parent configuration
    * which are not included from here.

@@ -314,6 +314,10 @@ public enum Property {
           + " When there are more RFiles than this setting multiple passes must be"
           + " made, which is slower. However opening too many RFiles at once can cause"
           + " problems."),
+  TSERV_WALOG_MAX_REFERENCED("tserver.walog.max.referenced", "3", PropertyType.COUNT,
+      "When a tablet server has more than this many write ahead logs, any tablet referencing older "
+          + "logs over this threshold is minor compacted.  Also any tablet referencing this many "
+          + "logs or more will be compacted."),
   TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1g", PropertyType.BYTES,
       "The maximum size for each write-ahead log. See comment for property"
           + " tserver.memory.maps.max"),
@@ -599,9 +603,10 @@ public enum Property {
       "A tablet is split when the combined size of RFiles exceeds this amount."),
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10K", PropertyType.BYTES,
       "Maximum size of end row"),
+  @Deprecated
+  @ReplacedBy(property = Property.TSERV_WALOG_MAX_REFERENCED)
   TABLE_MINC_LOGS_MAX("table.compaction.minor.logs.threshold", "3", PropertyType.COUNT,
-      "When there are more than this many write-ahead logs against a tablet, it"
-          + " will be minor compacted. See comment for property" + " tserver.memory.maps.max"),
+      "This property is deprecated since 2.0.0."),
   TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,
       "After a tablet has been idle (no mutations) for this time period it may have its "
           + "in-memory map flushed to disk in a minor compaction. There is no guarantee an idle "
