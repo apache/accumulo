@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -74,7 +75,7 @@ public class VerifyTabletAssignments {
     Opts opts = new Opts();
     try (TraceScope clientSpan = opts.parseArgsAndTrace(VerifyTabletAssignments.class.getName(),
         args)) {
-      try (AccumuloClient client = opts.createClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         for (String table : client.tableOperations().list())
           checkTable((ClientContext) client, opts, table, null);
       }

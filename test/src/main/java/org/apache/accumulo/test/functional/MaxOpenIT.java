@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
+import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.After;
@@ -103,15 +104,13 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
       // the following loop should create three tablets in each map file
       for (int i = 0; i < 3; i++) {
-        TestIngest.Opts opts = new TestIngest.Opts();
-        opts.timestamp = i;
-        opts.dataSize = 50;
-        opts.rows = NUM_TO_INGEST;
-        opts.cols = 1;
-        opts.random = i;
-        opts.setTableName(tableName);
-        opts.setClientProperties(getClientProperties());
-        TestIngest.ingest(c, opts);
+        IngestParams params = new IngestParams(getClientProperties(), tableName, NUM_TO_INGEST);
+        params.timestamp = i;
+        params.dataSize = 50;
+        params.rows = NUM_TO_INGEST;
+        params.cols = 1;
+        params.random = i;
+        TestIngest.ingest(c, params);
 
         c.tableOperations().flush(tableName, null, null, true);
         FunctionalTestUtils.checkRFiles(c, tableName, NUM_TABLETS, NUM_TABLETS, i + 1, i + 1);

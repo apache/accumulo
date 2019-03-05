@@ -34,6 +34,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -215,7 +216,7 @@ public class CollectTabletStats {
       runTest("read tablet files w/ table iter stack", tests, opts.numThreads, threadPool);
     }
 
-    try (AccumuloClient client = opts.createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
       for (int i = 0; i < opts.iterations; i++) {
         ArrayList<Test> tests = new ArrayList<>();
         for (final KeyExtent ke : tabletsToTest) {

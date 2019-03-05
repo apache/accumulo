@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -263,7 +264,7 @@ public class MergeStats {
     ServerUtilOpts opts = new ServerUtilOpts();
     try (TraceScope clientSpan = opts.parseArgsAndTrace(MergeStats.class.getName(), args)) {
 
-      try (AccumuloClient client = opts.createClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         Map<String,String> tableIdMap = client.tableOperations().tableIdMap();
         ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooReaderWriter();
         for (Entry<String,String> entry : tableIdMap.entrySet()) {

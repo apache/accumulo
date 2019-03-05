@@ -21,9 +21,6 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
 
 public class ServerUtilOpts extends ClientOpts {
-  {
-    setPrincipal("root");
-  }
 
   private ServerContext context;
 
@@ -32,7 +29,7 @@ public class ServerUtilOpts extends ClientOpts {
       if (getClientConfigFile() == null) {
         context = new ServerContext(new SiteConfiguration());
       } else {
-        context = new ServerContext(new SiteConfiguration(), getClientProperties());
+        context = new ServerContext(new SiteConfiguration(), getClientProps());
       }
     }
     return context;

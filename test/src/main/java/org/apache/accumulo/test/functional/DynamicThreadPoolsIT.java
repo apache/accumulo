@@ -37,6 +37,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
+import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.After;
 import org.junit.Before;
@@ -84,12 +85,9 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
     String firstTable = tables[0];
     try (AccumuloClient c = createAccumuloClient()) {
       c.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "5");
-      TestIngest.Opts opts = new TestIngest.Opts();
-      opts.rows = 500 * 1000;
-      opts.createTable = true;
-      opts.setTableName(firstTable);
-      opts.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, opts);
+      IngestParams params = new IngestParams(getClientProperties(), firstTable, 500_000);
+      params.createTable = true;
+      TestIngest.ingest(c, params);
       c.tableOperations().flush(firstTable, null, null, true);
       for (int i = 1; i < tables.length; i++)
         c.tableOperations().clone(firstTable, tables[i], true, null, null);

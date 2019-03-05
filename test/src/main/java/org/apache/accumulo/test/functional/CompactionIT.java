@@ -36,6 +36,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -127,23 +128,17 @@ public class CompactionIT extends AccumuloClusterHarness {
         final int span = 500000 / 59;
         for (int i = 0; i < 500000; i += 500000 / 59) {
           final int finalI = i;
-          Runnable r = new Runnable() {
-            @Override
-            public void run() {
-              try {
-                VerifyIngest.Opts opts = new VerifyIngest.Opts();
-                opts.startRow = finalI;
-                opts.rows = span;
-                opts.random = 56;
-                opts.dataSize = 50;
-                opts.cols = 1;
-                opts.setTableName(tableName);
-                opts.setClientProperties(getClientProperties());
-                VerifyIngest.verifyIngest(c, opts);
-              } catch (Exception ex) {
-                log.warn("Got exception verifying data", ex);
-                fail.set(true);
-              }
+          Runnable r = () -> {
+            try {
+              VerifyParams params = new VerifyParams(getClientProperties(), tableName, span);
+              params.startRow = finalI;
+              params.random = 56;
+              params.dataSize = 50;
+              params.cols = 1;
+              VerifyIngest.verifyIngest(c, params);
+            } catch (Exception ex) {
+              log.warn("Got exception verifying data", ex);
+              fail.set(true);
             }
           };
           executor.execute(r);

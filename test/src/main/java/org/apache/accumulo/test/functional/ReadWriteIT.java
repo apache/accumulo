@@ -80,8 +80,10 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
+import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.TestMultiTableIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.accumulo.test.categories.StandaloneCapableClusterTests;
 import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.hadoop.conf.Configuration;
@@ -206,17 +208,13 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   public static void ingest(AccumuloClient accumuloClient, ClientInfo info, int rows, int cols,
       int width, int offset, String colf, String tableName) throws Exception {
-    TestIngest.Opts opts = new TestIngest.Opts();
-    opts.rows = rows;
-    opts.cols = cols;
-    opts.dataSize = width;
-    opts.startRow = offset;
-    opts.columnFamily = colf;
-    opts.createTable = true;
-    opts.setTableName(tableName);
-    opts.setClientProperties(info.getProperties());
-
-    TestIngest.ingest(accumuloClient, opts);
+    IngestParams params = new IngestParams(info.getProperties(), tableName, rows);
+    params.cols = cols;
+    params.dataSize = width;
+    params.startRow = offset;
+    params.columnFamily = colf;
+    params.createTable = true;
+    TestIngest.ingest(accumuloClient, params);
   }
 
   public static void verify(AccumuloClient accumuloClient, ClientInfo info, int rows, int cols,
@@ -226,16 +224,13 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   private static void verify(AccumuloClient accumuloClient, ClientInfo info, int rows, int cols,
       int width, int offset, String colf, String tableName) throws Exception {
-    VerifyIngest.Opts opts = new VerifyIngest.Opts();
-    opts.rows = rows;
-    opts.cols = cols;
-    opts.dataSize = width;
-    opts.startRow = offset;
-    opts.columnFamily = colf;
-    opts.setTableName(tableName);
-    opts.setClientProperties(info.getProperties());
-
-    VerifyIngest.verifyIngest(accumuloClient, opts);
+    VerifyParams params = new VerifyParams(info.getProperties(), tableName, rows);
+    params.rows = rows;
+    params.dataSize = width;
+    params.startRow = offset;
+    params.columnFamily = colf;
+    params.cols = cols;
+    VerifyIngest.verifyIngest(accumuloClient, params);
   }
 
   public static String[] args(String... args) {

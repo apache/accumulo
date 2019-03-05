@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -298,7 +299,7 @@ public class TableDiskUsage {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     try (TraceScope clientSpan = opts.parseArgsAndTrace(TableDiskUsage.class.getName(), args)) {
-      try (AccumuloClient client = opts.createClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         VolumeManager fs = opts.getServerContext().getVolumeManager();
         org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, fs, client,
             false);

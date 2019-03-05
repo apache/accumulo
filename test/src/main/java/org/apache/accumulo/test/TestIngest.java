@@ -20,11 +20,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -35,6 +37,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletServerBatchWriter;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
@@ -48,7 +51,6 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
@@ -61,71 +63,114 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TestIngest {
   public static final Authorizations AUTHS = new Authorizations("L1", "L2", "G1", "GROUP2");
 
+  public static class IngestParams {
+    public Properties clientProps = new Properties();
+    public String tableName = "test_ingest";
+    public boolean createTable = false;
+    public int numsplits = 1;
+    public int startRow = 0;
+    public int rows = 100000;
+    public int cols = 1;
+    public Integer random = null;
+    public int dataSize = 1000;
+    public boolean delete = false;
+    public long timestamp = -1;
+    public String outputFile = null;
+    public int stride;
+    public String columnFamily = "colf";
+    public ColumnVisibility columnVisibility = new ColumnVisibility();
+
+    public IngestParams(Properties props) {
+      clientProps = props;
+    }
+
+    public IngestParams(Properties props, String table) {
+      this(props);
+      tableName = table;
+    }
+
+    public IngestParams(Properties props, String table, int rows) {
+      this(props, table);
+      this.rows = rows;
+    }
+  }
+
   public static class Opts extends ClientOpts {
     @Parameter(names = "--table", description = "table to use")
     String tableName = "test_ingest";
 
     @Parameter(names = "--createTable")
-    public boolean createTable = false;
+    boolean createTable = false;
 
     @Parameter(names = "--splits",
         description = "the number of splits to use when creating the table")
-    public int numsplits = 1;
+    int numsplits = 1;
 
     @Parameter(names = "--start", description = "the starting row number")
-    public int startRow = 0;
+    int startRow = 0;
 
     @Parameter(names = "--rows", description = "the number of rows to ingest")
-    public int rows = 100000;
+    int rows = 100000;
 
     @Parameter(names = "--cols", description = "the number of columns to ingest per row")
-    public int cols = 1;
+    int cols = 1;
 
     @Parameter(names = "--random", description = "insert random rows and use"
         + " the given number to seed the psuedo-random number generator")
-    public Integer random = null;
+    Integer random = null;
 
     @Parameter(names = "--size", description = "the size of the value to ingest")
-    public int dataSize = 1000;
+    int dataSize = 1000;
 
     @Parameter(names = "--delete", description = "delete values instead of inserting them")
-    public boolean delete = false;
+    boolean delete = false;
 
     @Parameter(names = {"-ts", "--timestamp"}, description = "timestamp to use for all values")
-    public long timestamp = -1;
+    long timestamp = -1;
 
     @Parameter(names = "--rfile", description = "generate data into a file that can be imported")
-    public String outputFile = null;
+    String outputFile = null;
 
     @Parameter(names = "--stride", description = "the difference between successive row ids")
-    public int stride;
+    int stride;
 
     @Parameter(names = {"-cf", "--columnFamily"},
         description = "place columns in this column family")
-    public String columnFamily = "colf";
+    String columnFamily = "colf";
 
     @Parameter(names = {"-cv", "--columnVisibility"},
         description = "place columns in this column family", converter = VisibilityConverter.class)
-    public ColumnVisibility columnVisibility = new ColumnVisibility();
+    ColumnVisibility columnVisibility = new ColumnVisibility();
 
-    public Configuration conf = null;
-    public FileSystem fs = null;
-
-    public void setTableName(String tableName) {
-      this.tableName = tableName;
+    public IngestParams getIngestPrams() {
+      IngestParams params = new IngestParams(getClientProps(), tableName);
+      params.createTable = createTable;
+      params.numsplits = numsplits;
+      params.startRow = startRow;
+      params.rows = rows;
+      params.cols = cols;
+      params.random = random;
+      params.dataSize = dataSize;
+      params.delete = delete;
+      params.timestamp = timestamp;
+      params.outputFile = outputFile;
+      params.stride = stride;
+      params.columnFamily = columnFamily;
+      params.columnVisibility = columnVisibility;
+      return params;
     }
   }
 
-  public static void createTable(AccumuloClient client, Opts args)
+  public static void createTable(AccumuloClient client, IngestParams params)
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    if (args.createTable) {
-      TreeSet<Text> splits = getSplitPoints(args.startRow, args.startRow + args.rows,
-          args.numsplits);
+    if (params.createTable) {
+      TreeSet<Text> splits = getSplitPoints(params.startRow, params.startRow + params.rows,
+          params.numsplits);
 
-      if (!client.tableOperations().exists(args.tableName))
-        client.tableOperations().create(args.tableName);
+      if (!client.tableOperations().exists(params.tableName))
+        client.tableOperations().create(params.tableName);
       try {
-        client.tableOperations().addSplits(args.tableName, splits);
+        client.tableOperations().addSplits(params.tableName, splits);
       } catch (TableNotFoundException ex) {
         // unlikely
         throw new RuntimeException(ex);
@@ -190,67 +235,68 @@ public class TestIngest {
     if (opts.debug)
       Logger.getLogger(TabletServerBatchWriter.class.getName()).setLevel(Level.TRACE);
 
-    try (AccumuloClient client = opts.createClient()) {
-      ingest(client, opts);
+    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
+      ingest(client, opts.getIngestPrams());
     }
   }
 
   @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
       justification = "predictable random is okay for testing")
-  public static void ingest(AccumuloClient accumuloClient, FileSystem fs, Opts opts)
+  public static void ingest(AccumuloClient accumuloClient, FileSystem fs, IngestParams params)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException,
       MutationsRejectedException, TableExistsException {
     long stopTime;
 
-    byte[][] bytevals = generateValues(opts.dataSize);
+    byte[][] bytevals = generateValues(params.dataSize);
 
-    byte[] randomValue = new byte[opts.dataSize];
+    byte[] randomValue = new byte[params.dataSize];
     Random random = new Random();
 
     long bytesWritten = 0;
 
-    createTable(accumuloClient, opts);
+    createTable(accumuloClient, params);
 
     BatchWriter bw = null;
     FileSKVWriter writer = null;
 
-    if (opts.outputFile != null) {
+    if (params.outputFile != null) {
       ClientContext cc = (ClientContext) accumuloClient;
       writer = FileOperations.getInstance().newWriterBuilder()
-          .forFile(opts.outputFile + "." + RFile.EXTENSION, fs, cc.getHadoopConf(),
+          .forFile(params.outputFile + "." + RFile.EXTENSION, fs, cc.getHadoopConf(),
               CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
       writer.startDefaultLocalityGroup();
     } else {
-      bw = accumuloClient.createBatchWriter(opts.tableName);
-      accumuloClient.securityOperations().changeUserAuthorizations(opts.getPrincipal(), AUTHS);
+      bw = accumuloClient.createBatchWriter(params.tableName);
+      String principal = ClientProperty.AUTH_PRINCIPAL.getValue(params.clientProps);
+      accumuloClient.securityOperations().changeUserAuthorizations(principal, AUTHS);
     }
-    Text labBA = new Text(opts.columnVisibility.getExpression());
+    Text labBA = new Text(params.columnVisibility.getExpression());
 
     long startTime = System.currentTimeMillis();
-    for (int i = 0; i < opts.rows; i++) {
+    for (int i = 0; i < params.rows; i++) {
       int rowid;
-      if (opts.stride > 0) {
-        rowid = ((i % opts.stride) * (opts.rows / opts.stride)) + (i / opts.stride);
+      if (params.stride > 0) {
+        rowid = ((i % params.stride) * (params.rows / params.stride)) + (i / params.stride);
       } else {
         rowid = i;
       }
 
-      Text row = generateRow(rowid, opts.startRow);
+      Text row = generateRow(rowid, params.startRow);
       Mutation m = new Mutation(row);
-      for (int j = 0; j < opts.cols; j++) {
-        Text colf = new Text(opts.columnFamily);
+      for (int j = 0; j < params.cols; j++) {
+        Text colf = new Text(params.columnFamily);
         Text colq = new Text(FastFormat.toZeroPaddedString(j, 7, 10, COL_PREFIX));
 
         if (writer != null) {
           Key key = new Key(row, colf, colq, labBA);
-          if (opts.timestamp >= 0) {
-            key.setTimestamp(opts.timestamp);
+          if (params.timestamp >= 0) {
+            key.setTimestamp(params.timestamp);
           } else {
             key.setTimestamp(startTime);
           }
 
-          if (opts.delete) {
+          if (params.delete) {
             key.setDeleted(true);
           } else {
             key.setDeleted(false);
@@ -258,12 +304,13 @@ public class TestIngest {
 
           bytesWritten += key.getSize();
 
-          if (opts.delete) {
+          if (params.delete) {
             writer.append(key, new Value(new byte[0]));
           } else {
             byte[] value;
-            if (opts.random != null) {
-              value = genRandomValue(random, randomValue, opts.random, rowid + opts.startRow, j);
+            if (params.random != null) {
+              value = genRandomValue(random, randomValue, params.random, rowid + params.startRow,
+                  j);
             } else {
               value = bytevals[j % bytevals.length];
             }
@@ -277,24 +324,25 @@ public class TestIngest {
           Key key = new Key(row, colf, colq, labBA);
           bytesWritten += key.getSize();
 
-          if (opts.delete) {
-            if (opts.timestamp >= 0)
-              m.putDelete(colf, colq, opts.columnVisibility, opts.timestamp);
+          if (params.delete) {
+            if (params.timestamp >= 0)
+              m.putDelete(colf, colq, params.columnVisibility, params.timestamp);
             else
-              m.putDelete(colf, colq, opts.columnVisibility);
+              m.putDelete(colf, colq, params.columnVisibility);
           } else {
             byte[] value;
-            if (opts.random != null) {
-              value = genRandomValue(random, randomValue, opts.random, rowid + opts.startRow, j);
+            if (params.random != null) {
+              value = genRandomValue(random, randomValue, params.random, rowid + params.startRow,
+                  j);
             } else {
               value = bytevals[j % bytevals.length];
             }
             bytesWritten += value.length;
 
-            if (opts.timestamp >= 0) {
-              m.put(colf, colq, opts.columnVisibility, opts.timestamp, new Value(value, true));
+            if (params.timestamp >= 0) {
+              m.put(colf, colq, params.columnVisibility, params.timestamp, new Value(value, true));
             } else {
-              m.put(colf, colq, opts.columnVisibility, new Value(value, true));
+              m.put(colf, colq, params.columnVisibility, new Value(value, true));
 
             }
           }
@@ -303,7 +351,6 @@ public class TestIngest {
       }
       if (bw != null)
         bw.addMutation(m);
-
     }
 
     if (writer != null) {
@@ -325,14 +372,13 @@ public class TestIngest {
             System.err.println("ERROR : Constraint violates : " + cvs);
           }
         }
-
         throw e;
       }
     }
 
     stopTime = System.currentTimeMillis();
 
-    int totalValues = opts.rows * opts.cols;
+    int totalValues = params.rows * params.cols;
     double elapsed = (stopTime - startTime) / 1000.0;
 
     System.out.printf(
@@ -342,10 +388,10 @@ public class TestIngest {
         elapsed);
   }
 
-  public static void ingest(AccumuloClient c, Opts opts)
+  public static void ingest(AccumuloClient c, IngestParams params)
       throws MutationsRejectedException, IOException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException, TableExistsException {
     ClientContext cc = (ClientContext) c;
-    ingest(c, FileSystem.get(cc.getHadoopConf()), opts);
+    ingest(c, FileSystem.get(cc.getHadoopConf()), params);
   }
 }

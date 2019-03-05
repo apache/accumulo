@@ -23,11 +23,11 @@ import java.util.Collections;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.clientImpl.ClientConfConverter;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -70,90 +70,11 @@ public class RowHash extends Configured implements Tool {
   }
 
   private static class Opts extends ClientOpts {
-    private static final Logger log = LoggerFactory.getLogger(Opts.class);
-
     @Parameter(names = "--column", required = true)
     String column;
 
     @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
-    private String tableName;
-
-    public String getTableName() {
-      return tableName;
-    }
-
-    public void setAccumuloConfigs(Job job) throws AccumuloSecurityException {
-      org.apache.accumulo.core.client.ClientConfiguration clientConf = ClientConfConverter
-          .toClientConf(this.getClientProperties());
-      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setZooKeeperInstance(job,
-          clientConf);
-
-      org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setZooKeeperInstance(job,
-          clientConf);
-
-      final String principal = getPrincipal();
-      getTableName();
-
-      AuthenticationToken token = getToken();
-      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setConnectorInfo(job, principal,
-          token);
-      org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setConnectorInfo(job,
-          principal, token);
-      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setInputTableName(job,
-          getTableName());
-      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanAuthorizations(job,
-          auths);
-      org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setCreateTables(job, true);
-      org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setDefaultTableName(job,
-          getTableName());
-    }
-
-    @Override
-    public AuthenticationToken getToken() {
-      AuthenticationToken authToken = super.getToken();
-      // For MapReduce, Kerberos credentials don't make it to the Mappers and Reducers,
-      // so we need to request a delegation token and use that instead.
-      if (authToken instanceof KerberosToken) {
-        log.info("Received KerberosToken, fetching DelegationToken for MapReduce");
-        final KerberosToken krbToken = (KerberosToken) authToken;
-
-        try {
-          UserGroupInformation user = UserGroupInformation.getCurrentUser();
-          if (!user.hasKerberosCredentials()) {
-            throw new IllegalStateException("Expected current user to have Kerberos credentials");
-          }
-
-          String newPrincipal = user.getUserName();
-          log.info("Obtaining delegation token for {}", newPrincipal);
-
-          setPrincipal(newPrincipal);
-          AccumuloClient client = Accumulo.newClient().from(getClientProperties())
-              .as(newPrincipal, krbToken).build();
-
-          // Do the explicit check to see if the user has the permission to get a delegation token
-          if (!client.securityOperations().hasSystemPermission(client.whoami(),
-              SystemPermission.OBTAIN_DELEGATION_TOKEN)) {
-            log.error(
-                "{} doesn't have the {} SystemPermission neccesary to obtain a delegation"
-                    + " token. MapReduce tasks cannot automatically use the client's"
-                    + " credentials on remote servers. Delegation tokens provide a means to run"
-                    + " MapReduce without distributing the user's credentials.",
-                user.getUserName(), SystemPermission.OBTAIN_DELEGATION_TOKEN.name());
-            throw new IllegalStateException(
-                client.whoami() + " does not have permission to obtain a delegation token");
-          }
-
-          // Get the delegation token from Accumulo
-          return client.securityOperations().getDelegationToken(new DelegationTokenConfig());
-        } catch (Exception e) {
-          final String msg = "Failed to acquire DelegationToken for use with MapReduce";
-          log.error(msg, e);
-          throw new RuntimeException(msg, e);
-        }
-      }
-      return authToken;
-    }
-
+    String tableName;
   }
 
   @Override
@@ -163,8 +84,28 @@ public class RowHash extends Configured implements Tool {
     job.setJarByClass(this.getClass());
     Opts opts = new Opts();
     opts.parseArgs(RowHash.class.getName(), args);
+
     job.setInputFormatClass(org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.class);
-    opts.setAccumuloConfigs(job);
+    org.apache.accumulo.core.client.ClientConfiguration clientConf = ClientConfConverter
+        .toClientConf(opts.getClientProps());
+    org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setZooKeeperInstance(job,
+        clientConf);
+    org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setZooKeeperInstance(job,
+        clientConf);
+
+    final String principal = ClientProperty.AUTH_PRINCIPAL.getValue(opts.getClientProps());
+    AuthenticationToken token = opts.getToken();
+    org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setConnectorInfo(job, principal,
+        token);
+    org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setConnectorInfo(job,
+        principal, token);
+    org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setInputTableName(job,
+        opts.tableName);
+    org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanAuthorizations(job,
+        opts.auths);
+    org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setCreateTables(job, true);
+    org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setDefaultTableName(job,
+        opts.tableName);
 
     String col = opts.column;
     int idx = col.indexOf(":");

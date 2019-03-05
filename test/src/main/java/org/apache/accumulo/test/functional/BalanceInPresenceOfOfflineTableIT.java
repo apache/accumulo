@@ -44,6 +44,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -128,16 +129,10 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
     log.debug("starting test ingestion");
 
-    TestIngest.Opts opts = new TestIngest.Opts();
-    VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-    opts.setClientProperties(getClientProperties());
-    vopts.setClientProperties(getClientProperties());
-    vopts.rows = opts.rows = 200000;
-    opts.setTableName(TEST_TABLE);
-    TestIngest.ingest(accumuloClient, opts);
+    VerifyParams params = new VerifyParams(getClientProperties(), TEST_TABLE, 200_000);
+    TestIngest.ingest(accumuloClient, params);
     accumuloClient.tableOperations().flush(TEST_TABLE, null, null, true);
-    vopts.setTableName(TEST_TABLE);
-    VerifyIngest.verifyIngest(accumuloClient, vopts);
+    VerifyIngest.verifyIngest(accumuloClient, params);
 
     log.debug("waiting for balancing, up to ~5 minutes to allow for migration cleanup.");
     final long startTime = System.currentTimeMillis();

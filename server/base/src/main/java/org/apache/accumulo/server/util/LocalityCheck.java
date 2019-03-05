@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -46,7 +47,8 @@ public class LocalityCheck {
     try (TraceScope clientSpan = opts.parseArgsAndTrace(LocalityCheck.class.getName(), args)) {
 
       VolumeManager fs = opts.getServerContext().getVolumeManager();
-      try (AccumuloClient accumuloClient = opts.createClient()) {
+      try (AccumuloClient accumuloClient = Accumulo.newClient().from(opts.getClientProps())
+          .build()) {
         Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
         scanner.fetchColumnFamily(DataFileColumnFamily.NAME);

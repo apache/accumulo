@@ -26,12 +26,9 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.htrace.NullScope;
@@ -46,13 +43,6 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.converters.IParameterSplitter;
 
 public class ClientOpts extends Help {
-
-  public static class MemoryConverter implements IStringConverter<Long> {
-    @Override
-    public Long convert(String value) {
-      return ConfigurationTypeHelper.getFixedMemoryAsBytes(value);
-    }
-  }
 
   public static class AuthConverter implements IStringConverter<Authorizations> {
     @Override
@@ -96,14 +86,14 @@ public class ClientOpts extends Help {
   }
 
   @Parameter(names = {"-u", "--user"}, description = "Connection user")
-  private String principal = null;
+  public String principal = null;
 
   @Parameter(names = "--password", converter = PasswordConverter.class,
       description = "Enter the connection password", password = true)
   private Password securePassword = null;
 
   public AuthenticationToken getToken() {
-    return ClientProperty.getAuthenticationToken(getClientProperties());
+    return ClientProperty.getAuthenticationToken(getClientProps());
   }
 
   @Parameter(names = {"-auths", "--auths"}, converter = AuthConverter.class,
@@ -146,26 +136,6 @@ public class ClientOpts extends Help {
 
   private Properties cachedProps = null;
 
-  public String getPrincipal() {
-    return ClientProperty.AUTH_PRINCIPAL.getValue(getClientProperties());
-  }
-
-  public void setPrincipal(String principal) {
-    this.principal = principal;
-  }
-
-  public void setClientProperties(Properties clientProps) {
-    ClientProperty.validate(clientProps);
-    this.cachedProps = clientProps;
-  }
-
-  /**
-   * @return {@link AccumuloClient} that must be closed by user
-   */
-  public AccumuloClient createClient() {
-    return Accumulo.newClient().from(getClientProperties()).build();
-  }
-
   public String getClientConfigFile() {
     if (clientConfigFile == null) {
       URL clientPropsUrl = ClientOpts.class.getClassLoader()
@@ -177,7 +147,7 @@ public class ClientOpts extends Help {
     return clientConfigFile;
   }
 
-  public Properties getClientProperties() {
+  public Properties getClientProps() {
     if (cachedProps == null) {
       cachedProps = new Properties();
       if (getClientConfigFile() != null) {

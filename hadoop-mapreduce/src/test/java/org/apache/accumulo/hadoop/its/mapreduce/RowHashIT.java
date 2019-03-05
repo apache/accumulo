@@ -41,7 +41,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloOutputFormat;
-import org.apache.accumulo.hadoopImpl.mapreduce.lib.MapReduceClientOnRequiredTable;
+import org.apache.accumulo.hadoopImpl.mapreduce.lib.MapReduceClientOpts;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
@@ -128,9 +128,11 @@ public class RowHashIT extends ConfigurableMacBase {
       public void setup(Context job) {}
     }
 
-    public class Opts extends MapReduceClientOnRequiredTable {
+    public class Opts extends MapReduceClientOpts {
       @Parameter(names = "--column", required = true)
       String column;
+      @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
+      String tableName;
     }
 
     @Override
@@ -141,15 +143,14 @@ public class RowHashIT extends ConfigurableMacBase {
       RowHash.Opts opts = new RowHash.Opts();
       opts.parseArgs(RowHash.class.getName(), args);
       job.setInputFormatClass(AccumuloInputFormat.class);
-      opts.setAccumuloConfigs(job);
 
       String col = opts.column;
       int idx = col.indexOf(":");
       Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
       Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
       if (cf.getLength() > 0)
-        AccumuloInputFormat.configure().clientProperties(opts.getClientProperties())
-            .table(opts.getTableName()).auths(Authorizations.EMPTY)
+        AccumuloInputFormat.configure().clientProperties(opts.getClientProps())
+            .table(opts.tableName).auths(Authorizations.EMPTY)
             .fetchColumns(Collections.singleton(new IteratorSetting.Column(cf, cq))).store(job);
 
       job.setMapperClass(RowHash.HashDataMapper.class);
@@ -159,7 +160,7 @@ public class RowHashIT extends ConfigurableMacBase {
       job.setNumReduceTasks(0);
 
       job.setOutputFormatClass(AccumuloOutputFormat.class);
-      AccumuloOutputFormat.configure().clientProperties(opts.getClientProperties()).store(job);
+      AccumuloOutputFormat.configure().clientProperties(opts.getClientProps()).store(job);
 
       job.waitForCompletion(true);
       return job.isSuccessful() ? 0 : 1;

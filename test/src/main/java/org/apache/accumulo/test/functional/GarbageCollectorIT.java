@@ -58,6 +58,7 @@ import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -109,17 +110,14 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void gcTest() throws Exception {
     killMacGc();
+    final String table = "test_ingest";
     try (AccumuloClient c = createClient()) {
-      c.tableOperations().create("test_ingest");
-      c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
-      TestIngest.Opts opts = new TestIngest.Opts();
-      VerifyIngest.Opts vopts = new VerifyIngest.Opts();
-      vopts.rows = opts.rows = 10000;
-      vopts.cols = opts.cols = 1;
-      opts.setClientProperties(getClientProperties());
-      vopts.setClientProperties(getClientProperties());
-      TestIngest.ingest(c, cluster.getFileSystem(), opts);
-      c.tableOperations().compact("test_ingest", null, null, true, true);
+      c.tableOperations().create(table);
+      c.tableOperations().setProperty(table, Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
+      VerifyParams params = new VerifyParams(getClientProperties(), table, 10_000);
+      params.cols = 1;
+      TestIngest.ingest(c, cluster.getFileSystem(), params);
+      c.tableOperations().compact(table, null, null, true, true);
       int before = countFiles();
       while (true) {
         sleepUninterruptibly(1, TimeUnit.SECONDS);
@@ -133,7 +131,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       getCluster().start();
       sleepUninterruptibly(15, TimeUnit.SECONDS);
       int after = countFiles();
-      VerifyIngest.verifyIngest(c, vopts);
+      VerifyIngest.verifyIngest(c, params);
       assertTrue(after < before);
     }
   }
