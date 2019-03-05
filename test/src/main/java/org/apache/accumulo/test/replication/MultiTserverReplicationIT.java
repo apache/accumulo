@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -56,7 +57,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
   @Test
   public void tserverReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
-    AccumuloClient client = createClient();
+    AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build();
     ClientContext context = (ClientContext) client;
 
     // Wait for a tserver to come up to fulfill this request
@@ -94,7 +95,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
   @Test
   public void masterReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
-    AccumuloClient client = createClient();
+    AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build();
     ClientContext context = (ClientContext) client;
 
     // Wait for a tserver to come up to fulfill this request

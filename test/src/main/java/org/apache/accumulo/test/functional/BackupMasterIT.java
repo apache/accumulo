@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -41,7 +42,7 @@ public class BackupMasterIT extends ConfigurableMacBase {
     UtilWaitThread.sleep(1000);
     // create a backup
     Process backup = exec(Master.class);
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String secret = getCluster().getSiteConfiguration().get(Property.INSTANCE_SECRET);
       IZooReaderWriter writer = new ZooReaderWriterFactory()
           .getZooReaderWriter(cluster.getZooKeepers(), 30 * 1000, secret);

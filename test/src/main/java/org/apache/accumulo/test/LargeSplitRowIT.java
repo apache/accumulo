@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -67,7 +68,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // make a table and lower the TABLE_END_ROW_MAX_SIZE property
     final String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       client.tableOperations().create(tableName);
       client.tableOperations().setProperty(tableName, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
           "1000");
@@ -121,7 +122,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // make a table and lower the configure properties
     final String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       client.tableOperations().create(tableName);
       client.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(),
           "10K");
@@ -180,7 +181,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   @Test(timeout = 60 * 1000)
   public void automaticSplitWithGaps() throws Exception {
     log.info("Automatic Split With Gaps");
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       automaticSplit(client, 30, 2);
     }
   }
@@ -189,7 +190,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   @Test(timeout = 60 * 1000)
   public void automaticSplitWithoutGaps() throws Exception {
     log.info("Automatic Split Without Gaps");
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       automaticSplit(client, 15, 1);
     }
   }
@@ -197,7 +198,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   @Test(timeout = 60 * 1000)
   public void automaticSplitLater() throws Exception {
     log.info("Split later");
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       automaticSplit(client, 15, 1);
 
       String tableName = new String();

@@ -18,6 +18,7 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -53,7 +54,7 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
     // not yet, please
     String tableName = getUniqueNames(1)[0];
     cluster.getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       c.tableOperations().create(tableName);
       // count the number of WALs in the filesystem
       assertEquals(2, countWALsInFS(cluster));

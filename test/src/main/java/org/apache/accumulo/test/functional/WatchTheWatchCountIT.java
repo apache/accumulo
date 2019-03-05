@@ -19,8 +19,11 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertTrue;
 
 import java.net.Socket;
+import java.util.Properties;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -47,13 +50,14 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
       justification = "unencrypted socket is okay for testing")
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    Properties props = getClientProperties();
+    try (AccumuloClient c = Accumulo.newClient().from(props).build()) {
       String[] tableNames = getUniqueNames(3);
       for (String tableName : tableNames) {
         c.tableOperations().create(tableName);
       }
       c.tableOperations().list();
-      String zooKeepers = getClientInfo().getZooKeepers();
+      String zooKeepers = ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props);
       final long MIN = 475L;
       final long MAX = 700L;
       long total = 0;

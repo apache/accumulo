@@ -23,6 +23,7 @@ import java.security.SecureRandom;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -56,7 +57,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
     Random random = new SecureRandom();
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
           "" + SMALL_QUEUE_SIZE);
       String tableName = getUniqueNames(1)[0];

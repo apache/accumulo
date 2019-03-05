@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -106,7 +107,7 @@ public class MergeStateIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     ServerContext context = getServerContext();
-    try (AccumuloClient accumuloClient = createClient()) {
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProperties()).build()) {
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
           MetadataTable.NAME, TablePermission.WRITE);
       BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME,

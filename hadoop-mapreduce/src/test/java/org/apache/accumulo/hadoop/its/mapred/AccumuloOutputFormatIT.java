@@ -70,9 +70,9 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
   // Prevent regression of ACCUMULO-3709.
   @Test
   public void testMapred() throws Exception {
-    try (AccumuloClient accumuloClient = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // create a table and put some data in it
-      accumuloClient.tableOperations().create(testName.getMethodName());
+      client.tableOperations().create(testName.getMethodName());
 
       JobConf job = new JobConf();
       BatchWriterConfig batchConfig = new BatchWriterConfig();
@@ -83,8 +83,9 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       // set the max memory so that we ensure we don't flush on the write.
       batchConfig.setMaxMemory(Long.MAX_VALUE);
       AccumuloOutputFormat outputFormat = new AccumuloOutputFormat();
-      AccumuloOutputFormat.configure().clientProperties(getClientInfo(batchConfig).getProperties())
-          .store(job);
+      Properties props = Accumulo.newClientProperties().from(getClientProperties())
+          .batchWriterConfig(batchConfig).build();
+      AccumuloOutputFormat.configure().clientProperties(props).store(job);
       RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(null, job, "Test", null);
 
       try {
@@ -101,7 +102,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
         // we don't want the exception to come from write
       }
 
-      accumuloClient.securityOperations().revokeTablePermission("root", testName.getMethodName(),
+      client.securityOperations().revokeTablePermission("root", testName.getMethodName(),
           TablePermission.WRITE);
 
       try {
@@ -200,7 +201,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
   @Test
   public void testMR() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String instanceName = getCluster().getInstanceName();
       String table1 = instanceName + "_t1";
       String table2 = instanceName + "_t2";

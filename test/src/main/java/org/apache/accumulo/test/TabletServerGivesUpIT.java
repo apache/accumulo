@@ -22,6 +22,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -45,7 +46,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
 
   @Test(timeout = 45 * 1000)
   public void test() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       while (client.instanceOperations().getTabletServers().isEmpty()) {
         // Wait until at least one tablet server is up
         Thread.sleep(100);

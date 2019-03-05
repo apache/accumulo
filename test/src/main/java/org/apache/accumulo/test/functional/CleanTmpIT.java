@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -64,7 +65,7 @@ public class CleanTmpIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       // make a table
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);

@@ -21,6 +21,7 @@ import java.util.TreeSet;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -46,7 +47,7 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
     final String tableName = tableNames[0];
     // create a table with a bunch of splits
 
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       log.info("Creating table {}", tableName);
       c.tableOperations().create(tableName);
       final SortedSet<Text> splits = new TreeSet<>();

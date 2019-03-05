@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -161,7 +162,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   @Before
   public void resetInstance() throws Exception {
-    client = createClient();
+    client = Accumulo.newClient().from(getClientProperties()).build();
 
     removeUsersAndTables();
 

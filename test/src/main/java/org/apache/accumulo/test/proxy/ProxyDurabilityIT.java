@@ -30,6 +30,7 @@ import java.util.Properties;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -84,13 +85,13 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
   @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "test password is okay")
   @Test
   public void testDurability() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       Properties proxyProps = new Properties();
       // Avoid issues with locally installed client configuration files with custom properties
       File emptyFile = Files.createTempFile(null, null).toFile();
       emptyFile.deleteOnExit();
       proxyProps.put("tokenClass", PasswordToken.class.getName());
-      proxyProps.putAll(getClientInfo().getProperties());
+      proxyProps.putAll(getClientProperties());
 
       TJSONProtocol.Factory protocol = new TJSONProtocol.Factory();
 

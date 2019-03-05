@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -72,9 +73,10 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
   // Prevent regression of ACCUMULO-3709.
   @Test
   public void testMapred() throws Exception {
-    try (AccumuloClient accumuloClient = createClient()) {
+    Properties props = getClientProperties();
+    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
       // create a table and put some data in it
-      accumuloClient.tableOperations().create(testName.getMethodName());
+      client.tableOperations().create(testName.getMethodName());
 
       JobConf job = new JobConf();
       BatchWriterConfig batchConfig = new BatchWriterConfig();
@@ -85,7 +87,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       // set the max memory so that we ensure we don't flush on the write.
       batchConfig.setMaxMemory(Long.MAX_VALUE);
       org.apache.accumulo.core.client.mapred.AccumuloOutputFormat outputFormat = new org.apache.accumulo.core.client.mapred.AccumuloOutputFormat();
-      ClientInfo ci = getClientInfo();
+      ClientInfo ci = ClientInfo.from(props);
       org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setZooKeeperInstance(job,
           ci.getInstanceName(), ci.getZooKeepers());
       org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setConnectorInfo(job,
@@ -108,7 +110,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
         // we don't want the exception to come from write
       }
 
-      accumuloClient.securityOperations().revokeTablePermission("root", testName.getMethodName(),
+      client.securityOperations().revokeTablePermission("root", testName.getMethodName(),
           TablePermission.WRITE);
 
       try {
@@ -215,7 +217,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
   @Test
   public void testMR() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String instanceName = getCluster().getInstanceName();
       String table1 = instanceName + "_t1";
       String table2 = instanceName + "_t2";

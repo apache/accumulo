@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.commons.io.FileUtils;
@@ -57,7 +58,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
     List<Thread> threads = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       Thread reader = new Thread(() -> {
-        try (AccumuloClient client = createClient()) {
+        try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
           CacheTestReader.main(new String[] {pathName, testDir.getAbsolutePath(),
               ClientInfo.from(client.properties()).getZooKeepers()});
         } catch (Exception ex) {

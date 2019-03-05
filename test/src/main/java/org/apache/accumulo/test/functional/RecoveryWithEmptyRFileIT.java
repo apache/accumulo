@@ -20,9 +20,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Map.Entry;
+import java.util.Properties;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -51,9 +54,8 @@ import org.slf4j.LoggerFactory;
 public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(RecoveryWithEmptyRFileIT.class);
 
-  static final int ROWS = 200000;
-  static final int COLS = 1;
-  static final String COLF = "colf";
+  private static final int ROWS = 200000;
+  private static final int COLS = 1;
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -69,17 +71,19 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
   public void replaceMissingRFile() throws Exception {
     log.info("Ingest some data, verify it was stored properly, replace an"
         + " underlying rfile with an empty one and verify we can scan.");
-    try (AccumuloClient accumuloClient = createClient()) {
+    Properties props = getClientProperties();
+    ClientInfo info = ClientInfo.from(props);
+    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
       String tableName = getUniqueNames(1)[0];
-      ReadWriteIT.ingest(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
-      ReadWriteIT.verify(accumuloClient, getClientInfo(), ROWS, COLS, 50, 0, tableName);
+      ReadWriteIT.ingest(client, info, ROWS, COLS, 50, 0, tableName);
+      ReadWriteIT.verify(client, info, ROWS, COLS, 50, 0, tableName);
 
-      accumuloClient.tableOperations().flush(tableName, null, null, true);
-      accumuloClient.tableOperations().offline(tableName, true);
+      client.tableOperations().flush(tableName, null, null, true);
+      client.tableOperations().offline(tableName, true);
 
       log.debug("Replacing rfile(s) with empty");
-      try (Scanner meta = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
+      try (Scanner meta = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        String tableId = client.tableOperations().tableIdMap().get(tableName);
         meta.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
         meta.fetchColumnFamily(DataFileColumnFamily.NAME);
         boolean foundFile = false;
@@ -88,18 +92,18 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
           Path rfile = new Path(entry.getKey().getColumnQualifier().toString());
           log.debug("Removing rfile '{}'", rfile);
           cluster.getFileSystem().delete(rfile, false);
-          Process info = cluster.exec(CreateEmpty.class, rfile.toString()).getProcess();
-          assertEquals(0, info.waitFor());
+          Process processInfo = cluster.exec(CreateEmpty.class, rfile.toString()).getProcess();
+          assertEquals(0, processInfo.waitFor());
         }
         assertTrue(foundFile);
       }
 
       log.trace("invalidate cached file handles by issuing a compaction");
-      accumuloClient.tableOperations().online(tableName, true);
-      accumuloClient.tableOperations().compact(tableName, null, null, false, true);
+      client.tableOperations().online(tableName, true);
+      client.tableOperations().compact(tableName, null, null, false, true);
 
       log.debug("make sure we can still scan");
-      try (Scanner scan = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
+      try (Scanner scan = client.createScanner(tableName, Authorizations.EMPTY)) {
         scan.setRange(new Range());
         long cells = 0L;
         for (Entry<Key,Value> entry : scan) {
@@ -110,5 +114,4 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
       }
     }
   }
-
 }
