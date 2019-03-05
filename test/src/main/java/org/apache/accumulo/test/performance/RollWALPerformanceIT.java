@@ -22,6 +22,7 @@ import static org.junit.Assume.assumeFalse;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -102,7 +103,7 @@ public class RollWALPerformanceIT extends ConfigurableMacBase {
 
   @Test
   public void testWalPerformanceOnce() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       // get time with a small WAL, which will cause many WAL roll-overs
       long avg1 = getAverage(c);
       // use a bigger WAL max size to eliminate WAL roll-overs

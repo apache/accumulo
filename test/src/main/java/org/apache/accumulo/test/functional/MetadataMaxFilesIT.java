@@ -24,6 +24,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.MasterClient;
@@ -60,7 +61,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 0; i < 1000; i++) {
         splits.add(new Text(String.format("%03d", i)));

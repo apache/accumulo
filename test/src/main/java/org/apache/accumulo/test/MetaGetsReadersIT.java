@@ -28,6 +28,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -80,7 +81,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
   @Test(timeout = 2 * 60 * 1000)
   public void test() throws Exception {
     final String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       c.tableOperations().create(tableName);
       Random random = new SecureRandom();
       BatchWriter bw = c.createBatchWriter(tableName, null);

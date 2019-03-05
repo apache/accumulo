@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -55,7 +56,7 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     Process tracer = null;
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       if (!client.tableOperations().exists("trace")) {
         MiniAccumuloClusterImpl mac = cluster;
         tracer = mac.exec(TraceServer.class).getProcess();
@@ -73,7 +74,7 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
 
       log.info("Start a distributed trace span");
 
-      TraceUtil.enableClientTraces("localhost", "testTrace", getClientInfo().getProperties());
+      TraceUtil.enableClientTraces("localhost", "testTrace", getClientProperties());
       long rootTraceId;
       try (TraceScope root = Trace.startSpan("traceTest", Sampler.ALWAYS)) {
         rootTraceId = root.getSpan().getTraceId();

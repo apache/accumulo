@@ -26,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.data.Mutation;
@@ -96,7 +97,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   @Before
   public void init() throws Exception {
-    client = createClient();
+    client = Accumulo.newClient().from(getClientProperties()).build();
     assigner = new MockSequentialWorkAssigner(client);
     // grant ourselves write to the replication table
     client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,

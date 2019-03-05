@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -50,7 +51,7 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   @Before
   public void configureUpdater() {
-    client = createClient();
+    client = Accumulo.newClient().from(getClientProperties()).build();
     updater = new FinishedWorkUpdater(client);
   }
 

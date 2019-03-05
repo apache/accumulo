@@ -31,6 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -92,7 +93,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
 
   @Test
   public void compareOldNewBulkImportTest() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       getCluster().getClusterControl().kill(ServerType.GARBAGE_COLLECTOR, "localhost");
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);

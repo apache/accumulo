@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -271,7 +272,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     log.info("Starting twoTablesPreferredVolumeChooser");
 
     // Create namespace
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       // Set properties on the namespace
       // namespace 1 -> v2
       configureNamespace(c, PreferredVolumeChooser.class.getName(), v2.toString(), namespace1);
@@ -293,21 +294,21 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     log.info("Starting twoTablesRandomVolumeChooser()");
 
     // Create namespace
-    try (AccumuloClient accumuloClient = createClient()) {
-      createAndVerify(accumuloClient, namespace1, v1 + "," + v2 + "," + v4);
-      createAndVerify(accumuloClient, namespace2, v1 + "," + v2 + "," + v4);
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      createAndVerify(client, namespace1, v1 + "," + v2 + "," + v4);
+      createAndVerify(client, namespace2, v1 + "," + v2 + "," + v4);
     }
   }
 
-  private void createAndVerify(AccumuloClient accumuloClient, String ns, String expectedVolumes)
+  private void createAndVerify(AccumuloClient client, String ns, String expectedVolumes)
       throws Exception {
-    accumuloClient.namespaceOperations().create(ns);
+    client.namespaceOperations().create(ns);
 
     // Set properties on the namespace
-    accumuloClient.namespaceOperations().setProperty(ns, PERTABLE_CHOOSER_PROP,
+    client.namespaceOperations().setProperty(ns, PERTABLE_CHOOSER_PROP,
         RandomVolumeChooser.class.getName());
 
-    verifyVolumesForWritesToNewTable(accumuloClient, ns, expectedVolumes);
+    verifyVolumesForWritesToNewTable(client, ns, expectedVolumes);
   }
 
   // Test that uses 2 tables with 10 split points each. The first uses the RandomVolumeChooser and
@@ -317,7 +318,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     log.info("Starting twoTablesDiffChoosers");
 
     // Create namespace
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       createAndVerify(c, namespace1, v1 + "," + v2 + "," + v4);
       configureNamespace(c, PreferredVolumeChooser.class.getName(), v1.toString(), namespace2);
       // Create table2 on namespace2
@@ -328,13 +329,13 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   @Test
   public void includeSpecialVolumeForTable() throws Exception {
     log.info("Starting includeSpecialVolumeForTable");
-    try (AccumuloClient accumuloClient = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
       // the following table will be configured to go to the excluded volume
       String configuredVolumes = v4.toString();
-      configureNamespace(accumuloClient, PreferredVolumeChooser.class.getName(), configuredVolumes,
+      configureNamespace(client, PreferredVolumeChooser.class.getName(), configuredVolumes,
           namespace2);
-      verifyVolumesForWritesToNewTable(accumuloClient, namespace2, configuredVolumes);
+      verifyVolumesForWritesToNewTable(client, namespace2, configuredVolumes);
     }
   }
 
@@ -342,14 +343,14 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   public void waLogsSentToConfiguredVolumes() throws Exception {
     log.info("Starting waLogsSentToConfiguredVolumes");
 
-    try (AccumuloClient accumuloClient = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = "anotherTable";
-      accumuloClient.tableOperations().create(tableName);
+      client.tableOperations().create(tableName);
 
-      VolumeChooserIT.addSplits(accumuloClient, tableName);
-      VolumeChooserIT.writeDataToTable(accumuloClient, tableName, alpha_rows);
+      VolumeChooserIT.addSplits(client, tableName);
+      VolumeChooserIT.writeDataToTable(client, tableName, alpha_rows);
       // should only go to v2 as per configuration in configure()
-      VolumeChooserIT.verifyWaLogVolumes(accumuloClient, new Range(), v2.toString());
+      VolumeChooserIT.verifyWaLogVolumes(client, new Range(), v2.toString());
     }
   }
 }

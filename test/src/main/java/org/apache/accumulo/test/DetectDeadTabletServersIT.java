@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.MasterClient;
@@ -51,7 +52,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       log.info("verifying that everything is up");
       Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
 

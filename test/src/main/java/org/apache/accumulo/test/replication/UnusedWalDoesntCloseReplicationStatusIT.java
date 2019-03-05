@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -74,7 +75,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
   @Test
   public void test() throws Exception {
     File accumuloDir = this.getCluster().getConfig().getAccumuloDir();
-    final AccumuloClient client = createClient();
+    final AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build();
     final String tableName = getUniqueNames(1)[0];
 
     client.securityOperations().grantTablePermission("root", MetadataTable.NAME,

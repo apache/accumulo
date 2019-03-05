@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -156,7 +157,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
   @Test
   public void testExistingRunningInstance() throws Exception {
     final String table = getUniqueNames(1)[0];
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // Ensure that a master and tserver are up so the existing instance check won't fail.
       client.tableOperations().create(table);
       try (BatchWriter bw = client.createBatchWriter(table)) {

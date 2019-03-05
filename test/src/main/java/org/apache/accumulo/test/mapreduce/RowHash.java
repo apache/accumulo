@@ -21,17 +21,12 @@ import java.util.Base64;
 import java.util.Collections;
 
 import org.apache.accumulo.core.cli.ClientOpts;
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -39,11 +34,8 @@ import org.apache.hadoop.io.MD5Hash;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 
@@ -97,8 +89,8 @@ public class RowHash extends Configured implements Tool {
     AuthenticationToken token = opts.getToken();
     org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setConnectorInfo(job, principal,
         token);
-    org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setConnectorInfo(job,
-        principal, token);
+    org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setConnectorInfo(job, principal,
+        token);
     org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setInputTableName(job,
         opts.tableName);
     org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setScanAuthorizations(job,

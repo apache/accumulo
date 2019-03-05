@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.data.Mutation;
@@ -110,7 +111,7 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
   @Before
   public void init() throws Exception {
-    client = createClient();
+    client = Accumulo.newClient().from(getClientProperties()).build();
     assigner = new MockUnorderedWorkAssigner(client);
     ReplicationTable.setOnline(client);
     client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,

@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -51,7 +52,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void nondurableTableHasDurableWrites() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       // table default has no durability
       c.tableOperations().create(tableName);
@@ -69,7 +70,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void durableTableLosesNonDurableWrites() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       // table default is durable writes
       c.tableOperations().create(tableName);
@@ -101,7 +102,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void testConditionDurability() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       // table default is durable writes
       c.tableOperations().create(tableName);
@@ -120,7 +121,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test(timeout = 3 * 60 * 1000)
   public void testConditionDurability2() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       // table default is durable writes
       c.tableOperations().create(tableName);

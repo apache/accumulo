@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -124,7 +125,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    * Fetch all of the rfiles referenced by tablets in the metadata table for this table
    */
   private Set<String> getFilesForTable(String tableName) throws Exception {
-    final AccumuloClient client = createClient();
+    final AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build();
     final TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
 
     assertNotNull("Could not determine table ID for " + tableName, tableId);
@@ -152,7 +153,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
    * entries)
    */
   private Map<String,Status> getMetadataStatusForTable(String tableName) throws Exception {
-    final AccumuloClient client = createClient();
+    final AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build();
     final String tableId = client.tableOperations().tableIdMap().get(tableName);
 
     assertNotNull("Could not determine table ID for " + tableName, tableId);
@@ -177,7 +178,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
   @Test
   public void testActiveWalPrecludesClosing() throws Exception {
     final String table = getUniqueNames(1)[0];
-    final AccumuloClient client = createClient();
+    final AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build();
 
     // Bring the replication table online first and foremost
     ReplicationTable.setOnline(client);
@@ -269,7 +270,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     final String[] names = getUniqueNames(2);
     // `table` will be replicated, `otherTable` is only used to roll the WAL on the tserver
     final String table = names[0], otherTable = names[1];
-    final AccumuloClient client = createClient();
+    final AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build();
 
     // Bring the replication table online first and foremost
     ReplicationTable.setOnline(client);

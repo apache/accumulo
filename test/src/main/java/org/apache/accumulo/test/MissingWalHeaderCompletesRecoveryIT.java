@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -78,7 +79,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Before
   public void setupMetadataPermission() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       rootHasWritePermission = client.securityOperations().hasTablePermission("root",
           MetadataTable.NAME, TablePermission.WRITE);
       if (!rootHasWritePermission) {
@@ -92,7 +93,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @After
   public void resetMetadataPermission() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // Final state doesn't match the original
       if (rootHasWritePermission != client.securityOperations().hasTablePermission("root",
           MetadataTable.NAME, TablePermission.WRITE)) {
@@ -111,7 +112,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Test
   public void testEmptyWalRecoveryCompletes() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       MiniAccumuloClusterImpl cluster = getCluster();
       FileSystem fs = cluster.getFileSystem();
 
@@ -167,7 +168,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Test
   public void testPartialHeaderWalRecoveryCompletes() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       MiniAccumuloClusterImpl cluster = getCluster();
       FileSystem fs = getCluster().getFileSystem();
 

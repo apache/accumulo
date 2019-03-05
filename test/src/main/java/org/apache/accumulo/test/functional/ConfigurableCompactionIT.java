@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -90,7 +91,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
@@ -104,7 +105,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   @Test
   public void testPerTableClasspath() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       final String tableName = getUniqueNames(1)[0];
       File destFile = installJar(getCluster().getConfig().getAccumuloDir(),
           "/TestCompactionStrat.jar");

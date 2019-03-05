@@ -33,6 +33,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -111,7 +112,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   public void gcTest() throws Exception {
     killMacGc();
     final String table = "test_ingest";
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       c.tableOperations().create(table);
       c.tableOperations().setProperty(table, Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
       VerifyParams params = new VerifyParams(getClientProperties(), table, 10_000);
@@ -141,7 +142,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     killMacGc();
 
     log.info("Filling metadata table with bogus delete flags");
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       addEntries(c);
       cluster.getConfig().setDefaultMemory(10, MemoryUnit.MEGABYTE);
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
@@ -163,7 +164,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   public void dontGCRootLog() throws Exception {
     killMacGc();
     // dirty metadata
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String table = getUniqueNames(1)[0];
       c.tableOperations().create(table);
       // let gc run for a bit
@@ -193,7 +194,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void testInvalidDelete() throws Exception {
     killMacGc();
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String table = getUniqueNames(1)[0];
       c.tableOperations().create(table);
 
@@ -245,7 +246,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   @Test
   public void testProperPortAdvertisement() throws Exception {
 
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
       ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
       String path = ZooUtil.getRoot(client.instanceOperations().getInstanceID())

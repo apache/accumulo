@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -79,7 +80,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
   @Before
   public void setupInstance() throws Exception {
-    client = createClient();
+    client = Accumulo.newClient().from(getClientProperties()).build();
     ReplicationTable.setOnline(client);
     client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);

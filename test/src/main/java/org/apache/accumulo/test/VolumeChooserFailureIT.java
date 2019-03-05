@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -119,18 +120,18 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
     log.info("Starting missingVolumePreferredVolumeChooser");
 
     // Create namespace
-    try (AccumuloClient accumuloClient = createClient()) {
-      accumuloClient.namespaceOperations().create(namespace1);
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      client.namespaceOperations().create(namespace1);
 
       // Set properties on the namespace
-      accumuloClient.namespaceOperations().setProperty(namespace1, PERTABLE_CHOOSER_PROP,
+      client.namespaceOperations().setProperty(namespace1, PERTABLE_CHOOSER_PROP,
           PreferredVolumeChooser.class.getName());
       // deliberately do not set preferred volumes
 
       // Create table1 on namespace1 (will fail)
       String tableName = namespace1 + ".1";
       thrown.expect(AccumuloException.class);
-      accumuloClient.tableOperations().create(tableName);
+      client.tableOperations().create(tableName);
     }
   }
 
@@ -142,24 +143,24 @@ public class VolumeChooserFailureIT extends ConfigurableMacBase {
     log.info("Starting notInstancePreferredVolumeChooser");
 
     // Create namespace
-    try (AccumuloClient accumuloClient = createClient()) {
-      accumuloClient.namespaceOperations().create(namespace1);
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      client.namespaceOperations().create(namespace1);
 
       // Set properties on the namespace
       String propertyName = PERTABLE_CHOOSER_PROP;
       String volume = PreferredVolumeChooser.class.getName();
-      accumuloClient.namespaceOperations().setProperty(namespace1, propertyName, volume);
+      client.namespaceOperations().setProperty(namespace1, propertyName, volume);
 
       // set to v3 which is not included in the list of instance volumes, so it should go to the
       // system default preferred volumes
       propertyName = PREFERRED_CHOOSER_PROP;
       volume = v3.toString();
-      accumuloClient.namespaceOperations().setProperty(namespace1, propertyName, volume);
+      client.namespaceOperations().setProperty(namespace1, propertyName, volume);
 
       // Create table1 on namespace1 (will fail)
       String tableName = namespace1 + ".1";
       thrown.expect(AccumuloException.class);
-      accumuloClient.tableOperations().create(tableName);
+      client.tableOperations().create(tableName);
     }
   }
 

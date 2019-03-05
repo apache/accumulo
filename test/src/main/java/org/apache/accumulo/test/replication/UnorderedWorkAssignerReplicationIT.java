@@ -35,6 +35,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -180,7 +181,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     peerCluster.start();
 
-    try (AccumuloClient clientMaster = createClient();
+    try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
         AccumuloClient clientPeer = peerCluster.createAccumuloClient("root",
             new PasswordToken(ROOT_PASSWORD))) {
 
@@ -345,7 +346,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     peer1Cluster.start();
 
-    try (AccumuloClient clientMaster = createClient();
+    try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
         AccumuloClient clientPeer = peer1Cluster.createAccumuloClient("root",
             new PasswordToken(ROOT_PASSWORD))) {
 
@@ -520,7 +521,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     peerCluster.start();
 
-    try (AccumuloClient clientMaster = createClient();
+    try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
         AccumuloClient clientPeer = peerCluster.createAccumuloClient("root",
             new PasswordToken(ROOT_PASSWORD))) {
 
@@ -636,7 +637,7 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
     peer1Cluster.start();
 
-    try (AccumuloClient clientMaster = createClient();
+    try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
         AccumuloClient clientPeer = peer1Cluster.createAccumuloClient("root",
             new PasswordToken(ROOT_PASSWORD))) {
 

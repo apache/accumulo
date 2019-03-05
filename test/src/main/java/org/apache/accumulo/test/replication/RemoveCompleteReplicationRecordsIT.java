@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -73,7 +74,7 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
   @Before
   public void initialize() throws Exception {
-    client = createClient();
+    client = Accumulo.newClient().from(getClientProperties()).build();
     rcrr = new MockRemoveCompleteReplicationRecords(client);
     client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.READ);

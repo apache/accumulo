@@ -25,6 +25,7 @@ import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.conf.Property;
@@ -74,7 +75,7 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
   public void testSerializedRecovery() throws Exception {
     // make a table with many splits
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       c.tableOperations().create(tableName);
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 0; i < 200; i++) {

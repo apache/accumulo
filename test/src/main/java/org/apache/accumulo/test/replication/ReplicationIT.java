@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -215,7 +216,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void replicationTableCreated() {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       assertTrue(client.tableOperations().exists(ReplicationTable.NAME));
       assertEquals(ReplicationTable.ID.canonical(),
           client.tableOperations().tableIdMap().get(ReplicationTable.NAME));
@@ -225,7 +226,7 @@ public class ReplicationIT extends ConfigurableMacBase {
   @Test
   public void verifyReplicationTableConfig()
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       TableOperations tops = client.tableOperations();
       Map<String,EnumSet<IteratorScope>> iterators = tops.listIterators(ReplicationTable.NAME);
 
@@ -294,7 +295,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void correctRecordsCompleteFile() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String table = "table1";
       client.tableOperations().create(table);
       // If we have more than one tserver, this is subject to a race condition.
@@ -370,7 +371,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void noRecordsWithoutReplication() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       List<String> tables = new ArrayList<>();
 
       // replication shouldn't be online when we begin
@@ -410,7 +411,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void twoEntriesForTwoTables() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String table1 = "table1", table2 = "table2";
 
       // replication shouldn't exist when we begin
@@ -542,7 +543,7 @@ public class ReplicationIT extends ConfigurableMacBase {
   @Test
   public void replicationEntriesPrecludeWalDeletion() throws Exception {
     final ServerContext context = getServerContext();
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String table1 = "table1", table2 = "table2", table3 = "table3";
       final Multimap<String,TableId> logs = HashMultimap.create();
       final AtomicBoolean keepRunning = new AtomicBoolean(true);
@@ -657,7 +658,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void combinerWorksOnMetadata() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
       client.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
@@ -703,7 +704,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void noDeadlock() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
       ReplicationTable.setOnline(client);
       client.securityOperations().grantTablePermission("root", ReplicationTable.NAME,
@@ -748,7 +749,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void filesClosedAfterUnused() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
       String table = "table";
       client.tableOperations().create(table);
@@ -865,7 +866,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     // against expected Status messages.
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
 
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String table1 = "table1";
 
       // replication shouldn't be online when we begin
@@ -1037,7 +1038,7 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   @Test
   public void correctClusterNameInWorkEntry() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String table1 = "table1";
 
       // replication shouldn't be online when we begin
@@ -1122,7 +1123,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
 
     final ServerContext context = getServerContext();
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
       ReplicationTable.setOnline(client);
       client.securityOperations().grantTablePermission("root", ReplicationTable.NAME,
@@ -1300,7 +1301,7 @@ public class ReplicationIT extends ConfigurableMacBase {
     // Just stop it now, we'll restart it after we restart the tserver
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
 
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       log.info("Got client to MAC");
       String table1 = "table1";
 

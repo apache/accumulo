@@ -27,6 +27,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -59,7 +60,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
   @Test(timeout = 4 * 60 * 1000)
   public void testRecoveryOverMultipleTables() throws Exception {
     final int N = 3;
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       final String[] tables = getUniqueNames(N);
       final BatchWriter[] writers = new BatchWriter[N];
       final byte[][] values = new byte[N][];
@@ -116,7 +117,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
 
   private Thread agitator(final AtomicBoolean stop) {
     return new Thread(() -> {
-      try (AccumuloClient client = createClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
         int i = 0;
         while (!stop.get()) {
           sleepUninterruptibly(10, TimeUnit.SECONDS);

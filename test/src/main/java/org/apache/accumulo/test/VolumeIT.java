@@ -34,6 +34,7 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -126,27 +127,26 @@ public class VolumeIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     // create a table
-    try (AccumuloClient accumuloClient = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
-      accumuloClient.tableOperations().create(tableName);
+      client.tableOperations().create(tableName);
       SortedSet<Text> partitions = new TreeSet<>();
       // with some splits
       for (String s : "d,m,t".split(","))
         partitions.add(new Text(s));
-      accumuloClient.tableOperations().addSplits(tableName, partitions);
+      client.tableOperations().addSplits(tableName, partitions);
       // scribble over the splits
-      VolumeChooserIT.writeDataToTable(accumuloClient, tableName, VolumeChooserIT.alpha_rows);
+      VolumeChooserIT.writeDataToTable(client, tableName, VolumeChooserIT.alpha_rows);
       // write the data to disk, read it back
-      accumuloClient.tableOperations().flush(tableName, null, null, true);
-      try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
+      client.tableOperations().flush(tableName, null, null, true);
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         int i = 0;
         for (Entry<Key,Value> entry : scanner) {
           assertEquals(VolumeChooserIT.alpha_rows[i++], entry.getKey().getRow().toString());
         }
       }
       // verify the new files are written to the different volumes
-      try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME,
-          Authorizations.EMPTY)) {
+      try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         scanner.setRange(new Range("1", "1<"));
         scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
         int fileCount = 0;
@@ -158,7 +158,7 @@ public class VolumeIT extends ConfigurableMacBase {
           fileCount++;
         }
         assertEquals(4, fileCount);
-        List<DiskUsage> diskUsage = accumuloClient.tableOperations()
+        List<DiskUsage> diskUsage = client.tableOperations()
             .getDiskUsage(Collections.singleton(tableName));
         assertEquals(1, diskUsage.size());
         long usage = diskUsage.get(0).getUsage();
@@ -190,21 +190,21 @@ public class VolumeIT extends ConfigurableMacBase {
 
     List<String> expected = new ArrayList<>();
 
-    try (AccumuloClient accumuloClient = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
-      accumuloClient.tableOperations().create(tableName,
+      client.tableOperations().create(tableName,
           new NewTableConfiguration().withoutDefaultIterators());
 
-      TableId tableId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
 
       SortedSet<Text> partitions = new TreeSet<>();
       // with some splits
       for (String s : "c,g,k,p,s,v".split(","))
         partitions.add(new Text(s));
 
-      accumuloClient.tableOperations().addSplits(tableName, partitions);
+      client.tableOperations().addSplits(tableName, partitions);
 
-      BatchWriter bw = accumuloClient.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
 
       // create two files in each tablet
       for (String s : VolumeChooserIT.alpha_rows) {
@@ -215,7 +215,7 @@ public class VolumeIT extends ConfigurableMacBase {
       }
 
       bw.flush();
-      accumuloClient.tableOperations().flush(tableName, null, null, true);
+      client.tableOperations().flush(tableName, null, null, true);
 
       for (String s : VolumeChooserIT.alpha_rows) {
         Mutation m = new Mutation(s);
@@ -225,22 +225,20 @@ public class VolumeIT extends ConfigurableMacBase {
       }
 
       bw.close();
-      accumuloClient.tableOperations().flush(tableName, null, null, true);
+      client.tableOperations().flush(tableName, null, null, true);
 
-      verifyData(expected, accumuloClient.createScanner(tableName, Authorizations.EMPTY));
+      verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
 
-      accumuloClient.tableOperations().offline(tableName, true);
+      client.tableOperations().offline(tableName, true);
 
-      accumuloClient.securityOperations().grantTablePermission("root", MetadataTable.NAME,
+      client.securityOperations().grantTablePermission("root", MetadataTable.NAME,
           TablePermission.WRITE);
 
-      try (Scanner metaScanner = accumuloClient.createScanner(MetadataTable.NAME,
-          Authorizations.EMPTY)) {
+      try (Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
         metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
 
-        BatchWriter mbw = accumuloClient.createBatchWriter(MetadataTable.NAME,
-            new BatchWriterConfig());
+        BatchWriter mbw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
         for (Entry<Key,Value> entry : metaScanner) {
           String cq = entry.getKey().getColumnQualifier().toString();
@@ -258,13 +256,13 @@ public class VolumeIT extends ConfigurableMacBase {
 
         mbw.close();
 
-        accumuloClient.tableOperations().online(tableName, true);
+        client.tableOperations().online(tableName, true);
 
-        verifyData(expected, accumuloClient.createScanner(tableName, Authorizations.EMPTY));
+        verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
 
-        accumuloClient.tableOperations().compact(tableName, null, null, true, true);
+        client.tableOperations().compact(tableName, null, null, true, true);
 
-        verifyData(expected, accumuloClient.createScanner(tableName, Authorizations.EMPTY));
+        verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
 
         for (Entry<Key,Value> entry : metaScanner) {
           String cq = entry.getKey().getColumnQualifier().toString();
@@ -277,7 +275,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
   @Test
   public void testAddVolumes() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = getUniqueNames(2);
 
       PropertiesConfiguration conf = new PropertiesConfiguration();
@@ -319,7 +317,7 @@ public class VolumeIT extends ConfigurableMacBase {
     String[] tableNames = getUniqueNames(2);
     PropertiesConfiguration conf = new PropertiesConfiguration();
 
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String uuid = verifyAndShutdownCluster(client, conf, tableNames[0]);
 
       conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3);
@@ -457,7 +455,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
   @Test
   public void testRemoveVolumes() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = getUniqueNames(2);
 
       verifyVolumesUsed(client, tableNames[0], false, v1, v2);
@@ -560,14 +558,14 @@ public class VolumeIT extends ConfigurableMacBase {
 
   @Test
   public void testCleanReplaceVolumes() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       testReplaceVolume(client, true);
     }
   }
 
   @Test
   public void testDirtyReplaceVolumes() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       testReplaceVolume(client, false);
     }
   }

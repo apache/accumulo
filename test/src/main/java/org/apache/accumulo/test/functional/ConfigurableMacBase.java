@@ -27,10 +27,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -189,24 +185,10 @@ public class ConfigurableMacBase extends AccumuloITBase {
     return cluster;
   }
 
-  protected AccumuloClient createClient() {
-    return getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
-  }
-
   protected Properties getClientProperties() {
-    return getClientInfo().getProperties();
-  }
-
-  protected ClientInfo getClientInfo() {
-    return ClientInfo.from(Accumulo.newClientProperties()
+    return Accumulo.newClientProperties()
         .to(getCluster().getInstanceName(), getCluster().getZooKeepers()).as("root", ROOT_PASSWORD)
-        .build());
-  }
-
-  protected ClientInfo getClientInfo(BatchWriterConfig bwConfig) {
-    return ClientInfo.from(Accumulo.newClientProperties()
-        .to(getCluster().getInstanceName(), getCluster().getZooKeepers()).as("root", ROOT_PASSWORD)
-        .batchWriterConfig(bwConfig).build());
+        .build();
   }
 
   protected ServerContext getServerContext() {

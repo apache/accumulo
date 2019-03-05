@@ -16,7 +16,11 @@
  */
 package org.apache.accumulo.test.functional;
 
+import java.util.Properties;
+
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -42,7 +46,7 @@ public class SslIT extends ConfigurableMacBase {
 
   @Test
   public void binary() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
       BinaryIT.runTest(client, tableName);
@@ -51,22 +55,23 @@ public class SslIT extends ConfigurableMacBase {
 
   @Test
   public void concurrency() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       ConcurrencyIT.runTest(client, getUniqueNames(1)[0]);
     }
   }
 
   @Test
   public void adminStop() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       ShutdownIT.runAdminStopTest(client, getCluster());
     }
   }
 
   @Test
   public void bulk() throws Exception {
-    try (AccumuloClient client = createClient()) {
-      BulkIT.runTest(client, getClientInfo(), cluster.getFileSystem(),
+    Properties props = getClientProperties();
+    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
+      BulkIT.runTest(client, ClientInfo.from(props), cluster.getFileSystem(),
           new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"),
           getUniqueNames(1)[0], this.getClass().getName(), testName.getMethodName(), true);
     }
@@ -75,7 +80,7 @@ public class SslIT extends ConfigurableMacBase {
   @SuppressWarnings("deprecation")
   @Test
   public void mapReduce() throws Exception {
-    try (AccumuloClient client = createClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // testing old mapreduce code from core jar; the new mapreduce module should have its own test
       // case which checks functionality with ssl enabled
       org.apache.accumulo.test.mapreduce.MapReduceIT.runTest(client, getCluster());

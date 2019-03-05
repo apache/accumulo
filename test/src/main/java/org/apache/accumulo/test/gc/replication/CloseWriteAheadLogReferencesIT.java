@@ -29,6 +29,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -80,7 +81,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
 
   @Before
   public void setupInstance() throws Exception {
-    client = createClient();
+    client = Accumulo.newClient().from(getClientProperties()).build();
     client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
     client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,

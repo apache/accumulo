@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.util.Admin;
@@ -75,7 +76,7 @@ public class ShutdownIT extends ConfigurableMacBase {
 
   @Test
   public void shutdownDuringDeleteTable() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       for (int i = 0; i < 10; i++) {
         c.tableOperations().create("table" + i);
       }
@@ -103,7 +104,7 @@ public class ShutdownIT extends ConfigurableMacBase {
 
   @Test
   public void adminStop() throws Exception {
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       runAdminStopTest(c, cluster);
     }
   }
