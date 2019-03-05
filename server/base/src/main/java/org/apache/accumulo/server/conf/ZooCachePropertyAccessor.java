@@ -85,6 +85,10 @@ public class ZooCachePropertyAccessor {
     return propCache;
   }
 
+  boolean isPropertySet(Property property, String path) {
+    return propCache.get(path + "/" + property.getKey()) != null;
+  }
+
   /**
    * Gets a property. If the property is not in ZooKeeper or is present but an invalid format for
    * the property type, the parent configuration is consulted (if provided).

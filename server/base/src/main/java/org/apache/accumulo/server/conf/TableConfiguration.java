@@ -120,6 +120,18 @@ public class TableConfiguration extends ObservableConfiguration {
   }
 
   @Override
+  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
+    if (!cacheAndWatch)
+      throw new UnsupportedOperationException(
+          "Table configuration only supports checking if a property is set in cache.");
+
+    if (getPropCacheAccessor().isPropertySet(prop, getPath()))
+      return true;
+
+    return parent.isPropertySet(prop, cacheAndWatch);
+  }
+
+  @Override
   public String get(Property property) {
     return getPropCacheAccessor().get(property, getPath(), parent);
   }

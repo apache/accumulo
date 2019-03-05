@@ -88,6 +88,18 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   }
 
   @Override
+  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
+    if (!cacheAndWatch)
+      throw new UnsupportedOperationException(
+          "Namespace configuration only supports checking if a property is set in cache.");
+
+    if (getPropCacheAccessor().isPropertySet(prop, getPath()))
+      return true;
+
+    return parent.isPropertySet(prop, cacheAndWatch);
+  }
+
+  @Override
   public String get(Property property) {
     String key = property.getKey();
     AccumuloConfiguration getParent;
