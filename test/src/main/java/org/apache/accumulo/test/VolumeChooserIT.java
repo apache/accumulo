@@ -33,7 +33,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
@@ -163,13 +162,13 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   public static void writeDataToTable(AccumuloClient accumuloClient, String tableName,
       String[] rows) throws Exception {
     // Write some data to the table
-    BatchWriter bw = accumuloClient.createBatchWriter(tableName, new BatchWriterConfig());
-    for (String s : rows) {
-      Mutation m = new Mutation(new Text(s));
-      m.put(EMPTY, EMPTY, EMPTY_VALUE);
-      bw.addMutation(m);
+    try (BatchWriter bw = accumuloClient.createBatchWriter(tableName)) {
+      for (String s : rows) {
+        Mutation m = new Mutation(new Text(s));
+        m.put(EMPTY, EMPTY, EMPTY_VALUE);
+        bw.addMutation(m);
+      }
     }
-    bw.close();
   }
 
   public static void verifyVolumes(AccumuloClient accumuloClient, Range tableRange, String vol)

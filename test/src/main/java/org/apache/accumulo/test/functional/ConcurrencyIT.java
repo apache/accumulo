@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -108,7 +107,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
         EnumSet.of(IteratorScope.minc, IteratorScope.majc));
     c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
 
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter(tableName);
     for (int i = 0; i < 50; i++) {
       Mutation m = new Mutation(new Text(String.format("%06d", i)));
       m.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(UTF_8)));

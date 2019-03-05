@@ -25,7 +25,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -148,18 +147,19 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(table1);
       c.tableOperations().create(table2);
-      BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
-      BatchWriter bw2 = c.createBatchWriter(table2, new BatchWriterConfig());
-      for (int i = 0; i < 100; i++) {
-        Mutation t1m = new Mutation(new Text(String.format("%s_%09x", table1, i + 1)));
-        t1m.put(new Text(), new Text(), new Value(String.format("%s_%09x", table1, i).getBytes()));
-        bw.addMutation(t1m);
-        Mutation t2m = new Mutation(new Text(String.format("%s_%09x", table2, i + 1)));
-        t2m.put(new Text(), new Text(), new Value(String.format("%s_%09x", table2, i).getBytes()));
-        bw2.addMutation(t2m);
+      try (BatchWriter bw = c.createBatchWriter(table1);
+          BatchWriter bw2 = c.createBatchWriter(table2)) {
+        for (int i = 0; i < 100; i++) {
+          Mutation t1m = new Mutation(new Text(String.format("%s_%09x", table1, i + 1)));
+          t1m.put(new Text(), new Text(),
+              new Value(String.format("%s_%09x", table1, i).getBytes()));
+          bw.addMutation(t1m);
+          Mutation t2m = new Mutation(new Text(String.format("%s_%09x", table2, i + 1)));
+          t2m.put(new Text(), new Text(),
+              new Value(String.format("%s_%09x", table2, i).getBytes()));
+          bw2.addMutation(t2m);
+        }
       }
-      bw.close();
-      bw2.close();
 
       MRTester.main(new String[] {table1, table2});
       assertNull(e1);

@@ -213,7 +213,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
       ranges.add(range);
     }
 
-    try (BatchScanner bs = c.createBatchScanner(table, Authorizations.EMPTY, 1)) {
+    try (BatchScanner bs = c.createBatchScanner(table)) {
       bs.setRanges(ranges);
 
       long t1 = System.currentTimeMillis();

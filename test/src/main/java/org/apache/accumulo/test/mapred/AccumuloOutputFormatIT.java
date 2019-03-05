@@ -223,13 +223,13 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       String table2 = instanceName + "_t2";
       c.tableOperations().create(table1);
       c.tableOperations().create(table2);
-      BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
-      for (int i = 0; i < 100; i++) {
-        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(table1)) {
+        for (int i = 0; i < 100; i++) {
+          Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+          m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+          bw.addMutation(m);
+        }
       }
-      bw.close();
 
       MRTester.main(new String[] {"root", ROOT_PASSWORD, table1, table2, instanceName,
           getCluster().getZooKeepers()});

@@ -25,7 +25,6 @@ import java.io.File;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
@@ -88,18 +87,18 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       c.tableOperations().create(EMPTY_TABLE);
       c.tableOperations().create(TEST_TABLE);
       c.tableOperations().create(BAD_TABLE);
-      BatchWriter bw = c.createBatchWriter(TEST_TABLE, new BatchWriterConfig());
-      Mutation m = new Mutation("Key");
-      m.put("", "", "");
-      bw.addMutation(m);
-      bw.close();
-      bw = c.createBatchWriter(BAD_TABLE, new BatchWriterConfig());
-      m = new Mutation("r1");
-      m.put("cf1", "cq1", "A&B");
-      m.put("cf1", "cq1", "A&B");
-      m.put("cf1", "cq2", "A&");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = c.createBatchWriter(TEST_TABLE)) {
+        Mutation m = new Mutation("Key");
+        m.put("", "", "");
+        bw.addMutation(m);
+      }
+      try (BatchWriter bw = c.createBatchWriter(BAD_TABLE)) {
+        Mutation m = new Mutation("r1");
+        m.put("cf1", "cq1", "A&B");
+        m.put("cf1", "cq1", "A&B");
+        m.put("cf1", "cq2", "A&");
+        bw.addMutation(m);
+      }
     }
   }
 

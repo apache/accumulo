@@ -83,13 +83,13 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
       }
       c.tableOperations().addSplits(tableName, splits);
       // load data to give the recovery something to do
-      BatchWriter bw = c.createBatchWriter(tableName, null);
-      for (int i = 0; i < 50000; i++) {
-        Mutation m = new Mutation(randomHex(8));
-        m.put("", "", "");
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < 50000; i++) {
+          Mutation m = new Mutation(randomHex(8));
+          m.put("", "", "");
+          bw.addMutation(m);
+        }
       }
-      bw.close();
       // kill the tserver
       for (ProcessReference ref : getCluster().getProcesses().get(ServerType.TABLET_SERVER))
         getCluster().killProcess(ServerType.TABLET_SERVER, ref);

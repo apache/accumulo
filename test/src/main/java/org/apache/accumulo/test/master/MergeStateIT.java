@@ -99,9 +99,9 @@ public class MergeStateIT extends ConfigurableMacBase {
 
   private static void update(AccumuloClient c, Mutation m)
       throws TableNotFoundException, MutationsRejectedException {
-    BatchWriter bw = c.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = c.createBatchWriter(MetadataTable.NAME)) {
+      bw.addMutation(m);
+    }
   }
 
   @Test
@@ -202,7 +202,6 @@ public class MergeStateIT extends ConfigurableMacBase {
       // now we can split
       stats = scan(state, metaDataStateStore);
       assertEquals(MergeState.MERGING, stats.nextMergeState(accumuloClient, state));
-
     }
   }
 

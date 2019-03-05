@@ -36,7 +36,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -320,13 +319,11 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
     byte[] data1 = new byte[size];
     rand.nextBytes(data1);
 
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-
-    Mutation m1 = new Mutation("r" + rand.nextInt(909090));
-    m1.put("data", "bl0b", new Value(data1));
-
-    bw.addMutation(m1);
-    bw.close();
+    try (BatchWriter bw = c.createBatchWriter(tableName)) {
+      Mutation m1 = new Mutation("r" + rand.nextInt(909090));
+      m1.put("data", "bl0b", new Value(data1));
+      bw.addMutation(m1);
+    }
     c.tableOperations().flush(tableName, null, null, true);
   }
 
@@ -340,11 +337,11 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   }
 
   private void writeFlush(AccumuloClient client, String tablename, String row) throws Exception {
-    BatchWriter bw = client.createBatchWriter(tablename, new BatchWriterConfig());
-    Mutation m = new Mutation(row);
-    m.put("", "", "");
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = client.createBatchWriter(tablename)) {
+      Mutation m = new Mutation(row);
+      m.put("", "", "");
+      bw.addMutation(m);
+    }
     client.tableOperations().flush(tablename, null, null, true);
   }
 }

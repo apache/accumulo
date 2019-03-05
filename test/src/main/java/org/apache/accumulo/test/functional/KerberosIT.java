@@ -427,7 +427,7 @@ public class KerberosIT extends AccumuloITBase {
     int recordsSeen = userWithoutPrivs.doAs((PrivilegedExceptionAction<Integer>) () -> {
       AccumuloClient client = mac.createAccumuloClient(rootUser.getPrincipal(), delegationToken);
 
-      try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
+      try (BatchScanner bs = client.createBatchScanner(tableName)) {
         bs.setRanges(Collections.singleton(new Range()));
         return Iterables.size(bs);
       }

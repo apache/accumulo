@@ -27,7 +27,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -66,7 +65,7 @@ public class SplitCancelsMajCIT extends SharedMiniClusterBase {
       IteratorSetting it = new IteratorSetting(100, SlowIterator.class);
       SlowIterator.setSleepTime(it, 500);
       c.tableOperations().attachIterator(tableName, it, EnumSet.of(IteratorScope.majc));
-      try (BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig())) {
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 100; i++) {
           Mutation m = new Mutation("" + i);
           m.put("", "", new Value());

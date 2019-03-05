@@ -23,7 +23,6 @@ import java.util.Map.Entry;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -66,26 +65,23 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100");
       c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "3");
       // create 3 flush files
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-      Mutation m = new Mutation("a");
-      m.put("b", "c", new Value("v".getBytes()));
-      for (int i = 0; i < 3; i++) {
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("a");
+        m.put("b", "c", new Value("v".getBytes()));
+        for (int i = 0; i < 3; i++) {
+          bw.addMutation(m);
+          bw.flush();
+          c.tableOperations().flush(tableName, null, null, true);
+        }
+        // create an unsaved mutation
         bw.addMutation(m);
-        bw.flush();
-        c.tableOperations().flush(tableName, null, null, true);
       }
-      // create an unsaved mutation
-      bw.addMutation(m);
-      bw.close();
 
       ClusterControl control = cluster.getClusterControl();
-
       // kill the tablet servers
       control.stopAllServers(ServerType.TABLET_SERVER);
-
       // recover
       control.startAllServers(ServerType.TABLET_SERVER);
-
       // ensure the table is readable
       Iterators.size(c.createScanner(tableName, Authorizations.EMPTY).iterator());
 

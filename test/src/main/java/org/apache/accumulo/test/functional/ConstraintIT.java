@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
@@ -90,7 +89,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
   }
 
   private void test1(AccumuloClient client, String tableName) throws Exception {
-    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(tableName);
 
     Mutation mut1 = new Mutation(new Text("r1"));
     mut1.put(new Text("cf1"), new Text("cq1"), new Value("123".getBytes(UTF_8)));
@@ -100,7 +99,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
     // should not throw any exceptions
     bw.close();
 
-    bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+    bw = client.createBatchWriter(tableName);
 
     // create a mutation with a non numeric value
     Mutation mut2 = new Mutation(new Text("r1"));
@@ -164,7 +163,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       sleepUninterruptibly(1, TimeUnit.SECONDS);
 
       // now should be able to add a non numeric value
-      bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+      bw = client.createBatchWriter(tableName);
       bw.addMutation(mut2);
       bw.close();
 
@@ -191,7 +190,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       sleepUninterruptibly(1, TimeUnit.SECONDS);
 
       // add a mutation
-      bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+      bw = client.createBatchWriter(tableName);
 
       Mutation mut3 = new Mutation(new Text("r1"));
       mut3.put(new Text("cf1"), new Text("cq1"), new Value("foo".getBytes(UTF_8)));
@@ -234,7 +233,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       sleepUninterruptibly(1, TimeUnit.SECONDS);
 
       // try the mutation again
-      bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+      bw = client.createBatchWriter(tableName);
       bw.addMutation(mut3);
       bw.close();
 
@@ -269,7 +268,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
     // should go through
     int numericErrors = 2;
 
-    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(table);
     bw.addMutation(newMut("r1", "cf1", "cq1", "123"));
     bw.addMutation(newMut("r1", "cf1", "cq2", "I'm a bad value"));
     if (doFlush) {
@@ -283,7 +282,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
         } catch (MutationsRejectedException ex) {
           // ignored
         }
-        bw = client.createBatchWriter(table, new BatchWriterConfig());
+        bw = client.createBatchWriter(table);
         numericErrors = 1;
       }
     }

@@ -25,7 +25,6 @@ import java.util.Collections;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -160,13 +159,13 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     String table = getUniqueNames(1)[0];
     try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(table);
-      BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
-      for (int i = 0; i < 100; i++) {
-        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(table)) {
+        for (int i = 0; i < 100; i++) {
+          Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+          m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+          bw.addMutation(m);
+        }
       }
-      bw.close();
 
       e1 = null;
       e2 = null;
@@ -187,13 +186,13 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(TEST_TABLE_3,
           new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
-      BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
-      for (int i = 0; i < 100; i++) {
-        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(TEST_TABLE_3)) {
+        for (int i = 0; i < 100; i++) {
+          Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+          m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+          bw.addMutation(m);
+        }
       }
-      bw.close();
 
       MRTester.main(TEST_TABLE_3, "False", "True");
       assertEquals(38, e1Count);

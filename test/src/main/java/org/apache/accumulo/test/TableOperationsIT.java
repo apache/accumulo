@@ -41,7 +41,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -130,12 +129,12 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(tableName, diskUsages.get(0).getTables().first());
 
     // add some data
-    BatchWriter bw = accumuloClient.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m = new Mutation("a");
-    m.put("b", "c", new Value("abcde".getBytes()));
-    bw.addMutation(m);
-    bw.flush();
-    bw.close();
+    try (BatchWriter bw = accumuloClient.createBatchWriter(tableName)) {
+      Mutation m = new Mutation("a");
+      m.put("b", "c", new Value("abcde".getBytes()));
+      bw.addMutation(m);
+      bw.flush();
+    }
 
     accumuloClient.tableOperations().compact(tableName, new Text("A"), new Text("z"), true, true);
 
@@ -199,19 +198,17 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     tops.create(originalTable);
     tops.addSplits(originalTable, splits);
 
-    BatchWriter bw = accumuloClient.createBatchWriter(originalTable, new BatchWriterConfig());
-    for (Text row : splits) {
-      Mutation m = new Mutation(row);
-      for (int i = 0; i < 10; i++) {
-        for (int j = 0; j < 10; j++) {
-          m.put(Integer.toString(i), Integer.toString(j), Integer.toString(i + j));
+    try (BatchWriter bw = accumuloClient.createBatchWriter(originalTable)) {
+      for (Text row : splits) {
+        Mutation m = new Mutation(row);
+        for (int i = 0; i < 10; i++) {
+          for (int j = 0; j < 10; j++) {
+            m.put(Integer.toString(i), Integer.toString(j), Integer.toString(i + j));
+          }
         }
+        bw.addMutation(m);
       }
-
-      bw.addMutation(m);
     }
-
-    bw.close();
 
     String clonedTable = names[1];
 

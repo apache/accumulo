@@ -20,7 +20,6 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
@@ -100,7 +99,7 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
     }
     client.tableOperations().addSplits(table, splitSet);
 
-    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(table);
     for (String row : inserts) {
       Mutation m = new Mutation(row);
       m.put("cf", "cq", "v");

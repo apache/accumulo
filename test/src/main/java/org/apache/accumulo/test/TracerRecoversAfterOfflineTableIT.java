@@ -78,11 +78,11 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
       long rootTraceId;
       try (TraceScope root = Trace.startSpan("traceTest", Sampler.ALWAYS)) {
         rootTraceId = root.getSpan().getTraceId();
-        BatchWriter bw = client.createBatchWriter(tableName, null);
-        Mutation m = new Mutation("m");
-        m.put("a", "b", "c");
-        bw.addMutation(m);
-        bw.close();
+        try (BatchWriter bw = client.createBatchWriter(tableName)) {
+          Mutation m = new Mutation("m");
+          m.put("a", "b", "c");
+          bw.addMutation(m);
+        }
       }
 
       log.info("Bringing trace table back online");

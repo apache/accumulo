@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -204,7 +203,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
       client.tableOperations().addSplits(tableName, partitions);
 
-      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = client.createBatchWriter(tableName);
 
       // create two files in each tablet
       for (String s : VolumeChooserIT.alpha_rows) {
@@ -238,23 +237,21 @@ public class VolumeIT extends ConfigurableMacBase {
         metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
         metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
 
-        BatchWriter mbw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-
-        for (Entry<Key,Value> entry : metaScanner) {
-          String cq = entry.getKey().getColumnQualifier().toString();
-          if (cq.startsWith(v1.toString())) {
-            Path path = new Path(cq);
-            String relPath = "/" + path.getParent().getName() + "/" + path.getName();
-            Mutation fileMut = new Mutation(entry.getKey().getRow());
-            fileMut.putDelete(entry.getKey().getColumnFamily(),
-                entry.getKey().getColumnQualifier());
-            fileMut.put(entry.getKey().getColumnFamily().toString(), relPath,
-                entry.getValue().toString());
-            mbw.addMutation(fileMut);
+        try (BatchWriter mbw = client.createBatchWriter(MetadataTable.NAME)) {
+          for (Entry<Key,Value> entry : metaScanner) {
+            String cq = entry.getKey().getColumnQualifier().toString();
+            if (cq.startsWith(v1.toString())) {
+              Path path = new Path(cq);
+              String relPath = "/" + path.getParent().getName() + "/" + path.getName();
+              Mutation fileMut = new Mutation(entry.getKey().getRow());
+              fileMut.putDelete(entry.getKey().getColumnFamily(),
+                  entry.getKey().getColumnQualifier());
+              fileMut.put(entry.getKey().getColumnFamily().toString(), relPath,
+                  entry.getValue().toString());
+              mbw.addMutation(fileMut);
+            }
           }
         }
-
-        mbw.close();
 
         client.tableOperations().online(tableName, true);
 
@@ -360,15 +357,14 @@ public class VolumeIT extends ConfigurableMacBase {
     client.tableOperations().create(tableName);
     client.tableOperations().addSplits(tableName, splits);
 
-    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      String row = String.format("%06d", i * 100 + 3);
-      Mutation m = new Mutation(row);
-      m.put("cf1", "cq1", "1");
-      bw.addMutation(m);
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
+      for (int i = 0; i < 100; i++) {
+        String row = String.format("%06d", i * 100 + 3);
+        Mutation m = new Mutation(row);
+        m.put("cf1", "cq1", "1");
+        bw.addMutation(m);
+      }
     }
-
-    bw.close();
   }
 
   private void verifyVolumesUsed(AccumuloClient client, String tableName, boolean shouldExist,

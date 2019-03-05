@@ -26,10 +26,13 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -135,6 +138,17 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
     }
   }
 
+  public static void insertData(AccumuloClient client, String table) throws TableNotFoundException,
+      MutationsRejectedException {
+    try (BatchWriter bw = client.createBatchWriter(table)) {
+      for (int i = 0; i < 100; i++) {
+        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+        bw.addMutation(m);
+      }
+    }
+  }
+
   @Test
   public void testMR() throws Exception {
     String[] tableNames = getUniqueNames(2);
@@ -143,13 +157,7 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(table1);
       c.tableOperations().create(table2);
-      BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
-      for (int i = 0; i < 100; i++) {
-        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-        bw.addMutation(m);
-      }
-      bw.close();
+      insertData(c, table1);
 
       MRTester.main(new String[] {table1, table2});
       assertNull(e1);

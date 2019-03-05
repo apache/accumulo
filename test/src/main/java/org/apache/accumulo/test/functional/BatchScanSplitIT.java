@@ -35,7 +35,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -101,7 +100,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
       HashMap<Text,Value> found = new HashMap<>();
 
       for (int i = 0; i < 20; i++) {
-        try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 4)) {
+        try (BatchScanner bs = c.createBatchScanner(tableName)) {
 
           found.clear();
 

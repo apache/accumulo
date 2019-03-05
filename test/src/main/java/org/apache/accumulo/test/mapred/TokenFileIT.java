@@ -29,7 +29,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Credentials;
@@ -160,13 +159,13 @@ public class TokenFileIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(table1);
       c.tableOperations().create(table2);
-      BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
-      for (int i = 0; i < 100; i++) {
-        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(table1)) {
+        for (int i = 0; i < 100; i++) {
+          Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+          m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
+          bw.addMutation(m);
+        }
       }
-      bw.close();
 
       File tf = folder.newFile("root_test.pw");
       try (PrintStream out = new PrintStream(tf)) {

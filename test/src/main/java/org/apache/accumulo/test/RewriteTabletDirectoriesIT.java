@@ -88,40 +88,39 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
       c.tableOperations().create(tableName);
 
       // Write some data to a table and add some splits
-      BatchWriter bw = c.createBatchWriter(tableName, null);
       final SortedSet<Text> splits = new TreeSet<>();
-      for (String split : "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",")) {
-        splits.add(new Text(split));
-        Mutation m = new Mutation(new Text(split));
-        m.put(new byte[] {}, new byte[] {}, new byte[] {});
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (String split : "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",")) {
+          splits.add(new Text(split));
+          Mutation m = new Mutation(new Text(split));
+          m.put(new byte[] {}, new byte[] {}, new byte[] {});
+          bw.addMutation(m);
+        }
       }
-      bw.close();
       c.tableOperations().addSplits(tableName, splits);
 
-      try (BatchScanner scanner = c.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY,
-          1)) {
+      try (BatchScanner scanner = c.createBatchScanner(MetadataTable.NAME)) {
         DIRECTORY_COLUMN.fetch(scanner);
         TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
         assertNotNull("TableID for " + tableName + " was null", tableId);
         scanner.setRanges(Collections.singletonList(TabletsSection.getRange(tableId)));
         // verify the directory entries are all on v1, make a few entries relative
-        bw = c.createBatchWriter(MetadataTable.NAME, null);
         int count = 0;
-        for (Entry<Key,Value> entry : scanner) {
-          assertTrue("Expected " + entry.getValue() + " to contain " + v1,
-              entry.getValue().toString().contains(v1.toString()));
-          count++;
-          if (count % 2 == 0) {
-            String[] parts = entry.getValue().toString().split("/");
-            Key key = entry.getKey();
-            Mutation m = new Mutation(key.getRow());
-            m.put(key.getColumnFamily(), key.getColumnQualifier(),
-                new Value((Path.SEPARATOR + parts[parts.length - 1]).getBytes()));
-            bw.addMutation(m);
+        try (BatchWriter bw = c.createBatchWriter(MetadataTable.NAME)) {
+          for (Entry<Key,Value> entry : scanner) {
+            assertTrue("Expected " + entry.getValue() + " to contain " + v1,
+                entry.getValue().toString().contains(v1.toString()));
+            count++;
+            if (count % 2 == 0) {
+              String[] parts = entry.getValue().toString().split("/");
+              Key key = entry.getKey();
+              Mutation m = new Mutation(key.getRow());
+              m.put(key.getColumnFamily(), key.getColumnQualifier(),
+                  new Value((Path.SEPARATOR + parts[parts.length - 1]).getBytes()));
+              bw.addMutation(m);
+            }
           }
         }
-        bw.close();
         assertEquals(splits.size() + 1, count);
 
         // This should fail: only one volume

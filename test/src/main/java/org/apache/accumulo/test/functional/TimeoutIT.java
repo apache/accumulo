@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
 
@@ -90,7 +89,7 @@ public class TimeoutIT extends AccumuloClusterHarness {
       bw.addMutation(m);
     }
 
-    try (BatchScanner bs = client.createBatchScanner(tableName, Authorizations.EMPTY, 2)) {
+    try (BatchScanner bs = client.createBatchScanner(tableName)) {
       bs.setRanges(Collections.singletonList(new Range()));
 
       // should not timeout

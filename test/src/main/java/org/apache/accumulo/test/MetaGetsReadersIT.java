@@ -84,15 +84,15 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       c.tableOperations().create(tableName);
       Random random = new SecureRandom();
-      BatchWriter bw = c.createBatchWriter(tableName, null);
-      for (int i = 0; i < 50000; i++) {
-        byte[] row = new byte[100];
-        random.nextBytes(row);
-        Mutation m = new Mutation(row);
-        m.put("", "", "");
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < 50000; i++) {
+          byte[] row = new byte[100];
+          random.nextBytes(row);
+          Mutation m = new Mutation(row);
+          m.put("", "", "");
+          bw.addMutation(m);
+        }
       }
-      bw.close();
       c.tableOperations().flush(tableName, null, null, true);
       final AtomicBoolean stop = new AtomicBoolean(false);
       Thread t1 = slowScan(c, tableName, stop);

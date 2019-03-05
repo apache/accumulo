@@ -28,7 +28,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
@@ -69,7 +68,7 @@ public class RowDeleteIT extends AccumuloClusterHarness {
       c.tableOperations().attachIterator(tableName, setting, EnumSet.of(IteratorScope.majc));
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "100");
 
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(tableName);
 
       bw.addMutation(nm("r1", "foo", "cf1", "v1"));
       bw.addMutation(nm("r1", "bar", "cf1", "v2"));
