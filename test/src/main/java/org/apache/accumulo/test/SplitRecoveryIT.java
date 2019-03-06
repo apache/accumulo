@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -52,9 +51,9 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
     return result;
   }
 
-  boolean isOffline(String tablename, AccumuloClient accumuloClient) throws TableNotFoundException {
-    String tableId = accumuloClient.tableOperations().tableIdMap().get(tablename);
-    try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+  boolean isOffline(String tablename, AccumuloClient client) throws TableNotFoundException {
+    String tableId = client.tableOperations().tableIdMap().get(tablename);
+    try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       scanner.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
       scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
       return Iterators.size(scanner.iterator()) == 0;
@@ -71,24 +70,24 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
 
     String tableName = getUniqueNames(1)[0];
 
-    try (AccumuloClient accumuloClient = createAccumuloClient()) {
+    try (AccumuloClient client = createAccumuloClient()) {
       for (int tn = 0; tn < 2; tn++) {
         // create a table and put some data in it
-        accumuloClient.tableOperations().create(tableName);
-        BatchWriter bw = accumuloClient.createBatchWriter(tableName, new BatchWriterConfig());
-        bw.addMutation(m("a"));
-        bw.addMutation(m("b"));
-        bw.addMutation(m("c"));
-        bw.close();
+        client.tableOperations().create(tableName);
+        try (BatchWriter bw = client.createBatchWriter(tableName)) {
+          bw.addMutation(m("a"));
+          bw.addMutation(m("b"));
+          bw.addMutation(m("c"));
+        }
         // take the table offline
-        accumuloClient.tableOperations().offline(tableName);
-        while (!isOffline(tableName, accumuloClient))
+        client.tableOperations().offline(tableName);
+        while (!isOffline(tableName, client))
           sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
 
         // poke a partial split into the metadata table
-        accumuloClient.securityOperations().grantTablePermission(getAdminPrincipal(),
-            MetadataTable.NAME, TablePermission.WRITE);
-        TableId tableId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
+        client.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME,
+            TablePermission.WRITE);
+        TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
 
         KeyExtent extent = new KeyExtent(tableId, null, new Text("b"));
         Mutation m = extent.getPrevRowUpdateMutation();
@@ -97,38 +96,36 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
             new Value(Double.toString(0.5).getBytes()));
         TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
             KeyExtent.encodePrevEndRow(null));
-        bw = accumuloClient.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-        bw.addMutation(m);
+        try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
+          bw.addMutation(m);
 
-        if (tn == 1) {
+          if (tn == 1) {
+            bw.flush();
 
-          bw.flush();
+            try (Scanner scanner = client.createScanner(MetadataTable.NAME)) {
+              scanner.setRange(extent.toMetadataRange());
+              scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
 
-          try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME,
-              Authorizations.EMPTY)) {
-            scanner.setRange(extent.toMetadataRange());
-            scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+              KeyExtent extent2 = new KeyExtent(tableId, new Text("b"), null);
+              m = extent2.getPrevRowUpdateMutation();
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
+                  new Value("/t2".getBytes()));
+              TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value("M0".getBytes()));
 
-            KeyExtent extent2 = new KeyExtent(tableId, new Text("b"), null);
-            m = extent2.getPrevRowUpdateMutation();
-            TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/t2".getBytes()));
-            TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value("M0".getBytes()));
-
-            for (Entry<Key,Value> entry : scanner) {
-              m.put(DataFileColumnFamily.NAME, entry.getKey().getColumnQualifier(),
-                  entry.getValue());
+              for (Entry<Key,Value> entry : scanner) {
+                m.put(DataFileColumnFamily.NAME, entry.getKey().getColumnQualifier(),
+                    entry.getValue());
+              }
+              bw.addMutation(m);
             }
-
-            bw.addMutation(m);
           }
         }
 
-        bw.close();
         // bring the table online
-        accumuloClient.tableOperations().online(tableName);
+        client.tableOperations().online(tableName);
 
         // verify the tablets went online
-        try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
+        try (Scanner scanner = client.createScanner(tableName)) {
           int i = 0;
           String[] expected = {"a", "b", "c"};
           for (Entry<Key,Value> entry : scanner) {
@@ -137,7 +134,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
           }
           assertEquals(3, i);
 
-          accumuloClient.tableOperations().delete(tableName);
+          client.tableOperations().delete(tableName);
         }
       }
     }

@@ -31,7 +31,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -62,13 +61,13 @@ public class MetaRecoveryIT extends ConfigurableMacBase {
       for (String table : tables) {
         log.info("Creating table {}", i);
         c.tableOperations().create(table);
-        BatchWriter bw = c.createBatchWriter(table, null);
-        for (int j = 0; j < 1000; j++) {
-          Mutation m = new Mutation("" + j);
-          m.put("cf", "cq", "value");
-          bw.addMutation(m);
+        try (BatchWriter bw = c.createBatchWriter(table)) {
+          for (int j = 0; j < 1000; j++) {
+            Mutation m = new Mutation("" + j);
+            m.put("cf", "cq", "value");
+            bw.addMutation(m);
+          }
         }
-        bw.close();
         log.info("Data written to table {}", i);
         i++;
       }
@@ -86,7 +85,7 @@ public class MetaRecoveryIT extends ConfigurableMacBase {
       getCluster().start();
       log.info("Verifying");
       for (String table : tables) {
-        try (BatchScanner scanner = c.createBatchScanner(table, Authorizations.EMPTY, 5)) {
+        try (BatchScanner scanner = c.createBatchScanner(table)) {
           scanner.setRanges(Collections.singletonList(new Range()));
           assertEquals(1000, Iterators.size(scanner.iterator()));
         }

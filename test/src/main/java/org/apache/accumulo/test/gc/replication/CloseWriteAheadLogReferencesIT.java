@@ -32,7 +32,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -131,13 +130,13 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   @Test
   public void unclosedWalsLeaveStatusOpen() throws Exception {
     Set<String> wals = Collections.emptySet();
-    BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    Mutation m = new Mutation(
-        ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
-    m.put(ReplicationSection.COLF, new Text("1"),
-        StatusUtil.fileCreatedValue(System.currentTimeMillis()));
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
+      Mutation m = new Mutation(
+          ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
+      m.put(ReplicationSection.COLF, new Text("1"),
+          StatusUtil.fileCreatedValue(System.currentTimeMillis()));
+      bw.addMutation(m);
+    }
 
     refs.updateReplicationEntries(client, wals);
 
@@ -153,16 +152,16 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   public void closedWalsUpdateStatus() throws Exception {
     String file = "file:/accumulo/wal/tserver+port/12345";
     Set<String> wals = Collections.singleton(file);
-    BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
-    m.put(ReplicationSection.COLF, new Text("1"),
-        StatusUtil.fileCreatedValue(System.currentTimeMillis()));
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
+      Mutation m = new Mutation(ReplicationSection.getRowPrefix() + file);
+      m.put(ReplicationSection.COLF, new Text("1"),
+          StatusUtil.fileCreatedValue(System.currentTimeMillis()));
+      bw.addMutation(m);
+    }
 
     refs.updateReplicationEntries(client, wals);
 
-    try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner s = client.createScanner(MetadataTable.NAME)) {
       s.fetchColumnFamily(ReplicationSection.COLF);
       Entry<Key,Value> entry = Iterables.getOnlyElement(s);
       Status status = Status.parseFrom(entry.getValue().get());
@@ -174,11 +173,11 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   public void partiallyReplicatedReferencedWalsAreNotClosed() throws Exception {
     String file = "file:/accumulo/wal/tserver+port/12345";
     Set<String> wals = Collections.singleton(file);
-    BatchWriter bw = ReplicationTable.getBatchWriter(client);
-    Mutation m = new Mutation(file);
-    StatusSection.add(m, TableId.of("1"), ProtobufUtil.toValue(StatusUtil.ingestedUntil(1000)));
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = ReplicationTable.getBatchWriter(client)) {
+      Mutation m = new Mutation(file);
+      StatusSection.add(m, TableId.of("1"), ProtobufUtil.toValue(StatusUtil.ingestedUntil(1000)));
+      bw.addMutation(m);
+    }
 
     refs.updateReplicationEntries(client, wals);
 

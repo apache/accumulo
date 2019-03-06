@@ -32,7 +32,6 @@ import java.util.UUID;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -151,11 +150,11 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
 
     dos.close();
 
-    BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m = new Mutation("m");
-    m.put("m", "m", "M");
-    bw.addMutation(m);
-    bw.close();
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
+      Mutation m = new Mutation("m");
+      m.put("m", "m", "M");
+      bw.addMutation(m);
+    }
 
     log.info("State of metadata table after inserting a record");
 
@@ -181,18 +180,18 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
       // Add our fake WAL to the log column for this table
       String walUri = tserverWal.toURI().toString();
       KeyExtent extent = new KeyExtent(tableId, null, null);
-      bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      m = new Mutation(extent.getMetadataEntry());
-      m.put(MetadataSchema.TabletsSection.LogColumnFamily.NAME,
-          new Text("localhost:12345/" + walUri), new Value((walUri + "|1").getBytes(UTF_8)));
-      bw.addMutation(m);
+      try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
+        Mutation m = new Mutation(extent.getMetadataEntry());
+        m.put(MetadataSchema.TabletsSection.LogColumnFamily.NAME,
+            new Text("localhost:12345/" + walUri), new Value((walUri + "|1").getBytes(UTF_8)));
+        bw.addMutation(m);
 
-      // Add a replication entry for our fake WAL
-      m = new Mutation(MetadataSchema.ReplicationSection.getRowPrefix() + new Path(walUri));
-      m.put(MetadataSchema.ReplicationSection.COLF, new Text(tableId.canonical()),
-          new Value(StatusUtil.fileCreated(System.currentTimeMillis()).toByteArray()));
-      bw.addMutation(m);
-      bw.close();
+        // Add a replication entry for our fake WAL
+        m = new Mutation(MetadataSchema.ReplicationSection.getRowPrefix() + new Path(walUri));
+        m.put(MetadataSchema.ReplicationSection.COLF, new Text(tableId.canonical()),
+            new Value(StatusUtil.fileCreated(System.currentTimeMillis()).toByteArray()));
+        bw.addMutation(m);
+      }
 
       log.info("State of metadata after injecting WAL manually");
     }

@@ -50,9 +50,9 @@ public class TotalQueuedIT extends ConfigurableMacBase {
     cfg.useMiniDFS();
   }
 
-  int SMALL_QUEUE_SIZE = 100000;
-  int LARGE_QUEUE_SIZE = SMALL_QUEUE_SIZE * 10;
-  static final long N = 1000000;
+  private int SMALL_QUEUE_SIZE = 100000;
+  private int LARGE_QUEUE_SIZE = SMALL_QUEUE_SIZE * 10;
+  private static final long N = 1000000;
 
   @Test(timeout = 4 * 60 * 1000)
   public void test() throws Exception {
@@ -72,17 +72,17 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       cfg.setMaxLatency(1, TimeUnit.SECONDS);
       cfg.setMaxMemory(1024 * 1024);
       long realSyncs = getSyncs(c);
-      BatchWriter bw = c.createBatchWriter(tableName, cfg);
       long now = System.currentTimeMillis();
       long bytesSent = 0;
-      for (int i = 0; i < N; i++) {
-        random.nextBytes(row);
-        Mutation m = new Mutation(row);
-        m.put("", "", "");
-        bw.addMutation(m);
-        bytesSent += m.estimatedMemoryUsed();
+      try (BatchWriter bw = c.createBatchWriter(tableName, cfg)) {
+        for (int i = 0; i < N; i++) {
+          random.nextBytes(row);
+          Mutation m = new Mutation(row);
+          m.put("", "", "");
+          bw.addMutation(m);
+          bytesSent += m.estimatedMemoryUsed();
+        }
       }
-      bw.close();
       long diff = System.currentTimeMillis() - now;
       double secs = diff / 1000.;
       double syncs = bytesSent / SMALL_QUEUE_SIZE;
@@ -99,17 +99,17 @@ public class TotalQueuedIT extends ConfigurableMacBase {
           "" + LARGE_QUEUE_SIZE);
       c.tableOperations().flush(tableName, null, null, true);
       sleepUninterruptibly(1, TimeUnit.SECONDS);
-      bw = c.createBatchWriter(tableName, cfg);
-      now = System.currentTimeMillis();
-      bytesSent = 0;
-      for (int i = 0; i < N; i++) {
-        random.nextBytes(row);
-        Mutation m = new Mutation(row);
-        m.put("", "", "");
-        bw.addMutation(m);
-        bytesSent += m.estimatedMemoryUsed();
+      try (BatchWriter bw = c.createBatchWriter(tableName, cfg)) {
+        now = System.currentTimeMillis();
+        bytesSent = 0;
+        for (int i = 0; i < N; i++) {
+          random.nextBytes(row);
+          Mutation m = new Mutation(row);
+          m.put("", "", "");
+          bw.addMutation(m);
+          bytesSent += m.estimatedMemoryUsed();
+        }
       }
-      bw.close();
       diff = System.currentTimeMillis() - now;
       secs = diff / 1000.;
       syncs = bytesSent / LARGE_QUEUE_SIZE;

@@ -62,13 +62,13 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
       log.info("waiting for zookeeper propagation");
       UtilWaitThread.sleep(5 * 1000);
       log.info("Adding a few entries");
-      BatchWriter bw = c.createBatchWriter(tableName, null);
-      for (int i = 0; i < 10; i++) {
-        Mutation m = new Mutation("" + i);
-        m.put("", "", "");
-        bw.addMutation(m);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < 10; i++) {
+          Mutation m = new Mutation("" + i);
+          m.put("", "", "");
+          bw.addMutation(m);
+        }
       }
-      bw.close();
       log.info("Fetching some entries: should timeout and return something");
 
       log.info("Scanner");

@@ -38,7 +38,6 @@ import java.util.concurrent.TimeoutException;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -221,17 +220,16 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
           Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
 
       // Write some data to table1
-      BatchWriter bw = clientMaster.createBatchWriter(masterTable, new BatchWriterConfig());
-      for (int rows = 0; rows < 5000; rows++) {
-        Mutation m = new Mutation(Integer.toString(rows));
-        for (int cols = 0; cols < 100; cols++) {
-          String value = Integer.toString(cols);
-          m.put(value, "", value);
+      try (BatchWriter bw = clientMaster.createBatchWriter(masterTable)) {
+        for (int rows = 0; rows < 5000; rows++) {
+          Mutation m = new Mutation(Integer.toString(rows));
+          for (int cols = 0; cols < 100; cols++) {
+            String value = Integer.toString(cols);
+            m.put(value, "", value);
+          }
+          bw.addMutation(m);
         }
-        bw.addMutation(m);
       }
-
-      bw.close();
 
       log.info("Wrote all data to master cluster");
 
@@ -410,34 +408,32 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
           Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 
       // Write some data to table1
-      BatchWriter bw = clientMaster.createBatchWriter(masterTable1, new BatchWriterConfig());
       long masterTable1Records = 0L;
-      for (int rows = 0; rows < 2500; rows++) {
-        Mutation m = new Mutation(masterTable1 + rows);
-        for (int cols = 0; cols < 100; cols++) {
-          String value = Integer.toString(cols);
-          m.put(value, "", value);
-          masterTable1Records++;
+      try (BatchWriter bw = clientMaster.createBatchWriter(masterTable1)) {
+        for (int rows = 0; rows < 2500; rows++) {
+          Mutation m = new Mutation(masterTable1 + rows);
+          for (int cols = 0; cols < 100; cols++) {
+            String value = Integer.toString(cols);
+            m.put(value, "", value);
+            masterTable1Records++;
+          }
+          bw.addMutation(m);
         }
-        bw.addMutation(m);
       }
-
-      bw.close();
 
       // Write some data to table2
-      bw = clientMaster.createBatchWriter(masterTable2, new BatchWriterConfig());
       long masterTable2Records = 0L;
-      for (int rows = 0; rows < 2500; rows++) {
-        Mutation m = new Mutation(masterTable2 + rows);
-        for (int cols = 0; cols < 100; cols++) {
-          String value = Integer.toString(cols);
-          m.put(value, "", value);
-          masterTable2Records++;
+      try (BatchWriter bw = clientMaster.createBatchWriter(masterTable2)) {
+        for (int rows = 0; rows < 2500; rows++) {
+          Mutation m = new Mutation(masterTable2 + rows);
+          for (int cols = 0; cols < 100; cols++) {
+            String value = Integer.toString(cols);
+            m.put(value, "", value);
+            masterTable2Records++;
+          }
+          bw.addMutation(m);
         }
-        bw.addMutation(m);
       }
-
-      bw.close();
 
       log.info("Wrote all data to master cluster");
 
@@ -558,17 +554,16 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
           Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
 
       // Write some data to table1
-      BatchWriter bw = clientMaster.createBatchWriter(masterTable, new BatchWriterConfig());
-      for (int rows = 0; rows < 5000; rows++) {
-        Mutation m = new Mutation(Integer.toString(rows));
-        for (int cols = 0; cols < 100; cols++) {
-          String value = Integer.toString(cols);
-          m.put(value, "", value);
+      try (BatchWriter bw = clientMaster.createBatchWriter(masterTable)) {
+        for (int rows = 0; rows < 5000; rows++) {
+          Mutation m = new Mutation(Integer.toString(rows));
+          for (int cols = 0; cols < 100; cols++) {
+            String value = Integer.toString(cols);
+            m.put(value, "", value);
+          }
+          bw.addMutation(m);
         }
-        bw.addMutation(m);
       }
-
-      bw.close();
 
       log.info("Wrote all data to master cluster");
 
@@ -694,30 +689,28 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
           Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 
       // Write some data to table1
-      BatchWriter bw = clientMaster.createBatchWriter(masterTable1, new BatchWriterConfig());
-      for (int rows = 0; rows < 2500; rows++) {
-        Mutation m = new Mutation(masterTable1 + rows);
-        for (int cols = 0; cols < 100; cols++) {
-          String value = Integer.toString(cols);
-          m.put(value, "", value);
+      try (BatchWriter bw = clientMaster.createBatchWriter(masterTable1)) {
+        for (int rows = 0; rows < 2500; rows++) {
+          Mutation m = new Mutation(masterTable1 + rows);
+          for (int cols = 0; cols < 100; cols++) {
+            String value = Integer.toString(cols);
+            m.put(value, "", value);
+          }
+          bw.addMutation(m);
         }
-        bw.addMutation(m);
       }
-
-      bw.close();
 
       // Write some data to table2
-      bw = clientMaster.createBatchWriter(masterTable2, new BatchWriterConfig());
-      for (int rows = 0; rows < 2500; rows++) {
-        Mutation m = new Mutation(masterTable2 + rows);
-        for (int cols = 0; cols < 100; cols++) {
-          String value = Integer.toString(cols);
-          m.put(value, "", value);
+      try (BatchWriter bw = clientMaster.createBatchWriter(masterTable2)) {
+        for (int rows = 0; rows < 2500; rows++) {
+          Mutation m = new Mutation(masterTable2 + rows);
+          for (int cols = 0; cols < 100; cols++) {
+            String value = Integer.toString(cols);
+            m.put(value, "", value);
+          }
+          bw.addMutation(m);
         }
-        bw.addMutation(m);
       }
-
-      bw.close();
 
       log.info("Wrote all data to master cluster");
 

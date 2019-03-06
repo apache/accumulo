@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.sample.RowSampler;
@@ -205,16 +204,14 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
   private void insertData(AccumuloClient client, String tableName, long ts)
       throws AccumuloException, TableNotFoundException {
-    BatchWriter bw = client.createBatchWriter(tableName, null);
-
-    for (int i = 0; i < 10000; i++) {
-      String row = String.format("%09d", i);
-
-      Mutation m = new Mutation(new Text(row));
-      m.put(new Text("cf1"), new Text("cq1"), ts, new Value(("" + i).getBytes()));
-      bw.addMutation(m);
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
+      for (int i = 0; i < 10000; i++) {
+        String row = String.format("%09d", i);
+        Mutation m = new Mutation(new Text(row));
+        m.put(new Text("cf1"), new Text("cq1"), ts, new Value(("" + i).getBytes()));
+        bw.addMutation(m);
+      }
     }
-    bw.close();
   }
 
   // track errors in the map reduce job; jobs insert a dummy error for the map and cleanup tasks (to
@@ -326,14 +323,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(TEST_TABLE_1);
-      BatchWriter bw = c.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
-      for (int i = 0; i < 100; i++) {
-        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-        bw.addMutation(m);
-      }
-      bw.close();
-
+      AccumuloOutputFormatIT.insertData(c, TEST_TABLE_1);
       assertEquals(0, MRTester.main(new String[] {TEST_TABLE_1,
           org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.class.getName()}));
       assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_map").size());
@@ -351,14 +341,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(TEST_TABLE_3,
           new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
-      BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
-      for (int i = 0; i < 100; i++) {
-        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-        bw.addMutation(m);
-      }
-      bw.close();
-
+      AccumuloOutputFormatIT.insertData(c, TEST_TABLE_3);
       assertEquals(0,
           MRTester.main(new String[] {TEST_TABLE_3,
               org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.class.getName(),
@@ -390,14 +373,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(TEST_TABLE_2);
-      BatchWriter bw = c.createBatchWriter(TEST_TABLE_2, new BatchWriterConfig());
-      for (int i = 0; i < 100; i++) {
-        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-        bw.addMutation(m);
-      }
-      bw.close();
-
+      AccumuloOutputFormatIT.insertData(c, TEST_TABLE_2);
       assertEquals(0,
           MRTester.main(new String[] {TEST_TABLE_2,
               org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.class.getName(), "True",
@@ -461,14 +437,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     String table = getUniqueNames(1)[0];
     try (AccumuloClient c = createAccumuloClient()) {
       c.tableOperations().create(table);
-      BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
-      for (int i = 0; i < 100; i++) {
-        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-        m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-        bw.addMutation(m);
-      }
-      bw.close();
-
+      AccumuloOutputFormatIT.insertData(c, table);
       assertEquals(0,
           MRTester.main(new String[] {table, EmptySplitsAccumuloInputFormat.class.getName()}));
       assertEquals(1, assertionErrors.get(table + "_map").size());

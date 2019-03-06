@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -298,11 +297,11 @@ public class CyclicReplicationIT {
       clientMaster2.tableOperations().attachIterator(master2Table, summingCombiner);
 
       // Write a single entry
-      BatchWriter bw = clientMaster1.createBatchWriter(master1Table, new BatchWriterConfig());
-      Mutation m = new Mutation("row");
-      m.put("count", "", "1");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = clientMaster1.createBatchWriter(master1Table)) {
+        Mutation m = new Mutation("row");
+        m.put("count", "", "1");
+        bw.addMutation(m);
+      }
 
       Set<String> files = clientMaster1.replicationOperations().referencedFiles(master1Table);
 

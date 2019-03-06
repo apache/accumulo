@@ -131,7 +131,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
 
       log.info("Creating batch scanner");
       // make a scanner for a table with 10 keys
-      try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+      try (BatchScanner scanner = client.createBatchScanner(tableName)) {
         final IteratorSetting cfg = new IteratorSetting(100, YieldingIterator.class);
         scanner.addScanIterator(cfg);
         scanner.setRanges(Collections.singleton(new Range()));

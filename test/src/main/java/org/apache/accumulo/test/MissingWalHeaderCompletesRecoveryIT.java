@@ -27,7 +27,6 @@ import java.util.UUID;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -149,9 +148,9 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       Mutation m = new Mutation(row);
       m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 
-      BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
+        bw.addMutation(m);
+      }
 
       log.info("Bringing {} online", tableName);
       client.tableOperations().online(tableName, true);
@@ -209,9 +208,9 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       Mutation m = new Mutation(row);
       m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 
-      BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
+        bw.addMutation(m);
+      }
 
       log.info("Bringing {} online", tableName);
       client.tableOperations().online(tableName, true);

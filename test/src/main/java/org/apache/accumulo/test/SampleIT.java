@@ -146,7 +146,7 @@ public class SampleIT extends AccumuloClusterHarness {
       isoScanner.setSamplerConfiguration(SC1);
       isoScanner.setBatchSize(10);
 
-      BatchScanner bScanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 2);
+      BatchScanner bScanner = client.createBatchScanner(tableName);
       bScanner.setSamplerConfiguration(SC1);
       bScanner.setRanges(Arrays.asList(new Range()));
 
@@ -426,13 +426,11 @@ public class SampleIT extends AccumuloClusterHarness {
         writeData(bw, SC1, expected);
       }
 
-      Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
-      Scanner isoScanner = new IsolatedScanner(
-          client.createScanner(tableName, Authorizations.EMPTY));
+      Scanner scanner = client.createScanner(tableName);
+      Scanner isoScanner = new IsolatedScanner(client.createScanner(tableName));
       isoScanner.setBatchSize(10);
-      Scanner csiScanner = new ClientSideIteratorScanner(
-          client.createScanner(tableName, Authorizations.EMPTY));
-      BatchScanner bScanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 2);
+      Scanner csiScanner = new ClientSideIteratorScanner(client.createScanner(tableName));
+      BatchScanner bScanner = client.createBatchScanner(tableName);
       bScanner.setRanges(Arrays.asList(new Range()));
 
       // ensure sample not present exception occurs when sampling is not configured

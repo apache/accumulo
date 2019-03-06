@@ -27,7 +27,6 @@ import java.util.Set;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
@@ -213,19 +212,18 @@ public class KerberosReplicationIT extends AccumuloITBase {
             Property.TABLE_REPLICATION_TARGET.getKey() + PEER_NAME, peerTableId1);
 
         // Write some data to table1
-        BatchWriter bw = primaryclient.createBatchWriter(primaryTable1, new BatchWriterConfig());
         long masterTable1Records = 0L;
-        for (int rows = 0; rows < 2500; rows++) {
-          Mutation m = new Mutation(primaryTable1 + rows);
-          for (int cols = 0; cols < 100; cols++) {
-            String value = Integer.toString(cols);
-            m.put(value, "", value);
-            masterTable1Records++;
+        try (BatchWriter bw = primaryclient.createBatchWriter(primaryTable1)) {
+          for (int rows = 0; rows < 2500; rows++) {
+            Mutation m = new Mutation(primaryTable1 + rows);
+            for (int cols = 0; cols < 100; cols++) {
+              String value = Integer.toString(cols);
+              m.put(value, "", value);
+              masterTable1Records++;
+            }
+            bw.addMutation(m);
           }
-          bw.addMutation(m);
         }
-
-        bw.close();
 
         log.info("Wrote all data to primary cluster");
 

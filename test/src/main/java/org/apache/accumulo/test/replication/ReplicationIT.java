@@ -46,7 +46,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
@@ -301,14 +300,13 @@ public class ReplicationIT extends ConfigurableMacBase {
       // If we have more than one tserver, this is subject to a race condition.
       client.tableOperations().setProperty(table, Property.TABLE_REPLICATION.getKey(), "true");
 
-      BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
-      for (int i = 0; i < 10; i++) {
-        Mutation m = new Mutation(Integer.toString(i));
-        m.put(new byte[0], new byte[0], new byte[0]);
-        bw.addMutation(m);
+      try (BatchWriter bw = client.createBatchWriter(table)) {
+        for (int i = 0; i < 10; i++) {
+          Mutation m = new Mutation(Integer.toString(i));
+          m.put(new byte[0], new byte[0], new byte[0]);
+          bw.addMutation(m);
+        }
       }
-
-      bw.close();
 
       // After writing data, we'll get a replication table online
       while (!ReplicationTable.isOnline(client)) {
@@ -528,16 +526,16 @@ public class ReplicationIT extends ConfigurableMacBase {
 
   private void writeSomeData(AccumuloClient client, String table, int rows, int cols)
       throws Exception {
-    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
-    for (int row = 0; row < rows; row++) {
-      Mutation m = new Mutation(Integer.toString(row));
-      for (int col = 0; col < cols; col++) {
-        String value = Integer.toString(col);
-        m.put(value, "", value);
+    try (BatchWriter bw = client.createBatchWriter(table)) {
+      for (int row = 0; row < rows; row++) {
+        Mutation m = new Mutation(Integer.toString(row));
+        for (int col = 0; col < cols; col++) {
+          String value = Integer.toString(col);
+          m.put(value, "", value);
+        }
+        bw.addMutation(m);
       }
-      bw.addMutation(m);
     }
-    bw.close();
   }
 
   @Test
@@ -668,12 +666,12 @@ public class ReplicationIT extends ConfigurableMacBase {
       Status stat1 = StatusUtil.fileCreated(100);
       Status stat2 = StatusUtil.fileClosed();
 
-      BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      Mutation m = new Mutation(
-          ReplicationSection.getRowPrefix() + "file:/accumulo/wals/tserver+port/uuid");
-      m.put(ReplicationSection.COLF, new Text("1"), ProtobufUtil.toValue(stat1));
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
+        Mutation m = new Mutation(
+            ReplicationSection.getRowPrefix() + "file:/accumulo/wals/tserver+port/uuid");
+        m.put(ReplicationSection.COLF, new Text("1"), ProtobufUtil.toValue(stat1));
+        bw.addMutation(m);
+      }
 
       Status actual;
       try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
@@ -682,12 +680,12 @@ public class ReplicationIT extends ConfigurableMacBase {
         actual = Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
         assertEquals(stat1, actual);
 
-        bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-        m = new Mutation(
-            ReplicationSection.getRowPrefix() + "file:/accumulo/wals/tserver+port/uuid");
-        m.put(ReplicationSection.COLF, new Text("1"), ProtobufUtil.toValue(stat2));
-        bw.addMutation(m);
-        bw.close();
+        try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
+          Mutation m = new Mutation(
+              ReplicationSection.getRowPrefix() + "file:/accumulo/wals/tserver+port/uuid");
+          m.put(ReplicationSection.COLF, new Text("1"), ProtobufUtil.toValue(stat2));
+          bw.addMutation(m);
+        }
       }
 
       try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
@@ -765,18 +763,18 @@ public class ReplicationIT extends ConfigurableMacBase {
           ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "50000"));
 
       // Write a mutation to make a log file
-      BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
-      Mutation m = new Mutation("one");
-      m.put("", "", "");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = client.createBatchWriter(table)) {
+        Mutation m = new Mutation("one");
+        m.put("", "", "");
+        bw.addMutation(m);
+      }
 
       // Write another to make sure the logger rolls itself?
-      bw = client.createBatchWriter(table, new BatchWriterConfig());
-      m = new Mutation("three");
-      m.put("", "", "");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = client.createBatchWriter(table)) {
+        Mutation m = new Mutation("three");
+        m.put("", "", "");
+        bw.addMutation(m);
+      }
 
       try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         s.fetchColumnFamily(TabletsSection.LogColumnFamily.NAME);
@@ -789,16 +787,16 @@ public class ReplicationIT extends ConfigurableMacBase {
 
         log.warn("Found wals {}", wals);
 
-        bw = client.createBatchWriter(table, new BatchWriterConfig());
-        m = new Mutation("three");
-        byte[] bytes = new byte[1024 * 1024];
-        m.put("1".getBytes(), new byte[0], bytes);
-        m.put("2".getBytes(), new byte[0], bytes);
-        m.put("3".getBytes(), new byte[0], bytes);
-        m.put("4".getBytes(), new byte[0], bytes);
-        m.put("5".getBytes(), new byte[0], bytes);
-        bw.addMutation(m);
-        bw.close();
+        try (BatchWriter bw = client.createBatchWriter(table)) {
+          Mutation m = new Mutation("three");
+          byte[] bytes = new byte[1024 * 1024];
+          m.put("1".getBytes(), new byte[0], bytes);
+          m.put("2".getBytes(), new byte[0], bytes);
+          m.put("3".getBytes(), new byte[0], bytes);
+          m.put("4".getBytes(), new byte[0], bytes);
+          m.put("5".getBytes(), new byte[0], bytes);
+          bw.addMutation(m);
+        }
 
         client.tableOperations().flush(table, null, null, true);
 

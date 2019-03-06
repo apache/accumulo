@@ -52,13 +52,13 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
       }
       final String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
-      BatchWriter bw = client.createBatchWriter(tableName, null);
-      for (int i = 0; i < N; i++) {
-        Mutation m = new Mutation("" + i);
-        m.put("", "", "");
-        bw.addMutation(m);
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        for (int i = 0; i < N; i++) {
+          Mutation m = new Mutation("" + i);
+          m.put("", "", "");
+          bw.addMutation(m);
+        }
       }
-      bw.close();
       client.tableOperations().flush(tableName, null, null, true);
 
       // Kill dfs

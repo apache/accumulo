@@ -124,11 +124,10 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
       String table3 = getUniqueNames(1)[0];
       client.tableOperations().create(table3);
       client.tableOperations().addSplits(table3, splits);
-      try (BatchScanner bs = client.createBatchScanner(table3, Authorizations.EMPTY, 3)) {
+      try (BatchScanner bs = client.createBatchScanner(table3)) {
         bs.setRanges(ranges);
         Iterator<Entry<Key,Value>> iter = bs.iterator();
         int count = Iterators.size(iter);
-
         assertEquals("Did not expect to find any entries", 0, count);
       }
     }

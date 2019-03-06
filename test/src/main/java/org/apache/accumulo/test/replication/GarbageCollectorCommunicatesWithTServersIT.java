@@ -190,7 +190,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     log.info("Writing a few mutations to the table");
 
-    BatchWriter bw = client.createBatchWriter(table, null);
+    BatchWriter bw = client.createBatchWriter(table);
 
     byte[] empty = new byte[0];
     for (int i = 0; i < 5; i++) {
@@ -282,17 +282,15 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     log.info("Writing a few mutations to the table");
 
-    BatchWriter bw = client.createBatchWriter(table, null);
-
     byte[] empty = new byte[0];
-    for (int i = 0; i < 5; i++) {
-      Mutation m = new Mutation(Integer.toString(i));
-      m.put(empty, empty, empty);
-      bw.addMutation(m);
+    try (BatchWriter bw = client.createBatchWriter(table)) {
+      for (int i = 0; i < 5; i++) {
+        Mutation m = new Mutation(Integer.toString(i));
+        m.put(empty, empty, empty);
+        bw.addMutation(m);
+      }
+      log.info("Flushing mutations to the server");
     }
-
-    log.info("Flushing mutations to the server");
-    bw.close();
 
     log.info("Checking that metadata only has one WAL recorded for this table");
 
@@ -363,21 +361,20 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
      */
 
     client.tableOperations().create(otherTable);
-    bw = client.createBatchWriter(otherTable, null);
-    // 500k
-    byte[] bigValue = new byte[1024 * 500];
-    Arrays.fill(bigValue, (byte) 1);
-    // 500k * 50
-    for (int i = 0; i < 50; i++) {
-      Mutation m = new Mutation(Integer.toString(i));
-      m.put(empty, empty, bigValue);
-      bw.addMutation(m);
-      if (i % 10 == 0) {
-        bw.flush();
+    try (BatchWriter bw = client.createBatchWriter(otherTable)) {
+      // 500k
+      byte[] bigValue = new byte[1024 * 500];
+      Arrays.fill(bigValue, (byte) 1);
+      // 500k * 50
+      for (int i = 0; i < 50; i++) {
+        Mutation m = new Mutation(Integer.toString(i));
+        m.put(empty, empty, bigValue);
+        bw.addMutation(m);
+        if (i % 10 == 0) {
+          bw.flush();
+        }
       }
     }
-
-    bw.close();
 
     client.tableOperations().flush(otherTable, null, null, true);
 

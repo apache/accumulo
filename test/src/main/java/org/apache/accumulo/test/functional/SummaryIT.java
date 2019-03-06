@@ -55,7 +55,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -245,7 +244,7 @@ public class SummaryIT extends AccumuloClusterHarness {
 
   private BatchWriter writeData(final String table, AccumuloClient c)
       throws TableNotFoundException, MutationsRejectedException {
-    BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter(table);
     for (int i = 0; i < 100_000; i++) {
       Mutation m = new Mutation(String.format("r%09x", i));
       m.put("f1", "q1", "" + i);

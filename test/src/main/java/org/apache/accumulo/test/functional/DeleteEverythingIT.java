@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
@@ -85,7 +84,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
     try (AccumuloClient c = createAccumuloClient()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(tableName);
       Mutation m = new Mutation(new Text("foo"));
       m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes(UTF_8)));
       bw.addMutation(m);

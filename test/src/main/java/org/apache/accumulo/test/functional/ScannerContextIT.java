@@ -300,7 +300,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
 
   private void batchCheck(AccumuloClient c, String tableName, IteratorSetting cfg, String context,
       String expected) throws Exception {
-    try (BatchScanner bs = c.createBatchScanner(tableName, Authorizations.EMPTY, 1)) {
+    try (BatchScanner bs = c.createBatchScanner(tableName)) {
       bs.setRanges(Collections.singleton(new Range()));
       if (context != null) {
         bs.setClassLoaderContext(context);

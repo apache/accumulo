@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.NamespaceExistsException;
@@ -319,17 +318,17 @@ public class NamespacesIT extends AccumuloClusterHarness {
     c.tableOperations().create(t1);
     String iterName = namespace + "_iter";
 
-    BatchWriter bw = c.createBatchWriter(t1, new BatchWriterConfig());
-    Mutation m = new Mutation("r");
-    m.put("a", "b", new Value("abcde".getBytes()));
-    bw.addMutation(m);
-    bw.flush();
-    bw.close();
+    try (BatchWriter bw = c.createBatchWriter(t1)) {
+      Mutation m = new Mutation("r");
+      m.put("a", "b", new Value("abcde".getBytes()));
+      bw.addMutation(m);
+      bw.flush();
+    }
 
     IteratorSetting setting = new IteratorSetting(250, iterName, SimpleFilter.class.getName());
 
     // verify can see inserted entry
-    try (Scanner s = c.createScanner(t1, Authorizations.EMPTY)) {
+    try (Scanner s = c.createScanner(t1)) {
       assertTrue(s.iterator().hasNext());
       assertFalse(c.namespaceOperations().listIterators(namespace).containsKey(iterName));
       assertFalse(c.tableOperations().listIterators(t1).containsKey(iterName));
@@ -541,7 +540,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
 
     passed = false;
     for (int i = 0; i < 5; i++) {
-      BatchWriter bw = c.createBatchWriter(t1, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(t1);
       bw.addMutations(Arrays.asList(m1, m2, m3));
       try {
         bw.close();
@@ -574,7 +573,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
 
     passed = false;
     for (int i = 0; i < 5; i++) {
-      BatchWriter bw = c.createBatchWriter(t1, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(t1);
       try {
         bw.addMutations(Arrays.asList(m1, m2, m3));
         bw.close();
@@ -715,11 +714,11 @@ public class NamespacesIT extends AccumuloClusterHarness {
       c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.DROP_TABLE);
 
       c.tableOperations().create(t3);
-      BatchWriter bw = c.createBatchWriter(t3, null);
-      Mutation m = new Mutation("row");
-      m.put("cf", "cq", "value");
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw = c.createBatchWriter(t3)) {
+        Mutation m = new Mutation("row");
+        m.put("cf", "cq", "value");
+        bw.addMutation(m);
+      }
 
       loginAs(user1);
       Iterator<Entry<Key,Value>> i = user1Con.createScanner(t3, new Authorizations()).iterator();
@@ -732,9 +731,9 @@ public class NamespacesIT extends AccumuloClusterHarness {
       }
 
       loginAs(user1);
-      m = new Mutation(u1);
+      Mutation m = new Mutation(u1);
       m.put("cf", "cq", "turtles");
-      bw = user1Con.createBatchWriter(t3, null);
+      BatchWriter bw = user1Con.createBatchWriter(t3);
       try {
         bw.addMutation(m);
         bw.close();
@@ -761,11 +760,11 @@ public class NamespacesIT extends AccumuloClusterHarness {
       c.securityOperations().grantNamespacePermission(u1, n1, NamespacePermission.WRITE);
 
       loginAs(user1);
-      m = new Mutation(u1);
-      m.put("cf", "cq", "turtles");
-      bw = user1Con.createBatchWriter(t3, null);
-      bw.addMutation(m);
-      bw.close();
+      try (BatchWriter bw2 = user1Con.createBatchWriter(t3)) {
+        m = new Mutation(u1);
+        m.put("cf", "cq", "turtles");
+        bw2.addMutation(m);
+      }
       loginAs(root);
       c.securityOperations().revokeNamespacePermission(u1, n1, NamespacePermission.WRITE);
 
