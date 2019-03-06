@@ -22,7 +22,6 @@ import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
@@ -520,7 +519,6 @@ public class ZooCache {
     } finally {
       cacheReadLock.unlock();
     }
-
   }
 
   /**
@@ -550,28 +548,13 @@ public class ZooCache {
     Preconditions.checkState(!closed);
     cacheWriteLock.lock();
     try {
-      for (Iterator<String> i = cache.keySet().iterator(); i.hasNext();) {
-        String path = i.next();
-        if (path.startsWith(zPath))
-          i.remove();
-      }
-
-      for (Iterator<String> i = childrenCache.keySet().iterator(); i.hasNext();) {
-        String path = i.next();
-        if (path.startsWith(zPath))
-          i.remove();
-      }
-
-      for (Iterator<String> i = statCache.keySet().iterator(); i.hasNext();) {
-        String path = i.next();
-        if (path.startsWith(zPath))
-          i.remove();
-      }
+      cache.keySet().removeIf(path -> path.startsWith(zPath));
+      childrenCache.keySet().removeIf(path -> path.startsWith(zPath));
+      statCache.keySet().removeIf(path -> path.startsWith(zPath));
 
       immutableCache = new ImmutableCacheCopies(++updateCount, cache, statCache, childrenCache);
     } finally {
       cacheWriteLock.unlock();
     }
   }
-
 }

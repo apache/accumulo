@@ -164,13 +164,7 @@ public class SampleIT extends AccumuloClusterHarness {
         sb.setSamplerConfiguration(SC1);
       }
 
-      Iterator<Key> it = expected.keySet().iterator();
-      while (it.hasNext()) {
-        Key k = it.next();
-        if (k.getRow().toString().equals(someRow)) {
-          it.remove();
-        }
-      }
+      expected.keySet().removeIf(k -> k.getRow().toString().equals(someRow));
 
       expected.put(new Key(someRow, "cf1", "cq1", 8), new Value("42".getBytes()));
       expected.put(new Key(someRow, "cf1", "cq3", 8), new Value("suprise".getBytes()));

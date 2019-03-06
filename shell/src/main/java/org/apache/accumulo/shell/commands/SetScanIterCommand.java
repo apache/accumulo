@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -57,12 +56,7 @@ public class SetScanIterCommand extends SetIterCommand {
 
     ScanCommand.ensureTserversCanLoadIterator(shellState, tableName, classname);
 
-    for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
-      final Entry<String,String> entry = i.next();
-      if (entry.getValue() == null || entry.getValue().isEmpty()) {
-        i.remove();
-      }
-    }
+    options.values().removeIf(v -> v == null || v.isEmpty());
 
     List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(tableName);
     if (tableScanIterators == null) {

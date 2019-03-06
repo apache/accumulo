@@ -19,7 +19,6 @@ package org.apache.accumulo.shell.commands;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -143,12 +142,8 @@ public class SetIterCommand extends Command {
 
     ScanCommand.ensureTserversCanLoadIterator(shellState, tableName, classname);
 
-    for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
-      final Entry<String,String> entry = i.next();
-      if (entry.getValue() == null || entry.getValue().isEmpty()) {
-        i.remove();
-      }
-    }
+    options.values().removeIf(v -> v == null || v.isEmpty());
+
     final EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
     if (cl.hasOption(allScopeOpt.getOpt()) || cl.hasOption(mincScopeOpt.getOpt())) {
       scopes.add(IteratorScope.minc);
@@ -181,12 +176,8 @@ public class SetIterCommand extends Command {
               + SortedKeyValueIterator.class.getName());
     }
 
-    for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
-      final Entry<String,String> entry = i.next();
-      if (entry.getValue() == null || entry.getValue().isEmpty()) {
-        i.remove();
-      }
-    }
+    options.values().removeIf(v -> v == null || v.isEmpty());
+
     final EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
     if (cl.hasOption(allScopeOpt.getOpt()) || cl.hasOption(mincScopeOpt.getOpt())) {
       scopes.add(IteratorScope.minc);
