@@ -18,10 +18,8 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -51,8 +49,7 @@ public class SetShellIterCommand extends SetIterCommand {
 
     String profile = cl.getOptionValue(profileOpt.getOpt());
 
-    // instead of setting table properties, just put the options in a list to use at scan time
-    options.entrySet().removeIf(entry -> entry.getValue() == null || entry.getValue().isEmpty());
+    options.values().removeIf(v -> v == null || v.isEmpty());
 
     List<IteratorSetting> tableScanIterators = shellState.iteratorProfiles.get(profile);
     if (tableScanIterators == null) {
