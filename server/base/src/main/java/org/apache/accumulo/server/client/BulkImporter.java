@@ -236,12 +236,7 @@ public class BulkImporter {
         }
 
         // remove map files that have no more key extents to assign
-        Iterator<Entry<Path,List<KeyExtent>>> afIter = assignmentFailures.entrySet().iterator();
-        while (afIter.hasNext()) {
-          Entry<Path,List<KeyExtent>> entry = afIter.next();
-          if (entry.getValue().size() == 0)
-            afIter.remove();
-        }
+        assignmentFailures.entrySet().removeIf(entry -> entry.getValue().size() == 0);
 
         Set<Entry<Path,Integer>> failureIter = failureCount.entrySet();
         for (Entry<Path,Integer> entry : failureIter) {

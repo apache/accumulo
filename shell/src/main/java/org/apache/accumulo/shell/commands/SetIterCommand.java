@@ -143,12 +143,8 @@ public class SetIterCommand extends Command {
 
     ScanCommand.ensureTserversCanLoadIterator(shellState, tableName, classname);
 
-    for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
-      final Entry<String,String> entry = i.next();
-      if (entry.getValue() == null || entry.getValue().isEmpty()) {
-        i.remove();
-      }
-    }
+    options.entrySet().removeIf(entry -> entry.getValue() == null || entry.getValue().isEmpty());
+
     final EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
     if (cl.hasOption(allScopeOpt.getOpt()) || cl.hasOption(mincScopeOpt.getOpt())) {
       scopes.add(IteratorScope.minc);
@@ -181,12 +177,8 @@ public class SetIterCommand extends Command {
               + SortedKeyValueIterator.class.getName());
     }
 
-    for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
-      final Entry<String,String> entry = i.next();
-      if (entry.getValue() == null || entry.getValue().isEmpty()) {
-        i.remove();
-      }
-    }
+    options.entrySet().removeIf(entry -> entry.getValue() == null || entry.getValue().isEmpty());
+
     final EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
     if (cl.hasOption(allScopeOpt.getOpt()) || cl.hasOption(mincScopeOpt.getOpt())) {
       scopes.add(IteratorScope.minc);

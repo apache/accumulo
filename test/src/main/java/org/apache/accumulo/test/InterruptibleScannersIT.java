@@ -69,15 +69,9 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
             do {
               ArrayList<ActiveScan> scans = new ArrayList<>(
                   client.instanceOperations().getActiveScans(tserver));
-              Iterator<ActiveScan> iter = scans.iterator();
-              while (iter.hasNext()) {
-                ActiveScan scan = iter.next();
-                // Remove scans not against our table and not owned by us
-                if (!getAdminPrincipal().equals(scan.getUser())
-                    || !tableName.equals(scan.getTable())) {
-                  iter.remove();
-                }
-              }
+              // Remove scans not against our table and not owned by us
+              scans.removeIf(scan -> !getAdminPrincipal().equals(scan.getUser())
+                  || !tableName.equals(scan.getTable()));
 
               if (!scans.isEmpty()) {
                 // We found our scan

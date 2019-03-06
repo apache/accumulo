@@ -57,12 +57,7 @@ public class SetScanIterCommand extends SetIterCommand {
 
     ScanCommand.ensureTserversCanLoadIterator(shellState, tableName, classname);
 
-    for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
-      final Entry<String,String> entry = i.next();
-      if (entry.getValue() == null || entry.getValue().isEmpty()) {
-        i.remove();
-      }
-    }
+    options.entrySet().removeIf(entry -> entry.getValue() == null || entry.getValue().isEmpty());
 
     List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(tableName);
     if (tableScanIterators == null) {

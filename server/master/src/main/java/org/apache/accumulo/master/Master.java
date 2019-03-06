@@ -821,13 +821,7 @@ public class Master
 
   public void clearMigrations(TableId tableId) {
     synchronized (migrations) {
-      Iterator<KeyExtent> iterator = migrations.keySet().iterator();
-      while (iterator.hasNext()) {
-        KeyExtent extent = iterator.next();
-        if (extent.getTableId().equals(tableId)) {
-          iterator.remove();
-        }
-      }
+      migrations.keySet().removeIf(extent -> extent.getTableId().equals(tableId));
     }
   }
 
