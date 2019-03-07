@@ -26,10 +26,8 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -138,8 +136,8 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
     }
   }
 
-  public static void insertData(AccumuloClient client, String table) throws TableNotFoundException,
-      MutationsRejectedException {
+  public static void insertData(AccumuloClient client, String table)
+      throws TableNotFoundException, MutationsRejectedException {
     try (BatchWriter bw = client.createBatchWriter(table)) {
       for (int i = 0; i < 100; i++) {
         Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));

@@ -45,7 +45,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.OrIterator;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class OrIteratorIT extends AccumuloClusterHarness {
