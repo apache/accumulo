@@ -130,7 +130,7 @@ function refreshProblemDetailsTable() {
 
         items.push(createLeftCell('', 
             '<a href="javascript:clearDetailsProblemsTable(\'' +
-            val.tableID + '\', \'' + val.resource + '\', \'' + val.type +
+            val.tableID + '\',\'' + val.resource + '\',\'' + val.type +
             '\')">clear this problem</a>'));
       }
 

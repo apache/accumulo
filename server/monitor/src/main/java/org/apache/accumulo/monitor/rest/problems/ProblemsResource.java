@@ -16,7 +16,8 @@
  */
 package org.apache.accumulo.monitor.rest.problems;
 
-import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX;
+import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
+import static org.apache.accumulo.monitor.util.ParameterValidator.PROBLEM_TYPE_REGEX;
 import static org.apache.accumulo.monitor.util.ParameterValidator.RESOURCE_REGEX;
 
 import java.util.ArrayList;
@@ -98,7 +99,7 @@ public class ProblemsResource {
   @Consumes(MediaType.TEXT_PLAIN)
   @Path("summary")
   public void clearTableProblems(
-      @QueryParam("s") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String tableID) {
+      @QueryParam("s") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
       ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(TableId.of(tableID));
@@ -154,9 +155,9 @@ public class ProblemsResource {
   @Consumes(MediaType.TEXT_PLAIN)
   @Path("details")
   public void clearDetailsProblems(
-      @QueryParam("table") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String tableID,
+      @QueryParam("table") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID,
       @QueryParam("resource") @NotNull @Pattern(regexp = RESOURCE_REGEX) String resource,
-      @QueryParam("ptype") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String ptype) {
+      @QueryParam("ptype") @NotNull @Pattern(regexp = PROBLEM_TYPE_REGEX) String ptype) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
       ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(TableId.of(tableID),
