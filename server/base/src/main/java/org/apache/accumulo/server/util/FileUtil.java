@@ -56,6 +56,8 @@ import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableSortedMap;
+
 public class FileUtil {
 
   public static class FileInfo {
@@ -333,8 +335,7 @@ public class FileUtil {
           return findMidPoint(context, tabletDirectory, prevEndRow, endRow, origMapFiles, minSplit,
               false);
         }
-        throw new IOException("Failed to find mid point, no entries between " + prevEndRow + " and "
-            + endRow + " for " + mapFiles);
+        return ImmutableSortedMap.of();
       }
 
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(readers);

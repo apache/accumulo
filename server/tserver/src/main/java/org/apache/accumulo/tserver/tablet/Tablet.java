@@ -1618,6 +1618,17 @@ public class Tablet {
       return null;
     }
 
+    if (keys.isEmpty()) {
+      log.info("Cannot split tablet " + extent + ", files contain no data for tablet.");
+
+      // set the following to keep tablet from attempting to split until the tablets set of files
+      // changes.
+      sawBigRow = true;
+      timeOfLastMinCWhenBigFreakinRowWasSeen = lastMinorCompactionFinishTime;
+      timeOfLastImportWhenBigFreakinRowWasSeen = lastMapFileImportTime;
+      return null;
+    }
+
     // check to see if one row takes up most of the tablet, in which case we can not split
     try {
 
