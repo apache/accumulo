@@ -58,6 +58,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSortedMap;
 
 public class FileUtil {
 
@@ -332,8 +333,7 @@ public class FileUtil {
           // need to pass original map files, not possibly reduced indexes
           return findMidPoint(fs, acuConf, prevEndRow, endRow, origMapFiles, minSplit, false);
         }
-        throw new IOException("Failed to find mid point, no entries between " + prevEndRow + " and "
-            + endRow + " for " + mapFiles);
+        return ImmutableSortedMap.of();
       }
 
       // @formatter:off
