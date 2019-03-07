@@ -1576,9 +1576,6 @@ public class Tablet {
     return size;
   }
 
-  private boolean sawBigRow = false;
-  private long timeOfLastMinCWhenBigFreakinRowWasSeen = 0;
-  private long timeOfLastImportWhenBigFreakinRowWasSeen = 0;
   private final long splitCreationTime;
 
   private SplitRowSpec findSplitRow(Collection<FileRef> files) {
@@ -1590,21 +1587,9 @@ public class Tablet {
     long splitThreshold = tableConfiguration.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     long maxEndRow = tableConfiguration.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
 
-    if (extent.isRootTablet() || estimateTabletSize() <= splitThreshold) {
+    if (extent.isRootTablet() || isFindSplitsSuppressed()
+        || estimateTabletSize() <= splitThreshold) {
       return null;
-    }
-
-    // have seen a big row before, do not bother checking unless a minor compaction or map file
-    // import has occurred.
-    if (sawBigRow) {
-      if (timeOfLastMinCWhenBigFreakinRowWasSeen != lastMinorCompactionFinishTime
-          || timeOfLastImportWhenBigFreakinRowWasSeen != lastMapFileImportTime) {
-        // a minor compaction or map file import has occurred... check again
-        sawBigRow = false;
-      } else {
-        // nothing changed, do not split
-        return null;
-      }
     }
 
     SortedMap<Double,Key> keys = null;
@@ -1620,12 +1605,7 @@ public class Tablet {
 
     if (keys.isEmpty()) {
       log.info("Cannot split tablet " + extent + ", files contain no data for tablet.");
-
-      // set the following to keep tablet from attempting to split until the tablets set of files
-      // changes.
-      sawBigRow = true;
-      timeOfLastMinCWhenBigFreakinRowWasSeen = lastMinorCompactionFinishTime;
-      timeOfLastImportWhenBigFreakinRowWasSeen = lastMapFileImportTime;
+      suppressFindSplits();
       return null;
     }
 
@@ -1654,9 +1634,7 @@ public class Tablet {
             log.warn("Cannot split tablet {}, selected split point too long.  Length :  {}", extent,
                 candidate.getLength());
 
-            sawBigRow = true;
-            timeOfLastMinCWhenBigFreakinRowWasSeen = lastMinorCompactionFinishTime;
-            timeOfLastImportWhenBigFreakinRowWasSeen = lastMapFileImportTime;
+            suppressFindSplits();
 
             return null;
           }
@@ -1672,10 +1650,7 @@ public class Tablet {
         }
 
         log.warn("Cannot split tablet {} it contains a big row : {}", extent, lastRow);
-
-        sawBigRow = true;
-        timeOfLastMinCWhenBigFreakinRowWasSeen = lastMinorCompactionFinishTime;
-        timeOfLastImportWhenBigFreakinRowWasSeen = lastMapFileImportTime;
+        suppressFindSplits();
 
         return null;
       }
@@ -1694,9 +1669,7 @@ public class Tablet {
         log.warn("Cannot split tablet {}, selected split point too long.  Length :  {}", extent,
             text.getLength());
 
-        sawBigRow = true;
-        timeOfLastMinCWhenBigFreakinRowWasSeen = lastMinorCompactionFinishTime;
-        timeOfLastImportWhenBigFreakinRowWasSeen = lastMapFileImportTime;
+        suppressFindSplits();
 
         return null;
       }
@@ -1708,6 +1681,38 @@ public class Tablet {
       return null;
     }
 
+  }
+
+  private boolean supressFindSplits = false;
+  private long timeOfLastMinCWhenFindSplitsWasSupressed = 0;
+  private long timeOfLastImportWhenFindSplitsWasSupressed = 0;
+
+  /**
+   * Check if the the current files were found to be unsplittable. If so, then do not want to spend
+   * resources on examining the files again until the files change.
+   */
+  private boolean isFindSplitsSuppressed() {
+    if (supressFindSplits) {
+      if (timeOfLastMinCWhenFindSplitsWasSupressed != lastMinorCompactionFinishTime
+          || timeOfLastImportWhenFindSplitsWasSupressed != lastMapFileImportTime) {
+        // a minor compaction or map file import has occurred... check again
+        supressFindSplits = false;
+      } else {
+        // nothing changed, do not split
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Remember that the current set of files are unsplittable.
+   */
+  private void suppressFindSplits() {
+    supressFindSplits = true;
+    timeOfLastMinCWhenFindSplitsWasSupressed = lastMinorCompactionFinishTime;
+    timeOfLastImportWhenFindSplitsWasSupressed = lastMapFileImportTime;
   }
 
   private static int longestCommonLength(Text text, Text beforeMid) {
