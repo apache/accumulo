@@ -36,6 +36,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.cryptoImpl.NoFileDecrypter;
+import org.apache.accumulo.core.cryptoImpl.NoFileEncrypter;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils.Version;
 import org.apache.accumulo.core.file.streams.BoundedRangeFileInputStream;
@@ -634,6 +635,7 @@ public final class BCFile {
       // backwards compatibility
       if (version.equals(API_VERSION_1)) {
         LOG.trace("Found a version 1 file to read.");
+        decryptionParams = new NoFileEncrypter().getDecryptionParameters();
         this.decrypter = new NoFileDecrypter();
       } else {
         // read crypto parameters and get decrypter
