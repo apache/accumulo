@@ -175,7 +175,7 @@ fi
 # app isn't used anywhere, but it makes the process easier to spot when ps/top/snmp truncate the command line
 JAVA="${JAVA_HOME}/bin/java"
 exec "$JAVA" "-Dapp=$1" \
-   "$INSTANCE_OPT" \
+   $INSTANCE_OPT \
    $ACCUMULO_OPTS \
    -classpath "${CLASSPATH}" \
    -XX:OnOutOfMemoryError="${ACCUMULO_KILL_CMD:-kill -9 %p}" \
