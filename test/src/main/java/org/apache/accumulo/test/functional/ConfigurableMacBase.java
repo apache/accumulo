@@ -26,7 +26,6 @@ import java.io.OutputStream;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -186,9 +185,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
   }
 
   protected Properties getClientProperties() {
-    return Accumulo.newClientProperties()
-        .to(getCluster().getInstanceName(), getCluster().getZooKeepers()).as("root", ROOT_PASSWORD)
-        .build();
+    return cluster.getClientProperties();
   }
 
   protected ServerContext getServerContext() {
