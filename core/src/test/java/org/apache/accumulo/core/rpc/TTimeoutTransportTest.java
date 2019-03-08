@@ -68,7 +68,7 @@ public class TTimeoutTransportTest {
 
     try {
       timeoutTransport.openSocket(addr);
-      fail("Expected to catch IOException but got none");
+      fail("Expected to catch SocketException but got none");
     } catch (SocketException e) {
       // Expected
     }
