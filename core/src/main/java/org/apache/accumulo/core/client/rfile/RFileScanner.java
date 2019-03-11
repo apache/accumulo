@@ -406,8 +406,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
       if (this.blockCacheManager != null) {
         this.blockCacheManager.stop();
       }
-    } catch (RuntimeException e1) {
-      throw new RuntimeException(e1);
+    } catch (UnsupportedOperationException e1) {
+      throw new UnsupportedOperationException(e1);
     }
   }
 }
