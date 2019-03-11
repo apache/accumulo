@@ -1702,28 +1702,28 @@ public class RFileTest {
 
   @Test(expected = NullPointerException.class)
   public void testMissingUnreleasedVersions() throws Exception {
-    runVersionTest(5, DefaultConfiguration.getInstance());
+    runVersionTest(5, getAccumuloConfig(CryptoTest.CRYPTO_OFF_CONF));
   }
 
   @Test
   public void testOldVersions() throws Exception {
-    AccumuloConfiguration defaultConfiguration = DefaultConfiguration.getInstance();
-    runVersionTest(3, defaultConfiguration);
-    runVersionTest(4, defaultConfiguration);
-    runVersionTest(6, defaultConfiguration);
-    runVersionTest(7, defaultConfiguration);
+    ConfigurationCopy defaultConf = getAccumuloConfig(CryptoTest.CRYPTO_OFF_CONF);
+    runVersionTest(3, defaultConf);
+    runVersionTest(4, defaultConf);
+    runVersionTest(6, defaultConf);
+    runVersionTest(7, defaultConf);
   }
 
   @Test
   public void testOldVersionsWithCrypto() throws Exception {
-    AccumuloConfiguration cryptoOnConf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    ConfigurationCopy cryptoOnConf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
     runVersionTest(3, cryptoOnConf);
     runVersionTest(4, cryptoOnConf);
     runVersionTest(6, cryptoOnConf);
     runVersionTest(7, cryptoOnConf);
   }
 
-  private void runVersionTest(int version, AccumuloConfiguration aconf) throws IOException {
+  private void runVersionTest(int version, ConfigurationCopy aconf) throws Exception {
     InputStream in = this.getClass().getClassLoader()
         .getResourceAsStream("org/apache/accumulo/core/file/rfile/ver_" + version + ".rf");
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -1735,8 +1735,15 @@ public class RFileTest {
     byte[] data = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in2 = new FSDataInputStream(bais);
+    aconf.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
+    aconf.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(100000));
+    aconf.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));
+    aconf.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
+    BlockCacheManager manager = BlockCacheManagerFactory.getInstance(aconf);
+    manager.start(new BlockCacheConfiguration(aconf));
     CachableBuilder cb = new CachableBuilder().input(in2).length(data.length).conf(hadoopConf)
-        .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
+        .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA))
+        .index(manager.getBlockCache(CacheType.INDEX)).data(manager.getBlockCache(CacheType.DATA));
     Reader reader = new RFile.Reader(cb);
     checkIndex(reader);
 
@@ -1779,10 +1786,11 @@ public class RFileTest {
       assertFalse(iter.hasTop());
     }
 
+    manager.stop();
     reader.close();
   }
 
-  public static AccumuloConfiguration getAccumuloConfig(String cryptoOn) {
+  public static ConfigurationCopy getAccumuloConfig(String cryptoOn) {
     ConfigurationCopy cfg = new ConfigurationCopy(DefaultConfiguration.getInstance());
     switch (cryptoOn) {
       case CryptoTest.CRYPTO_ON_CONF:
