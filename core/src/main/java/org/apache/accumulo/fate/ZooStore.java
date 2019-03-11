@@ -187,7 +187,7 @@ public class ZooStore<T> implements TStore<T> {
         }
 
         synchronized (this) {
-          if (events == statusChangeEvents) {
+          if (events == statusChangeEvents) { // lgtm [java/constant-comparison]
             if (defered.size() > 0) {
               Long minTime = Collections.min(defered.values());
               long waitTime = minTime - System.currentTimeMillis();
@@ -376,7 +376,7 @@ public class ZooStore<T> implements TStore<T> {
         return status;
 
       synchronized (this) {
-        if (events == statusChangeEvents) {
+        if (events == statusChangeEvents) { // lgtm [java/constant-comparison]
           try {
             this.wait(5000);
           } catch (InterruptedException e) {

@@ -2425,9 +2425,6 @@ public class Tablet {
       }
     } finally {
       synchronized (this) {
-        if (writesInProgress < 1)
-          throw new IllegalStateException("writesInProgress < 1 " + writesInProgress);
-
         writesInProgress--;
         if (writesInProgress == 0)
           this.notifyAll();
@@ -2628,18 +2625,6 @@ public class Tablet {
 
         if (numAdded > 0) {
           rebuildReferencedLogs();
-        }
-
-        if (numAdded > 1) {
-          // expect to add all or none
-          throw new IllegalArgumentException(
-              "Added subset of logs " + extent + " " + more + " " + currentLogs);
-        }
-
-        if (numContained > 1) {
-          // expect to contain all or none
-          throw new IllegalArgumentException(
-              "Other logs contained subset of logs " + extent + " " + more + " " + otherLogs);
         }
 
         if (numAdded > 0 && numContained == 0) {
