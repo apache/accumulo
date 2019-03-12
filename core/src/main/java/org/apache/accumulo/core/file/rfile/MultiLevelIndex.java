@@ -220,9 +220,9 @@ public class MultiLevelIndex {
 
     public long sizeInBytes() {
       if (offsets == null) {
-        return indexSize + 4 * numOffsets;
+        return indexSize + 4L * numOffsets;
       } else {
-        return data.length + 4 * offsets.length;
+        return data.length + 4L * offsets.length;
       }
     }
 
