@@ -2610,39 +2610,21 @@ public class Tablet {
             return !releaseLock;
         }
 
-        int numAdded = 0;
-        int numContained = 0;
+        boolean added;
+        boolean contained;
         if (addToOther) {
-          if (otherLogs.add(more))
-            numAdded++;
-
-          if (currentLogs.contains(more))
-            numContained++;
+          added = otherLogs.add(more);
+          contained = currentLogs.contains(more);
         } else {
-          if (currentLogs.add(more))
-            numAdded++;
-
-          if (otherLogs.contains(more))
-            numContained++;
+          added = currentLogs.add(more);
+          contained = otherLogs.contains(more);
         }
 
-        if (numAdded > 0) {
+        if (added) {
           rebuildReferencedLogs();
         }
 
-        if (numAdded > 1) {
-          // expect to add all or none
-          throw new IllegalArgumentException(
-              "Added subset of logs " + extent + " " + more + " " + currentLogs);
-        }
-
-        if (numContained > 1) {
-          // expect to contain all or none
-          throw new IllegalArgumentException(
-              "Other logs contained subset of logs " + extent + " " + more + " " + otherLogs);
-        }
-
-        if (numAdded > 0 && numContained == 0) {
+        if (added && !contained) {
           releaseLock = false;
         }
 
