@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.SortedMap;
@@ -484,10 +485,11 @@ public class Tablet {
         }
 
       } catch (Throwable t) {
+        String msg = "Error recovering tablet " + extent + " from log files";
         if (tableConfiguration.getBoolean(Property.TABLE_FAILURES_IGNORE)) {
-          log.warn("Error recovering from log files: ", t);
+          log.warn(msg, t);
         } else {
-          throw new RuntimeException(t);
+          throw new RuntimeException(msg, t);
         }
       }
       // make some closed references that represent the recovered logs
@@ -558,7 +560,7 @@ public class Tablet {
             tableConfiguration.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
         this.defaultSecurityLabel = cv.getExpression();
       } catch (Exception e) {
-        log.error("{}", e.getMessage(), e);
+        log.error("Error setting up default security label " + e.getMessage(), e);
         this.defaultSecurityLabel = new byte[0];
       }
     }
@@ -687,7 +689,8 @@ public class Tablet {
   private void handleTabletClosedDuringScan(List<KVEntry> results, LookupResult lookupResult,
       boolean exceededMemoryUsage, Range range, int entriesAdded) {
     if (exceededMemoryUsage)
-      throw new IllegalStateException("tablet should not exceed memory usage or close, not both");
+      throw new IllegalStateException(
+          "Tablet " + extent + "should not exceed memory usage or close, not both");
 
     if (entriesAdded > 0)
       addUnfinishedRange(lookupResult, range, results.get(results.size() - 1).getKey(), false);
@@ -918,13 +921,13 @@ public class Tablet {
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
     } catch (Exception | Error e) {
       failed = true;
-      throw new RuntimeException(e);
+      throw new RuntimeException("Exception occurred during minor compaction on " + extent, e);
     } finally {
       Thread.currentThread().setName(oldName);
       try {
         getTabletMemory().finalizeMinC();
       } catch (Throwable t) {
-        log.error("Failed to free tablet memory", t);
+        log.error("Failed to free tablet memory on " + extent, t);
       }
 
       if (!failed) {
@@ -1100,15 +1103,15 @@ public class Tablet {
     try {
       String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstanceID() + Constants.ZTABLES
           + "/" + extent.getTableId() + Constants.ZTABLE_FLUSH_ID;
-      return Long
-          .parseLong(new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8));
+      String id = new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8);
+      return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Exception on " + extent + " getting flush ID", e);
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
         throw (NoNodeException) ke;
       } else {
-        throw new RuntimeException(ke);
+        throw new RuntimeException("Exception on " + extent + " getting flush ID", ke);
       }
     }
   }
@@ -1118,10 +1121,10 @@ public class Tablet {
         + "/" + extent.getTableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
     try {
-      return Long
-          .parseLong(new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8));
+      String id = new String(context.getZooReaderWriter().getData(zTablePath, null), UTF_8);
+      return Long.parseLong(id);
     } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Exception on " + extent + " getting compact cancel ID", e);
     }
   }
 
@@ -1142,11 +1145,7 @@ public class Tablet {
             hex.decode(tokens[1].split("=")[1].getBytes(UTF_8)));
         DataInputStream dis = new DataInputStream(bais);
 
-        try {
-          compactionConfig.readFields(dis);
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+        compactionConfig.readFields(dis);
 
         KeyExtent ke = new KeyExtent(extent.getTableId(), compactionConfig.getEndRow(),
             compactionConfig.getStartRow());
@@ -1158,29 +1157,25 @@ public class Tablet {
       }
 
       return new Pair<>(compactID, compactionConfig);
-    } catch (InterruptedException | DecoderException | NumberFormatException e) {
-      throw new RuntimeException(e);
+    } catch (IOException | InterruptedException | DecoderException | NumberFormatException e) {
+      throw new RuntimeException("Exception on " + extent + " getting compaction ID", e);
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
         throw (NoNodeException) ke;
       } else {
-        throw new RuntimeException(ke);
+        throw new RuntimeException("Exception on " + extent + " getting compaction ID", ke);
       }
     }
   }
 
   private synchronized CommitSession finishPreparingMutations(long time) {
-    if (writesInProgress < 0) {
-      throw new IllegalStateException("waitingForLogs < 0 " + writesInProgress);
-    }
-
     if (isClosed() || getTabletMemory() == null) {
       return null;
     }
 
-    writesInProgress++;
     CommitSession commitSession = getTabletMemory().getCommitSession();
-    commitSession.incrementCommitsInProgress();
+    incrementWritesInProgress(Optional.of(commitSession));
+
     commitSession.updateMaxCommittedTime(time);
     return commitSession;
   }
@@ -1241,19 +1236,38 @@ public class Tablet {
     return finishPreparingMutations(time);
   }
 
-  public synchronized void abortCommit(CommitSession commitSession) {
+  private synchronized void incrementWritesInProgress(Optional<CommitSession> cs) {
+    if (writesInProgress < 0) {
+      throw new IllegalStateException("FATAL: Something really bad went wrong. Attempted to "
+          + "increment a negative number of writes in progress " + writesInProgress + "on tablet "
+          + extent);
+    }
+    if (cs.isPresent())
+      cs.get().incrementCommitsInProgress();
+
+    writesInProgress++;
+  }
+
+  private synchronized void decrementWritesInProgress(Optional<CommitSession> cs) {
     if (writesInProgress <= 0) {
-      throw new IllegalStateException("waitingForLogs <= 0 " + writesInProgress);
+      throw new IllegalStateException("FATAL: Something really bad went wrong. Attempted to "
+          + "decrement the number of writes in progress " + writesInProgress + " to < 0 on tablet "
+          + extent);
     }
+    if (cs.isPresent())
+      cs.get().decrementCommitsInProgress();
 
-    if (isCloseComplete() || getTabletMemory() == null) {
-      throw new IllegalStateException("aborting commit when tablet is closed");
-    }
-
-    commitSession.decrementCommitsInProgress();
     writesInProgress--;
     if (writesInProgress == 0)
       this.notifyAll();
+  }
+
+  public synchronized void abortCommit(CommitSession commitSession) {
+    if (isCloseComplete() || getTabletMemory() == null) {
+      throw new IllegalStateException("Aborting commit when tablet " + extent + " is closed");
+    }
+
+    decrementWritesInProgress(Optional.of(commitSession));
   }
 
   public void commit(CommitSession commitSession, List<Mutation> mutations) {
@@ -1270,23 +1284,14 @@ public class Tablet {
     getTabletMemory().mutate(commitSession, mutations, totalCount);
 
     synchronized (this) {
-      if (writesInProgress < 1) {
-        throw new IllegalStateException(
-            "commiting mutations after logging, but not waiting for any log messages");
-      }
-
       if (isCloseComplete()) {
-        throw new IllegalStateException("tablet closed with outstanding messages to the logger");
+        throw new IllegalStateException(
+            "Tablet " + extent + " closed with outstanding messages to the logger");
       }
+      // decrement here in case an exception is thrown below
+      decrementWritesInProgress(Optional.of(commitSession));
 
       getTabletMemory().updateMemoryUsageStats();
-
-      // decrement here in case an exception is thrown below
-      writesInProgress--;
-      if (writesInProgress == 0)
-        this.notifyAll();
-
-      commitSession.decrementCommitsInProgress();
 
       numEntries += totalCount;
       numEntriesInMemory += totalCount;
@@ -1307,8 +1312,8 @@ public class Tablet {
   void initiateClose(boolean saveState, boolean queueMinC, boolean disableWrites) {
 
     if (!saveState && queueMinC) {
-      throw new IllegalArgumentException(
-          "Not saving state on close and requesting minor compactions queue does not make sense");
+      throw new IllegalArgumentException("Bad state initiating close on " + extent
+          + ". State not saved and requested minor compactions queue");
     }
 
     log.debug("initiateClose(saveState={} queueMinC={} disableWrites={}) {}", saveState, queueMinC,
@@ -1359,7 +1364,7 @@ public class Tablet {
       try {
         mct = prepareForMinC(getFlushID(), MinorCompactionReason.CLOSE);
       } catch (NoNodeException e) {
-        throw new RuntimeException(e);
+        throw new RuntimeException("Exception on " + extent + " during prep for MinC", e);
       }
 
       if (queueMinC) {
@@ -1379,11 +1384,10 @@ public class Tablet {
   synchronized void completeClose(boolean saveState, boolean completeClose) throws IOException {
 
     if (!isClosing() || isCloseComplete() || closeCompleting) {
-      throw new IllegalStateException("closeState = " + closeState);
+      throw new IllegalStateException("Bad close state " + closeState + " on tablet " + extent);
     }
 
-    log.debug("completeClose(saveState={} completeClose={}) {}", saveState, completeClose,
-        getExtent());
+    log.debug("completeClose(saveState={} completeClose={}) {}", saveState, completeClose, extent);
 
     // ensure this method is only called once, also guards against multiple
     // threads entering the method at the same time
@@ -1413,7 +1417,7 @@ public class Tablet {
       try {
         prepareForMinC(getFlushID(), MinorCompactionReason.CLOSE).run();
       } catch (NoNodeException e) {
-        throw new RuntimeException(e);
+        throw new RuntimeException("Exception on " + extent + " during prep for MinC", e);
       }
     }
 
@@ -1441,7 +1445,7 @@ public class Tablet {
     try {
       getTabletMemory().getMemTable().delete(0);
     } catch (Throwable t) {
-      log.error("Failed to delete mem table : " + t.getMessage(), t);
+      log.error("Failed to delete mem table : " + t.getMessage() + " for tablet " + extent, t);
     }
 
     getTabletMemory().close();
@@ -1460,14 +1464,14 @@ public class Tablet {
 
   private void closeConsistencyCheck() {
 
-    if (getTabletMemory().getMemTable().getNumEntries() != 0) {
-      String msg = "Closed tablet " + extent + " has "
-          + getTabletMemory().getMemTable().getNumEntries() + " entries in memory";
+    long num = tabletMemory.getMemTable().getNumEntries();
+    if (num != 0) {
+      String msg = "Closed tablet " + extent + " has " + num + " entries in memory";
       log.error(msg);
       throw new RuntimeException(msg);
     }
 
-    if (getTabletMemory().memoryReservedForMinC()) {
+    if (tabletMemory.memoryReservedForMinC()) {
       String msg = "Closed tablet " + extent + " has minor compacting memory";
       log.error(msg);
       throw new RuntimeException(msg);
@@ -1623,7 +1627,7 @@ public class Tablet {
       // We expect to get a midPoint for this set of files. If we don't get one, we have a problem.
       final Key mid = keys.get(.5);
       if (mid == null) {
-        throw new IllegalStateException("Could not determine midpoint for files");
+        throw new IllegalStateException("Could not determine midpoint for files on " + extent);
       }
 
       // check to see that the midPoint is not equal to the end key
@@ -1726,9 +1730,9 @@ public class Tablet {
 
   private Map<FileRef,Pair<Key,Key>> getFirstAndLastKeys(SortedMap<FileRef,DataFileValue> allFiles)
       throws IOException {
-    Map<FileRef,Pair<Key,Key>> result = new HashMap<>();
-    FileOperations fileFactory = FileOperations.getInstance();
-    VolumeManager fs = getTabletServer().getFileSystem();
+    final Map<FileRef,Pair<Key,Key>> result = new HashMap<>();
+    final FileOperations fileFactory = FileOperations.getInstance();
+    final VolumeManager fs = getTabletServer().getFileSystem();
     for (Entry<FileRef,DataFileValue> entry : allFiles.entrySet()) {
       FileRef file = entry.getKey();
       FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
@@ -1804,7 +1808,7 @@ public class Tablet {
         compactionId = getCompactionID();
         strategy = createCompactionStrategy(compactionId.getSecond().getCompactionStrategy());
       } catch (NoNodeException e) {
-        throw new RuntimeException(e);
+        throw new RuntimeException("Exception on " + extent + " during MajC", e);
       }
     } else if (reason == MajorCompactionReason.NORMAL || reason == MajorCompactionReason.IDLE) {
       strategy = Property.createTableInstanceFromPropertyName(tableConfiguration,
@@ -1814,7 +1818,8 @@ public class Tablet {
     } else if (reason == MajorCompactionReason.CHOP) {
       firstAndLastKeys = getFirstAndLastKeys(getDatafileManager().getDatafileSizes());
     } else {
-      throw new IllegalArgumentException("Unknown compaction reason " + reason);
+      throw new IllegalArgumentException(
+          "Unknown compaction reason " + reason + " during MajC on " + extent);
     }
 
     if (strategy != null) {
@@ -1930,7 +1935,7 @@ public class Tablet {
           }
 
         } catch (NoNodeException e) {
-          throw new RuntimeException(e);
+          throw new RuntimeException("Exception on " + extent + " during MajC", e);
         }
       }
 
@@ -1998,7 +2003,8 @@ public class Tablet {
           HashMap<FileRef,DataFileValue> copy = new HashMap<>(
               getDatafileManager().getDatafileSizes());
           if (!copy.keySet().containsAll(smallestFiles))
-            throw new IllegalStateException("Cannot find data file values for " + smallestFiles);
+            throw new IllegalStateException("Cannot find data file values for " + smallestFiles
+                + " on " + extent + " during MajC");
 
           copy.keySet().retainAll(smallestFiles);
 
@@ -2028,8 +2034,7 @@ public class Tablet {
               new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()));
 
           // when major compaction produces a file w/ zero entries, it will be deleted... do not
-          // want
-          // to add the deleted file
+          // want to add the deleted file
           if (filesToCompact.size() > 0 && mcs.getEntriesWritten() > 0) {
             filesToCompact.put(fileName,
                 new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()));
@@ -2224,7 +2229,8 @@ public class Tablet {
   public TreeMap<KeyExtent,TabletData> split(byte[] sp) throws IOException {
 
     if (sp != null && extent.getEndRow() != null && extent.getEndRow().equals(new Text(sp))) {
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException(
+          "Attempting to split on EndRow " + extent.getEndRow() + " for " + extent);
     }
 
     if (sp != null && sp.length > tableConfiguration.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE)) {
@@ -2392,7 +2398,7 @@ public class Tablet {
       if (lockWait > getTabletServer().getConfiguration()
           .getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)) {
         throw new IOException(
-            "Timeout waiting " + (lockWait / 1000.) + " seconds to get tablet lock");
+            "Timeout waiting " + (lockWait / 1000.) + " seconds to get tablet lock for " + extent);
       }
 
       List<FileRef> alreadyImported = bulkImported.getIfPresent(tid);
@@ -2407,14 +2413,11 @@ public class Tablet {
         return;
       }
 
-      if (writesInProgress < 0) {
-        throw new IllegalStateException("writesInProgress < 0 " + writesInProgress);
-      }
-
-      writesInProgress++;
+      incrementWritesInProgress(Optional.empty());
     }
-    tabletServer.updateBulkImportState(files, BulkImportState.LOADING);
     try {
+      tabletServer.updateBulkImportState(files, BulkImportState.LOADING);
+
       getDatafileManager().importMapFiles(tid, entries, setTime);
       lastMapFileImportTime = System.currentTimeMillis();
 
@@ -2425,12 +2428,7 @@ public class Tablet {
       }
     } finally {
       synchronized (this) {
-        if (writesInProgress < 1)
-          throw new IllegalStateException("writesInProgress < 1 " + writesInProgress);
-
-        writesInProgress--;
-        if (writesInProgress == 0)
-          this.notifyAll();
+        decrementWritesInProgress(Optional.empty());
 
         try {
           bulkImported.get(tid, ArrayList::new).addAll(fileMap.keySet());
@@ -2521,7 +2519,8 @@ public class Tablet {
 
     synchronized (this) {
       if (removingLogs)
-        throw new IllegalStateException("Attempted to clear logs when removal of logs in progress");
+        throw new IllegalStateException(
+            "Attempted to clear logs when removal of logs in progress on " + extent);
 
       for (DfsLogger logger : otherLogs) {
         otherLogsCopy.add(logger.toString());
@@ -2595,14 +2594,14 @@ public class Tablet {
         else if (memTable == getTabletMemory().getMemTable())
           addToOther = false;
         else
-          throw new IllegalArgumentException("passed in memtable that is not in use");
+          throw new IllegalArgumentException("Passed in memtable that is not in use for " + extent);
 
         if (mincFinish) {
           if (addToOther)
-            throw new IllegalStateException("Adding to other logs for mincFinish");
+            throw new IllegalStateException("Adding to other logs for mincFinish on " + extent);
           if (otherLogs.size() != 0)
-            throw new IllegalStateException(
-                "Expect other logs to be 0 when min finish, but its " + otherLogs);
+            throw new IllegalStateException("Expect other logs to be 0 when minC finish, but its "
+                + otherLogs + " for " + extent);
 
           // when writing a minc finish event, there is no need to add the log to metadata
           // if nothing has been logged for the tablet since the minor compaction started
@@ -2676,7 +2675,7 @@ public class Tablet {
       strategy.init(strategyConfig.getOptions());
       return strategy;
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Error creating compaction strategy on " + extent, e);
     }
   }
 
@@ -2719,7 +2718,7 @@ public class Tablet {
           lastCompactID = compactionId;
         }
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        throw new RuntimeException("IOException on " + extent + " during compact all", e);
       }
     }
 
@@ -2878,7 +2877,8 @@ public class Tablet {
           lowDirectory = "/" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
           Path lowDirectoryPath = new Path(volume + "/" + tableId + "/" + lowDirectory);
           if (fs.exists(lowDirectoryPath))
-            throw new IllegalStateException("Dir exist when it should not " + lowDirectoryPath);
+            throw new IllegalStateException("Attempting to create tablet dir for tableID " + tableId
+                + " and dir exists when it should not: " + lowDirectoryPath);
           if (fs.mkdirs(lowDirectoryPath)) {
             FileSystem lowDirectoryFs = fs.getVolumeByPath(lowDirectoryPath).getFileSystem();
             return lowDirectoryPath
