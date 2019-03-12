@@ -2425,6 +2425,9 @@ public class Tablet {
       }
     } finally {
       synchronized (this) {
+        if (writesInProgress < 1)
+          throw new IllegalStateException("writesInProgress < 1 " + writesInProgress);
+
         writesInProgress--;
         if (writesInProgress == 0)
           this.notifyAll();
