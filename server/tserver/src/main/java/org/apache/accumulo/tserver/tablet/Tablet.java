@@ -560,7 +560,7 @@ public class Tablet {
             tableConfiguration.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
         this.defaultSecurityLabel = cv.getExpression();
       } catch (Exception e) {
-        log.error("Error setting up default security label " + e.getMessage(), e);
+        log.error("Error setting up default security label {}", e.getMessage(), e);
         this.defaultSecurityLabel = new byte[0];
       }
     }
@@ -927,7 +927,7 @@ public class Tablet {
       try {
         getTabletMemory().finalizeMinC();
       } catch (Throwable t) {
-        log.error("Failed to free tablet memory on " + extent, t);
+        log.error("Failed to free tablet memory on {}", extent, t);
       }
 
       if (!failed) {
