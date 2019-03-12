@@ -338,7 +338,7 @@ public enum Property {
       "The maximum amount of time to wait after a failure to create or write a write-ahead log."),
   TSERV_MAJC_DELAY("tserver.compaction.major.delay", "30s", PropertyType.TIMEDURATION,
       "Time a tablet server will sleep between checking which tablets need compaction."),
-  TSERV_MAJC_THREAD_MAXOPEN("tserver.compaction.major.thread.files.open.max", "10",
+  TSERV_MAJC_THREAD_MAXOPEN("tserver.compaction.major.thread.files.open.max", "15",
       PropertyType.COUNT, "Max number of RFiles a major compaction thread can open at once. "),
   TSERV_SCAN_MAX_OPENFILES("tserver.scan.files.open.max", "100", PropertyType.COUNT,
       "Maximum total RFiles that all tablets in a tablet server can open for scans. "),
