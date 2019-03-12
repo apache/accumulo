@@ -24,6 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -2718,7 +2719,7 @@ public class Tablet {
           lastCompactID = compactionId;
         }
       } catch (IOException e) {
-        throw new RuntimeException("IOException on " + extent + " during compact all", e);
+        throw new UncheckedIOException("IOException on " + extent + " during compact all", e);
       }
     }
 
