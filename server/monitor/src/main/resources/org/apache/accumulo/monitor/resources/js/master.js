@@ -70,9 +70,9 @@ function recoveryList() {
       var items = [];
       items.push(createFirstCell(val.server, val.server));
       items.push(createRightCell(val.log, val.log));
-      var date = new Date(parseInt(val.time));
+      var date = new Date(parseInt(val.runtime));
       var dateStr = date.toLocaleString().split(' ').join('&nbsp;');
-      items.push(createRightCell(val.time, dateStr));
+      items.push(createRightCell(val.runtime, dateStr));
       items.push(createRightCell(val.progress, val.progress));
 
       $('<tr/>', {
