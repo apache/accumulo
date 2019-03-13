@@ -34,7 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.SortedMap;
@@ -1175,7 +1174,7 @@ public class Tablet {
     }
 
     CommitSession commitSession = getTabletMemory().getCommitSession();
-    incrementWritesInProgress(Optional.of(commitSession));
+    incrementWritesInProgress(commitSession);
 
     commitSession.updateMaxCommittedTime(time);
     return commitSession;
@@ -1237,27 +1236,31 @@ public class Tablet {
     return finishPreparingMutations(time);
   }
 
-  private synchronized void incrementWritesInProgress(Optional<CommitSession> cs) {
+  private synchronized void incrementWritesInProgress(CommitSession cs) {
+    incrementWritesInProgress();
+    cs.incrementCommitsInProgress();
+  }
+
+  private synchronized void incrementWritesInProgress() {
     if (writesInProgress < 0) {
       throw new IllegalStateException("FATAL: Something really bad went wrong. Attempted to "
           + "increment a negative number of writes in progress " + writesInProgress + "on tablet "
           + extent);
     }
-    if (cs.isPresent())
-      cs.get().incrementCommitsInProgress();
-
     writesInProgress++;
   }
 
-  private synchronized void decrementWritesInProgress(Optional<CommitSession> cs) {
+  private synchronized void decrementWritesInProgress(CommitSession cs) {
+    decrementWritesInProgress();
+    cs.decrementCommitsInProgress();
+  }
+
+  private synchronized void decrementWritesInProgress() {
     if (writesInProgress <= 0) {
       throw new IllegalStateException("FATAL: Something really bad went wrong. Attempted to "
           + "decrement the number of writes in progress " + writesInProgress + " to < 0 on tablet "
           + extent);
     }
-    if (cs.isPresent())
-      cs.get().decrementCommitsInProgress();
-
     writesInProgress--;
     if (writesInProgress == 0)
       this.notifyAll();
@@ -1268,7 +1271,7 @@ public class Tablet {
       throw new IllegalStateException("Aborting commit when tablet " + extent + " is closed");
     }
 
-    decrementWritesInProgress(Optional.of(commitSession));
+    decrementWritesInProgress(commitSession);
   }
 
   public void commit(CommitSession commitSession, List<Mutation> mutations) {
@@ -1290,7 +1293,7 @@ public class Tablet {
             "Tablet " + extent + " closed with outstanding messages to the logger");
       }
       // decrement here in case an exception is thrown below
-      decrementWritesInProgress(Optional.of(commitSession));
+      decrementWritesInProgress(commitSession);
 
       getTabletMemory().updateMemoryUsageStats();
 
@@ -2414,7 +2417,7 @@ public class Tablet {
         return;
       }
 
-      incrementWritesInProgress(Optional.empty());
+      incrementWritesInProgress();
     }
     try {
       tabletServer.updateBulkImportState(files, BulkImportState.LOADING);
@@ -2429,7 +2432,7 @@ public class Tablet {
       }
     } finally {
       synchronized (this) {
-        decrementWritesInProgress(Optional.empty());
+        decrementWritesInProgress();
 
         try {
           bulkImported.get(tid, ArrayList::new).addAll(fileMap.keySet());
