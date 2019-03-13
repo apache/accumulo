@@ -17,6 +17,7 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.util.Merge;
@@ -72,7 +73,7 @@ public class MergeCommand extends Command {
             try {
               shellState.getReader().println(String.format(fmt, args));
             } catch (IOException ex) {
-              throw new RuntimeException(ex);
+              throw new UncheckedIOException(ex);
             }
           }
         }

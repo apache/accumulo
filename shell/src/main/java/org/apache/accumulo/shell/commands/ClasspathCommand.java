@@ -17,6 +17,7 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -33,7 +34,7 @@ public class ClasspathCommand extends Command {
       try {
         reader.print(s);
       } catch (IOException ex) {
-        throw new RuntimeException(ex);
+        throw new UncheckedIOException(ex);
       }
     }, true);
     return 0;

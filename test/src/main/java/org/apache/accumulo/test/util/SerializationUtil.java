@@ -26,6 +26,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.util.Base64;
 import java.util.Objects;
 
@@ -107,7 +108,7 @@ public class SerializationUtil {
       out = new DataOutputStream(outputStream);
       obj.write(out);
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     } finally {
       if (out != null)
         try {
@@ -126,7 +127,7 @@ public class SerializationUtil {
       in = new DataInputStream(inputStream);
       writable.readFields(in);
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     } finally {
       if (in != null)
         try {
@@ -168,7 +169,7 @@ public class SerializationUtil {
       out = new ObjectOutputStream(outputStream);
       out.writeObject(obj);
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     } finally {
       if (out != null)
         try {

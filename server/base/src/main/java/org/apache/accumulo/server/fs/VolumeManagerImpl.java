@@ -19,6 +19,7 @@ package org.apache.accumulo.server.fs;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
@@ -278,7 +279,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
         return new NonConfiguredVolume(desiredFs);
       } catch (IOException ex) {
-        throw new RuntimeException(ex);
+        throw new UncheckedIOException(ex);
       }
     }
 

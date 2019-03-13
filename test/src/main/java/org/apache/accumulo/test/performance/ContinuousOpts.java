@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.performance;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.log4j.FileAppender;
@@ -42,7 +43,7 @@ public class ContinuousOpts {
         logger.addAppender(new FileAppender(
             new PatternLayout("%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %m%n"), debugLog, true));
       } catch (IOException ex) {
-        throw new RuntimeException(ex);
+        throw new UncheckedIOException(ex);
       }
       return debugLog;
     }

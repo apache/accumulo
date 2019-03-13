@@ -768,7 +768,7 @@ public class Master
         try {
           info.write(out);
         } catch (IOException ex) {
-          throw new RuntimeException("Unlikely", ex);
+          throw new AssertionError("Unlikely", ex);
         }
         context.getZooReaderWriter().putPersistentData(path, out.getData(),
             state.equals(MergeState.STARTED) ? ZooUtil.NodeExistsPolicy.FAIL
