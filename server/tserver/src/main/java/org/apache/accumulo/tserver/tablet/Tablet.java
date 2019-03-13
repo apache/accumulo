@@ -485,11 +485,10 @@ public class Tablet {
         }
 
       } catch (Throwable t) {
-        String msg = "Error recovering tablet " + extent + " from log files";
         if (tableConfiguration.getBoolean(Property.TABLE_FAILURES_IGNORE)) {
-          log.warn(msg, t);
+          log.warn("Error recovering tablet {} from log files", extent, t);
         } else {
-          throw new RuntimeException(msg, t);
+          throw t;
         }
       }
       // make some closed references that represent the recovered logs
