@@ -18,6 +18,7 @@ package org.apache.accumulo.tserver.log;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -105,7 +106,7 @@ public class RecoveryLogReader implements CloseableIterator<Entry<LogFileKey,Log
         int result = ((WritableComparable) key).compareTo(o.key);
         return result;
       } catch (IOException ex) {
-        throw new RuntimeException(ex);
+        throw new UncheckedIOException(ex);
       }
     }
   }

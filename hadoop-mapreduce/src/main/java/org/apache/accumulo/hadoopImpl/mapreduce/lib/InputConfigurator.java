@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -238,7 +239,7 @@ public class InputConfigurator extends ConfiguratorBase {
       conf.setStrings(enumToConfKey(implementingClass, ScanOpts.RANGES),
           rangeStrings.toArray(new String[0]));
     } catch (IOException ex) {
-      throw new IllegalArgumentException("Unable to encode ranges to Base64", ex);
+      throw new UncheckedIOException("Unable to encode ranges to Base64", ex);
     }
   }
 

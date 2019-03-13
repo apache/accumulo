@@ -17,9 +17,9 @@
 package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
@@ -46,7 +46,7 @@ public class IteratorAdapter implements Iterator<Entry<Key,Value>> {
       inner.next();
       return result;
     } catch (IOException ex) {
-      throw new NoSuchElementException();
+      throw new UncheckedIOException(ex);
     }
   }
 
