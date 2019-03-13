@@ -20,7 +20,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -769,7 +768,7 @@ public class Master
         try {
           info.write(out);
         } catch (IOException ex) {
-          throw new UncheckedIOException("Unlikely", ex);
+          throw new AssertionError("Unlikely", ex);
         }
         context.getZooReaderWriter().putPersistentData(path, out.getData(),
             state.equals(MergeState.STARTED) ? ZooUtil.NodeExistsPolicy.FAIL
