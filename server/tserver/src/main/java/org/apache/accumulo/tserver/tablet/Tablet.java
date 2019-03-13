@@ -1985,6 +1985,8 @@ public class Tablet implements TabletCommitter {
           CompactionEnv cenv = new CompactionEnv() {
             @Override
             public boolean isCompactionEnabled() {
+              // avoid calling isClosing() because its synchronized and this is called frequently in
+              // compaction
               return closeState != CloseState.CLOSING;
             }
 
