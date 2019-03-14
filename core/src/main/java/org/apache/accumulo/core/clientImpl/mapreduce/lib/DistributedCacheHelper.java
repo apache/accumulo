@@ -16,37 +16,51 @@
  */
 package org.apache.accumulo.core.clientImpl.mapreduce.lib;
 
-import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Arrays;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
 /**
+ * Evolved to replace org.apache.hadoop.mapreduce.filecache.DistributedCache
+ *
  * @since 1.6.0
- * @deprecated since 2.0.0
  */
-@Deprecated
 public class DistributedCacheHelper {
+  // properties pulled from org.apache.hadoop.mapreduce.MRJobConfig
+  public static final String CACHE_FILES = "mapreduce.job.cache.files";
+  public static final String CACHE_LOCALFILES = "mapreduce.job.cache.local.files";
 
-  /**
-   * @since 1.6.0
-   */
   public static void addCacheFile(URI uri, Configuration conf) {
-    org.apache.hadoop.filecache.DistributedCache.addCacheFile(uri, conf);
+    String files = conf.get(CACHE_FILES);
+    conf.set(CACHE_FILES, files == null ? uri.toString() : files + "," + uri.toString());
   }
 
-  /**
-   * @since 1.6.0
-   */
-  public static URI[] getCacheFiles(Configuration conf) throws IOException {
-    return org.apache.hadoop.filecache.DistributedCache.getCacheFiles(conf);
+  public static URI[] getCacheFiles(Configuration conf) {
+    return stringToURI(conf.getStrings(CACHE_FILES));
   }
 
-  /**
-   * @since 1.6.0
-   */
-  public static Path[] getLocalCacheFiles(Configuration conf) throws IOException {
-    return org.apache.hadoop.filecache.DistributedCache.getLocalCacheFiles(conf);
+  public static Path[] getLocalCacheFiles(Configuration conf) {
+    return stringToPath(conf.getStrings(CACHE_LOCALFILES));
+  }
+
+  private static Path[] stringToPath(String[] str) {
+    if (str == null)
+      return null;
+    return Arrays.stream(str).map(Path::new).toArray(Path[]::new);
+  }
+
+  private static URI[] stringToURI(String[] str) {
+    if (str == null)
+      return null;
+    return Arrays.stream(str).map(s -> {
+      try {
+        return new URI(s);
+      } catch (URISyntaxException e) {
+        throw new IllegalArgumentException("Failed to create uri for " + s, e);
+      }
+    }).toArray(URI[]::new);
   }
 }
