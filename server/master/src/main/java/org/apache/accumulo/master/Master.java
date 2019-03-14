@@ -1410,6 +1410,13 @@ public class Master extends AccumuloServerContext
       log.error("Failed to register replication metrics", e);
     }
 
+    Metrics fateMetrics = factory.createFateMetrics();
+    try {
+      fateMetrics.register();
+    } catch (Exception e) {
+      log.error("Failed to register replication metrics", e);
+    }
+
     while (clientService.isServing()) {
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
     }

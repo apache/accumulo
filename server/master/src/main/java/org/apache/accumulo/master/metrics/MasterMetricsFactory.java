@@ -21,6 +21,8 @@ import static java.util.Objects.requireNonNull;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.master.metrics.fate.FateMetrics;
+import org.apache.accumulo.master.metrics.fate.Metrics2FateMetrics;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.hadoop.metrics2.MetricsSystem;
@@ -54,4 +56,13 @@ public class MasterMetricsFactory {
     return new Metrics2ReplicationMetrics(master, metricsSystem);
   }
 
+  public Metrics createFateMetrics(){
+    if (useOldMetrics) {
+      return new FateMetrics(master);
+    }
+
+    return new Metrics2FateMetrics(master, metricsSystem);
+  }
+
 }
+
