@@ -33,47 +33,58 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Provides basic implementation of fate metrics to provide:
+ * Basic implementation of fate metrics:
  * <ul>
  * <li>gauge - current count of FATE transactions in progress</li>
- * <li>counter - number of zookeeper node operations on fate root path, provide
+ * <li>gauge - last zookeeper id that modified FATE root path to provide
  * estimate of fate transaction liveliness</li>
  * <li>counter - the number of zookeeper connection errors since process started.</li>
  * </ul>
+ * Implementation notes:</p>
+ * The fate operation estimate is based on zookeeper Stat structure and the property
+ * of pzxid. From the zookeeper developer's guide: pzxid is "The zxid of the change that last
+ * modified children of this znode." The pzxid should then change each time a FATE transaction
+ * is created or deleted - and the zookeeper id (zxid) is expected to continuously increase
+ * because the zookeeper id is used by zookeeper for ordering operations.
  */
 public class FateMetrics implements Metrics, FateMetricsMBean {
 
   // limit calls to update fate counters to guard against hammering zookeeper.
-  private static long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(30);
+  private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(30);
 
   private long minimumRefreshDelay = DEFAULT_MIN_REFRESH_DELAY;
 
-  private AtomicReference<FateMetricValues> metricValues;
+  private final AtomicReference<FateMetricValues> metricValues;
 
   private volatile long lastUpdate = 0;
 
-  private final Master master;
-
   private final Instance instance;
 
-  AdminUtil<String> admin = new AdminUtil<>(false);
+  private final AdminUtil<String> admin;
 
   public FateMetrics(final Master master) {
 
-    this.master = master;
-
     instance = master.getInstance();
 
-    metricValues.set(FateMetricValues.Builder.getBuilder().build());
+    metricValues = new AtomicReference<>(FateMetricValues.Builder.getBuilder().build());
 
+    admin = new AdminUtil<>(false);
   }
 
+  /**
+   * Get the current delay required before a the metric values will be refreshed from the
+   * system (zookeeper) - if the delay has not expired, the previous values are returned.
+   *
+   * @return the current delay in milliseconds
+   */
   public long getMinimumRefreshDelay() {
     return minimumRefreshDelay;
   }
 
   /**
-   * Modify the refresh delay minimum in milliseconds and return the previous value.
+   * Modify the refresh delay minimum in milliseconds and return the previous value.  Each time
+   * these metrics are fetched, the time since last update and this delay is used to determine
+   * if the values should be updated from zookeeper or the current cached value is returned.
    *
    * @param value set the minimum refresh delay (in milliseconds)
    * @return the previous value.
@@ -92,13 +103,16 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
 
   }
 
-  synchronized void snapshot() {
+  /**
+   * Update the metric values from zookeeper is the delay has expired.
+   */
+  private synchronized void snapshot() {
 
     long now = System.currentTimeMillis();
 
     if (now > (lastUpdate + minimumRefreshDelay)) {
 
-      FateMetricValues.Builder updater = FateMetricValues.Builder.copy(metricValues.get());
+      FateMetricValues.Builder valueBuilder = FateMetricValues.Builder.copy(metricValues.get());
 
       try {
 
@@ -106,14 +120,18 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
         ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zoo);
 
         List<AdminUtil.TransactionStatus> noLocks = admin.getTransactionStatus(zs, null, null);
-        updater.withFateOpsTotal(noLocks.size());
+        valueBuilder.withCurrentFateOps(noLocks.size());
 
         Stat node = zoo.getZooKeeper().exists(ZooUtil.getRoot(instance) + Constants.ZFATE, false);
-        updater.withFateOpsTotal(node.getPzxid());
+        valueBuilder.withLastFateZxid(node.getPzxid());
+
+        metricValues.set(valueBuilder.build());
 
       } catch (KeeperException ex) {
 
-        updater.incrZkConnectionErrors(1L);
+        valueBuilder.incrZkConnectionErrors();
+
+        metricValues.set(valueBuilder.build());
 
       } catch (InterruptedException ex) {
         Thread.currentThread().interrupt();
@@ -128,17 +146,17 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
     return false;
   }
 
-  @Override public long currentFateOps() {
+  @Override public long getCurrentFateOps() {
     snapshot();
     return metricValues.get().getCurrentFateOps();
   }
 
-  @Override public long fateOpsTotal() {
+  @Override public long getLastFateZxid() {
     snapshot();
-    return metricValues.get().getFateOpsTotal();
+    return metricValues.get().getLastFateZxid();
   }
 
-  @Override public long zkConnectionErrorsTotal() {
+  @Override public long getZKConnectionErrorsTotal() {
     snapshot();
     return metricValues.get().getZkConnectionErrors();
   }
@@ -147,74 +165,74 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
    * Immutable class that holds a snapshot of fate metric values - use builder to
    * instantiate instance.
    */
-  private static class FateMetricValues {
+  protected static class FateMetricValues {
 
     private final long currentFateOps;
-    private final long fateOpsTotal;
+    private final long lastFateZxid;
     private final long zkConnectionErrors;
 
-    private FateMetricValues(final long currentFateOps, final long fateOpsTotal,
+    private FateMetricValues(final long currentFateOps, final long lastFateZxid,
         final long zkConnectionErrors) {
       this.currentFateOps = currentFateOps;
-      this.fateOpsTotal = fateOpsTotal;
+      this.lastFateZxid = lastFateZxid;
       this.zkConnectionErrors = zkConnectionErrors;
     }
 
-    public long getCurrentFateOps() {
+    long getCurrentFateOps() {
       return currentFateOps;
     }
 
-    public long getFateOpsTotal() {
-      return fateOpsTotal;
+    long getLastFateZxid() {
+      return lastFateZxid;
     }
 
-    public long getZkConnectionErrors() {
+    long getZkConnectionErrors() {
       return zkConnectionErrors;
     }
 
-    public static class Builder {
+    static class Builder {
 
       private long currentFateOps = 0;
-      private long fateOpsTotal = 0;
+      private long lastFateZxid = 0;
       private long zkConnectionErrors = 0;
 
-      public Builder() {
+      Builder() {
       }
 
-      public static Builder getBuilder() {
+      static Builder getBuilder() {
         return new Builder();
       }
 
-      public static Builder copy(final FateMetricValues values) {
+      static Builder copy(final FateMetricValues values) {
         Builder builder = new Builder();
         builder.currentFateOps = values.getCurrentFateOps();
-        builder.fateOpsTotal = values.getFateOpsTotal();
+        builder.lastFateZxid = values.getLastFateZxid();
         builder.zkConnectionErrors = values.getZkConnectionErrors();
         return builder;
       }
 
-      public Builder withCurrentFateOps(final long value) {
+      Builder withCurrentFateOps(final long value) {
         this.currentFateOps = value;
         return this;
       }
 
-      public Builder withFateOpsTotal(final long value) {
-        this.fateOpsTotal = value;
+      Builder withLastFateZxid(final long value) {
+        this.lastFateZxid = value;
         return this;
       }
 
-      public Builder incrZkConnectionErrors(final long value) {
-        this.zkConnectionErrors += value;
+      Builder incrZkConnectionErrors() {
+        this.zkConnectionErrors += 1L;
         return this;
       }
 
-      public Builder withZkConnectionErrors(final long value) {
+      Builder withZkConnectionErrors(final long value) {
         this.zkConnectionErrors = value;
         return this;
       }
 
-      public FateMetricValues build() {
-        return new FateMetricValues(currentFateOps, fateOpsTotal, zkConnectionErrors);
+      FateMetricValues build() {
+        return new FateMetricValues(currentFateOps, lastFateZxid, zkConnectionErrors);
       }
     }
   }
