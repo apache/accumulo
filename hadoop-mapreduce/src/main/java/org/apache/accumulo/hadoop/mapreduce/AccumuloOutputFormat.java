@@ -78,7 +78,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       throws IOException {
     try {
       return new AccumuloRecordWriter(attempt);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       throw new IOException(e);
     }
   }

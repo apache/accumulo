@@ -62,7 +62,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       Progressable progress) throws IOException {
     try {
       return new AccumuloRecordWriter(job);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       throw new IOException(e);
     }
   }

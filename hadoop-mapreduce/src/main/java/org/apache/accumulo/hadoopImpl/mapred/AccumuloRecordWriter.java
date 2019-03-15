@@ -104,7 +104,7 @@ public class AccumuloRecordWriter implements RecordWriter<Text,Mutation> {
     if (!bws.containsKey(table))
       try {
         addTable(table);
-      } catch (final Exception e) {
+      } catch (final AccumuloSecurityException | AccumuloException e) {
         log.error("Could not add table '" + table + "'", e);
         throw new IOException(e);
       }
