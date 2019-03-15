@@ -29,6 +29,7 @@ import java.util.Base64;
 import java.util.Scanner;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.DistributedCacheHelper;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -91,8 +92,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
   private synchronized Text[] getCutPoints() throws IOException {
     if (cutPointArray == null) {
       String cutFileName = conf.get(CUTFILE_KEY);
-      Path[] cf = org.apache.accumulo.core.clientImpl.mapreduce.lib.DistributedCacheHelper
-          .getLocalCacheFiles(conf);
+      Path[] cf = DistributedCacheHelper.getLocalCacheFiles(conf);
 
       if (cf != null) {
         for (Path path : cf) {
@@ -131,8 +131,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
    */
   public static void setSplitFile(Job job, String file) {
     URI uri = new Path(file).toUri();
-    org.apache.accumulo.core.clientImpl.mapreduce.lib.DistributedCacheHelper.addCacheFile(uri,
-        job.getConfiguration());
+    DistributedCacheHelper.addCacheFile(uri, job.getConfiguration());
     job.getConfiguration().set(CUTFILE_KEY, uri.getPath());
   }
 
