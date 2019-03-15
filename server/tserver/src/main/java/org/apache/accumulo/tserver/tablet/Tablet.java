@@ -1793,11 +1793,6 @@ public class Tablet {
   }
 
   // BEGIN PRIVATE METHODS RELATED TO MAJOR COMPACTION
-
-  private boolean isCompactionEnabled() {
-    return !isClosing();
-  }
-
   private CompactionStats _majorCompact(MajorCompactionReason reason)
       throws IOException, CompactionCanceledException {
 
@@ -1984,7 +1979,9 @@ public class Tablet {
           CompactionEnv cenv = new CompactionEnv() {
             @Override
             public boolean isCompactionEnabled() {
-              return Tablet.this.isCompactionEnabled();
+              // avoid calling isClosing() because its synchronized and this is called frequently in
+              // compaction
+              return closeState != CloseState.CLOSING;
             }
 
             @Override

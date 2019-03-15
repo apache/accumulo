@@ -34,7 +34,6 @@ final class CompactionRunner implements Runnable, Comparable<CompactionRunner> {
 
   @Override
   public void run() {
-
     CompactionStats stats = tablet.majorCompact(reason, queued);
 
     // Some compaction strategies may always return true for shouldCompact() because they need to
