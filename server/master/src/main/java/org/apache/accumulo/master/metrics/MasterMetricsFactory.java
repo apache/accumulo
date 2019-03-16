@@ -26,11 +26,15 @@ import org.apache.accumulo.master.metrics.fate.Metrics2FateMetrics;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.hadoop.metrics2.MetricsSystem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class MasterMetricsFactory {
+
+  private final static Logger log = LoggerFactory.getLogger(MasterMetricsFactory.class);
 
   private final boolean useOldMetrics;
   private final MetricsSystem metricsSystem;
@@ -48,7 +52,40 @@ public class MasterMetricsFactory {
     }
   }
 
-  public Metrics createReplicationMetrics() {
+  public int register() {
+
+    int failureCount = 0;
+
+    try {
+
+      Metrics replicationMetrics = createReplicationMetrics();
+
+      replicationMetrics.register();
+
+      log.info("Registered replication metrics module");
+
+    } catch (Exception ex) {
+      failureCount++;
+      log.error("Failed to register replication metrics", ex);
+    }
+
+    try {
+
+      Metrics fateMetrics = createFateMetrics();
+
+      fateMetrics.register();
+
+      log.info("Registered FATE metrics module");
+
+    } catch (Exception ex) {
+      failureCount++;
+      log.error("Failed to register fate metrics", ex);
+    }
+
+    return failureCount;
+  }
+
+  private Metrics createReplicationMetrics() {
     if (useOldMetrics) {
       return new ReplicationMetrics(master);
     }
@@ -56,7 +93,7 @@ public class MasterMetricsFactory {
     return new Metrics2ReplicationMetrics(master, metricsSystem);
   }
 
-  public Metrics createFateMetrics(){
+  private Metrics createFateMetrics() {
     if (useOldMetrics) {
       return new FateMetrics(master);
     }
@@ -65,4 +102,3 @@ public class MasterMetricsFactory {
   }
 
 }
-

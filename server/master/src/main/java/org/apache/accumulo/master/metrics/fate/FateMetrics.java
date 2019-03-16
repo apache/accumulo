@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.master.metrics.fate;
 
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -28,24 +32,21 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 /**
  * Basic implementation of fate metrics:
  * <ul>
  * <li>gauge - current count of FATE transactions in progress</li>
- * <li>gauge - last zookeeper id that modified FATE root path to provide
- * estimate of fate transaction liveliness</li>
+ * <li>gauge - last zookeeper id that modified FATE root path to provide estimate of fate
+ * transaction liveliness</li>
  * <li>counter - the number of zookeeper connection errors since process started.</li>
  * </ul>
- * Implementation notes:</p>
- * The fate operation estimate is based on zookeeper Stat structure and the property
- * of pzxid. From the zookeeper developer's guide: pzxid is "The zxid of the change that last
- * modified children of this znode." The pzxid should then change each time a FATE transaction
- * is created or deleted - and the zookeeper id (zxid) is expected to continuously increase
- * because the zookeeper id is used by zookeeper for ordering operations.
+ * Implementation notes:
+ * </p>
+ * The fate operation estimate is based on zookeeper Stat structure and the property of pzxid. From
+ * the zookeeper developer's guide: pzxid is "The zxid of the change that last modified children of
+ * this znode." The pzxid should then change each time a FATE transaction is created or deleted -
+ * and the zookeeper id (zxid) is expected to continuously increase because the zookeeper id is used
+ * by zookeeper for ordering operations.
  */
 public class FateMetrics implements Metrics, FateMetricsMBean {
 
@@ -72,8 +73,8 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
   }
 
   /**
-   * Get the current delay required before a the metric values will be refreshed from the
-   * system (zookeeper) - if the delay has not expired, the previous values are returned.
+   * Get the current delay required before a the metric values will be refreshed from the system
+   * (zookeeper) - if the delay has not expired, the previous values are returned.
    *
    * @return the current delay in milliseconds
    */
@@ -82,11 +83,12 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
   }
 
   /**
-   * Modify the refresh delay minimum in milliseconds and return the previous value.  Each time
-   * these metrics are fetched, the time since last update and this delay is used to determine
-   * if the values should be updated from zookeeper or the current cached value is returned.
+   * Modify the refresh delay minimum in milliseconds and return the previous value. Each time these
+   * metrics are fetched, the time since last update and this delay is used to determine if the
+   * values should be updated from zookeeper or the current cached value is returned.
    *
-   * @param value set the minimum refresh delay (in milliseconds)
+   * @param value
+   *          set the minimum refresh delay (in milliseconds)
    * @return the previous value.
    */
   public long updateMinimumRefreshDelay(final long value) {
@@ -95,11 +97,13 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
     return curr;
   }
 
-  @Override public void register() throws Exception {
+  @Override
+  public void register() throws Exception {
 
   }
 
-  @Override public void add(String name, long time) {
+  @Override
+  public void add(String name, long time) {
 
   }
 
@@ -142,28 +146,32 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
     }
   }
 
-  @Override public boolean isEnabled() {
+  @Override
+  public boolean isEnabled() {
     return false;
   }
 
-  @Override public long getCurrentFateOps() {
+  @Override
+  public long getCurrentFateOps() {
     snapshot();
     return metricValues.get().getCurrentFateOps();
   }
 
-  @Override public long getLastFateZxid() {
+  @Override
+  public long getLastFateZxid() {
     snapshot();
     return metricValues.get().getLastFateZxid();
   }
 
-  @Override public long getZKConnectionErrorsTotal() {
+  @Override
+  public long getZKConnectionErrorsTotal() {
     snapshot();
     return metricValues.get().getZkConnectionErrors();
   }
 
   /**
-   * Immutable class that holds a snapshot of fate metric values - use builder to
-   * instantiate instance.
+   * Immutable class that holds a snapshot of fate metric values - use builder to instantiate
+   * instance.
    */
   protected static class FateMetricValues {
 
@@ -196,8 +204,7 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
       private long lastFateZxid = 0;
       private long zkConnectionErrors = 0;
 
-      Builder() {
-      }
+      Builder() {}
 
       static Builder getBuilder() {
         return new Builder();

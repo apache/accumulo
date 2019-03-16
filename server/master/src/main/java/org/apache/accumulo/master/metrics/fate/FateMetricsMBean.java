@@ -19,7 +19,9 @@ package org.apache.accumulo.master.metrics.fate;
 public interface FateMetricsMBean {
 
   public long getCurrentFateOps();
+
   public long getLastFateZxid();
+
   public long getZKConnectionErrorsTotal();
 
 }

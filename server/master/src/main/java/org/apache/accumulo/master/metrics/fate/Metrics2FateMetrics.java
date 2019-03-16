@@ -28,7 +28,7 @@ import org.apache.hadoop.metrics2.lib.Interns;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableStat;
 
-public class Metrics2FateMetrics implements  Metrics, MetricsSource {
+public class Metrics2FateMetrics implements Metrics, MetricsSource {
   public static final String NAME = MASTER_NAME + ",sub=Fate";
   public static final String DESCRIPTION = "Fate Metrics";
   public static final String CONTEXT = "master";
@@ -49,24 +49,30 @@ public class Metrics2FateMetrics implements  Metrics, MetricsSource {
     this.metricsSystem = metricsSystem;
     this.registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
     this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
-    currentFateOps = registry.newStat(CUR_FATE_OPS, "Current number of FATE Ops", "Ops", "Count", true);
+    currentFateOps = registry.newStat(CUR_FATE_OPS, "Current number of FATE Ops", "Ops", "Count",
+        true);
     fateOpsTotal = registry.newStat(TOTAL_FATE_OPS, "Total FATE Ops", "Ops", "Count", true);
-    zkConnectionErrorsTotal = registry.newStat(TOTAL_ZK_CONN_ERRORS, "Total ZK Connection Errors", "Ops", "Count", true);
+    zkConnectionErrorsTotal = registry.newStat(TOTAL_ZK_CONN_ERRORS, "Total ZK Connection Errors",
+        "Ops", "Count", true);
   }
 
-  @Override public void register() throws Exception {
+  @Override
+  public void register() throws Exception {
     metricsSystem.register(NAME, DESCRIPTION, this);
   }
 
-  @Override public void add(String name, long time) {
+  @Override
+  public void add(String name, long time) {
     throw new UnsupportedOperationException("add() is not implemented");
   }
 
-  @Override public boolean isEnabled() {
+  @Override
+  public boolean isEnabled() {
     return true;
   }
 
-  @Override public void getMetrics(MetricsCollector collector, boolean all) {
+  @Override
+  public void getMetrics(MetricsCollector collector, boolean all) {
     MetricsRecordBuilder builder = collector.addRecord(RECORD).setContext(CONTEXT);
     // get snapshot here or use add()?
     registry.snapshot(builder, all);
