@@ -38,21 +38,20 @@ public class ImportTableTest {
     iti.tableId = "5";
 
     // Different volumes with different paths
-    String[] tableDirs = new String[] {"hdfs://nn1:8020/apps/accumulo1/tables",
-        "hdfs://nn2:8020/applications/accumulo/tables"};
+    String[] volumes = {"hdfs://nn1:8020/apps/accumulo1", "hdfs://nn2:8020/applications/accumulo"};
     // This needs to be unique WRT the importtable command
     String tabletDir = "/c-00000001";
 
     EasyMock.expect(master.getFileSystem()).andReturn(volumeManager);
     // Choose the 2nd element
-    EasyMock.expect(volumeManager.choose(Optional.of(iti.tableId), tableDirs))
-        .andReturn(tableDirs[1]);
+    EasyMock.expect(volumeManager.choose(Optional.of(iti.tableId), volumes))
+        .andReturn(volumes[1]);
 
     EasyMock.replay(master, volumeManager);
 
     PopulateMetadataTable pmt = new PopulateMetadataTable(iti);
-    assertEquals(tableDirs[1] + "/" + iti.tableId + "/" + tabletDir,
-        pmt.getClonedTabletDir(master, tableDirs, tabletDir));
+    assertEquals(volumes[1] + "/" + iti.tableId + "/" + tabletDir,
+        pmt.getClonedTabletDir(master, volumes, tabletDir));
 
     EasyMock.verify(master, volumeManager);
   }
