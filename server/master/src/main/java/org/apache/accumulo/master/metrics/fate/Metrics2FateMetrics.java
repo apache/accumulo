@@ -26,9 +26,14 @@ import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.metrics2.impl.MsInfo;
 import org.apache.hadoop.metrics2.lib.Interns;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
-import org.apache.hadoop.metrics2.lib.MutableStat;
+import org.apache.hadoop.metrics2.lib.MutableGaugeLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Metrics2FateMetrics implements Metrics, MetricsSource {
+
+  private static final Logger log = LoggerFactory.getLogger(Metrics2FateMetrics.class);
+
   public static final String NAME = MASTER_NAME + ",sub=Fate";
   public static final String DESCRIPTION = "Fate Metrics";
   public static final String CONTEXT = "master";
@@ -40,25 +45,47 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
   private final Master master;
   private final MetricsSystem metricsSystem;
   private final MetricsRegistry registry;
-  private final MutableStat currentFateOps;
-  private final MutableStat fateOpsTotal;
-  private final MutableStat zkConnectionErrorsTotal;
+  private final MutableGaugeLong currentFateOps;
+  private final MutableGaugeLong zkChildFateOpsTotal;
+  private final MutableGaugeLong zkConnectionErrorsTotal;
+
+  private final FateMetrics fateMetrics;
 
   public Metrics2FateMetrics(Master master, MetricsSystem metricsSystem) {
+
+    this.fateMetrics = new FateMetrics(master);
+
     this.master = master;
     this.metricsSystem = metricsSystem;
     this.registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
     this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
-    currentFateOps = registry.newStat(CUR_FATE_OPS, "Current number of FATE Ops", "Ops", "Count",
-        true);
-    fateOpsTotal = registry.newStat(TOTAL_FATE_OPS, "Total FATE Ops", "Ops", "Count", true);
-    zkConnectionErrorsTotal = registry.newStat(TOTAL_ZK_CONN_ERRORS, "Total ZK Connection Errors",
-        "Ops", "Count", true);
+
+    currentFateOps = registry.newGauge(CUR_FATE_OPS, "Current number of FATE Ops", 0L);
+    zkChildFateOpsTotal = registry.newGauge(TOTAL_FATE_OPS, "Total FATE Ops", 0L);
+    zkConnectionErrorsTotal = registry.newGauge(TOTAL_ZK_CONN_ERRORS, "Total ZK Connection Errors",
+        0L);
+
+    // registry.newGauge("A", "A_DESC", currentFateOps)
   }
 
   @Override
   public void register() throws Exception {
+
+
+    try {
+
+      log.error("Stack trace:");
+      StackTraceElement[] stackTraces = Thread.currentThread().getStackTrace();
+      for (int i = 1; i < stackTraces.length; i++) {
+        log.error("st: {}", stackTraces[i]);
+      }
+
+    }catch(Exception ex){
+      log.error("Failed constructor registration", ex);
+    }
+
     metricsSystem.register(NAME, DESCRIPTION, this);
+
   }
 
   @Override
@@ -73,8 +100,40 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
 
   @Override
   public void getMetrics(MetricsCollector collector, boolean all) {
+
+    log.error("GET METRICS... ###");
+
     MetricsRecordBuilder builder = collector.addRecord(RECORD).setContext(CONTEXT);
+
     // get snapshot here or use add()?
+    FateMetrics.FateMetricValues values = fateMetrics.snapshot();
+
+    log.info("BEFORE:");
+    log.info("FATE metric values {}", values);
+
+    log.info("currentFateOps {}", currentFateOps.value());
+    log.info("zkChildFateOpsTotal {}", zkChildFateOpsTotal.value());
+    log.info("zkConnectionErrorsTotal {}", zkConnectionErrorsTotal.value());
+
+    currentFateOps.set(values.getCurrentFateOps());
+    zkChildFateOpsTotal.set(values.getZkFateChildOpsTotal());
+    zkConnectionErrorsTotal.set(values.getZkConnectionErrors());
+
+    log.info("FATE metric values {}", values);
+
+    log.info("currentFateOps {}", currentFateOps.value());
+    log.info("zkChildFateOpsTotal {}", zkChildFateOpsTotal.value());
+    log.info("zkConnectionErrorsTotal {}", zkConnectionErrorsTotal.value());
+
+    // builder.add(currentFateOps.);
+    //builder.add(zkChildFateOpsTotal);
+
     registry.snapshot(builder, all);
+
+//    currentFateOps.snapshot(builder, all);
+//    zkChildFateOpsTotal.snapshot(builder, all);
+//    zkConnectionErrorsTotal.snapshot(builder,all);
+
+
   }
 }

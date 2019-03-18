@@ -18,9 +18,16 @@ package org.apache.accumulo.master.metrics.fate;
 
 import static org.junit.Assert.assertEquals;
 
+import org.apache.accumulo.master.Master;
+import org.apache.hadoop.metrics2.MetricsSystem;
+import org.easymock.EasyMock;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FateMetricsTest {
+
+  private final static Logger log = LoggerFactory.getLogger(FateMetricsTest.class);
 
   @Test
   public void defaultValueTest() {
@@ -31,7 +38,7 @@ public class FateMetricsTest {
     FateMetrics.FateMetricValues v = builder.build();
 
     assertEquals(0, v.getCurrentFateOps());
-    assertEquals(0, v.getLastFateZxid());
+    assertEquals(0, v.getZkFateChildOpsTotal());
     assertEquals(0, v.getZkConnectionErrors());
 
   }
@@ -42,11 +49,11 @@ public class FateMetricsTest {
     FateMetrics.FateMetricValues.Builder builder = FateMetrics.FateMetricValues.Builder
         .getBuilder();
 
-    FateMetrics.FateMetricValues v = builder.withCurrentFateOps(1).withLastFateZxid(2)
+    FateMetrics.FateMetricValues v = builder.withCurrentFateOps(1).withZkFateChildOpsTotal(2)
         .withZkConnectionErrors(3).build();
 
     assertEquals(1, v.getCurrentFateOps());
-    assertEquals(2, v.getLastFateZxid());
+    assertEquals(2, v.getZkFateChildOpsTotal());
     assertEquals(3, v.getZkConnectionErrors());
 
     FateMetrics.FateMetricValues.Builder builder2 = FateMetrics.FateMetricValues.Builder.copy(v);
@@ -54,26 +61,34 @@ public class FateMetricsTest {
     FateMetrics.FateMetricValues v2 = builder2.withCurrentFateOps(11).build();
 
     assertEquals(11, v2.getCurrentFateOps());
-    assertEquals(2, v2.getLastFateZxid());
+    assertEquals(2, v2.getZkFateChildOpsTotal());
     assertEquals(3, v2.getZkConnectionErrors());
 
-    v2 = builder2.withLastFateZxid(22).build();
+    v2 = builder2.withZkFateChildOpsTotal(22).build();
 
     assertEquals(11, v2.getCurrentFateOps());
-    assertEquals(22, v2.getLastFateZxid());
+    assertEquals(22, v2.getZkFateChildOpsTotal());
     assertEquals(3, v2.getZkConnectionErrors());
 
     v2 = builder2.withZkConnectionErrors(33).build();
 
     assertEquals(11, v2.getCurrentFateOps());
-    assertEquals(22, v2.getLastFateZxid());
+    assertEquals(22, v2.getZkFateChildOpsTotal());
     assertEquals(33, v2.getZkConnectionErrors());
 
     v2 = builder2.incrZkConnectionErrors().build();
 
     assertEquals(11, v2.getCurrentFateOps());
-    assertEquals(22, v2.getLastFateZxid());
+    assertEquals(22, v2.getZkFateChildOpsTotal());
     assertEquals(34, v2.getZkConnectionErrors());
 
+  }
+
+  @Test
+  public void mock(){
+    Master master = EasyMock.createMock(Master.class);
+    MetricsSystem system = EasyMock.createMock(MetricsSystem.class);
+
+    log.info("S:{}", system);
   }
 }

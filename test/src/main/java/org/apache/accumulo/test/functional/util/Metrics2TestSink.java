@@ -14,14 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.master.metrics.fate;
+package org.apache.accumulo.test.functional.util;
 
-public interface FateMetricsMBean {
+import org.apache.commons.configuration.SubsetConfiguration;
+import org.apache.hadoop.metrics2.MetricsRecord;
+import org.apache.hadoop.metrics2.MetricsSink;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-  public long getCurrentFateOps();
+public class Metrics2TestSink implements MetricsSink {
 
-  public long getZkFateChildOpsTotal();
+    private static final Logger log = LoggerFactory.getLogger(Metrics2TestSink.class);
 
-  public long getZKConnectionErrorsTotal();
+    @Override
+    public void putMetrics(MetricsRecord metricsRecord) {
+        log.error("putMetrics called {}", metricsRecord);
+    }
 
+    @Override
+    public void flush() {
+        log.error("flush called {}" );
+
+    }
+
+    @Override
+    public void init(SubsetConfiguration subsetConfiguration) {
+        log.error("Config called {}", subsetConfiguration);
+    }
 }
