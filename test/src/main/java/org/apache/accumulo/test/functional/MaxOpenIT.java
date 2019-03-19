@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -65,7 +66,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> sysConfig = iops.getSystemConfiguration();
       scanMaxOpenFiles = sysConfig.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey());
@@ -76,7 +77,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   @After
   public void restoreConfig() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
       if (scanMaxOpenFiles != null) {
         iops.setProperty(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), scanMaxOpenFiles);
@@ -95,7 +96,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
@@ -104,7 +105,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
 
       // the following loop should create three tablets in each map file
       for (int i = 0; i < 3; i++) {
-        IngestParams params = new IngestParams(getClientProperties(), tableName, NUM_TO_INGEST);
+        IngestParams params = new IngestParams(getClientProps(), tableName, NUM_TO_INGEST);
         params.timestamp = i;
         params.dataSize = 50;
         params.rows = NUM_TO_INGEST;

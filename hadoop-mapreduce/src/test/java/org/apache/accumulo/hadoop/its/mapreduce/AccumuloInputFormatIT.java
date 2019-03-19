@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -93,7 +94,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   @Before
   public void before() {
     inputFormat = new AccumuloInputFormat();
-    client = createAccumuloClient();
+    client = Accumulo.newClient().from(getClientProps()).build();
   }
 
   @After

@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -61,7 +62,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
 
   @Before
   public void updateMajcDelay() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       majcDelay = c.instanceOperations().getSystemConfiguration()
           .get(Property.TSERV_MAJC_DELAY.getKey());
       c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
@@ -74,14 +75,14 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
 
   @After
   public void resetMajcDelay() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
     }
   }
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       BatchWriter bw = c.createBatchWriter(tableName);

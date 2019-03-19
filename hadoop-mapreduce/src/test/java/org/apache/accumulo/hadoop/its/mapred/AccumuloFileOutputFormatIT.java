@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -81,7 +82,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void testEmptyWrite() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(EMPTY_TABLE);
       handleWriteTests(false);
     }
@@ -89,7 +90,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void testRealWrite() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(TEST_TABLE);
       BatchWriter bw = c.createBatchWriter(TEST_TABLE, new BatchWriterConfig());
       Mutation m = new Mutation("Key");
@@ -205,7 +206,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void writeBadVisibility() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(BAD_TABLE);
       BatchWriter bw = c.createBatchWriter(BAD_TABLE, new BatchWriterConfig());
       Mutation m = new Mutation("r1");

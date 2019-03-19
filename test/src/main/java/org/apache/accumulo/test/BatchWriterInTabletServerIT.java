@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -60,7 +61,7 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
   public void testNormalWrite() throws Exception {
     String[] uniqueNames = getUniqueNames(2);
     String t1 = uniqueNames[0], t2 = uniqueNames[1];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       int numEntriesToWritePerEntry = 50;
       IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000,
           numEntriesToWritePerEntry, t2, c, getAdminToken(), false, false);
@@ -80,7 +81,7 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
   public void testClearLocatorAndSplitWrite() throws Exception {
     String[] uniqueNames = getUniqueNames(2);
     String t1 = uniqueNames[0], t2 = uniqueNames[1];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       int numEntriesToWritePerEntry = 50;
       IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000,
           numEntriesToWritePerEntry, t2, c, getAdminToken(), true, true);

@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.security.Authorizations;
@@ -62,7 +63,7 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
   @Test
   public void testBulkImportFailure() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       TableOperations to = client.tableOperations();
       to.create(tableName);
       FileSystem fs = getFileSystem();

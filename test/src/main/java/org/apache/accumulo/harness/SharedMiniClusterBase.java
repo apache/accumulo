@@ -19,8 +19,8 @@ package org.apache.accumulo.harness;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.IOException;
 import java.security.SecureRandom;
+import java.util.Properties;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -168,19 +169,11 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   }
 
   public static AuthenticationToken getToken() {
-    if (token instanceof KerberosToken) {
-      try {
-        UserGroupInformation.loginUserFromKeytab(getPrincipal(),
-            krb.getRootUser().getKeytab().getAbsolutePath());
-      } catch (IOException e) {
-        throw new RuntimeException("Failed to login", e);
-      }
-    }
-    return token;
+    return ClientProperty.getAuthenticationToken(getClientProps());
   }
 
   public static String getPrincipal() {
-    return principal;
+    return ClientProperty.AUTH_PRINCIPAL.getValue(getClientProps());
   }
 
   public static MiniAccumuloClusterImpl getCluster() {
@@ -191,8 +184,8 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
     return cluster.getConfig().getDir();
   }
 
-  public static AccumuloClient createClient() {
-    return getCluster().createAccumuloClient(principal, getToken());
+  public static Properties getClientProps() {
+    return getCluster().getClientProperties();
   }
 
   public static TestingKdc getKdc() {

@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -53,7 +54,7 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       ServerContext context = getCluster().getServerContext();
 
       String table = getUniqueNames(1)[0];

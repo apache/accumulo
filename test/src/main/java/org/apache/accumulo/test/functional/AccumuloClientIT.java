@@ -62,7 +62,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
   @SuppressWarnings("deprecation")
   @Test
   public void testGetConnectorFromAccumuloClient() throws Exception {
-    AccumuloClient client = createAccumuloClient();
+    AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
     org.apache.accumulo.core.client.Connector c = org.apache.accumulo.core.client.Connector
         .from(client);
     assertEquals(client.whoami(), c.whoami());
@@ -75,7 +75,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
 
   @Test
   public void testAccumuloClientBuilder() throws Exception {
-    AccumuloClient c = createAccumuloClient();
+    AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
     String instanceName = getClientInfo().getInstanceName();
     String zookeepers = getClientInfo().getZooKeepers();
     final String user = "testuser";

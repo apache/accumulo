@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -67,7 +68,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
 
   @Before
   public void offlineTraceTable() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String traceTable = client.instanceOperations().getSystemConfiguration()
           .get(Property.TRACE_TABLE.getKey());
       if (client.tableOperations().exists(traceTable)) {
@@ -79,7 +80,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
   @After
   public void onlineTraceTable() throws Exception {
     if (cluster != null) {
-      try (AccumuloClient client = createAccumuloClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         String traceTable = client.instanceOperations().getSystemConfiguration()
             .get(Property.TRACE_TABLE.getKey());
         if (client.tableOperations().exists(traceTable)) {
@@ -92,7 +93,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
   // test for ACCUMULO-1830
   @Test
   public void test() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
       try (BatchWriter bw = client.createBatchWriter(tableName)) {

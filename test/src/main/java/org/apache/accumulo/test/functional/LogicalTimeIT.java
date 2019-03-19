@@ -18,6 +18,7 @@ package org.apache.accumulo.test.functional;
 
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -44,7 +45,7 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
   public void run() throws Exception {
     int tc = 0;
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"a"}, null, null, "b",
           2L);
       runMergeTest(c, tableName + tc++, new String[] {"m"}, new String[] {"z"}, null, null, "b",

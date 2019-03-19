@@ -20,6 +20,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -55,7 +56,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       majcDelay = client.instanceOperations().getSystemConfiguration()
           .get(Property.TSERV_MAJC_DELAY.getKey());
       if (!"1s".equals(majcDelay)) {
@@ -69,7 +70,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
   @After
   public void resetConfig() throws Exception {
     if (majcDelay != null) {
-      try (AccumuloClient client = createAccumuloClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
         getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
         getClusterControl().startAllServers(ServerType.TABLET_SERVER);
@@ -82,7 +83,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
 
   @Test
   public void testBulkSplitOptimization() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1000");
@@ -109,7 +110,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
       }
 
       FunctionalTestUtils.checkSplits(c, tableName, 50, 100);
-      VerifyParams params = new VerifyParams(getClientProperties(), tableName, ROWS);
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, ROWS);
       params.timestamp = 1;
       params.dataSize = 50;
       params.random = 56;

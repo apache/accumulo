@@ -18,7 +18,6 @@ package org.apache.accumulo.harness;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -28,6 +27,7 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -191,7 +191,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
               rootUser.getKeytab().getAbsolutePath());
 
-          try (AccumuloClient client = createAccumuloClient()) {
+          try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
             // Create the trace table
             client.tableOperations().create(traceTable);
 
@@ -213,7 +213,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
 
   public void cleanupTables() throws Exception {
     final String tablePrefix = this.getClass().getSimpleName() + "_";
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final TableOperations tops = client.tableOperations();
       for (String table : tops.list()) {
         if (table.startsWith(tablePrefix)) {
@@ -226,7 +226,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
 
   public void cleanupUsers() throws Exception {
     final String userPrefix = this.getClass().getSimpleName();
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final SecurityOperations secOps = client.securityOperations();
       for (String user : secOps.listLocalUsers()) {
         if (user.startsWith(userPrefix)) {
@@ -271,7 +271,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     return clusterConf.getAdminPrincipal();
   }
 
-  public static Properties getClientProperties() {
+  public static Properties getClientProps() {
     checkState(initialized);
     return getCluster().getClientProperties();
   }
@@ -345,20 +345,6 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   public static AccumuloClusterConfiguration getClusterConfiguration() {
     checkState(initialized);
     return clusterConf;
-  }
-
-  public AccumuloClient createAccumuloClient() {
-    checkState(initialized);
-    try {
-      String princ = getAdminPrincipal();
-      AuthenticationToken token = getAdminToken();
-      log.debug("Creating client as {} with {}", princ, token);
-      return cluster.createAccumuloClient(princ, token);
-    } catch (Exception e) {
-      log.error("Could not connect to Accumulo", e);
-      fail("Could not connect to Accumulo: " + e.getMessage());
-      throw new RuntimeException("Could not connect to Accumulo", e);
-    }
   }
 
   // TODO Really don't want this here. Will ultimately need to abstract configuration method away

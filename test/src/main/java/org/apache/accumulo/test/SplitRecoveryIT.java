@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -70,7 +71,7 @@ public class SplitRecoveryIT extends AccumuloClusterHarness {
 
     String tableName = getUniqueNames(1)[0];
 
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       for (int tn = 0; tn < 2; tn++) {
         // create a table and put some data in it
         client.tableOperations().create(tableName);

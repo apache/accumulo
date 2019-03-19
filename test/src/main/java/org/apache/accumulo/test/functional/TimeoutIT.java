@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -46,7 +47,7 @@ public class TimeoutIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = getUniqueNames(2);
       testBatchWriterTimeout(client, tableNames[0]);
       testBatchScannerTimeout(client, tableNames[1]);

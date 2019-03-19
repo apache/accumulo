@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -39,7 +40,7 @@ public class RenameIT extends AccumuloClusterHarness {
     VerifyParams params = new VerifyParams(cluster.getClientProperties(), name1);
     params.createTable = true;
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       TestIngest.ingest(c, params);
       c.tableOperations().rename(name1, name2);
       TestIngest.ingest(c, params);

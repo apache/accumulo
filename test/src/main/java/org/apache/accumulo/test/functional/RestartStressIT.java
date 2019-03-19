@@ -26,6 +26,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -86,13 +87,13 @@ public class RestartStressIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "500K");
       final ClusterControl control = getCluster().getClusterControl();
 
-      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000);
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, 10_000);
 
       Future<Integer> retCode = svc.submit(() -> {
         try {

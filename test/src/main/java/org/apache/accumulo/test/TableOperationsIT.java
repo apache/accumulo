@@ -37,6 +37,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -79,7 +80,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
   @Before
   public void setup() {
-    accumuloClient = createAccumuloClient();
+    accumuloClient = Accumulo.newClient().from(getClientProps()).build();
   }
 
   @After

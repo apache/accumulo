@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -69,7 +70,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
 
   @Test(timeout = 5 * 60 * 1000)
   public void testDeleteAllRows() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = this.getUniqueNames(20);
       for (String tableName : tableNames) {
         c.tableOperations().create(tableName);
@@ -83,7 +84,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
 
   @Test
   public void testManyRows() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       // Delete ranges of rows, and verify the tablets are removed.
       int i = 0;
       // Eliminate whole tablets

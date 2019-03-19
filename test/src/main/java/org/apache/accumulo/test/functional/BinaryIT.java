@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestBinaryRows;
@@ -34,7 +35,7 @@ public class BinaryIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       runTest(c, tableName);
@@ -44,7 +45,7 @@ public class BinaryIT extends AccumuloClusterHarness {
   @Test
   public void testPreSplit() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(tableName);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("8"));

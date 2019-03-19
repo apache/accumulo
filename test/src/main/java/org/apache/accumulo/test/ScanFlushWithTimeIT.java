@@ -23,6 +23,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -49,7 +50,7 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     log.info("Creating table");
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(tableName);
       log.info("Adding slow iterator");
       IteratorSetting setting = new IteratorSetting(50, SlowIterator.class);

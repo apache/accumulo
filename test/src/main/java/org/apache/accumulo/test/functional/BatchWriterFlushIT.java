@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -64,7 +65,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = getUniqueNames(2);
       String bwft = tableNames[0];
       c.tableOperations().create(bwft);
@@ -179,7 +180,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
   @Test
   public void runMultiThreadedBinningTest() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = getUniqueNames(1);
       String tableName = tableNames[0];
       c.tableOperations().create(tableName);

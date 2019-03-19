@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.conf.Property;
@@ -84,7 +85,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
     ServerContext ctx = getServerContext();
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = getUniqueNames(2);
 
       String manyWALsTable = tableNames[0];

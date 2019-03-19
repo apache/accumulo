@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -56,7 +57,7 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
   @Before
   public void setUpArgs() {
-    accumuloClient = createAccumuloClient();
+    accumuloClient = Accumulo.newClient().from(getClientProps()).build();
     mtbw = getMultiTableBatchWriter();
   }
 

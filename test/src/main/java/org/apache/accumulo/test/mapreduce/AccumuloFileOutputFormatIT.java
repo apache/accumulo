@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.sample.RowSampler;
@@ -83,7 +84,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
     TEST_TABLE = PREFIX + "_mapreduce_test_table";
     EMPTY_TABLE = PREFIX + "_mapreduce_empty_table";
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(EMPTY_TABLE);
       c.tableOperations().create(TEST_TABLE);
       c.tableOperations().create(BAD_TABLE);

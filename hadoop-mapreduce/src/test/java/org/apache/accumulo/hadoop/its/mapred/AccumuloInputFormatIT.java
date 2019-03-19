@@ -24,6 +24,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -153,7 +154,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   @Test
   public void testMap() throws Exception {
     String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(table);
       BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
       for (int i = 0; i < 100; i++) {
@@ -179,7 +180,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void testSample() throws Exception {
     final String TEST_TABLE_3 = getUniqueNames(1)[0];
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(TEST_TABLE_3,
           new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
       BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
@@ -215,7 +216,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     Collection<IteratorSetting.Column> fetchColumns = Collections
         .singleton(new IteratorSetting.Column(new Text("foo"), new Text("bar")));
 
-    try (AccumuloClient accumuloClient = createAccumuloClient()) {
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       accumuloClient.tableOperations().create(table);
 
       AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties()).table(table)

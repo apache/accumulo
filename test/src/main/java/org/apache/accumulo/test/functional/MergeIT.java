@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -56,7 +57,7 @@ public class MergeIT extends AccumuloClusterHarness {
 
   @Test
   public void merge() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().addSplits(tableName, splits("a b c d e f g h i j k".split(" ")));
@@ -75,7 +76,7 @@ public class MergeIT extends AccumuloClusterHarness {
 
   @Test
   public void mergeSize() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().addSplits(tableName,
@@ -113,7 +114,7 @@ public class MergeIT extends AccumuloClusterHarness {
   @Test
   public void mergeTest() throws Exception {
     int tc = 0;
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       runMergeTest(c, tableName + tc++, ns(), ns(), ns("l", "m", "n"), ns(null, "l"),
           ns(null, "n"));

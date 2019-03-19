@@ -31,6 +31,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -106,7 +107,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
   protected void runTest(String table, long fateTxid, Loader loader) throws IOException,
       AccumuloException, AccumuloSecurityException, TableExistsException, KeeperException,
       InterruptedException, Exception, FileNotFoundException, TableNotFoundException {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       SortedMap<Key,Value> testData = createTestData();
 

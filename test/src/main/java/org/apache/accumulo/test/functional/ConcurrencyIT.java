@@ -23,6 +23,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -94,7 +95,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
   // @formatter:on
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       runTest(c, getUniqueNames(1)[0]);
     }
   }

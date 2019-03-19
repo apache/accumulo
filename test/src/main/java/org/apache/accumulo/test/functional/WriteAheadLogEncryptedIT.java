@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
 import static org.apache.accumulo.test.functional.WriteAheadLogIT.testWAL;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -70,7 +71,7 @@ public class WriteAheadLogEncryptedIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       testWAL(c, getUniqueNames(1)[0]);
     }
   }

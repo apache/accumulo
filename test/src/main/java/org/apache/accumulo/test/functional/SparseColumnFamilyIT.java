@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -44,7 +45,7 @@ public class SparseColumnFamilyIT extends AccumuloClusterHarness {
   @Test
   public void sparceColumnFamily() throws Exception {
     String scftt = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(scftt);
 
       try (BatchWriter bw = c.createBatchWriter(scftt)) {

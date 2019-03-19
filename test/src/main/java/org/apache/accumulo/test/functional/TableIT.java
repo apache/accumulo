@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.FileNotFoundException;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -62,12 +63,12 @@ public class TableIT extends AccumuloClusterHarness {
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
     String rootPath = mac.getConfig().getDir().getAbsolutePath();
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       TableOperations to = c.tableOperations();
       String tableName = getUniqueNames(1)[0];
       to.create(tableName);
 
-      VerifyParams params = new VerifyParams(getClientProperties(), tableName);
+      VerifyParams params = new VerifyParams(getClientProps(), tableName);
       TestIngest.ingest(c, params);
       to.flush(tableName, null, null, true);
       VerifyIngest.verifyIngest(c, params);

@@ -39,6 +39,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
@@ -104,7 +105,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Before
   public void setupBulkTest() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       aconf = getCluster().getServerContext().getConfiguration();
@@ -142,14 +143,14 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Test
   public void testSingleTabletSingleFile() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       testSingleTabletSingleFile(client, false, false);
     }
   }
 
   @Test
   public void testSetTime() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = "testSetTime_table1";
       NewTableConfiguration newTableConf = new NewTableConfiguration();
       // set logical time type so we can set time on bulk import
@@ -161,7 +162,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Test
   public void testSingleTabletSingleFileOffline() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       testSingleTabletSingleFile(client, true, false);
     }
   }
@@ -186,21 +187,21 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Test
   public void testSingleTabletSingleFileNoSplits() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       testSingleTabletSingleFileNoSplits(client, false);
     }
   }
 
   @Test
   public void testSingleTabletSingleFileNoSplitsOffline() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       testSingleTabletSingleFileNoSplits(client, true);
     }
   }
 
   @Test
   public void testBadPermissions() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       addSplits(c, tableName, "0333");
 
       String dir = getDir("/testBadPermissions-");
@@ -235,7 +236,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
   }
 
   private void testBulkFile(boolean offline, boolean usePlan) throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       addSplits(c, tableName, "0333 0666 0999 1333 1666");
 
       if (offline)
@@ -312,7 +313,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
 
   @Test
   public void testBadLoadPlans() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       addSplits(c, tableName, "0333 0666 0999 1333 1666");
 
       String dir = getDir("/testBulkFile-");

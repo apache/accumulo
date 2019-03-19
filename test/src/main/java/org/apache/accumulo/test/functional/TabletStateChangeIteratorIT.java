@@ -28,6 +28,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -81,7 +82,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   public void test() throws AccumuloException, AccumuloSecurityException, TableExistsException,
       TableNotFoundException {
 
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tables = getUniqueNames(4);
       final String t1 = tables[0];

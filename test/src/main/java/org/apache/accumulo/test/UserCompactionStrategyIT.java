@@ -33,6 +33,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -72,7 +73,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @After
   public void checkForDanglingFateLocks() {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       assertNotNull(c);
       FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
     }
@@ -80,7 +81,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @Test
   public void testDropA() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
@@ -112,7 +113,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   private void testDropNone(Map<String,String> options) throws Exception {
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
@@ -154,7 +155,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
     // test per-table classpath + user specified compaction strategy
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       File target = new File(System.getProperty("user.dir"), "target");
       assertTrue(target.mkdirs() || target.isDirectory());
@@ -201,7 +202,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   public void testIterators() throws Exception {
     // test compaction strategy + iterators
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
@@ -245,7 +246,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @Test
   public void testFileSize() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
@@ -282,7 +283,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   public void testConcurrent() throws Exception {
     // two compactions without iterators or strategy should be able to run concurrently
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);

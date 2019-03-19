@@ -20,6 +20,7 @@ import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -50,7 +51,7 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     // make a table
     final String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(tableName);
 
       // make the world's slowest scanner

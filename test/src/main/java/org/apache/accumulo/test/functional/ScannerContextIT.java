@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -85,7 +86,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   @Test
   public void test() throws Exception {
     Path dstPath = copyTestIteratorsJarToTmp();
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       // Set the classloader context property on the table to point to the test iterators jar file.
       c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
 
@@ -134,7 +135,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   @Test
   public void testScanContextOverridesTableContext() throws Exception {
     Path dstPath = copyTestIteratorsJarToTmp();
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       // Create two contexts FOO and ScanContextIT. The FOO context will point to a classpath
       // that contains nothing. The ScanContextIT context will point to the test iterators jar
       String tableContext = "FOO";
@@ -190,7 +191,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   @Test
   public void testOneScannerDoesntInterfereWithAnother() throws Exception {
     Path dstPath = copyTestIteratorsJarToTmp();
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       // Set the classloader context property on the table to point to the test iterators jar file.
       c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
 
@@ -236,7 +237,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   @Test
   public void testClearContext() throws Exception {
     Path dstPath = copyTestIteratorsJarToTmp();
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       // Set the classloader context property on the table to point to the test iterators jar file.
       c.instanceOperations().setProperty(CONTEXT_PROPERTY, CONTEXT_CLASSPATH);
 

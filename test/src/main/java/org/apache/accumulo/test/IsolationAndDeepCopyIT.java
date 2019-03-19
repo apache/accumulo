@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -45,7 +46,7 @@ public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
     // test bug fox for ACCUMULO-3977
 
     String table = super.getUniqueNames(1)[0];
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       client.tableOperations().create(table);
 

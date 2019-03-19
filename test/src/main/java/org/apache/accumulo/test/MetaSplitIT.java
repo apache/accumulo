@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -52,7 +53,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   @Before
   public void saveMetadataSplits() throws Exception {
     if (getClusterType() == ClusterType.STANDALONE) {
-      try (AccumuloClient client = createAccumuloClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         Collection<Text> splits = client.tableOperations().listSplits(MetadataTable.NAME);
         // We expect a single split
         if (!splits.equals(Arrays.asList(new Text("~")))) {
@@ -71,7 +72,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   public void restoreMetadataSplits() throws Exception {
     if (metadataSplits != null) {
       log.info("Restoring split on metadata table");
-      try (AccumuloClient client = createAccumuloClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         client.tableOperations().merge(MetadataTable.NAME, null, null);
         client.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(metadataSplits));
       }
@@ -80,7 +81,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
 
   @Test(expected = AccumuloException.class)
   public void testRootTableSplit() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("5"));
       client.tableOperations().addSplits(RootTable.NAME, splits);
@@ -89,7 +90,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
 
   @Test
   public void testRootTableMerge() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().merge(RootTable.NAME, null, null);
     }
   }
@@ -104,7 +105,7 @@ public class MetaSplitIT extends AccumuloClusterHarness {
 
   @Test
   public void testMetadataTableSplit() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       TableOperations opts = client.tableOperations();
       for (int i = 1; i <= 10; i++) {
         opts.create(Integer.toString(i));

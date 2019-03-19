@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -70,7 +71,7 @@ public class SplitIT extends AccumuloClusterHarness {
   @Before
   public void alterConfig() throws Exception {
     Assume.assumeTrue(getClusterType() == ClusterType.MINI);
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> config = iops.getSystemConfiguration();
       tservMaxMem = config.get(Property.TSERV_MAXMEM.getKey());
@@ -101,7 +102,7 @@ public class SplitIT extends AccumuloClusterHarness {
 
   @After
   public void resetConfig() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       if (tservMaxMem != null) {
         log.info("Resetting {}={}", Property.TSERV_MAXMEM.getKey(), tservMaxMem);
         client.instanceOperations().setProperty(Property.TSERV_MAXMEM.getKey(), tservMaxMem);
@@ -119,13 +120,13 @@ public class SplitIT extends AccumuloClusterHarness {
 
   @Test
   public void tabletShouldSplit() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String table = getUniqueNames(1)[0];
       c.tableOperations().create(table);
       c.tableOperations().setProperty(table, Property.TABLE_SPLIT_THRESHOLD.getKey(), "256K");
       c.tableOperations().setProperty(table, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(),
           "1K");
-      VerifyParams params = new VerifyParams(getClientProperties(), table, 100_000);
+      VerifyParams params = new VerifyParams(getClientProps(), table, 100_000);
       TestIngest.ingest(c, params);
       VerifyIngest.verifyIngest(c, params);
       while (c.tableOperations().listSplits(table).size() < 10) {
@@ -156,7 +157,7 @@ public class SplitIT extends AccumuloClusterHarness {
 
   @Test
   public void interleaveSplit() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
@@ -177,7 +178,7 @@ public class SplitIT extends AccumuloClusterHarness {
 
   @Test
   public void deleteSplit() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");

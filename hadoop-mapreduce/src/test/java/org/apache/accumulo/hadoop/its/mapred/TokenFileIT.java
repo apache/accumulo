@@ -149,7 +149,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
     String[] tableNames = getUniqueNames(2);
     String table1 = tableNames[0];
     String table2 = tableNames[1];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(table1);
       c.tableOperations().create(table2);
       BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
