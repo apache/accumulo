@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -34,9 +37,6 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
 
 /**
  * Basic implementation of fate metrics:
@@ -85,8 +85,8 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
 
     try {
       objectName = new ObjectName(
-              "accumulo.server.metrics:service=FateMetrics,name=FateMetricsMBean,instance="
-                      + Thread.currentThread().getName());
+          "accumulo.server.metrics:service=FateMetrics,name=FateMetricsMBean,instance="
+              + Thread.currentThread().getName());
     } catch (Exception e) {
       log.error("Exception setting MBean object name", e);
     }
@@ -216,8 +216,8 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
     private final long zkFateChildOpsTotal;
     private final long zkConnectionErrors;
 
-    private FateMetricValues(final long updateTime, final long currentFateOps, final long zkFateChildOpsTotal,
-        final long zkConnectionErrors) {
+    private FateMetricValues(final long updateTime, final long currentFateOps,
+        final long zkFateChildOpsTotal, final long zkConnectionErrors) {
       this.updateTime = updateTime;
       this.currentFateOps = currentFateOps;
       this.zkFateChildOpsTotal = zkFateChildOpsTotal;
@@ -288,8 +288,8 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
       }
 
       FateMetricValues build() {
-        return new FateMetricValues(System.currentTimeMillis(),
-                currentFateOps, zkFateChildOpsTotal, zkConnectionErrors);
+        return new FateMetricValues(System.currentTimeMillis(), currentFateOps, zkFateChildOpsTotal,
+            zkConnectionErrors);
       }
     }
   }

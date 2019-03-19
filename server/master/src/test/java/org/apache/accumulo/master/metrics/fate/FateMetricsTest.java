@@ -85,7 +85,7 @@ public class FateMetricsTest {
   }
 
   @Test
-  public void mock(){
+  public void mock() {
     Master master = EasyMock.createMock(Master.class);
     MetricsSystem system = EasyMock.createMock(MetricsSystem.class);
 

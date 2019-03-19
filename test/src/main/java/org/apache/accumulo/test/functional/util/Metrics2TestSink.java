@@ -24,21 +24,21 @@ import org.slf4j.LoggerFactory;
 
 public class Metrics2TestSink implements MetricsSink {
 
-    private static final Logger log = LoggerFactory.getLogger(Metrics2TestSink.class);
+  private static final Logger log = LoggerFactory.getLogger(Metrics2TestSink.class);
 
-    @Override
-    public void putMetrics(MetricsRecord metricsRecord) {
-        log.error("putMetrics called {}", metricsRecord);
-    }
+  @Override
+  public void putMetrics(MetricsRecord metricsRecord) {
+    log.error("putMetrics called {}", metricsRecord);
+  }
 
-    @Override
-    public void flush() {
-        log.error("flush called {}" );
+  @Override
+  public void flush() {
+    log.error("flush called {}");
 
-    }
+  }
 
-    @Override
-    public void init(SubsetConfiguration subsetConfiguration) {
-        log.error("Config called {}", subsetConfiguration);
-    }
+  @Override
+  public void init(SubsetConfiguration subsetConfiguration) {
+    log.error("Config called {}", subsetConfiguration);
+  }
 }

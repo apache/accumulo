@@ -16,8 +16,29 @@
  */
 package org.apache.accumulo.test.functional.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -36,24 +57,12 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.management.MBeanServer;
-import java.lang.management.ManagementFactory;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.*;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 /**
- * Base utility to provide common functions to run "slow" FATE transactions that is common
- * to multiple ITs.
+ * Base utility to provide common functions to run "slow" FATE transactions that is common to
+ * multiple ITs.
  */
 public class FateUtilBase extends AccumuloClusterHarness {
 
@@ -91,7 +100,6 @@ public class FateUtilBase extends AccumuloClusterHarness {
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
   }
-
 
   /**
    * Create and run a slow running compaction task. The method will block until the compaction has

@@ -71,7 +71,6 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
   @Override
   public void register() throws Exception {
 
-
     try {
 
       log.error("Stack trace:");
@@ -80,7 +79,7 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
         log.error("st: {}", stackTraces[i]);
       }
 
-    }catch(Exception ex){
+    } catch (Exception ex) {
       log.error("Failed constructor registration", ex);
     }
 
@@ -126,14 +125,13 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
     log.info("zkConnectionErrorsTotal {}", zkConnectionErrorsTotal.value());
 
     // builder.add(currentFateOps.);
-    //builder.add(zkChildFateOpsTotal);
+    // builder.add(zkChildFateOpsTotal);
 
     registry.snapshot(builder, all);
 
-//    currentFateOps.snapshot(builder, all);
-//    zkChildFateOpsTotal.snapshot(builder, all);
-//    zkConnectionErrorsTotal.snapshot(builder,all);
-
+    // currentFateOps.snapshot(builder, all);
+    // zkChildFateOpsTotal.snapshot(builder, all);
+    // zkConnectionErrorsTotal.snapshot(builder,all);
 
   }
 }
