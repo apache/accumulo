@@ -43,8 +43,6 @@ public class MasterMetricsFactory {
   public MasterMetricsFactory(AccumuloConfiguration conf, Master master) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
 
-    // if(true) { throw new IllegalStateException("OOPPSe"); }
-
     useOldMetrics = conf.getBoolean(Property.GENERAL_LEGACY_METRICS);
     this.master = master;
 
@@ -98,10 +96,10 @@ public class MasterMetricsFactory {
 
   private Metrics createFateMetrics() {
     if (useOldMetrics) {
-      return new FateMetrics(master);
+      return new FateMetrics(master.getInstance());
     }
 
-    return new Metrics2FateMetrics(master, metricsSystem);
+    return new Metrics2FateMetrics(master.getInstance(), metricsSystem);
   }
 
 }

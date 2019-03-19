@@ -16,7 +16,10 @@
  */
 package org.apache.accumulo.master.metrics.fate;
 
-import org.apache.accumulo.master.Master;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.hadoop.metrics2.MetricsCollector;
@@ -34,6 +37,11 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
 
   private static final Logger log = LoggerFactory.getLogger(Metrics2FateMetrics.class);
 
+  // limit calls to update fate counters to guard against hammering zookeeper.
+  private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(60);
+
+  private volatile long minimumRefreshDelay = DEFAULT_MIN_REFRESH_DELAY;
+
   public static final String NAME = MASTER_NAME + ",sub=Fate";
   public static final String DESCRIPTION = "Fate Metrics";
   public static final String CONTEXT = "master";
@@ -42,20 +50,23 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
   public static final String TOTAL_FATE_OPS = "totalFateOps";
   public static final String TOTAL_ZK_CONN_ERRORS = "totalZkConnErrors";
 
-  private final Master master;
+  private final Instance instance;
   private final MetricsSystem metricsSystem;
   private final MetricsRegistry registry;
   private final MutableGaugeLong currentFateOps;
   private final MutableGaugeLong zkChildFateOpsTotal;
   private final MutableGaugeLong zkConnectionErrorsTotal;
 
-  private final FateMetrics fateMetrics;
+  private final AtomicReference<FateMetricValues> metricValues;
 
-  public Metrics2FateMetrics(Master master, MetricsSystem metricsSystem) {
+  private volatile long lastUpdate = 0;
 
-    this.fateMetrics = new FateMetrics(master);
+  public Metrics2FateMetrics(final Instance instance, MetricsSystem metricsSystem) {
 
-    this.master = master;
+    this.instance = instance;
+
+    metricValues = new AtomicReference<>(FateMetricValues.updateFromZookeeper(instance, null));
+
     this.metricsSystem = metricsSystem;
     this.registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
     this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
@@ -65,26 +76,11 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
     zkConnectionErrorsTotal = registry.newGauge(TOTAL_ZK_CONN_ERRORS, "Total ZK Connection Errors",
         0L);
 
-    // registry.newGauge("A", "A_DESC", currentFateOps)
   }
 
   @Override
   public void register() throws Exception {
-
-    try {
-
-      log.error("Stack trace:");
-      StackTraceElement[] stackTraces = Thread.currentThread().getStackTrace();
-      for (int i = 1; i < stackTraces.length; i++) {
-        log.error("st: {}", stackTraces[i]);
-      }
-
-    } catch (Exception ex) {
-      log.error("Failed constructor registration", ex);
-    }
-
     metricsSystem.register(NAME, DESCRIPTION, this);
-
   }
 
   @Override
@@ -100,38 +96,30 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
   @Override
   public void getMetrics(MetricsCollector collector, boolean all) {
 
-    log.error("GET METRICS... ###");
+    log.trace("getMetrics called with collector: {}", collector);
 
+    FateMetricValues fateMetrics = metricValues.get();
+
+    long now = System.currentTimeMillis();
+
+    if ((lastUpdate + minimumRefreshDelay) < now) {
+
+      fateMetrics = FateMetricValues.updateFromZookeeper(instance, fateMetrics);
+
+      metricValues.set(fateMetrics);
+
+      lastUpdate = now;
+
+      // update individual gauges that are reported.
+      currentFateOps.set(fateMetrics.getCurrentFateOps());
+      zkChildFateOpsTotal.set(fateMetrics.getZkFateChildOpsTotal());
+      zkConnectionErrorsTotal.set(fateMetrics.getZkConnectionErrors());
+
+    }
+
+    // create the metrics record and publish to the registry.
     MetricsRecordBuilder builder = collector.addRecord(RECORD).setContext(CONTEXT);
-
-    // get snapshot here or use add()?
-    FateMetrics.FateMetricValues values = fateMetrics.snapshot();
-
-    log.info("BEFORE:");
-    log.info("FATE metric values {}", values);
-
-    log.info("currentFateOps {}", currentFateOps.value());
-    log.info("zkChildFateOpsTotal {}", zkChildFateOpsTotal.value());
-    log.info("zkConnectionErrorsTotal {}", zkConnectionErrorsTotal.value());
-
-    currentFateOps.set(values.getCurrentFateOps());
-    zkChildFateOpsTotal.set(values.getZkFateChildOpsTotal());
-    zkConnectionErrorsTotal.set(values.getZkConnectionErrors());
-
-    log.info("FATE metric values {}", values);
-
-    log.info("currentFateOps {}", currentFateOps.value());
-    log.info("zkChildFateOpsTotal {}", zkChildFateOpsTotal.value());
-    log.info("zkConnectionErrorsTotal {}", zkConnectionErrorsTotal.value());
-
-    // builder.add(currentFateOps.);
-    // builder.add(zkChildFateOpsTotal);
-
     registry.snapshot(builder, all);
-
-    // currentFateOps.snapshot(builder, all);
-    // zkChildFateOpsTotal.snapshot(builder, all);
-    // zkConnectionErrorsTotal.snapshot(builder,all);
 
   }
 }

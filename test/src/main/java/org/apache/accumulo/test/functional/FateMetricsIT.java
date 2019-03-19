@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.lang.management.ManagementFactory;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Future;
 
@@ -32,38 +31,33 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriterFactory;
 import org.apache.accumulo.test.functional.util.FateUtilBase;
 import org.apache.hadoop.metrics2.MetricsSystem;
-import org.apache.zookeeper.KeeperException;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * IT Tests that create / run a "slow" FATE transaction to test FATE metrics, based on
- * FateConcurrentIT.
+ * FateConcurrentIT. This is currently a stub - need to determine how to "measure" this from the
+ * metrics system and mini-cluster seems to behave differently that a "full" instance - or just have
+ * not found the correct place to look.
  * <p>
- * TODO - this may be combined with FATE Concurrency tests - or common methods refactored out.
  */
 public class FateMetricsIT extends FateUtilBase {
 
   private static final Logger log = LoggerFactory.getLogger(FateMetricsIT.class);
 
+  // when set, test will loop to allow external connection to jmx with jconsole.
+  private final boolean pauseForJmxConsole = Boolean.FALSE;
+
   /**
-   * Validate the the AdminUtil.getStatus works correctly after refactor and validate that
-   * getTransactionStatus can be called without lock map(s). The test starts a long running fate
-   * transaction (slow compaction) and the calls AdminUtil functions to get the FATE.
+   * Validate FATE metrics include the updated values.
    *
    * @throws Exception
    *           any exception is a test failure
@@ -71,29 +65,21 @@ public class FateMetricsIT extends FateUtilBase {
   @Test
   public void getFateMetrics() throws Exception {
 
+    // metrics are registered in other threads - pause to allow registration to be called.
     try {
-      log.info("*** Starting sleep 1");
-      Thread.sleep(500);
+      log.debug("sleep for registration completion.");
+      Thread.sleep(750);
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       return;
-    } // TODO
-    //
-    // connect to jxm server - like this?
+    }
 
     MetricsSystem metricsSystem = MetricsSystemHelper.getInstance();
 
-    log.info("MS: {}", metricsSystem.currentConfig());
+    log.debug("metrics system current config: {}", metricsSystem.currentConfig());
 
-    // ms.startMetricsMBeans();
-
-    // find values by attribute name?
-    // server.getMBeanInfo();
-    // server.getAttributes();
-
-    // initFates = jmx.get...
-    // initZxid = jmx.get...
-
+    // before proceeding check that base class created table and a FATE transaction (compaction)
+    // is running.
     assertEquals("verify table online after created", TableState.ONLINE, getTableState(tableName));
 
     Future<?> compactTask = startCompactTask();
@@ -101,7 +87,6 @@ public class FateMetricsIT extends FateUtilBase {
     assertTrue("compaction fate transaction exits", findFate(tableName));
 
     Instance instance = connector.getInstance();
-    AdminUtil<String> admin = new AdminUtil<>(false);
 
     try {
 
@@ -109,43 +94,42 @@ public class FateMetricsIT extends FateUtilBase {
 
       log.trace("tid: {}", tableId);
 
-      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
-          instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
-      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
+      // TODO sample metrics and compare with expected?
 
-      AdminUtil.FateStatus withLocks = admin.getStatus(zs, zk,
-          ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
+      if (pauseForJmxConsole) {
 
-      // call method that does not use locks.
-      List<AdminUtil.TransactionStatus> noLocks = admin.getTransactionStatus(zs, null, null);
+        for (int i = 0; i < 10; i++) {
 
-      for (int i = 0; i < 10; i++) {
+          debugMetrics(metricsSystem);
 
-        debugMetrics(metricsSystem);
+          try {
+            log.info("*** Starting sleep {}", i);
 
-        try {
-          log.info("*** Starting sleep {}", i);
-
-          Thread.sleep(30_000);
-        } catch (InterruptedException ex) {
-          Thread.currentThread().interrupt();
-          return;
+            Thread.sleep(30_000);
+          } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            return;
+          }
         }
       }
       // TODO
       // call jmx and get # fate operations;
       // long #fate = jmx.get()...
-      long numFate = 0;
+      // long numFate = 0;
 
       // fast check - count number of transactions
-      assertEquals(numFate, noLocks.size());
+      // assertEquals(numFate, noLocks.size());
 
-    } catch (KeeperException | TableNotFoundException | InterruptedException ex) {
+    } catch (TableNotFoundException ex) {
       throw new IllegalStateException(ex);
     }
 
-    // test complete, cancel compaction and move on.
-    connector.tableOperations().cancelCompaction(tableName);
+    try {
+      // test complete, cancel compaction and move on.
+      connector.tableOperations().cancelCompaction(tableName);
+    } catch (Exception ex) {
+      log.debug("Exception thrown canceling compaction at end of test", ex);
+    }
 
     // block if compaction still running
     compactTask.get();
@@ -168,12 +152,13 @@ public class FateMetricsIT extends FateUtilBase {
         MBeanAttributeInfo[] attrInfo = info.getAttributes();
 
         if (name.getDomain().startsWith("Hadoop")) {
-          log.error("HHHH {}", name);
+          log.info("Hadoop: {}", name);
 
           log.info("Attributes for object: {}", name);
           for (MBeanAttributeInfo attr : attrInfo) {
-            log.info("  {}", attr);
+            log.info("  {}", attr.getName());
           }
+
         } else {
           log.info("A:{}", name);
         }

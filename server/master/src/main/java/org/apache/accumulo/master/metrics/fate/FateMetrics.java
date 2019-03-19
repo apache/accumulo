@@ -17,24 +17,14 @@
 package org.apache.accumulo.master.metrics.fate;
 
 import java.lang.management.ManagementFactory;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.metrics.Metrics;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +49,7 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
   private static final Logger log = LoggerFactory.getLogger(FateMetrics.class);
 
   // limit calls to update fate counters to guard against hammering zookeeper.
-  private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(5);
+  private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(60);
 
   private volatile long minimumRefreshDelay = DEFAULT_MIN_REFRESH_DELAY;
 
@@ -69,19 +59,17 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
 
   private final Instance instance;
 
-  private final AdminUtil<String> admin;
-
   private ObjectName objectName = null;
 
   private volatile boolean enabled = false;
 
-  public FateMetrics(final Master master) {
+  public FateMetrics(final Instance instance) {
 
-    instance = master.getInstance();
+    this.instance = instance;
+
+    // instance = master.getInstance();
 
     metricValues = new AtomicReference<>(FateMetricValues.Builder.getBuilder().build());
-
-    admin = new AdminUtil<>(false);
 
     try {
       objectName = new ObjectName(
@@ -117,6 +105,14 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
     return curr;
   }
 
+  /**
+   * Clear the current measurement time so that the next populate call will read from zookeeper -
+   * primarily for testing purposes.
+   */
+  public void resetDelayTimer() {
+    lastUpdate = 0;
+  }
+
   @Override
   public void register() throws Exception {
     // Register this object with the MBeanServer
@@ -129,57 +125,31 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
 
   @Override
   public void add(String name, long time) {
-
+    throw new UnsupportedOperationException("add() is not implemented");
   }
 
   /**
-   * Update the metric values from zookeeper is the delay has expired.
+   * Update the metric values from zookeeper is the delay has expired. The delay timer can be
+   * cleared using {@link #resetDelayTimer() to force an update}
    */
   public synchronized FateMetricValues snapshot() {
 
+    FateMetricValues current = metricValues.get();
+
     long now = System.currentTimeMillis();
 
-    if (now > (lastUpdate + minimumRefreshDelay)) {
-
-      FateMetricValues.Builder valueBuilder = FateMetricValues.Builder.copy(metricValues.get());
-
-      try {
-
-        IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-        ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zoo);
-
-        List<AdminUtil.TransactionStatus> noLocks = admin.getTransactionStatus(zs, null, null);
-        valueBuilder.withCurrentFateOps(noLocks.size());
-
-        Stat node = zoo.getZooKeeper().exists(ZooUtil.getRoot(instance) + Constants.ZFATE, false);
-        valueBuilder.withZkFateChildOpsTotal(node.getCversion());
-
-        log.error("Stat - czxid: {}", node.getCzxid());
-        log.error("Stat - mzxid: {}", node.getMzxid());
-        log.error("Stat - pzxid: {}", node.getPzxid());
-        log.error("Stat - ctime: {}", node.getCtime());
-        log.error("Stat - mtime: {}", node.getMtime());
-        log.error("Stat - version: {}", node.getVersion());
-        log.error("Stat - cversion: {}", node.getCversion());
-        log.error("Stat - num children: {}", node.getNumChildren());
-
-        metricValues.set(valueBuilder.build());
-
-      } catch (KeeperException ex) {
-
-        valueBuilder.incrZkConnectionErrors();
-
-        metricValues.set(valueBuilder.build());
-
-      } catch (InterruptedException ex) {
-        Thread.currentThread().interrupt();
-      }
-
-      lastUpdate = now;
-
+    if ((lastUpdate + minimumRefreshDelay) > now) {
+      return current;
     }
 
-    return metricValues.get();
+    FateMetricValues updates = FateMetricValues.updateFromZookeeper(instance, current);
+
+    metricValues.set(updates);
+
+    lastUpdate = now;
+
+    return updates;
+
   }
 
   @Override
@@ -203,95 +173,6 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
   public long getZKConnectionErrorsTotal() {
     snapshot();
     return metricValues.get().getZkConnectionErrors();
-  }
-
-  /**
-   * Immutable class that holds a snapshot of fate metric values - use builder to instantiate
-   * instance.
-   */
-  protected static class FateMetricValues {
-
-    private final long updateTime;
-    private final long currentFateOps;
-    private final long zkFateChildOpsTotal;
-    private final long zkConnectionErrors;
-
-    private FateMetricValues(final long updateTime, final long currentFateOps,
-        final long zkFateChildOpsTotal, final long zkConnectionErrors) {
-      this.updateTime = updateTime;
-      this.currentFateOps = currentFateOps;
-      this.zkFateChildOpsTotal = zkFateChildOpsTotal;
-      this.zkConnectionErrors = zkConnectionErrors;
-    }
-
-    long getCurrentFateOps() {
-      return currentFateOps;
-    }
-
-    long getZkFateChildOpsTotal() {
-      return zkFateChildOpsTotal;
-    }
-
-    long getZkConnectionErrors() {
-      return zkConnectionErrors;
-    }
-
-    @Override
-    public String toString() {
-      final StringBuilder sb = new StringBuilder("FateMetricValues{");
-      sb.append("updateTime=").append(updateTime);
-      sb.append(", currentFateOps=").append(currentFateOps);
-      sb.append(", zkFateChildOpsTotal=").append(zkFateChildOpsTotal);
-      sb.append(", zkConnectionErrors=").append(zkConnectionErrors);
-      sb.append('}');
-      return sb.toString();
-    }
-
-    static class Builder {
-
-      private long currentFateOps = 0;
-      private long zkFateChildOpsTotal = 0;
-      private long zkConnectionErrors = 0;
-
-      Builder() {}
-
-      static Builder getBuilder() {
-        return new Builder();
-      }
-
-      static Builder copy(final FateMetricValues values) {
-        Builder builder = new Builder();
-        builder.currentFateOps = values.getCurrentFateOps();
-        builder.zkFateChildOpsTotal = values.getZkFateChildOpsTotal();
-        builder.zkConnectionErrors = values.getZkConnectionErrors();
-        return builder;
-      }
-
-      Builder withCurrentFateOps(final long value) {
-        this.currentFateOps = value;
-        return this;
-      }
-
-      Builder withZkFateChildOpsTotal(final long value) {
-        this.zkFateChildOpsTotal = value;
-        return this;
-      }
-
-      Builder incrZkConnectionErrors() {
-        this.zkConnectionErrors += 1L;
-        return this;
-      }
-
-      Builder withZkConnectionErrors(final long value) {
-        this.zkConnectionErrors = value;
-        return this;
-      }
-
-      FateMetricValues build() {
-        return new FateMetricValues(System.currentTimeMillis(), currentFateOps, zkFateChildOpsTotal,
-            zkConnectionErrors);
-      }
-    }
   }
 
 }

@@ -22,23 +22,28 @@ import org.apache.hadoop.metrics2.MetricsSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Stub class that may help test metrics - if sources will publish to this as a sink, the values can
+ * be captured / compared - just a stub for now. It will only be used if configured / set in the
+ * hadoop-metrics2-accumulo.properties file.
+ */
 public class Metrics2TestSink implements MetricsSink {
 
   private static final Logger log = LoggerFactory.getLogger(Metrics2TestSink.class);
 
   @Override
   public void putMetrics(MetricsRecord metricsRecord) {
-    log.error("putMetrics called {}", metricsRecord);
+    log.info("putMetrics called {}", metricsRecord);
   }
 
   @Override
   public void flush() {
-    log.error("flush called {}");
+    log.info("flush called {}");
 
   }
 
   @Override
   public void init(SubsetConfiguration subsetConfiguration) {
-    log.error("Config called {}", subsetConfiguration);
+    log.info("Config called {}", subsetConfiguration);
   }
 }

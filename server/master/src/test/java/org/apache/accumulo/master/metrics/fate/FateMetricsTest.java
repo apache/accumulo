@@ -32,10 +32,9 @@ public class FateMetricsTest {
   @Test
   public void defaultValueTest() {
 
-    FateMetrics.FateMetricValues.Builder builder = FateMetrics.FateMetricValues.Builder
-        .getBuilder();
+    FateMetricValues.Builder builder = FateMetricValues.Builder.getBuilder();
 
-    FateMetrics.FateMetricValues v = builder.build();
+    FateMetricValues v = builder.build();
 
     assertEquals(0, v.getCurrentFateOps());
     assertEquals(0, v.getZkFateChildOpsTotal());
@@ -46,19 +45,18 @@ public class FateMetricsTest {
   @Test
   public void valueTest() {
 
-    FateMetrics.FateMetricValues.Builder builder = FateMetrics.FateMetricValues.Builder
-        .getBuilder();
+    FateMetricValues.Builder builder = FateMetricValues.Builder.getBuilder();
 
-    FateMetrics.FateMetricValues v = builder.withCurrentFateOps(1).withZkFateChildOpsTotal(2)
+    FateMetricValues v = builder.withCurrentFateOps(1).withZkFateChildOpsTotal(2)
         .withZkConnectionErrors(3).build();
 
     assertEquals(1, v.getCurrentFateOps());
     assertEquals(2, v.getZkFateChildOpsTotal());
     assertEquals(3, v.getZkConnectionErrors());
 
-    FateMetrics.FateMetricValues.Builder builder2 = FateMetrics.FateMetricValues.Builder.copy(v);
+    FateMetricValues.Builder builder2 = FateMetricValues.Builder.copy(v);
 
-    FateMetrics.FateMetricValues v2 = builder2.withCurrentFateOps(11).build();
+    FateMetricValues v2 = builder2.withCurrentFateOps(11).build();
 
     assertEquals(11, v2.getCurrentFateOps());
     assertEquals(2, v2.getZkFateChildOpsTotal());
