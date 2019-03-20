@@ -43,8 +43,8 @@ public class WriteLotsIT extends AccumuloClusterHarness {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
     bwConfig.setMaxMemory(1024L * 1024);
     bwConfig.setMaxWriteThreads(2);
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties())
-        .batchWriterConfig(bwConfig).build()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).batchWriterConfig(bwConfig)
+        .build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       final AtomicReference<Exception> ref = new AtomicReference<>();
@@ -55,7 +55,7 @@ public class WriteLotsIT extends AccumuloClusterHarness {
         final int index = i;
         Runnable r = () -> {
           try {
-            IngestParams ingestParams = new IngestParams(getClientProperties(), tableName, 10_000);
+            IngestParams ingestParams = new IngestParams(getClientProps(), tableName, 10_000);
             ingestParams.startRow = index * 10000;
             TestIngest.ingest(c, ingestParams);
           } catch (Exception ex) {
@@ -69,7 +69,7 @@ public class WriteLotsIT extends AccumuloClusterHarness {
       if (ref.get() != null) {
         throw ref.get();
       }
-      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000 * THREADS);
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, 10_000 * THREADS);
       VerifyIngest.verifyIngest(c, params);
     }
   }

@@ -25,6 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -73,7 +74,7 @@ public class CompactionIT extends AccumuloClusterHarness {
   @Before
   public void alterConfig() throws Exception {
     if (getClusterType() == ClusterType.STANDALONE) {
-      try (AccumuloClient client = createAccumuloClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         InstanceOperations iops = client.instanceOperations();
         Map<String,String> config = iops.getSystemConfiguration();
         majcThreadMaxOpen = config.get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey());
@@ -94,7 +95,7 @@ public class CompactionIT extends AccumuloClusterHarness {
   public void resetConfig() throws Exception {
     // We set the values..
     if (majcThreadMaxOpen != null) {
-      try (AccumuloClient client = createAccumuloClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         InstanceOperations iops = client.instanceOperations();
 
         iops.setProperty(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey(), majcThreadMaxOpen);
@@ -109,7 +110,7 @@ public class CompactionIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
@@ -130,7 +131,7 @@ public class CompactionIT extends AccumuloClusterHarness {
           final int finalI = i;
           Runnable r = () -> {
             try {
-              VerifyParams params = new VerifyParams(getClientProperties(), tableName, span);
+              VerifyParams params = new VerifyParams(getClientProps(), tableName, span);
               params.startRow = finalI;
               params.random = 56;
               params.dataSize = 50;

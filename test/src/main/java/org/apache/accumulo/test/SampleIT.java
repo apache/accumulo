@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -124,7 +125,7 @@ public class SampleIT extends AccumuloClusterHarness {
   @Test
   public void testBasic() throws Exception {
 
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       String clone = tableName + "_clone";
 
@@ -302,7 +303,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
   @Test
   public void testIterator() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       String clone = tableName + "_clone";
 
@@ -415,7 +416,7 @@ public class SampleIT extends AccumuloClusterHarness {
   @Test
   public void testSampleNotPresent() throws Exception {
 
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       String clone = tableName + "_clone";
 

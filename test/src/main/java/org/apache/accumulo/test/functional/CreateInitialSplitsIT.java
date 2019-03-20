@@ -27,6 +27,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -67,7 +68,7 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
 
   @Before
   public void setupInitialSplits() {
-    client = createAccumuloClient();
+    client = Accumulo.newClient().from(getClientProps()).build();
   }
 
   @After

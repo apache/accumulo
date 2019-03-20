@@ -25,6 +25,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -59,7 +60,7 @@ public class SplitCancelsMajCIT extends SharedMiniClusterBase {
   @Test
   public void test() throws Exception {
     final String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = createClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(tableName);
       // majc should take 100 * .5 secs
       IteratorSetting it = new IteratorSetting(100, SlowIterator.class);

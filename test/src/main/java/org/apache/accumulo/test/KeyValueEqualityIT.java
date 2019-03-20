@@ -22,6 +22,7 @@ import static org.junit.Assert.assertFalse;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -41,7 +42,7 @@ public class KeyValueEqualityIT extends AccumuloClusterHarness {
 
   @Test
   public void testEquality() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       final String[] tables = getUniqueNames(2);
       final String table1 = tables[0], table2 = tables[1];

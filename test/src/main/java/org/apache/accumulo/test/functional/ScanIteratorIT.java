@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -65,7 +66,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
   @Before
   public void setup() throws Exception {
-    accumuloClient = createAccumuloClient();
+    accumuloClient = Accumulo.newClient().from(getClientProps()).build();
     tableName = getUniqueNames(1)[0];
 
     accumuloClient.tableOperations().create(tableName);
@@ -107,7 +108,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
   @Test
   public void run() throws Exception {
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 1000; i++) {

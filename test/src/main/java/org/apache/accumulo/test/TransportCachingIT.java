@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ThriftTransportKey;
@@ -51,7 +52,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
 
   @Test
   public void testCachedTransport() throws InterruptedException {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       while (client.instanceOperations().getTabletServers().isEmpty()) {
         // sleep until a tablet server is up
         Thread.sleep(50);

@@ -29,6 +29,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
@@ -61,7 +62,7 @@ public class MetadataIT extends AccumuloClusterHarness {
 
   @Test
   public void testFlushAndCompact() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = getUniqueNames(2);
 
       // create a table to write some data to metadata table
@@ -100,7 +101,7 @@ public class MetadataIT extends AccumuloClusterHarness {
 
   @Test
   public void mergeMeta() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] names = getUniqueNames(5);
       SortedSet<Text> splits = new TreeSet<>();
       for (String id : "1 2 3 4 5".split(" ")) {
@@ -123,7 +124,7 @@ public class MetadataIT extends AccumuloClusterHarness {
 
   @Test
   public void batchScanTest() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
 

@@ -26,6 +26,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Future;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.SimpleThreadPool;
@@ -49,7 +50,7 @@ public class DeleteTableDuringSplitIT extends AccumuloClusterHarness {
   @Test
   public void test() throws Exception {
 
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       // 96 invocations, 8 at a time
       int batches = 12, batchSize = 8;

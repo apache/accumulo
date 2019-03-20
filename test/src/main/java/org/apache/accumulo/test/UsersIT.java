@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 import java.util.Set;
 
 import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
@@ -35,7 +36,7 @@ public class UsersIT extends AccumuloClusterHarness {
   @Test
   public void testCreateExistingUser() throws Exception {
     ClusterUser user0 = getUser(0);
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       Set<String> currentUsers = client.securityOperations().listLocalUsers();
 
       // Ensure that the user exists

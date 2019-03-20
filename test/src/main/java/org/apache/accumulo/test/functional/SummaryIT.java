@@ -137,7 +137,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void basicSummaryTest() throws Exception {
     final String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
       SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BasicSummarizer.class.getName())
           .build();
@@ -314,7 +314,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void selectionTest() throws Exception {
     final String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
       SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BasicSummarizer.class).build();
       SummarizerConfiguration sc2 = SummarizerConfiguration.builder(KeySizeSummarizer.class)
@@ -478,7 +478,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void compactionTest() throws Exception {
     final String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
       SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FooCounter.class.getName())
           .build();
@@ -548,7 +548,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void testBuggySummarizer() throws Exception {
     final String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
       SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BuggySummarizer.class).build();
       ntc.enableSummarization(sc1);
@@ -575,7 +575,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void testPermissions() throws Exception {
     final String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
       SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FooCounter.class).build();
       ntc.enableSummarization(sc1);
@@ -651,7 +651,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void tooLargeTest() throws Exception {
     final String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
       SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BigSummarizer.class).build();
       ntc.enableSummarization(sc1);
@@ -722,7 +722,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void testLocalityGroups() throws Exception {
     final String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
       SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FamilySummarizer.class).build();
       SummarizerConfiguration sc2 = SummarizerConfiguration.builder(BasicSummarizer.class).build();
@@ -785,7 +785,7 @@ public class SummaryIT extends AccumuloClusterHarness {
 
   @Test
   public void testExceptions() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       try {
         c.tableOperations().summaries("foo").retrieve();
@@ -843,7 +843,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   @Test
   public void testManyFiles() throws Exception {
     final String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
       ntc.enableSummarization(SummarizerConfiguration.builder(FamilySummarizer.class).build());
       c.tableOperations().create(table, ntc);

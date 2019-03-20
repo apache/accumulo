@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -94,7 +95,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
    */
   @Test
   public void testGetSplits() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String table = getUniqueNames(1)[0];
       client.tableOperations().create(table);
       insertData(client, table, currentTimeMillis());
@@ -321,7 +322,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void testMap() throws Exception {
     final String TEST_TABLE_1 = getUniqueNames(1)[0];
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(TEST_TABLE_1);
       AccumuloOutputFormatIT.insertData(c, TEST_TABLE_1);
       assertEquals(0, MRTester.main(new String[] {TEST_TABLE_1,
@@ -338,7 +339,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void testSample() throws Exception {
     final String TEST_TABLE_3 = getUniqueNames(1)[0];
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(TEST_TABLE_3,
           new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
       AccumuloOutputFormatIT.insertData(c, TEST_TABLE_3);
@@ -371,7 +372,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void testMapWithBatchScanner() throws Exception {
     final String TEST_TABLE_2 = getUniqueNames(1)[0];
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(TEST_TABLE_2);
       AccumuloOutputFormatIT.insertData(c, TEST_TABLE_2);
       assertEquals(0,
@@ -394,7 +395,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
-    try (AccumuloClient accumuloClient = createAccumuloClient()) {
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       accumuloClient.tableOperations().create(table);
 
       ClientInfo ci = getClientInfo();
@@ -435,7 +436,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   @Test
   public void testPartialInputSplitDelegationToConfiguration() throws Exception {
     String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(table);
       AccumuloOutputFormatIT.insertData(c, table);
       assertEquals(0,

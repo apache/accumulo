@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import java.util.Map;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -48,10 +49,10 @@ public class MasterFailoverIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] names = getUniqueNames(2);
       c.tableOperations().create(names[0]);
-      VerifyParams params = new VerifyParams(getClientProperties(), names[0]);
+      VerifyParams params = new VerifyParams(getClientProps(), names[0]);
       TestIngest.ingest(c, params);
 
       ClusterControl control = cluster.getClusterControl();

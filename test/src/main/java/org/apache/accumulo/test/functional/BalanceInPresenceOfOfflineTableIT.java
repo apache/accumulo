@@ -25,6 +25,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -90,7 +91,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
   @Before
   public void setupTables() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
-    accumuloClient = createAccumuloClient();
+    accumuloClient = Accumulo.newClient().from(getClientProps()).build();
     // Need at least two tservers
     Assume.assumeTrue("Not enough tservers to run test",
         accumuloClient.instanceOperations().getTabletServers().size() >= 2);
@@ -129,7 +130,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
     log.debug("starting test ingestion");
 
-    VerifyParams params = new VerifyParams(getClientProperties(), TEST_TABLE, 200_000);
+    VerifyParams params = new VerifyParams(getClientProps(), TEST_TABLE, 200_000);
     TestIngest.ingest(accumuloClient, params);
     accumuloClient.tableOperations().flush(TEST_TABLE, null, null, true);
     VerifyIngest.verifyIngest(accumuloClient, params);

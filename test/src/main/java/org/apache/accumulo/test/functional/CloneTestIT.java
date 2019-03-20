@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -69,7 +70,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
     String table1 = tableNames[0];
     String table2 = tableNames[1];
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       c.tableOperations().create(table1);
 
@@ -205,7 +206,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
     String table2 = tableNames[1];
     String table3 = tableNames[2];
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       AccumuloCluster cluster = getCluster();
       Assume.assumeTrue(cluster instanceof MiniAccumuloClusterImpl);
       MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
@@ -252,7 +253,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
   @Test
   public void testCloneWithSplits() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       List<Mutation> mutations = new ArrayList<>();
       TreeSet<Text> splits = new TreeSet<>();

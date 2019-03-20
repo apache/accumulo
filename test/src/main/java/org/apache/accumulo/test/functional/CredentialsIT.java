@@ -57,7 +57,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
 
   @Before
   public void createLocalUser() throws AccumuloException, AccumuloSecurityException {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       ClusterUser user = getUser(0);
       username = user.getPrincipal();
       saslEnabled = saslEnabled();
@@ -81,7 +81,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
       UserGroupInformation.loginUserFromKeytab(root.getPrincipal(),
           root.getKeytab().getAbsolutePath());
     }
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.securityOperations().dropLocalUser(username);
     }
   }
@@ -102,7 +102,7 @@ public class CredentialsIT extends AccumuloClusterHarness {
 
   @Test
   public void testDestroyTokenBeforeRPC() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       AuthenticationToken token = getUser(0).getToken();
       try (
           AccumuloClient userAccumuloClient = Accumulo.newClient().from(client.properties())

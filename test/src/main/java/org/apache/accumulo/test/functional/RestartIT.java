@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -94,12 +95,12 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void restartMaster() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       final ClusterControl control = getCluster().getClusterControl();
 
-      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000);
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, 10_000);
 
       Future<Integer> ret = svc.submit(() -> {
         try {
@@ -120,10 +121,10 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void restartMasterRecovery() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000);
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, 10_000);
       TestIngest.ingest(c, params);
       ClusterControl control = getCluster().getClusterControl();
 
@@ -168,13 +169,13 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void restartMasterSplit() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       final ClusterControl control = getCluster().getClusterControl();
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "5K");
 
-      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000);
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, 10_000);
 
       Future<Integer> ret = svc.submit(() -> {
         try {
@@ -209,10 +210,10 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void killedTabletServer() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000);
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, 10_000);
       TestIngest.ingest(c, params);
       VerifyIngest.verifyIngest(c, params);
       cluster.getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -223,7 +224,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void killedTabletServer2() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String[] names = getUniqueNames(2);
       final String tableName = names[0];
       final ClusterControl control = getCluster().getClusterControl();
@@ -239,10 +240,10 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void killedTabletServerDuringShutdown() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      IngestParams params = new IngestParams(getClientProperties(), tableName, 10_000);
+      IngestParams params = new IngestParams(getClientProps(), tableName, 10_000);
       TestIngest.ingest(c, params);
       try {
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
@@ -255,9 +256,9 @@ public class RestartIT extends AccumuloClusterHarness {
 
   @Test
   public void shutdownDuringCompactingSplitting() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 10_000);
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, 10_000);
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
       String splitThreshold = null;

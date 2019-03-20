@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -61,14 +62,14 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   @Before
   public void emptyAuths() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       origAuths = c.securityOperations().getUserAuthorizations(getAdminPrincipal());
     }
   }
 
   @After
   public void resetAuths() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       if (origAuths != null) {
         c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), origAuths);
       }
@@ -77,7 +78,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = getUniqueNames(2);
       String table = tableNames[0];
       c.tableOperations().create(table);

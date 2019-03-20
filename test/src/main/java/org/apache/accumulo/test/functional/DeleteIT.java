@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
@@ -36,7 +37,7 @@ public class DeleteIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       deleteTest(c, getCluster(), tableName);
@@ -45,7 +46,7 @@ public class DeleteIT extends AccumuloClusterHarness {
 
   public static void deleteTest(AccumuloClient c, AccumuloCluster cluster, String tableName)
       throws Exception {
-    VerifyParams params = new VerifyParams(getClientProperties(), tableName, 1000);
+    VerifyParams params = new VerifyParams(getClientProps(), tableName, 1000);
     params.cols = 1;
     params.random = 56;
     TestIngest.ingest(c, params);

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -52,7 +53,7 @@ public class WriteAheadLogIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       testWAL(c, getUniqueNames(1)[0]);
     }
   }
@@ -60,7 +61,7 @@ public class WriteAheadLogIT extends AccumuloClusterHarness {
   public static void testWAL(AccumuloClient c, String tableName) throws Exception {
     c.tableOperations().create(tableName);
     c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "750K");
-    VerifyParams params = new VerifyParams(getClientProperties(), tableName);
+    VerifyParams params = new VerifyParams(getClientProps(), tableName);
     TestIngest.ingest(c, params);
     VerifyIngest.verifyIngest(c, params);
     getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);

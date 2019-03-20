@@ -26,6 +26,7 @@ import java.util.Random;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -93,7 +94,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
     REG_TABLE_NAME = names[0];
     PRE_SPLIT_TABLE_NAME = names[1];
 
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       tservMajcDelay = c.instanceOperations().getSystemConfiguration()
           .get(Property.TSERV_MAJC_DELAY.getKey());
       c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "10ms");
@@ -103,7 +104,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
   @After
   public void resetMajcDelay() throws Exception {
     if (tservMajcDelay != null) {
-      try (AccumuloClient client = createAccumuloClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
       }
     }
@@ -122,7 +123,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
       TestIngest.toPrintableChars(rowData);
       splitPoints.add(new Text(rowData));
     }
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(REG_TABLE_NAME);
       c.tableOperations().create(PRE_SPLIT_TABLE_NAME);
       c.tableOperations().setProperty(PRE_SPLIT_TABLE_NAME,

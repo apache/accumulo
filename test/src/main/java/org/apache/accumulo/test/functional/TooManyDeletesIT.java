@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -38,7 +39,7 @@ import org.junit.Test;
 public class TooManyDeletesIT extends AccumuloClusterHarness {
   @Test
   public void tooManyDeletesCompactionStrategyIT() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       String table = getUniqueNames(1)[0];
 

@@ -28,6 +28,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -85,7 +86,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> config = iops.getSystemConfiguration();
       gcCycleDelay = config.get(Property.GC_CYCLE_DELAY.getKey());
@@ -96,7 +97,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
     }
     getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
 
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       ClientInfo info = ClientInfo.from(client.properties());
       ZooCache zcache = new ZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       zcache.clear();
@@ -131,7 +132,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
 
   @After
   public void restoreConfig() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = c.instanceOperations();
       if (gcCycleDelay != null) {
         iops.setProperty(Property.GC_CYCLE_DELAY.getKey(), gcCycleDelay);
@@ -150,7 +151,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     // make a table
     String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       log.info("Creating table to be deleted");
       c.tableOperations().create(tableName);
       final String tableId = c.tableOperations().tableIdMap().get(tableName);

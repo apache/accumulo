@@ -30,6 +30,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -92,7 +93,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
   @Before
   public void setup() {
-    accumuloClient = createAccumuloClient();
+    accumuloClient = Accumulo.newClient().from(getClientProps()).build();
     context = (ClientContext) accumuloClient;
 
     tableName = getUniqueNames(1)[0];

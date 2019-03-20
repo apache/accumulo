@@ -17,6 +17,7 @@
 
 package org.apache.accumulo.test;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.Writer;
 import org.apache.accumulo.core.data.Mutation;
@@ -40,7 +41,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
   // a test for ACCUMULO-3096
   @Test(expected = ConstraintViolationException.class)
   public void test() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME,
           TablePermission.WRITE);
 

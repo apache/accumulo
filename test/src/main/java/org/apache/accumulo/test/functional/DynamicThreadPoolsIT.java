@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
@@ -62,7 +63,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
 
   @Before
   public void updateMajcDelay() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       majcDelay = c.instanceOperations().getSystemConfiguration()
           .get(Property.TSERV_MAJC_DELAY.getKey());
       c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
@@ -74,7 +75,7 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
 
   @After
   public void resetMajcDelay() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
     }
   }
@@ -83,9 +84,9 @@ public class DynamicThreadPoolsIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     final String[] tables = getUniqueNames(15);
     String firstTable = tables[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "5");
-      IngestParams params = new IngestParams(getClientProperties(), firstTable, 500_000);
+      IngestParams params = new IngestParams(getClientProps(), firstTable, 500_000);
       params.createTable = true;
       TestIngest.ingest(c, params);
       c.tableOperations().flush(firstTable, null, null, true);

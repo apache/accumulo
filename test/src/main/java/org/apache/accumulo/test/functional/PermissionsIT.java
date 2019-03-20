@@ -76,7 +76,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
   @Before
   public void limitToMini() throws Exception {
     Assume.assumeTrue(getClusterType() == ClusterType.MINI);
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       Set<String> users = c.securityOperations().listLocalUsers();
       ClusterUser user = getUser(0);
       if (users.contains(user.getPrincipal())) {
@@ -95,7 +95,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
     ClusterUser testUser = getUser(0), rootUser = getAdminUser();
 
     // verify that the test is being run by root
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       verifyHasOnlyTheseSystemPermissions(c, c.whoami(), SystemPermission.values());
 
       // create the test user
@@ -567,7 +567,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
       passwordToken = (PasswordToken) token;
     }
     loginAs(rootUser);
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.securityOperations().createLocalUser(principal, passwordToken);
       loginAs(testUser);
       try (AccumuloClient test_user_client = Accumulo.newClient().from(c.properties())

@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -56,7 +57,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
   @Test
   public void run() throws Exception {
     String[] tableNames = getUniqueNames(3);
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       for (String table : tableNames) {
         c.tableOperations().create(table);
         c.tableOperations().addConstraint(table, NumericValueConstraint.class.getName());

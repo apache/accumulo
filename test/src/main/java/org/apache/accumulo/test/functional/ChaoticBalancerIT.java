@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -52,7 +53,7 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] names = getUniqueNames(1);
       String tableName = names[0];
       NewTableConfiguration ntc = new NewTableConfiguration();
@@ -62,7 +63,7 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
           .collect(Collectors.toMap(Pair::getFirst, Pair::getSecond)));
       c.tableOperations().create(tableName, ntc);
 
-      VerifyParams params = new VerifyParams(getClientProperties(), tableName, 20_000);
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, 20_000);
       TestIngest.ingest(c, params);
       c.tableOperations().flush(tableName, null, null, true);
       VerifyIngest.verifyIngest(c, params);

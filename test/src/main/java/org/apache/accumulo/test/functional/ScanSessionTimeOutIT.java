@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -63,7 +64,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
 
   @Before
   public void reduceSessionIdle() throws Exception {
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations ops = client.instanceOperations();
       sessionIdle = ops.getSystemConfiguration().get(Property.TSERV_SESSION_MAXIDLE.getKey());
       ops.setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
@@ -85,7 +86,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
   @After
   public void resetSessionIdle() throws Exception {
     if (sessionIdle != null) {
-      try (AccumuloClient client = createAccumuloClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         client.instanceOperations().setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(),
             sessionIdle);
       }
@@ -94,7 +95,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
 

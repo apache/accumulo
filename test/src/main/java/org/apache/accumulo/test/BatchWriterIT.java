@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -35,7 +36,7 @@ public class BatchWriterIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     // call the batchwriter with buffer of size zero
     String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(table);
       BatchWriterConfig config = new BatchWriterConfig();
       config.setMaxMemory(0);

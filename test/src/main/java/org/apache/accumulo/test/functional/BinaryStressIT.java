@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -62,7 +63,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
     if (getClusterType() == ClusterType.MINI) {
       return;
     }
-    try (AccumuloClient client = createAccumuloClient()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> conf = iops.getSystemConfiguration();
       majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
@@ -79,7 +80,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
   @After
   public void resetConfig() throws Exception {
     if (majcDelay != null) {
-      try (AccumuloClient client = createAccumuloClient()) {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         InstanceOperations iops = client.instanceOperations();
         iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
         iops.setProperty(Property.TSERV_MAXMEM.getKey(), maxMem);
@@ -91,7 +92,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
 
   @Test
   public void binaryStressTest() throws Exception {
-    try (AccumuloClient c = createAccumuloClient()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
