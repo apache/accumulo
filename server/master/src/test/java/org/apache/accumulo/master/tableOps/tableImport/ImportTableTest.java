@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.master.Master;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -36,8 +37,7 @@ public class ImportTableTest {
     iti.tableId = TableId.of("5");
 
     // Different volumes with different paths
-    String[] tableDirs = {"hdfs://nn1:8020/apps/accumulo1/tables",
-        "hdfs://nn2:8020/applications/accumulo/tables"};
+    String[] volumes = {"hdfs://nn1:8020/apps/accumulo1", "hdfs://nn2:8020/applications/accumulo"};
     // This needs to be unique WRT the importtable command
     String tabletDir = "/c-00000001";
 
@@ -45,14 +45,14 @@ public class ImportTableTest {
     EasyMock.expect(master.getFileSystem()).andReturn(volumeManager);
     // Choose the 2nd element
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(iti.tableId, null, null);
-    EasyMock.expect(volumeManager.choose(EasyMock.eq(chooserEnv), EasyMock.eq(tableDirs)))
-        .andReturn(tableDirs[1]);
+    EasyMock.expect(volumeManager.choose(EasyMock.eq(chooserEnv), EasyMock.eq(volumes)))
+        .andReturn(volumes[1]);
 
     EasyMock.replay(master, volumeManager);
 
     PopulateMetadataTable pmt = new PopulateMetadataTable(iti);
-    assertEquals(tableDirs[1] + "/" + iti.tableId + "/" + tabletDir,
-        pmt.getClonedTabletDir(master, null, tableDirs, tabletDir));
+    assertEquals(volumes[1] + "/" + ServerConstants.TABLE_DIR + "/" + iti.tableId + "/" + tabletDir,
+        pmt.getClonedTabletDir(master, null, volumes, tabletDir));
 
     EasyMock.verify(master, volumeManager);
   }

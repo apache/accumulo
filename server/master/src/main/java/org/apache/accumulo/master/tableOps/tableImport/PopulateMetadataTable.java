@@ -107,7 +107,7 @@ class PopulateMetadataTable extends MasterRepo {
       // hdfs://localhost:8020/path/to/accumulo/tables/...
       final String bulkDir = tableInfo.importDir;
 
-      final String[] tableDirs = ServerConstants.getTablesDirs(master.getContext());
+      final String[] volumes = ServerConstants.getBaseUris(master.getContext());
 
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
@@ -153,7 +153,7 @@ class PopulateMetadataTable extends MasterRepo {
                   UTF_8);
 
               // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
-              String absolutePath = getClonedTabletDir(master, endRow, tableDirs, tabletDir);
+              String absolutePath = getClonedTabletDir(master, endRow, volumes, tabletDir);
 
               m = new Mutation(metadataRow);
               TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
@@ -171,7 +171,7 @@ class PopulateMetadataTable extends MasterRepo {
                   UTF_8);
 
               // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
-              String absolutePath = getClonedTabletDir(master, endRow, tableDirs, tabletDir);
+              String absolutePath = getClonedTabletDir(master, endRow, volumes, tabletDir);
 
               m = new Mutation(metadataRow);
               TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
@@ -218,15 +218,15 @@ class PopulateMetadataTable extends MasterRepo {
    *
    * @return An absolute, unique path for the imported table
    */
-  protected String getClonedTabletDir(Master master, Text endRow, String[] tableDirs,
+  protected String getClonedTabletDir(Master master, Text endRow, String[] volumes,
       String tabletDir) {
     // We can try to spread out the tablet dirs across all volumes
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(tableInfo.tableId,
         endRow, master.getContext());
-    String tableDir = master.getFileSystem().choose(chooserEnv, tableDirs);
+    String volume = master.getFileSystem().choose(chooserEnv, volumes);
 
     // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
-    return tableDir + "/" + tableInfo.tableId + "/" + tabletDir;
+    return volume + "/" + ServerConstants.TABLE_DIR + "/" + tableInfo.tableId + "/" + tabletDir;
   }
 
   @Override
