@@ -300,6 +300,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
    */
   private static void validateOptions(JobContext context, Class<?> callingClass)
       throws IOException {
+    InputConfigurator.checkJobStored(callingClass, context.getConfiguration());
     try (AccumuloClient client = InputConfigurator.createClient(callingClass,
         context.getConfiguration())) {
       InputConfigurator.validatePermissions(callingClass, context.getConfiguration(), client);

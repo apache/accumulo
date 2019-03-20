@@ -40,7 +40,7 @@ import org.apache.hadoop.util.StringUtils;
 public class ConfiguratorBase {
 
   public enum ClientOpts {
-    CLIENT_PROPS, CLIENT_PROPS_FILE, IS_CONFIGURED
+    CLIENT_PROPS, CLIENT_PROPS_FILE, IS_CONFIGURED, STORE_JOB_CALLED
   }
 
   /**
@@ -191,5 +191,25 @@ public class ConfiguratorBase {
   public static int getVisibilityCacheSize(Configuration conf) {
     return conf.getInt(enumToConfKey(GeneralOpts.VISIBILITY_CACHE_SIZE),
         Constants.DEFAULT_VISIBILITY_CACHE_SIZE);
+  }
+
+  /**
+   * The store method was called.
+   *
+   * @since 2.0.0
+   */
+  public static void setJobStored(Class<?> implementingClass, Configuration conf) {
+    conf.setBoolean(enumToConfKey(implementingClass, ClientOpts.STORE_JOB_CALLED), true);
+  }
+
+  /**
+   * Checks if the job store method was called. If not throw exception.
+   *
+   * @since 2.0.0
+   */
+  public static void checkJobStored(Class<?> implementingClass, Configuration conf) {
+    if (!conf.getBoolean(enumToConfKey(implementingClass, ClientOpts.STORE_JOB_CALLED), false)) {
+      throw new IllegalStateException("Bad configuration: the store method was not called.");
+    }
   }
 }

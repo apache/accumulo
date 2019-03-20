@@ -94,6 +94,7 @@ public class OutputFormatBuilderImpl<T>
       OutputConfigurator.setDefaultTableName(callingClass, conf, defaultTableName.get());
     OutputConfigurator.setCreateTables(callingClass, conf, createTables);
     OutputConfigurator.setSimulationMode(callingClass, conf, simulationMode);
+    OutputConfigurator.setJobStored(callingClass, conf);
   }
 
   private void store(JobConf jobConf) {
