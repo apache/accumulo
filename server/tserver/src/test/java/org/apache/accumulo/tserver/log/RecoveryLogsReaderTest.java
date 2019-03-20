@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.log.RecoveryLogReader.SortCheckIterator;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
@@ -175,6 +176,28 @@ public class RecoveryLogsReaderTest {
     while (iter.hasNext()) {
       iter.next();
     }
+  }
+
+  /**
+   * Test a failed marker doesn't cause issues. See Github issue
+   * https://github.com/apache/accumulo/issues/961
+   */
+  @Test
+  public void testFailed() throws Exception {
+    Path manyMaps = new Path("file://" + root.getRoot().getAbsolutePath() + "/manyMaps");
+    fs.create(new Path(manyMaps, SortedLogState.FAILED.getMarker())).close();
+
+    RecoveryLogReader reader = new RecoveryLogReader(fs, manyMaps);
+    IntWritable key = new IntWritable();
+    BytesWritable value = new BytesWritable();
+
+    for (int i = 0; i < 1000; i++) {
+      if (i == 10)
+        continue;
+      assertTrue(reader.next(key, value));
+      assertEquals(i, key.get());
+    }
+    reader.close();
   }
 
 }
