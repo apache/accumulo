@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -176,7 +177,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
         if (classLoaderContext != null) {
           scanner.setClassLoaderContext(classLoaderContext);
         }
-      } catch (Exception e) {
+      } catch (TableNotFoundException e) {
         e.printStackTrace();
         throw new IOException(e);
       }
@@ -219,7 +220,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
         }
 
         setupIterators(attempt, scanner, split);
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         throw new IOException(e);
       }
 
@@ -387,7 +388,8 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
               tl.invalidateCache();
             }
           }
-        } catch (Exception e) {
+        } catch (TableOfflineException | TableNotFoundException | AccumuloException
+            | AccumuloSecurityException e) {
           throw new IOException(e);
         }
 

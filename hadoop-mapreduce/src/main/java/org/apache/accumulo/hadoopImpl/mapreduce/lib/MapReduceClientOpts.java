@@ -16,11 +16,14 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
+import java.io.IOException;
 import java.util.Properties;
 
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -78,7 +81,7 @@ public class MapReduceClientOpts extends ClientOpts {
           props.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), newPrincipal);
           ClientProperty.setAuthenticationToken(props, token);
         }
-      } catch (Exception e) {
+      } catch (IOException | AccumuloException | AccumuloSecurityException e) {
         final String msg = "Failed to acquire DelegationToken for use with MapReduce";
         log.error(msg, e);
         throw new RuntimeException(msg, e);
