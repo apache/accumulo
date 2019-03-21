@@ -326,6 +326,10 @@ public enum Property {
   MASTER_WALOG_CLOSER_IMPLEMETATION("master.walog.closer.implementation",
       "org.apache.accumulo.server.master.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechansim to steal write access to a file"),
+  MASTER_FATE_METRICS_ENABLED("master.fate.metrics.enabled", "false", PropertyType.BOOLEAN,
+      "Enable reporting of FATE metrics in JMX (and logging with Hadoop Metrics2"),
+  MASTER_FATE_METRICS_MIN_UPDATE_INTERVAL("master.fate.metrics.min.update.interval", "60s",
+      PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval"),
   MASTER_FATE_THREADPOOL_SIZE("master.fate.threadpool.size", "4", PropertyType.COUNT,
       "The number of threads used to run FAult-Tolerant Executions. These are "
           + "primarily table operations like merge."),

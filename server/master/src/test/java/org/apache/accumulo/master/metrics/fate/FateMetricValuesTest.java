@@ -25,9 +25,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FateMetricsTest {
+public class FateMetricValuesTest {
 
-  private final static Logger log = LoggerFactory.getLogger(FateMetricsTest.class);
+  private final static Logger log = LoggerFactory.getLogger(FateMetricValuesTest.class);
 
   @Test
   public void defaultValueTest() {

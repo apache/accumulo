@@ -29,7 +29,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Basic implementation of fate metrics:
+ * Basic implementation of fate metrics that publish to JMX when legacy metrics enabled. For logging
+ * in addition to JMX, use the hadoop metrics2 implementation. The measurement type and values
+ * provided are:
  * <ul>
  * <li>gauge - current count of FATE transactions in progress</li>
  * <li>gauge - last zookeeper id that modified FATE root path to provide estimate of fate
@@ -49,9 +51,9 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
   private static final Logger log = LoggerFactory.getLogger(FateMetrics.class);
 
   // limit calls to update fate counters to guard against hammering zookeeper.
-  private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(60);
+  private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(10);
 
-  private volatile long minimumRefreshDelay = DEFAULT_MIN_REFRESH_DELAY;
+  private volatile long minimumRefreshDelay;
 
   private final AtomicReference<FateMetricValues> metricValues;
 
@@ -63,9 +65,11 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
 
   private volatile boolean enabled = false;
 
-  public FateMetrics(final Instance instance) {
+  public FateMetrics(final Instance instance, final long minimumRefreshDelay) {
 
     this.instance = instance;
+
+    this.minimumRefreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
     // instance = master.getInstance();
 

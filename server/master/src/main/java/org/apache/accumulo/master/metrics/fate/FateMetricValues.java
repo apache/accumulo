@@ -71,15 +71,14 @@ class FateMetricValues {
    *
    * @param instance
    *          Accumulo client instance.
-   * @return
+   * @return populated metrics values
    */
-  public static FateMetricValues updateFromZookeeper(final Instance instance) {
+  static FateMetricValues updateFromZookeeper(final Instance instance) {
 
     FateMetricValues.Builder builder = new FateMetricValues.Builder();
 
-    updateFromZookeeper(instance, builder);
+    return updateFromZookeeper(instance, builder);
 
-    return builder.build();
   }
 
   /**
@@ -91,16 +90,14 @@ class FateMetricValues {
    *          Accumulo client instance
    * @param currentValues
    *          the current fate metrics used as default
-   * @return populated metrics values/
+   * @return populated metrics values
    */
-  public static FateMetricValues updateFromZookeeper(final Instance instance,
+  static FateMetricValues updateFromZookeeper(final Instance instance,
       final FateMetricValues currentValues) {
 
     FateMetricValues.Builder builder = FateMetricValues.Builder.copy(currentValues);
 
-    updateFromZookeeper(instance, builder);
-
-    return builder.build();
+    return updateFromZookeeper(instance, builder);
   }
 
   /**
@@ -110,7 +107,7 @@ class FateMetricValues {
    * @param instance
    *          Accumulo client instance.
    * @param builder
-   *          builder populated with defaults.
+   *          value builder, populated with defaults.
    * @return an immutable instance of FateMetricsValues.
    */
   private static FateMetricValues updateFromZookeeper(final Instance instance,
@@ -147,13 +144,9 @@ class FateMetricValues {
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("FateMetricValues{");
-    sb.append("updateTime=").append(updateTime);
-    sb.append(", currentFateOps=").append(currentFateOps);
-    sb.append(", zkFateChildOpsTotal=").append(zkFateChildOpsTotal);
-    sb.append(", zkConnectionErrors=").append(zkConnectionErrors);
-    sb.append('}');
-    return sb.toString();
+    return "FateMetricValues{" + "updateTime=" + updateTime + ", currentFateOps=" + currentFateOps
+        + ", zkFateChildOpsTotal=" + zkFateChildOpsTotal + ", zkConnectionErrors="
+        + zkConnectionErrors + '}';
   }
 
   static class Builder {
@@ -174,11 +167,9 @@ class FateMetricValues {
         return new Builder();
       }
 
-      Builder builder = new Builder().withCurrentFateOps(prevValues.getCurrentFateOps())
+      return new Builder().withCurrentFateOps(prevValues.getCurrentFateOps())
           .withZkFateChildOpsTotal(prevValues.getZkFateChildOpsTotal())
           .withZkConnectionErrors(prevValues.getZkConnectionErrors());
-
-      return builder;
     }
 
     Builder withCurrentFateOps(final long value) {

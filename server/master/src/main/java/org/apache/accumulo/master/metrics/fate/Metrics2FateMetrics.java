@@ -38,9 +38,9 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
   private static final Logger log = LoggerFactory.getLogger(Metrics2FateMetrics.class);
 
   // limit calls to update fate counters to guard against hammering zookeeper.
-  private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(60);
+  private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(10);
 
-  private volatile long minimumRefreshDelay = DEFAULT_MIN_REFRESH_DELAY;
+  private volatile long minimumRefreshDelay;
 
   public static final String NAME = MASTER_NAME + ",sub=Fate";
   public static final String DESCRIPTION = "Fate Metrics";
@@ -61,9 +61,12 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
 
   private volatile long lastUpdate = 0;
 
-  public Metrics2FateMetrics(final Instance instance, MetricsSystem metricsSystem) {
+  public Metrics2FateMetrics(final Instance instance, MetricsSystem metricsSystem,
+      final long minimumRefreshDelay) {
 
     this.instance = instance;
+
+    this.minimumRefreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
     metricValues = new AtomicReference<>(FateMetricValues.updateFromZookeeper(instance, null));
 

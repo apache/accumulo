@@ -30,13 +30,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *
+ * Provide master metrics configuration. Currently this is replication and FATE metrics. Metrics can
+ * be configured using hadoop metrics2 or via the legacy accumulo-metrics.xml file. Legacy metrics
+ * must be enabled via configuration file (default is hadoop metrics2). Fate metrics must be enabled
+ * via configuration file (default is disabled)
  */
 public class MasterMetricsFactory {
 
   private final static Logger log = LoggerFactory.getLogger(MasterMetricsFactory.class);
 
   private final boolean useOldMetrics;
+
+  private final boolean enableFateMetrics;
+  private final long fateMinUpdateInterval;
+
   private final MetricsSystem metricsSystem;
   private final Master master;
 
@@ -44,6 +51,11 @@ public class MasterMetricsFactory {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
 
     useOldMetrics = conf.getBoolean(Property.GENERAL_LEGACY_METRICS);
+
+    enableFateMetrics = conf.getBoolean(Property.MASTER_FATE_METRICS_ENABLED);
+
+    fateMinUpdateInterval = conf.getTimeInMillis(Property.MASTER_FATE_METRICS_MIN_UPDATE_INTERVAL);
+
     this.master = master;
 
     if (useOldMetrics) {
@@ -72,12 +84,14 @@ public class MasterMetricsFactory {
 
     try {
 
-      Metrics fateMetrics = createFateMetrics();
+      if (enableFateMetrics) {
 
-      fateMetrics.register();
+        Metrics fateMetrics = createFateMetrics();
 
-      log.info("Registered FATE metrics module");
+        fateMetrics.register();
 
+        log.info("Registered FATE metrics module");
+      }
     } catch (Exception ex) {
       failureCount++;
       log.error("Failed to register fate metrics", ex);
@@ -96,10 +110,10 @@ public class MasterMetricsFactory {
 
   private Metrics createFateMetrics() {
     if (useOldMetrics) {
-      return new FateMetrics(master.getInstance());
+      return new FateMetrics(master.getInstance(), fateMinUpdateInterval);
     }
 
-    return new Metrics2FateMetrics(master.getInstance(), metricsSystem);
+    return new Metrics2FateMetrics(master.getInstance(), metricsSystem, fateMinUpdateInterval);
   }
 
 }
