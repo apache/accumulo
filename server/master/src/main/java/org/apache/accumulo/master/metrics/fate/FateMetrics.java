@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  * <li>counter - the number of zookeeper connection errors since process started.</li>
  * </ul>
  * Implementation notes:
- * </p>
+ * <p>
  * The fate operation estimate is based on zookeeper Stat structure and the property of pzxid. From
  * the zookeeper developer's guide: pzxid is "The zxid of the change that last modified children of
  * this znode." The pzxid should then change each time a FATE transaction is created or deleted -
