@@ -40,10 +40,6 @@ public enum SortedLogState {
     return FINISHED.getMarker().equals(fileName);
   }
 
-  public static boolean isFailed(String fileName) {
-    return FAILED.getMarker().equals(fileName);
-  }
-
   public static Path getFinishedMarkerPath(String rootPath) {
     return new Path(rootPath, FINISHED.getMarker());
   }
