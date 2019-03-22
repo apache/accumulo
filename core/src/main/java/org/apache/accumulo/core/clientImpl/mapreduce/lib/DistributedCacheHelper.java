@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.net.URI;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 
 /**
  * @since 1.6.0
@@ -30,6 +29,7 @@ public class DistributedCacheHelper {
   /**
    * @since 1.6.0
    */
+  @SuppressWarnings("deprecation")
   public static void addCacheFile(URI uri, Configuration conf) {
     org.apache.hadoop.filecache.DistributedCache.addCacheFile(uri, conf);
   }
@@ -37,14 +37,9 @@ public class DistributedCacheHelper {
   /**
    * @since 1.6.0
    */
+  @SuppressWarnings("deprecation")
   public static URI[] getCacheFiles(Configuration conf) throws IOException {
     return org.apache.hadoop.filecache.DistributedCache.getCacheFiles(conf);
   }
 
-  /**
-   * @since 1.6.0
-   */
-  public static Path[] getLocalCacheFiles(Configuration conf) throws IOException {
-    return org.apache.hadoop.filecache.DistributedCache.getLocalCacheFiles(conf);
-  }
 }
