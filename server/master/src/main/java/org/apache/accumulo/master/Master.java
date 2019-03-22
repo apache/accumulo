@@ -126,7 +126,6 @@ import org.apache.accumulo.server.master.state.TabletServerState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
-import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -251,8 +250,9 @@ public class Master
       /* STOP */                    {O, O, O, O, O, X, X}};
   //@formatter:on
   synchronized void setMasterState(MasterState newState) {
-    if (state.equals(newState))
+    if (state.equals(newState)) {
       return;
+    }
     if (!transitionOK[state.ordinal()][newState.ordinal()]) {
       log.error("Programmer error: master should not transition from {} to {}", state, newState);
     }
@@ -262,14 +262,10 @@ public class Master
     if (newState == MasterState.STOP) {
       // Give the server a little time before shutdown so the client
       // thread requesting the stop can return
-      SimpleTimer.getInstance(getConfiguration()).schedule(new Runnable() {
-        @Override
-        public void run() {
-          // This frees the main thread and will cause the master to exit
-          clientService.stop();
-          Master.this.nextEvent.event("stopped event loop");
-        }
-
+      SimpleTimer.getInstance(getConfiguration()).schedule(() -> {
+        // This frees the main thread and will cause the master to exit
+        clientService.stop();
+        Master.this.nextEvent.event("stopped event loop");
       }, 100L, 1000L);
     }
 
@@ -314,8 +310,9 @@ public class Master
         }
       }
 
-      if (location == null)
+      if (location == null) {
         throw new IllegalStateException("Failed to find root tablet");
+      }
 
       log.info("Upgrade setting root table location in zookeeper {}", location);
       zoo.putPersistentData(dirZPath, location.toString().getBytes(), NodeExistsPolicy.FAIL);
@@ -412,9 +409,10 @@ public class Master
           String ns = namespace.getFirst();
           NamespaceId id = namespace.getSecond();
           log.debug("Upgrade creating namespace \"{}\" (ID: {})", ns, id);
-          if (!Namespaces.exists(context, id))
+          if (!Namespaces.exists(context, id)) {
             TableManager.prepareNewNamespaceState(zoo, getInstanceID(), id, ns,
                 NodeExistsPolicy.SKIP);
+          }
         }
 
         // create replication table in zk
@@ -647,9 +645,10 @@ public class Master
 
   public void mustBeOnline(final TableId tableId) throws ThriftTableOperationException {
     Tables.clearCache(context);
-    if (!Tables.getTableState(context, tableId).equals(TableState.ONLINE))
+    if (!Tables.getTableState(context, tableId).equals(TableState.ONLINE)) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.MERGE,
           TableOperationExceptionType.OFFLINE, "table is not online");
+    }
   }
 
   public ServerContext getContext() {
@@ -737,8 +736,9 @@ public class Master
     synchronized (mergeLock) {
       try {
         String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
-        if (!context.getZooReaderWriter().exists(path))
+        if (!context.getZooReaderWriter().exists(path)) {
           return new MergeInfo();
+        }
         byte[] data = context.getZooReaderWriter().getData(path, new Stat());
         DataInputBuffer in = new DataInputBuffer();
         in.reset(data, data.length);
@@ -799,7 +799,7 @@ public class Master
   }
 
   MasterGoalState getMasterGoalState() {
-    while (true)
+    while (true) {
       try {
         byte[] data = context.getZooReaderWriter()
             .getData(getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, null);
@@ -808,12 +808,14 @@ public class Master
         log.error("Problem getting real goal state from zookeeper: ", e);
         sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
+    }
   }
 
   public boolean hasCycled(long time) {
     for (TabletGroupWatcher watcher : watchers) {
-      if (watcher.stats.lastScanFinished() < time)
+      if (watcher.stats.lastScanFinished() < time) {
         return false;
+      }
     }
 
     return true;
@@ -825,7 +827,7 @@ public class Master
     }
   }
 
-  static enum TabletGoalState {
+  enum TabletGoalState {
     HOSTED(TUnloadTabletGoal.UNKNOWN),
     UNASSIGNED(TUnloadTabletGoal.UNASSIGNED),
     DELETED(TUnloadTabletGoal.DELETED),
@@ -850,12 +852,14 @@ public class Master
       case HAVE_LOCK: // fall-through intended
       case INITIAL: // fall-through intended
       case SAFE_MODE:
-        if (tls.extent.isMeta())
+        if (tls.extent.isMeta()) {
           return TabletGoalState.HOSTED;
+        }
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_METADATA_TABLETS:
-        if (tls.extent.isRootTablet())
+        if (tls.extent.isRootTablet()) {
           return TabletGoalState.HOSTED;
+        }
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_ROOT_TABLET:
         return TabletGoalState.UNASSIGNED;
@@ -868,8 +872,9 @@ public class Master
 
   TabletGoalState getTableGoalState(KeyExtent extent) {
     TableState tableState = context.getTableManager().getTableState(extent.getTableId());
-    if (tableState == null)
+    if (tableState == null) {
       return TabletGoalState.DELETED;
+    }
     switch (tableState) {
       case DELETING:
         return TabletGoalState.DELETED;
@@ -902,11 +907,13 @@ public class Master
               return TabletGoalState.HOSTED;
             case WAITING_FOR_CHOPPED:
               if (tls.getState(tserverSet.getCurrentServers()).equals(TabletState.HOSTED)) {
-                if (tls.chopped)
+                if (tls.chopped) {
                   return TabletGoalState.UNASSIGNED;
+                }
               } else {
-                if (tls.chopped && tls.walogs.isEmpty())
+                if (tls.chopped && tls.walogs.isEmpty()) {
                   return TabletGoalState.UNASSIGNED;
+                }
               }
 
               return TabletGoalState.HOSTED;
@@ -1035,16 +1042,18 @@ public class Master
                   int count = nonMetaDataTabletsAssignedOrHosted();
                   log.debug(
                       String.format("There are %d non-metadata tablets assigned or hosted", count));
-                  if (count == 0 && goodStats())
+                  if (count == 0 && goodStats()) {
                     setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
+                  }
                 }
                   break;
                 case UNLOAD_METADATA_TABLETS: {
                   int count = assignedOrHosted(MetadataTable.ID);
                   log.debug(
                       String.format("There are %d metadata tablets assigned or hosted", count));
-                  if (count == 0 && goodStats())
+                  if (count == 0 && goodStats()) {
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
+                  }
                 }
                   break;
                 case UNLOAD_ROOT_TABLET:
@@ -1054,8 +1063,9 @@ public class Master
                     setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                   }
                   int root_count = assignedOrHosted(RootTable.ID);
-                  if (root_count > 0 && goodStats())
+                  if (root_count > 0 && goodStats()) {
                     log.debug("The root tablet is still assigned or hosted");
+                  }
                   if (count + root_count == 0 && goodStats()) {
                     Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
                     log.debug("stopping {} tablet servers", currentServers.size());
@@ -1069,8 +1079,9 @@ public class Master
                         tserverSet.remove(server);
                       }
                     }
-                    if (currentServers.size() == 0)
+                    if (currentServers.size() == 0) {
                       setMasterState(MasterState.STOP);
+                    }
                   }
                   break;
                 default:
@@ -1137,8 +1148,9 @@ public class Master
         log.warn("Tablet server {} exceeded maximum hold time: attempting to kill it", instance);
         try {
           TServerConnection connection = tserverSet.getConnection(instance);
-          if (connection != null)
+          if (connection != null) {
             connection.fastHalt(masterLock);
+          }
         } catch (TException e) {
           log.error("{}", e.getMessage(), e);
         }
@@ -1189,39 +1201,37 @@ public class Master
         // unresponsive tservers.
         sleepUninterruptibly(Math.max(1, rpcTimeout / 120_000), TimeUnit.MILLISECONDS);
       }
-      tp.submit(new Runnable() {
-        @Override
-        public void run() {
+      tp.submit(() -> {
+        try {
+          Thread t = Thread.currentThread();
+          String oldName = t.getName();
           try {
-            Thread t = Thread.currentThread();
-            String oldName = t.getName();
+            t.setName("Getting status from " + server);
+            TServerConnection connection1 = tserverSet.getConnection(server);
+            if (connection1 == null) {
+              throw new IOException("No connection to " + server);
+            }
+            TabletServerStatus status = connection1.getTableMap(false);
+            result.put(server, status);
+          } finally {
+            t.setName(oldName);
+          }
+        } catch (Exception ex) {
+          log.error("unable to get tablet server status {} {}", server, ex.toString());
+          log.debug("unable to get tablet server status {}", server, ex);
+          if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
+            log.warn("attempting to stop {}", server);
             try {
-              t.setName("Getting status from " + server);
-              TServerConnection connection = tserverSet.getConnection(server);
-              if (connection == null)
-                throw new IOException("No connection to " + server);
-              TabletServerStatus status = connection.getTableMap(false);
-              result.put(server, status);
-            } finally {
-              t.setName(oldName);
-            }
-          } catch (Exception ex) {
-            log.error("unable to get tablet server status {} {}", server, ex.toString());
-            log.debug("unable to get tablet server status {}", server, ex);
-            if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
-              log.warn("attempting to stop {}", server);
-              try {
-                TServerConnection connection = tserverSet.getConnection(server);
-                if (connection != null) {
-                  connection.halt(masterLock);
-                }
-              } catch (TTransportException e) {
-                // ignore: it's probably down
-              } catch (Exception e) {
-                log.info("error talking to troublesome tablet server", e);
+              TServerConnection connection2 = tserverSet.getConnection(server);
+              if (connection2 != null) {
+                connection2.halt(masterLock);
               }
-              badServers.remove(server);
+            } catch (TTransportException e1) {
+              // ignore: it's probably down
+            } catch (Exception e2) {
+              log.info("error talking to troublesome tablet server", e2);
             }
+            badServers.remove(server);
           }
         }
       });
@@ -1347,13 +1357,7 @@ public class Master
       fate = new Fate<>(this, store);
       fate.startTransactionRunners(threads);
 
-      SimpleTimer.getInstance(getConfiguration()).schedule(new Runnable() {
-
-        @Override
-        public void run() {
-          store.ageOff();
-        }
-      }, 63000, 63000);
+      SimpleTimer.getInstance(getConfiguration()).schedule(() -> store.ageOff(), 63000, 63000);
     } catch (KeeperException | InterruptedException e) {
       throw new IOException(e);
     }
@@ -1416,10 +1420,12 @@ public class Master
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     statusThread.join(remaining(deadline));
-    if (replicationWorkAssigner != null)
+    if (replicationWorkAssigner != null) {
       replicationWorkAssigner.join(remaining(deadline));
-    if (replicationWorkDriver != null)
+    }
+    if (replicationWorkDriver != null) {
       replicationWorkDriver.join(remaining(deadline));
+    }
     TServerUtils.stopTServer(replServer.get());
 
     // Signal that we want it to stop, and wait for it to do so.
@@ -1466,13 +1472,15 @@ public class Master
         getZooKeeperRoot() + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
         replAddress.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
 
-    // Register replication metrics
+    // Register metrics modules
     MasterMetricsFactory factory = new MasterMetricsFactory(getConfiguration(), this);
-    Metrics replicationMetrics = factory.createReplicationMetrics();
-    try {
-      replicationMetrics.register();
-    } catch (Exception e) {
-      log.error("Failed to register replication metrics", e);
+
+    int failureCount = factory.register();
+
+    if (failureCount > 0) {
+      log.info("Failed to register {} metrics modules", failureCount);
+    } else {
+      log.info("All metrics modules registered");
     }
     return replAddress.server;
   }
@@ -1498,12 +1506,7 @@ public class Master
     @Override
     public void unableToMonitorLockNode(final Throwable e) {
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-      Halt.halt(-1, new Runnable() {
-        @Override
-        public void run() {
-          log.error("FATAL: No longer able to monitor master lock node", e);
-        }
-      });
+      Halt.halt(-1, () -> log.error("FATAL: No longer able to monitor master lock node", e));
 
     }
 
@@ -1600,15 +1603,18 @@ public class Master
           getZooKeeperRoot() + Constants.ZDEADTSERVERS);
       if (added.size() > 0) {
         log.info("New servers: {}", added);
-        for (TServerInstance up : added)
+        for (TServerInstance up : added) {
           obit.delete(up.hostPort());
+        }
       }
       for (TServerInstance dead : deleted) {
         String cause = "unexpected failure";
-        if (serversToShutdown.contains(dead))
+        if (serversToShutdown.contains(dead)) {
           cause = "clean shutdown"; // maybe an incorrect assumption
-        if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP))
+        }
+        if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
           obit.post(dead.hostPort(), cause);
+        }
       }
 
       Set<TServerInstance> unexpected = new HashSet<>(deleted);
@@ -1685,10 +1691,12 @@ public class Master
   public Set<TableId> onlineTables() {
     Set<TableId> result = new HashSet<>();
     if (getMasterState() != MasterState.NORMAL) {
-      if (getMasterState() != MasterState.UNLOAD_METADATA_TABLETS)
+      if (getMasterState() != MasterState.UNLOAD_METADATA_TABLETS) {
         result.add(MetadataTable.ID);
-      if (getMasterState() != MasterState.UNLOAD_ROOT_TABLET)
+      }
+      if (getMasterState() != MasterState.UNLOAD_ROOT_TABLET) {
         result.add(RootTable.ID);
+      }
       return result;
     }
     TableManager manager = context.getTableManager();
@@ -1696,8 +1704,9 @@ public class Master
     for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
       TableState state = manager.getTableState(tableId);
       if (state != null) {
-        if (state == TableState.ONLINE)
+        if (state == TableState.ONLINE) {
           result.add(tableId);
+        }
       }
     }
     return result;
@@ -1788,8 +1797,9 @@ public class Master
     result.unassignedTablets = displayUnassigned();
     result.serversShuttingDown = new HashSet<>();
     synchronized (serversToShutdown) {
-      for (TServerInstance server : serversToShutdown)
+      for (TServerInstance server : serversToShutdown) {
         result.serversShuttingDown.add(server.hostPort());
+      }
     }
     DeadServerList obit = new DeadServerList(context, getZooKeeperRoot() + Constants.ZDEADTSERVERS);
     result.deadTabletServers = obit.getList();
