@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,15 +58,15 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
 
   private volatile long lastUpdate = 0;
 
-  private final Instance instance;
+  private final String instanceId;
 
   private ObjectName objectName = null;
 
   private volatile boolean enabled = false;
 
-  public FateMetrics(final Instance instance, final long minimumRefreshDelay) {
+  public FateMetrics(final String instanceId, final long minimumRefreshDelay) {
 
-    this.instance = instance;
+    this.instanceId = instanceId;
 
     this.minimumRefreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
@@ -111,7 +110,7 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
       return current;
     }
 
-    FateMetricValues updates = FateMetricValues.updateFromZookeeper(instance, current);
+    FateMetricValues updates = FateMetricValues.updateFromZookeeper(instanceId, current);
 
     metricValues.set(updates);
 

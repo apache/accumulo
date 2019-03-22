@@ -19,7 +19,6 @@ package org.apache.accumulo.master.metrics.fate;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ZooStore;
@@ -68,28 +67,28 @@ class FateMetricValues {
    * preserves previous values in case an error or exception prevents the values from being
    * completely populated, this form may be more suitable for metric counters.
    *
-   * @param instance
-   *          Accumulo client instance
+   * @param instanceId
+   *          Accumulo instanceId
    * @param currentValues
    *          the current fate metrics used as default
    * @return populated metrics values
    */
-  static FateMetricValues updateFromZookeeper(final Instance instance,
+  static FateMetricValues updateFromZookeeper(final String instanceId,
       final FateMetricValues currentValues) {
-    return updateFromZookeeper(instance, FateMetricValues.builder().copy(currentValues));
+    return updateFromZookeeper(instanceId, FateMetricValues.builder().copy(currentValues));
   }
 
   /**
    * Update the FATE metric values from zookeeepr - the builder is expected to have the desired
    * default values (either 0, or the previous value).
    *
-   * @param instance
-   *          Accumulo client instance.
+   * @param instanceId
+   *          Accumulo instanceId
    * @param builder
    *          value builder, populated with defaults.
    * @return an immutable instance of FateMetricsValues.
    */
-  private static FateMetricValues updateFromZookeeper(final Instance instance,
+  private static FateMetricValues updateFromZookeeper(final String instanceId,
       final FateMetricValues.Builder builder) {
 
     AdminUtil<String> admin = new AdminUtil<>(false);
@@ -97,12 +96,12 @@ class FateMetricValues {
     try {
 
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zoo);
+      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zoo);
 
       List<AdminUtil.TransactionStatus> currFates = admin.getTransactionStatus(zs, null, null);
       builder.withCurrentFateOps(currFates.size());
 
-      Stat node = zoo.getZooKeeper().exists(ZooUtil.getRoot(instance) + Constants.ZFATE, false);
+      Stat node = zoo.getZooKeeper().exists(ZooUtil.getRoot(instanceId) + Constants.ZFATE, false);
       builder.withZkFateChildOpsTotal(node.getCversion());
 
       if (log.isTraceEnabled()) {

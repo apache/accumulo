@@ -19,7 +19,6 @@ package org.apache.accumulo.master.metrics.fate;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.hadoop.metrics2.MetricsCollector;
@@ -50,7 +49,7 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
   public static final String TOTAL_FATE_OPS = "totalFateOps";
   public static final String TOTAL_ZK_CONN_ERRORS = "totalZkConnErrors";
 
-  private final Instance instance;
+  private final String instanceId;
   private final MetricsSystem metricsSystem;
   private final MetricsRegistry registry;
   private final MutableGaugeLong currentFateOps;
@@ -61,14 +60,14 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
 
   private volatile long lastUpdate = 0;
 
-  public Metrics2FateMetrics(final Instance instance, MetricsSystem metricsSystem,
+  public Metrics2FateMetrics(final String instanceId, MetricsSystem metricsSystem,
       final long minimumRefreshDelay) {
 
-    this.instance = instance;
+    this.instanceId = instanceId;
 
     this.minimumRefreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
-    metricValues = new AtomicReference<>(FateMetricValues.updateFromZookeeper(instance, null));
+    metricValues = new AtomicReference<>(FateMetricValues.updateFromZookeeper(instanceId, null));
 
     this.metricsSystem = metricsSystem;
     this.registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
@@ -82,7 +81,7 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
   }
 
   @Override
-  public void register() throws Exception {
+  public void register() {
     metricsSystem.register(NAME, DESCRIPTION, this);
   }
 
@@ -107,7 +106,7 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
 
     if ((lastUpdate + minimumRefreshDelay) < now) {
 
-      fateMetrics = FateMetricValues.updateFromZookeeper(instance, fateMetrics);
+      fateMetrics = FateMetricValues.updateFromZookeeper(instanceId, fateMetrics);
 
       metricValues.set(fateMetrics);
 

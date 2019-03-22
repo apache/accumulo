@@ -109,11 +109,12 @@ public class MasterMetricsFactory {
   }
 
   private Metrics createFateMetrics() {
+    String id = master.getInstance().getInstanceID();
     if (useOldMetrics) {
-      return new FateMetrics(master.getInstance(), fateMinUpdateInterval);
+      return new FateMetrics(id, fateMinUpdateInterval);
     }
 
-    return new Metrics2FateMetrics(master.getInstance(), metricsSystem, fateMinUpdateInterval);
+    return new Metrics2FateMetrics(id, metricsSystem, fateMinUpdateInterval);
   }
 
 }
