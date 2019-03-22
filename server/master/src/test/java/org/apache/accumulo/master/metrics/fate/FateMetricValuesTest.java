@@ -19,12 +19,8 @@ package org.apache.accumulo.master.metrics.fate;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class FateMetricValuesTest {
-
-  private final static Logger log = LoggerFactory.getLogger(FateMetricValuesTest.class);
 
   @Test
   public void defaultValueTest() {
