@@ -228,7 +228,7 @@ public class AccumuloInputFormatTest {
   }
 
   @Test
-  public void testJobStoreException() throws Exception{
+  public void testJobStoreException() throws Exception {
     // test exception thrown when not calling store
     AccumuloInputFormat.configure().clientProperties(clientProperties).table("table")
         .auths(Authorizations.EMPTY);

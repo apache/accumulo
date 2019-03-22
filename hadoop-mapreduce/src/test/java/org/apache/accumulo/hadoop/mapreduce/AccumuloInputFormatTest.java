@@ -240,7 +240,7 @@ public class AccumuloInputFormatTest {
   }
 
   @Test
-  public void testJobStoreException() throws Exception{
+  public void testJobStoreException() throws Exception {
     Job job = Job.getInstance();
 
     // test exception thrown when not calling store
