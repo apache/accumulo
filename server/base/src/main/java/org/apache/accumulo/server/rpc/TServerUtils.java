@@ -51,6 +51,7 @@ import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
+import org.apache.thrift.server.TThreadedSelectorServer;
 import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TSSLTransportFactory;
 import org.apache.thrift.transport.TSaslServerTransport;
@@ -186,7 +187,43 @@ public class TServerUtils {
   }
 
   /**
-   * Create a NonBlockingServer with a custom thread pool that can dynamically resize itself.
+   * Create a non blocking server with multiple select threads and a custom thread pool that can
+   * dynamically resize itself.
+   */
+  public static ServerAddress createThreadedSelectorServer(HostAndPort address,
+      TProcessor processor, TProtocolFactory protocolFactory, final String serverName,
+      final int numThreads, final int numSTThreads, long timeBetweenThreadChecks,
+      long maxMessageSize) throws TTransportException {
+
+    final TNonblockingServerSocket transport = new TNonblockingServerSocket(
+        new InetSocketAddress(address.getHost(), address.getPort()));
+
+    TThreadedSelectorServer.Args options = new TThreadedSelectorServer.Args(transport);
+
+    options.selectorThreads = Math.max(2, Runtime.getRuntime().availableProcessors() / 4);
+    log.info("selectorThreads : " + options.selectorThreads);
+    options.protocolFactory(protocolFactory);
+    options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));
+    options.maxReadBufferBytes = maxMessageSize;
+    options.stopTimeoutVal(5);
+
+    // Create our own very special thread pool.
+    ThreadPoolExecutor pool = createSelfResizingThreadPool(serverName, numThreads, numSTThreads,
+        timeBetweenThreadChecks);
+
+    options.executorService(pool);
+    options.processorFactory(new TProcessorFactory(processor));
+
+    if (address.getPort() == 0) {
+      address = HostAndPort.fromParts(address.getHost(), transport.getPort());
+    }
+
+    return new ServerAddress(new CustomThreadedSelectorServer(options), address);
+  }
+
+  /**
+   * Create a NonBlockingServer with a single select threads and a custom thread pool that can
+   * dynamically resize itself.
    */
   public static ServerAddress createNonBlockingServer(HostAndPort address, TProcessor processor,
       TProtocolFactory protocolFactory, final String serverName, final int numThreads,
@@ -570,12 +607,19 @@ public class TServerUtils {
             serverAddress = createBlockingServer(address, processor, protocolFactory,
                 maxMessageSize, serverName, numThreads, numSTThreads, timeBetweenThreadChecks);
             break;
-          case CUSTOM_HS_HA: // Intentional passthrough -- Our custom wrapper around HsHa is the
-                             // default
-          default:
-            log.debug("Instantiating default, unsecure custom half-async Thrift server");
+          case CUSTOM_HS_HA:
+            log.debug(
+                "Instantiating default, unsecure custom half-async Threaded selector Thrift server");
             serverAddress = createNonBlockingServer(address, processor, protocolFactory, serverName,
                 numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
+            break;
+          case THREADED_SELECTOR: // Intentional passthrough -- Our custom wrapper around threaded
+                                  // selector is the default
+          default:
+            log.debug("Instantiating default, unsecure Threaded selector Thrift server");
+            serverAddress = createThreadedSelectorServer(address, processor, protocolFactory,
+                serverName, numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
+            break;
         }
         break;
       } catch (TTransportException e) {
