@@ -64,24 +64,6 @@ class FateMetricValues {
   }
 
   /**
-   * Get the current FATE metrics values, initial values are set to 0. In the event of errors, the
-   * values may not be fully populated and the default values (0) will be returned - this form
-   * should be avoided for metric counters that expect values will be monotonically increasing - use
-   * with gauges instead.
-   *
-   * @param instance
-   *          Accumulo client instance.
-   * @return populated metrics values
-   */
-  static FateMetricValues updateFromZookeeper(final Instance instance) {
-
-    FateMetricValues.Builder builder = new FateMetricValues.Builder();
-
-    return updateFromZookeeper(instance, builder);
-
-  }
-
-  /**
    * Update FateMetricValues, populating with current values and the overwritting new values, this
    * preserves previous values in case an error or exception prevents the values from being
    * completely populated, this form may be more suitable for metric counters.
@@ -94,10 +76,7 @@ class FateMetricValues {
    */
   static FateMetricValues updateFromZookeeper(final Instance instance,
       final FateMetricValues currentValues) {
-
-    FateMetricValues.Builder builder = FateMetricValues.Builder.copy(currentValues);
-
-    return updateFromZookeeper(instance, builder);
+    return updateFromZookeeper(instance, FateMetricValues.builder().copy(currentValues));
   }
 
   /**
@@ -134,6 +113,7 @@ class FateMetricValues {
             node.getVersion(), node.getCversion(), node.getNumChildren());
       }
     } catch (KeeperException ex) {
+      log.debug("Error connecting to ZooKeeper", ex);
       builder.incrZkConnectionErrors();
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
@@ -149,19 +129,17 @@ class FateMetricValues {
         + zkConnectionErrors + '}';
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   static class Builder {
 
     private long currentFateOps = 0;
     private long zkFateChildOpsTotal = 0;
     private long zkConnectionErrors = 0;
 
-    Builder() {}
-
-    static Builder getBuilder() {
-      return new Builder();
-    }
-
-    static Builder copy(final FateMetricValues prevValues) {
+    Builder copy(final FateMetricValues prevValues) {
 
       if (prevValues == null) {
         return new Builder();

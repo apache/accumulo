@@ -71,9 +71,7 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
 
     this.minimumRefreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
-    // instance = master.getInstance();
-
-    metricValues = new AtomicReference<>(FateMetricValues.Builder.getBuilder().build());
+    metricValues = new AtomicReference<>(FateMetricValues.builder().build());
 
     try {
       objectName = new ObjectName(
@@ -82,39 +80,6 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
     } catch (Exception e) {
       log.error("Exception setting MBean object name", e);
     }
-  }
-
-  /**
-   * Get the current delay required before a the metric values will be refreshed from the system
-   * (zookeeper) - if the delay has not expired, the previous values are returned.
-   *
-   * @return the current delay in milliseconds
-   */
-  public long getMinimumRefreshDelay() {
-    return minimumRefreshDelay;
-  }
-
-  /**
-   * Modify the refresh delay minimum in milliseconds and return the previous value. Each time these
-   * metrics are fetched, the time since last update and this delay is used to determine if the
-   * values should be updated from zookeeper or the current cached value is returned.
-   *
-   * @param value
-   *          set the minimum refresh delay (in milliseconds)
-   * @return the previous value.
-   */
-  public long updateMinimumRefreshDelay(final long value) {
-    long curr = minimumRefreshDelay;
-    minimumRefreshDelay = value;
-    return curr;
-  }
-
-  /**
-   * Clear the current measurement time so that the next populate call will read from zookeeper -
-   * primarily for testing purposes.
-   */
-  public void resetDelayTimer() {
-    lastUpdate = 0;
   }
 
   @Override
@@ -153,7 +118,6 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
     lastUpdate = now;
 
     return updates;
-
   }
 
   @Override

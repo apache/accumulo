@@ -18,9 +18,6 @@ package org.apache.accumulo.master.metrics.fate;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.accumulo.master.Master;
-import org.apache.hadoop.metrics2.MetricsSystem;
-import org.easymock.EasyMock;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,20 +29,17 @@ public class FateMetricValuesTest {
   @Test
   public void defaultValueTest() {
 
-    FateMetricValues.Builder builder = FateMetricValues.Builder.getBuilder();
-
-    FateMetricValues v = builder.build();
+    FateMetricValues v = FateMetricValues.builder().build();
 
     assertEquals(0, v.getCurrentFateOps());
     assertEquals(0, v.getZkFateChildOpsTotal());
     assertEquals(0, v.getZkConnectionErrors());
-
   }
 
   @Test
   public void valueTest() {
 
-    FateMetricValues.Builder builder = FateMetricValues.Builder.getBuilder();
+    FateMetricValues.Builder builder = FateMetricValues.builder();
 
     FateMetricValues v = builder.withCurrentFateOps(1).withZkFateChildOpsTotal(2)
         .withZkConnectionErrors(3).build();
@@ -54,7 +48,7 @@ public class FateMetricValuesTest {
     assertEquals(2, v.getZkFateChildOpsTotal());
     assertEquals(3, v.getZkConnectionErrors());
 
-    FateMetricValues.Builder builder2 = FateMetricValues.Builder.copy(v);
+    FateMetricValues.Builder builder2 = builder.copy(v);
 
     FateMetricValues v2 = builder2.withCurrentFateOps(11).build();
 
@@ -79,14 +73,5 @@ public class FateMetricValuesTest {
     assertEquals(11, v2.getCurrentFateOps());
     assertEquals(22, v2.getZkFateChildOpsTotal());
     assertEquals(34, v2.getZkConnectionErrors());
-
-  }
-
-  @Test
-  public void mock() {
-    Master master = EasyMock.createMock(Master.class);
-    MetricsSystem system = EasyMock.createMock(MetricsSystem.class);
-
-    log.info("S:{}", system);
   }
 }
