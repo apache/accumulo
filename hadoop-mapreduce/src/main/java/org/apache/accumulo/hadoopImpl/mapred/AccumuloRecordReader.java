@@ -436,6 +436,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
    * {@link InputFormat}.
    */
   private static void validateOptions(JobConf job, Class<?> callingClass) throws IOException {
+    InputConfigurator.checkJobStored(callingClass, job);
     try (AccumuloClient client = InputConfigurator.createClient(callingClass, job)) {
       InputConfigurator.validatePermissions(callingClass, job, client);
     }

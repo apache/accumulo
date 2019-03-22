@@ -58,6 +58,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
 
   @Override
   public void checkOutputSpecs(JobContext job) throws IOException {
+    OutputConfigurator.checkJobStored(CLASS, job.getConfiguration());
     Properties clientProps = OutputConfigurator.getClientProperties(CLASS, job.getConfiguration());
     AuthenticationToken token = ClientProperty.getAuthenticationToken(clientProps);
     try (AccumuloClient c = Accumulo.newClient().from(clientProps).build()) {

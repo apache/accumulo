@@ -17,6 +17,7 @@
 package org.apache.accumulo.hadoop.mapred;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -224,5 +225,18 @@ public class AccumuloInputFormatTest {
         .auths(Authorizations.EMPTY).fetchColumns(cols).store(job);
 
     assertEquals(cols, InputConfigurator.getFetchedColumns(AccumuloInputFormat.class, job));
+  }
+
+  @Test
+  public void testJobStoreException() throws Exception {
+    // test exception thrown when not calling store
+    AccumuloInputFormat.configure().clientProperties(clientProperties).table("table")
+        .auths(Authorizations.EMPTY);
+    AccumuloInputFormat aif = new AccumuloInputFormat();
+
+    try {
+      aif.getSplits(job, 1);
+      fail("IllegalStateException should have been thrown for not calling store");
+    } catch (IllegalStateException e) {}
   }
 }

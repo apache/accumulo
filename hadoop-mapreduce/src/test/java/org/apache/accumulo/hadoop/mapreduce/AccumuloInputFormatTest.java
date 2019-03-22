@@ -17,6 +17,7 @@
 package org.apache.accumulo.hadoop.mapreduce;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -236,5 +237,20 @@ public class AccumuloInputFormatTest {
 
     assertEquals(cols,
         InputConfigurator.getFetchedColumns(AccumuloInputFormat.class, job.getConfiguration()));
+  }
+
+  @Test
+  public void testJobStoreException() throws Exception {
+    Job job = Job.getInstance();
+
+    // test exception thrown when not calling store
+    AccumuloInputFormat.configure().clientProperties(clientProperties).table("table")
+        .auths(Authorizations.EMPTY);
+    AccumuloInputFormat aif = new AccumuloInputFormat();
+
+    try {
+      aif.getSplits(job);
+      fail("IllegalStateException should have been thrown for not calling store");
+    } catch (IllegalStateException e) {}
   }
 }

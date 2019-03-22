@@ -228,6 +228,7 @@ public class InputFormatBuilderImpl<T>
     } else {
       InputConfigurator.setInputTableConfigs(callingClass, conf, tableConfigMap);
     }
+    InputConfigurator.setJobStored(callingClass, conf);
   }
 
   /**

@@ -18,6 +18,7 @@ package org.apache.accumulo.hadoop.mapreduce;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -77,6 +78,19 @@ public class AccumuloOutputFormatTest {
       }
     };
     myAOF.checkOutputSpecs(job);
+  }
+
+  @Test
+  public void testJobStoreException() throws Exception {
+    Job job = Job.getInstance();
+
+    Properties cp = Accumulo.newClientProperties().to("test", "zk").as("blah", "blah").build();
+
+    AccumuloOutputFormat.configure().clientProperties(cp);
+    try {
+      new AccumuloOutputFormat().checkOutputSpecs(job);
+      fail("IllegalStateException should have been thrown.");
+    } catch (IllegalStateException e) {}
   }
 
 }
