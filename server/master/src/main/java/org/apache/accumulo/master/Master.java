@@ -122,7 +122,6 @@ import org.apache.accumulo.server.master.state.TabletServerState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.ZooStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
-import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.RpcWrapper;
@@ -1401,13 +1400,15 @@ public class Master extends AccumuloServerContext
         ZooUtil.getRoot(getInstance()) + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
         replAddress.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
 
-    // Register replication metrics
+    // Register metrics modules
     MasterMetricsFactory factory = new MasterMetricsFactory(getConfiguration(), this);
-    Metrics replicationMetrics = factory.createReplicationMetrics();
-    try {
-      replicationMetrics.register();
-    } catch (Exception e) {
-      log.error("Failed to register replication metrics", e);
+
+    int failureCount = factory.register();
+
+    if (failureCount > 0) {
+      log.info("Failed to register {} metrics modules", failureCount);
+    } else {
+      log.info("All metrics modules registered");
     }
 
     while (clientService.isServing()) {
