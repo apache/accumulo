@@ -97,8 +97,7 @@ public class FateMetrics implements Metrics, FateMetricsMBean {
   }
 
   /**
-   * Update the metric values from zookeeper is the delay has expired. The delay timer can be
-   * cleared using {@link #resetDelayTimer() to force an update}
+   * Update the metric values from zookeeper after minimumRefreshDelay has expired.
    */
   public synchronized FateMetricValues snapshot() {
 
