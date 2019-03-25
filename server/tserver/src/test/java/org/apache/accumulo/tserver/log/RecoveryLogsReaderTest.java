@@ -198,6 +198,8 @@ public class RecoveryLogsReaderTest {
       assertEquals(i, key.get());
     }
     reader.close();
+
+    assertTrue(fs.delete(new Path(manyMaps, SortedLogState.FAILED.getMarker())));
   }
 
 }
