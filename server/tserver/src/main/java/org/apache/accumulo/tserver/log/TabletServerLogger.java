@@ -295,6 +295,12 @@ public class TabletServerLogger {
               }
             }
 
+            try {
+              nextLog.offer(t, 12, TimeUnit.HOURS);
+            } catch (InterruptedException ex) {
+              // ignore
+            }
+
             continue;
           }
 
@@ -323,6 +329,12 @@ public class TabletServerLogger {
               tserver.walogClosed(alog);
             } catch (Exception e) {
               log.error("Failed to close WAL that failed to open: " + fileName, e);
+            }
+
+            try {
+              nextLog.offer(t, 12, TimeUnit.HOURS);
+            } catch (InterruptedException ex) {
+              // ignore
             }
 
             continue;
