@@ -33,7 +33,7 @@ public class CustomThreadedSelectorServer extends TThreadedSelectorServer {
     try {
       fbTansportField = FrameBuffer.class.getDeclaredField("trans_");
       fbTansportField.setAccessible(true);
-    } catch (Exception e) {
+    } catch (SecurityException | NoSuchFieldException e) {
       throw new RuntimeException("Failed to access required field in Thrift code.", e);
     }
   }
