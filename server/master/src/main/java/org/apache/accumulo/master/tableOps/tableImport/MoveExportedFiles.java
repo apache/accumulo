@@ -20,6 +20,7 @@ package org.apache.accumulo.master.tableOps.tableImport;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -68,62 +69,64 @@ class MoveExportedFiles extends MasterRepo {
 
     VolumeManager fs = master.getVolumeManager();
 
-    Map<String,String> fileNameMappings = PopulateMetadataTable.readMappingFile(fs, tableInfo);
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      Map<String,String> fileNameMappings = new HashMap<>();
+      PopulateMetadataTable.readMappingFile(fs, tableInfo, dm.importDir, fileNameMappings);
 
-    FileStatus[] exportedFiles = fs.listStatus(new Path(tableInfo.exportDir));
-    FileStatus[] importedFiles = fs.listStatus(new Path(tableInfo.importDir));
+      FileStatus[] exportedFiles = fs.listStatus(new Path(dm.exportDir));
+      FileStatus[] importedFiles = fs.listStatus(new Path(dm.importDir));
 
-    Function<FileStatus,String> fileStatusName = fstat -> fstat.getPath().getName();
+      Function<FileStatus,String> fileStatusName = fstat -> fstat.getPath().getName();
 
-    Set<String> importing = Arrays.stream(exportedFiles).map(fileStatusName)
-        .map(fileNameMappings::get).collect(Collectors.toSet());
+      Set<String> importing = Arrays.stream(exportedFiles).map(fileStatusName)
+          .map(fileNameMappings::get).collect(Collectors.toSet());
 
-    Set<String> imported =
-        Arrays.stream(importedFiles).map(fileStatusName).collect(Collectors.toSet());
+      Set<String> imported =
+          Arrays.stream(importedFiles).map(fileStatusName).collect(Collectors.toSet());
 
-    if (log.isDebugEnabled()) {
-      log.debug("{} files already present in imported (target) directory: {}", fmtTid,
-          imported.stream().collect(Collectors.joining(",")));
-    }
+      if (log.isDebugEnabled()) {
+        log.debug("{} files already present in imported (target) directory: {}", fmtTid,
+            String.join(",", imported));
+      }
 
-    Set<String> missingFiles = Sets.difference(new HashSet<String>(fileNameMappings.values()),
-        new HashSet<String>(Sets.union(importing, imported)));
+      Set<String> missingFiles = Sets.difference(new HashSet<>(fileNameMappings.values()),
+          new HashSet<>(Sets.union(importing, imported)));
 
-    if (!missingFiles.isEmpty()) {
-      throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
-          tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Missing source files corresponding to files "
-              + missingFiles.stream().collect(Collectors.joining(",")));
-    }
+      if (!missingFiles.isEmpty()) {
+        throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
+            tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+            "Missing source files corresponding to files " + String.join(",", missingFiles));
+      }
 
-    for (FileStatus fileStatus : exportedFiles) {
-      Path originalPath = fileStatus.getPath();
-      String newName = fileNameMappings.get(originalPath.getName());
+      for (FileStatus fileStatus : exportedFiles) {
+        Path originalPath = fileStatus.getPath();
+        String newName = fileNameMappings.get(originalPath.getName());
 
-      results.add(workers.submit(() -> {
-        boolean success = true;
+        results.add(workers.submit(() -> {
+          boolean success = true;
 
-        // Need to exclude any other files which may be present in the exported directory
-        if (newName != null) {
-          Path newPath = new Path(tableInfo.importDir, newName);
+          // Need to exclude any other files which may be present in the exported directory
+          if (newName != null) {
+            Path newPath = new Path(dm.importDir, newName);
 
-          // No try-catch here, as we do not expect any "benign" exceptions. Prior code already
-          // accounts for files which were already moved. So anything returned by the rename
-          // operation would be truly unexpected
-          success = fs.rename(originalPath, newPath);
+            // No try-catch here, as we do not expect any "benign" exceptions. Prior code already
+            // accounts for files which were already moved. So anything returned by the rename
+            // operation would be truly unexpected
+            success = fs.rename(originalPath, newPath);
 
-          if (!success) {
-            log.error("{} rename operation returned false. orig: {} new: {}", fmtTid, originalPath,
-                newPath);
-          } else if (log.isTraceEnabled()) {
-            log.trace("{} moved {} to {}", fmtTid, originalPath, newPath);
+            if (!success) {
+              log.error("{} rename operation returned false. orig: {} new: {}", fmtTid,
+                  originalPath, newPath);
+            } else if (log.isTraceEnabled()) {
+              log.trace("{} moved {} to {}", fmtTid, originalPath, newPath);
+            }
+          } else {
+            log.debug("{} not moving (unmapped) file {}", fmtTid, originalPath);
           }
-        } else {
-          log.debug("{} not moving (unmapped) file {}", fmtTid, originalPath);
-        }
 
-        return success;
-      }));
+          return success;
+        }));
+      }
     }
 
     workers.shutdown();

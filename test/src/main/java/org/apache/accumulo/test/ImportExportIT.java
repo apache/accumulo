@@ -26,6 +26,7 @@ import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -63,6 +64,8 @@ import org.slf4j.LoggerFactory;
 public class ImportExportIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);
+
+  private SecureRandom r = new SecureRandom();
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -104,14 +107,19 @@ public class ImportExportIT extends AccumuloClusterHarness {
       assertTrue("Failed to create " + baseDir, fs.mkdirs(baseDir));
       Path exportDir = new Path(baseDir, "export");
       fs.deleteOnExit(exportDir);
-      Path importDir = new Path(baseDir, "import");
-      fs.deleteOnExit(importDir);
-      for (Path p : new Path[] {exportDir, importDir}) {
+      Path importDirA = new Path(baseDir, "import-a");
+      Path importDirB = new Path(baseDir, "import-b");
+      fs.deleteOnExit(importDirA);
+      fs.deleteOnExit(importDirB);
+      for (Path p : new Path[] {exportDir, importDirA, importDirB}) {
         assertTrue("Failed to create " + baseDir, fs.mkdirs(p));
       }
 
+      String importDirDlm = importDirA + "," + importDirB;
+      Path[] importDirAry = new Path[] {importDirA, importDirB};
+
       log.info("Exporting table to {}", exportDir);
-      log.info("Importing table from {}", importDir);
+      log.info("Importing table from {}", importDirDlm);
 
       // Offline the table
       client.tableOperations().offline(srcTable, true);
@@ -125,12 +133,13 @@ public class ImportExportIT extends AccumuloClusterHarness {
       FSDataInputStream is = fs.open(distcp);
       BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 
-      // Copy each file that was exported to the import directory
+      // Copy each file that was exported to one of the imports directory
       String line;
+
       while ((line = reader.readLine()) != null) {
         Path p = new Path(line.substring(5));
         assertTrue("File doesn't exist: " + p, fs.exists(p));
-
+        Path importDir = importDirAry[r.nextInt(importDirAry.length)];
         Path dest = new Path(importDir, p.getName());
         assertFalse("Did not expect " + dest + " to exist", fs.exists(dest));
         FileUtil.copy(fs, p, fs, dest, false, fs.getConf());
@@ -138,10 +147,11 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       reader.close();
 
-      log.info("Import dir: {}", Arrays.toString(fs.listStatus(importDir)));
+      log.info("Import dir A: {}", Arrays.toString(fs.listStatus(importDirA)));
+      log.info("Import dir B: {}", Arrays.toString(fs.listStatus(importDirB)));
 
       // Import the exported data into a new table
-      client.tableOperations().importTable(destTable, importDir.toString());
+      client.tableOperations().importTable(destTable, importDirDlm);
 
       // Get the table ID for the table that the importtable command created
       final String tableId = client.tableOperations().tableIdMap().get(destTable);
