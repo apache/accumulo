@@ -41,7 +41,7 @@ public class CustomThreadedSelectorServer extends TThreadedSelectorServer {
   private TNonblockingTransport getTransport(FrameBuffer frameBuffer) {
     try {
       return (TNonblockingTransport) fbTansportField.get(frameBuffer);
-    } catch (IllegalArgumentException | IllegalAccessException e) {
+    } catch (IllegalAccessException e) {
       throw new RuntimeException(e);
     }
   }
