@@ -18,12 +18,15 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -194,69 +197,109 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    * Validate the the AdminUtil.getStatus works correctly after refactor and validate that
    * getTransactionStatus can be called without lock map(s). The test starts a long running fate
    * transaction (slow compaction) and the calls AdminUtil functions to get the FATE.
-   *
-   * @throws Exception
-   *           any exception is a test failure
    */
   @Test
-  public void getFateStatus() throws Exception {
+  public void getFateStatus() {
 
-    assertEquals("verify table online after created", TableState.ONLINE, getTableState(tableName));
+    Instance instance = connector.getInstance();
+    String tableId;
+
+    try {
+
+      assertEquals("verify table online after created", TableState.ONLINE,
+          getTableState(tableName));
+
+      tableId = Tables.getTableId(instance, tableName);
+
+      log.trace("tid: {}", tableId);
+
+    } catch (TableNotFoundException ex) {
+      throw new IllegalStateException(
+          String.format("Table %s does not exist, failing test", tableName));
+    }
 
     Future<?> compactTask = startCompactTask();
 
     assertTrue("compaction fate transaction exits", findFate(tableName));
 
-    Instance instance = connector.getInstance();
+    AdminUtil.FateStatus withLocks = null;
+    List<AdminUtil.TransactionStatus> noLocks = null;
+
+    int maxRetries = 3;
+
     AdminUtil<String> admin = new AdminUtil<>(false);
 
-    try {
+    while (maxRetries > 0) {
 
-      String tableId = Tables.getTableId(instance, tableName);
+      try {
 
-      log.trace("tid: {}", tableId);
+        IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
+            instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
 
-      IZooReaderWriter zk = new ZooReaderWriterFactory().getZooReaderWriter(
-          instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), secret);
-      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
+        ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instance) + Constants.ZFATE, zk);
 
-      AdminUtil.FateStatus withLocks = admin.getStatus(zs, zk,
-          ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
+        withLocks = admin.getStatus(zs, zk,
+            ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS + "/" + tableId, null, null);
 
-      // call method that does not use locks.
-      List<AdminUtil.TransactionStatus> noLocks = admin.getTransactionStatus(zs, null, null);
+        // call method that does not use locks.
+        noLocks = admin.getTransactionStatus(zs, null, null);
 
-      // fast check - count number of transactions
-      assertEquals(withLocks.getTransactions().size(), noLocks.size());
+        // no zk exception, no need to retry
+        break;
 
-      int matchCount = 0;
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        fail("Interrupt received - test failed");
+        return;
+      } catch (KeeperException ex) {
+        maxRetries--;
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException intr_ex) {
+          Thread.currentThread().interrupt();
+          return;
+        }
+      }
+    }
 
-      for (AdminUtil.TransactionStatus tx : withLocks.getTransactions()) {
+    assertNotNull(withLocks);
+    assertNotNull(noLocks);
+
+    // fast check - count number of transactions
+    assertEquals(withLocks.getTransactions().size(), noLocks.size());
+
+    int matchCount = 0;
+
+    for (AdminUtil.TransactionStatus tx : withLocks.getTransactions()) {
+
+      if (isCompaction(tx)) {
 
         log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
 
-        if (tx.getTop().contains("CompactionDriver") && tx.getDebug().contains("CompactRange")) {
-
-          for (AdminUtil.TransactionStatus tx2 : noLocks) {
-            if (tx2.getTxid().equals(tx.getTxid())) {
-              matchCount++;
-            }
+        for (AdminUtil.TransactionStatus tx2 : noLocks) {
+          if (tx2.getTxid().equals(tx.getTxid())) {
+            matchCount++;
           }
         }
       }
-
-      assertTrue("Number of fates matches should be > 0", matchCount > 0);
-
-    } catch (KeeperException | TableNotFoundException | InterruptedException ex) {
-      throw new IllegalStateException(ex);
     }
 
-    // test complete, cancel compaction and move on.
-    connector.tableOperations().cancelCompaction(tableName);
+    assertTrue("Number of fates matches should be > 0", matchCount > 0);
 
-    // block if compaction still running
-    compactTask.get();
+    try {
 
+      // test complete, cancel compaction and move on.
+      connector.tableOperations().cancelCompaction(tableName);
+
+      // block if compaction still running
+      compactTask.get();
+
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+    } catch (TableNotFoundException | AccumuloSecurityException | AccumuloException
+        | ExecutionException ex) {
+      log.debug("Could not cancel compaction", ex);
+    }
   }
 
   /**
@@ -340,11 +383,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
 
-        log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
-
-        if (tx.getTop().contains("CompactionDriver") && tx.getDebug().contains("CompactRange")) {
+        if (isCompaction(tx))
           return true;
-        }
       }
 
     } catch (KeeperException | TableNotFoundException | InterruptedException ex) {
@@ -353,6 +393,31 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     // did not find appropriate fate transaction for compaction.
     return Boolean.FALSE;
+  }
+
+  /**
+   * Test that the transaction top contains "CompactionDriver" and the debug message contains
+   * "CompactRange"
+   *
+   * @param tx
+   *          transaction status
+   * @return true if tx top and debug have compaction messages.
+   */
+  private boolean isCompaction(AdminUtil.TransactionStatus tx) {
+
+    if (tx == null) {
+      log.trace("Fate tx is null");
+      return false;
+    }
+
+    log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
+
+    String top = tx.getTop();
+    String debug = tx.getDebug();
+
+    return top != null && debug != null && top.contains("CompactionDriver")
+        && tx.getDebug().contains("CompactRange");
+
   }
 
   /**
@@ -400,18 +465,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       long startTimestamp = System.nanoTime();
 
-      Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-      int count = 0;
-      for (Map.Entry<Key,Value> elt : scanner) {
-        String expected = String.format("%05d", count);
-        assert (elt.getKey().getRow().toString().equals(expected));
-        count++;
-      }
+      int count = scanCount(tableName);
 
       log.trace("Scan time for {} rows {} ms", NUM_ROWS, TimeUnit.MILLISECONDS
           .convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
-
-      scanner.close();
 
       if (count != NUM_ROWS) {
         throw new IllegalStateException(
@@ -421,6 +478,21 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
         | TableExistsException ex) {
       throw new IllegalStateException("Create data failed with exception", ex);
     }
+  }
+
+  private int scanCount(String tableName) throws TableNotFoundException {
+
+    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
+    int count = 0;
+    for (Map.Entry<Key,Value> elt : scanner) {
+      String expected = String.format("%05d", count);
+      assert (elt.getKey().getRow().toString().equals(expected));
+      count++;
+    }
+
+    scanner.close();
+
+    return count;
   }
 
   /**
@@ -533,14 +605,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
         // validate expected data created and exists in table.
 
-        Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-
-        int count = 0;
-        for (Map.Entry<Key,Value> elt : scanner) {
-          String expected = String.format("%05d", count);
-          assert (elt.getKey().getRow().toString().equals(expected));
-          count++;
-        }
+        int count = scanCount(tableName);
 
         log.trace("After compaction, scan time for {} rows {} ms", NUM_ROWS, TimeUnit.MILLISECONDS
             .convert((System.nanoTime() - startTimestamp), TimeUnit.NANOSECONDS));
