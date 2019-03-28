@@ -1406,6 +1406,17 @@ public class Master
       }
     }, 0, 5000);
 
+    // Register metrics modules
+    MasterMetricsFactory factory = new MasterMetricsFactory(getConfiguration(), this);
+
+    int failureCount = factory.register();
+
+    if (failureCount > 0) {
+      log.info("Failed to register {} metrics modules", failureCount);
+    } else {
+      log.info("All metrics modules registered");
+    }
+
     // The master is fully initialized. Clients are allowed to connect now.
     masterInitialized.set(true);
 
@@ -1471,17 +1482,6 @@ public class Master
     context.getZooReaderWriter().putPersistentData(
         getZooKeeperRoot() + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR,
         replAddress.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
-
-    // Register metrics modules
-    MasterMetricsFactory factory = new MasterMetricsFactory(getConfiguration(), this);
-
-    int failureCount = factory.register();
-
-    if (failureCount > 0) {
-      log.info("Failed to register {} metrics modules", failureCount);
-    } else {
-      log.info("All metrics modules registered");
-    }
     return replAddress.server;
   }
 
