@@ -48,6 +48,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
   protected byte[] colVisibility;
   protected long timestamp;
   protected boolean deleted;
+  private boolean staleHashCode = true;
+  private int hashCode = 0;
 
   /**
    * Create a {@link Key} builder.
@@ -863,6 +865,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
     colVisibility = k.colVisibility;
     timestamp = k.timestamp;
     deleted = k.deleted;
+    staleHashCode = true;
 
   }
 
@@ -888,6 +891,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
     timestamp = WritableUtils.readVLong(in);
     deleted = in.readBoolean();
+    staleHashCode = true;
   }
 
   @Override
@@ -1022,11 +1026,17 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
   @Override
   public int hashCode() {
-    return WritableComparator.hashBytes(row, row.length)
-        + WritableComparator.hashBytes(colFamily, colFamily.length)
-        + WritableComparator.hashBytes(colQualifier, colQualifier.length)
-        + WritableComparator.hashBytes(colVisibility, colVisibility.length)
-        + (int) (timestamp ^ (timestamp >>> 32));
+    if (!staleHashCode)
+      return hashCode;
+    else {
+      hashCode = WritableComparator.hashBytes(row, row.length)
+          + WritableComparator.hashBytes(colFamily, colFamily.length)
+          + WritableComparator.hashBytes(colQualifier, colQualifier.length)
+          + WritableComparator.hashBytes(colVisibility, colVisibility.length)
+          + (int) (timestamp ^ (timestamp >>> 32));
+      staleHashCode = false;
+      return hashCode;
+    }
   }
 
   /**
