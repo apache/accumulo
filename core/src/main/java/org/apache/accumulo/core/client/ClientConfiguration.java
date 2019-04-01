@@ -1028,8 +1028,9 @@ public class ClientConfiguration extends CompositeConfiguration {
    *             Accumulo API
    */
   @Deprecated
+  @SuppressWarnings("rawtypes")
   @Override
-  public Collection<ConfigurationListener> getConfigurationListeners() {
+  public Collection getConfigurationListeners() {
     return super.getConfigurationListeners();
   }
 
@@ -1068,8 +1069,9 @@ public class ClientConfiguration extends CompositeConfiguration {
    *             Accumulo API
    */
   @Deprecated
+  @SuppressWarnings("rawtypes")
   @Override
-  public Collection<ConfigurationErrorListener> getErrorListeners() {
+  public Collection getErrorListeners() {
     return super.getErrorListeners();
   }
 
@@ -1133,6 +1135,7 @@ public class ClientConfiguration extends CompositeConfiguration {
     return super.getInteger(key, defaultValue);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public Iterator<String> getKeys() {
     return super.getKeys();
@@ -1143,6 +1146,7 @@ public class ClientConfiguration extends CompositeConfiguration {
    *             Accumulo API
    */
   @Deprecated
+  @SuppressWarnings("unchecked")
   @Override
   public Iterator<String> getKeys(String key) {
     return super.getKeys(key);
@@ -1153,8 +1157,9 @@ public class ClientConfiguration extends CompositeConfiguration {
    *             Accumulo API
    */
   @Deprecated
+  @SuppressWarnings("rawtypes")
   @Override
-  public List<Object> getList(String key) {
+  public List getList(String key) {
     return super.getList(key);
   }
 
@@ -1163,8 +1168,9 @@ public class ClientConfiguration extends CompositeConfiguration {
    *             Accumulo API
    */
   @Deprecated
+  @SuppressWarnings("rawtypes")
   @Override
-  public List<Object> getList(String key, List<?> defaultValue) {
+  public List getList(String key, List defaultValue) {
     return super.getList(key, defaultValue);
   }
 
@@ -1328,8 +1334,9 @@ public class ClientConfiguration extends CompositeConfiguration {
    *             Accumulo API
    */
   @Deprecated
+  @SuppressWarnings("rawtypes")
   @Override
-  protected String interpolateHelper(String base, List<?> priorVariables) {
+  protected String interpolateHelper(String base, List priorVariables) {
     return super.interpolateHelper(base, priorVariables);
   }
 
