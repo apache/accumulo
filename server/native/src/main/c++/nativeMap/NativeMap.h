@@ -152,15 +152,17 @@ struct NativeMap : public NativeMapData {
   void update(ColumnMap *cm, JNIEnv *env, jbyteArray cf, jbyteArray cq, jbyteArray cv, jlong ts, jboolean del, jbyteArray val, jint mutationCount){
 
     SubKey sk(lba, env, cf, cq, cv, ts, del, mutationCount);
+    lba->disable();
     //cout << "Updating " << sk.toString() << " " << sk.getTimestamp() << " " << sk.isDeleted() << endl;
-
     ColumnMap::iterator lbi = cm->lower_bound(sk);
 
     if(lbi == cm->end() || sk < lbi->first) {
+      lba->enable();
       Field value = Field(lba, env, val);
       cm->insert(lbi, pair<SubKey, Field>(sk, value));
       count++;
     } else {
+      lba->enable();
       sk.clear(lba);
       int valLen =  env->GetArrayLength(val);
       if(valLen <= lbi->second.length()){

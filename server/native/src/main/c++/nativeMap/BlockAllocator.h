@@ -85,15 +85,21 @@ struct LinkedBlockAllocator {
   int bigBlockSize;
   int64_t memused;
   void *lastAlloc;
+  bool disabled;
 
   LinkedBlockAllocator(int blockSize, int bigBlockSize){
     this->blockSize = blockSize;
     this->bigBlockSize = bigBlockSize;
     lastAlloc = NULL;
     memused = 0;
+    disabled = false;
   }
 
   void *allocate(size_t amount){
+
+    if(disabled) {
+      throw std::runtime_error("Allocate disabled");
+    }
 
     if(amount > (size_t)bigBlockSize){
       unsigned char *p = new unsigned char[amount];
@@ -124,7 +130,7 @@ struct LinkedBlockAllocator {
         blocks.back().rollback(p);
         lastAlloc = NULL;
         return;
-      }else if(bigBlocks.back().ptr == p){
+      }else if(!bigBlocks.empty() && bigBlocks.back().ptr == p){
         memused -= (sizeof(BigBlock) + bigBlocks.back().length);
         bigBlocks.pop_back();
         delete((unsigned char *)p);
@@ -134,6 +140,14 @@ struct LinkedBlockAllocator {
 
     std::cerr << "Tried to delete something that was not last allocation " << p << " " << lastAlloc << std::endl;
     exit(-1);
+  }
+
+  void disable(){
+    disabled = true;
+  }
+
+  void enable(){
+    disabled = false;
   }
 
   size_t getMemoryUsed(){
