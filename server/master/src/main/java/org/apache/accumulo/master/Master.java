@@ -1206,13 +1206,20 @@ public class Master
           Thread t = Thread.currentThread();
           String oldName = t.getName();
           try {
-            t.setName("Getting status from " + server);
+            String message = "Getting status from " + server;
+            t.setName(message);
+            long startForServer = System.currentTimeMillis();
+            log.debug(message);
             TServerConnection connection1 = tserverSet.getConnection(server);
             if (connection1 == null) {
               throw new IOException("No connection to " + server);
             }
             TabletServerStatus status = connection1.getTableMap(false);
             result.put(server, status);
+
+            long duration = System.currentTimeMillis() - startForServer;
+            log.debug("Got status from " + server + " in " + duration + " ms");
+
           } finally {
             t.setName(oldName);
           }
