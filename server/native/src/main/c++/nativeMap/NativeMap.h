@@ -156,7 +156,6 @@ struct NativeMap : public NativeMapData {
 
     ColumnMap::iterator lbi = cm->lower_bound(sk);
 
-    //pair<ColumnMap::iterator, bool> insertResult = cm->insert(pair<SubKey, Field>(sk, value));
     if(lbi == cm->end() || sk < lbi->first) {
       Field value = Field(lba, env, val);
       cm->insert(lbi, pair<SubKey, Field>(sk, value));
@@ -166,7 +165,7 @@ struct NativeMap : public NativeMapData {
       int valLen =  env->GetArrayLength(val);
       if(valLen <= lbi->second.length()){
         lbi->second.set(env, val, valLen);
-      }else{
+      } else {
         lbi->second.clear();
         lbi->second  = Field(lba, env, val, valLen);
       }
@@ -179,7 +178,6 @@ struct NativeMap : public NativeMapData {
 
     ColumnMap::iterator lbi = cm->lower_bound(sk);
 
-    //pair<ColumnMap::iterator, bool> insertResult = cm->insert(pair<SubKey, Field>(sk, value));
     if(lbi == cm->end() || sk < lbi->first) {
       Field value = Field(lba, val);
       cm->insert(lbi, pair<SubKey, Field>(sk, value));
@@ -188,7 +186,7 @@ struct NativeMap : public NativeMapData {
       sk.clear(lba);
       if(valLen <= lbi->second.length()){
         lbi->second.set(val, valLen);
-      }else{
+      } else {
         lbi->second.clear();
         lbi->second  = Field(lba, val); //TODO ignores valLen
       }
