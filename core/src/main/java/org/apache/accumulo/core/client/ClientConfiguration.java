@@ -657,16 +657,6 @@ public class ClientConfiguration extends CompositeConfiguration {
   }
 
   /**
-   * @deprecated since 1.9.2; will be removed in 2.0.0 to eliminate commons config leakage into
-   *             Accumulo API
-   */
-  @Deprecated
-  @Override
-  public void addConfiguration(Configuration config, boolean asInMemory) {
-    super.addConfiguration(config, asInMemory);
-  }
-
-  /**
    * @deprecated since 1.9.0; will be removed in 2.0.0 to eliminate commons config leakage into
    *             Accumulo API
    */
