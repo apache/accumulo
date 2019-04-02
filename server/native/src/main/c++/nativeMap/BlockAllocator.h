@@ -25,8 +25,8 @@
 #include <stddef.h>
 
 /*
- * The over all purpose of the code in this class is to provide a simple memory
- * allocator for each tablet. This allocator has the following goals.
+ * The code in this file provides a simple memory allocator for each tablet.
+ * This allocator has the following goals.
  *
  *  - Avoid calling the system allocator for each key,value inserted.
  *  - Avoid interleaving key values of different tablets in memory.  This
@@ -39,13 +39,13 @@
  * Individual key values are allocated from these 128K blocks.  The allocator
  * keeps a list of these 128K blocks and deallocates them all when needed.
  * Large key values are allocated directly from the system.  This strategy
- * avoid interleaving key/values from different tablets in memory and supports
+ * avoids interleaving key/values from different tablets in memory and supports
  * fast de-allocation.
  *
- * This allocator does not support deallocation, except in special circumstance
- * of deallocating the last thing added.  This supports the case of allocating
- * a key to see if it already exist in the map and then deallocating it when
- * its found it does exists.
+ * This allocator does not support deallocation, except in the special
+ * circumstance of deallocating the last thing added.  This supports the case
+ * of allocating a key to see if it already exist in the map and then
+ * deallocating it when its found to exist.
  *
  * This allocator is not thread safe.
  */

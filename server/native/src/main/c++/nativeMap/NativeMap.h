@@ -158,8 +158,8 @@ struct NativeMap : public NativeMapData {
     //cout << "Updating " << sk.toString() << " " << sk.getTimestamp() << " " << sk.isDeleted() << endl;
 
     // cm->lower_bound is called instead of cm-> insert because insert may
-    // allocte memory from lba even when nothing is inserted. Allocating memory
-    // form lba would interfer with sk.clear() below.
+    // allocate memory from lba even when nothing is inserted. Allocating memory
+    // from lba would interfere with sk.clear() below.
     ColumnMap::iterator lbi = cm->lower_bound(sk);
 
     if(lbi == cm->end() || sk < lbi->first) {
