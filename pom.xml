@@ -132,7 +132,7 @@
     <htrace.version>3.1.0-incubating</htrace.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <!-- jetty 9.2 is the last version to support jdk less than 1.8 -->
-    <jetty.version>9.2.17.v20160517</jetty.version>
+    <jetty.version>9.4.12.v20180830</jetty.version>
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
     <maven.plugin-version>3.0.5</maven.plugin-version>
