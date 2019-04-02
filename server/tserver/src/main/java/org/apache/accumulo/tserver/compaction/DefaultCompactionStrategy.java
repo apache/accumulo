@@ -17,16 +17,118 @@
 package org.apache.accumulo.tserver.compaction;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TreeMap;
-import java.util.TreeSet;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.server.fs.FileRef;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+
 public class DefaultCompactionStrategy extends CompactionStrategy {
+
+  /**
+   * Keeps track of the sum of the size of all files within a window. The files are sorted from
+   * largest to smallest. Supports efficiently creating sub windows, sliding the window, and
+   * shrinking the window.
+   */
+  @VisibleForTesting
+  static class SizeWindow {
+
+    List<CompactionFile> files;
+    long sum = 0;
+
+    int first;
+    int last;
+
+    SizeWindow() {}
+
+    SizeWindow(Map<FileRef,DataFileValue> allFiles) {
+      files = new ArrayList<>();
+      for (Entry<FileRef,DataFileValue> entry : allFiles.entrySet()) {
+        files.add(new CompactionFile(entry.getKey(), entry.getValue().getSize()));
+      }
+
+      Collections.sort(files, Comparator.comparingLong(CompactionFile::getSize)
+          .thenComparing(CompactionFile::getFile).reversed());
+
+      for (CompactionFile file : files) {
+        sum += file.size;
+      }
+
+      first = 0;
+      last = files.size();
+    }
+
+    void pop() {
+      if (first >= last)
+        throw new IllegalStateException("Can not pop");
+
+      sum -= files.get(first).size;
+      first++;
+    }
+
+    long topSize() {
+      return files.get(first).size;
+    }
+
+    boolean slideUp() {
+      if (first == 0)
+        return false;
+
+      first--;
+      last--;
+
+      sum += files.get(first).size;
+      sum -= files.get(last).size;
+
+      return true;
+    }
+
+    SizeWindow tail(int windowSize) {
+      Preconditions.checkArgument(windowSize > 0);
+
+      SizeWindow sub = new SizeWindow();
+
+      sub.files = files;
+      sub.first = Math.max(last - windowSize, first);
+      sub.last = last;
+      sub.sum = 0;
+
+      for (int i = sub.first; i < sub.last; i++) {
+        sub.sum += files.get(i).size;
+      }
+
+      return sub;
+    }
+
+    long sum() {
+      return sum;
+    }
+
+    int size() {
+      return (last - first);
+    }
+
+    public List<FileRef> getFiles() {
+      List<FileRef> windowFiles = new ArrayList<>(size());
+      for (int i = first; i < last; i++) {
+        windowFiles.add(files.get(i).file);
+      }
+      return windowFiles;
+    }
+
+    @Override
+    public String toString() {
+      return "size:" + size() + " sum:" + sum() + " first:" + first + " last:" + last + " topSize:"
+          + topSize();
+    }
+  }
 
   @Override
   public boolean shouldCompact(MajorCompactionRequest request) {
@@ -54,6 +156,14 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
       this.file = file;
       this.size = size;
     }
+
+    long getSize() {
+      return size;
+    }
+
+    FileRef getFile() {
+      return file;
+    }
   }
 
   private List<FileRef> findMapFilesToCompact(MajorCompactionRequest request) {
@@ -61,6 +171,7 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
     if (reason == MajorCompactionReason.USER) {
       return new ArrayList<>(request.getFiles().keySet());
     }
+
     if (reason == MajorCompactionReason.CHOP) {
       // should not happen, but this is safe
       return new ArrayList<>(request.getFiles().keySet());
@@ -68,75 +179,58 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
 
     if (request.getFiles().size() <= 1)
       return null;
-    TreeSet<CompactionFile> candidateFiles = new TreeSet<>((o1, o2) -> {
-      if (o1 == o2)
-        return 0;
-      if (o1.size < o2.size)
-        return -1;
-      if (o1.size > o2.size)
-        return 1;
-      return o1.file.compareTo(o2.file);
-    });
 
     double ratio = Double.parseDouble(request.getTableConfig(Property.TABLE_MAJC_RATIO.getKey()));
     int maxFilesToCompact = Integer
         .parseInt(request.getTableConfig(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey()));
     int maxFilesPerTablet = request.getMaxFilesPerTablet();
 
-    for (Entry<FileRef,DataFileValue> entry : request.getFiles().entrySet()) {
-      candidateFiles.add(new CompactionFile(entry.getKey(), entry.getValue().getSize()));
-    }
-
-    long totalSize = 0;
-    for (CompactionFile mfi : candidateFiles) {
-      totalSize += mfi.size;
-    }
-
-    List<FileRef> files = new ArrayList<>();
-
-    while (candidateFiles.size() > 1) {
-      CompactionFile max = candidateFiles.last();
-      if (max.size * ratio <= totalSize) {
-        files.clear();
-        for (CompactionFile mfi : candidateFiles) {
-          files.add(mfi.file);
-          if (files.size() >= maxFilesToCompact)
-            break;
-        }
-
-        break;
-      }
-      totalSize -= max.size;
-      candidateFiles.remove(max);
-    }
-
-    int totalFilesToCompact = 0;
+    int minFilesToCompact = 0;
     if (request.getFiles().size() > maxFilesPerTablet)
-      totalFilesToCompact = request.getFiles().size() - maxFilesPerTablet + 1;
+      minFilesToCompact = request.getFiles().size() - maxFilesPerTablet + 1;
 
-    totalFilesToCompact = Math.min(totalFilesToCompact, maxFilesToCompact);
+    minFilesToCompact = Math.min(minFilesToCompact, maxFilesToCompact);
 
-    if (files.size() < totalFilesToCompact) {
+    SizeWindow all = new SizeWindow(request.getFiles());
 
-      TreeMap<FileRef,Long> tfc = new TreeMap<>();
-      for (Entry<FileRef,DataFileValue> entry : request.getFiles().entrySet()) {
-        tfc.put(entry.getKey(), entry.getValue().getSize());
+    List<FileRef> files = null;
+
+    // Within a window of size maxFilesToCompact containing the smallest files check to see if any
+    // files meet the compaction ratio criteria.
+    SizeWindow window = all.tail(maxFilesToCompact);
+    while (window.size() > 1 && files == null) {
+
+      if (window.topSize() * ratio <= window.sum()) {
+        files = window.getFiles();
       }
-      tfc.keySet().removeAll(files);
 
-      // put data in candidateFiles to sort it
-      candidateFiles.clear();
-      for (Entry<FileRef,Long> entry : tfc.entrySet())
-        candidateFiles.add(new CompactionFile(entry.getKey(), entry.getValue()));
+      window.pop();
+    }
 
-      for (CompactionFile mfi : candidateFiles) {
-        files.add(mfi.file);
-        if (files.size() >= totalFilesToCompact)
-          break;
+    // Previous search was fruitless. If there are more files than maxFilesToCompact, then try
+    // sliding the window up looking for files that meet the criteria.
+    if (files == null || files.size() < minFilesToCompact) {
+      window = all.tail(maxFilesToCompact);
+
+      files = null;
+
+      // When moving the window up there is no need to pop/shrink the window. All possible sets are
+      // covered without doing this. Proof is left as an exercise for the reader. This is predicated
+      // on the first search shrinking the initial window.
+      while (window.slideUp() && files == null) {
+        if (window.topSize() * ratio <= window.sum()) {
+          files = window.getFiles();
+        }
       }
+    }
+
+    // Ensure the minimum number of files are compacted.
+    if ((files != null && files.size() < minFilesToCompact)
+        || (files == null && minFilesToCompact > 0)) {
+      // get the smallest files of size minFilesToCompact
+      files = all.tail(minFilesToCompact).getFiles();
     }
 
     return files;
   }
-
 }
