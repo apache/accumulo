@@ -608,8 +608,7 @@ public class TServerUtils {
                 maxMessageSize, serverName, numThreads, numSTThreads, timeBetweenThreadChecks);
             break;
           case CUSTOM_HS_HA:
-            log.debug(
-                "Instantiating default, unsecure custom half-async Threaded selector Thrift server");
+            log.debug("Instantiating unsecure custom half-async Thrift server");
             serverAddress = createNonBlockingServer(address, processor, protocolFactory, serverName,
                 numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
             break;
