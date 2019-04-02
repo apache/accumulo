@@ -151,8 +151,15 @@ struct NativeMap : public NativeMapData {
 
   void update(ColumnMap *cm, JNIEnv *env, jbyteArray cf, jbyteArray cq, jbyteArray cv, jlong ts, jboolean del, jbyteArray val, jint mutationCount){
 
+    // The following code will allocate memory from lba.  This must be done to
+    // copy data from java land.  However if the key already exist in the map,
+    // the memory will be returned to lba.
     SubKey sk(lba, env, cf, cq, cv, ts, del, mutationCount);
     //cout << "Updating " << sk.toString() << " " << sk.getTimestamp() << " " << sk.isDeleted() << endl;
+
+    // cm->lower_bound is called instead of cm-> insert because insert may
+    // allocte memory from lba even when nothing is inserted. Allocating memory
+    // form lba would interfer with sk.clear() below.
     ColumnMap::iterator lbi = cm->lower_bound(sk);
 
     if(lbi == cm->end() || sk < lbi->first) {
