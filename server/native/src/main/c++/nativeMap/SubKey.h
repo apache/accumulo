@@ -24,6 +24,8 @@ using namespace std;
 #ifndef __SUB_KEY__
 #define __SUB_KEY__
 
+// An Accumulo key minus the row, just the columns and timestamp.
+
 class SubKey {
 
   public:
