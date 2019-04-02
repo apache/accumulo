@@ -45,7 +45,7 @@
  * This allocator does not support deallocation, except in special circumstance
  * of deallocating the last thing added.  This supports the case of allocating
  * a key to see if it already exist in the map and then deallocating it when
- * its found it does not.
+ * its found it does exists.
  *
  * This allocator is not thread safe.
  */
