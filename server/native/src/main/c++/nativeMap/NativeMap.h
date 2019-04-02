@@ -151,23 +151,29 @@ struct NativeMap : public NativeMapData {
 
   void update(ColumnMap *cm, JNIEnv *env, jbyteArray cf, jbyteArray cq, jbyteArray cv, jlong ts, jboolean del, jbyteArray val, jint mutationCount){
 
+    // The following code will allocate memory from lba.  This must be done to
+    // copy data from java land.  However if the key already exist in the map,
+    // the memory will be returned to lba.
     SubKey sk(lba, env, cf, cq, cv, ts, del, mutationCount);
     //cout << "Updating " << sk.toString() << " " << sk.getTimestamp() << " " << sk.isDeleted() << endl;
-    //do not bother allocating value if not needed
-    Field value(NULL, 0);
 
-    pair<ColumnMap::iterator, bool> insertResult = cm->insert(pair<SubKey, Field>(sk, value));
-    if(insertResult.second){
-      insertResult.first->second  = Field(lba, env, val);
+    // cm->lower_bound is called instead of cm-> insert because insert may
+    // allocate memory from lba even when nothing is inserted. Allocating memory
+    // from lba would interfere with sk.clear() below.
+    ColumnMap::iterator lbi = cm->lower_bound(sk);
+
+    if(lbi == cm->end() || sk < lbi->first) {
+      Field value = Field(lba, env, val);
+      cm->insert(lbi, pair<SubKey, Field>(sk, value));
       count++;
-    }else{
+    } else {
       sk.clear(lba);
       int valLen =  env->GetArrayLength(val);
-      if(valLen <= insertResult.first->second.length()){
-        insertResult.first->second.set(env, val, valLen);
-      }else{
-        insertResult.first->second.clear();
-        insertResult.first->second  = Field(lba, env, val, valLen);
+      if(valLen <= lbi->second.length()){
+        lbi->second.set(env, val, valLen);
+      } else {
+        lbi->second.clear();
+        lbi->second  = Field(lba, env, val, valLen);
       }
     }
   }
@@ -175,20 +181,20 @@ struct NativeMap : public NativeMapData {
   void update(ColumnMap *cm, const char *cf, const char *cq, const char *cv, long ts, bool del, const char *val, int valLen, int mutationCount){
 
     SubKey sk(lba, cf, cq, cv, ts, del, mutationCount);
-    //do not bother allocating value if not needed
-    Field value(NULL, 0);
 
-    pair<ColumnMap::iterator, bool> insertResult = cm->insert(pair<SubKey, Field>(sk, value));
-    if(insertResult.second){
-      insertResult.first->second  = Field(lba, val);
+    ColumnMap::iterator lbi = cm->lower_bound(sk);
+
+    if(lbi == cm->end() || sk < lbi->first) {
+      Field value = Field(lba, val);
+      cm->insert(lbi, pair<SubKey, Field>(sk, value));
       count++;
-    }else{
+    } else {
       sk.clear(lba);
-      if(insertResult.first->second.length() <= valLen){
-        insertResult.first->second.set(val, valLen);
-      }else{
-        insertResult.first->second.clear();
-        insertResult.first->second  = Field(lba, val);
+      if(valLen <= lbi->second.length()){
+        lbi->second.set(val, valLen);
+      } else {
+        lbi->second.clear();
+        lbi->second  = Field(lba, val); //TODO ignores valLen
       }
     }
   }
