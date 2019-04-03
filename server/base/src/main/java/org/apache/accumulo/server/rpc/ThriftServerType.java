@@ -41,9 +41,8 @@ public enum ThriftServerType {
   }
 
   public static ThriftServerType get(String name) {
-    // Our custom HsHa server is the default (if none is provided)
     if (StringUtils.isBlank(name)) {
-      return CUSTOM_HS_HA;
+      return getDefault();
     }
     return ThriftServerType.valueOf(name.trim().toUpperCase());
   }
