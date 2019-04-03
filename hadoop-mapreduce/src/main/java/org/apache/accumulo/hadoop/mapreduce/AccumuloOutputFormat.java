@@ -46,8 +46,8 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
  *
  * <pre>
  * AccumuloOutputFormat.configure().clientProperties(props).batchWriterOptions(bwConfig)
- *     .defaultTable(name).createTables() // disabled by default
- *     .simulationMode() // disabled by default
+ *     .defaultTable(name).createTables(true) // disabled by default
+ *     .simulationMode(true) // disabled by default
  *     .store(job);
  * </pre>
  *
