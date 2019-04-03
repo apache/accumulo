@@ -43,7 +43,7 @@ public enum ThriftServerType {
   public static ThriftServerType get(String name) {
     // Our custom HsHa server is the default (if none is provided)
     if (StringUtils.isBlank(name)) {
-      return THREADED_SELECTOR;
+      return CUSTOM_HS_HA;
     }
     return ThriftServerType.valueOf(name.trim().toUpperCase());
   }
@@ -54,6 +54,6 @@ public enum ThriftServerType {
   }
 
   public static ThriftServerType getDefault() {
-    return THREADED_SELECTOR;
+    return CUSTOM_HS_HA;
   }
 }
