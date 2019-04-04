@@ -75,25 +75,35 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.constraints.NumericValueConstraint;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
-import org.junit.Assume;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 /**
- * Testing default namespace configuration with inheritance requires altering the system state and
- * restoring it back to normal. Punt on this for now and just let it use a minicluster.
+ * Test different namespace permissions
  */
 @Category(MiniClusterOnlyTests.class)
-public class NamespacesIT extends AccumuloClusterHarness {
+public class NamespacesIT extends SharedMiniClusterBase {
 
   private AccumuloClient c;
   private String namespace;
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterClass
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -102,8 +112,6 @@ public class NamespacesIT extends AccumuloClusterHarness {
 
   @Before
   public void setupConnectorAndNamespace() {
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
-
     // prepare a unique namespace and get a new root client for each test
     c = Accumulo.newClient().from(getClientProps()).build();
     namespace = "ns_" + getUniqueNames(1)[0];

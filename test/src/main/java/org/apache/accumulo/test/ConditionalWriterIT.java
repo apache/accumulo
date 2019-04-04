@@ -44,7 +44,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -87,7 +86,8 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.constraints.AlphaNumKeyConstraint;
@@ -100,15 +100,16 @@ import org.apache.hadoop.io.Text;
 import org.apache.htrace.Sampler;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
-import org.junit.Assume;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
-public class ConditionalWriterIT extends AccumuloClusterHarness {
+public class ConditionalWriterIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(ConditionalWriterIT.class);
 
   @Override
@@ -116,13 +117,24 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
     return 60;
   }
 
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    super.configureMiniCluster(cfg, hadoopCoreSite);
-    // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
-    Map<String,String> siteConf = cfg.getSiteConfig();
-    siteConf.put(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "tracer.span.min.ms", "0");
-    cfg.setSiteConfig(siteConf);
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig(new Callback());
+  }
+
+  @AfterClass
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  private static class Callback implements MiniClusterConfigurationCallback {
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
+      Map<String,String> siteConf = cfg.getSiteConfig();
+      siteConf.put(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "tracer.span.min.ms", "0");
+      cfg.setSiteConfig(siteConf);
+    }
   }
 
   public static long abs(long l) {
@@ -1527,11 +1539,9 @@ public class ConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testTrace() throws Exception {
     // Need to add a getClientConfig() to AccumuloCluster
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
     Process tracer = null;
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      AccumuloCluster cluster = getCluster();
-      MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) cluster;
+      MiniAccumuloClusterImpl mac = getCluster();
       if (!client.tableOperations().exists("trace")) {
         tracer = mac.exec(TraceServer.class).getProcess();
         while (!client.tableOperations().exists("trace")) {
