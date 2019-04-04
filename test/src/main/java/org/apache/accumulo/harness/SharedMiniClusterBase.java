@@ -41,7 +41,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Convenience class which starts a single MAC instance for a test to leverage.
+ * Integration-Test base class which starts one MAC for the entire Integration Test. This IT type is
+ * faster and more geared for testing typical, expected behavior of a cluster. For more advanced
+ * testing see {@link AccumuloClusterHarness}
  *
  * There isn't a good way to build this off of the {@link AccumuloClusterHarness} (as would be the
  * logical place) because we need to start the MiniAccumuloCluster in a static BeforeClass-annotated

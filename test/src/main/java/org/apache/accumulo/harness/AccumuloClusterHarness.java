@@ -57,8 +57,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * General Integration-Test base class that provides access to an Accumulo instance for testing.
- * This instance could be MAC or a standalone instance.
+ * Integration-Test base class that provides a MAC instance per test. WARNING: This IT type will
+ * setup and teardown an entire cluster for every test annotated with @Test and is reserved for more
+ * advanced ITs that do crazy things. For more typical, expected behavior of a cluster see
+ * {@link SharedMiniClusterBase}. This instance can be MAC or a standalone instance.
  */
 @Category(StandaloneCapableClusterTests.class)
 public abstract class AccumuloClusterHarness extends AccumuloITBase
