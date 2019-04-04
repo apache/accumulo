@@ -736,8 +736,6 @@ public class PermissionsIT extends AccumuloClusterHarness {
         // test for bulk import permission would go here
         break;
       case ALTER_TABLE:
-        Map<String,Set<Text>> groups = new HashMap<>();
-        groups.put("tgroup", new HashSet<>(Arrays.asList(new Text("t1"), new Text("t2"))));
         testArbitraryProperty(test_user_client, tableName, true);
         break;
       case DROP_TABLE:
