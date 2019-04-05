@@ -607,18 +607,18 @@ public class TServerUtils {
             serverAddress = createBlockingServer(address, processor, protocolFactory,
                 maxMessageSize, serverName, numThreads, numSTThreads, timeBetweenThreadChecks);
             break;
+          case THREADED_SELECTOR:
+            log.debug("Instantiating default, unsecure Threaded selector Thrift server");
+            serverAddress = createThreadedSelectorServer(address, processor, protocolFactory,
+                serverName, numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
+            break;
           case CUSTOM_HS_HA:
             log.debug("Instantiating unsecure custom half-async Thrift server");
             serverAddress = createNonBlockingServer(address, processor, protocolFactory, serverName,
                 numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
             break;
-          case THREADED_SELECTOR: // Intentional passthrough -- Our custom wrapper around threaded
-                                  // selector is the default
           default:
-            log.debug("Instantiating default, unsecure Threaded selector Thrift server");
-            serverAddress = createThreadedSelectorServer(address, processor, protocolFactory,
-                serverName, numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize);
-            break;
+            throw new IllegalArgumentException("Unknown server type " + serverType);
         }
         break;
       } catch (TTransportException e) {

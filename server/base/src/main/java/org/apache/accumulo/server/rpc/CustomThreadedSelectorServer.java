@@ -22,6 +22,7 @@ import java.net.Socket;
 import org.apache.thrift.server.TThreadedSelectorServer;
 import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TNonblockingTransport;
+import org.slf4j.LoggerFactory;
 
 public class CustomThreadedSelectorServer extends TThreadedSelectorServer {
 
@@ -50,17 +51,21 @@ public class CustomThreadedSelectorServer extends TThreadedSelectorServer {
   protected Runnable getRunnable(FrameBuffer frameBuffer) {
     return () -> {
 
-      TNonblockingTransport transport = getTransport(frameBuffer);
+      try {
+        TNonblockingTransport transport = getTransport(frameBuffer);
 
-      if (transport instanceof TNonblockingSocket) {
-        // This block of code makes the client address available to the server side code that
-        // executes a RPC. It is made available for informational purposes.
-        TNonblockingSocket tsock = (TNonblockingSocket) transport;
-        Socket sock = tsock.getSocketChannel().socket();
-        TServerUtils.clientAddress
-            .set(sock.getInetAddress().getHostAddress() + ":" + sock.getPort());
+        if (transport instanceof TNonblockingSocket) {
+          // This block of code makes the client address available to the server side code that
+          // executes a RPC. It is made available for informational purposes.
+          TNonblockingSocket tsock = (TNonblockingSocket) transport;
+          Socket sock = tsock.getSocketChannel().socket();
+          TServerUtils.clientAddress
+              .set(sock.getInetAddress().getHostAddress() + ":" + sock.getPort());
+        }
+      } catch (Exception e) {
+        LoggerFactory.getLogger(CustomThreadedSelectorServer.class)
+            .warn("Failed to get client address ", e);
       }
-
       frameBuffer.invoke();
     };
   }
