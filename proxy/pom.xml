@@ -20,7 +20,7 @@
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>1.9.3</version>
+    <version>1.9.4-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-proxy</artifactId>
   <name>Apache Accumulo Proxy</name>
