@@ -34,10 +34,5 @@ limitations under the License.
 ## Review
 
 - We welcome reviews from anyone. Any committer can approve and merge the changes.
-- Reviewers will be looking for things like threading issues, performance implications, API design, etc.
-- Reviewers will likely ask questions to better understand your change.
-- Reviewers will make comments about changes to your patch:
-    - MUST means that the change is required
-    - SHOULD means that the change is suggested, further discussion on the subject may be required
-    - COULD means that the change is optional
+- Reviewers will likely have questions and comments. They may use terms such as those in [RFC2119](https://tools.ietf.org/html/rfc2119).
 
