@@ -50,13 +50,16 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.functional.ConfigurableCompactionIT;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -64,11 +67,21 @@ import com.google.common.collect.ImmutableSet;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class UserCompactionStrategyIT extends AccumuloClusterHarness {
+public class UserCompactionStrategyIT extends SharedMiniClusterBase {
 
   @Override
   public int defaultTimeoutSeconds() {
     return 3 * 60;
+  }
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterClass
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @After
@@ -150,11 +163,7 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
   @Test
   public void testPerTableClasspath() throws Exception {
-    // Can't assume that a test-resource will be on the server's classpath
-    Assume.assumeTrue(getClusterType() == ClusterType.MINI);
-
     // test per-table classpath + user specified compaction strategy
-
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       File target = new File(System.getProperty("user.dir"), "target");

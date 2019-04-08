@@ -82,10 +82,13 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.hadoop.io.Text;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -94,7 +97,17 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-public class SummaryIT extends AccumuloClusterHarness {
+public class SummaryIT extends SharedMiniClusterBase {
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterClass
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   private LongSummaryStatistics getTimestampStats(final String table, AccumuloClient c)
       throws TableNotFoundException {

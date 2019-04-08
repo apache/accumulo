@@ -36,6 +36,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -43,22 +45,26 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class CreateInitialSplitsIT extends AccumuloClusterHarness {
+public class CreateInitialSplitsIT extends SharedMiniClusterBase {
 
   private AccumuloClient client;
   private String tableName;
 
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
-    cfg.setMemory(ServerType.TABLET_SERVER, 128 * 4, MemoryUnit.MEGABYTE);
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
 
-    // use raw local file system
-    conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
+  @AfterClass
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @Override

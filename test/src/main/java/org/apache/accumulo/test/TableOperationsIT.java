@@ -59,20 +59,38 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.MemoryUnit;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
 
-public class TableOperationsIT extends AccumuloClusterHarness {
+public class TableOperationsIT extends SharedMiniClusterBase {
 
   static TabletClientService.Client client;
   private AccumuloClient accumuloClient;
 
+  @BeforeClass
+  public static void setupIT() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterClass
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
   @Override
   public int defaultTimeoutSeconds() {
     return 30;
