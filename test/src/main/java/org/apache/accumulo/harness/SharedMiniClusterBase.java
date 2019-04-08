@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.TablePermission;
@@ -213,5 +214,17 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
     } else {
       return krb.getClientPrincipal(offset);
     }
+  }
+
+  public static ClientInfo getClientInfo() {
+    return ClientInfo.from(cluster.getClientProperties());
+  }
+
+  public static boolean saslEnabled() {
+    return getClientInfo().saslEnabled();
+  }
+
+  public static String getAdminPrincipal() {
+    return cluster.getConfig().getRootUserName();
   }
 }

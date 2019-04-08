@@ -58,7 +58,8 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -69,7 +70,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.Text;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -83,14 +86,26 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *
  * @since 2.0
  */
-public class BulkLoadIT extends AccumuloClusterHarness {
+public class BulkLoadIT extends SharedMiniClusterBase {
 
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
-    cfg.setMemory(ServerType.TABLET_SERVER, 128 * 4, MemoryUnit.MEGABYTE);
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig(new Callback());
+  }
 
-    // use raw local file system
-    conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
+  @AfterClass
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  private static class Callback implements MiniClusterConfigurationCallback {
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
+      cfg.setMemory(ServerType.TABLET_SERVER, 128 * 4, MemoryUnit.MEGABYTE);
+
+      // use raw local file system
+      conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
+    }
   }
 
   @Override
@@ -110,7 +125,7 @@ public class BulkLoadIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       aconf = getCluster().getServerContext().getConfiguration();
       fs = getCluster().getFileSystem();
-      rootPath = cluster.getTemporaryPath().toString();
+      rootPath = getCluster().getTemporaryPath().toString();
     }
   }
 
