@@ -34,5 +34,5 @@ limitations under the License.
 ## Review
 
 - We welcome reviews from anyone. Any committer can approve and merge the changes.
-- Reviewers will likely ask questions to better understand your change and follow these [guidelines](https://tools.ietf.org/html/rfc2119).
+- Reviewers will likely have questions and comments. They may use terms such as those in [RFC2119](https://tools.ietf.org/html/rfc2119).
 
