@@ -90,6 +90,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
   private String secret;
 
+  // when true, multiple tables, multiple compactions will be used during run.
+  private boolean runMultipleCompactions = false;
+
   @Before
   public void setup() {
 
@@ -204,6 +207,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     Instance instance = connector.getInstance();
     String tableId;
 
+    runMultipleCompactions();
+
     try {
 
       assertEquals("verify table online after created", TableState.ONLINE,
@@ -220,7 +225,15 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     Future<?> compactTask = startCompactTask();
 
-    assertTrue("compaction fate transaction exits", findFate(tableName));
+    try {
+
+      assertTrue("compaction fate transaction exits", findFate(tableName));
+
+    } catch (KeeperException ex) {
+      String msg = "Failing test with possible transient zookeeper exception, no node";
+      log.debug("{}", msg, ex);
+      fail(msg);
+    }
 
     AdminUtil.FateStatus withLocks = null;
     List<AdminUtil.TransactionStatus> noLocks = null;
@@ -303,6 +316,32 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   }
 
   /**
+   * Helper method for testing findFate refactor - creates multiple tables and launches compactions
+   * so that more that 1 FATE compaction operation is running during the test.
+   */
+  private void runMultipleCompactions() {
+
+    if (!runMultipleCompactions) {
+      return;
+    }
+
+    for (int i = 0; i < 4; i++) {
+
+      String aTableName = getUniqueNames(1)[0] + "_" + i;
+
+      createData(aTableName);
+
+      log.debug("Table: {}", aTableName);
+
+      pool.submit(new SlowCompactionRunner(aTableName));
+
+      assertTrue("verify that compaction running and fate transaction exists",
+          blockUntilCompactionRunning(aTableName));
+
+    }
+  }
+
+  /**
    * Create and run a slow running compaction task. The method will block until the compaction has
    * been started.
    *
@@ -322,25 +361,38 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    */
   private boolean blockUntilCompactionRunning(final String tableName) {
 
-    int runningCompactions = 0;
+    long maxWait = defaultTimeoutSeconds() <= 0 ? 60_000 : ((defaultTimeoutSeconds() * 1000) / 2);
+
+    long startWait = System.currentTimeMillis();
 
     List<String> tservers = connector.instanceOperations().getTabletServers();
 
     /*
-     * wait for compaction to start - The compaction will acquire a fate transaction lock that used
-     * to block a subsequent online command while the fate transaction lock was held.
+     * wait for compaction to start on table - The compaction will acquire a fate transaction lock
+     * that used to block a subsequent online command while the fate transaction lock was held.
      */
-    while (runningCompactions == 0) {
+    while (System.currentTimeMillis() < (startWait + maxWait)) {
 
       try {
+
+        int runningCompactions = 0;
 
         for (String tserver : tservers) {
           runningCompactions += connector.instanceOperations().getActiveCompactions(tserver).size();
           log.trace("tserver {}, running compactions {}", tservers, runningCompactions);
         }
 
+        if (runningCompactions > 0) {
+          // Validate that there is a compaction fate transaction - otherwise test is invalid.
+          if (findFate(tableName)) {
+            return true;
+          }
+        }
+
       } catch (AccumuloSecurityException | AccumuloException ex) {
         throw new IllegalStateException("failed to get active compactions, test fails.", ex);
+      } catch (KeeperException ex) {
+        log.trace("Saw possible transient zookeeper error");
       }
 
       try {
@@ -351,8 +403,11 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       }
     }
 
-    // Validate that there is a compaction fate transaction - otherwise test is invalid.
-    return findFate(tableName);
+    log.debug("Could not find compaction for {} after {} seconds", tableName,
+        TimeUnit.MILLISECONDS.toSeconds(maxWait));
+
+    return false;
+
   }
 
   /**
@@ -360,9 +415,17 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    * check that the test will be valid because the running compaction does have a fate transaction
    * lock.
    *
+   * This method throws can throw either IllegalStateException (failed) or a Zookeeper exception.
+   * Throwing the Zookeeper exception allows for retries if desired to handle transient zookeeper
+   * issues.
+   *
+   * @param tableName
+   *          a table name
    * @return true if corresponding fate transaction found, false otherwise
+   * @throws KeeperException
+   *           if a zookeeper error occurred - allows for retries.
    */
-  private boolean findFate(final String tableName) {
+  private boolean findFate(final String tableName) throws KeeperException {
 
     Instance instance = connector.getInstance();
     AdminUtil<String> admin = new AdminUtil<>(false);
@@ -387,7 +450,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
           return true;
       }
 
-    } catch (KeeperException | TableNotFoundException | InterruptedException ex) {
+    } catch (TableNotFoundException | InterruptedException ex) {
       throw new IllegalStateException(ex);
     }
 
