@@ -46,7 +46,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 /**
- * Tests old bulk import technique. For new bulk import see {@link BulkFileIT}
+ * Tests old bulk import technique. For new bulk import see {@link BulkLoadIT}
  */
 public class BulkFileIT extends AccumuloClusterHarness {
 
