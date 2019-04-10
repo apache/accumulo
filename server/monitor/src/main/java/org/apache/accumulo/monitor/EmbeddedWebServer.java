@@ -39,11 +39,11 @@ public class EmbeddedWebServer {
   private final ServerConnector connector;
   private final ServletContextHandler handler;
 
-  public EmbeddedWebServer(String host, int port) {
+  public EmbeddedWebServer(Monitor monitor, int port) {
     server = new Server();
-    final AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
+    final AccumuloConfiguration conf = monitor.getContext().getConfiguration();
     connector = new ServerConnector(server, getConnectionFactories(conf));
-    connector.setHost(host);
+    connector.setHost(monitor.getContext().getHostname());
     connector.setPort(port);
 
     handler = new ServletContextHandler(

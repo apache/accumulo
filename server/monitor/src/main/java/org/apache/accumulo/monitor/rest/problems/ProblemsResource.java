@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.ws.rs.Consumes;
@@ -54,6 +55,9 @@ import org.slf4j.LoggerFactory;
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class ProblemsResource {
 
+  @Inject
+  private Monitor monitor;
+
   /**
    * Generates a list with the problem summary
    *
@@ -65,8 +69,8 @@ public class ProblemsResource {
 
     ProblemSummary problems = new ProblemSummary();
 
-    if (Monitor.getProblemException() == null) {
-      for (Entry<TableId,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary().entrySet()) {
+    if (monitor.getProblemException() == null) {
+      for (Entry<TableId,Map<ProblemType,Integer>> entry : monitor.getProblemSummary().entrySet()) {
         Integer readCount = null, writeCount = null, loadCount = null;
 
         for (ProblemType pt : ProblemType.values()) {
@@ -80,7 +84,7 @@ public class ProblemsResource {
           }
         }
 
-        String tableName = Tables.getPrintableTableInfoFromId(Monitor.getContext(), entry.getKey());
+        String tableName = Tables.getPrintableTableInfoFromId(monitor.getContext(), entry.getKey());
 
         problems.addProblemSummary(new ProblemSummaryInformation(tableName, entry.getKey(),
             readCount, writeCount, loadCount));
@@ -102,7 +106,7 @@ public class ProblemsResource {
       @QueryParam("s") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
-      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReports(TableId.of(tableID));
+      ProblemReports.getInstance(monitor.getContext()).deleteProblemReports(TableId.of(tableID));
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table "
           + (StringUtils.isEmpty(tableID) ? StringUtils.EMPTY : sanitize(tableID)), e);
@@ -120,16 +124,17 @@ public class ProblemsResource {
 
     ProblemDetail problems = new ProblemDetail();
 
-    if (Monitor.getProblemException() == null) {
-      for (Entry<TableId,Map<ProblemType,Integer>> entry : Monitor.getProblemSummary().entrySet()) {
+    if (monitor.getProblemException() == null) {
+      for (Entry<TableId,Map<ProblemType,Integer>> entry : monitor.getProblemSummary().entrySet()) {
         ArrayList<ProblemReport> problemReports = new ArrayList<>();
         Iterator<ProblemReport> iter = entry.getKey() == null
-            ? ProblemReports.getInstance(Monitor.getContext()).iterator()
-            : ProblemReports.getInstance(Monitor.getContext()).iterator(entry.getKey());
-        while (iter.hasNext())
+            ? ProblemReports.getInstance(monitor.getContext()).iterator()
+            : ProblemReports.getInstance(monitor.getContext()).iterator(entry.getKey());
+        while (iter.hasNext()) {
           problemReports.add(iter.next());
+        }
         for (ProblemReport pr : problemReports) {
-          String tableName = Tables.getPrintableTableInfoFromId(Monitor.getContext(),
+          String tableName = Tables.getPrintableTableInfoFromId(monitor.getContext(),
               pr.getTableId());
 
           problems.addProblemDetail(
@@ -160,7 +165,7 @@ public class ProblemsResource {
       @QueryParam("ptype") @NotNull @Pattern(regexp = PROBLEM_TYPE_REGEX) String ptype) {
     Logger log = LoggerFactory.getLogger(Monitor.class);
     try {
-      ProblemReports.getInstance(Monitor.getContext()).deleteProblemReport(TableId.of(tableID),
+      ProblemReports.getInstance(monitor.getContext()).deleteProblemReport(TableId.of(tableID),
           ProblemType.valueOf(ptype), resource);
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table "
@@ -179,7 +184,7 @@ public class ProblemsResource {
   @GET
   @Path("exception")
   public Exception getException() {
-    return Monitor.getProblemException();
+    return monitor.getProblemException();
   }
 
 }

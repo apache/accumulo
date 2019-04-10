@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -66,6 +67,9 @@ import org.slf4j.LoggerFactory;
 public class ReplicationResource {
   private static final Logger log = LoggerFactory.getLogger(ReplicationResource.class);
 
+  @Inject
+  private Monitor monitor;
+
   /**
    * Generates the replication table as a JSON object
    *
@@ -74,7 +78,7 @@ public class ReplicationResource {
   @GET
   public List<ReplicationInformation> getReplicationInformation()
       throws AccumuloException, AccumuloSecurityException {
-    final AccumuloClient client = Monitor.getContext();
+    final AccumuloClient client = monitor.getContext();
 
     final TableOperations tops = client.tableOperations();
 
@@ -93,7 +97,7 @@ public class ReplicationResource {
         String peerName = property.getKey().substring(definedPeersPrefix.length());
         ReplicaSystem replica;
         try {
-          replica = replicaSystemFactory.get(Monitor.getContext(), property.getValue());
+          replica = replicaSystemFactory.get(monitor.getContext(), property.getValue());
         } catch (Exception e) {
           log.warn("Could not instantiate ReplicaSystem for {} with configuration {}",
               property.getKey(), property.getValue(), e);
@@ -112,7 +116,7 @@ public class ReplicationResource {
     // Number of files per target we have to replicate
     Map<ReplicationTarget,Long> targetCounts = new HashMap<>();
 
-    Map<String,TableId> tableNameToId = Tables.getNameToIdMap(Monitor.getContext());
+    Map<String,TableId> tableNameToId = Tables.getNameToIdMap(monitor.getContext());
     Map<TableId,String> tableIdToName = invert(tableNameToId);
 
     for (String table : tops.list()) {

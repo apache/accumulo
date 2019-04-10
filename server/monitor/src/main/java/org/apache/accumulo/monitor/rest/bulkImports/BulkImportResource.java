@@ -18,6 +18,7 @@ package org.apache.accumulo.monitor.rest.bulkImports;
 
 import java.util.List;
 
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -37,6 +38,9 @@ import org.apache.accumulo.monitor.Monitor;
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class BulkImportResource {
 
+  @Inject
+  private Monitor monitor;
+
   /**
    * Generates bulk import and tserver bulk imports with the information from the Monitor
    *
@@ -48,13 +52,13 @@ public class BulkImportResource {
     BulkImport bulkImport = new BulkImport();
 
     // Generating Bulk Import and adding it to the return object
-    for (BulkImportStatus bulk : Monitor.getMmi().bulkImports) {
+    for (BulkImportStatus bulk : monitor.getMmi().bulkImports) {
       bulkImport
           .addBulkImport(new BulkImportInformation(bulk.filename, bulk.startTime, bulk.state));
     }
 
     // Generating TServer Bulk Import and adding it to the return object
-    for (TabletServerStatus tserverInfo : Monitor.getMmi().getTServerInfo()) {
+    for (TabletServerStatus tserverInfo : monitor.getMmi().getTServerInfo()) {
       int size = 0;
       long oldest = 0L;
 

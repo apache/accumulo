@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.inject.Inject;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
@@ -67,6 +68,9 @@ public class WebViews {
 
   private static final Logger log = LoggerFactory.getLogger(WebViews.class);
 
+  @Inject
+  private Monitor monitor;
+
   /**
    * Get HTML for external CSS and JS resources from configuration. See ACCUMULO-4739
    *
@@ -74,10 +78,11 @@ public class WebViews {
    *          map of the MVC model
    */
   private void addExternalResources(Map<String,Object> model) {
-    AccumuloConfiguration conf = Monitor.getContext().getConfiguration();
+    AccumuloConfiguration conf = monitor.getContext().getConfiguration();
     String resourcesProperty = conf.get(Property.MONITOR_RESOURCES_EXTERNAL);
-    if (isEmpty(resourcesProperty))
+    if (isEmpty(resourcesProperty)) {
       return;
+    }
     List<String> monitorResources = new ArrayList<>();
     ObjectMapper objectMapper = new ObjectMapper();
     try {
@@ -98,8 +103,8 @@ public class WebViews {
 
     Map<String,Object> model = new HashMap<>();
     model.put("version", Constants.VERSION);
-    model.put("instance_name", Monitor.cachedInstanceName.get());
-    model.put("instance_id", Monitor.getContext().getInstanceID());
+    model.put("instance_name", monitor.getContext().getInstanceName());
+    model.put("instance_id", monitor.getContext().getInstanceID());
     addExternalResources(model);
     return model;
   }
@@ -293,7 +298,7 @@ public class WebViews {
       @PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID)
       throws TableNotFoundException {
 
-    String tableName = Tables.getTableName(Monitor.getContext(), TableId.of(tableID));
+    String tableName = Tables.getTableName(monitor.getContext(), TableId.of(tableID));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");

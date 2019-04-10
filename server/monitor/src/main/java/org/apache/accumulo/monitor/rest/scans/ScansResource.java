@@ -18,6 +18,7 @@ package org.apache.accumulo.monitor.rest.scans;
 
 import java.util.Map;
 
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -37,6 +38,9 @@ import org.apache.accumulo.monitor.Monitor.ScanStats;
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class ScansResource {
 
+  @Inject
+  private Monitor monitor;
+
   /**
    * Generates a new JSON object with scan information
    *
@@ -47,10 +51,10 @@ public class ScansResource {
 
     Scans scans = new Scans();
 
-    Map<HostAndPort,ScanStats> entry = Monitor.getScans();
+    Map<HostAndPort,ScanStats> entry = monitor.getScans();
 
     // Adds new scans to the array
-    for (TabletServerStatus tserverInfo : Monitor.getMmi().getTServerInfo()) {
+    for (TabletServerStatus tserverInfo : monitor.getMmi().getTServerInfo()) {
       ScanStats stats = entry.get(HostAndPort.fromString(tserverInfo.name));
       if (stats != null) {
         scans.addScan(new ScanInformation(tserverInfo, stats.scanCount, stats.oldestScan));
