@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -61,6 +62,8 @@ public class ConfiguratorBase {
   public enum ConnectorInfo {
     IS_CONFIGURED, PRINCIPAL, TOKEN
   }
+
+  public static final String cachedFileName = "tokenfile";
 
   public enum TokenSource {
     FILE, INLINE, JOB;
@@ -189,7 +192,7 @@ public class ConfiguratorBase {
     checkArgument(tokenFile != null, "tokenFile is null");
 
     try {
-      DistributedCacheHelper.addCacheFile(new URI(tokenFile), conf);
+      DistributedCacheHelper.addCacheFile(new URI(tokenFile + "#" + cachedFileName), conf);
     } catch (URISyntaxException e) {
       throw new IllegalStateException(
           "Unable to add tokenFile \"" + tokenFile + "\" to distributed cache.");
@@ -284,16 +287,17 @@ public class ConfiguratorBase {
       String tokenFile) {
     FSDataInputStream in = null;
     try {
-      URI[] uris = DistributedCacheHelper.getCacheFiles(conf);
-      Path path = null;
-      for (URI u : uris) {
-        if (u.toString().equals(tokenFile)) {
-          path = new Path(u);
-        }
+      Path path;
+      // See if the "tokenfile" symlink was created and try to open the file it points to by it.
+      File tempFile = new File(ConfiguratorBase.cachedFileName);
+      if (tempFile.exists()) {
+        path = new Path(ConfiguratorBase.cachedFileName);
+      } else {
+        path = new Path(tokenFile);
       }
       if (path == null) {
-        throw new IllegalArgumentException(
-            "Couldn't find password file called \"" + tokenFile + "\" in cache.");
+        throw new IllegalArgumentException("Couldn't find password file called \"" + tokenFile
+            + "\" in the distributed cache or the specified path in the distributed filesystem.");
       }
       FileSystem fs = FileSystem.get(conf);
       in = fs.open(path);

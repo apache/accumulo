@@ -41,5 +41,4 @@ public class DistributedCacheHelper {
   public static URI[] getCacheFiles(Configuration conf) throws IOException {
     return org.apache.hadoop.filecache.DistributedCache.getCacheFiles(conf);
   }
-
 }

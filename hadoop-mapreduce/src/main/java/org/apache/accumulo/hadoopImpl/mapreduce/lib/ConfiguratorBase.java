@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -43,6 +44,8 @@ public class ConfiguratorBase {
     CLIENT_PROPS, CLIENT_PROPS_FILE, IS_CONFIGURED, STORE_JOB_CALLED
   }
 
+  public static final String clientPropsFileName = "propsfile";
+
   /**
    * Configuration keys for general configuration options.
    *
@@ -62,6 +65,7 @@ public class ConfiguratorBase {
    * @return the configuration key
    * @since 1.6.0
    */
+
   protected static String enumToConfKey(Class<?> implementingClass, Enum<?> e) {
     return implementingClass.getSimpleName() + "." + e.getDeclaringClass().getSimpleName() + "."
         + StringUtils.camelize(e.name().toLowerCase());
@@ -83,7 +87,8 @@ public class ConfiguratorBase {
       Properties props, String clientPropsPath) {
     if (clientPropsPath != null) {
       try {
-        DistributedCacheHelper.addCacheFile(new URI(clientPropsPath), conf);
+        DistributedCacheHelper.addCacheFile(new URI(clientPropsPath + "#" + clientPropsFileName),
+            conf);
       } catch (URISyntaxException e) {
         throw new IllegalStateException("Unable to add client properties file \"" + clientPropsPath
             + "\" to distributed cache.");
@@ -107,13 +112,18 @@ public class ConfiguratorBase {
         conf.get(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS_FILE), "");
     if (!clientPropsFile.isEmpty()) {
       try {
-        URI[] uris = DistributedCacheHelper.getCacheFiles(conf);
-        Path path = null;
-        for (URI u : uris) {
-          if (u.toString().equals(clientPropsFile)) {
-            path = new Path(u);
-          }
+        Path path;
+        // See if the "propsfile" symlink was created and try to open the file it points to by it.
+        File tempFile = new File(ConfiguratorBase.clientPropsFileName);
+        if (tempFile.exists()) {
+          path = new Path(ConfiguratorBase.clientPropsFileName);
+        } else {
+          path = new Path(clientPropsFile);
         }
+
+        if (path == null)
+          throw new IllegalStateException("Could not initialize properties file");
+
         FileSystem fs = FileSystem.get(conf);
         FSDataInputStream inputStream = fs.open(path);
         StringBuilder sb = new StringBuilder();

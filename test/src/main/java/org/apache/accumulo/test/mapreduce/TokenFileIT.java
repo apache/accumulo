@@ -24,8 +24,13 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -34,6 +39,7 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Credentials;
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -84,6 +90,29 @@ public class TokenFileIT extends AccumuloClusterHarness {
         m.put("", "", Integer.toString(count));
         context.write(new Text(), m);
       }
+
+      @Override
+      protected void setup(Context context) throws IOException, InterruptedException {
+        if (context.getCacheFiles() != null && context.getCacheFiles().length > 0) {
+          // At this point in the MapReduce Job you can get the cached files in HDFS if you want
+          URI[] cachedFiles = context.getCacheFiles();
+          // On the line below we access the file by the hdfs fragment name created during caching
+          // in ConfiguratorBase
+          String fileByPsuedonym = "";
+          fileByPsuedonym = getFileContents(ConfiguratorBase.cachedFileName);
+
+          assertTrue(!fileByPsuedonym.isEmpty());
+          assertTrue(cachedFiles.length > 0);
+        }
+        super.setup(context);
+      }
+
+      private String getFileContents(String filename) throws IOException {
+
+        Path filePath = Paths.get(filename);
+        return Files.lines(filePath).collect(Collectors.joining(System.lineSeparator()));
+      }
+
     }
 
     @Override
@@ -139,7 +168,6 @@ public class TokenFileIT extends AccumuloClusterHarness {
         return 1;
       }
     }
-
   }
 
   @Rule
