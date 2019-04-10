@@ -233,8 +233,8 @@ public class Monitor implements Runnable, HighlyAvailableService {
       return;
     }
 
-    // begin fetch or return if another thread was already fetching
-    if (fetching.getAndSet(true)) {
+    // try to begin fetching; return if unsuccessful (because another thread is already fetching)
+    if (!fetching.compareAndSet(false, true)) {
       return;
     }
 
@@ -354,7 +354,10 @@ public class Monitor implements Runnable, HighlyAvailableService {
 
     } finally {
       lastRecalc.set(currentTime);
-      fetching.set(false);
+      // stop fetching; log an error if this thread wasn't already fetching
+      if (!fetching.compareAndSet(true, false)) {
+        throw new AssertionError("Not supposed to happen; somebody broke this code");
+      }
     }
   }
 
