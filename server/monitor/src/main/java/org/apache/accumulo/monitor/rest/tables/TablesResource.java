@@ -25,6 +25,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.ws.rs.GET;
@@ -61,6 +62,9 @@ import org.apache.hadoop.io.Text;
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class TablesResource {
 
+  @Inject
+  private Monitor monitor;
+
   private static final TabletServerStatus NO_STATUS = new TabletServerStatus();
 
   /**
@@ -69,20 +73,25 @@ public class TablesResource {
    * @return list with all tables
    */
   @GET
-  public static TableInformationList getTables() {
+  public TableInformationList getTables() {
+    return getTables(monitor);
+  }
 
+  public static TableInformationList getTables(Monitor monitor) {
     TableInformationList tableList = new TableInformationList();
     SortedMap<TableId,TableInfo> tableStats = new TreeMap<>();
 
-    if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
-      for (Map.Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
+    if (monitor.getMmi() != null && monitor.getMmi().tableMap != null) {
+      for (Map.Entry<String,TableInfo> te : monitor.getMmi().tableMap.entrySet()) {
         tableStats.put(TableId.of(te.getKey()), te.getValue());
+      }
+    }
 
-    Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(Monitor.getMmi());
-    TableManager tableManager = Monitor.getContext().getTableManager();
+    Map<String,Double> compactingByTable = TableInfoUtil.summarizeTableStats(monitor.getMmi());
+    TableManager tableManager = monitor.getContext().getTableManager();
 
     // Add tables to the list
-    for (Map.Entry<String,TableId> entry : Tables.getNameToIdMap(Monitor.getContext()).entrySet()) {
+    for (Map.Entry<String,TableId> entry : Tables.getNameToIdMap(monitor.getContext()).entrySet()) {
       String tableName = entry.getKey();
       TableId tableId = entry.getValue();
       TableInfo tableInfo = tableStats.get(tableId);
@@ -90,8 +99,9 @@ public class TablesResource {
 
       if (tableInfo != null && !tableState.equals(TableState.OFFLINE)) {
         Double holdTime = compactingByTable.get(tableId.canonical());
-        if (holdTime == null)
+        if (holdTime == null) {
           holdTime = 0.;
+        }
 
         tableList.addTable(
             new TableInformation(tableName, tableId, tableInfo, holdTime, tableState.name()));
@@ -113,10 +123,10 @@ public class TablesResource {
   @GET
   public TabletServers getParticipatingTabletServers(@PathParam("tableId") @NotNull @Pattern(
       regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) {
-    String rootTabletLocation = Monitor.getContext().getRootTabletLocation();
+    String rootTabletLocation = monitor.getContext().getRootTabletLocation();
     TableId tableId = TableId.of(tableIdStr);
 
-    TabletServers tabletServers = new TabletServers(Monitor.getMmi().tServerInfo.size());
+    TabletServers tabletServers = new TabletServers(monitor.getMmi().tServerInfo.size());
 
     if (StringUtils.isBlank(tableIdStr)) {
       return tabletServers;
@@ -128,7 +138,7 @@ public class TablesResource {
     } else {
       String systemTableName = MetadataTable.ID.equals(tableId) ? RootTable.NAME
           : MetadataTable.NAME;
-      MetaDataTableScanner scanner = new MetaDataTableScanner(Monitor.getContext(),
+      MetaDataTableScanner scanner = new MetaDataTableScanner(monitor.getContext(),
           new Range(TabletsSection.getRow(tableId, new Text()),
               TabletsSection.getRow(tableId, null)),
           systemTableName);
@@ -148,11 +158,12 @@ public class TablesResource {
     }
 
     List<TabletServerStatus> tservers = new ArrayList<>();
-    if (Monitor.getMmi() != null) {
-      for (TabletServerStatus tss : Monitor.getMmi().tServerInfo) {
+    if (monitor.getMmi() != null) {
+      for (TabletServerStatus tss : monitor.getMmi().tServerInfo) {
         try {
-          if (tss.name != null && locs.contains(tss.name))
+          if (tss.name != null && locs.contains(tss.name)) {
             tservers.add(tss);
+          }
         } catch (Exception ex) {
           return tabletServers;
         }
@@ -161,16 +172,19 @@ public class TablesResource {
 
     // Adds tservers to the list
     for (TabletServerStatus status : tservers) {
-      if (status == null)
+      if (status == null) {
         status = NO_STATUS;
+      }
       TableInfo summary = TableInfoUtil.summarizeTableStats(status);
-      if (tableId != null)
+      if (tableId != null) {
         summary = status.tableMap.get(tableId.canonical());
-      if (summary == null)
+      }
+      if (summary == null) {
         continue;
+      }
 
       TabletServer tabletServerInfo = new TabletServer();
-      tabletServerInfo.updateTabletServerInfo(status, summary);
+      tabletServerInfo.server.updateTabletServerInfo(monitor, status, summary);
 
       tabletServers.addTablet(tabletServerInfo);
     }

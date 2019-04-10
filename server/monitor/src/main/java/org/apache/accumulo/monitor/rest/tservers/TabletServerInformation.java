@@ -95,9 +95,9 @@ public class TabletServerInformation {
    * @param thriftStatus
    *          Thrift status to obtain information
    */
-  public TabletServerInformation(TabletServerStatus thriftStatus) {
+  public TabletServerInformation(Monitor monitor, TabletServerStatus thriftStatus) {
     TableInfo summary = TableInfoUtil.summarizeTableStats(thriftStatus);
-    updateTabletServerInfo(thriftStatus, summary);
+    updateTabletServerInfo(monitor, thriftStatus, summary);
   }
 
   /**
@@ -108,7 +108,8 @@ public class TabletServerInformation {
    * @param summary
    *          Table info summary
    */
-  public void updateTabletServerInfo(TabletServerStatus thriftStatus, TableInfo summary) {
+  public void updateTabletServerInfo(Monitor monitor, TabletServerStatus thriftStatus,
+      TableInfo summary) {
 
     long now = System.currentTimeMillis();
 
@@ -159,7 +160,7 @@ public class TabletServerInformation {
     this.ingestMB = cleanNumber(summary.ingestByteRate);
     this.queryMB = cleanNumber(summary.queryByteRate);
 
-    this.scansessions = Monitor.getLookupRate();
+    this.scansessions = monitor.getLookupRate();
     this.scanssessions = this.scansessions; // For backwards compatibility
 
     this.logRecoveries = new ArrayList<>(thriftStatus.logSorts.size());

@@ -26,8 +26,10 @@ import org.apache.accumulo.core.master.thrift.Compacting;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.tables.CompactionsTypes;
 import org.apache.accumulo.monitor.rest.trace.RecoveryStatusInformation;
+import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class TabletServerInformationTest {
@@ -66,7 +68,9 @@ public class TabletServerInformationTest {
     ts.setTableMap(Collections.singletonMap("tableId0", tableInfo));
     ts.setVersion("testVersion");
 
-    TabletServerInformation tsi = new TabletServerInformation(ts);
+    Monitor monitor = EasyMock.createMock(Monitor.class);
+
+    TabletServerInformation tsi = new TabletServerInformation(monitor, ts);
 
     assertEquals("tServerTestName:1234", tsi.server);
     assertEquals("tServerTestName:1234", tsi.hostname);

@@ -16,8 +16,8 @@
  */
 package org.apache.accumulo.monitor.rest.tservers;
 
-import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.monitor.Monitor;
 
 /**
  * To use for XML Resource
@@ -27,19 +27,18 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 public class TabletServer {
 
   // Variable names become JSON keys
-  public TabletServerInformation server = new TabletServerInformation();
+  public final TabletServerInformation server;
 
-  public TabletServer() {}
+  public TabletServer() {
+    server = new TabletServerInformation();
+  }
 
   public TabletServer(TabletServerInformation server) {
     this.server = server;
   }
 
-  public TabletServer(TabletServerStatus status) {
-    server = new TabletServerInformation(status);
+  public TabletServer(Monitor monitor, TabletServerStatus status) {
+    server = new TabletServerInformation(monitor, status);
   }
 
-  public void updateTabletServerInfo(TabletServerStatus status, TableInfo summary) {
-    server.updateTabletServerInfo(status, summary);
-  }
 }

@@ -26,6 +26,7 @@ import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Application;
@@ -38,6 +39,7 @@ import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.monitor.Monitor;
+import org.apache.accumulo.monitor.Monitor.MonitorFactory;
 import org.apache.accumulo.monitor.view.WebViews;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.MonitorTests;
@@ -46,6 +48,8 @@ import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.glassfish.jersey.test.TestProperties;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -66,6 +70,7 @@ public class WebViewsIT extends JerseyTest {
     enable(TestProperties.LOG_TRAFFIC);
     enable(TestProperties.DUMP_ENTITY);
     ResourceConfig config = new ResourceConfig(WebViews.class);
+    config.register(new MonitorFactory(monitor.get()));
     config.register(WebViewsIT.HashMapWriter.class);
     return config;
   }
@@ -74,6 +79,28 @@ public class WebViewsIT extends JerseyTest {
   protected void configureClient(ClientConfig config) {
     super.configureClient(config);
     config.register(WebViewsIT.HashMapWriter.class);
+  }
+
+  private static AtomicReference<Monitor> monitor = new AtomicReference<>(null);
+
+  @BeforeClass
+  public static void createMocks() {
+    ServerContext contextMock = EasyMock.createMock(ServerContext.class);
+    expect(contextMock.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    expect(contextMock.getInstanceID()).andReturn("foo").atLeastOnce();
+    expect(contextMock.getInstanceName()).andReturn("foo").anyTimes();
+
+    Monitor monitorMock = EasyMock.createMock(Monitor.class);
+    expect(monitorMock.getContext()).andReturn(contextMock).anyTimes();
+
+    EasyMock.replay(contextMock, monitorMock);
+    monitor.set(monitorMock);
+  }
+
+  @AfterClass
+  public static void finishMocks() {
+    Monitor m = monitor.get();
+    verify(m.getContext(), m);
   }
 
   /**
@@ -100,17 +127,9 @@ public class WebViewsIT extends JerseyTest {
    */
   @Test
   public void testGetTablesConstraintPassing() throws Exception {
-    ServerContext contextMock = EasyMock.createMock(ServerContext.class);
-    expect(contextMock.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
-    expect(contextMock.getInstanceID()).andReturn("foo").atLeastOnce();
-
-    PowerMock.mockStatic(Monitor.class);
-    expect(Monitor.getContext()).andReturn(contextMock).anyTimes();
-
     PowerMock.mockStatic(Tables.class);
-    expect(Tables.getTableName(contextMock, TableId.of("foo"))).andReturn("bar");
+    expect(Tables.getTableName(monitor.get().getContext(), TableId.of("foo"))).andReturn("bar");
     PowerMock.replayAll();
-    org.easymock.EasyMock.replay(contextMock);
 
     // Using the mocks we can verify that the getModel method gets called via debugger
     // however it's difficult to continue to mock through the jersey MVC code for the properly built
@@ -120,7 +139,6 @@ public class WebViewsIT extends JerseyTest {
     assertEquals("should return status 200", 200, output.getStatus());
     String responseBody = output.readEntity(String.class);
     assertTrue(responseBody.contains("tableID=foo") && responseBody.contains("table=bar"));
-    verify(contextMock);
   }
 
   /**

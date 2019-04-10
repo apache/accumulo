@@ -18,6 +18,7 @@ package org.apache.accumulo.monitor.rest.status;
 
 import java.util.List;
 
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -37,6 +38,9 @@ import org.apache.log4j.Level;
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class StatusResource {
 
+  @Inject
+  private Monitor monitor;
+
   public enum Status {
     OK, ERROR, WARN
   }
@@ -54,19 +58,19 @@ public class StatusResource {
     Status gcStatus;
     Status tServerStatus = Status.ERROR;
 
-    if (Monitor.getMmi() != null) {
-      if (Monitor.getGcStatus() != null) {
+    if (monitor.getMmi() != null) {
+      if (monitor.getGcStatus() != null) {
         gcStatus = Status.OK;
       } else {
         gcStatus = Status.ERROR;
       }
 
-      List<String> masters = Monitor.getContext().getMasterLocations();
+      List<String> masters = monitor.getContext().getMasterLocations();
       masterStatus = masters.size() == 0 ? Status.ERROR : Status.OK;
 
-      int tServerUp = Monitor.getMmi().getTServerInfoSize();
-      int tServerDown = Monitor.getMmi().getDeadTabletServersSize();
-      int tServerBad = Monitor.getMmi().getBadTServersSize();
+      int tServerUp = monitor.getMmi().getTServerInfoSize();
+      int tServerDown = monitor.getMmi().getDeadTabletServersSize();
+      int tServerBad = monitor.getMmi().getBadTServersSize();
 
       /*
        * If there are no dead or bad servers and there are tservers up, status is OK, if there are
@@ -82,7 +86,7 @@ public class StatusResource {
       }
     } else {
       masterStatus = Status.ERROR;
-      if (Monitor.getGcStatus() == null) {
+      if (monitor.getGcStatus() == null) {
         gcStatus = Status.ERROR;
       } else {
         gcStatus = Status.OK;
@@ -99,7 +103,7 @@ public class StatusResource {
       }
     }
 
-    int numProblems = Monitor.getProblemSummary().entrySet().size();
+    int numProblems = monitor.getProblemSummary().entrySet().size();
 
     status = new StatusInformation(masterStatus.toString(), gcStatus.toString(),
         tServerStatus.toString(), logs.size(), logsHaveError, numProblems);

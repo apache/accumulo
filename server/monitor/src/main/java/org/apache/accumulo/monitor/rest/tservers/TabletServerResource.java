@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
+import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.ws.rs.Consumes;
@@ -66,6 +67,9 @@ import org.apache.accumulo.server.util.ActionStatsUpdator;
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class TabletServerResource {
 
+  @Inject
+  private Monitor monitor;
+
   // Variable names become JSON keys
   private TabletStats total;
   private TabletStats historical;
@@ -77,17 +81,17 @@ public class TabletServerResource {
    */
   @GET
   public TabletServers getTserverSummary() {
-    MasterMonitorInfo mmi = Monitor.getMmi();
+    MasterMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
     }
 
     TabletServers tserverInfo = new TabletServers(mmi.tServerInfo.size());
     for (TabletServerStatus status : mmi.tServerInfo) {
-      tserverInfo.addTablet(new TabletServer(status));
+      tserverInfo.addTablet(new TabletServer(monitor, status));
     }
 
-    tserverInfo.addBadTabletServer(MasterResource.getTables());
+    tserverInfo.addBadTabletServer(MasterResource.getTables(monitor));
 
     return tserverInfo;
   }
@@ -102,8 +106,8 @@ public class TabletServerResource {
   @Consumes(MediaType.TEXT_PLAIN)
   public void clearDeadServer(
       @QueryParam("server") @NotNull @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
-    DeadServerList obit = new DeadServerList(Monitor.getContext(),
-        Monitor.getContext().getZooKeeperRoot() + Constants.ZDEADTSERVERS);
+    DeadServerList obit = new DeadServerList(monitor.getContext(),
+        monitor.getContext().getZooKeeperRoot() + Constants.ZDEADTSERVERS);
     obit.delete(server);
   }
 
@@ -117,7 +121,7 @@ public class TabletServerResource {
   public TabletServersRecovery getTserverRecovery() {
     TabletServersRecovery recoveryList = new TabletServersRecovery();
 
-    MasterMonitorInfo mmi = Monitor.getMmi();
+    MasterMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
     }
@@ -152,7 +156,7 @@ public class TabletServerResource {
       throws Exception {
 
     boolean tserverExists = false;
-    for (TabletServerStatus ts : Monitor.getMmi().getTServerInfo()) {
+    for (TabletServerStatus ts : monitor.getMmi().getTServerInfo()) {
       if (tserverAddress.equals(ts.getName())) {
         tserverExists = true;
         break;
@@ -180,11 +184,11 @@ public class TabletServerResource {
     List<TabletStats> tsStats = new ArrayList<>();
 
     try {
-      ClientContext context = Monitor.getContext();
+      ClientContext context = monitor.getContext();
       TabletClientService.Client client = ThriftUtil
           .getClient(new TabletClientService.Client.Factory(), address, context);
       try {
-        for (String tableId : Monitor.getMmi().tableMap.keySet()) {
+        for (String tableId : monitor.getMmi().tableMap.keySet()) {
           tsStats.addAll(client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId));
         }
         historical = client.getHistoricalStats(TraceUtil.traceInfo(), context.rpcCreds());
@@ -197,15 +201,19 @@ public class TabletServerResource {
 
     List<CurrentOperations> currentOps = doCurrentOperations(tsStats);
 
-    if (total.minors.num != 0)
+    if (total.minors.num != 0) {
       currentMinorAvg = (long) (total.minors.elapsed / total.minors.num);
-    if (total.minors.elapsed != 0 && total.minors.num != 0)
+    }
+    if (total.minors.elapsed != 0 && total.minors.num != 0) {
       currentMinorStdDev = stddev(total.minors.elapsed, total.minors.num, total.minors.sumDev);
-    if (total.majors.num != 0)
+    }
+    if (total.majors.num != 0) {
       currentMajorAvg = total.majors.elapsed / total.majors.num;
+    }
     if (total.majors.elapsed != 0 && total.majors.num != 0
-        && total.majors.elapsed > total.majors.num)
+        && total.majors.elapsed > total.majors.num) {
       currentMajorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
+    }
 
     ActionStatsUpdator.update(total.minors, historical.minors);
     ActionStatsUpdator.update(total.majors, historical.majors);
@@ -228,9 +236,6 @@ public class TabletServerResource {
     return new TabletServerSummary(details, allTime, currentRes, currentOps);
   }
 
-  private static final int concurrentScans = Monitor.getContext().getConfiguration()
-      .getScanExecutors().stream().mapToInt(sec -> sec.maxThreads).sum();
-
   /**
    * Generates the server stats
    *
@@ -239,6 +244,9 @@ public class TabletServerResource {
   @Path("serverStats")
   @GET
   public ServerStats getServerStats() {
+
+    final int concurrentScans = monitor.getContext().getConfiguration().getScanExecutors().stream()
+        .mapToInt(sec -> sec.maxThreads).sum();
 
     ServerStats stats = new ServerStats();
 
@@ -320,7 +328,7 @@ public class TabletServerResource {
       String obscuredExtent = Base64.getEncoder().encodeToString(digester.digest());
       String displayExtent = String.format("[%s]", obscuredExtent);
 
-      String tableName = Tables.getPrintableTableInfoFromId(Monitor.getContext(), tableId);
+      String tableName = Tables.getPrintableTableInfoFromId(monitor.getContext(), tableId);
 
       currentOperations.add(
           new CurrentOperations(tableName, tableId, displayExtent, info.numEntries, info.ingestRate,

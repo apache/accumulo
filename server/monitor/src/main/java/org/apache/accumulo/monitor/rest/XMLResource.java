@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.monitor.rest;
 
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -39,6 +40,9 @@ import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class XMLResource {
 
+  @Inject
+  private Monitor monitor;
+
   /**
    * Generates summary of the Monitor
    *
@@ -46,18 +50,18 @@ public class XMLResource {
    */
   public SummaryInformation getInformation() {
 
-    MasterMonitorInfo mmi = Monitor.getMmi();
+    MasterMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
     }
 
     // Add Monitor information
     SummaryInformation xml = new SummaryInformation(mmi.tServerInfo.size(),
-        MasterResource.getTables(), TablesResource.getTables());
+        MasterResource.getTables(monitor), TablesResource.getTables(monitor));
 
     // Add tserver information
     for (TabletServerStatus status : mmi.tServerInfo) {
-      xml.addTabletServer(new TabletServer(status));
+      xml.addTabletServer(new TabletServer(monitor, status));
     }
 
     return xml;
