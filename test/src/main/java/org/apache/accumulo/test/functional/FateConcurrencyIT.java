@@ -90,7 +90,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
   private String secret;
 
-  // when true, multiple tables, multiple compactions will be used during run.
+  // Test development only. When true, multiple tables, multiple compactions will be
+  // used during the test run which simulates transient condition that was causing
+  // the test to fail..
   private boolean runMultipleCompactions = false;
 
   @Before
@@ -207,7 +209,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     Instance instance = connector.getInstance();
     String tableId;
 
-    // development testing - force multiple compactions to see that it's handled.
+    // for development testing - force transient condition that was failing this test so that
+    // we know if multiple compactions are running, they are properly handled by the test code.
     if (runMultipleCompactions) {
       runMultipleCompactions();
     }
@@ -309,10 +312,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Helper method for testing findFate refactor - creates multiple tables and launches compactions
-   * so that more that 1 FATE compaction operation is running during the test. This forces the
-   * condition where multiple compactions could be running - but it is not necessary for the test
-   * itself.
+   * This method was helpful for debugging a condition that was causing transient test failures.
+   * This forces a condition that the test should be able to handle. This method is not needed
+   * during normal testing, it was kept to aid future test development / troubleshooting if
+   * other transient failures occur.
    */
   private void runMultipleCompactions() {
 
