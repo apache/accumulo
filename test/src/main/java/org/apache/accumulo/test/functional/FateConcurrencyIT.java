@@ -207,7 +207,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     Instance instance = connector.getInstance();
     String tableId;
 
-    runMultipleCompactions();
+    // development testing - force multiple compactions to see that it's handled.
+    if (runMultipleCompactions) {
+      runMultipleCompactions();
+    }
 
     try {
 
@@ -224,16 +227,6 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     }
 
     Future<?> compactTask = startCompactTask();
-
-    try {
-
-      assertTrue("compaction fate transaction exits", findFate(tableName));
-
-    } catch (KeeperException ex) {
-      String msg = "Failing test with possible transient zookeeper exception, no node";
-      log.debug("{}", msg, ex);
-      fail(msg);
-    }
 
     AdminUtil.FateStatus withLocks = null;
     List<AdminUtil.TransactionStatus> noLocks = null;
@@ -317,13 +310,11 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
   /**
    * Helper method for testing findFate refactor - creates multiple tables and launches compactions
-   * so that more that 1 FATE compaction operation is running during the test.
+   * so that more that 1 FATE compaction operation is running during the test. This forces the
+   * condition where multiple compactions could be running - but it is not necessary for the test
+   * itself.
    */
   private void runMultipleCompactions() {
-
-    if (!runMultipleCompactions) {
-      return;
-    }
 
     for (int i = 0; i < 4; i++) {
 
