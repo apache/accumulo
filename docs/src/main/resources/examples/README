@@ -77,6 +77,10 @@ features of Apache Accumulo.
    README.regex:       Using MapReduce and Accumulo to find data using regular
                        expressions.
 
+   README.reservations: Running a reservation system with Conditional Mutations.
+
+   README.rgbalancer:  Spreading out groups of tablets with a Regex Group Balancer.
+
    README.rowhash:     Using MapReduce to read a table and write to a new
                        column in the same table.
 
