@@ -1979,9 +1979,7 @@ public class Tablet {
           CompactionEnv cenv = new CompactionEnv() {
             @Override
             public boolean isCompactionEnabled() {
-              // avoid calling isClosing() because its synchronized and this is called frequently in
-              // compaction
-              return closeState != CloseState.CLOSING;
+              return !isClosing();
             }
 
             @Override
@@ -2199,15 +2197,19 @@ public class Tablet {
     return numEntriesInMemory;
   }
 
-  public synchronized boolean isClosing() {
+  // Do not synchronize this method, it is called frequently by compactions
+  public boolean isClosing() {
     return closeState == CloseState.CLOSING;
   }
 
-  public synchronized boolean isClosed() {
-    return closeState == CloseState.CLOSED || closeState == CloseState.COMPLETE;
+  public boolean isClosed() {
+    // Assign to a local var to avoid race conditions since closeState is volatile and two
+    // comparisons are done.
+    CloseState localCS = closeState;
+    return localCS == CloseState.CLOSED || localCS == CloseState.COMPLETE;
   }
 
-  public synchronized boolean isCloseComplete() {
+  public boolean isCloseComplete() {
     return closeState == CloseState.COMPLETE;
   }
 
