@@ -18,6 +18,7 @@ package org.apache.accumulo.server.util;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -506,7 +507,7 @@ public class Admin implements KeywordExecutable {
       File outputDirectory)
       throws IOException, AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
-    FileWriter nsWriter = new FileWriter(namespaceScript);
+    BufferedWriter nsWriter = new BufferedWriter(new FileWriter(namespaceScript));
     nsWriter.write(createNsFormat.format(new String[] {namespace}));
     TreeMap<String,String> props = new TreeMap<>();
     for (Entry<String,String> p : accumuloClient.namespaceOperations().getProperties(namespace)) {
@@ -530,7 +531,7 @@ public class Admin implements KeywordExecutable {
   private static void printUserConfiguration(AccumuloClient accumuloClient, String user,
       File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
     File userScript = new File(outputDirectory, user + USER_FILE_SUFFIX);
-    FileWriter userWriter = new FileWriter(userScript);
+    BufferedWriter userWriter = new BufferedWriter(new FileWriter(userScript));
     userWriter.write(createUserFormat.format(new String[] {user}));
     Authorizations auths = accumuloClient.securityOperations().getUserAuthorizations(user);
     userWriter.write(userAuthsFormat.format(new String[] {user, auths.toString()}));
@@ -574,7 +575,7 @@ public class Admin implements KeywordExecutable {
       }
     }
     File siteBackup = new File(outputDirectory, ACCUMULO_SITE_BACKUP_FILE);
-    try (FileWriter fw = new FileWriter(siteBackup)) {
+    try (BufferedWriter fw = new BufferedWriter(new FileWriter(siteBackup))) {
       for (Entry<String,String> prop : conf.entrySet()) {
         fw.write(prop.getKey() + "=" + prop.getValue() + "\n");
       }
@@ -586,7 +587,7 @@ public class Admin implements KeywordExecutable {
   private void printTableConfiguration(AccumuloClient accumuloClient, String tableName,
       File outputDirectory) throws AccumuloException, TableNotFoundException, IOException {
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
-    FileWriter writer = new FileWriter(tableBackup);
+    BufferedWriter writer = new BufferedWriter(new FileWriter(tableBackup));
     writer.write(createTableFormat.format(new String[] {tableName}));
     TreeMap<String,String> props = new TreeMap<>();
     for (Entry<String,String> p : accumuloClient.tableOperations().getProperties(tableName)) {
