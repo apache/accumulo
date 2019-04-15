@@ -2426,8 +2426,6 @@ public class Tablet {
 
       if (needsSplit()) {
         getTabletServer().executeSplit(this);
-      } else {
-        initiateMajorCompaction(MajorCompactionReason.NORMAL);
       }
     } finally {
       synchronized (this) {
