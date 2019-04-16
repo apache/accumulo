@@ -1041,7 +1041,7 @@
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't detected as use since the annotation has retention of source -->
-                <unusedDeclaredDependency>com.google.auto.service:auto-service:jar:1.0-rc*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>com.google.auto.service:auto-service:jar:*</unusedDeclaredDependency>
                 <!-- unused/declared implementation jars or parent jars that bring in children -->
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-client:jar:${hadoop.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-client-runtime:jar:${hadoop.version}</unusedDeclaredDependency>
