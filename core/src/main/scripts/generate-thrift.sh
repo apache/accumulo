@@ -65,7 +65,7 @@ THRIFT_ARGS="${THRIFT_ARGS} -o $BUILD_DIR"
 mkdir -p $BUILD_DIR
 rm -rf $BUILD_DIR/gen-java
 for f in src/main/thrift/*.thrift; do
-  thrift ${THRIFT_ARGS} --gen java:generated_annotations=undated "$f" || fail unable to generate java thrift classes
+  thrift ${THRIFT_ARGS} --gen java:generated_annotations=suppress "$f" || fail unable to generate java thrift classes
   thrift ${THRIFT_ARGS} --gen py "$f" || fail unable to generate python thrift classes
   thrift ${THRIFT_ARGS} --gen rb "$f" || fail unable to generate ruby thrift classes
   thrift ${THRIFT_ARGS} --gen cpp "$f" || fail unable to generate cpp thrift classes
@@ -77,9 +77,6 @@ done
 # this only affects classes, enums aren't affected
 find $BUILD_DIR/gen-java -name '*.java' -exec grep -Zl '^public class ' {} + | xargs -0 sed -i -e 's/^[}]$/  private static void unusedMethod() {}\
 }/'
-
-# Remove usage of the javax.annotation.Generated because its no longer present in Java 11
-find $BUILD_DIR/gen-java -name "*.java" | xargs sed -i -e '/[@]javax[.]annotation[.]Generated.*/d'
 
 for lang in "${LANGUAGES_TO_GENERATE[@]}"; do
   case $lang in
