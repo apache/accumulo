@@ -248,7 +248,7 @@
       <dependency>
         <groupId>commons-collections</groupId>
         <artifactId>commons-collections</artifactId>
-        <version>20040616</version>
+        <version>3.2</version>
       </dependency>
       <dependency>
         <groupId>commons-configuration</groupId>
@@ -700,7 +700,7 @@
       <dependency>
         <groupId>org.hibernate</groupId>
         <artifactId>hibernate-validator</artifactId>
-        <version>6.1.0.Alpha4</version>
+        <version>5.1.3.Final</version>
       </dependency>
       <dependency>
         <groupId>org.javassist</groupId>
@@ -1041,7 +1041,7 @@
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't detected as use since the annotation has retention of source -->
-                <unusedDeclaredDependency>com.google.auto.service:auto-service:jar:1.0-rc5</unusedDeclaredDependency>
+                <unusedDeclaredDependency>com.google.auto.service:auto-service:jar:1.0-rc*</unusedDeclaredDependency>
                 <!-- unused/declared implementation jars or parent jars that bring in children -->
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-client:jar:${hadoop.version}</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-client-runtime:jar:${hadoop.version}</unusedDeclaredDependency>
