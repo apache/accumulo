@@ -27,7 +27,7 @@ endif
 ifeq ($(shell uname),Linux)
 	JAVA_HOME=$(shell env | grep "^JAVA_HOME=" | cut -d= -f2)
 	ifeq ($(strip $(JAVA_HOME)),)
-		JAVA_HOME=$(shell dirname "$$(dirname "$$(readlink -e "$$(which javah)")")")
+		JAVA_HOME=$(shell dirname "$$(dirname "$$(readlink -e "$$(which javac)")")")
 	endif
 	NATIVE_LIB := libaccumulo.so
 	CXXFLAGS=-g -fPIC -shared -O3 -Wall -I'$(JAVA_HOME)'/include -I'$(JAVA_HOME)'/include/linux -Ijavah $(USERFLAGS)
@@ -47,7 +47,7 @@ endif
 
 # escape space and parens in path for wildcard
 JAVA_HOME_ESCAPED=$(shell echo '$(JAVA_HOME)' | sed 's/ /\\ /g' | sed 's/\([()]\)/\\\1/g')
-ifeq (,$(wildcard $(JAVA_HOME_ESCAPED)/bin/javah))
+ifeq (,$(wildcard $(JAVA_HOME_ESCAPED)/bin/javac))
 $(error "JAVA_HOME does not point to a JDK. Exiting...")
 endif
 
