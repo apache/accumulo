@@ -78,6 +78,9 @@ done
 find $BUILD_DIR/gen-java -name '*.java' -exec grep -Zl '^public class ' {} + | xargs -0 sed -i -e 's/^[}]$/  private static void unusedMethod() {}\
 }/'
 
+# Remove usage of the javax.annotation.Generated because its no longer present in Java 11
+find $BUILD_DIR/gen-java -name "*.java" | xargs sed -i -e '/[@]javax[.]annotation[.]Generated.*/d'
+
 for lang in "${LANGUAGES_TO_GENERATE[@]}"; do
   case $lang in
     cpp)
