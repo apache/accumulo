@@ -65,7 +65,7 @@ THRIFT_ARGS="${THRIFT_ARGS} -o $BUILD_DIR"
 mkdir -p $BUILD_DIR
 rm -rf $BUILD_DIR/gen-java
 for f in src/main/thrift/*.thrift; do
-  thrift ${THRIFT_ARGS} --gen java:generated_annotations=undated "$f" || fail unable to generate java thrift classes
+  thrift ${THRIFT_ARGS} --gen java:generated_annotations=suppress "$f" || fail unable to generate java thrift classes
   thrift ${THRIFT_ARGS} --gen py "$f" || fail unable to generate python thrift classes
   thrift ${THRIFT_ARGS} --gen rb "$f" || fail unable to generate ruby thrift classes
   thrift ${THRIFT_ARGS} --gen cpp "$f" || fail unable to generate cpp thrift classes
