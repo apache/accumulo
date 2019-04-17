@@ -18,16 +18,16 @@ package org.apache.accumulo.gc;
 
 import static org.junit.Assert.assertFalse;
 
-import org.apache.accumulo.gc.SimpleGarbageCollector.Opts;
+import org.apache.accumulo.gc.SimpleGarbageCollector.GCOpts;
 import org.junit.Before;
 import org.junit.Test;
 
 public class SimpleGarbageCollectorOptsTest {
-  private Opts opts;
+  private GCOpts opts;
 
   @Before
   public void setUp() {
-    opts = new Opts();
+    opts = new GCOpts();
   }
 
   @Test

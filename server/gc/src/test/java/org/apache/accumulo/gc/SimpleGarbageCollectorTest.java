@@ -20,11 +20,11 @@ import static org.apache.accumulo.gc.SimpleGarbageCollector.CANDIDATE_MEMORY_PER
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.partialMockBuilder;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -36,9 +36,6 @@ import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.gc.SimpleGarbageCollector.Opts;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -50,7 +47,6 @@ public class SimpleGarbageCollectorTest {
   private VolumeManager volMgr;
   private ServerContext context;
   private Credentials credentials;
-  private Opts opts;
   private SimpleGarbageCollector gc;
   private ConfigurationCopy systemConfig;
   private static SiteConfiguration siteConfig = new SiteConfiguration();
@@ -63,7 +59,6 @@ public class SimpleGarbageCollectorTest {
     expect(context.getZooKeepers()).andReturn("localhost").anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
 
-    opts = new Opts();
     systemConfig = createSystemConfig();
     expect(context.getConfiguration()).andReturn(systemConfig).anyTimes();
     expect(context.getVolumeManager()).andReturn(volMgr).anyTimes();
@@ -75,13 +70,10 @@ public class SimpleGarbageCollectorTest {
 
     replay(context);
 
-    gc = new SimpleGarbageCollector(opts, context);
-  }
-
-  @Test
-  public void testConstruction() {
-    assertSame(opts, gc.getOpts());
-    assertNotNull(gc.getStatus(createMock(TInfo.class), createMock(TCredentials.class)));
+    gc = partialMockBuilder(SimpleGarbageCollector.class).addMockedMethod("getContext")
+        .createMock();
+    expect(gc.getContext()).andReturn(context).anyTimes();
+    replay(gc);
   }
 
   private ConfigurationCopy createSystemConfig() {
@@ -97,7 +89,7 @@ public class SimpleGarbageCollectorTest {
 
   @Test
   public void testInit() {
-    assertSame(volMgr, gc.getVolumeManager());
+    assertSame(volMgr, gc.getContext().getVolumeManager());
     assertEquals(credentials, gc.getContext().getCredentials());
     assertTrue(gc.isUsingTrash());
     assertEquals(1000L, gc.getStartDelay());

@@ -38,7 +38,7 @@ public class GCExecutable implements KeywordExecutable {
   }
 
   @Override
-  public void execute(final String[] args) {
+  public void execute(final String[] args) throws Exception {
     SimpleGarbageCollector.main(args);
   }
 }

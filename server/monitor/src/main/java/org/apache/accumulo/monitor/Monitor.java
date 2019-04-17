@@ -63,6 +63,7 @@ import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
@@ -89,16 +90,21 @@ import org.slf4j.LoggerFactory;
 /**
  * Serve master statistics with an embedded web server.
  */
-public class Monitor implements Runnable, HighlyAvailableService {
+public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   private static final Logger log = LoggerFactory.getLogger(Monitor.class);
   private static final int REFRESH_TIME = 5;
 
-  private final ServerContext context;
   private final long START_TIME;
 
-  Monitor(ServerContext context) {
-    this.context = context;
+  public static void main(String[] args) throws Exception {
+    try (Monitor monitor = new Monitor(new ServerOpts(), args)) {
+      monitor.runServer();
+    }
+  }
+
+  Monitor(ServerOpts opts, String[] args) {
+    super("monitor", opts, args);
     START_TIME = System.currentTimeMillis();
   }
 
@@ -216,6 +222,7 @@ public class Monitor implements Runnable, HighlyAvailableService {
   }
 
   public void fetchData() {
+    ServerContext context = getContext();
     double totalIngestRate = 0.;
     double totalIngestByteRate = 0.;
     double totalQueryRate = 0.;
@@ -374,6 +381,7 @@ public class Monitor implements Runnable, HighlyAvailableService {
   }
 
   private GCStatus fetchGcStatus() {
+    ServerContext context = getContext();
     GCStatus result = null;
     HostAndPort address = null;
     try {
@@ -399,23 +407,10 @@ public class Monitor implements Runnable, HighlyAvailableService {
     return result;
   }
 
-  public static void main(String[] args) {
-    final String app = "monitor";
-    ServerOpts opts = new ServerOpts();
-    opts.parseArgs(app, args);
-    ServerContext context = new ServerContext(opts.getSiteConfiguration());
-    context.setupServer(app, Monitor.class.getName(), opts.getAddress());
-    try {
-      Monitor monitor = new Monitor(context);
-      monitor.run();
-    } finally {
-      context.teardownServer();
-    }
-  }
-
   @Override
   public void run() {
-    int[] ports = context.getConfiguration().getPort(Property.MONITOR_PORT);
+    ServerContext context = getContext();
+    int[] ports = getConfiguration().getPort(Property.MONITOR_PORT);
     for (int port : ports) {
       try {
         log.debug("Creating monitor on port {}", port);
@@ -441,7 +436,7 @@ public class Monitor implements Runnable, HighlyAvailableService {
       throw new RuntimeException(e);
     }
 
-    String advertiseHost = context.getHostname();
+    String advertiseHost = getHostname();
     if (advertiseHost.equals("0.0.0.0")) {
       try {
         advertiseHost = InetAddress.getLocalHost().getHostName();
@@ -572,6 +567,7 @@ public class Monitor implements Runnable, HighlyAvailableService {
   }
 
   private void fetchScans() throws Exception {
+    ServerContext context = getContext();
     for (String server : context.instanceOperations().getTabletServers()) {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
       Client tserver = ThriftUtil.getTServerClient(parsedServer, context);
@@ -601,6 +597,7 @@ public class Monitor implements Runnable, HighlyAvailableService {
    * Get the monitor lock in ZooKeeper
    */
   private void getMonitorLock() throws KeeperException, InterruptedException {
+    ServerContext context = getContext();
     final String zRoot = context.getZooKeeperRoot();
     final String monitorPath = zRoot + Constants.ZMONITOR;
     final String monitorLockPath = zRoot + Constants.ZMONITOR_LOCK;
@@ -806,10 +803,6 @@ public class Monitor implements Runnable, HighlyAvailableService {
 
   public List<Pair<Long,Double>> getDataCacheHitRateOverTime() {
     return new ArrayList<>(dataCacheHitRateOverTime);
-  }
-
-  public ServerContext getContext() {
-    return context;
   }
 
   @Override

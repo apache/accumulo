@@ -43,7 +43,7 @@ public class EmbeddedWebServer {
     server = new Server();
     final AccumuloConfiguration conf = monitor.getContext().getConfiguration();
     connector = new ServerConnector(server, getConnectionFactories(conf));
-    connector.setHost(monitor.getContext().getHostname());
+    connector.setHost(monitor.getHostname());
     connector.setPort(port);
 
     handler =
