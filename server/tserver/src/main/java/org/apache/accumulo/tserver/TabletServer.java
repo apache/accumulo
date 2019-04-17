@@ -30,7 +30,6 @@ import java.security.PrivilegedExceptionAction;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -314,8 +313,7 @@ public class TabletServer implements Runnable {
   private final ServerContext context;
   private final VolumeManager fs;
 
-  private final SortedMap<KeyExtent,Tablet> onlineTablets = Collections
-      .synchronizedSortedMap(new TreeMap<KeyExtent,Tablet>());
+  private final OnlineTablets onlineTablets = new OnlineTablets();
   private final SortedSet<KeyExtent> unopenedTablets = Collections
       .synchronizedSortedSet(new TreeSet<KeyExtent>());
   private final SortedSet<KeyExtent> openingTablets = Collections
@@ -367,15 +365,13 @@ public class TabletServer implements Runnable {
     this.replWorker = new ReplicationWorker(context, fs);
     this.statsKeeper = new TabletStatsKeeper();
     SimpleTimer.getInstance(aconf).schedule(() -> {
-      synchronized (onlineTablets) {
-        long now = System.currentTimeMillis();
-        for (Tablet tablet : onlineTablets.values())
-          try {
-            tablet.updateRates(now);
-          } catch (Exception ex) {
-            log.error("Error updating rates for {}", tablet.getExtent(), ex);
-          }
-      }
+      long now = System.currentTimeMillis();
+      for (Tablet tablet : getOnlineSnapshot().values())
+        try {
+          tablet.updateRates(now);
+        } catch (Exception ex) {
+          log.error("Error updating rates for {}", tablet.getExtent(), ex);
+        }
     }, 5000, 5000);
 
     final long walogMaxSize = aconf.getAsBytes(Property.TSERV_WALOG_MAX_SIZE);
@@ -501,7 +497,7 @@ public class TabletServer implements Runnable {
               fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
             }
 
-            Tablet importTablet = onlineTablets.get(new KeyExtent(tke));
+            Tablet importTablet = getOnlineTablet(new KeyExtent(tke));
 
             if (importTablet == null) {
               failures.add(tke);
@@ -542,7 +538,7 @@ public class TabletServer implements Runnable {
             fileRefMap.put(new FileRef(path.toString(), path), mapping.getValue());
           }
 
-          Tablet importTablet = onlineTablets.get(new KeyExtent(tke));
+          Tablet importTablet = getOnlineTablet(new KeyExtent(tke));
 
           if (importTablet != null) {
             try {
@@ -608,7 +604,7 @@ public class TabletServer implements Runnable {
       if (waitForWrites)
         writeTracker.waitForWrites(TabletType.type(extent));
 
-      Tablet tablet = onlineTablets.get(extent);
+      Tablet tablet = getOnlineTablet(extent);
       if (tablet == null)
         throw new NotServingTabletException(textent);
 
@@ -693,7 +689,7 @@ public class TabletServer implements Runnable {
         }
       } catch (CancellationException ce) {
         sessionManager.removeSession(scanID);
-        Tablet tablet = onlineTablets.get(scanSession.extent);
+        Tablet tablet = getOnlineTablet(scanSession.extent);
         if (tablet == null || tablet.isClosed())
           throw new NotServingTabletException(scanSession.extent.toThrift());
         else
@@ -924,7 +920,7 @@ public class TabletServer implements Runnable {
             Tables.getNamespaceId(context, tableId))) {
           long t2 = System.currentTimeMillis();
           us.authTimes.addStat(t2 - t1);
-          us.currentTablet = onlineTablets.get(keyExtent);
+          us.currentTablet = getOnlineTablet(keyExtent);
           if (us.currentTablet != null) {
             us.queuedMutations.put(us.currentTablet, new ArrayList<>());
           } else {
@@ -1224,7 +1220,7 @@ public class TabletServer implements Runnable {
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED);
       final KeyExtent keyExtent = new KeyExtent(tkeyExtent);
-      final Tablet tablet = onlineTablets.get(new KeyExtent(keyExtent));
+      final Tablet tablet = getOnlineTablet(new KeyExtent(keyExtent));
       if (tablet == null) {
         throw new NotServingTabletException(tkeyExtent);
       }
@@ -1303,7 +1299,7 @@ public class TabletServer implements Runnable {
 
       while (iter.hasNext()) {
         final Entry<KeyExtent,List<ServerConditionalMutation>> entry = iter.next();
-        final Tablet tablet = onlineTablets.get(entry.getKey());
+        final Tablet tablet = getOnlineTablet(entry.getKey());
 
         if (tablet == null || tablet.isClosed()) {
           for (ServerConditionalMutation scm : entry.getValue())
@@ -1350,7 +1346,7 @@ public class TabletServer implements Runnable {
       try (TraceScope prepSpan = Trace.startSpan("prep")) {
         long t1 = System.currentTimeMillis();
         for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : es) {
-          final Tablet tablet = onlineTablets.get(entry.getKey());
+          final Tablet tablet = getOnlineTablet(entry.getKey());
           if (tablet == null || tablet.isClosed() || sessionCanceled) {
             for (ServerConditionalMutation scm : entry.getValue())
               results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
@@ -1566,7 +1562,7 @@ public class TabletServer implements Runnable {
 
       KeyExtent keyExtent = new KeyExtent(tkeyExtent);
 
-      Tablet tablet = onlineTablets.get(keyExtent);
+      Tablet tablet = getOnlineTablet(keyExtent);
       if (tablet == null) {
         throw new NotServingTabletException(tkeyExtent);
       }
@@ -1591,14 +1587,10 @@ public class TabletServer implements Runnable {
 
     @Override
     public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId) {
-      TreeMap<KeyExtent,Tablet> onlineTabletsCopy;
-      synchronized (onlineTablets) {
-        onlineTabletsCopy = new TreeMap<>(onlineTablets);
-      }
       List<TabletStats> result = new ArrayList<>();
       TableId text = TableId.of(tableId);
       KeyExtent start = new KeyExtent(text, new Text(), null);
-      for (Entry<KeyExtent,Tablet> entry : onlineTabletsCopy.tailMap(start).entrySet()) {
+      for (Entry<KeyExtent,Tablet> entry : getOnlineSnapshot().tailMap(start).entrySet()) {
         KeyExtent ke = entry.getKey();
         if (ke.getTableId().compareTo(text) == 0) {
           Tablet tablet = entry.getValue();
@@ -1691,7 +1683,8 @@ public class TabletServer implements Runnable {
 
             Set<KeyExtent> unopenedOverlapping = KeyExtent.findOverlapping(extent, unopenedTablets);
             Set<KeyExtent> openingOverlapping = KeyExtent.findOverlapping(extent, openingTablets);
-            Set<KeyExtent> onlineOverlapping = KeyExtent.findOverlapping(extent, onlineTablets);
+            Set<KeyExtent> onlineOverlapping = KeyExtent.findOverlapping(extent,
+                onlineTablets.snapshot());
 
             Set<KeyExtent> all = new HashSet<>();
             all.addAll(unopenedOverlapping);
@@ -1702,7 +1695,7 @@ public class TabletServer implements Runnable {
 
               // ignore any tablets that have recently split, for error logging
               for (KeyExtent e2 : onlineOverlapping) {
-                Tablet tablet = onlineTablets.get(e2);
+                Tablet tablet = getOnlineTablet(e2);
                 if (System.currentTimeMillis()
                     - tablet.getSplitCreationTime() < RECENTLY_SPLIT_MILLIES) {
                   all.remove(e2);
@@ -1736,7 +1729,7 @@ public class TabletServer implements Runnable {
           @Override
           public void run() {
             ah.run();
-            if (onlineTablets.containsKey(extent)) {
+            if (onlineTablets.snapshot().containsKey(extent)) {
               log.info("Root tablet loaded: {}", extent);
             } else {
               log.info("Root tablet failed to load");
@@ -1784,10 +1777,9 @@ public class TabletServer implements Runnable {
       KeyExtent ke = new KeyExtent(TableId.of(tableId), ByteBufferUtil.toText(endRow),
           ByteBufferUtil.toText(startRow));
 
-      synchronized (onlineTablets) {
-        for (Tablet tablet : onlineTablets.values())
-          if (ke.overlaps(tablet.getExtent()))
-            tabletsToFlush.add(tablet);
+      for (Tablet tablet : getOnlineSnapshot().values()) {
+        if (ke.overlaps(tablet.getExtent()))
+          tabletsToFlush.add(tablet);
       }
 
       Long flushID = null;
@@ -1818,7 +1810,7 @@ public class TabletServer implements Runnable {
         throw new RuntimeException(e);
       }
 
-      Tablet tablet = onlineTablets.get(new KeyExtent(textent));
+      Tablet tablet = getOnlineTablet(new KeyExtent(textent));
       if (tablet != null) {
         log.info("Flushing {}", tablet.getExtent());
         try {
@@ -1886,7 +1878,7 @@ public class TabletServer implements Runnable {
 
       KeyExtent ke = new KeyExtent(textent);
 
-      Tablet tablet = onlineTablets.get(ke);
+      Tablet tablet = getOnlineTablet(ke);
       if (tablet != null) {
         tablet.chopFiles();
       }
@@ -1906,10 +1898,10 @@ public class TabletServer implements Runnable {
           ByteBufferUtil.toText(startRow));
 
       ArrayList<Tablet> tabletsToCompact = new ArrayList<>();
-      synchronized (onlineTablets) {
-        for (Tablet tablet : onlineTablets.values())
-          if (ke.overlaps(tablet.getExtent()))
-            tabletsToCompact.add(tablet);
+
+      for (Tablet tablet : getOnlineSnapshot().values()) {
+        if (ke.overlaps(tablet.getExtent()))
+          tabletsToCompact.add(tablet);
       }
 
       Pair<Long,UserCompactionConfig> compactionInfo = null;
@@ -2106,10 +2098,6 @@ public class TabletServer implements Runnable {
     return totalQueuedMutationSize.addAndGet(additionalMutationSize);
   }
 
-  public Tablet getOnlineTablet(KeyExtent extent) {
-    return onlineTablets.get(extent);
-  }
-
   public Session getSession(long sessionId) {
     return sessionManager.getSession(sessionId);
   }
@@ -2132,21 +2120,13 @@ public class TabletServer implements Runnable {
           sleepUninterruptibly(getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY),
               TimeUnit.MILLISECONDS);
 
-          TreeMap<KeyExtent,Tablet> copyOnlineTablets = new TreeMap<>();
-
-          synchronized (onlineTablets) {
-            copyOnlineTablets.putAll(onlineTablets); // avoid
-            // concurrent
-            // modification
-          }
-
           List<DfsLogger> closedCopy;
 
           synchronized (closedLogs) {
             closedCopy = copyClosedLogs(closedLogs);
           }
 
-          Iterator<Entry<KeyExtent,Tablet>> iter = copyOnlineTablets.entrySet().iterator();
+          Iterator<Entry<KeyExtent,Tablet>> iter = getOnlineSnapshot().entrySet().iterator();
 
           // bail early now if we're shutting down
           while (iter.hasNext()) {
@@ -2225,11 +2205,8 @@ public class TabletServer implements Runnable {
     statsKeeper.saveMajorMinorTimes(tablet.getTabletStats());
 
     // lose the reference to the old tablet and open two new ones
-    synchronized (onlineTablets) {
-      onlineTablets.remove(tablet.getExtent());
-      onlineTablets.put(newTablets[0].getExtent(), newTablets[0]);
-      onlineTablets.put(newTablets[1].getExtent(), newTablets[1]);
-    }
+    onlineTablets.split(tablet.getExtent(), newTablets[0], newTablets[1]);
+
     // tell the master
     enqueueMasterMessage(new SplitReportMessage(tablet.getExtent(), newTablets[0].getExtent(),
         new Text("/" + newTablets[0].getLocation().getName()), newTablets[1].getExtent(),
@@ -2279,8 +2256,8 @@ public class TabletServer implements Runnable {
         }
       }
       synchronized (onlineTablets) {
-        if (onlineTablets.containsKey(extent)) {
-          t = onlineTablets.get(extent);
+        if (onlineTablets.snapshot().containsKey(extent)) {
+          t = onlineTablets.snapshot().get(extent);
         }
       }
 
@@ -2375,7 +2352,8 @@ public class TabletServer implements Runnable {
             // check
             Set<KeyExtent> unopenedOverlapping = KeyExtent.findOverlapping(extent, unopenedTablets);
             Set<KeyExtent> openingOverlapping = KeyExtent.findOverlapping(extent, openingTablets);
-            Set<KeyExtent> onlineOverlapping = KeyExtent.findOverlapping(extent, onlineTablets);
+            Set<KeyExtent> onlineOverlapping = KeyExtent.findOverlapping(extent,
+                onlineTablets.snapshot());
 
             if (openingOverlapping.contains(extent) || onlineOverlapping.contains(extent))
               return;
@@ -3141,13 +3119,7 @@ public class TabletServer implements Runnable {
     SimpleTimer.getInstance(aconf).schedule(gcDebugTask, 0, TIME_BETWEEN_GC_CHECKS);
 
     Runnable constraintTask = () -> {
-      ArrayList<Tablet> tablets;
-
-      synchronized (onlineTablets) {
-        tablets = new ArrayList<>(onlineTablets.values());
-      }
-
-      for (Tablet tablet : tablets) {
+      for (Tablet tablet : getOnlineSnapshot().values()) {
         tablet.checkConstraints();
       }
     };
@@ -3159,13 +3131,9 @@ public class TabletServer implements Runnable {
     long start = System.currentTimeMillis();
     TabletServerStatus result = new TabletServerStatus();
 
-    Map<KeyExtent,Tablet> onlineTabletsCopy;
-    synchronized (this.onlineTablets) {
-      onlineTabletsCopy = new HashMap<>(this.onlineTablets);
-    }
     final Map<String,TableInfo> tables = new HashMap<>();
 
-    onlineTabletsCopy.forEach((ke, tablet) -> {
+    getOnlineSnapshot().forEach((ke, tablet) -> {
       String tableId = ke.getTableId().canonical();
       TableInfo table = tables.get(tableId);
       if (table == null) {
@@ -3342,10 +3310,12 @@ public class TabletServer implements Runnable {
     };
   }
 
-  public Collection<Tablet> getOnlineTablets() {
-    synchronized (onlineTablets) {
-      return new ArrayList<>(onlineTablets.values());
-    }
+  public SortedMap<KeyExtent,Tablet> getOnlineSnapshot() {
+    return onlineTablets.snapshot();
+  }
+
+  public Tablet getOnlineTablet(KeyExtent extent) {
+    return onlineTablets.snapshot().get(extent);
   }
 
   public VolumeManager getFileSystem() {
@@ -3436,7 +3406,7 @@ public class TabletServer implements Runnable {
     }
 
     ReferencedRemover refRemover = candidates -> {
-      for (Tablet tablet : getOnlineTablets()) {
+      for (Tablet tablet : getOnlineSnapshot().values()) {
         tablet.removeInUseLogs(candidates);
         if (candidates.isEmpty()) {
           break;

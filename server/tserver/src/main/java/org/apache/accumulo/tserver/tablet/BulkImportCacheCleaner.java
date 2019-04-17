@@ -39,7 +39,7 @@ public class BulkImportCacheCleaner implements Runnable {
   public void run() {
     // gather the list of transactions the tablets have cached
     final Set<Long> tids = new HashSet<>();
-    for (Tablet tablet : server.getOnlineTablets()) {
+    for (Tablet tablet : server.getOnlineSnapshot().values()) {
       tids.addAll(tablet.getBulkIngestedFiles().keySet());
     }
     try {
@@ -49,7 +49,7 @@ public class BulkImportCacheCleaner implements Runnable {
       // remove any that are still alive
       tids.removeAll(allTransactionsAlive);
       // cleanup any memory of these transactions
-      for (Tablet tablet : server.getOnlineTablets()) {
+      for (Tablet tablet : server.getOnlineSnapshot().values()) {
         tablet.cleanupBulkLoadedFiles(tids);
       }
     } catch (KeeperException | InterruptedException e) {
