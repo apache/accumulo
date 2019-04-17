@@ -47,8 +47,7 @@ import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.accumulo.core.security.VisibilityParseException;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.commons.collections.BufferOverflowException;
-import org.apache.commons.collections.map.LRUMap;
+import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -347,7 +346,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
 
           // try to defend against a scan or compaction using all memory in a tablet server
           if (appened > maxBufferSize)
-            throw new BufferOverflowException(
+            throw new IllegalArgumentException(
                 "Exceeded buffer size of " + maxBufferSize + ", prefixKey: " + prefixKey);
 
           if (getSource().hasTop() && key == getSource().getTopKey())

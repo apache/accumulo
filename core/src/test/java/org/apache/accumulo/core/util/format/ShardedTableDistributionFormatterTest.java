@@ -27,8 +27,6 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.Predicate;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -65,26 +63,9 @@ public class ShardedTableDistributionFormatterTest {
     String[] resultLines = formatter.next().split("\n");
     List<String> results = Arrays.asList(resultLines).subList(2, 4);
 
-    assertTrue(CollectionUtils.exists(results, new AggregateReportChecker("NULL", 1)));
-    assertTrue(CollectionUtils.exists(results, new AggregateReportChecker("19700101", 2)));
+    assertTrue(results.stream().anyMatch(s -> s.startsWith("NULL") && s.endsWith("" + 1)));
+    assertTrue(results.stream().anyMatch(s -> s.startsWith("19700101") && s.endsWith("" + 2)));
 
     assertFalse(formatter.hasNext());
-  }
-
-  private static class AggregateReportChecker implements Predicate {
-    private String day;
-    private int count;
-
-    AggregateReportChecker(String day, int count) {
-      this.day = day;
-      this.count = count;
-    }
-
-    @Override
-    public boolean evaluate(Object arg) {
-      String resLine = (String) arg;
-      return resLine.startsWith(this.day) && resLine.endsWith("" + this.count);
-    }
-
   }
 }
