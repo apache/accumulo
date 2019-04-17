@@ -216,6 +216,12 @@
         <version>2.8.5</version>
       </dependency>
       <dependency>
+        <!-- this is a runtime dependency of guava, no longer included with guava as of 27.1 -->
+        <groupId>com.google.guava</groupId>
+        <artifactId>failureaccess</artifactId>
+        <version>1.0.1</version>
+      </dependency>
+      <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>27.1-jre</version>
