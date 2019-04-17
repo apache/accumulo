@@ -39,6 +39,7 @@
         <include>com.fasterxml:classmate</include>
         <include>com.github.ben-manes.caffeine:caffeine</include>
         <include>com.google.code.gson:gson</include>
+        <include>com.google.guava:failureaccess</include>
         <include>com.google.guava:guava</include>
         <include>com.google.protobuf:protobuf-java</include>
         <include>com.sun.xml.bind:jaxb-core</include>
