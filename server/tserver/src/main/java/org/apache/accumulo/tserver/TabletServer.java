@@ -366,7 +366,7 @@ public class TabletServer implements Runnable {
     this.statsKeeper = new TabletStatsKeeper();
     SimpleTimer.getInstance(aconf).schedule(() -> {
       long now = System.currentTimeMillis();
-      for (Tablet tablet : getOnlineSnapshot().values())
+      for (Tablet tablet : getOnlineTablets().values())
         try {
           tablet.updateRates(now);
         } catch (Exception ex) {
@@ -1590,7 +1590,7 @@ public class TabletServer implements Runnable {
       List<TabletStats> result = new ArrayList<>();
       TableId text = TableId.of(tableId);
       KeyExtent start = new KeyExtent(text, new Text(), null);
-      for (Entry<KeyExtent,Tablet> entry : getOnlineSnapshot().tailMap(start).entrySet()) {
+      for (Entry<KeyExtent,Tablet> entry : getOnlineTablets().tailMap(start).entrySet()) {
         KeyExtent ke = entry.getKey();
         if (ke.getTableId().compareTo(text) == 0) {
           Tablet tablet = entry.getValue();
@@ -1777,7 +1777,7 @@ public class TabletServer implements Runnable {
       KeyExtent ke = new KeyExtent(TableId.of(tableId), ByteBufferUtil.toText(endRow),
           ByteBufferUtil.toText(startRow));
 
-      for (Tablet tablet : getOnlineSnapshot().values()) {
+      for (Tablet tablet : getOnlineTablets().values()) {
         if (ke.overlaps(tablet.getExtent()))
           tabletsToFlush.add(tablet);
       }
@@ -1899,7 +1899,7 @@ public class TabletServer implements Runnable {
 
       ArrayList<Tablet> tabletsToCompact = new ArrayList<>();
 
-      for (Tablet tablet : getOnlineSnapshot().values()) {
+      for (Tablet tablet : getOnlineTablets().values()) {
         if (ke.overlaps(tablet.getExtent()))
           tabletsToCompact.add(tablet);
       }
@@ -2126,7 +2126,7 @@ public class TabletServer implements Runnable {
             closedCopy = copyClosedLogs(closedLogs);
           }
 
-          Iterator<Entry<KeyExtent,Tablet>> iter = getOnlineSnapshot().entrySet().iterator();
+          Iterator<Entry<KeyExtent,Tablet>> iter = getOnlineTablets().entrySet().iterator();
 
           // bail early now if we're shutting down
           while (iter.hasNext()) {
@@ -3119,7 +3119,7 @@ public class TabletServer implements Runnable {
     SimpleTimer.getInstance(aconf).schedule(gcDebugTask, 0, TIME_BETWEEN_GC_CHECKS);
 
     Runnable constraintTask = () -> {
-      for (Tablet tablet : getOnlineSnapshot().values()) {
+      for (Tablet tablet : getOnlineTablets().values()) {
         tablet.checkConstraints();
       }
     };
@@ -3133,7 +3133,7 @@ public class TabletServer implements Runnable {
 
     final Map<String,TableInfo> tables = new HashMap<>();
 
-    getOnlineSnapshot().forEach((ke, tablet) -> {
+    getOnlineTablets().forEach((ke, tablet) -> {
       String tableId = ke.getTableId().canonical();
       TableInfo table = tables.get(tableId);
       if (table == null) {
@@ -3310,7 +3310,7 @@ public class TabletServer implements Runnable {
     };
   }
 
-  public SortedMap<KeyExtent,Tablet> getOnlineSnapshot() {
+  public SortedMap<KeyExtent,Tablet> getOnlineTablets() {
     return onlineTablets.snapshot();
   }
 
@@ -3406,7 +3406,7 @@ public class TabletServer implements Runnable {
     }
 
     ReferencedRemover refRemover = candidates -> {
-      for (Tablet tablet : getOnlineSnapshot().values()) {
+      for (Tablet tablet : getOnlineTablets().values()) {
         tablet.removeInUseLogs(candidates);
         if (candidates.isEmpty()) {
           break;

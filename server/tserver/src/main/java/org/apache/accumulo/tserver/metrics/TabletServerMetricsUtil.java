@@ -34,7 +34,7 @@ public class TabletServerMetricsUtil {
 
   public long getEntries() {
     long result = 0;
-    for (Tablet tablet : tserver.getOnlineSnapshot().values()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       result += tablet.getNumEntries();
     }
     return result;
@@ -42,7 +42,7 @@ public class TabletServerMetricsUtil {
 
   public long getEntriesInMemory() {
     long result = 0;
-    for (Tablet tablet : tserver.getOnlineSnapshot().values()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       result += tablet.getNumEntriesInMemory();
     }
     return result;
@@ -50,7 +50,7 @@ public class TabletServerMetricsUtil {
 
   public double getIngest() {
     double result = 0;
-    for (Tablet tablet : tserver.getOnlineSnapshot().values()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       result += tablet.ingestRate();
     }
     return result;
@@ -58,7 +58,7 @@ public class TabletServerMetricsUtil {
 
   public double getIngestByteRate() {
     double result = 0;
-    for (Tablet tablet : tserver.getOnlineSnapshot().values()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       result += tablet.ingestByteRate();
     }
     return result;
@@ -66,7 +66,7 @@ public class TabletServerMetricsUtil {
 
   public double getQueryRate() {
     double result = 0;
-    for (Tablet tablet : tserver.getOnlineSnapshot().values()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       result += tablet.queryRate();
     }
     return result;
@@ -74,7 +74,7 @@ public class TabletServerMetricsUtil {
 
   public double getQueryByteRate() {
     double result = 0;
-    for (Tablet tablet : tserver.getOnlineSnapshot().values()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       result += tablet.queryByteRate();
     }
     return result;
@@ -82,7 +82,7 @@ public class TabletServerMetricsUtil {
 
   public double getScannedRate() {
     double result = 0;
-    for (Tablet tablet : tserver.getOnlineSnapshot().values()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       result += tablet.scanRate();
     }
     return result;
@@ -90,7 +90,7 @@ public class TabletServerMetricsUtil {
 
   public int getMajorCompactions() {
     int result = 0;
-    for (Tablet tablet : tserver.getOnlineSnapshot().values()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       if (tablet.isMajorCompactionRunning())
         result++;
     }
@@ -99,7 +99,7 @@ public class TabletServerMetricsUtil {
 
   public int getMajorCompactionsQueued() {
     int result = 0;
-    for (Tablet tablet : tserver.getOnlineSnapshot().values()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       if (tablet.isMajorCompactionQueued())
         result++;
     }
@@ -108,7 +108,7 @@ public class TabletServerMetricsUtil {
 
   public int getMinorCompactions() {
     int result = 0;
-    for (Tablet tablet : tserver.getOnlineSnapshot().values()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       if (tablet.isMinorCompactionRunning())
         result++;
     }
@@ -117,7 +117,7 @@ public class TabletServerMetricsUtil {
 
   public int getMinorCompactionsQueued() {
     int result = 0;
-    for (Tablet tablet : tserver.getOnlineSnapshot().values()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       if (tablet.isMinorCompactionQueued())
         result++;
     }
@@ -125,7 +125,7 @@ public class TabletServerMetricsUtil {
   }
 
   public int getOnlineCount() {
-    return tserver.getOnlineSnapshot().values().size();
+    return tserver.getOnlineTablets().values().size();
   }
 
   public int getOpeningCount() {
@@ -134,7 +134,7 @@ public class TabletServerMetricsUtil {
 
   public long getQueries() {
     long result = 0;
-    for (Tablet tablet : tserver.getOnlineSnapshot().values()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       result += tablet.totalQueries();
     }
     return result;
@@ -159,7 +159,7 @@ public class TabletServerMetricsUtil {
   public double getAverageFilesPerTablet() {
     int count = 0;
     long result = 0;
-    for (Tablet tablet : tserver.getOnlineSnapshot().values()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       result += tablet.getDatafiles().size();
       count++;
     }
