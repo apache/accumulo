@@ -22,7 +22,7 @@
       <div class="row">
         <div class="col-xs-12">
           <table id="masterBulkImportStatus" class="table table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">All Bulk Imports</span><br/></caption>
+            <caption><span class="table-caption">Legacy Bulk Imports</span><br/></caption>
             <tbody>
               <tr><th class="firstcell">Directory&nbsp;</th>
                 <th title="The age of the import.">Age&nbsp;</th>
