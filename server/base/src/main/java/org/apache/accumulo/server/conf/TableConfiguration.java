@@ -54,7 +54,7 @@ public class TableConfiguration extends ObservableConfiguration {
 
   private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<>();
 
-  private ZooCachePropertyAccessor propCacheAccessor = null;
+  private final AtomicReference<ZooCachePropertyAccessor> propCacheAccessor = new AtomicReference<>();
   private final ServerContext context;
   private final NamespaceConfiguration parent;
   private ZooCacheFactory zcf = new ZooCacheFactory();
@@ -78,20 +78,27 @@ public class TableConfiguration extends ObservableConfiguration {
     this.zcf = zcf;
   }
 
-  private synchronized ZooCachePropertyAccessor getPropCacheAccessor() {
-    if (propCacheAccessor == null) {
-      synchronized (propCaches) {
-        PropCacheKey key = new PropCacheKey(context.getInstanceID(), tableId.canonical());
-        ZooCache propCache = propCaches.get(key);
-        if (propCache == null) {
-          propCache = zcf.getZooCache(context.getZooKeepers(),
-              context.getZooKeepersSessionTimeOut(), new TableConfWatcher(context));
-          propCaches.put(key, propCache);
-        }
-        propCacheAccessor = new ZooCachePropertyAccessor(propCache);
+  private ZooCache getZooCache() {
+    synchronized (propCaches) {
+      PropCacheKey key = new PropCacheKey(context.getInstanceID(), tableId.canonical());
+      ZooCache propCache = propCaches.get(key);
+      if (propCache == null) {
+        propCache = zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),
+            new TableConfWatcher(context));
+        propCaches.put(key, propCache);
       }
+      return propCache;
     }
-    return propCacheAccessor;
+  }
+
+  private ZooCachePropertyAccessor getPropCacheAccessor() {
+    // updateAndGet below always calls compare and set, so avoid if not null
+    ZooCachePropertyAccessor zcpa = propCacheAccessor.get();
+    if (zcpa != null)
+      return zcpa;
+
+    return propCacheAccessor
+        .updateAndGet(pca -> pca == null ? new ZooCachePropertyAccessor(getZooCache()) : pca);
   }
 
   @Override
@@ -163,8 +170,10 @@ public class TableConfiguration extends ObservableConfiguration {
 
   @Override
   public synchronized void invalidateCache() {
-    if (propCacheAccessor != null) {
-      propCacheAccessor.invalidateCache();
+    ZooCachePropertyAccessor pca = propCacheAccessor.get();
+
+    if (pca != null) {
+      pca.invalidateCache();
     }
     // Else, if the accessor is null, we could lock and double-check
     // to see if it happened to be created so we could invalidate its cache
