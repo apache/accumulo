@@ -166,6 +166,7 @@ import com.google.common.collect.ImmutableSet.Builder;
  *
  */
 public class Tablet implements TabletCommitter {
+
   static private final Logger log = Logger.getLogger(Tablet.class);
 
   private final TabletServer tabletServer;
@@ -406,7 +407,7 @@ public class Tablet implements TabletCommitter {
 
       @Override
       public void sessionExpired() {
-        log.debug("Session expired, no longer updating per table props...");
+        log.trace("Session expired, no longer updating per table props...");
       }
 
     });
