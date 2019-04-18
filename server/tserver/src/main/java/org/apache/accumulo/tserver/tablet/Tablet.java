@@ -408,7 +408,7 @@ public class Tablet {
 
       @Override
       public void sessionExpired() {
-        log.debug("Session expired, no longer updating per table props...");
+        log.trace("Session expired, no longer updating per table props...");
       }
 
     });

@@ -96,6 +96,7 @@ class TableConfWatcher implements Watcher {
       case None:
         switch (event.getState()) {
           case Expired:
+            log.info("Zookeeper node event type None, state=expired. Expire all table observers");
             ServerConfigurationFactory.expireAllTableObservers();
             break;
           case SyncConnected:
