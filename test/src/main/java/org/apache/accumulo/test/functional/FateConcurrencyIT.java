@@ -323,8 +323,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   /**
    * This method was helpful for debugging a condition that was causing transient test failures.
    * This forces a condition that the test should be able to handle. This method is not needed
-   * during normal testing, it was kept to aid future test development / troubleshooting if
-   * other transient failures occur.
+   * during normal testing, it was kept to aid future test development / troubleshooting if other
+   * transient failures occur.
    */
   private void runMultipleCompactions() {
 
