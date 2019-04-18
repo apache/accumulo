@@ -22,6 +22,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -92,130 +93,82 @@ public class KeyTest {
     Key kRowcolFamColQual = new Key(row, cf, cq);
     Key kRowcolFamColQualColVis = new Key(row, cf, cq, cv);
     Key kRowcolFamColQualColVisTimeStamp = new Key(row, cf, cq, cv, 5L);
-
+    
     // test row constructor
-    assertNotSame(row, kRow.getRowBytes());
-    assertNotSame(cf, kRow.getColFamily());
-    assertNotSame(cq, kRow.getColQualifier());
-    assertNotSame(cv, kRow.getColVisibility());
-
-    assertNotSame(row, kRow.getRowData().getBackingArray());
-    assertNotSame(cf, kRow.getColumnFamilyData().getBackingArray());
-    assertNotSame(cq, kRow.getColumnQualifierData().getBackingArray());
-    assertNotSame(cv, kRow.getColumnVisibilityData().getBackingArray());
+    assertNotSameByteArray(kRow, row, cf, cq, cv, 5L);
     
     // test row, column family constructor
-    assertNotSame(row, kRowcolFam.getRowBytes());
-    assertNotSame(cf, kRowcolFam.getColFamily());
-    assertNotSame(cq, kRowcolFam.getColQualifier());
-    assertNotSame(cv, kRowcolFam.getColVisibility());
-
-    assertNotSame(row, kRowcolFam.getRowData().getBackingArray());
-    assertNotSame(cf, kRowcolFam.getColumnFamilyData().getBackingArray());
-    assertNotSame(cq, kRowcolFam.getColumnQualifierData().getBackingArray());
-    assertNotSame(cv, kRowcolFam.getColumnVisibilityData().getBackingArray());
+    assertNotSameByteArray(kRowcolFam, row, cf, cq, cv, 5L);
     
     // test row, column family, column qualifier constructor
-    assertNotSame(row, kRowcolFamColQual.getRowBytes());
-    assertNotSame(cf, kRowcolFamColQual.getColFamily());
-    assertNotSame(cq, kRowcolFamColQual.getColQualifier());
-    assertNotSame(cv, kRowcolFamColQual.getColVisibility());
-
-    assertNotSame(row, kRowcolFamColQual.getRowData().getBackingArray());
-    assertNotSame(cf, kRowcolFamColQual.getColumnFamilyData().getBackingArray());
-    assertNotSame(cq, kRowcolFamColQual.getColumnQualifierData().getBackingArray());
-    assertNotSame(cv, kRowcolFamColQual.getColumnVisibilityData().getBackingArray());
+    assertNotSameByteArray(kRowcolFamColQual, row, cf, cq, cv, 5L);
     
     // test row, column family, column qualifier, column visibility constructor
-    assertNotSame(row, kRowcolFamColQualColVis.getRowBytes());
-    assertNotSame(cf, kRowcolFamColQualColVis.getColFamily());
-    assertNotSame(cq, kRowcolFamColQualColVis.getColQualifier());
-    assertNotSame(cv, kRowcolFamColQualColVis.getColVisibility());
-
-    assertNotSame(row, kRowcolFamColQualColVis.getRowData().getBackingArray());
-    assertNotSame(cf, kRowcolFamColQualColVis.getColumnFamilyData().getBackingArray());
-    assertNotSame(cq, kRowcolFamColQualColVis.getColumnQualifierData().getBackingArray());
-    assertNotSame(cv, kRowcolFamColQualColVis.getColumnVisibilityData().getBackingArray());
+    assertNotSameByteArray(kRowcolFamColQualColVis, row, cf, cq, cv, 5L);
     
     // test row, column family, column qualifier, column visibility, timestamp constructor
-    assertNotSame(row, kRowcolFamColQualColVisTimeStamp.getRowBytes());
-    assertNotSame(cf, kRowcolFamColQualColVisTimeStamp.getColFamily());
-    assertNotSame(cq, kRowcolFamColQualColVisTimeStamp.getColQualifier());
-    assertNotSame(cv, kRowcolFamColQualColVisTimeStamp.getColVisibility());
-
-    assertNotSame(row, kRowcolFamColQualColVisTimeStamp.getRowData().getBackingArray());
-    assertNotSame(cf, kRowcolFamColQualColVisTimeStamp.getColumnFamilyData().getBackingArray());
-    assertNotSame(cq, kRowcolFamColQualColVisTimeStamp.getColumnQualifierData().getBackingArray());
-    assertNotSame(cv, kRowcolFamColQualColVisTimeStamp.getColumnVisibilityData().getBackingArray());
+    assertNotSameByteArray(kRowcolFamColQualColVisTimeStamp, row, cf, cq, cv, 5L);
   }
   
   @Test
   public void testCopyDataWithTextConstructors() {
-    Text row = new Text("r");
-    Text cf = new Text("cf");
-    Text cq = new Text("cq");
-    Text cv = new Text("cv");
+    Text rowText = new Text("r");
+    Text cfText = new Text("cf");
+    Text cqText = new Text("cq");
+    Text cvText = new Text("cv");
+    
+    byte[] row = "r".getBytes();
+    byte[] cf = "cf".getBytes();
+    byte[] cq = "cq".getBytes();
+    byte[] cv = "cv".getBytes();
 
-    Key kRow = new Key(row);
-    Key kRowcolFam = new Key(row, cf);
-    Key kRowcolFamColQual = new Key(row, cf, cq);
-    Key kRowcolFamColQualColVis = new Key(row, cf, cq, cv);
-    Key kRowcolFamColQualColVisTimeStamp = new Key(row, cf, cq, cv, 5L);
+    //make Keys from Text parameters
+    Key kRow = new Key(rowText);
+    Key kRowcolFam = new Key(rowText, cfText);
+    Key kRowcolFamColQual = new Key(rowText, cfText, cqText);
+    Key kRowcolFamColQualColVis = new Key(rowText, cfText, cqText, cvText);
+    Key kRowcolFamColQualColVisTimeStamp = new Key(rowText, cfText, cqText, cvText, 5L);
 
     // test row constructor
-    assertNotSame(row, kRow.getRowBytes());
-    assertNotSame(cf, kRow.getColFamily());
-    assertNotSame(cq, kRow.getColQualifier());
-    assertNotSame(cv, kRow.getColVisibility());
-
-    assertNotSame(row, kRow.getRowData().getBackingArray());
-    assertNotSame(cf, kRow.getColumnFamilyData().getBackingArray());
-    assertNotSame(cq, kRow.getColumnQualifierData().getBackingArray());
-    assertNotSame(cv, kRow.getColumnVisibilityData().getBackingArray());
+    assertNotSameByteArray(kRow, row, cf, cq, cv, 5L);
     
     // test row, column family constructor
-    assertNotSame(row, kRowcolFam.getRowBytes());
-    assertNotSame(cf, kRowcolFam.getColFamily());
-    assertNotSame(cq, kRowcolFam.getColQualifier());
-    assertNotSame(cv, kRowcolFam.getColVisibility());
-
-    assertNotSame(row, kRowcolFam.getRowData().getBackingArray());
-    assertNotSame(cf, kRowcolFam.getColumnFamilyData().getBackingArray());
-    assertNotSame(cq, kRowcolFam.getColumnQualifierData().getBackingArray());
-    assertNotSame(cv, kRowcolFam.getColumnVisibilityData().getBackingArray());
+    assertNotSameByteArray(kRowcolFam, row, cf, cq, cv, 5L);
     
     // test row, column family, column qualifier constructor
-    assertNotSame(row, kRowcolFamColQual.getRowBytes());
-    assertNotSame(cf, kRowcolFamColQual.getColFamily());
-    assertNotSame(cq, kRowcolFamColQual.getColQualifier());
-    assertNotSame(cv, kRowcolFamColQual.getColVisibility());
-
-    assertNotSame(row, kRowcolFamColQual.getRowData().getBackingArray());
-    assertNotSame(cf, kRowcolFamColQual.getColumnFamilyData().getBackingArray());
-    assertNotSame(cq, kRowcolFamColQual.getColumnQualifierData().getBackingArray());
-    assertNotSame(cv, kRowcolFamColQual.getColumnVisibilityData().getBackingArray());
-
-    // test row, column family, column qualifier, column visibility constructor  
-    assertNotSame(row, kRowcolFamColQualColVis.getRowBytes());
-    assertNotSame(cf, kRowcolFamColQualColVis.getColFamily());
-    assertNotSame(cq, kRowcolFamColQualColVis.getColQualifier());
-    assertNotSame(cv, kRowcolFamColQualColVis.getColVisibility());
-
-    assertNotSame(row, kRowcolFamColQualColVis.getRowData().getBackingArray());
-    assertNotSame(cf, kRowcolFamColQualColVis.getColumnFamilyData().getBackingArray());
-    assertNotSame(cq, kRowcolFamColQualColVis.getColumnQualifierData().getBackingArray());
-    assertNotSame(cv, kRowcolFamColQualColVis.getColumnVisibilityData().getBackingArray());
-
+    assertNotSameByteArray(kRowcolFamColQual, row, cf, cq, cv, 5L);
+    
+    // test row, column family, column qualifier, column visibility constructor
+    assertNotSameByteArray(kRowcolFamColQualColVis, row, cf, cq, cv, 5L);
+    
     // test row, column family, column qualifier, column visibility, timestamp constructor
-    assertNotSame(row, kRowcolFamColQualColVisTimeStamp.getRowBytes());
-    assertNotSame(cf, kRowcolFamColQualColVisTimeStamp.getColFamily());
-    assertNotSame(cq, kRowcolFamColQualColVisTimeStamp.getColQualifier());
-    assertNotSame(cv, kRowcolFamColQualColVisTimeStamp.getColVisibility());
+    assertNotSameByteArray(kRowcolFamColQualColVisTimeStamp, row, cf, cq, cv, 5L);
+  }
+  
+  private void assertNotSameByteArray(Key key, byte[] row, byte[] cf, byte[]cq, byte[]cv, long timestamp) {
+	  if (key.getRowBytes().length != 0) {
+		    assertNotSame(row, key.getRowBytes());
+		    assertNotSame(row, key.getRowData().getBackingArray());
+		    assertTrue(Arrays.equals(row, key.getRowBytes()));
 
-    assertNotSame(row, kRowcolFamColQualColVisTimeStamp.getRowData().getBackingArray());
-    assertNotSame(cf, kRowcolFamColQualColVisTimeStamp.getColumnFamilyData().getBackingArray());
-    assertNotSame(cq, kRowcolFamColQualColVisTimeStamp.getColumnQualifierData().getBackingArray());
-    assertNotSame(cv, kRowcolFamColQualColVisTimeStamp.getColumnVisibilityData().getBackingArray());
+	  }
+	  if (key.getColFamily().length != 0) {
+		    assertNotSame(cf, key.getColFamily());
+		    assertNotSame(row, key.getColumnFamilyData().getBackingArray());
+		    assertTrue(Arrays.equals(cf, key.getColFamily()));
+
+	  }
+	  if (key.getColQualifier().length != 0) {
+		    assertNotSame(cq, key.getColQualifier());
+		    assertNotSame(row, key.getColumnQualifierData().getBackingArray());
+		    assertTrue(Arrays.equals(cq, key.getColQualifier()));
+
+	  }
+	  if (key.getColVisibility().length != 0) {
+		    assertNotSame(cv, key.getColVisibility());
+		    assertNotSame(cv, key.getColumnVisibilityData().getBackingArray());
+		    assertTrue(Arrays.equals(cv, key.getColVisibility()));
+	  }
   }
 
   @Test
