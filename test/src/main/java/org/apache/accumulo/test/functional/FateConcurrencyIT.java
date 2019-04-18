@@ -223,12 +223,6 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       runMultipleCompactions();
     }
 
-    // for development testing - force transient condition that was failing this test so that
-    // we know if multiple compactions are running, they are properly handled by the test code.
-    if (runMultipleCompactions) {
-      runMultipleCompactions();
-    }
-
     try {
 
       assertEquals("verify table online after created", TableState.ONLINE,
