@@ -112,8 +112,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   private static final long ONE_HOUR = 60 * 60 * 1000;
   private static final Set<KeyExtent> EMPTY_MIGRATIONS = Collections.emptySet();
 
-  private Map<String,String> tableIdToTableName = null;
-  private Map<String,Pattern> poolNameToRegexPattern = null;
+  private volatile Map<String,String> tableIdToTableName = null;
+  private volatile Map<String,Pattern> poolNameToRegexPattern = null;
   private volatile long lastOOBCheck = System.currentTimeMillis();
   private volatile boolean isIpBasedRegex = false;
   private Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = new HashMap<>();
