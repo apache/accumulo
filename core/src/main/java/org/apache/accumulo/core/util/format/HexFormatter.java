@@ -21,7 +21,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.interpret.ScanInterpreter;
+import org.apache.accumulo.core.spi.scan.ScanInterpreter;
 import org.apache.hadoop.io.Text;
 
 /**

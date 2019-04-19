@@ -14,15 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.util.interpret;
+package org.apache.accumulo.core.spi.scan;
 
-import org.apache.accumulo.core.util.format.HexFormatter;
+import org.apache.hadoop.io.Text;
 
 /**
- * As simple scan interpreter that converts hex to binary. IT supports translating the output of
- * {@link HexFormatter} back to binary. The hex input can contain dashes (because
- * {@link HexFormatter} outputs dashes) which are ignored.
+ * A simple interface for creating shell plugins that translate the range and column arguments for
+ * the shell's scan command.
  */
-public class HexScanInterpreter extends HexFormatter {
+public interface ScanInterpreter {
 
+  Text interpretRow(Text row);
+
+  Text interpretBeginRow(Text row);
+
+  Text interpretEndRow(Text row);
+
+  Text interpretColumnFamily(Text cf);
+
+  Text interpretColumnQualifier(Text cq);
 }

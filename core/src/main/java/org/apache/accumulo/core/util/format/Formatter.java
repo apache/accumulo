@@ -22,6 +22,10 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
+/**
+ * @deprecated since 2.0.0. Internal use only. Use TODO: provide SPI option?
+ */
+@Deprecated
 public interface Formatter extends Iterator<String> {
   void initialize(Iterable<Entry<Key,Value>> scanner, FormatterConfig config);
 }

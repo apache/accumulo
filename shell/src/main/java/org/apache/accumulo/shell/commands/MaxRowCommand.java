@@ -18,7 +18,7 @@ package org.apache.accumulo.shell.commands;
 
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.interpret.ScanInterpreter;
+import org.apache.accumulo.core.spi.scan.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;

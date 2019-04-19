@@ -17,7 +17,7 @@
 package org.apache.accumulo.shell.commands;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.interpret.ScanInterpreter;
+import org.apache.accumulo.core.spi.scan.ScanInterpreter;
 import org.apache.accumulo.shell.Shell;
 
 public class InterpreterCommand extends ShellPluginConfigurationCommand {
