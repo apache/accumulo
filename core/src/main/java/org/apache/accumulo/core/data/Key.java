@@ -37,7 +37,7 @@ import org.apache.hadoop.io.WritableUtils;
 /**
  * This is the Key used to store and access individual values in Accumulo. A Key is a tuple composed
  * of a row, column family, column qualifier, column visibility, timestamp, and delete marker.
- *
+ *<p>
  * Keys are comparable and therefore have a sorted order defined by {@link #compareTo(Key)}.
  */
 public class Key implements WritableComparable<Key>, Cloneable {
@@ -121,7 +121,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, empty column family, empty column qualifier, empty column
    * visibility, timestamp {@link Long#MAX_VALUE}, and delete marker false.  This constructor creates
    * a copy of row. 
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    *
@@ -138,7 +138,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, empty column family, empty column qualifier, empty column
    * visibility, timestamp {@link Long#MAX_VALUE}, and delete marker false. This constructor creates
    * a copy of row. 
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    *
@@ -156,7 +156,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, empty column family, empty column qualifier, empty column
    * visibility, the specified timestamp, and delete marker false.  This constructor creates
    * a copy of row.
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    *
@@ -175,7 +175,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, empty column family, empty column qualifier, empty column
    * visibility, the specified timestamp, and delete marker false. This constructor creates a copy
    * of row. 
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    *
@@ -194,7 +194,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Creates a key. The delete marker defaults to false. This constructor creates a copy of each
    * specified array. 
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    *
@@ -274,7 +274,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Creates a key. The delete marker defaults to false. This constructor creates a copy of each
    * specified array. 
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    *
@@ -297,7 +297,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
   /**
    * Creates a key. This constructor creates a copy of each specified arrays. 
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    *
@@ -347,7 +347,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, the specified column family, empty column qualifier,
    * empty column visibility, timestamp {@link Long#MAX_VALUE}, and delete marker false.  This constructor creates
    * a copy of row. 
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    * 
@@ -362,7 +362,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, the specified column family, empty column qualifier,
    * empty column visibility, timestamp {@link Long#MAX_VALUE}, and delete marker false. This
    * constructor creates a copy of each specified array. 
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    *
@@ -378,7 +378,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, empty column visibility, timestamp {@link Long#MAX_VALUE}, and delete marker false.
    * This constructor creates a copy of row. 
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    * 
@@ -393,7 +393,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, empty column visibility, timestamp {@link Long#MAX_VALUE}, and delete marker false.
    * This constructor creates a copy of each specified array.
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    *
@@ -409,7 +409,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, the specified column visibility, timestamp {@link Long#MAX_VALUE}, and delete marker
    * false.  This constructor creates a copy of row.
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    *
@@ -424,7 +424,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, the specified column visibility, timestamp {@link Long#MAX_VALUE}, and delete marker
    * false. This constructor creates a copy of each specified array. 
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    *
@@ -440,7 +440,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, empty column visibility, the specified timestamp, and delete marker false.
    * This constructor creates a copy of row.
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    * 
@@ -455,7 +455,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, empty column visibility, the specified timestamp, and delete marker false. This
    * constructor creates a copy of each specified array. 
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    *
@@ -471,7 +471,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, the specified column visibility, the specified timestamp, and delete marker false.
    * This constructor creates a copy of row.
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    * 
@@ -486,7 +486,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, the specified column visibility, the specified timestamp, and delete marker false.
    * This constructor creates a copy of row. 
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    * 
@@ -502,7 +502,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Creates a key with the specified row, the specified column family, the specified column
    * qualifier, the specified column visibility, the specified timestamp, and delete marker false.
    * This constructor creates a copy of each specified array.
-   * 
+   * <p>
    * To avoid copying, use {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, 
    * long ts, boolean deleted, boolean copy)} instead.
    *
