@@ -37,8 +37,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Base class for extracting configuration values from Java Properties
  */
 public abstract class AccumuloClusterPropertyConfiguration implements AccumuloClusterConfiguration {
-  private static final Logger log = LoggerFactory
-      .getLogger(AccumuloClusterPropertyConfiguration.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(AccumuloClusterPropertyConfiguration.class);
 
   public static final String ACCUMULO_IT_PROPERTIES_FILE = "accumulo.it.properties";
   public static final String ACCUMULO_CLUSTER_TYPE_KEY = "accumulo.it.cluster.type";

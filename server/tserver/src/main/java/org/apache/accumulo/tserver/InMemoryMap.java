@@ -107,10 +107,8 @@ public class InMemoryMap {
   public static final String TYPE_LOCALITY_GROUP_MAP = "LocalityGroupMap";
   public static final String TYPE_LOCALITY_GROUP_MAP_NATIVE = "LocalityGroupMap with native";
 
-  // @formatter:off
   private AtomicReference<Pair<SamplerConfigurationImpl,Sampler>> samplerRef =
-    new AtomicReference<>(null);
-  // @formatter:on
+      new AtomicReference<>(null);
 
   private AccumuloConfiguration config;
 
@@ -374,8 +372,8 @@ public class InMemoryMap {
   }
 
   private static class DefaultMap implements SimpleMap {
-    private ConcurrentSkipListMap<Key,Value> map = new ConcurrentSkipListMap<>(
-        new MemKeyComparator());
+    private ConcurrentSkipListMap<Key,Value> map =
+        new ConcurrentSkipListMap<>(new MemKeyComparator());
     private AtomicLong bytesInMemory = new AtomicLong();
     private AtomicInteger size = new AtomicInteger();
 

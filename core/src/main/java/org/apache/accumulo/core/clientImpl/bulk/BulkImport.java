@@ -118,8 +118,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     Map<String,String> props = context.instanceOperations().getSystemConfiguration();
     AccumuloConfiguration conf = new ConfigurationCopy(props);
 
-    FileSystem fs = VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf)
-        .getFileSystem();
+    FileSystem fs =
+        VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf).getFileSystem();
 
     Path srcPath = checkPath(fs, dir);
 
@@ -342,8 +342,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       Path srcPath)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
-    Map<String,List<Destination>> fileDestinations = plan.getDestinations().stream()
-        .collect(groupingBy(Destination::getFileName));
+    Map<String,List<Destination>> fileDestinations =
+        plan.getDestinations().stream().collect(groupingBy(Destination::getFileName));
 
     List<FileStatus> statuses = filterInvalid(
         fs.listStatus(srcPath, p -> !p.getName().equals(Constants.BULK_LOAD_MAPPING)));
@@ -435,8 +435,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       executor = service = Executors.newFixedThreadPool(numThreads);
     } else {
       String threads = context.getConfiguration().get(ClientProperty.BULK_LOAD_THREADS.getKey());
-      executor = service = Executors
-          .newFixedThreadPool(ConfigurationTypeHelper.getNumThreads(threads));
+      executor =
+          service = Executors.newFixedThreadPool(ConfigurationTypeHelper.getNumThreads(threads));
     }
 
     try {
@@ -545,8 +545,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   // This method handles the case of splits happening while files are being examined. It merges
   // smaller tablets into large tablets.
-  static SortedMap<KeyExtent,Bulk.Files> mergeOverlapping(
-      SortedMap<KeyExtent,Bulk.Files> mappings) {
+  static SortedMap<KeyExtent,Bulk.Files>
+      mergeOverlapping(SortedMap<KeyExtent,Bulk.Files> mappings) {
     List<KeyExtent> extents = new ArrayList<>(mappings.keySet());
 
     for (KeyExtent ke : extents) {

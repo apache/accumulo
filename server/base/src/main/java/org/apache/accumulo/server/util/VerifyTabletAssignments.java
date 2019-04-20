@@ -73,8 +73,8 @@ public class VerifyTabletAssignments {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(VerifyTabletAssignments.class.getName(),
-        args)) {
+    try (TraceScope clientSpan =
+        opts.parseArgsAndTrace(VerifyTabletAssignments.class.getName(), args)) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         for (String table : client.tableOperations().list())
           checkTable((ClientContext) client, opts, table, null);

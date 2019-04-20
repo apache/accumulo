@@ -202,8 +202,8 @@ abstract class TabletGroupWatcher extends Daemon {
             Master.log.trace("{} walogs {}", tls, tls.walogs.size());
 
           // Don't overwhelm the tablet servers with work
-          if (unassigned.size() + unloaded > Master.MAX_TSERVER_WORK_CHUNK
-              * currentTServers.size()) {
+          if (unassigned.size() + unloaded
+              > Master.MAX_TSERVER_WORK_CHUNK * currentTServers.size()) {
             flushChanges(destinations, assignments, assigned, assignedToDeadServers,
                 logsForDeadServers, suspendedToGoneServers, unassigned);
             assignments.clear();
@@ -215,8 +215,8 @@ abstract class TabletGroupWatcher extends Daemon {
             eventListener.waitForEvents(Master.TIME_TO_WAIT_BETWEEN_SCANS);
           }
           TableId tableId = tls.extent.getTableId();
-          TableConfiguration tableConf = this.master.getConfigurationFactory()
-              .getTableConfiguration(tableId);
+          TableConfiguration tableConf =
+              this.master.getConfigurationFactory().getTableConfiguration(tableId);
 
           MergeStats mergeStats = mergeStatsCache.get(tableId);
           if (mergeStats == null) {
@@ -271,8 +271,8 @@ abstract class TabletGroupWatcher extends Daemon {
                 }
                 break;
               case SUSPENDED:
-                if (master.getSteadyTime() - tls.suspend.suspensionTime < tableConf
-                    .getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
+                if (master.getSteadyTime() - tls.suspend.suspensionTime
+                    < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
                   // Tablet is suspended. See if its tablet server is back.
                   TServerInstance returnInstance = null;
                   Iterator<TServerInstance> find = destinations
@@ -445,15 +445,15 @@ abstract class TabletGroupWatcher extends Daemon {
             assigned, future);
         return;
       }
-      Iterator<Entry<Key,Value>> iter = Iterators.concat(future.entrySet().iterator(),
-          assigned.entrySet().iterator());
+      Iterator<Entry<Key,Value>> iter =
+          Iterators.concat(future.entrySet().iterator(), assigned.entrySet().iterator());
       while (iter.hasNext()) {
         Entry<Key,Value> entry = iter.next();
         TServerInstance alive = master.tserverSet.find(entry.getValue().toString());
         if (alive == null) {
           Master.log.info("Removing entry  {}", entry);
-          BatchWriter bw = this.master.getContext().createBatchWriter(table,
-              new BatchWriterConfig());
+          BatchWriter bw =
+              this.master.getContext().createBatchWriter(table, new BatchWriterConfig());
           Mutation m = new Mutation(entry.getKey().getRow());
           m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
           bw.addMutation(m);
@@ -686,8 +686,8 @@ abstract class TabletGroupWatcher extends Daemon {
     if (start == null) {
       start = new Text();
     }
-    Range scanRange = new Range(TabletsSection.getRow(range.getTableId(), start), false, stopRow,
-        false);
+    Range scanRange =
+        new Range(TabletsSection.getRow(range.getTableId(), start), false, stopRow, false);
     String targetSystemTable = MetadataTable.NAME;
     if (range.isMeta()) {
       targetSystemTable = RootTable.NAME;
@@ -823,8 +823,8 @@ abstract class TabletGroupWatcher extends Daemon {
         throw new AccumuloException("No last tablet for a merge " + range);
       }
       Entry<Key,Value> entry = iterator.next();
-      KeyExtent highTablet = new KeyExtent(entry.getKey().getRow(),
-          KeyExtent.decodePrevEndRow(entry.getValue()));
+      KeyExtent highTablet =
+          new KeyExtent(entry.getKey().getRow(), KeyExtent.decodePrevEndRow(entry.getValue()));
       if (!highTablet.getTableId().equals(range.getTableId())) {
         throw new AccumuloException("No last tablet for merge " + range + " " + highTablet);
       }

@@ -196,11 +196,11 @@ public class Master
   final LiveTServerSet tserverSet;
   private final List<TabletGroupWatcher> watchers = new ArrayList<>();
   final SecurityOperation security;
-  final Map<TServerInstance,AtomicInteger> badServers = Collections
-      .synchronizedMap(new DefaultMap<>(new AtomicInteger()));
+  final Map<TServerInstance,AtomicInteger> badServers =
+      Collections.synchronizedMap(new DefaultMap<>(new AtomicInteger()));
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
-  final SortedMap<KeyExtent,TServerInstance> migrations = Collections
-      .synchronizedSortedMap(new TreeMap<>());
+  final SortedMap<KeyExtent,TServerInstance> migrations =
+      Collections.synchronizedSortedMap(new TreeMap<>());
   final EventCoordinator nextEvent = new EventCoordinator();
   private final Object mergeLock = new Object();
   private ReplicationDriver replicationWorkDriver;
@@ -221,8 +221,8 @@ public class Master
 
   Fate<Master> fate;
 
-  volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections
-      .unmodifiableSortedMap(new TreeMap<>());
+  volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus =
+      Collections.unmodifiableSortedMap(new TreeMap<>());
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private final AtomicBoolean masterInitialized = new AtomicBoolean(false);
@@ -284,8 +284,8 @@ public class Master
     if (!zoo.exists(dirZPath)) {
       Path oldPath = fs.getFullPath(FileType.TABLE, "/" + MetadataTable.ID + "/root_tablet");
       if (fs.exists(oldPath)) {
-        VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(RootTable.ID,
-            RootTable.EXTENT.getEndRow(), context);
+        VolumeChooserEnvironment chooserEnv =
+            new VolumeChooserEnvironmentImpl(RootTable.ID, RootTable.EXTENT.getEndRow(), context);
         String newPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(context))
             + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + RootTable.ID;
         fs.mkdirs(new Path(newPath));
@@ -702,8 +702,8 @@ public class Master
       // SASL is enabled, create the key distributor (ZooKeeper) and manager (generates/rolls secret
       // keys)
       log.info("SASL is enabled, creating delegation token key manager and distributor");
-      final long tokenUpdateInterval = aconf
-          .getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
+      final long tokenUpdateInterval =
+          aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
       keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooReaderWriter(),
           getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
       authenticationTokenKeyManager = new AuthenticationTokenKeyManager(context.getSecretManager(),
@@ -758,8 +758,8 @@ public class Master
   public void setMergeState(MergeInfo info, MergeState state)
       throws KeeperException, InterruptedException {
     synchronized (mergeLock) {
-      String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + info.getExtent().getTableId()
-          + "/merge";
+      String path =
+          getZooKeeperRoot() + Constants.ZTABLES + "/" + info.getExtent().getTableId() + "/merge";
       info.setState(state);
       if (state.equals(MergeState.NONE)) {
         context.getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
@@ -1185,12 +1185,12 @@ public class Master
 
   }
 
-  private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation(
-      Set<TServerInstance> currentServers) {
+  private SortedMap<TServerInstance,TabletServerStatus>
+      gatherTableInformation(Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE);
-    ExecutorService tp = threads == 0 ? Executors.newCachedThreadPool()
-        : Executors.newFixedThreadPool(threads);
+    ExecutorService tp =
+        threads == 0 ? Executors.newCachedThreadPool() : Executors.newFixedThreadPool(threads);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     for (TServerInstance serverInstance : currentServers) {
@@ -1457,17 +1457,15 @@ public class Master
       throws UnknownHostException, KeeperException, InterruptedException {
     // Start the replication coordinator which assigns tservers to service replication requests
     MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
-    ReplicationCoordinator.Iface haReplicationProxy = HighlyAvailableServiceWrapper.service(impl,
-        this);
-    // @formatter:off
+    ReplicationCoordinator.Iface haReplicationProxy =
+        HighlyAvailableServiceWrapper.service(impl, this);
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
-            new ReplicationCoordinator.Processor<>(TraceUtil.wrapService(haReplicationProxy));
-    // @formatter:on
-    ServerAddress replAddress = TServerUtils.startServer(context, hostname,
-        Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
-        "Master Replication Coordinator", "Replication Coordinator", null,
-        Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
-        Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+        new ReplicationCoordinator.Processor<>(TraceUtil.wrapService(haReplicationProxy));
+    ServerAddress replAddress =
+        TServerUtils.startServer(context, hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT,
+            replicationCoordinatorProcessor, "Master Replication Coordinator",
+            "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
+            Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
 
     log.info("Started replication coordinator service at " + replAddress.address);
     // Start the daemon to scan the replication table and make units of work
@@ -1553,8 +1551,8 @@ public class Master
   private void getMasterLock(final String zMasterLoc) throws KeeperException, InterruptedException {
     log.info("trying to get master lock");
 
-    final String masterClientAddress = hostname + ":"
-        + getConfiguration().getPort(Property.MASTER_CLIENTPORT)[0];
+    final String masterClientAddress =
+        hostname + ":" + getConfiguration().getPort(Property.MASTER_CLIENTPORT)[0];
 
     while (true) {
 
@@ -1599,8 +1597,8 @@ public class Master
       Set<TServerInstance> added) {
     // if we have deleted or added tservers, then adjust our dead server list
     if (!deleted.isEmpty() || !added.isEmpty()) {
-      DeadServerList obit = new DeadServerList(context,
-          getZooKeeperRoot() + Constants.ZDEADTSERVERS);
+      DeadServerList obit =
+          new DeadServerList(context, getZooKeeperRoot() + Constants.ZDEADTSERVERS);
       if (added.size() > 0) {
         log.info("New servers: {}", added);
         for (TServerInstance up : added) {

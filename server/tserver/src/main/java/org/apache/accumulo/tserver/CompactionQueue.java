@@ -37,8 +37,8 @@ class CompactionQueue extends AbstractQueue<TraceRunnable> implements BlockingQu
   private List<TraceRunnable> task = new LinkedList<>();
 
   @SuppressWarnings("unchecked")
-  private static final Comparator<TraceRunnable> ELEMENT_COMPARATOR = (o1,
-      o2) -> ((Comparable<Runnable>) o1.getRunnable()).compareTo(o2.getRunnable());
+  private static final Comparator<TraceRunnable> ELEMENT_COMPARATOR =
+      (o1, o2) -> ((Comparable<Runnable>) o1.getRunnable()).compareTo(o2.getRunnable());
 
   @Override
   public synchronized TraceRunnable poll() {

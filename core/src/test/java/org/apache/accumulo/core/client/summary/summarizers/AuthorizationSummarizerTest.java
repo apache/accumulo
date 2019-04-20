@@ -39,8 +39,8 @@ public class AuthorizationSummarizerTest {
 
   @Test
   public void testBasic() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(AuthorizationSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(AuthorizationSummarizer.class).build();
     AuthorizationSummarizer authSummarizer = new AuthorizationSummarizer();
 
     Collector collector = authSummarizer.collector(sc);

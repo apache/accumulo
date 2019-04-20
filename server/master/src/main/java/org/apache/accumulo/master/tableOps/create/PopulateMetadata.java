@@ -64,8 +64,8 @@ class PopulateMetadata extends MasterRepo {
         tableInfo.getTimeType(), environment.getMasterLock());
 
     if (tableInfo.getInitialSplitSize() > 0) {
-      SortedSet<Text> splits = Utils
-          .getSortedSetFromFile(environment.getInputStream(tableInfo.getSplitFile()), true);
+      SortedSet<Text> splits =
+          Utils.getSortedSetFromFile(environment.getInputStream(tableInfo.getSplitFile()), true);
       SortedSet<Text> dirs = Utils
           .getSortedSetFromFile(environment.getInputStream(tableInfo.getSplitDirsFile()), false);
       Map<Text,Text> splitDirMap = createSplitDirectoryMap(splits, dirs);
@@ -84,8 +84,8 @@ class PopulateMetadata extends MasterRepo {
     Value dirValue;
     for (Text split : Iterables.concat(splits, Collections.singleton(null))) {
       Mutation mut = new KeyExtent(tableId, split, prevSplit).getPrevRowUpdateMutation();
-      dirValue = (split == null) ? new Value(tableInfo.defaultTabletDir)
-          : new Value(data.get(split));
+      dirValue =
+          (split == null) ? new Value(tableInfo.defaultTabletDir) : new Value(data.get(split));
       MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mut, dirValue);
       MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mut,
           new Value(timeType + "0"));

@@ -109,8 +109,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
       loginAs(rootUser);
       c.securityOperations().createLocalUser(principal, passwordToken);
       loginAs(testUser);
-      try (AccumuloClient test_user_client = Accumulo.newClient().from(c.properties())
-          .as(principal, token).build()) {
+      try (AccumuloClient test_user_client =
+          Accumulo.newClient().from(c.properties()).as(principal, token).build()) {
         loginAs(rootUser);
         verifyHasNoSystemPermissions(c, principal, SystemPermission.values());
 
@@ -491,8 +491,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
         test_user_client.namespaceOperations().setProperty(namespace,
             Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
         loginAs(rootUser);
-        Map<String,String> propies = map(
-            root_client.namespaceOperations().getProperties(namespace));
+        Map<String,String> propies =
+            map(root_client.namespaceOperations().getProperties(namespace));
         if (!propies.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
           throw new IllegalStateException("Should be able to set a table property");
         loginAs(testUser);
@@ -572,8 +572,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.securityOperations().createLocalUser(principal, passwordToken);
       loginAs(testUser);
-      try (AccumuloClient test_user_client = Accumulo.newClient().from(c.properties())
-          .as(principal, token).build()) {
+      try (AccumuloClient test_user_client =
+          Accumulo.newClient().from(c.properties()).as(principal, token).build()) {
 
         // check for read-only access to metadata table
         loginAs(rootUser);
@@ -746,8 +746,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
             TablePermission.GRANT);
         break;
       case GET_SUMMARIES:
-        List<Summary> summaries = test_user_client.tableOperations().summaries(tableName)
-            .retrieve();
+        List<Summary> summaries =
+            test_user_client.tableOperations().summaries(tableName).retrieve();
         // just make sure it's not blocked by permissions, the actual summaries are tested in
         // SummaryIT
         assertTrue(summaries.isEmpty());

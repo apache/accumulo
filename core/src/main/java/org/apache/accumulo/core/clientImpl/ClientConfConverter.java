@@ -89,10 +89,10 @@ public class ClientConfConverter {
   }
 
   @SuppressWarnings("deprecation")
-  public static org.apache.accumulo.core.client.ClientConfiguration toClientConf(
-      Properties properties) {
-    org.apache.accumulo.core.client.ClientConfiguration config = org.apache.accumulo.core.client.ClientConfiguration
-        .create();
+  public static org.apache.accumulo.core.client.ClientConfiguration
+      toClientConf(Properties properties) {
+    org.apache.accumulo.core.client.ClientConfiguration config =
+        org.apache.accumulo.core.client.ClientConfiguration.create();
     for (Object keyObj : properties.keySet()) {
       String propKey = (String) keyObj;
       String val = properties.getProperty(propKey);
@@ -112,8 +112,8 @@ public class ClientConfConverter {
   }
 
   @SuppressWarnings("deprecation")
-  public static Properties toProperties(
-      org.apache.accumulo.core.client.ClientConfiguration clientConf) {
+  public static Properties
+      toProperties(org.apache.accumulo.core.client.ClientConfiguration clientConf) {
     Properties props = new Properties();
     Iterator<String> clientConfIter = clientConf.getKeys();
     while (clientConfIter.hasNext()) {
@@ -150,8 +150,8 @@ public class ClientConfConverter {
    * @return the client configuration presented in the form of an {@link AccumuloConfiguration}
    */
   @SuppressWarnings("deprecation")
-  public static AccumuloConfiguration toAccumuloConf(
-      final org.apache.accumulo.core.client.ClientConfiguration config) {
+  public static AccumuloConfiguration
+      toAccumuloConf(final org.apache.accumulo.core.client.ClientConfiguration config) {
 
     final AccumuloConfiguration defaults = DefaultConfiguration.getInstance();
 
@@ -165,8 +165,8 @@ public class ClientConfConverter {
         if (property.isSensitive()) {
           org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
           if (hadoopConf != null) {
-            char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
-                key);
+            char[] value =
+                CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
             if (value != null) {
               log.trace("Loaded sensitive value for {} from CredentialProvider", key);
               return new String(value);
@@ -231,8 +231,8 @@ public class ClientConfConverter {
               continue;
             }
             if (filter.test(key)) {
-              char[] value = CredentialProviderFactoryShim
-                  .getValueFromCredentialProvider(hadoopConf, key);
+              char[] value =
+                  CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
               if (value != null) {
                 props.put(key, new String(value));
               }
@@ -242,8 +242,8 @@ public class ClientConfConverter {
       }
 
       private org.apache.hadoop.conf.Configuration getHadoopConfiguration() {
-        String credProviderPaths = config
-            .getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+        String credProviderPaths =
+            config.getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
         if (credProviderPaths != null && !credProviderPaths.isEmpty()) {
           org.apache.hadoop.conf.Configuration hConf = new org.apache.hadoop.conf.Configuration();
           hConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPaths);
@@ -258,10 +258,10 @@ public class ClientConfConverter {
   }
 
   @SuppressWarnings("deprecation")
-  public static org.apache.accumulo.core.client.ClientConfiguration toClientConf(
-      AccumuloConfiguration conf) {
-    org.apache.accumulo.core.client.ClientConfiguration clientConf = org.apache.accumulo.core.client.ClientConfiguration
-        .create();
+  public static org.apache.accumulo.core.client.ClientConfiguration
+      toClientConf(AccumuloConfiguration conf) {
+    org.apache.accumulo.core.client.ClientConfiguration clientConf =
+        org.apache.accumulo.core.client.ClientConfiguration.create();
 
     // Servers will only have the full principal in their configuration -- parse the
     // primary and realm from it.

@@ -96,9 +96,8 @@ public class BulkSerialize {
       Output output) throws IOException {
     final Path lmFile = new Path(sourceDir, Constants.BULK_LOAD_MAPPING);
 
-    try (OutputStream fsOut = output.create(lmFile);
-        JsonWriter writer = new JsonWriter(
-            new BufferedWriter(new OutputStreamWriter(fsOut, UTF_8)))) {
+    try (OutputStream fsOut = output.create(lmFile); JsonWriter writer =
+        new JsonWriter(new BufferedWriter(new OutputStreamWriter(fsOut, UTF_8)))) {
       Gson gson = createGson();
       writer.setIndent("  ");
       writer.beginArray();

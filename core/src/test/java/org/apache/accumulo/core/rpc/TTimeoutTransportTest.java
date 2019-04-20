@@ -116,9 +116,9 @@ public class TTimeoutTransportTest {
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
     InputStream is = createMock(InputStream.class);
-    TTimeoutTransport timeoutTransport = createMockBuilder(TTimeoutTransport.class)
-        .addMockedMethod("openSocketChannel").addMockedMethod("wrapInputStream")
-        .addMockedMethod("wrapOutputStream").createMock();
+    TTimeoutTransport timeoutTransport =
+        createMockBuilder(TTimeoutTransport.class).addMockedMethod("openSocketChannel")
+            .addMockedMethod("wrapInputStream").addMockedMethod("wrapOutputStream").createMock();
 
     // Return out mocked socket
     expect(timeoutTransport.openSocketChannel()).andReturn(s).once();

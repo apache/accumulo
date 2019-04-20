@@ -46,8 +46,8 @@ public class FileUtilTest {
   private static Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
 
   @Rule
-  public TemporaryFolder tmpDir = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tmpDir =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Rule
   public TestName testName = new TestName();

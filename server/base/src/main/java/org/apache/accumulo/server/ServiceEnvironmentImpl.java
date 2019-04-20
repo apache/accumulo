@@ -134,8 +134,8 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
   @Override
   public <T> T instantiate(TableId tableId, String className, Class<T> base)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
-    String ctx = srvCtx.getServerConfFactory().getTableConfiguration(tableId)
-        .get(Property.TABLE_CLASSPATH);
+    String ctx =
+        srvCtx.getServerConfFactory().getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
     return ConfigurationTypeHelper.getClassInstance(ctx, className, base);
   }
 }

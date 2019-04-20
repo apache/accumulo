@@ -131,8 +131,8 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
   public void unclosedWalsLeaveStatusOpen() throws Exception {
     Set<String> wals = Collections.emptySet();
     try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
-      Mutation m = new Mutation(
-          ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
+      Mutation m =
+          new Mutation(ReplicationSection.getRowPrefix() + "file:/accumulo/wal/tserver+port/12345");
       m.put(ReplicationSection.COLF, new Text("1"),
           StatusUtil.fileCreatedValue(System.currentTimeMillis()));
       bw.addMutation(m);

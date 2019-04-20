@@ -35,8 +35,8 @@ public class SystemPropUtil {
   public static boolean setSystemProperty(ServerContext context, String property, String value)
       throws KeeperException, InterruptedException {
     if (!Property.isValidZooPropertyKey(property)) {
-      IllegalArgumentException iae = new IllegalArgumentException(
-          "Zookeeper property is not mutable: " + property);
+      IllegalArgumentException iae =
+          new IllegalArgumentException("Zookeeper property is not mutable: " + property);
       log.debug("Attempted to set zookeeper property.  It is not mutable", iae);
       throw iae;
     }

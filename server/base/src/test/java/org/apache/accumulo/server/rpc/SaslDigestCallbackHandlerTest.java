@@ -72,8 +72,8 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testIdentifierSerialization() throws IOException {
-    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier("user", 1, 100L,
-        1000L, "instanceid");
+    AuthenticationTokenIdentifier identifier =
+        new AuthenticationTokenIdentifier("user", 1, 100L, 1000L, "instanceid");
     byte[] serialized = identifier.getBytes();
     String name = handler.encodeIdentifier(serialized);
 
@@ -88,12 +88,12 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testTokenSerialization() throws Exception {
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
-        "instanceid", 1000L);
+    AuthenticationTokenSecretManager secretManager =
+        new AuthenticationTokenSecretManager("instanceid", 1000L);
 
     secretManager.addKey(new AuthenticationKey(1, 0L, 100L, keyGen.generateKey()));
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry = secretManager
-        .generateToken("user", cfg);
+    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry =
+        secretManager.generateToken("user", cfg);
     byte[] password = entry.getKey().getPassword();
     char[] encodedPassword = handler.encodePassword(password);
 
@@ -104,12 +104,12 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testTokenAndIdentifierSerialization() throws Exception {
-    AuthenticationTokenSecretManager secretManager = new AuthenticationTokenSecretManager(
-        "instanceid", 1000L);
+    AuthenticationTokenSecretManager secretManager =
+        new AuthenticationTokenSecretManager("instanceid", 1000L);
 
     secretManager.addKey(new AuthenticationKey(1, 0L, 1000 * 100L, keyGen.generateKey()));
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry = secretManager
-        .generateToken("user", cfg);
+    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry =
+        secretManager.generateToken("user", cfg);
     byte[] password = entry.getKey().getPassword();
     char[] encodedPassword = handler.encodePassword(password);
     String name = handler.encodeIdentifier(entry.getValue().getBytes());

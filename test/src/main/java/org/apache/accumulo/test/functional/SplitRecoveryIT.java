@@ -145,8 +145,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     for (int i = 0; i < extents.length; i++) {
       KeyExtent extent = extents[i];
 
-      String tdir = ServerConstants.getTablesDirs(context)[0] + "/" + extent.getTableId() + "/dir_"
-          + i;
+      String tdir =
+          ServerConstants.getTablesDirs(context)[0] + "/" + extent.getTableId() + "/dir_" + i;
       MetadataTableUtil.addTablet(extent, tdir, context, TabletTime.LOGICAL_TIME_ID, zl);
       SortedMap<FileRef,DataFileValue> mapFiles = new TreeMap<>();
       mapFiles.put(new FileRef(tdir + "/" + RFile.EXTENSION + "_000_000"),
@@ -189,8 +189,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     writer.update(m);
 
     if (steps >= 1) {
-      Map<Long,? extends Collection<FileRef>> bulkFiles = MetadataTableUtil
-          .getBulkFilesLoaded(context, extent);
+      Map<Long,? extends Collection<FileRef>> bulkFiles =
+          MetadataTableUtil.getBulkFilesLoaded(context, extent);
       MasterMetadataUtil.addNewTablet(context, low, "/lowDir", instance, lowDatafileSizes,
           bulkFiles, TabletTime.LOGICAL_TIME_ID + "0", -1L, -1L, zl);
     }
@@ -205,10 +205,10 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       ensureTabletHasNoUnexpectedMetadataEntries(context, low, lowDatafileSizes);
       ensureTabletHasNoUnexpectedMetadataEntries(context, high, highDatafileSizes);
 
-      Map<Long,? extends Collection<FileRef>> lowBulkFiles = MetadataTableUtil
-          .getBulkFilesLoaded(context, low);
-      Map<Long,? extends Collection<FileRef>> highBulkFiles = MetadataTableUtil
-          .getBulkFilesLoaded(context, high);
+      Map<Long,? extends Collection<FileRef>> lowBulkFiles =
+          MetadataTableUtil.getBulkFilesLoaded(context, low);
+      Map<Long,? extends Collection<FileRef>> highBulkFiles =
+          MetadataTableUtil.getBulkFilesLoaded(context, high);
 
       if (!lowBulkFiles.equals(highBulkFiles)) {
         throw new Exception(" " + lowBulkFiles + " != " + highBulkFiles + " " + low + " " + high);
@@ -266,8 +266,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         throw new Exception("Not all expected columns seen " + extent + " " + expectedColumns);
       }
 
-      SortedMap<FileRef,DataFileValue> fixedMapFiles = MetadataTableUtil.getDataFileSizes(extent,
-          context);
+      SortedMap<FileRef,DataFileValue> fixedMapFiles =
+          MetadataTableUtil.getDataFileSizes(extent, context);
       verifySame(expectedMapFiles, fixedMapFiles);
     }
   }

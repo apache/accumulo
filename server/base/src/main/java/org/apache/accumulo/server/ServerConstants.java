@@ -117,8 +117,8 @@ public class ServerConstants {
       try {
         currentIid = ZooUtil.getInstanceIDFromHdfs(path, conf, hadoopConf);
         Path vpath = new Path(baseDir, VERSION_DIR);
-        currentVersion = ServerUtil.getAccumuloPersistentVersion(vpath.getFileSystem(hadoopConf),
-            vpath);
+        currentVersion =
+            ServerUtil.getAccumuloPersistentVersion(vpath.getFileSystem(hadoopConf), vpath);
       } catch (Exception e) {
         if (ignore)
           continue;

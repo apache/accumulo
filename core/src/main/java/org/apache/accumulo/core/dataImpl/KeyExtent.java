@@ -304,10 +304,10 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   // The last tablet in a table has no end row, so null sorts last for end row; similarly, the first
   // tablet has no previous end row, so null sorts first for previous end row
-  private static final Comparator<KeyExtent> COMPARATOR = Comparator
-      .comparing(KeyExtent::getTableId)
-      .thenComparing(KeyExtent::getEndRow, Comparator.nullsLast(Text::compareTo))
-      .thenComparing(KeyExtent::getPrevEndRow, Comparator.nullsFirst(Text::compareTo));
+  private static final Comparator<KeyExtent> COMPARATOR =
+      Comparator.comparing(KeyExtent::getTableId)
+          .thenComparing(KeyExtent::getEndRow, Comparator.nullsLast(Text::compareTo))
+          .thenComparing(KeyExtent::getPrevEndRow, Comparator.nullsFirst(Text::compareTo));
 
   @Override
   public int compareTo(KeyExtent other) {
@@ -357,8 +357,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   public String toString() {
     String endRowString;
     String prevEndRowString;
-    String tableIdString = getTableId().canonical().replaceAll(";", "\\\\;").replaceAll("\\\\",
-        "\\\\\\\\");
+    String tableIdString =
+        getTableId().canonical().replaceAll(";", "\\\\;").replaceAll("\\\\", "\\\\\\\\");
 
     if (getEndRow() == null)
       endRowString = "<";
@@ -436,8 +436,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       this.setEndRow(null, false, false);
     } else {
 
-      TableId tableId = TableId
-          .of(new String(Arrays.copyOfRange(flattenedExtent.getBytes(), 0, semiPos), UTF_8));
+      TableId tableId =
+          TableId.of(new String(Arrays.copyOfRange(flattenedExtent.getBytes(), 0, semiPos), UTF_8));
 
       Text endRow = new Text();
       endRow.set(flattenedExtent.getBytes(), semiPos + 1,
@@ -497,8 +497,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
 
   public Range toMetadataRange() {
 
-    Text metadataPrevRow = TabletsSection.getRow(getTableId(),
-        getPrevEndRow() == null ? EMPTY_TEXT : getPrevEndRow());
+    Text metadataPrevRow =
+        TabletsSection.getRow(getTableId(), getPrevEndRow() == null ? EMPTY_TEXT : getPrevEndRow());
 
     return new Range(metadataPrevRow, getPrevEndRow() == null, getMetadataEntry(), true);
   }

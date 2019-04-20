@@ -69,8 +69,8 @@ public class CleanWalIT extends AccumuloClusterHarness {
   @Before
   public void offlineTraceTable() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String traceTable = client.instanceOperations().getSystemConfiguration()
-          .get(Property.TRACE_TABLE.getKey());
+      String traceTable =
+          client.instanceOperations().getSystemConfiguration().get(Property.TRACE_TABLE.getKey());
       if (client.tableOperations().exists(traceTable)) {
         client.tableOperations().offline(traceTable, true);
       }
@@ -81,8 +81,8 @@ public class CleanWalIT extends AccumuloClusterHarness {
   public void onlineTraceTable() throws Exception {
     if (cluster != null) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-        String traceTable = client.instanceOperations().getSystemConfiguration()
-            .get(Property.TRACE_TABLE.getKey());
+        String traceTable =
+            client.instanceOperations().getSystemConfiguration().get(Property.TRACE_TABLE.getKey());
         if (client.tableOperations().exists(traceTable)) {
           client.tableOperations().online(traceTable, true);
         }

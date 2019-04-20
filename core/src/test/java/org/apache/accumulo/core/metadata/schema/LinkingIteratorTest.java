@@ -91,8 +91,8 @@ public class LinkingIteratorTest {
   @Test
   public void testBadTableTransition1() {
     // test when last tablet in table does not have null end row
-    List<TabletMetadata> tablets1 = Arrays.asList(create("4", null, "f"), create("4", "f", "m"),
-        create("5", null, null));
+    List<TabletMetadata> tablets1 =
+        Arrays.asList(create("4", null, "f"), create("4", "f", "m"), create("5", null, null));
     List<TabletMetadata> tablets2 = Arrays.asList(create("4", null, "f"), create("4", "f", "m"),
         create("4", "m", null), create("5", null, null));
 
@@ -102,8 +102,8 @@ public class LinkingIteratorTest {
   @Test
   public void testBadTableTransition2() {
     // test when first tablet in table does not have null prev end row
-    List<TabletMetadata> tablets1 = Arrays.asList(create("4", null, "f"), create("4", "f", null),
-        create("5", "h", null));
+    List<TabletMetadata> tablets1 =
+        Arrays.asList(create("4", null, "f"), create("4", "f", null), create("5", "h", null));
     List<TabletMetadata> tablets2 = Arrays.asList(create("4", null, "f"), create("4", "f", null),
         create("5", null, "h"), create("5", "h", null));
 

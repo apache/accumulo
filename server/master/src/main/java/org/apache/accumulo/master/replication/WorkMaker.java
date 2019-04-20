@@ -143,8 +143,8 @@ public class WorkMaker {
   }
 
   protected Map<String,String> getReplicationTargets(TableConfiguration tableConf) {
-    final Map<String,String> props = tableConf
-        .getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGET);
+    final Map<String,String> props =
+        tableConf.getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGET);
     final Map<String,String> targets = new HashMap<>();
     final int propKeyLength = Property.TABLE_REPLICATION_TARGET.getKey().length();
 

@@ -71,8 +71,8 @@ public class DeletingIteratorTest {
 
     Text checkRow = new Text("000");
     try {
-      SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
-          Behavior.PROCESS);
+      SortedKeyValueIterator<Key,Value> it =
+          DeletingIterator.wrap(new SortedMapIterator(tm), false, Behavior.PROCESS);
       it.seek(new Range(), EMPTY_COL_FAMS, false);
 
       TreeMap<Key,Value> tmOut = new TreeMap<>();
@@ -94,8 +94,8 @@ public class DeletingIteratorTest {
     }
 
     try {
-      SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), true,
-          Behavior.PROCESS);
+      SortedKeyValueIterator<Key,Value> it =
+          DeletingIterator.wrap(new SortedMapIterator(tm), true, Behavior.PROCESS);
       it.seek(new Range(), EMPTY_COL_FAMS, false);
       TreeMap<Key,Value> tmOut = new TreeMap<>();
       while (it.hasTop()) {
@@ -132,8 +132,8 @@ public class DeletingIteratorTest {
     newKeyValue(tm, "r000", 2, true, "v2");
     newKeyValue(tm, "r000", 1, false, "v1");
 
-    SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
-        Behavior.PROCESS);
+    SortedKeyValueIterator<Key,Value> it =
+        DeletingIterator.wrap(new SortedMapIterator(tm), false, Behavior.PROCESS);
 
     // SEEK two keys before delete
     it.seek(newRange("r000", 4), EMPTY_COL_FAMS, false);
@@ -184,8 +184,8 @@ public class DeletingIteratorTest {
     newKeyValue(tm, "r000", 2, true, "");
     newKeyValue(tm, "r000", 1, false, "v1");
 
-    SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
-        Behavior.PROCESS);
+    SortedKeyValueIterator<Key,Value> it =
+        DeletingIterator.wrap(new SortedMapIterator(tm), false, Behavior.PROCESS);
     it.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(it.hasTop());
@@ -211,8 +211,8 @@ public class DeletingIteratorTest {
     newKeyValue(tm, "r000", 2, true, "");
     newKeyValue(tm, "r000", 1, false, "v1");
 
-    SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
-        Behavior.PROCESS);
+    SortedKeyValueIterator<Key,Value> it =
+        DeletingIterator.wrap(new SortedMapIterator(tm), false, Behavior.PROCESS);
 
     it.seek(newRange("r000", 3), EMPTY_COL_FAMS, false);
 
@@ -238,8 +238,8 @@ public class DeletingIteratorTest {
     newKeyValue(tm, "r000", 2, true, "");
     newKeyValue(tm, "r000", 1, false, "v1");
 
-    SortedKeyValueIterator<Key,Value> it = DeletingIterator.wrap(new SortedMapIterator(tm), false,
-        Behavior.FAIL);
+    SortedKeyValueIterator<Key,Value> it =
+        DeletingIterator.wrap(new SortedMapIterator(tm), false, Behavior.FAIL);
     it.seek(new Range(), EMPTY_COL_FAMS, false);
     try {
       while (it.hasTop()) {

@@ -33,8 +33,8 @@ public class DeleteIterCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
 
-    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt())
-        || !shellState.getTableName().isEmpty();
+    boolean tables =
+        cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
     final String name = cl.getOptionValue(nameOpt.getOpt());
@@ -99,8 +99,8 @@ public class DeleteIterCommand extends Command {
         "remove from minor compaction scope");
     majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false,
         "remove from major compaction scope");
-    scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false,
-        "remove from scan scope");
+    scanScopeOpt =
+        new Option(IteratorScope.scan.name(), "scan-time", false, "remove from scan scope");
 
     OptionGroup grp = new OptionGroup();
     grp.addOption(OptUtil.tableOpt("table to delete the iterator from"));

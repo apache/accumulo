@@ -63,8 +63,8 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
   @Test
   public void testGetConnectorFromAccumuloClient() throws Exception {
     AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
-    org.apache.accumulo.core.client.Connector c = org.apache.accumulo.core.client.Connector
-        .from(client);
+    org.apache.accumulo.core.client.Connector c =
+        org.apache.accumulo.core.client.Connector.from(client);
     assertEquals(client.whoami(), c.whoami());
 
     // this should cause the connector to stop functioning

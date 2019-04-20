@@ -129,8 +129,8 @@ public class HintScanPrioritizer implements ScanPrioritizer {
     HintProblemAction hpa = HintProblemAction.valueOf(params.getOptions()
         .getOrDefault("bad_hint_action", HintProblemAction.LOG.name()).toUpperCase());
 
-    Comparator<ScanInfo> cmp = Comparator
-        .comparingInt(si -> getPriority(si, defaultPriority, hpa, typePriorities));
+    Comparator<ScanInfo> cmp =
+        Comparator.comparingInt(si -> getPriority(si, defaultPriority, hpa, typePriorities));
 
     return cmp.thenComparingLong(si -> si.getLastRunTime().orElse(0))
         .thenComparingLong(ScanInfo::getCreationTime);

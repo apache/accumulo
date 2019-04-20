@@ -95,8 +95,8 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
         ReplicaSystemFactory.getPeerConfigurationValue(MockReplicaSystem.class, "50000"));
 
     FileSystem fs = FileSystem.getLocal(new Configuration());
-    File tserverWalDir = new File(accumuloDir,
-        ServerConstants.WAL_DIR + Path.SEPARATOR + "faketserver+port");
+    File tserverWalDir =
+        new File(accumuloDir, ServerConstants.WAL_DIR + Path.SEPARATOR + "faketserver+port");
     File tserverWal = new File(tserverWalDir, UUID.randomUUID().toString());
     fs.mkdirs(new Path(tserverWalDir.getAbsolutePath()));
 
@@ -135,8 +135,8 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     value.write(dos);
 
     key.event = LogEvents.COMPACTION_START;
-    key.filename = accumuloDir.getAbsolutePath() + "/tables/" + fakeTableId
-        + "/t-000001/A000001.rf";
+    key.filename =
+        accumuloDir.getAbsolutePath() + "/tables/" + fakeTableId + "/t-000001/A000001.rf";
     value.mutations = Collections.emptyList();
 
     key.write(dos);

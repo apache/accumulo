@@ -95,8 +95,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
           // just look at the column family progress
           return getProgress(range.getStartKey().getColumnFamilyData(),
               range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
-        } else if (range.getStartKey().compareTo(range.getEndKey(),
-            PartialKey.ROW_COLFAM_COLQUAL) != 0) {
+        } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL)
+            != 0) {
           // just look at the column qualifier progress
           return getProgress(range.getStartKey().getColumnQualifierData(),
               range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());

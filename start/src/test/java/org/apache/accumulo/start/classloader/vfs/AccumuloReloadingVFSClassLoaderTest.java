@@ -39,8 +39,8 @@ import org.junit.rules.TemporaryFolder;
 
 public class AccumuloReloadingVFSClassLoaderTest {
 
-  private TemporaryFolder folder1 = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  private TemporaryFolder folder1 =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
   String folderPath;
   private FileSystemManager vfs;
 

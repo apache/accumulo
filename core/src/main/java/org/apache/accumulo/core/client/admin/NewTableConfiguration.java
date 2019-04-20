@@ -196,8 +196,8 @@ public class NewTableConfiguration {
    */
   public NewTableConfiguration enableSampling(SamplerConfiguration samplerConfiguration) {
     requireNonNull(samplerConfiguration);
-    Map<String,String> tmp = new SamplerConfigurationImpl(samplerConfiguration)
-        .toTablePropertiesMap();
+    Map<String,String> tmp =
+        new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
     checkDisjoint(properties, tmp, "sampler");
     this.samplerProps = tmp;
     return this;
@@ -210,8 +210,8 @@ public class NewTableConfiguration {
    */
   public NewTableConfiguration enableSummarization(SummarizerConfiguration... configs) {
     requireNonNull(configs);
-    Map<String,String> tmp = SummarizerConfigurationUtil
-        .toTablePropertiesMap(Arrays.asList(configs));
+    Map<String,String> tmp =
+        SummarizerConfigurationUtil.toTablePropertiesMap(Arrays.asList(configs));
     checkDisjoint(properties, tmp, "summarizer");
     summarizerProps = tmp;
     return this;

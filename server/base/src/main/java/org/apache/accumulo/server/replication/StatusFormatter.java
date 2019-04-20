@@ -48,8 +48,9 @@ import com.google.protobuf.InvalidProtocolBufferException;
 public class StatusFormatter implements Formatter {
   private static final Logger log = LoggerFactory.getLogger(StatusFormatter.class);
 
-  private static final Set<Text> REPLICATION_COLFAMS = Collections.unmodifiableSet(Sets.newHashSet(
-      ReplicationSection.COLF, StatusSection.NAME, WorkSection.NAME, OrderSection.NAME));
+  private static final Set<Text> REPLICATION_COLFAMS =
+      Collections.unmodifiableSet(Sets.newHashSet(ReplicationSection.COLF, StatusSection.NAME,
+          WorkSection.NAME, OrderSection.NAME));
 
   private Iterator<Entry<Key,Value>> iterator;
   private FormatterConfig config;
@@ -70,8 +71,8 @@ public class StatusFormatter implements Formatter {
   @Override
   public String next() {
     Entry<Key,Value> entry = iterator.next();
-    DateFormat timestampFormat = config.willPrintTimestamps() ? config.getDateFormatSupplier().get()
-        : null;
+    DateFormat timestampFormat =
+        config.willPrintTimestamps() ? config.getDateFormatSupplier().get() : null;
 
     // If we expected this to be a protobuf, try to parse it, adding a message when it fails to
     // parse

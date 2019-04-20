@@ -100,8 +100,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
     implements MasterClientService.Iface {
 
   private static final Logger log = Master.log;
-  private static final Logger drainLog = LoggerFactory
-      .getLogger("org.apache.accumulo.master.MasterDrainImpl");
+  private static final Logger drainLog =
+      LoggerFactory.getLogger("org.apache.accumulo.master.MasterDrainImpl");
 
   protected MasterClientServiceHandler(Master master) {
     super(master);
@@ -179,9 +179,9 @@ public class MasterClientServiceHandler extends FateServiceHandler
 
       serversToFlush.clear();
 
-      try (TabletsMetadata tablets = TabletsMetadata.builder().forTable(tableId)
-          .overlapping(startRow, endRow).fetchFlushId().fetchLocation().fetchLogs().fetchPrev()
-          .build(master.getContext())) {
+      try (TabletsMetadata tablets =
+          TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow).fetchFlushId()
+              .fetchLocation().fetchLogs().fetchPrev().build(master.getContext())) {
         int tabletsToWaitFor = 0;
         int tabletCount = 0;
 
@@ -482,8 +482,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
     final DelegationTokenConfig config = DelegationTokenConfigSerializer.deserialize(tConfig);
     final AuthenticationTokenSecretManager secretManager = master.getContext().getSecretManager();
     try {
-      Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager
-          .generateToken(credentials.principal, config);
+      Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair =
+          secretManager.generateToken(credentials.principal, config);
 
       return new TDelegationToken(ByteBuffer.wrap(pair.getKey().getPassword()),
           pair.getValue().getThriftIdentifier());

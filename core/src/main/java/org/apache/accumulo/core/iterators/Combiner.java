@@ -75,15 +75,13 @@ import com.google.common.collect.Lists;
  */
 public abstract class Combiner extends WrappingIterator implements OptionDescriber {
 
-  static final Logger sawDeleteLog = LoggerFactory
-      .getLogger(Combiner.class.getName() + ".SawDelete");
+  static final Logger sawDeleteLog =
+      LoggerFactory.getLogger(Combiner.class.getName() + ".SawDelete");
 
   protected static final String COLUMNS_OPTION = "columns";
   protected static final String ALL_OPTION = "all";
-  // @formatter:off
   protected static final String REDUCE_ON_FULL_COMPACTION_ONLY_OPTION =
-    "reduceOnFullCompactionOnly";
-  // @formatter:on
+      "reduceOnFullCompactionOnly";
 
   private boolean isMajorCompaction;
   private boolean reduceOnFullCompactionOnly;
@@ -183,8 +181,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   private Key workKey = new Key();
 
   @VisibleForTesting
-  static final Cache<String,Boolean> loggedMsgCache = CacheBuilder.newBuilder()
-      .expireAfterWrite(1, TimeUnit.HOURS).maximumSize(10000).build();
+  static final Cache<String,Boolean> loggedMsgCache =
+      CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).maximumSize(10000).build();
 
   private void sawDelete() {
     if (isMajorCompaction && !reduceOnFullCompactionOnly) {

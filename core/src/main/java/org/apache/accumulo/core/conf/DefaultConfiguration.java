@@ -27,9 +27,9 @@ import java.util.stream.Collectors;
  */
 public class DefaultConfiguration extends AccumuloConfiguration {
 
-  private static final Map<String,String> resolvedProps = Arrays.stream(Property.values())
-      .filter(p -> p.getType() != PropertyType.PREFIX)
-      .collect(Collectors.toMap(Property::getKey, Property::getDefaultValue));
+  private static final Map<String,String> resolvedProps =
+      Arrays.stream(Property.values()).filter(p -> p.getType() != PropertyType.PREFIX)
+          .collect(Collectors.toMap(Property::getKey, Property::getDefaultValue));
 
   private DefaultConfiguration() {}
 

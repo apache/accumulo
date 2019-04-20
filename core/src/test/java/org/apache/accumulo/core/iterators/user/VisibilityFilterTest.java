@@ -207,8 +207,8 @@ public class VisibilityFilterTest {
 
   @Test
   public void testSerializedAuthorizations() throws IOException {
-    Map<String,String> options = Collections.singletonMap("auths",
-        new Authorizations("x", "def", "y").serialize());
+    Map<String,String> options =
+        Collections.singletonMap("auths", new Authorizations("x", "def", "y").serialize());
 
     TreeMap<Key,Value> source = createSourceWithHiddenData(1, 2);
     verify(source, 3, options, GOOD, GOOD, GOOD_VIS, 1);

@@ -109,8 +109,8 @@ public class VolumeManagerImpl implements VolumeManager {
       throws IOException {
     AccumuloConfiguration accConf = DefaultConfiguration.getInstance();
     Configuration hadoopConf = new Configuration();
-    Volume defaultLocalVolume = VolumeConfiguration.create(FileSystem.getLocal(hadoopConf),
-        localBasePath);
+    Volume defaultLocalVolume =
+        VolumeConfiguration.create(FileSystem.getLocal(hadoopConf), localBasePath);
 
     // The default volume gets placed in the map, but local filesystem is only used for testing
     // purposes

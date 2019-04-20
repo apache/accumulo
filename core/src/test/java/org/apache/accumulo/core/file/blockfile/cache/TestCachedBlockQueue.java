@@ -59,8 +59,8 @@ public class TestCachedBlockQueue {
 
     assertEquals(queue.heapSize(), expectedSize);
 
-    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks = queue
-        .getList();
+    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
+        queue.getList();
     assertEquals(blocks.poll().getName(), "cb1");
     assertEquals(blocks.poll().getName(), "cb2");
     assertEquals(blocks.poll().getName(), "cb3");
@@ -112,8 +112,8 @@ public class TestCachedBlockQueue {
 
     assertEquals(queue.heapSize(), expectedSize);
 
-    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks = queue
-        .getList();
+    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
+        queue.getList();
     assertEquals(blocks.poll().getName(), "cb0");
     assertEquals(blocks.poll().getName(), "cb1");
     assertEquals(blocks.poll().getName(), "cb2");

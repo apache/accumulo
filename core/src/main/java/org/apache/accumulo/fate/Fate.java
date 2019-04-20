@@ -44,8 +44,8 @@ public class Fate<T> {
   private T environment;
   private ExecutorService executor;
 
-  private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(TStatus.FAILED,
-      TStatus.SUCCESSFUL, TStatus.UNKNOWN);
+  private static final EnumSet<TStatus> FINISHED_STATES =
+      EnumSet.of(TStatus.FAILED, TStatus.SUCCESSFUL, TStatus.UNKNOWN);
 
   private AtomicBoolean keepRunning = new AtomicBoolean(true);
 
@@ -174,8 +174,8 @@ public class Fate<T> {
   public void startTransactionRunners(int numThreads) {
     final AtomicInteger runnerCount = new AtomicInteger(0);
     executor = Executors.newFixedThreadPool(numThreads, r -> {
-      Thread t = new Thread(new LoggingRunnable(log, r),
-          "Repo runner " + runnerCount.getAndIncrement());
+      Thread t =
+          new Thread(new LoggingRunnable(log, r), "Repo runner " + runnerCount.getAndIncrement());
       t.setDaemon(true);
       return t;
     });

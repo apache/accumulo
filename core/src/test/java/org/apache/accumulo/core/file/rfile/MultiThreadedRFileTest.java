@@ -74,8 +74,8 @@ public class MultiThreadedRFileTest {
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private static void checkIndex(Reader reader) throws IOException {
     FileSKVIterator indexIter = reader.getIndex();
@@ -154,8 +154,8 @@ public class MultiThreadedRFileTest {
       dos = fs.create(path, true);
       BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf,
           CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
-      SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
-          .newSamplerConfig(accumuloConfiguration);
+      SamplerConfigurationImpl samplerConfig =
+          SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
       Sampler sampler = null;
       if (samplerConfig != null) {
         sampler = SamplerFactory.newSampler(samplerConfig, accumuloConfiguration);
@@ -217,8 +217,8 @@ public class MultiThreadedRFileTest {
       justification = "information put into error message is safe and used for testing")
   @Test
   public void testMultipleReaders() throws IOException {
-    final List<Throwable> threadExceptions = Collections
-        .synchronizedList(new ArrayList<Throwable>());
+    final List<Throwable> threadExceptions =
+        Collections.synchronizedList(new ArrayList<Throwable>());
     Map<String,MutableInt> messages = new HashMap<>();
     Map<String,String> stackTrace = new HashMap<>();
 

@@ -61,14 +61,14 @@ public class AccumuloInputFormatTest {
 
   @BeforeClass
   public static void setupClientInfo() {
-    clientProperties = org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest
-        .setupClientProperties();
+    clientProperties =
+        org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest.setupClientProperties();
   }
 
   @Test
   public void testMissingTable() throws Exception {
-    Properties clientProps = org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest
-        .setupClientProperties();
+    Properties clientProps =
+        org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest.setupClientProperties();
     exception.expect(IllegalArgumentException.class);
     AccumuloInputFormat.configure().clientProperties(clientProps).store(new JobConf());
   }

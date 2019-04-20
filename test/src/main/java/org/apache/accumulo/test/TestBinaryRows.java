@@ -111,10 +111,10 @@ public class TestBinaryRows {
       }
     } else if (opts.mode.equals("verifyDeleted")) {
       try (Scanner s = accumuloClient.createScanner(opts.tableName, opts.auths)) {
-        Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0],
-            Long.MAX_VALUE);
-        Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES,
-            new byte[0], 0);
+        Key startKey =
+            new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
+        Key stopKey =
+            new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0], 0);
         s.setBatchSize(50000);
         s.setRange(new Range(startKey, stopKey));
 
@@ -127,10 +127,10 @@ public class TestBinaryRows {
       long t1 = System.currentTimeMillis();
 
       try (Scanner s = accumuloClient.createScanner(opts.tableName, opts.auths)) {
-        Key startKey = new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0],
-            Long.MAX_VALUE);
-        Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES,
-            new byte[0], 0);
+        Key startKey =
+            new Key(encodeLong(opts.start), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);
+        Key stopKey =
+            new Key(encodeLong(opts.start + opts.num - 1), CF_BYTES, CQ_BYTES, new byte[0], 0);
         s.setRange(new Range(startKey, stopKey));
 
         long i = opts.start;

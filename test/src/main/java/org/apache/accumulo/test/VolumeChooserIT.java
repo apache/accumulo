@@ -78,8 +78,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   private File volDirBase;
   @SuppressWarnings("unused")
   private Path v1, v2, v3, v4;
-  public static String[] alpha_rows = "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z"
-      .split(",");
+  public static String[] alpha_rows =
+      "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
   private String namespace1;
   private String namespace2;
   private String systemPreferredVolumes;

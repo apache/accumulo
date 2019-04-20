@@ -100,8 +100,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   private final EvictionThread evictionThread;
 
   /** Statistics thread schedule pool (for heavy debugging, could remove) */
-  private final ScheduledExecutorService scheduleThreadPool = Executors.newScheduledThreadPool(1,
-      new NamingThreadFactory("LRUBlockCacheStats"));
+  private final ScheduledExecutorService scheduleThreadPool =
+      Executors.newScheduledThreadPool(1, new NamingThreadFactory("LRUBlockCacheStats"));
 
   /** Current size of cache */
   private final AtomicLong size;
@@ -143,8 +143,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     this.stats = new CacheStats();
     this.count = new AtomicLong(0);
     this.elements = new AtomicLong(0);
-    this.overhead = calculateOverhead(conf.getMaxSize(), conf.getBlockSize(),
-        conf.getMapConcurrencyLevel());
+    this.overhead =
+        calculateOverhead(conf.getMaxSize(), conf.getBlockSize(), conf.getMapConcurrencyLevel());
     this.size = new AtomicLong(this.overhead);
 
     if (conf.isUseEvictionThread()) {
@@ -667,8 +667,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     }
   }
 
-  public static final long CACHE_FIXED_OVERHEAD = ClassSize
-      .align((3 * SizeConstants.SIZEOF_LONG) + (8 * ClassSize.REFERENCE)
+  public static final long CACHE_FIXED_OVERHEAD =
+      ClassSize.align((3 * SizeConstants.SIZEOF_LONG) + (8 * ClassSize.REFERENCE)
           + (5 * SizeConstants.SIZEOF_FLOAT) + SizeConstants.SIZEOF_BOOLEAN + ClassSize.OBJECT);
 
   // HeapSize implementation

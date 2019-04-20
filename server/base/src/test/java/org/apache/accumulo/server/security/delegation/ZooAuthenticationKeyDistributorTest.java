@@ -70,8 +70,8 @@ public class ZooAuthenticationKeyDistributorTest {
 
   @Test(expected = AuthFailedException.class)
   public void testInitialize() throws Exception {
-    ZooAuthenticationKeyDistributor distributor = new ZooAuthenticationKeyDistributor(zrw,
-        baseNode);
+    ZooAuthenticationKeyDistributor distributor =
+        new ZooAuthenticationKeyDistributor(zrw, baseNode);
 
     // Attempt to create the directory and fail
     expect(zrw.exists(baseNode)).andReturn(false);
@@ -88,8 +88,8 @@ public class ZooAuthenticationKeyDistributorTest {
 
   @Test
   public void testInitializeCreatesParentNode() throws Exception {
-    ZooAuthenticationKeyDistributor distributor = new ZooAuthenticationKeyDistributor(zrw,
-        baseNode);
+    ZooAuthenticationKeyDistributor distributor =
+        new ZooAuthenticationKeyDistributor(zrw, baseNode);
 
     // Attempt to create the directory and fail
     expect(zrw.exists(baseNode)).andReturn(false);
@@ -105,29 +105,29 @@ public class ZooAuthenticationKeyDistributorTest {
 
   @Test(expected = IllegalStateException.class)
   public void testInitializedNotCalledAdvertise() throws Exception {
-    ZooAuthenticationKeyDistributor distributor = new ZooAuthenticationKeyDistributor(zrw,
-        baseNode);
+    ZooAuthenticationKeyDistributor distributor =
+        new ZooAuthenticationKeyDistributor(zrw, baseNode);
     distributor.advertise(new AuthenticationKey(1, 0L, 5L, keyGen.generateKey()));
   }
 
   @Test(expected = IllegalStateException.class)
   public void testInitializedNotCalledCurrentKeys() throws Exception {
-    ZooAuthenticationKeyDistributor distributor = new ZooAuthenticationKeyDistributor(zrw,
-        baseNode);
+    ZooAuthenticationKeyDistributor distributor =
+        new ZooAuthenticationKeyDistributor(zrw, baseNode);
     distributor.getCurrentKeys();
   }
 
   @Test(expected = IllegalStateException.class)
   public void testInitializedNotCalledRemove() throws Exception {
-    ZooAuthenticationKeyDistributor distributor = new ZooAuthenticationKeyDistributor(zrw,
-        baseNode);
+    ZooAuthenticationKeyDistributor distributor =
+        new ZooAuthenticationKeyDistributor(zrw, baseNode);
     distributor.remove(new AuthenticationKey(1, 0L, 5L, keyGen.generateKey()));
   }
 
   @Test(expected = IllegalStateException.class)
   public void testMissingAcl() throws Exception {
-    ZooAuthenticationKeyDistributor distributor = new ZooAuthenticationKeyDistributor(zrw,
-        baseNode);
+    ZooAuthenticationKeyDistributor distributor =
+        new ZooAuthenticationKeyDistributor(zrw, baseNode);
 
     // Attempt to create the directory and fail
     expect(zrw.exists(baseNode)).andReturn(true);
@@ -144,8 +144,8 @@ public class ZooAuthenticationKeyDistributorTest {
 
   @Test(expected = IllegalStateException.class)
   public void testBadAcl() throws Exception {
-    ZooAuthenticationKeyDistributor distributor = new ZooAuthenticationKeyDistributor(zrw,
-        baseNode);
+    ZooAuthenticationKeyDistributor distributor =
+        new ZooAuthenticationKeyDistributor(zrw, baseNode);
 
     // Attempt to create the directory and fail
     expect(zrw.exists(baseNode)).andReturn(true);
@@ -163,8 +163,8 @@ public class ZooAuthenticationKeyDistributorTest {
 
   @Test
   public void testAdvertiseKey() throws Exception {
-    ZooAuthenticationKeyDistributor distributor = new ZooAuthenticationKeyDistributor(zrw,
-        baseNode);
+    ZooAuthenticationKeyDistributor distributor =
+        new ZooAuthenticationKeyDistributor(zrw, baseNode);
     AuthenticationKey key = new AuthenticationKey(1, 0L, 10L, keyGen.generateKey());
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     key.write(new DataOutputStream(baos));
@@ -189,8 +189,8 @@ public class ZooAuthenticationKeyDistributorTest {
 
   @Test
   public void testAlreadyAdvertisedKey() throws Exception {
-    ZooAuthenticationKeyDistributor distributor = new ZooAuthenticationKeyDistributor(zrw,
-        baseNode);
+    ZooAuthenticationKeyDistributor distributor =
+        new ZooAuthenticationKeyDistributor(zrw, baseNode);
     AuthenticationKey key = new AuthenticationKey(1, 0L, 10L, keyGen.generateKey());
     String path = baseNode + "/" + key.getKeyId();
 
@@ -210,8 +210,8 @@ public class ZooAuthenticationKeyDistributorTest {
 
   @Test
   public void testRemoveKey() throws Exception {
-    ZooAuthenticationKeyDistributor distributor = new ZooAuthenticationKeyDistributor(zrw,
-        baseNode);
+    ZooAuthenticationKeyDistributor distributor =
+        new ZooAuthenticationKeyDistributor(zrw, baseNode);
     AuthenticationKey key = new AuthenticationKey(1, 0L, 10L, keyGen.generateKey());
     String path = baseNode + "/" + key.getKeyId();
 
@@ -233,8 +233,8 @@ public class ZooAuthenticationKeyDistributorTest {
 
   @Test
   public void testRemoveMissingKey() throws Exception {
-    ZooAuthenticationKeyDistributor distributor = new ZooAuthenticationKeyDistributor(zrw,
-        baseNode);
+    ZooAuthenticationKeyDistributor distributor =
+        new ZooAuthenticationKeyDistributor(zrw, baseNode);
     AuthenticationKey key = new AuthenticationKey(1, 0L, 10L, keyGen.generateKey());
     String path = baseNode + "/" + key.getKeyId();
 
@@ -254,8 +254,8 @@ public class ZooAuthenticationKeyDistributorTest {
 
   @Test
   public void testGetCurrentKeys() throws Exception {
-    ZooAuthenticationKeyDistributor distributor = new ZooAuthenticationKeyDistributor(zrw,
-        baseNode);
+    ZooAuthenticationKeyDistributor distributor =
+        new ZooAuthenticationKeyDistributor(zrw, baseNode);
     List<AuthenticationKey> keys = new ArrayList<>(5);
     List<byte[]> serializedKeys = new ArrayList<>(5);
     List<String> children = new ArrayList<>(5);

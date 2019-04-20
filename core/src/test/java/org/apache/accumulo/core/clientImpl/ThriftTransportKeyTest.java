@@ -85,17 +85,17 @@ public class ThriftTransportKeyTest {
     final KerberosToken token = EasyMock.createMock(KerberosToken.class);
 
     // A first instance of the SASL cnxn params
-    SaslConnectionParams saslParams1 = user1
-        .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
+    SaslConnectionParams saslParams1 =
+        user1.doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
     // A second instance of what should be the same SaslConnectionParams
-    SaslConnectionParams saslParams2 = user1
-        .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
+    SaslConnectionParams saslParams2 =
+        user1.doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
-    ThriftTransportKey ttk1 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1L,
-        null, saslParams1),
-        ttk2 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1L, null,
-            saslParams2);
+    ThriftTransportKey ttk1 =
+        new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams1),
+        ttk2 =
+            new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams2);
 
     // Should equals() and hashCode() to make sure we don't throw away thrift cnxns
     assertEquals(ttk1, ttk2);
@@ -106,17 +106,17 @@ public class ThriftTransportKeyTest {
   public void testSaslPrincipalIsSignificant() throws IOException, InterruptedException {
     UserGroupInformation user1 = UserGroupInformation.createUserForTesting("user1", new String[0]);
     final KerberosToken token = EasyMock.createMock(KerberosToken.class);
-    SaslConnectionParams saslParams1 = user1
-        .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
+    SaslConnectionParams saslParams1 =
+        user1.doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
     UserGroupInformation user2 = UserGroupInformation.createUserForTesting("user2", new String[0]);
-    SaslConnectionParams saslParams2 = user2
-        .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
+    SaslConnectionParams saslParams2 =
+        user2.doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
-    ThriftTransportKey ttk1 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1L,
-        null, saslParams1),
-        ttk2 = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1L, null,
-            saslParams2);
+    ThriftTransportKey ttk1 =
+        new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams1),
+        ttk2 =
+            new ThriftTransportKey(HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams2);
 
     assertNotEquals(ttk1, ttk2);
     assertNotEquals(ttk1.hashCode(), ttk2.hashCode());
@@ -131,8 +131,8 @@ public class ThriftTransportKeyTest {
 
     replay(clientCtx);
 
-    ThriftTransportKey ttk = new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999),
-        120 * 1000, clientCtx);
+    ThriftTransportKey ttk =
+        new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120 * 1000, clientCtx);
 
     assertEquals("Normal ThriftTransportKey doesn't equal itself", ttk, ttk);
   }

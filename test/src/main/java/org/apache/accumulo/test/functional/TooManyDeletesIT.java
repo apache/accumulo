@@ -67,8 +67,8 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
         }
       }
 
-      List<Summary> summaries = c.tableOperations().summaries(table).flush(true)
-          .withConfiguration(sc).retrieve();
+      List<Summary> summaries =
+          c.tableOperations().summaries(table).flush(true).withConfiguration(sc).retrieve();
       assertEquals(1, summaries.size());
 
       Summary summary = summaries.get(0);
@@ -108,8 +108,8 @@ public class TooManyDeletesIT extends AccumuloClusterHarness {
       // wait for the compaction to happen
       while (true) {
         // the flush should cause
-        summaries = c.tableOperations().summaries(table).flush(false).withConfiguration(sc)
-            .retrieve();
+        summaries =
+            c.tableOperations().summaries(table).flush(false).withConfiguration(sc).retrieve();
         assertEquals(1, summaries.size());
 
         summary = summaries.get(0);

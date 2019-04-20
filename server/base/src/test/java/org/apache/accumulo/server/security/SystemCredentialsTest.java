@@ -43,8 +43,8 @@ public class SystemCredentialsTest {
   public TestName test = new TestName();
 
   private static SiteConfiguration siteConfig = new SiteConfiguration();
-  private String instanceId = UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0})
-      .toString();
+  private String instanceId =
+      UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString();
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "input not from a user")
   @BeforeClass

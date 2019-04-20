@@ -69,10 +69,10 @@ public class DeleteCommand extends Command {
     } else {
       m.putDelete(colf, colq);
     }
-    final BatchWriter bw = shellState.getAccumuloClient().createBatchWriter(
-        shellState.getTableName(),
-        new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024))
-            .setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
+    final BatchWriter bw =
+        shellState.getAccumuloClient().createBatchWriter(shellState.getTableName(),
+            new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024))
+                .setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
     bw.addMutation(m);
     bw.close();
     return 0;

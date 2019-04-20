@@ -228,33 +228,33 @@ public class RangeTest {
   public void testMergeOverlapping22() {
 
     Range ke1 = new KeyExtent(TableId.of("tab1"), new Text("Bank"), null).toMetadataRange();
-    Range ke2 = new KeyExtent(TableId.of("tab1"), new Text("Fails"), new Text("Bank"))
-        .toMetadataRange();
-    Range ke3 = new KeyExtent(TableId.of("tab1"), new Text("Sam"), new Text("Fails"))
-        .toMetadataRange();
-    Range ke4 = new KeyExtent(TableId.of("tab1"), new Text("bails"), new Text("Sam"))
-        .toMetadataRange();
+    Range ke2 =
+        new KeyExtent(TableId.of("tab1"), new Text("Fails"), new Text("Bank")).toMetadataRange();
+    Range ke3 =
+        new KeyExtent(TableId.of("tab1"), new Text("Sam"), new Text("Fails")).toMetadataRange();
+    Range ke4 =
+        new KeyExtent(TableId.of("tab1"), new Text("bails"), new Text("Sam")).toMetadataRange();
     Range ke5 = new KeyExtent(TableId.of("tab1"), null, new Text("bails")).toMetadataRange();
 
     List<Range> rl = newRangeList(ke1, ke2, ke3, ke4, ke5);
-    List<Range> expected = newRangeList(
-        new KeyExtent(TableId.of("tab1"), null, null).toMetadataRange());
+    List<Range> expected =
+        newRangeList(new KeyExtent(TableId.of("tab1"), null, null).toMetadataRange());
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke1, ke2, ke4, ke5);
-    expected = newRangeList(
-        new KeyExtent(TableId.of("tab1"), new Text("Fails"), null).toMetadataRange(),
-        new KeyExtent(TableId.of("tab1"), null, new Text("Sam")).toMetadataRange());
+    expected =
+        newRangeList(new KeyExtent(TableId.of("tab1"), new Text("Fails"), null).toMetadataRange(),
+            new KeyExtent(TableId.of("tab1"), null, new Text("Sam")).toMetadataRange());
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke2, ke3, ke4, ke5);
-    expected = newRangeList(
-        new KeyExtent(TableId.of("tab1"), null, new Text("Bank")).toMetadataRange());
+    expected =
+        newRangeList(new KeyExtent(TableId.of("tab1"), null, new Text("Bank")).toMetadataRange());
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke1, ke2, ke3, ke4);
-    expected = newRangeList(
-        new KeyExtent(TableId.of("tab1"), new Text("bails"), null).toMetadataRange());
+    expected =
+        newRangeList(new KeyExtent(TableId.of("tab1"), new Text("bails"), null).toMetadataRange());
     check(Range.mergeOverlapping(rl), expected);
 
     rl = newRangeList(ke2, ke3, ke4);
@@ -273,11 +273,11 @@ public class RangeTest {
 
             // System.out.println("b1:"+b1+" b2:"+b2+" b3:"+b3+" b4:"+b4);
 
-            List<Range> rl = newRangeList(
-                new Range(new Key(new Text("a")), b1, new Key(new Text("m")), b2),
-                new Range(new Key(new Text("b")), b3, new Key(new Text("n")), b4));
-            List<Range> expected = newRangeList(
-                new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b4));
+            List<Range> rl =
+                newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("m")), b2),
+                    new Range(new Key(new Text("b")), b3, new Key(new Text("n")), b4));
+            List<Range> expected =
+                newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("n")), b4));
             check(Range.mergeOverlapping(rl), expected);
 
             rl = newRangeList(new Range(new Key(new Text("a")), b1, new Key(new Text("m")), b2),
@@ -610,9 +610,11 @@ public class RangeTest {
     runClipTest(fence, range);
 
     // scanner was not handling edge case properly...
-    Range scanRange = new Range(new Key("10;007cdc5b0".getBytes(), "~tab".getBytes(),
-        "~pr".getBytes(), "".getBytes(), 130962, false), false,
-        new Key(new Text("10<")).followingKey(PartialKey.ROW), false);
+    Range scanRange =
+        new Range(
+            new Key("10;007cdc5b0".getBytes(), "~tab".getBytes(), "~pr".getBytes(), "".getBytes(),
+                130962, false),
+            false, new Key(new Text("10<")).followingKey(PartialKey.ROW), false);
     // below is the proper check the scanner now does instead of just comparing the row bytes
     scanRange.afterEndKey(new Key(new Text("10<")).followingKey(PartialKey.ROW));
   }
@@ -872,8 +874,8 @@ public class RangeTest {
 
   @Test
   public void testReadFields_Check() throws Exception {
-    Range r = new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true,
-        false);
+    Range r =
+        new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true, false);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     r.write(dos);
@@ -898,8 +900,8 @@ public class RangeTest {
 
   @Test
   public void testThrift_Check() {
-    Range r = new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true,
-        false);
+    Range r =
+        new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true, false);
     TRange tr = r.toThrift();
     try {
       @SuppressWarnings("unused")

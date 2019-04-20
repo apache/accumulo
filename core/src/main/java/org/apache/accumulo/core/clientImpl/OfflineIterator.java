@@ -159,8 +159,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.range = range;
 
     if (this.options.fetchedColumns.size() > 0) {
-      this.range = range.bound(this.options.fetchedColumns.first(),
-          this.options.fetchedColumns.last());
+      this.range =
+          range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
 
     this.tableId = TableId.of(table.toString());
@@ -298,8 +298,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     // possible race condition here, if table is renamed
     String tableName = Tables.getTableName(context, tableId);
-    AccumuloConfiguration acuTableConf = new ConfigurationCopy(
-        context.tableOperations().getProperties(tableName));
+    AccumuloConfiguration acuTableConf =
+        new ConfigurationCopy(context.tableOperations().getProperties(tableName));
 
     Configuration conf = context.getHadoopConf();
 
@@ -310,10 +310,10 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     readers.clear();
 
     SamplerConfiguration scannerSamplerConfig = options.getSamplerConfiguration();
-    SamplerConfigurationImpl scannerSamplerConfigImpl = scannerSamplerConfig == null ? null
-        : new SamplerConfigurationImpl(scannerSamplerConfig);
-    SamplerConfigurationImpl samplerConfImpl = SamplerConfigurationImpl
-        .newSamplerConfig(acuTableConf);
+    SamplerConfigurationImpl scannerSamplerConfigImpl =
+        scannerSamplerConfig == null ? null : new SamplerConfigurationImpl(scannerSamplerConfig);
+    SamplerConfigurationImpl samplerConfImpl =
+        SamplerConfigurationImpl.newSamplerConfig(acuTableConf);
 
     if (scannerSamplerConfigImpl != null
         && ((samplerConfImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl))
@@ -337,18 +337,19 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     MultiIterator multiIter = new MultiIterator(readers, extent);
 
-    OfflineIteratorEnvironment iterEnv = new OfflineIteratorEnvironment(authorizations,
-        acuTableConf, false,
-        samplerConfImpl == null ? null : samplerConfImpl.toSamplerConfiguration());
+    OfflineIteratorEnvironment iterEnv =
+        new OfflineIteratorEnvironment(authorizations, acuTableConf, false,
+            samplerConfImpl == null ? null : samplerConfImpl.toSamplerConfiguration());
 
     byte[] defaultSecurityLabel;
-    ColumnVisibility cv = new ColumnVisibility(
-        acuTableConf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
+    ColumnVisibility cv =
+        new ColumnVisibility(acuTableConf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
     defaultSecurityLabel = cv.getExpression();
 
-    SortedKeyValueIterator<Key,Value> visFilter = SystemIteratorUtil.setupSystemScanIterators(
-        multiIter, new HashSet<>(options.fetchedColumns), authorizations, defaultSecurityLabel,
-        acuTableConf);
+    SortedKeyValueIterator<Key,
+        Value> visFilter = SystemIteratorUtil.setupSystemScanIterators(multiIter,
+            new HashSet<>(options.fetchedColumns), authorizations, defaultSecurityLabel,
+            acuTableConf);
     IterLoad iterLoad = IterConfigUtil.loadIterConf(IteratorScope.scan,
         options.serverSideIteratorList, options.serverSideIteratorOptions, acuTableConf);
 

@@ -59,8 +59,8 @@ public class AccumuloFileOutputFormatTest {
         .fileBlockSize(b).dataBlockSize(c).indexBlockSize(d).compression(e).sampler(samplerConfig)
         .summarizers(sc1, sc2).store(job);
 
-    AccumuloConfiguration acuconf = FileOutputConfigurator
-        .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
+    AccumuloConfiguration acuconf =
+        FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
 
     assertEquals(7, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(300L, acuconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE));
@@ -70,8 +70,8 @@ public class AccumuloFileOutputFormatTest {
     assertEquals(new SamplerConfigurationImpl(samplerConfig),
         SamplerConfigurationImpl.newSamplerConfig(acuconf));
 
-    Collection<SummarizerConfiguration> summarizerConfigs = SummarizerConfiguration
-        .fromTableProperties(acuconf);
+    Collection<SummarizerConfiguration> summarizerConfigs =
+        SummarizerConfiguration.fromTableProperties(acuconf);
     assertEquals(2, summarizerConfigs.size());
     assertTrue(summarizerConfigs.contains(sc1));
     assertTrue(summarizerConfigs.contains(sc2));

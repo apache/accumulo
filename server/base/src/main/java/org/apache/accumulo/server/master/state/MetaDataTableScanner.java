@@ -82,8 +82,8 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     scanner.fetchColumnFamily(LogColumnFamily.NAME);
     scanner.fetchColumnFamily(ChoppedColumnFamily.NAME);
     scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
-    IteratorSetting tabletChange = new IteratorSetting(1001, "tabletChange",
-        TabletStateChangeIterator.class);
+    IteratorSetting tabletChange =
+        new IteratorSetting(1001, "tabletChange", TabletStateChangeIterator.class);
     if (state != null) {
       TabletStateChangeIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
       TabletStateChangeIterator.setOnlineTables(tabletChange, state.onlineTables());

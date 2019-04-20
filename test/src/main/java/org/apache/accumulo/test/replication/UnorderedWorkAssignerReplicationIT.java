@@ -75,8 +75,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterators;
 
 public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
-  private static final Logger log = LoggerFactory
-      .getLogger(UnorderedWorkAssignerReplicationIT.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(UnorderedWorkAssignerReplicationIT.class);
 
   private ExecutorService executor;
   private int timeoutFactor = 1;
@@ -146,8 +146,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       if (keystorePassword != null) {
         peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), keystorePassword);
       }
-      String truststorePassword = primarySiteConfig
-          .get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
+      String truststorePassword =
+          primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
       if (truststorePassword != null) {
         peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
       }
@@ -157,8 +157,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
     }
 
     // Use the CredentialProvider if the primary also uses one
-    String credProvider = primarySiteConfig
-        .get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+    String credProvider =
+        primarySiteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
     if (credProvider != null) {
       Map<String,String> peerSiteConfig = peerCfg.getSiteConfig();
       peerSiteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(),
@@ -181,8 +181,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
     peerCluster.start();
 
     try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
-        AccumuloClient clientPeer = peerCluster.createAccumuloClient("root",
-            new PasswordToken(ROOT_PASSWORD))) {
+        AccumuloClient clientPeer =
+            peerCluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
       ReplicationTable.setOnline(clientMaster);
 
@@ -241,8 +241,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       log.info("Wrote all data to master cluster");
 
-      final Set<String> filesNeedingReplication = clientMaster.replicationOperations()
-          .referencedFiles(masterTable);
+      final Set<String> filesNeedingReplication =
+          clientMaster.replicationOperations().referencedFiles(masterTable);
 
       for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
         cluster.killProcess(ServerType.TABLET_SERVER, proc);
@@ -345,8 +345,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
     peer1Cluster.start();
 
     try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
-        AccumuloClient clientPeer = peer1Cluster.createAccumuloClient("root",
-            new PasswordToken(ROOT_PASSWORD))) {
+        AccumuloClient clientPeer =
+            peer1Cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
       String peerClusterName = "peer";
       String peerUserName = "peer", peerPassword = "foo";
@@ -518,8 +518,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
     peerCluster.start();
 
     try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
-        AccumuloClient clientPeer = peerCluster.createAccumuloClient("root",
-            new PasswordToken(ROOT_PASSWORD))) {
+        AccumuloClient clientPeer =
+            peerCluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
       String peerUserName = "repl";
       String peerPassword = "passwd";
@@ -633,8 +633,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
     peer1Cluster.start();
 
     try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
-        AccumuloClient clientPeer = peer1Cluster.createAccumuloClient("root",
-            new PasswordToken(ROOT_PASSWORD))) {
+        AccumuloClient clientPeer =
+            peer1Cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
       String peerClusterName = "peer";
 

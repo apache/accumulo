@@ -42,8 +42,8 @@ public class ServerConstantsTest {
   Configuration hadoopConf = new Configuration();
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder folder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Test
   public void testCheckBaseDirs() throws IOException {

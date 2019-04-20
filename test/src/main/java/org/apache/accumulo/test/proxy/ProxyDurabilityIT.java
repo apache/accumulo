@@ -96,8 +96,9 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
       TJSONProtocol.Factory protocol = new TJSONProtocol.Factory();
 
       int proxyPort = PortUtils.getRandomFreePort();
-      final TServer proxyServer = Proxy.createProxyServer(
-          HostAndPort.fromParts("localhost", proxyPort), protocol, proxyProps).server;
+      final TServer proxyServer =
+          Proxy.createProxyServer(HostAndPort.fromParts("localhost", proxyPort), protocol,
+              proxyProps).server;
       while (!proxyServer.isServing())
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       Client client = new TestProxyClient("localhost", proxyPort, protocol).proxy();
@@ -128,8 +129,8 @@ public class ProxyDurabilityIT extends ConfigurableMacBase {
       ConditionalUpdates updates = new ConditionalUpdates();
       updates.addToConditions(new Condition(new Column(bytes("cf"), bytes("cq"), bytes(""))));
       updates.addToUpdates(column);
-      Map<ByteBuffer,ConditionalStatus> status = client.updateRowsConditionally(cwriter,
-          Collections.singletonMap(bytes("row"), updates));
+      Map<ByteBuffer,ConditionalStatus> status =
+          client.updateRowsConditionally(cwriter, Collections.singletonMap(bytes("row"), updates));
       assertEquals(ConditionalStatus.ACCEPTED, status.get(bytes("row")));
       assertEquals(1, count(c, tableName));
       restartTServer();

@@ -167,8 +167,8 @@ public class KerberosReplicationIT extends AccumuloITBase {
       log.info("testing {}", ugi);
       final KerberosToken token = new KerberosToken();
       try (
-          AccumuloClient primaryclient = primary.createAccumuloClient(rootUser.getPrincipal(),
-              token);
+          AccumuloClient primaryclient =
+              primary.createAccumuloClient(rootUser.getPrincipal(), token);
           AccumuloClient peerclient = peer.createAccumuloClient(rootUser.getPrincipal(), token)) {
 
         ClusterUser replicationUser = kdc.getClientPrincipal(0);
@@ -227,8 +227,8 @@ public class KerberosReplicationIT extends AccumuloITBase {
 
         log.info("Wrote all data to primary cluster");
 
-        Set<String> filesFor1 = primaryclient.replicationOperations()
-            .referencedFiles(primaryTable1);
+        Set<String> filesFor1 =
+            primaryclient.replicationOperations().referencedFiles(primaryTable1);
 
         // Restart the tserver to force a close on the WAL
         for (ProcessReference proc : primary.getProcesses().get(ServerType.TABLET_SERVER)) {

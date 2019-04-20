@@ -55,12 +55,12 @@ class ChooseDir extends MasterRepo {
     // Constants.DEFAULT_TABLET_LOCATION has a leading slash prepended to it so we don't need to add
     // one here
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(tableInfo.getTableId(),
-        null, master.getContext());
+    VolumeChooserEnvironment chooserEnv =
+        new VolumeChooserEnvironmentImpl(tableInfo.getTableId(), null, master.getContext());
 
-    String baseDir = master.getFileSystem().choose(chooserEnv,
-        ServerConstants.getBaseUris(master.getContext())) + Constants.HDFS_TABLES_DIR
-        + Path.SEPARATOR + tableInfo.getTableId();
+    String baseDir =
+        master.getFileSystem().choose(chooserEnv, ServerConstants.getBaseUris(master.getContext()))
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + tableInfo.getTableId();
     tableInfo.defaultTabletDir = baseDir + Constants.DEFAULT_TABLET_LOCATION;
 
     if (tableInfo.getInitialSplitSize() > 0) {
@@ -80,10 +80,10 @@ class ChooseDir extends MasterRepo {
    * to the file system for later use during this FATE operation.
    */
   private void createTableDirectoriesInfo(Master master, String baseDir) throws IOException {
-    SortedSet<Text> splits = Utils
-        .getSortedSetFromFile(master.getInputStream(tableInfo.getSplitFile()), true);
-    SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(master, splits.size(),
-        baseDir);
+    SortedSet<Text> splits =
+        Utils.getSortedSetFromFile(master.getInputStream(tableInfo.getSplitFile()), true);
+    SortedSet<Text> tabletDirectoryInfo =
+        createTabletDirectoriesSet(master, splits.size(), baseDir);
     writeTabletDirectoriesToFileSystem(master, tabletDirectoryInfo);
   }
 

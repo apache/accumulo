@@ -401,8 +401,8 @@ public class BloomFilterLayer {
     }
 
     @Override
-    public SortedKeyValueIterator<org.apache.accumulo.core.data.Key,Value> deepCopy(
-        IteratorEnvironment env) {
+    public SortedKeyValueIterator<org.apache.accumulo.core.data.Key,Value>
+        deepCopy(IteratorEnvironment env) {
       return new BloomFilterLayer.Reader((FileSKVIterator) reader.deepCopy(env), bfl);
     }
 
@@ -513,8 +513,8 @@ public class BloomFilterLayer {
       int row = r.nextInt(Integer.MAX_VALUE);
       String fi = String.format("%010d", row);
       // bmfr.seek(new Range(new Text("r"+fi)));
-      org.apache.accumulo.core.data.Key k1 = new org.apache.accumulo.core.data.Key(
-          new Text("r" + fi), new Text("cf1"));
+      org.apache.accumulo.core.data.Key k1 =
+          new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1"));
       bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false),
           new ArrayList<>(), false);
       if (valsSet.contains(row)) {
@@ -538,8 +538,8 @@ public class BloomFilterLayer {
       String fi = String.format("%010d", row);
       // bmfr.seek(new Range(new Text("r"+fi)));
 
-      org.apache.accumulo.core.data.Key k1 = new org.apache.accumulo.core.data.Key(
-          new Text("r" + fi), new Text("cf1"));
+      org.apache.accumulo.core.data.Key k1 =
+          new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1"));
       bmfr.seek(new Range(k1, true, k1.followingKey(PartialKey.ROW_COLFAM), false),
           new ArrayList<>(), false);
 

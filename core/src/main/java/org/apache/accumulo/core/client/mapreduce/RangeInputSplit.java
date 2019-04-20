@@ -109,8 +109,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
           // just look at the column family progress
           return getProgress(range.getStartKey().getColumnFamilyData(),
               range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
-        } else if (range.getStartKey().compareTo(range.getEndKey(),
-            PartialKey.ROW_COLFAM_COLQUAL) != 0) {
+        } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL)
+            != 0) {
           // just look at the column qualifier progress
           return getProgress(range.getStartKey().getColumnQualifierData(),
               range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
@@ -179,8 +179,9 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
     if (in.readBoolean()) {
       int ordinal = in.readInt();
-      this.tokenSource = org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource
-          .values()[ordinal];
+      this.tokenSource =
+          org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource
+              .values()[ordinal];
 
       switch (this.tokenSource) {
         case INLINE:
@@ -359,8 +360,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
     return getInstance(org.apache.accumulo.core.client.ClientConfiguration.loadDefault());
   }
 
-  public org.apache.accumulo.core.client.Instance getInstance(
-      org.apache.accumulo.core.client.ClientConfiguration base) {
+  public org.apache.accumulo.core.client.Instance
+      getInstance(org.apache.accumulo.core.client.ClientConfiguration base) {
     if (null == instanceName) {
       return null;
     }
@@ -402,12 +403,14 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   public void setToken(AuthenticationToken token) {
-    this.tokenSource = org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.INLINE;
+    this.tokenSource =
+        org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.INLINE;
     this.token = token;
   }
 
   public void setToken(String tokenFile) {
-    this.tokenSource = org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.FILE;
+    this.tokenSource =
+        org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.FILE;
     this.tokenFile = tokenFile;
   }
 

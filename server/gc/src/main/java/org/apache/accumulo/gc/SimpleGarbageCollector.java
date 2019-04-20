@@ -133,8 +133,8 @@ public class SimpleGarbageCollector implements Iface {
   private Opts opts;
   private ZooLock lock;
 
-  private GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(),
-      new GcCycleStats());
+  private GCStatus status =
+      new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
   public static void main(String[] args) {
     final String app = "gc";
@@ -262,8 +262,8 @@ public class SimpleGarbageCollector implements Iface {
     @Override
     public Iterator<String> getBlipIterator() throws TableNotFoundException {
       @SuppressWarnings("resource")
-      IsolatedScanner scanner = new IsolatedScanner(
-          getClient().createScanner(tableName, Authorizations.EMPTY));
+      IsolatedScanner scanner =
+          new IsolatedScanner(getClient().createScanner(tableName, Authorizations.EMPTY));
 
       scanner.setRange(MetadataSchema.BlipSection.getRange());
 
@@ -342,11 +342,11 @@ public class SimpleGarbageCollector implements Iface {
 
       final BatchWriter finalWriter = writer;
 
-      ExecutorService deleteThreadPool = Executors.newFixedThreadPool(getNumDeleteThreads(),
-          new NamingThreadFactory("deleting"));
+      ExecutorService deleteThreadPool =
+          Executors.newFixedThreadPool(getNumDeleteThreads(), new NamingThreadFactory("deleting"));
 
-      final List<Pair<Path,Path>> replacements = ServerConstants
-          .getVolumeReplacements(getConfiguration(), getContext().getHadoopConf());
+      final List<Pair<Path,Path>> replacements =
+          ServerConstants.getVolumeReplacements(getConfiguration(), getContext().getHadoopConf());
 
       for (final String delete : confirmedDeletes.values()) {
 
@@ -518,8 +518,8 @@ public class SimpleGarbageCollector implements Iface {
       return;
     }
 
-    ProbabilitySampler sampler = TraceUtil
-        .probabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
+    ProbabilitySampler sampler =
+        TraceUtil.probabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
 
     while (true) {
       try (TraceScope gcOuterSpan = Trace.startSpan("gc", sampler)) {
@@ -563,8 +563,8 @@ public class SimpleGarbageCollector implements Iface {
 
           // Clean up any unused write-ahead logs
           try (TraceScope waLogs = Trace.startSpan("walogs")) {
-            GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(context,
-                fs, isUsingTrash());
+            GarbageCollectWriteAheadLogs walogCollector =
+                new GarbageCollectWriteAheadLogs(context, fs, isUsingTrash());
             log.info("Beginning garbage collection of write-ahead logs");
             walogCollector.collect(status);
           } catch (Exception e) {
@@ -653,11 +653,11 @@ public class SimpleGarbageCollector implements Iface {
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
-      ServerAddress server = TServerUtils.startTServer(getConfiguration(),
-          context.getThriftServerType(), processor, this.getClass().getSimpleName(),
-          "GC Monitor Service", 2,
-          getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000,
-          maxMessageSize, context.getServerSslParams(), context.getSaslParams(), 0, addresses);
+      ServerAddress server =
+          TServerUtils.startTServer(getConfiguration(), context.getThriftServerType(), processor,
+              this.getClass().getSimpleName(), "GC Monitor Service", 2,
+              getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000,
+              maxMessageSize, context.getServerSslParams(), context.getSaslParams(), 0, addresses);
       log.debug("Starting garbage collector listening on " + server.address);
       return server.address;
     } catch (Exception ex) {
@@ -676,8 +676,8 @@ public class SimpleGarbageCollector implements Iface {
    * @see #CANDIDATE_MEMORY_PERCENTAGE
    */
   static boolean almostOutOfMemory(Runtime runtime) {
-    return runtime.totalMemory() - runtime.freeMemory() > CANDIDATE_MEMORY_PERCENTAGE
-        * runtime.maxMemory();
+    return runtime.totalMemory() - runtime.freeMemory()
+        > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory();
   }
 
   private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer)

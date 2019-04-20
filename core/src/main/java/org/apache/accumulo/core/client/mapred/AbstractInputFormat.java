@@ -333,8 +333,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @return The client configuration for the job
    * @since 1.7.0
    */
-  protected static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
-      JobConf job) {
+  protected static org.apache.accumulo.core.client.ClientConfiguration
+      getClientConfiguration(JobConf job) {
     return InputConfigurator.getClientConfiguration(CLASS, job);
   }
 
@@ -363,8 +363,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *         the job
    * @since 1.6.0
    */
-  public static Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> getInputTableConfigs(
-      JobConf job) {
+  public static Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig>
+      getInputTableConfigs(JobConf job) {
     return InputConfigurator.getInputTableConfigs(CLASS, job);
   }
 
@@ -383,8 +383,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *         table
    * @since 1.6.0
    */
-  public static org.apache.accumulo.core.client.mapreduce.InputTableConfig getInputTableConfig(
-      JobConf job, String tableName) {
+  public static org.apache.accumulo.core.client.mapreduce.InputTableConfig
+      getInputTableConfig(JobConf job, String tableName) {
     return InputConfigurator.getInputTableConfig(CLASS, job, tableName);
   }
 
@@ -481,8 +481,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
       // in case the table name changed, we can still use the previous name for terms of
       // configuration, but the scanner will use the table id resolved at job setup time
-      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig = getInputTableConfig(
-          job, baseSplit.getTableName());
+      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig =
+          getInputTableConfig(job, baseSplit.getTableName());
 
       ClientContext client = InputConfigurator.client(CLASS, baseSplit, job);
 
@@ -492,14 +492,15 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
       if (baseSplit instanceof org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit) {
         BatchScanner scanner;
-        org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit multiRangeSplit = (org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit) baseSplit;
+        org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit multiRangeSplit =
+            (org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit) baseSplit;
 
         try {
           // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit
           // will not span tablets
           int scanThreads = 1;
-          scanner = client.createBatchScanner(baseSplit.getTableName(), authorizations,
-              scanThreads);
+          scanner =
+              client.createBatchScanner(baseSplit.getTableName(), authorizations, scanThreads);
           setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
           if (classLoaderContext != null) {
             scanner.setClassLoaderContext(classLoaderContext);
@@ -532,8 +533,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
         try {
           if (isOffline) {
-            scanner = new OfflineScanner(client, TableId.of(baseSplit.getTableId()),
-                authorizations);
+            scanner =
+                new OfflineScanner(client, TableId.of(baseSplit.getTableId()), authorizations);
           } else {
             scanner = new ScannerImpl(client, TableId.of(baseSplit.getTableId()), authorizations);
           }
@@ -631,15 +632,16 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
     Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
-    Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfigs = getInputTableConfigs(
-        job);
+    Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfigs =
+        getInputTableConfigs(job);
 
-    for (Map.Entry<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfigEntry : tableConfigs
-        .entrySet()) {
+    for (Map.Entry<String,
+        org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfigEntry : tableConfigs
+            .entrySet()) {
 
       String tableName = tableConfigEntry.getKey();
-      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig = tableConfigEntry
-          .getValue();
+      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig =
+          tableConfigEntry.getValue();
 
       ClientContext client;
       try {
@@ -668,8 +670,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         throw new IllegalArgumentException(
             "AutoAdjustRanges must be enabled when using BatchScanner optimization");
 
-      List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges())
-          : tableConfig.getRanges();
+      List<Range> ranges =
+          autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
       if (ranges.isEmpty()) {
         ranges = new ArrayList<>(1);
         ranges.add(new Range());
@@ -734,8 +736,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             ArrayList<Range> clippedRanges = new ArrayList<>();
             for (Range r : extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
-            org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit split = new org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit(
-                tableName, tableId, clippedRanges, new String[] {location});
+            org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit split =
+                new org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit(tableName, tableId,
+                    clippedRanges, new String[] {location});
             org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils.updateSplit(split, tableConfig,
                 logLevel);
 

@@ -73,13 +73,13 @@ public class PerTableVolumeChooserTest {
   }
 
   private VolumeChooser getTableDelegate() {
-    VolumeChooserEnvironment env = new VolumeChooserEnvironmentImpl(TableId.of("testTable"), null,
-        null) {
-      @Override
-      public ServiceEnvironment getServiceEnv() {
-        return serviceEnv;
-      }
-    };
+    VolumeChooserEnvironment env =
+        new VolumeChooserEnvironmentImpl(TableId.of("testTable"), null, null) {
+          @Override
+          public ServiceEnvironment getServiceEnv() {
+            return serviceEnv;
+          }
+        };
     return chooser.getDelegateChooser(env);
   }
 

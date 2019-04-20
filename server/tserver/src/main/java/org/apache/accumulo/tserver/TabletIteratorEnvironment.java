@@ -170,8 +170,8 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     return authorizations;
   }
 
-  public SortedKeyValueIterator<Key,Value> getTopLevelIterator(
-      SortedKeyValueIterator<Key,Value> iter) {
+  public SortedKeyValueIterator<Key,Value>
+      getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
     if (topLevelIterators.isEmpty())
       return iter;
     ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<>(topLevelIterators);

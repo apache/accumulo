@@ -165,8 +165,8 @@ public abstract class RowEncodingIterator
       IteratorEnvironment env) throws IOException {
     sourceIter = source;
     if (options.containsKey(MAX_BUFFER_SIZE_OPT)) {
-      maxBufferSize = ConfigurationTypeHelper
-          .getFixedMemoryAsBytes(options.get(MAX_BUFFER_SIZE_OPT));
+      maxBufferSize =
+          ConfigurationTypeHelper.getFixedMemoryAsBytes(options.get(MAX_BUFFER_SIZE_OPT));
     }
   }
 

@@ -47,8 +47,8 @@ public class LocalityCheck {
     try (TraceScope clientSpan = opts.parseArgsAndTrace(LocalityCheck.class.getName(), args)) {
 
       VolumeManager fs = opts.getServerContext().getVolumeManager();
-      try (AccumuloClient accumuloClient = Accumulo.newClient().from(opts.getClientProps())
-          .build()) {
+      try (AccumuloClient accumuloClient =
+          Accumulo.newClient().from(opts.getClientProps()).build()) {
         Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);
         scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -95,8 +95,8 @@ public class LocalityCheck {
       Path filePath = new Path(file);
       FileSystem ns = fs.getVolumeByPath(filePath).getFileSystem();
       FileStatus fileStatus = ns.getFileStatus(filePath);
-      BlockLocation[] fileBlockLocations = ns.getFileBlockLocations(fileStatus, 0,
-          fileStatus.getLen());
+      BlockLocation[] fileBlockLocations =
+          ns.getFileBlockLocations(fileStatus, 0, fileStatus.getLen());
       for (BlockLocation blockLocation : fileBlockLocations) {
         allBlocks++;
         for (String location : blockLocation.getHosts()) {

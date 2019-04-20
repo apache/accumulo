@@ -85,8 +85,8 @@ public class AccumuloMonitorAppenderTest {
       assertFalse(executorService.isTerminated());
 
       // make sure executor service executes tasks
-      ScheduledFuture<Long> future = executorService.schedule(() -> counter.getAndIncrement(), 1,
-          TimeUnit.MILLISECONDS);
+      ScheduledFuture<Long> future =
+          executorService.schedule(() -> counter.getAndIncrement(), 1, TimeUnit.MILLISECONDS);
       assertEquals(Long.valueOf(2), future.get());
       assertEquals(3, counter.get());
 
@@ -154,8 +154,8 @@ public class AccumuloMonitorAppenderTest {
       AppenderSkeleton lastAppender = (AppenderSkeleton) parent.getAllAppenders().nextElement();
       for (int x = 0; x < 10; x++) {
         Thread.sleep(10);
-        AppenderSkeleton currentAppender = (AppenderSkeleton) parent.getAllAppenders()
-            .nextElement();
+        AppenderSkeleton currentAppender =
+            (AppenderSkeleton) parent.getAllAppenders().nextElement();
         assertSame(lastAppender, currentAppender);
       }
 

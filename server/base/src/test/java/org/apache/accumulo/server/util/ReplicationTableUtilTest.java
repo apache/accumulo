@@ -118,8 +118,8 @@ public class ReplicationTableUtilTest {
     Text row = new Text(filePath.toString());
     KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("b"), new Text("a"));
 
-    Mutation m = ReplicationTableUtil.createUpdateMutation(filePath, ProtobufUtil.toValue(stat),
-        extent);
+    Mutation m =
+        ReplicationTableUtil.createUpdateMutation(filePath, ProtobufUtil.toValue(stat), extent);
 
     assertEquals(new Text(MetadataSchema.ReplicationSection.getRowPrefix() + row),
         new Text(m.getRow()));

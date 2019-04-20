@@ -106,12 +106,12 @@ public class DUCommand extends Command {
     optTablePattern = new Option("p", "pattern", true, "regex pattern of table names");
     optTablePattern.setArgName("pattern");
 
-    optHumanReadble = new Option("h", "human-readable", false,
-        "format large sizes to human readable units");
+    optHumanReadble =
+        new Option("h", "human-readable", false, "format large sizes to human readable units");
     optHumanReadble.setArgName("human readable output");
 
-    optNamespace = new Option(ShellOptions.namespaceOption, "namespace", true,
-        "name of a namespace");
+    optNamespace =
+        new Option(ShellOptions.namespaceOption, "namespace", true, "name of a namespace");
     optNamespace.setArgName("namespace");
 
     o.addOption(OptUtil.tableOpt("table to examine"));

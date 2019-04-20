@@ -130,8 +130,8 @@ public class Compactor implements Callable<CompactionStats> {
     entriesWritten.set(0);
   }
 
-  protected static final Set<Compactor> runningCompactions = Collections
-      .synchronizedSet(new HashSet<>());
+  protected static final Set<Compactor> runningCompactions =
+      Collections.synchronizedSet(new HashSet<>());
 
   public static List<CompactionInfo> getRunningCompactions() {
     ArrayList<CompactionInfo> compactions = new ArrayList<>();
@@ -282,8 +282,8 @@ public class Compactor implements Callable<CompactionStats> {
     }
   }
 
-  private List<SortedKeyValueIterator<Key,Value>> openMapDataFiles(
-      ArrayList<FileSKVIterator> readers) throws IOException {
+  private List<SortedKeyValueIterator<Key,Value>>
+      openMapDataFiles(ArrayList<FileSKVIterator> readers) throws IOException {
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
 
@@ -347,10 +347,10 @@ public class Compactor implements Callable<CompactionStats> {
         iters.add(imm.compactionIterator());
       }
 
-      CountingIterator citr = new CountingIterator(new MultiIterator(iters, extent.toDataRange()),
-          entriesRead);
-      SortedKeyValueIterator<Key,Value> delIter = DeletingIterator.wrap(citr, propogateDeletes,
-          DeletingIterator.getBehavior(acuTableConf));
+      CountingIterator citr =
+          new CountingIterator(new MultiIterator(iters, extent.toDataRange()), entriesRead);
+      SortedKeyValueIterator<Key,Value> delIter =
+          DeletingIterator.wrap(citr, propogateDeletes, DeletingIterator.getBehavior(acuTableConf));
       ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
 
       // if(env.getIteratorScope() )

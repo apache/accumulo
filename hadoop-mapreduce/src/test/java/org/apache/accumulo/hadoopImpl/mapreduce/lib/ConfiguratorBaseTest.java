@@ -46,8 +46,8 @@ public class ConfiguratorBaseTest {
   @Test
   public void testSetClientProperties() {
     Configuration conf = new Configuration();
-    Properties props = Accumulo.newClientProperties().to("myinstance", "myzookeepers")
-        .as("user", "pass").build();
+    Properties props =
+        Accumulo.newClientProperties().to("myinstance", "myzookeepers").as("user", "pass").build();
     assertFalse(ConfiguratorBase.isClientConfigured(this.getClass(), conf));
     ConfiguratorBase.setClientProperties(this.getClass(), conf, props, null);
     assertTrue(ConfiguratorBase.isClientConfigured(this.getClass(), conf));

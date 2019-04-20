@@ -148,8 +148,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
   private final Object closeLock = new Object();
 
-  private static final DfsLogger.LogWork CLOSED_MARKER = new DfsLogger.LogWork(null,
-      Durability.FLUSH);
+  private static final DfsLogger.LogWork CLOSED_MARKER =
+      new DfsLogger.LogWork(null, Durability.FLUSH);
 
   private static final LogFileValue EMPTY = new LogFileValue();
 
@@ -226,8 +226,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
         }
         if (expectedReplication == 0 && logFile.getWrappedStream() instanceof DFSOutputStream) {
           try {
-            expectedReplication = ((DFSOutputStream) logFile.getWrappedStream())
-                .getCurrentBlockReplication();
+            expectedReplication =
+                ((DFSOutputStream) logFile.getWrappedStream()).getCurrentBlockReplication();
           } catch (IOException e) {
             fail(work, e, "getting replication level");
           }
@@ -334,8 +334,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private DfsLogger(ServerContext context, ServerResources conf) {
     this.context = context;
     this.conf = conf;
-    this.slowFlushMillis = conf.getConfiguration()
-        .getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
+    this.slowFlushMillis =
+        conf.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
   }
 
   public DfsLogger(ServerContext context, ServerResources conf, AtomicLong syncCounter,
@@ -367,8 +367,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic)) {
         byte[] params = CryptoUtils.readParams(input);
-        CryptoService cryptoService = CryptoServiceFactory.newInstance(conf,
-            ClassloaderType.ACCUMULO);
+        CryptoService cryptoService =
+            CryptoServiceFactory.newInstance(conf, ClassloaderType.ACCUMULO);
         CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, params);
 
         FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
@@ -407,8 +407,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     log.debug("DfsLogger.open() begin");
     VolumeManager fs = conf.getFileSystem();
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.LOGGER,
-        context);
+    VolumeChooserEnvironment chooserEnv =
+        new VolumeChooserEnvironmentImpl(ChooserScope.LOGGER, context);
     logPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(context)) + Path.SEPARATOR
         + ServerConstants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
 

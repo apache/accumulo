@@ -67,8 +67,8 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
             // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
             String tserver = client.instanceOperations().getTabletServers().iterator().next();
             do {
-              ArrayList<ActiveScan> scans = new ArrayList<>(
-                  client.instanceOperations().getActiveScans(tserver));
+              ArrayList<ActiveScan> scans =
+                  new ArrayList<>(client.instanceOperations().getActiveScans(tserver));
               // Remove scans not against our table and not owned by us
               scans.removeIf(scan -> !getAdminPrincipal().equals(scan.getUser())
                   || !tableName.equals(scan.getTable()));

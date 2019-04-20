@@ -54,7 +54,8 @@ public class TableConfiguration extends ObservableConfiguration {
 
   private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<>();
 
-  private final AtomicReference<ZooCachePropertyAccessor> propCacheAccessor = new AtomicReference<>();
+  private final AtomicReference<ZooCachePropertyAccessor> propCacheAccessor =
+      new AtomicReference<>();
   private final ServerContext context;
   private final NamespaceConfiguration parent;
   private ZooCacheFactory zcf = new ZooCacheFactory();
@@ -227,10 +228,10 @@ public class TableConfiguration extends ObservableConfiguration {
     ParsedIteratorConfig pic = ref.get();
     if (pic == null || pic.updateCount != count) {
       Map<String,Map<String,String>> allOpts = new HashMap<>();
-      List<IterInfo> iters = IterConfigUtil.parseIterConf(scope, Collections.emptyList(), allOpts,
-          this);
-      ParsedIteratorConfig newPic = new ParsedIteratorConfig(iters, allOpts,
-          get(Property.TABLE_CLASSPATH), count);
+      List<IterInfo> iters =
+          IterConfigUtil.parseIterConf(scope, Collections.emptyList(), allOpts, this);
+      ParsedIteratorConfig newPic =
+          new ParsedIteratorConfig(iters, allOpts, get(Property.TABLE_CLASSPATH), count);
       ref.compareAndSet(pic, newPic);
       pic = newPic;
     }

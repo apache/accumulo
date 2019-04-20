@@ -258,8 +258,8 @@ public class InputConfigurator extends ConfiguratorBase {
   public static List<Range> getRanges(Class<?> implementingClass, Configuration conf)
       throws IOException {
 
-    Collection<String> encodedRanges = conf
-        .getStringCollection(enumToConfKey(implementingClass, ScanOpts.RANGES));
+    Collection<String> encodedRanges =
+        conf.getStringCollection(enumToConfKey(implementingClass, ScanOpts.RANGES));
     List<Range> ranges = new ArrayList<>();
     for (String rangeString : encodedRanges) {
       ByteArrayInputStream bais = new ByteArrayInputStream(Base64.getDecoder().decode(rangeString));
@@ -310,8 +310,8 @@ public class InputConfigurator extends ConfiguratorBase {
     conf.setStrings(enumToConfKey(implementingClass, ScanOpts.COLUMNS), columnStrings);
   }
 
-  public static String[] serializeColumns(
-      Collection<IteratorSetting.Column> columnFamilyColumnQualifierPairs) {
+  public static String[]
+      serializeColumns(Collection<IteratorSetting.Column> columnFamilyColumnQualifierPairs) {
     checkArgument(columnFamilyColumnQualifierPairs != null,
         "columnFamilyColumnQualifierPairs is null");
     ArrayList<String> columnStrings = new ArrayList<>(columnFamilyColumnQualifierPairs.size());
@@ -348,8 +348,8 @@ public class InputConfigurator extends ConfiguratorBase {
     return deserializeFetchedColumns(serialized);
   }
 
-  public static Set<IteratorSetting.Column> deserializeFetchedColumns(
-      Collection<String> serialized) {
+  public static Set<IteratorSetting.Column>
+      deserializeFetchedColumns(Collection<String> serialized) {
     Set<IteratorSetting.Column> columns = new HashSet<>();
 
     if (serialized == null) {
@@ -656,8 +656,8 @@ public class InputConfigurator extends ConfiguratorBase {
   private static Map<String,InputTableConfig> getInputTableConfigs(Class<?> implementingClass,
       Configuration conf, String tableName) {
     Map<String,InputTableConfig> configs = new HashMap<>();
-    Map.Entry<String,InputTableConfig> defaultConfig = getDefaultInputTableConfig(implementingClass,
-        conf, tableName);
+    Map.Entry<String,InputTableConfig> defaultConfig =
+        getDefaultInputTableConfig(implementingClass, conf, tableName);
     if (defaultConfig != null)
       configs.put(defaultConfig.getKey(), defaultConfig.getValue());
     String configString = conf.get(enumToConfKey(implementingClass, ScanOpts.TABLE_CONFIGS));
@@ -693,8 +693,8 @@ public class InputConfigurator extends ConfiguratorBase {
    */
   public static InputTableConfig getInputTableConfig(Class<?> implementingClass, Configuration conf,
       String tableName) {
-    Map<String,InputTableConfig> queryConfigs = getInputTableConfigs(implementingClass, conf,
-        tableName);
+    Map<String,InputTableConfig> queryConfigs =
+        getInputTableConfigs(implementingClass, conf, tableName);
     return queryConfigs.get(tableName);
   }
 
@@ -774,8 +774,8 @@ public class InputConfigurator extends ConfiguratorBase {
    * @return the config object built from the single input table properties set on the job
    * @since 1.6.0
    */
-  protected static Map.Entry<String,InputTableConfig> getDefaultInputTableConfig(
-      Class<?> implementingClass, Configuration conf, String tableName) {
+  protected static Map.Entry<String,InputTableConfig>
+      getDefaultInputTableConfig(Class<?> implementingClass, Configuration conf, String tableName) {
     if (tableName != null) {
       InputTableConfig queryConfig = new InputTableConfig();
       List<IteratorSetting> itrs = getIterators(implementingClass, conf);
@@ -828,8 +828,8 @@ public class InputConfigurator extends ConfiguratorBase {
       else
         startRow = new Text();
 
-      Range metadataRange = new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(),
-          true, null, false);
+      Range metadataRange =
+          new Range(new KeyExtent(tableId, startRow, null).getMetadataEntry(), true, null, false);
       Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
       MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LastLocationColumnFamily.NAME);

@@ -143,8 +143,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   private void addDuplicateLocation(AccumuloClient client, String table, String tableNameToModify)
       throws TableNotFoundException, MutationsRejectedException {
-    TableId tableIdToModify = TableId
-        .of(client.tableOperations().tableIdMap().get(tableNameToModify));
+    TableId tableIdToModify =
+        TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     Mutation m = new Mutation(new KeyExtent(tableIdToModify, null, null).getMetadataEntry());
     m.put(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME, new Text("1234567"),
         new Value("fake:9005".getBytes(UTF_8)));
@@ -155,8 +155,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   private void reassignLocation(AccumuloClient client, String table, String tableNameToModify)
       throws TableNotFoundException, MutationsRejectedException {
-    TableId tableIdToModify = TableId
-        .of(client.tableOperations().tableIdMap().get(tableNameToModify));
+    TableId tableIdToModify =
+        TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
       scanner.setRange(new KeyExtent(tableIdToModify, null, null).toMetadataRange());
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
@@ -174,10 +174,10 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   private void removeLocation(AccumuloClient client, String table, String tableNameToModify)
       throws TableNotFoundException, MutationsRejectedException {
-    TableId tableIdToModify = TableId
-        .of(client.tableOperations().tableIdMap().get(tableNameToModify));
-    BatchDeleter deleter = client.createBatchDeleter(table, Authorizations.EMPTY, 1,
-        new BatchWriterConfig());
+    TableId tableIdToModify =
+        TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
+    BatchDeleter deleter =
+        client.createBatchDeleter(table, Authorizations.EMPTY, 1, new BatchWriterConfig());
     deleter.setRanges(
         Collections.singleton(new KeyExtent(tableIdToModify, null, null).toMetadataRange()));
     deleter.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);

@@ -95,8 +95,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       @Override
       public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
           throws Exception {
-        List<ProcessReference> procs = new ArrayList<>(
-            getCluster().getProcesses().get(ServerType.TABLET_SERVER));
+        List<ProcessReference> procs =
+            new ArrayList<>(getCluster().getProcesses().get(ServerType.TABLET_SERVER));
         Collections.shuffle(procs);
 
         for (int i = 0; i < count; ++i) {
@@ -182,8 +182,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       // Wait for all of the tablets to hosted ...
       log.info("Waiting on hosting and balance");
       TabletLocations ds;
-      for (ds = TabletLocations.retrieve(ctx,
-          tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
+      for (ds = TabletLocations.retrieve(ctx, tableName); ds.hostedCount != TABLETS;
+          ds = TabletLocations.retrieve(ctx, tableName)) {
         Thread.sleep(1000);
       }
 
@@ -238,16 +238,17 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
       // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
       log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
-      for (ds = TabletLocations.retrieve(ctx, tableName); ds.suspended.containsKey(restartedServer)
-          || ds.assignedCount != 0; ds = TabletLocations.retrieve(ctx, tableName)) {
+      for (ds = TabletLocations.retrieve(ctx, tableName);
+          ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0;
+          ds = TabletLocations.retrieve(ctx, tableName)) {
         Thread.sleep(1000);
       }
       assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
 
       // Finally, after much longer, remaining suspended tablets should be reassigned.
       log.info("Awaiting tablet reassignment for remaining tablets");
-      for (ds = TabletLocations.retrieve(ctx,
-          tableName); ds.hostedCount != TABLETS; ds = TabletLocations.retrieve(ctx, tableName)) {
+      for (ds = TabletLocations.retrieve(ctx, tableName); ds.hostedCount != TABLETS;
+          ds = TabletLocations.retrieve(ctx, tableName)) {
         Thread.sleep(1000);
       }
 

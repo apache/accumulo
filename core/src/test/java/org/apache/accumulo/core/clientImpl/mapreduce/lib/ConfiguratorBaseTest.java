@@ -85,9 +85,9 @@ public class ConfiguratorBaseTest {
         org.apache.accumulo.core.client.ClientConfiguration.create()
             .withInstance("testInstanceName").withZkHosts("testZooKeepers").withSsl(true)
             .withZkTimeout(15000));
-    org.apache.accumulo.core.client.ClientConfiguration clientConf = org.apache.accumulo.core.client.ClientConfiguration
-        .deserialize(conf.get(ConfiguratorBase.enumToConfKey(this.getClass(),
-            ConfiguratorBase.InstanceOpts.CLIENT_CONFIG)));
+    org.apache.accumulo.core.client.ClientConfiguration clientConf =
+        org.apache.accumulo.core.client.ClientConfiguration.deserialize(conf.get(ConfiguratorBase
+            .enumToConfKey(this.getClass(), ConfiguratorBase.InstanceOpts.CLIENT_CONFIG)));
     assertEquals("testInstanceName", clientConf
         .get(org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME));
     assertEquals("testZooKeepers", clientConf

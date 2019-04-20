@@ -154,8 +154,8 @@ public class SummarizerConfiguration {
    * @throws IllegalArgumentException
    *           when there are duplicate values for {@link #getPropertyId()}
    */
-  public static Map<String,String> toTableProperties(
-      Collection<SummarizerConfiguration> configurations) {
+  public static Map<String,String>
+      toTableProperties(Collection<SummarizerConfiguration> configurations) {
     return SummarizerConfigurationUtil.toTablePropertiesMap(new ArrayList<>(configurations));
   }
 
@@ -171,8 +171,8 @@ public class SummarizerConfiguration {
   /**
    * @see #fromTableProperties(Map)
    */
-  public static Collection<SummarizerConfiguration> fromTableProperties(
-      Iterable<Entry<String,String>> props) {
+  public static Collection<SummarizerConfiguration>
+      fromTableProperties(Iterable<Entry<String,String>> props) {
     return SummarizerConfigurationUtil.getSummarizerConfigs(props);
   }
 

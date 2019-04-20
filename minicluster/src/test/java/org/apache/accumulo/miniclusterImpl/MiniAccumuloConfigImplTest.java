@@ -37,8 +37,8 @@ public class MiniAccumuloConfigImplTest {
   @SuppressWarnings("deprecation")
   private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
 
-  static TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  static TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @BeforeClass
   public static void setUp() throws IOException {
@@ -81,8 +81,8 @@ public class MiniAccumuloConfigImplTest {
   @Test
   public void testMemoryConfig() {
 
-    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password")
-        .initialize();
+    MiniAccumuloConfigImpl config =
+        new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").initialize();
     config.setDefaultMemory(96, MemoryUnit.MEGABYTE);
     assertEquals(96 * 1024 * 1024L, config.getMemory(ServerType.MASTER));
     assertEquals(96 * 1024 * 1024L, config.getMemory(ServerType.TABLET_SERVER));

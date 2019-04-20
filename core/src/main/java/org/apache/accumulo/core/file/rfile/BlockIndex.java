@@ -209,8 +209,8 @@ public class BlockIndex implements Weighable {
       }
     }
 
-    weight += ClassSize.ATOMIC_INTEGER + ClassSize.OBJECT + 2 * ClassSize.REFERENCE
-        + ClassSize.ARRAY;
+    weight +=
+        ClassSize.ATOMIC_INTEGER + ClassSize.OBJECT + 2 * ClassSize.REFERENCE + ClassSize.ARRAY;
     return weight;
   }
 }

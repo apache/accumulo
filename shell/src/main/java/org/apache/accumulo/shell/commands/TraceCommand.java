@@ -45,8 +45,8 @@ public class TraceCommand extends DebugCommand {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {
         if (traceScope == null) {
-          traceScope = Trace.startSpan("shell:" + shellState.getAccumuloClient().whoami(),
-              Sampler.ALWAYS);
+          traceScope =
+              Trace.startSpan("shell:" + shellState.getAccumuloClient().whoami(), Sampler.ALWAYS);
         }
       } else if (cl.getArgs()[0].equalsIgnoreCase("off")) {
         if (traceScope != null) {
@@ -58,12 +58,12 @@ public class TraceCommand extends DebugCommand {
           for (int i = 0; i < 30; i++) {
             sb = new StringBuilder();
             try {
-              final Map<String,String> properties = shellState.getAccumuloClient()
-                  .instanceOperations().getSystemConfiguration();
+              final Map<String,String> properties =
+                  shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
               final String table = properties.get(Property.TRACE_TABLE.getKey());
               final String user = shellState.getAccumuloClient().whoami();
-              final Authorizations auths = shellState.getAccumuloClient().securityOperations()
-                  .getUserAuthorizations(user);
+              final Authorizations auths =
+                  shellState.getAccumuloClient().securityOperations().getUserAuthorizations(user);
               final Scanner scanner = shellState.getAccumuloClient().createScanner(table, auths);
               scanner.setRange(new Range(new Text(Long.toHexString(trace))));
               final StringBuilder finalSB = sb;

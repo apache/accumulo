@@ -169,8 +169,8 @@ public class Proxy implements KeywordExecutable {
         .asSubclass(TProtocolFactory.class);
     TProtocolFactory protoFactory = protoFactoryClass.newInstance();
     int port = Integer.parseInt(proxyProps.getProperty("port"));
-    String hostname = proxyProps.getProperty(THRIFT_SERVER_HOSTNAME,
-        THRIFT_SERVER_HOSTNAME_DEFAULT);
+    String hostname =
+        proxyProps.getProperty(THRIFT_SERVER_HOSTNAME, THRIFT_SERVER_HOSTNAME_DEFAULT);
     HostAndPort address = HostAndPort.fromParts(hostname, port);
     proxyProps.putAll(clientProps);
     ServerAddress server = createProxyServer(address, protoFactory, proxyProps);
@@ -194,8 +194,8 @@ public class Proxy implements KeywordExecutable {
         .parseInt(props.getProperty(THRIFT_THREAD_POOL_SIZE_KEY, THRIFT_THREAD_POOL_SIZE_DEFAULT));
     final long maxFrameSize = ConfigurationTypeHelper.getFixedMemoryAsBytes(
         props.getProperty(THRIFT_MAX_FRAME_SIZE_KEY, THRIFT_MAX_FRAME_SIZE_DEFAULT));
-    final int simpleTimerThreadpoolSize = Integer
-        .parseInt(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE.getDefaultValue());
+    final int simpleTimerThreadpoolSize =
+        Integer.parseInt(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE.getDefaultValue());
     // How frequently to try to resize the thread pool
     final long threadpoolResizeInterval = 1000L * 5;
     // No timeout
@@ -271,8 +271,8 @@ public class Proxy implements KeywordExecutable {
     }
 
     // Hook up support for tracing for thrift calls
-    TimedProcessor timedProcessor = new TimedProcessor(metricsFactory, processor, serverName,
-        threadName);
+    TimedProcessor timedProcessor =
+        new TimedProcessor(metricsFactory, processor, serverName, threadName);
 
     // Create the thrift server with our processor and properties
 

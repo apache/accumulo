@@ -36,8 +36,8 @@ public class UserPermissionsCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, IOException {
-    final String user = cl.getOptionValue(userOpt.getOpt(),
-        shellState.getAccumuloClient().whoami());
+    final String user =
+        cl.getOptionValue(userOpt.getOpt(), shellState.getAccumuloClient().whoami());
 
     String delim = "";
     shellState.getReader().print("System permissions: ");

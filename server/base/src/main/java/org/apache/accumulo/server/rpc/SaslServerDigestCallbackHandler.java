@@ -81,8 +81,8 @@ public class SaslServerDigestCallbackHandler extends SaslDigestCallbackHandler {
     }
 
     if (pc != null) {
-      AuthenticationTokenIdentifier tokenIdentifier = getIdentifier(nc.getDefaultName(),
-          secretManager);
+      AuthenticationTokenIdentifier tokenIdentifier =
+          getIdentifier(nc.getDefaultName(), secretManager);
       char[] password = getPassword(secretManager, tokenIdentifier);
       UserGroupInformation user = null;
       user = tokenIdentifier.getUser();

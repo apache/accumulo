@@ -259,8 +259,8 @@ public class TracesResource {
       }
       if (hasAnnotations) {
         for (Annotation entry : node.annotations) {
-          AnnotationInformation annotations = new AnnotationInformation(entry.getMsg(),
-              entry.getTime() - finalStart);
+          AnnotationInformation annotations =
+              new AnnotationInformation(entry.getMsg(), entry.getTime() - finalStart);
           addlData.addAnnotations(annotations);
         }
       }
@@ -304,8 +304,8 @@ public class TracesResource {
     UserGroupInformation traceUgi = null;
     final String principal;
     final AuthenticationToken at;
-    Map<String,String> loginMap = conf
-        .getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+    Map<String,String> loginMap =
+        conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
     // May be null
     String keytab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
     if (keytab == null || keytab.length() == 0) {

@@ -36,32 +36,32 @@ public class DfsLoggerTest {
     List<TabletMutations> lst = new ArrayList<>();
     CommitSession commitSession = EasyMock.createMock(CommitSession.class);
     assertEquals(Durability.NONE, chooseDurabilityForGroupCommit(lst));
-    TabletMutations m1 = new TabletMutations(commitSession, Collections.emptyList(),
-        Durability.NONE);
+    TabletMutations m1 =
+        new TabletMutations(commitSession, Collections.emptyList(), Durability.NONE);
     lst.add(m1);
     assertEquals(Durability.NONE, chooseDurabilityForGroupCommit(lst));
-    TabletMutations m2 = new TabletMutations(commitSession, Collections.emptyList(),
-        Durability.LOG);
+    TabletMutations m2 =
+        new TabletMutations(commitSession, Collections.emptyList(), Durability.LOG);
     lst.add(m2);
     assertEquals(Durability.LOG, chooseDurabilityForGroupCommit(lst));
-    TabletMutations m3 = new TabletMutations(commitSession, Collections.emptyList(),
-        Durability.NONE);
+    TabletMutations m3 =
+        new TabletMutations(commitSession, Collections.emptyList(), Durability.NONE);
     lst.add(m3);
     assertEquals(Durability.LOG, chooseDurabilityForGroupCommit(lst));
-    TabletMutations m4 = new TabletMutations(commitSession, Collections.emptyList(),
-        Durability.FLUSH);
+    TabletMutations m4 =
+        new TabletMutations(commitSession, Collections.emptyList(), Durability.FLUSH);
     lst.add(m4);
     assertEquals(Durability.FLUSH, chooseDurabilityForGroupCommit(lst));
-    TabletMutations m5 = new TabletMutations(commitSession, Collections.emptyList(),
-        Durability.LOG);
+    TabletMutations m5 =
+        new TabletMutations(commitSession, Collections.emptyList(), Durability.LOG);
     lst.add(m5);
     assertEquals(Durability.FLUSH, chooseDurabilityForGroupCommit(lst));
-    TabletMutations m6 = new TabletMutations(commitSession, Collections.emptyList(),
-        Durability.SYNC);
+    TabletMutations m6 =
+        new TabletMutations(commitSession, Collections.emptyList(), Durability.SYNC);
     lst.add(m6);
     assertEquals(Durability.SYNC, chooseDurabilityForGroupCommit(lst));
-    TabletMutations m7 = new TabletMutations(commitSession, Collections.emptyList(),
-        Durability.FLUSH);
+    TabletMutations m7 =
+        new TabletMutations(commitSession, Collections.emptyList(), Durability.FLUSH);
     lst.add(m7);
     assertEquals(Durability.SYNC, chooseDurabilityForGroupCommit(lst));
   }

@@ -288,8 +288,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       assertionErrors.put(table + "_cleanup", new AssertionError("Dummy_cleanup"));
 
       @SuppressWarnings("unchecked")
-      Class<? extends InputFormat<?,?>> inputFormatClass = (Class<? extends InputFormat<?,?>>) Class
-          .forName(inputFormatClassName);
+      Class<? extends InputFormat<?,?>> inputFormatClass =
+          (Class<? extends InputFormat<?,?>>) Class.forName(inputFormatClassName);
 
       Job job = Job.getInstance(getConf(),
           this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
@@ -298,9 +298,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormatClass(inputFormatClass);
 
-      InputFormatOptions<Job> opts = AccumuloInputFormat.configure()
-          .clientProperties(getClientInfo().getProperties()).table(table)
-          .auths(Authorizations.EMPTY);
+      InputFormatOptions<Job> opts =
+          AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties())
+              .table(table).auths(Authorizations.EMPTY);
       if (sample)
         opts = opts.samplerConfiguration(SAMPLER_CONFIG);
 
@@ -346,8 +346,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_cleanup").size());
   }
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
-      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG =
+      new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
+          .addOption("modulus", "3");
 
   @Test
   public void testSample() throws Exception {
@@ -406,10 +407,10 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<IteratorSetting.Column> fetchColumns = Collections
-        .singleton(new IteratorSetting.Column(new Text("foo"), new Text("bar")));
-    Collection<Pair<Text,Text>> fetchColumnsText = Collections
-        .singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    Collection<IteratorSetting.Column> fetchColumns =
+        Collections.singleton(new IteratorSetting.Column(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumnsText =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
 
     client.tableOperations().create(table);
 
@@ -465,11 +466,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       // Copy only the necessary information
       for (InputSplit oldSplit : oldSplits) {
-        // @formatter:off
-        RangeInputSplit newSplit =
-          new RangeInputSplit(
-            (RangeInputSplit) oldSplit);
-        // @formatter:on
+        RangeInputSplit newSplit = new RangeInputSplit((RangeInputSplit) oldSplit);
         newSplits.add(newSplit);
       }
 

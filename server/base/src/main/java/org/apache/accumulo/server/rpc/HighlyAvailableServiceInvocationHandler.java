@@ -32,8 +32,8 @@ import org.slf4j.LoggerFactory;
  * is not the current active instance.
  */
 public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHandler {
-  private static final Logger LOG = LoggerFactory
-      .getLogger(HighlyAvailableServiceInvocationHandler.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(HighlyAvailableServiceInvocationHandler.class);
 
   private final I instance;
   private final HighlyAvailableService service;

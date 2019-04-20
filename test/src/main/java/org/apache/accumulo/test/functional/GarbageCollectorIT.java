@@ -249,8 +249,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
       ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
-      String path = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
-          + Constants.ZGC_LOCK;
+      String path =
+          ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZGC_LOCK;
       for (int i = 0; i < 5; i++) {
         List<String> locks;
         try {
@@ -302,8 +302,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
       for (int i = 0; i < 100000; ++i) {
         final Text emptyText = new Text("");
-        Text row = new Text(
-            String.format("%s/%020d/%s", MetadataSchema.DeletesSection.getRowPrefix(), i,
+        Text row =
+            new Text(String.format("%s/%020d/%s", MetadataSchema.DeletesSection.getRowPrefix(), i,
                 "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
                     + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj"));
         Mutation delFlag = new Mutation(row);

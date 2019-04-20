@@ -81,8 +81,8 @@ class BulkImportMove extends MasterRepo {
     }
 
     try {
-      Map<String,String> oldToNewNameMap = BulkSerialize.readRenameMap(bulkDir.toString(),
-          p -> fs.open(p));
+      Map<String,String> oldToNewNameMap =
+          BulkSerialize.readRenameMap(bulkDir.toString(), p -> fs.open(p));
       moveFiles(String.format("%016x", tid), sourceDir, bulkDir, master, fs, oldToNewNameMap);
 
       return new LoadFiles(bulkInfo);

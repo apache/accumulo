@@ -85,8 +85,8 @@ public class TestUpgradePathForWALogs {
     try {
 
       walogStream = getClass().getResourceAsStream(WALOG_FROM_15);
-      walogInHDFStream = new FileOutputStream(
-          new File(root.getRoot().getAbsolutePath() + WALOG_FROM_15));
+      walogInHDFStream =
+          new FileOutputStream(new File(root.getRoot().getAbsolutePath() + WALOG_FROM_15));
 
       IOUtils.copyLarge(walogStream, walogInHDFStream);
       walogInHDFStream.flush();
@@ -122,8 +122,8 @@ public class TestUpgradePathForWALogs {
     try {
 
       walogStream = getClass().getResourceAsStream(walogToTest);
-      walogInHDFStream = new FileOutputStream(
-          new File(root.getRoot().getAbsolutePath() + walogToTest));
+      walogInHDFStream =
+          new FileOutputStream(new File(root.getRoot().getAbsolutePath() + walogToTest));
 
       IOUtils.copyLarge(walogStream, walogInHDFStream);
       walogInHDFStream.flush();

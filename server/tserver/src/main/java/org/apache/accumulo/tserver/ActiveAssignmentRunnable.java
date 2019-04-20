@@ -54,8 +54,8 @@ public class ActiveAssignmentRunnable implements Runnable {
     executingThread = Thread.currentThread();
 
     try {
-      RunnableStartedAt runnableWithStartTime = new RunnableStartedAt(this,
-          System.currentTimeMillis());
+      RunnableStartedAt runnableWithStartTime =
+          new RunnableStartedAt(this, System.currentTimeMillis());
       log.trace("Started assignment for {} at {}", extent, runnableWithStartTime.getStartTime());
       activeAssignments.put(extent, runnableWithStartTime);
       delegate.run();

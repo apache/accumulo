@@ -36,8 +36,8 @@ class CloneZookeeper extends MasterRepo {
   public CloneZookeeper(CloneInfo cloneInfo, ClientContext context)
       throws NamespaceNotFoundException {
     this.cloneInfo = cloneInfo;
-    this.cloneInfo.namespaceId = Namespaces.getNamespaceId(context,
-        Tables.qualify(this.cloneInfo.tableName).getFirst());
+    this.cloneInfo.namespaceId =
+        Namespaces.getNamespaceId(context, Tables.qualify(this.cloneInfo.tableName).getFirst());
   }
 
   @Override
@@ -46,8 +46,8 @@ class CloneZookeeper extends MasterRepo {
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
       val += Utils.reserveNamespace(environment, cloneInfo.namespaceId, tid, false, true,
           TableOperation.CLONE);
-    val += Utils.reserveTable(environment, cloneInfo.tableId, tid, true, false,
-        TableOperation.CLONE);
+    val +=
+        Utils.reserveTable(environment, cloneInfo.tableId, tid, true, false, TableOperation.CLONE);
     return val;
   }
 

@@ -136,8 +136,8 @@ public class TablesResource {
     if (RootTable.ID.equals(tableId)) {
       locs.add(rootTabletLocation);
     } else {
-      String systemTableName = MetadataTable.ID.equals(tableId) ? RootTable.NAME
-          : MetadataTable.NAME;
+      String systemTableName =
+          MetadataTable.ID.equals(tableId) ? RootTable.NAME : MetadataTable.NAME;
       MetaDataTableScanner scanner = new MetaDataTableScanner(monitor.getContext(),
           new Range(TabletsSection.getRow(tableId, new Text()),
               TabletsSection.getRow(tableId, null)),

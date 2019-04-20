@@ -177,8 +177,8 @@ public class VolumeUtil {
   public static TabletFiles updateTabletVolumes(ServerContext context, ZooLock zooLock,
       VolumeManager vm, KeyExtent extent, TabletFiles tabletFiles, boolean replicate)
       throws IOException {
-    List<Pair<Path,Path>> replacements = ServerConstants
-        .getVolumeReplacements(context.getConfiguration(), context.getHadoopConf());
+    List<Pair<Path,Path>> replacements =
+        ServerConstants.getVolumeReplacements(context.getConfiguration(), context.getHadoopConf());
     log.trace("Using volume replacements: {}", replacements);
 
     List<LogEntry> logsToRemove = new ArrayList<>();
@@ -267,8 +267,8 @@ public class VolumeUtil {
       throw new IllegalArgumentException("Unexpected table dir " + dir);
     }
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(extent.getTableId(),
-        extent.getEndRow(), context);
+    VolumeChooserEnvironment chooserEnv =
+        new VolumeChooserEnvironmentImpl(extent.getTableId(), extent.getEndRow(), context);
 
     Path newDir = new Path(vm.choose(chooserEnv, ServerConstants.getBaseUris(context))
         + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + dir.getParent().getName()

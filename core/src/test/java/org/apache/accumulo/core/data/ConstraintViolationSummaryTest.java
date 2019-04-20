@@ -24,8 +24,8 @@ public class ConstraintViolationSummaryTest {
 
   @Test
   public void testToString() {
-    ConstraintViolationSummary cvs = new ConstraintViolationSummary("fooClass", (short) 1,
-        "fooDescription", 100L);
+    ConstraintViolationSummary cvs =
+        new ConstraintViolationSummary("fooClass", (short) 1, "fooDescription", 100L);
     assertEquals("ConstraintViolationSummary(constrainClass:fooClass,"
         + " violationCode:1, violationDescription:fooDescription,"
         + " numberOfViolatingMutations:100)", cvs.toString());

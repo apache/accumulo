@@ -275,8 +275,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       assertionErrors.put(table + "_cleanup", new AssertionError("Dummy_cleanup"));
 
       @SuppressWarnings("unchecked")
-      Class<? extends InputFormat<?,?>> inputFormatClass = (Class<? extends InputFormat<?,?>>) Class
-          .forName(inputFormatClassName);
+      Class<? extends InputFormat<?,?>> inputFormatClass =
+          (Class<? extends InputFormat<?,?>>) Class.forName(inputFormatClassName);
 
       Job job = Job.getInstance(getConf(),
           this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
@@ -332,8 +332,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
   }
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
-      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG =
+      new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
+          .addOption("modulus", "3");
 
   @Test
   public void testSample() throws Exception {
@@ -390,8 +391,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<Pair<Text,Text>> fetchColumns = Collections
-        .singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
@@ -412,7 +413,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.fetchColumns(job, fetchColumns);
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setLogLevel(job, level);
 
-      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat aif = new org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat();
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat aif =
+          new org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat();
 
       List<InputSplit> splits = aif.getSplits(job);
 
@@ -423,7 +425,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       assertEquals(org.apache.accumulo.core.client.mapreduce.RangeInputSplit.class,
           split.getClass());
 
-      org.apache.accumulo.core.client.mapreduce.RangeInputSplit risplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
+      org.apache.accumulo.core.client.mapreduce.RangeInputSplit risplit =
+          (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
 
       assertEquals(table, risplit.getTableName());
       assertEquals(isolated, risplit.isIsolatedScan());
@@ -459,11 +462,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       // Copy only the necessary information
       for (InputSplit oldSplit : oldSplits) {
-        // @formatter:off
         org.apache.accumulo.core.client.mapreduce.RangeInputSplit newSplit =
-          new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(
-            (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) oldSplit);
-        // @formatter:on
+            new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(
+                (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) oldSplit);
         newSplits.add(newSplit);
       }
 

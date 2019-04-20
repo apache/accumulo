@@ -114,8 +114,8 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
 
   @Override
   public boolean shouldCompact(MajorCompactionRequest request) {
-    Collection<SummarizerConfiguration> configuredSummarizers = SummarizerConfiguration
-        .fromTableProperties(request.getTableProperties());
+    Collection<SummarizerConfiguration> configuredSummarizers =
+        SummarizerConfiguration.fromTableProperties(request.getTableProperties());
 
     // check if delete summarizer is configured for table
     if (configuredSummarizers.stream().map(sc -> sc.getClassName())
@@ -135,15 +135,16 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
   public void gatherInformation(MajorCompactionRequest request) throws IOException {
     super.gatherInformation(request);
 
-    Predicate<SummarizerConfiguration> summarizerPredicate = conf -> conf.getClassName()
-        .equals(DeletesSummarizer.class.getName()) && conf.getOptions().isEmpty();
+    Predicate<SummarizerConfiguration> summarizerPredicate =
+        conf -> conf.getClassName().equals(DeletesSummarizer.class.getName())
+            && conf.getOptions().isEmpty();
 
     long total = 0;
     long deletes = 0;
 
     for (Entry<FileRef,DataFileValue> entry : request.getFiles().entrySet()) {
-      Collection<Summary> summaries = request.getSummaries(Collections.singleton(entry.getKey()),
-          summarizerPredicate);
+      Collection<Summary> summaries =
+          request.getSummaries(Collections.singleton(entry.getKey()), summarizerPredicate);
       if (summaries.size() == 1) {
         Summary summary = summaries.iterator().next();
         total += summary.getStatistics().get(TOTAL_STAT);

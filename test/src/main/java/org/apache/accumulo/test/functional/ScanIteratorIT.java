@@ -185,8 +185,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
   }
 
   private void setupIter(ScannerBase scanner) {
-    IteratorSetting dropMod = new IteratorSetting(50, "dropMod",
-        "org.apache.accumulo.test.functional.DropModIter");
+    IteratorSetting dropMod =
+        new IteratorSetting(50, "dropMod", "org.apache.accumulo.test.functional.DropModIter");
     dropMod.addOption("mod", "2");
     dropMod.addOption("drop", "0");
     scanner.addScanIterator(dropMod);
@@ -220,8 +220,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
 
   private void runTest(Authorizations auths, boolean shouldFail) throws Exception {
     ClusterUser clusterUser = getUser(0);
-    AccumuloClient userC = getCluster().createAccumuloClient(clusterUser.getPrincipal(),
-        clusterUser.getToken());
+    AccumuloClient userC =
+        getCluster().createAccumuloClient(clusterUser.getPrincipal(), clusterUser.getToken());
     writeTestMutation(userC);
 
     IteratorSetting setting = new IteratorSetting(10, AuthsIterator.class);

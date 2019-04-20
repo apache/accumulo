@@ -138,8 +138,8 @@ public class ClientOpts extends Help {
 
   public String getClientConfigFile() {
     if (clientConfigFile == null) {
-      URL clientPropsUrl = ClientOpts.class.getClassLoader()
-          .getResource("accumulo-client.properties");
+      URL clientPropsUrl =
+          ClientOpts.class.getClassLoader().getResource("accumulo-client.properties");
       if (clientPropsUrl != null) {
         clientConfigFile = clientPropsUrl.getFile();
       }

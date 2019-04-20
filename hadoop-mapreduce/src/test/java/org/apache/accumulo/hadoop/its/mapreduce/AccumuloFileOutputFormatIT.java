@@ -64,8 +64,9 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   private String TEST_TABLE;
   private String EMPTY_TABLE;
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
-      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG =
+      new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
+          .addOption("modulus", "3");
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -73,8 +74,8 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   }
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder folder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Before
   public void setup() throws Exception {

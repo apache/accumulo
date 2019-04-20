@@ -177,8 +177,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
   }
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
-      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG =
+      new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
+          .addOption("modulus", "3");
 
   @Test
   public void testSample() throws Exception {
@@ -217,8 +218,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<Pair<Text,Text>> fetchColumns = Collections
-        .singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
@@ -237,7 +238,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       org.apache.accumulo.core.client.mapred.AccumuloInputFormat.fetchColumns(job, fetchColumns);
       org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setLogLevel(job, level);
 
-      org.apache.accumulo.core.client.mapred.AccumuloInputFormat aif = new org.apache.accumulo.core.client.mapred.AccumuloInputFormat();
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat aif =
+          new org.apache.accumulo.core.client.mapred.AccumuloInputFormat();
 
       InputSplit[] splits = aif.getSplits(job, 1);
 
@@ -247,7 +249,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       assertEquals(org.apache.accumulo.core.client.mapred.RangeInputSplit.class, split.getClass());
 
-      org.apache.accumulo.core.client.mapred.RangeInputSplit risplit = (org.apache.accumulo.core.client.mapred.RangeInputSplit) split;
+      org.apache.accumulo.core.client.mapred.RangeInputSplit risplit =
+          (org.apache.accumulo.core.client.mapred.RangeInputSplit) split;
 
       assertEquals(table, risplit.getTableName());
       assertEquals(isolated, risplit.isIsolatedScan());

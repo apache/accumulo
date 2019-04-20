@@ -108,8 +108,8 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     }
 
     final IteratorSetting si = new IteratorSetting(10, tableName, IntersectingIterator.class);
-    try (ClientSideIteratorScanner csis = new ClientSideIteratorScanner(
-        client.createScanner(tableName, new Authorizations()))) {
+    try (ClientSideIteratorScanner csis =
+        new ClientSideIteratorScanner(client.createScanner(tableName, new Authorizations()))) {
       IntersectingIterator.setColumnFamilies(si, new Text[] {new Text("bar"), new Text("foo")});
       csis.addScanIterator(si);
       checkResults(csis, resultSet3, PartialKey.ROW_COLFAM_COLQUAL);

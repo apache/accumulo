@@ -452,8 +452,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     for (Entry<String,String> entry : getAllPropertiesWithPrefix(
         Property.TSERV_SCAN_EXECUTORS_PREFIX).entrySet()) {
 
-      String suffix = entry.getKey()
-          .substring(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey().length());
+      String suffix =
+          entry.getKey().substring(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey().length());
       String[] tokens = suffix.split("\\.", 2);
       String name = tokens[0];
 

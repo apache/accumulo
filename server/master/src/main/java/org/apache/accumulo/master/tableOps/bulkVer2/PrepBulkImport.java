@@ -157,8 +157,8 @@ public class PrepBulkImport extends MasterRepo {
 
     VolumeManager fs = master.getFileSystem();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
-    try (LoadMappingIterator lmi = BulkSerialize.readLoadMapping(bulkDir.toString(),
-        bulkInfo.tableId, p -> fs.open(p))) {
+    try (LoadMappingIterator lmi =
+        BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, p -> fs.open(p))) {
 
       TabletIterFactory tabletIterFactory = startRow -> TabletsMetadata.builder()
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency().fetchPrev()
@@ -219,8 +219,8 @@ public class PrepBulkImport extends MasterRepo {
 
   private Path createNewBulkDir(ServerContext context, VolumeManager fs, TableId tableId)
       throws IOException {
-    Path tempPath = fs.matchingFileSystem(new Path(bulkInfo.sourceDir),
-        ServerConstants.getTablesDirs(context));
+    Path tempPath =
+        fs.matchingFileSystem(new Path(bulkInfo.sourceDir), ServerConstants.getTablesDirs(context));
     if (tempPath == null)
       throw new IOException(bulkInfo.sourceDir + " is not in a volume configured for Accumulo");
 

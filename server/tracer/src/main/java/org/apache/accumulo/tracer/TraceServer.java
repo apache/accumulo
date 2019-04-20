@@ -149,9 +149,8 @@ public class TraceServer implements Watcher, AutoCloseable {
       ByteArrayTransport transport = new ByteArrayTransport();
       TCompactProtocol protocol = new TCompactProtocol(transport);
       s.write(protocol);
-      String parentString = s.getParentIdsSize() == 0 ? ""
-          : s.getParentIds().stream().map(x -> Long.toHexString(x)).collect(Collectors.toList())
-              .toString();
+      String parentString = s.getParentIdsSize() == 0 ? "" : s.getParentIds().stream()
+          .map(x -> Long.toHexString(x)).collect(Collectors.toList()).toString();
       put(spanMutation, "span", parentString + ":" + Long.toHexString(s.spanId), transport.get(),
           transport.len());
       // Map the root span to time so we can look up traces by time
@@ -249,25 +248,25 @@ public class TraceServer implements Watcher, AutoCloseable {
     AccumuloClient accumuloClient = null;
     while (true) {
       try {
-        final boolean isDefaultTokenType = conf.get(Property.TRACE_TOKEN_TYPE)
-            .equals(Property.TRACE_TOKEN_TYPE.getDefaultValue());
+        final boolean isDefaultTokenType =
+            conf.get(Property.TRACE_TOKEN_TYPE).equals(Property.TRACE_TOKEN_TYPE.getDefaultValue());
         String principal = conf.get(Property.TRACE_USER);
         if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
           // Make sure that we replace _HOST if it exists in the principal
           principal = SecurityUtil.getServerPrincipal(principal);
         }
         AuthenticationToken at;
-        Map<String,String> loginMap = conf
-            .getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+        Map<String,String> loginMap =
+            conf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
         if (loginMap.isEmpty() && isDefaultTokenType) {
           // Assume the old type of user/password specification
           Property p = Property.TRACE_PASSWORD;
           at = new PasswordToken(conf.get(p).getBytes(UTF_8));
         } else {
           Properties props = new Properties();
-          AuthenticationToken token = AccumuloVFSClassLoader.getClassLoader()
-              .loadClass(conf.get(Property.TRACE_TOKEN_TYPE)).asSubclass(AuthenticationToken.class)
-              .newInstance();
+          AuthenticationToken token =
+              AccumuloVFSClassLoader.getClassLoader().loadClass(conf.get(Property.TRACE_TOKEN_TYPE))
+                  .asSubclass(AuthenticationToken.class).newInstance();
 
           int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();
           for (Entry<String,String> entry : loginMap.entrySet()) {
@@ -277,8 +276,8 @@ public class TraceServer implements Watcher, AutoCloseable {
           at = token;
         }
 
-        accumuloClient = Accumulo.newClient().from(context.getProperties()).as(principal, at)
-            .build();
+        accumuloClient =
+            Accumulo.newClient().from(context.getProperties()).as(principal, at).build();
 
         if (!accumuloClient.tableOperations().exists(tableName)) {
           accumuloClient.tableOperations().create(tableName);
@@ -377,8 +376,8 @@ public class TraceServer implements Watcher, AutoCloseable {
         // HDFS/ZK for
         // instance information.
         log.info("Handling login under the assumption that Accumulo users are using Kerberos.");
-        Map<String,String> loginMap = acuConf
-            .getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
+        Map<String,String> loginMap =
+            acuConf.getAllPropertiesWithPrefix(Property.TRACE_TOKEN_PROPERTY_PREFIX);
         String keyTab = loginMap.get(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "keytab");
         if (keyTab == null || keyTab.length() == 0) {
           keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
@@ -394,9 +393,9 @@ public class TraceServer implements Watcher, AutoCloseable {
         SecurityUtil.serverLogin(acuConf, keyTab, principalConfig);
       }
     } catch (IOException | ClassNotFoundException exception) {
-      final String msg = String.format(
-          "Failed to retrieve trace user token information based on property %1s.",
-          Property.TRACE_TOKEN_TYPE);
+      final String msg =
+          String.format("Failed to retrieve trace user token information based on property %1s.",
+              Property.TRACE_TOKEN_TYPE);
       log.error(msg, exception);
       throw new RuntimeException(msg, exception);
     }

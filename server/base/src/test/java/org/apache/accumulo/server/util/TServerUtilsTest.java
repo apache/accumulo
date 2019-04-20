@@ -123,8 +123,8 @@ public class TServerUtilsTest {
     // not dying is enough
   }
 
-  private static AccumuloConfiguration config = new ConfigurationCopy(
-      DefaultConfiguration.getInstance());
+  private static AccumuloConfiguration config =
+      new ConfigurationCopy(DefaultConfiguration.getInstance());
 
   private static ServerContext createMockContext() {
     ServerContext context = EasyMock.createMock(ServerContext.class);
@@ -144,8 +144,8 @@ public class TServerUtilsTest {
     return context;
   }
 
-  private static final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(
-      createReplayMockInfo());
+  private static final TestServerConfigurationFactory factory =
+      new TestServerConfigurationFactory(createReplayMockInfo());
 
   @After
   public void resetProperty() {

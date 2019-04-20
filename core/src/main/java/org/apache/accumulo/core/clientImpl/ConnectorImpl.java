@@ -49,8 +49,8 @@ import org.apache.accumulo.core.trace.TraceUtil;
 @Deprecated
 public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
 
-  private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security."
-      + "SystemCredentials$SystemToken";
+  private static final String SYSTEM_TOKEN_NAME =
+      "org.apache.accumulo.server.security." + "SystemCredentials$SystemToken";
   private final ClientContext context;
 
   public ConnectorImpl(ClientContext context) throws AccumuloSecurityException, AccumuloException {

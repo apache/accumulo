@@ -27,7 +27,7 @@ public class ConfigurationTypeHelperTest {
 
   @Test
   public void testGetMemoryInBytes() {
-    Arrays.<Function<String,Long>> asList(ConfigurationTypeHelper::getFixedMemoryAsBytes,
+    Arrays.<Function<String,Long>>asList(ConfigurationTypeHelper::getFixedMemoryAsBytes,
         ConfigurationTypeHelper::getMemoryAsBytes).stream().forEach(memFunc -> {
           assertEquals(42L, memFunc.apply("42").longValue());
           assertEquals(42L, memFunc.apply("42b").longValue());

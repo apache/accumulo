@@ -37,8 +37,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AuthenticationTokenKeyManagerTest {
-  private static final Logger log = LoggerFactory
-      .getLogger(AuthenticationTokenKeyManagerTest.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(AuthenticationTokenKeyManagerTest.class);
 
   // From org.apache.hadoop.security.token.SecretManager
   private static final String DEFAULT_HMAC_ALGORITHM = "HmacSHA1";
@@ -89,8 +89,8 @@ public class AuthenticationTokenKeyManagerTest {
     long runTime = 10L;
     SecretKey secretKey = keyGen.generateKey();
 
-    AuthenticationKey authKey = new AuthenticationKey(1, runTime, runTime + tokenLifetime,
-        secretKey);
+    AuthenticationKey authKey =
+        new AuthenticationKey(1, runTime, runTime + tokenLifetime, secretKey);
     AuthenticationTokenKeyManager keyManager = new AuthenticationTokenKeyManager(secretManager,
         zooDistributor, updateInterval, tokenLifetime);
 

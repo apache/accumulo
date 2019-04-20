@@ -105,10 +105,10 @@ public class CredentialsIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       AuthenticationToken token = getUser(0).getToken();
       try (
-          AccumuloClient userAccumuloClient = Accumulo.newClient().from(client.properties())
-              .as(username, token).build();
-          Scanner scanner = userAccumuloClient.createScanner(MetadataTable.NAME,
-              Authorizations.EMPTY)) {
+          AccumuloClient userAccumuloClient =
+              Accumulo.newClient().from(client.properties()).as(username, token).build();
+          Scanner scanner =
+              userAccumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         assertFalse(token.isDestroyed());
         token.destroy();
         assertTrue(token.isDestroyed());

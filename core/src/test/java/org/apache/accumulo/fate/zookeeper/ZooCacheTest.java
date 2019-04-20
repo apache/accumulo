@@ -260,8 +260,8 @@ public class ZooCacheTest {
 
   private void testWatchDataNode(byte[] initialData, Watcher.Event.EventType eventType,
       boolean stillCached) throws Exception {
-    WatchedEvent event = new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected,
-        ZPATH);
+    WatchedEvent event =
+        new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
     zc = new ZooCache(zr, exw);
 
@@ -332,8 +332,8 @@ public class ZooCacheTest {
 
   private void testWatchChildrenNode(List<String> initialChildren,
       Watcher.Event.EventType eventType, boolean stillCached) throws Exception {
-    WatchedEvent event = new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected,
-        ZPATH);
+    WatchedEvent event =
+        new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
     zc = new ZooCache(zr, exw);
 

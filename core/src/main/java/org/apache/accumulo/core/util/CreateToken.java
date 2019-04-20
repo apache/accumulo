@@ -91,8 +91,8 @@ public class CreateToken implements KeywordExecutable {
         principal = getConsoleReader().readLine("Username (aka principal): ");
       }
 
-      AuthenticationToken token = Class.forName(opts.tokenClassName)
-          .asSubclass(AuthenticationToken.class).newInstance();
+      AuthenticationToken token =
+          Class.forName(opts.tokenClassName).asSubclass(AuthenticationToken.class).newInstance();
       Properties props = new Properties();
       for (TokenProperty tp : token.getProperties()) {
         String input;

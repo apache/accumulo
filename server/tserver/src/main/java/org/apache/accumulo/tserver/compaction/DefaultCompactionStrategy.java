@@ -181,8 +181,8 @@ public class DefaultCompactionStrategy extends CompactionStrategy {
       return null;
 
     double ratio = Double.parseDouble(request.getTableConfig(Property.TABLE_MAJC_RATIO.getKey()));
-    int maxFilesToCompact = Integer
-        .parseInt(request.getTableConfig(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey()));
+    int maxFilesToCompact =
+        Integer.parseInt(request.getTableConfig(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey()));
     int maxFilesPerTablet = request.getMaxFilesPerTablet();
 
     int minFilesToCompact = 0;

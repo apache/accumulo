@@ -266,8 +266,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     List<String> jvmOpts = new ArrayList<>();
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
     if (configOverrides != null && !configOverrides.isEmpty()) {
-      File siteFile = Files.createTempFile(config.getConfDir().toPath(), "accumulo", ".properties")
-          .toFile();
+      File siteFile =
+          Files.createTempFile(config.getConfDir().toPath(), "accumulo", ".properties").toFile();
       Map<String,String> confMap = new HashMap<>();
       confMap.putAll(config.getSiteConfig());
       confMap.putAll(configOverrides);
@@ -411,8 +411,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     fileWriter.append("<configuration>\n");
 
     for (Entry<String,String> entry : settings) {
-      String value = entry.getValue().replace("&", "&amp;").replace("<", "&lt;").replace(">",
-          "&gt;");
+      String value =
+          entry.getValue().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
       fileWriter.append(
           "<property><name>" + entry.getKey() + "</name><value>" + value + "</value></property>\n");
     }
@@ -535,8 +535,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         args.add("--clear-instance-name");
 
         // If we aren't using SASL, add in the root password
-        final String saslEnabled = config.getSiteConfig()
-            .get(Property.INSTANCE_RPC_SASL_ENABLED.getKey());
+        final String saslEnabled =
+            config.getSiteConfig().get(Property.INSTANCE_RPC_SASL_ENABLED.getKey());
         if (saslEnabled == null || !Boolean.parseBoolean(saslEnabled)) {
           args.add("--password");
           args.add(config.getRootPassword());
@@ -701,8 +701,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public synchronized Properties getClientProperties() {
     if (clientProperties == null) {
-      clientProperties = Accumulo.newClientProperties().from(config.getClientPropsFile().toPath())
-          .build();
+      clientProperties =
+          Accumulo.newClientProperties().from(config.getClientPropsFile().toPath()).build();
     }
     return clientProperties;
   }

@@ -117,8 +117,8 @@ public class TableLoadBalancer extends TabletBalancer {
     // separate the unassigned into tables
     Map<TableId,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
     for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
-      Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned
-          .get(e.getKey().getTableId());
+      Map<KeyExtent,TServerInstance> tableUnassigned =
+          groupedUnassigned.get(e.getKey().getTableId());
       if (tableUnassigned == null) {
         tableUnassigned = new HashMap<>();
         groupedUnassigned.put(e.getKey().getTableId(), tableUnassigned);
@@ -150,8 +150,8 @@ public class TableLoadBalancer extends TabletBalancer {
       return minBalanceTime;
     for (String s : t.tableIdMap().values()) {
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      long tableBalanceTime = getBalancerForTable(TableId.of(s)).balance(current, migrations,
-          newMigrations);
+      long tableBalanceTime =
+          getBalancerForTable(TableId.of(s)).balance(current, migrations, newMigrations);
       if (tableBalanceTime < minBalanceTime)
         minBalanceTime = tableBalanceTime;
       migrationsOut.addAll(newMigrations);

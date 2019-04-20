@@ -1067,14 +1067,14 @@ public enum Property {
   }
 
   private void precomputeAnnotations() {
-    isSensitive = hasAnnotation(Sensitive.class)
-        || hasPrefixWithAnnotation(getKey(), Sensitive.class);
-    isDeprecated = hasAnnotation(Deprecated.class)
-        || hasPrefixWithAnnotation(getKey(), Deprecated.class);
-    isExperimental = hasAnnotation(Experimental.class)
-        || hasPrefixWithAnnotation(getKey(), Experimental.class);
-    isInterpolated = hasAnnotation(Interpolated.class)
-        || hasPrefixWithAnnotation(getKey(), Interpolated.class);
+    isSensitive =
+        hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
+    isDeprecated =
+        hasAnnotation(Deprecated.class) || hasPrefixWithAnnotation(getKey(), Deprecated.class);
+    isExperimental =
+        hasAnnotation(Experimental.class) || hasPrefixWithAnnotation(getKey(), Experimental.class);
+    isInterpolated =
+        hasAnnotation(Interpolated.class) || hasPrefixWithAnnotation(getKey(), Interpolated.class);
     if (hasAnnotation(ReplacedBy.class)) {
       ReplacedBy rb = getAnnotation(ReplacedBy.class);
       if (rb != null) {
@@ -1198,9 +1198,9 @@ public enum Property {
             || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())));
   }
 
-  private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT,
-      Property.TSERV_NATIVEMAP_ENABLED, Property.TSERV_SCAN_MAX_OPENFILES,
-      Property.MASTER_CLIENTPORT, Property.GC_PORT);
+  private static final EnumSet<Property> fixedProperties =
+      EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
+          Property.TSERV_SCAN_MAX_OPENFILES, Property.MASTER_CLIENTPORT, Property.GC_PORT);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
@@ -1249,10 +1249,12 @@ public enum Property {
    * @return true if this is property is a class property
    */
   public static boolean isClassProperty(String key) {
-    return (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey()) && key
-        .substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()).split("\\.").length == 1)
-        || (key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) && key
-            .substring(Property.TABLE_ITERATOR_PREFIX.getKey().length()).split("\\.").length == 2)
+    return (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
+        && key.substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()).split("\\.").length
+            == 1)
+        || (key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
+            && key.substring(Property.TABLE_ITERATOR_PREFIX.getKey().length()).split("\\.").length
+                == 2)
         || key.equals(Property.TABLE_LOAD_BALANCER.getKey());
   }
 
@@ -1309,8 +1311,8 @@ public enum Property {
    *         from each key
    */
   public static Map<String,String> getCompactionStrategyOptions(AccumuloConfiguration tableConf) {
-    Map<String,String> longNames = tableConf
-        .getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
+    Map<String,String> longNames =
+        tableConf.getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
     Map<String,String> result = new HashMap<>();
     for (Entry<String,String> entry : longNames.entrySet()) {
       result.put(

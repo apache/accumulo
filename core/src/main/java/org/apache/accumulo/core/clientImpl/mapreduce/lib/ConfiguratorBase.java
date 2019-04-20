@@ -372,18 +372,18 @@ public class ConfiguratorBase {
    * @return A ClientConfiguration
    * @since 1.7.0
    */
-  public static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
-      Class<?> implementingClass, Configuration conf) {
-    String clientConfigString = conf
-        .get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
+  public static org.apache.accumulo.core.client.ClientConfiguration
+      getClientConfiguration(Class<?> implementingClass, Configuration conf) {
+    String clientConfigString =
+        conf.get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
     if (null != clientConfigString) {
       return org.apache.accumulo.core.client.ClientConfiguration.deserialize(clientConfigString);
     }
 
     String instanceName = conf.get(enumToConfKey(implementingClass, InstanceOpts.NAME));
     String zookeepers = conf.get(enumToConfKey(implementingClass, InstanceOpts.ZOO_KEEPERS));
-    org.apache.accumulo.core.client.ClientConfiguration clientConf = org.apache.accumulo.core.client.ClientConfiguration
-        .loadDefault();
+    org.apache.accumulo.core.client.ClientConfiguration clientConf =
+        org.apache.accumulo.core.client.ClientConfiguration.loadDefault();
     if (null != instanceName) {
       clientConf.withInstance(instanceName);
     }
@@ -464,9 +464,10 @@ public class ConfiguratorBase {
     requireNonNull(job);
     requireNonNull(token);
     if (token instanceof org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub) {
-      org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub delTokenStub = (org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub) token;
-      Token<? extends TokenIdentifier> hadoopToken = job.getCredentials()
-          .getToken(new Text(delTokenStub.getServiceName()));
+      org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub delTokenStub =
+          (org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub) token;
+      Token<? extends TokenIdentifier> hadoopToken =
+          job.getCredentials().getToken(new Text(delTokenStub.getServiceName()));
       AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
       try {
         identifier
@@ -494,9 +495,10 @@ public class ConfiguratorBase {
     requireNonNull(job);
     requireNonNull(token);
     if (token instanceof org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub) {
-      org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub delTokenStub = (org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub) token;
-      Token<? extends TokenIdentifier> hadoopToken = job.getCredentials()
-          .getToken(new Text(delTokenStub.getServiceName()));
+      org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub delTokenStub =
+          (org.apache.accumulo.core.clientImpl.mapreduce.DelegationTokenStub) token;
+      Token<? extends TokenIdentifier> hadoopToken =
+          job.getCredentials().getToken(new Text(delTokenStub.getServiceName()));
       AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
       try {
         identifier
@@ -521,8 +523,8 @@ public class ConfiguratorBase {
       org.apache.accumulo.core.client.mapreduce.RangeInputSplit split, Configuration conf)
       throws IOException {
     try {
-      org.apache.accumulo.core.client.Instance instance = split
-          .getInstance(getClientConfiguration(CLASS, conf));
+      org.apache.accumulo.core.client.Instance instance =
+          split.getInstance(getClientConfiguration(CLASS, conf));
       if (instance == null) {
         instance = getInstance(CLASS, conf);
       }

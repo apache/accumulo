@@ -37,8 +37,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class UniqueFileReplicator implements VfsComponent, FileReplicator {
 
-  private static final char[] TMP_RESERVED_CHARS = {'?', '/', '\\', ' ', '&', '"', '\'', '*', '#',
-      ';', ':', '<', '>', '|'};
+  private static final char[] TMP_RESERVED_CHARS =
+      {'?', '/', '\\', ' ', '&', '"', '\'', '*', '#', ';', ':', '<', '>', '|'};
   private static final Logger log = LoggerFactory.getLogger(UniqueFileReplicator.class);
 
   private File tempDir;

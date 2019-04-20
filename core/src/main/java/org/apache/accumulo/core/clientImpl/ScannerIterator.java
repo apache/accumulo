@@ -62,9 +62,9 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   private ScannerImpl.Reporter reporter;
 
-  private static ThreadPoolExecutor readaheadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 3L,
-      TimeUnit.SECONDS, new SynchronousQueue<>(),
-      new NamingThreadFactory("Accumulo scanner read ahead thread"));
+  private static ThreadPoolExecutor readaheadPool =
+      new ThreadPoolExecutor(0, Integer.MAX_VALUE, 3L, TimeUnit.SECONDS, new SynchronousQueue<>(),
+          new NamingThreadFactory("Accumulo scanner read ahead thread"));
 
   private boolean closed = false;
 
@@ -82,11 +82,11 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
 
-    scanState = new ScanState(context, tableId, authorizations, new Range(range),
-        options.fetchedColumns, size, options.serverSideIteratorList,
-        options.serverSideIteratorOptions, isolated, readaheadThreshold,
-        options.getSamplerConfiguration(), options.batchTimeOut, options.classLoaderContext,
-        options.executionHints);
+    scanState =
+        new ScanState(context, tableId, authorizations, new Range(range), options.fetchedColumns,
+            size, options.serverSideIteratorList, options.serverSideIteratorOptions, isolated,
+            readaheadThreshold, options.getSamplerConfiguration(), options.batchTimeOut,
+            options.classLoaderContext, options.executionHints);
 
     // If we want to start readahead immediately, don't wait for hasNext to be called
     if (readaheadThreshold == 0L) {

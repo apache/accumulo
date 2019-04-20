@@ -42,8 +42,8 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     return "volume.preferred." + scope.name().toLowerCase();
   }
 
-  private static final String DEFAULT_SCOPED_PREFERRED_VOLUMES = getCustomPropertySuffix(
-      ChooserScope.DEFAULT);
+  private static final String DEFAULT_SCOPED_PREFERRED_VOLUMES =
+      getCustomPropertySuffix(ChooserScope.DEFAULT);
 
   @Override
   public String choose(VolumeChooserEnvironment env, String[] options)
@@ -73,14 +73,14 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
   private String[] getPreferredVolumesForTable(VolumeChooserEnvironment env, String[] options) {
     log.trace("Looking up property {} + for Table id: {}", TABLE_CUSTOM_SUFFIX, env.getTableId());
 
-    String preferredVolumes = env.getServiceEnv().getConfiguration(env.getTableId())
-        .getTableCustom(TABLE_CUSTOM_SUFFIX);
+    String preferredVolumes =
+        env.getServiceEnv().getConfiguration(env.getTableId()).getTableCustom(TABLE_CUSTOM_SUFFIX);
 
     // fall back to global default scope, so setting only one default is necessary, rather than a
     // separate default for TABLE scope than other scopes
     if (preferredVolumes == null || preferredVolumes.isEmpty()) {
-      preferredVolumes = env.getServiceEnv().getConfiguration()
-          .getCustom(DEFAULT_SCOPED_PREFERRED_VOLUMES);
+      preferredVolumes =
+          env.getServiceEnv().getConfiguration().getCustom(DEFAULT_SCOPED_PREFERRED_VOLUMES);
     }
 
     // throw an error if volumes not specified or empty
@@ -105,8 +105,8 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     // scope)
     if ((preferredVolumes == null || preferredVolumes.isEmpty()) && scope != ChooserScope.DEFAULT) {
       log.debug("{} not found; using {}", property, DEFAULT_SCOPED_PREFERRED_VOLUMES);
-      preferredVolumes = env.getServiceEnv().getConfiguration()
-          .getCustom(DEFAULT_SCOPED_PREFERRED_VOLUMES);
+      preferredVolumes =
+          env.getServiceEnv().getConfiguration().getCustom(DEFAULT_SCOPED_PREFERRED_VOLUMES);
 
       // only if the custom property is not set to we fall back to the default scoped preferred
       // volumes

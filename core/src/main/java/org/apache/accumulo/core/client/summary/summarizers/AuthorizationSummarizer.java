@@ -63,16 +63,16 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
   private static class AuthsConverter implements Converter<ByteSequence> {
 
     final int MAX_ENTRIES = 1000;
-    private Map<ByteSequence,Set<ByteSequence>> cache = new LinkedHashMap<ByteSequence,Set<ByteSequence>>(
-        MAX_ENTRIES + 1, .75F, true) {
-      private static final long serialVersionUID = 1L;
+    private Map<ByteSequence,Set<ByteSequence>> cache =
+        new LinkedHashMap<ByteSequence,Set<ByteSequence>>(MAX_ENTRIES + 1, .75F, true) {
+          private static final long serialVersionUID = 1L;
 
-      // This method is called just after a new entry has been added
-      @Override
-      public boolean removeEldestEntry(Map.Entry<ByteSequence,Set<ByteSequence>> eldest) {
-        return size() > MAX_ENTRIES;
-      }
-    };
+          // This method is called just after a new entry has been added
+          @Override
+          public boolean removeEldestEntry(Map.Entry<ByteSequence,Set<ByteSequence>> eldest) {
+            return size() > MAX_ENTRIES;
+          }
+        };
 
     @Override
     public void convert(Key k, Value v, Consumer<ByteSequence> consumer) {

@@ -98,16 +98,16 @@ public final class LruBlockCacheConfiguration {
 
     this.acceptableFactor = get(ACCEPTABLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
         .orElse(DEFAULT_ACCEPTABLE_FACTOR);
-    this.minFactor = get(MIN_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
-        .orElse(DEFAULT_MIN_FACTOR);
+    this.minFactor =
+        get(MIN_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_MIN_FACTOR);
     this.singleFactor = get(SINGLE_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
         .orElse(DEFAULT_SINGLE_FACTOR);
     this.multiFactor = get(MULTI_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
         .orElse(DEFAULT_MULTI_FACTOR);
     this.memoryFactor = get(MEMORY_FACTOR_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
         .orElse(DEFAULT_MEMORY_FACTOR);
-    this.mapLoadFactor = get(MAP_LOAD_PROPERTY).map(Float::valueOf).filter(f -> f > 0)
-        .orElse(DEFAULT_LOAD_FACTOR);
+    this.mapLoadFactor =
+        get(MAP_LOAD_PROPERTY).map(Float::valueOf).filter(f -> f > 0).orElse(DEFAULT_LOAD_FACTOR);
     this.mapConcurrencyLevel = get(MAP_CONCURRENCY_PROPERTY).map(Integer::valueOf)
         .filter(i -> i > 0).orElse(DEFAULT_CONCURRENCY_LEVEL);
     this.useEvictionThread = get(EVICTION_THREAD_PROPERTY).map(Boolean::valueOf).orElse(true);

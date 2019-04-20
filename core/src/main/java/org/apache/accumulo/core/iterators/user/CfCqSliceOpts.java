@@ -92,12 +92,12 @@ public class CfCqSliceOpts {
     maxCq = optStr == null ? new Text() : new Text(optStr.getBytes(UTF_8));
 
     optStr = options.get(OPT_MIN_INCLUSIVE);
-    minInclusive = optStr == null || optStr.isEmpty() ? true
-        : Boolean.valueOf(options.get(OPT_MIN_INCLUSIVE));
+    minInclusive =
+        optStr == null || optStr.isEmpty() ? true : Boolean.valueOf(options.get(OPT_MIN_INCLUSIVE));
 
     optStr = options.get(OPT_MAX_INCLUSIVE);
-    maxInclusive = optStr == null || optStr.isEmpty() ? true
-        : Boolean.valueOf(options.get(OPT_MAX_INCLUSIVE));
+    maxInclusive =
+        optStr == null || optStr.isEmpty() ? true : Boolean.valueOf(options.get(OPT_MAX_INCLUSIVE));
   }
 
   static class Describer implements OptionDescriber {

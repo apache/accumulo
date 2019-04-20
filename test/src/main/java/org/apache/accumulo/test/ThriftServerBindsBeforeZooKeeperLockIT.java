@@ -54,8 +54,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @Category({MiniClusterOnlyTests.class})
 public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarness {
-  private static final Logger LOG = LoggerFactory
-      .getLogger(ThriftServerBindsBeforeZooKeeperLockIT.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(ThriftServerBindsBeforeZooKeeperLockIT.class);
 
   @Override
   public boolean canRunTest(ClusterType type) {
@@ -140,8 +140,8 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       while (true) {
         final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
         try {
-          List<String> locks = reader
-              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMASTER_LOCK);
+          List<String> locks =
+              reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMASTER_LOCK);
           if (locks.size() > 0) {
             break;
           }
@@ -208,8 +208,8 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       while (true) {
         final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
         try {
-          List<String> locks = reader
-              .getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
+          List<String> locks =
+              reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZGC_LOCK);
           if (locks.size() > 0) {
             break;
           }

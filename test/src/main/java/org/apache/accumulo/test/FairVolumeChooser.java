@@ -26,7 +26,8 @@ import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
  */
 public class FairVolumeChooser implements VolumeChooser {
 
-  private final ConcurrentHashMap<Integer,Integer> optionLengthToLastChoice = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Integer,Integer> optionLengthToLastChoice =
+      new ConcurrentHashMap<>();
 
   @Override
   public String choose(VolumeChooserEnvironment env, String[] options) {

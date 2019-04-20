@@ -64,8 +64,8 @@ public class ContinuousIngest {
     visibilities = new ArrayList<>();
 
     FileSystem fs = FileSystem.get(new Configuration());
-    BufferedReader in = new BufferedReader(
-        new InputStreamReader(fs.open(new Path(opts.visFile)), UTF_8));
+    BufferedReader in =
+        new BufferedReader(new InputStreamReader(fs.open(new Path(opts.visFile)), UTF_8));
 
     String line;
 
@@ -89,8 +89,8 @@ public class ContinuousIngest {
 
     ContinuousOpts opts = new ContinuousOpts();
     TestOpts clientOpts = new TestOpts();
-    try (TraceScope clientSpan = clientOpts.parseArgsAndTrace(ContinuousIngest.class.getName(),
-        args, opts)) {
+    try (TraceScope clientSpan =
+        clientOpts.parseArgsAndTrace(ContinuousIngest.class.getName(), args, opts)) {
 
       initVisibilities(opts);
 
@@ -144,8 +144,8 @@ public class ContinuousIngest {
             firstColFams[index] = cf;
             firstColQuals[index] = cq;
 
-            Mutation m = genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null,
-                opts.checksum);
+            Mutation m =
+                genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null, opts.checksum);
             count++;
             bw.addMutation(m);
           }

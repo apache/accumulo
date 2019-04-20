@@ -45,11 +45,11 @@ public class RFileOperations extends FileOperations {
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
   private static RFile.Reader getReader(FileOptions options) throws IOException {
-    CachableBuilder cb = new CachableBuilder()
-        .fsPath(options.getFileSystem(), new Path(options.getFilename()))
-        .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
-        .data(options.getDataCache()).index(options.getIndexCache())
-        .readLimiter(options.getRateLimiter()).cryptoService(options.getCryptoService());
+    CachableBuilder cb =
+        new CachableBuilder().fsPath(options.getFileSystem(), new Path(options.getFilename()))
+            .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
+            .data(options.getDataCache()).index(options.getIndexCache())
+            .readLimiter(options.getRateLimiter()).cryptoService(options.getCryptoService());
     return new RFile.Reader(cb);
   }
 
@@ -103,8 +103,7 @@ public class RFileOperations extends FileOperations {
 
     String compression = options.getCompression();
     compression = compression == null
-        ? options.getTableConfiguration().get(Property.TABLE_FILE_COMPRESSION_TYPE)
-        : compression;
+        ? options.getTableConfiguration().get(Property.TABLE_FILE_COMPRESSION_TYPE) : compression;
 
     FSDataOutputStream outputStream = options.getOutputStream();
 

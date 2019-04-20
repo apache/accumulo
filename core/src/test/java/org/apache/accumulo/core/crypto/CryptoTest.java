@@ -86,10 +86,10 @@ public class CryptoTest {
   public static final String MARKER_STRING = "1 2 3 4 5 6 7 8 a b c d e f g h ";
   public static final String CRYPTO_ON_CONF = "ON";
   public static final String CRYPTO_OFF_CONF = "OFF";
-  public static final String keyPath = System.getProperty("user.dir")
-      + "/target/CryptoTest-testkeyfile";
-  public static final String emptyKeyPath = System.getProperty("user.dir")
-      + "/target/CryptoTest-emptykeyfile";
+  public static final String keyPath =
+      System.getProperty("user.dir") + "/target/CryptoTest-testkeyfile";
+  public static final String emptyKeyPath =
+      System.getProperty("user.dir") + "/target/CryptoTest-emptykeyfile";
   private static Configuration hadoopConf = new Configuration();
 
   @Rule
@@ -181,8 +181,8 @@ public class CryptoTest {
     byte[] encryptedBytes = encrypt(cs, Scope.WAL, CRYPTO_OFF_CONF);
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
-    String stringifiedMarkerBytes = getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING,
-        MARKER_INT);
+    String stringifiedMarkerBytes =
+        getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING, MARKER_INT);
 
     assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
@@ -195,8 +195,8 @@ public class CryptoTest {
     byte[] encryptedBytes = encrypt(cs, Scope.RFILE, CRYPTO_OFF_CONF);
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
-    String stringifiedMarkerBytes = getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING,
-        MARKER_INT);
+    String stringifiedMarkerBytes =
+        getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING, MARKER_INT);
 
     assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
@@ -208,8 +208,8 @@ public class CryptoTest {
     AccumuloConfiguration cryptoOnConf = getAccumuloConfig(CRYPTO_ON_CONF);
     FileSystem fs = FileSystem.getLocal(hadoopConf);
     ArrayList<Key> keys = testData();
-    SummarizerConfiguration sumConf = SummarizerConfiguration.builder(KeyCounter.class.getName())
-        .build();
+    SummarizerConfiguration sumConf =
+        SummarizerConfiguration.builder(KeyCounter.class.getName()).build();
 
     String file = "target/testFile1.rf";
     fs.delete(new Path(file), true);
@@ -222,14 +222,14 @@ public class CryptoTest {
       }
     }
 
-    Scanner iter = RFile.newScanner().from(file).withFileSystem(fs)
-        .withTableProperties(cryptoOnConf).build();
+    Scanner iter =
+        RFile.newScanner().from(file).withFileSystem(fs).withTableProperties(cryptoOnConf).build();
     ArrayList<Key> keysRead = new ArrayList<>();
     iter.forEach(e -> keysRead.add(e.getKey()));
     assertEquals(keys, keysRead);
 
-    Collection<Summary> summaries = RFile.summaries().from(file).withFileSystem(fs)
-        .withTableProperties(cryptoOnConf).read();
+    Collection<Summary> summaries =
+        RFile.summaries().from(file).withFileSystem(fs).withTableProperties(cryptoOnConf).read();
     Summary summary = Iterables.getOnlyElement(summaries);
     assertEquals(keys.size(), (long) summary.getStatistics().get("keys"));
     assertEquals(1, summary.getStatistics().size());
@@ -248,8 +248,8 @@ public class CryptoTest {
 
     String file = "target/testFile2.rf";
     fs.delete(new Path(file), true);
-    try (RFileWriter writer = RFile.newWriter().to(file).withFileSystem(fs)
-        .withTableProperties(cryptoOffConf).build()) {
+    try (RFileWriter writer =
+        RFile.newWriter().to(file).withFileSystem(fs).withTableProperties(cryptoOffConf).build()) {
       Value empty = new Value(new byte[] {});
       writer.startDefaultLocalityGroup();
       for (Key key : keys) {
@@ -257,8 +257,8 @@ public class CryptoTest {
       }
     }
 
-    Scanner iter = RFile.newScanner().from(file).withFileSystem(fs)
-        .withTableProperties(cryptoOnConf).build();
+    Scanner iter =
+        RFile.newScanner().from(file).withFileSystem(fs).withTableProperties(cryptoOnConf).build();
     ArrayList<Key> keysRead = new ArrayList<>();
     iter.forEach(e -> keysRead.add(e.getKey()));
     assertEquals(keys, keysRead);
@@ -275,8 +275,8 @@ public class CryptoTest {
     aconf.set(Property.INSTANCE_CRYPTO_SERVICE,
         "org.apache.accumulo.core.cryptoImpl.AESCryptoService");
     String configuredClass = aconf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
-    Class<? extends CryptoService> clazz = AccumuloVFSClassLoader.loadClass(configuredClass,
-        CryptoService.class);
+    Class<? extends CryptoService> clazz =
+        AccumuloVFSClassLoader.loadClass(configuredClass, CryptoService.class);
     CryptoService cs = clazz.newInstance();
 
     exception.expect(NullPointerException.class);
@@ -376,8 +376,8 @@ public class CryptoTest {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     DataOutputStream dataOut = new DataOutputStream(out);
     CryptoUtils.writeParams(params, dataOut);
-    DataOutputStream encrypted = new DataOutputStream(
-        encrypter.encryptStream(new NoFlushOutputStream(dataOut)));
+    DataOutputStream encrypted =
+        new DataOutputStream(encrypter.encryptStream(new NoFlushOutputStream(dataOut)));
     assertNotNull(encrypted);
 
     encrypted.writeUTF(MARKER_STRING);

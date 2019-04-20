@@ -90,8 +90,8 @@ public class FileOutputConfigurator extends ConfiguratorBase {
     if (isSupportedAccumuloProperty(property)) {
       String val = String.valueOf(value);
       if (property.getType().isValidFormat(val)) {
-        String key = enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + "."
-            + property.getKey();
+        String key =
+            enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + "." + property.getKey();
         log.debug("Setting accumulo property {} = {} ", key, val);
         conf.set(key, val);
       } else

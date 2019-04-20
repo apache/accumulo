@@ -138,8 +138,8 @@ public class MetricsConfiguration {
   }
 
   private void loadConfiguration() {
-    URL metricsUrl = MetricsConfiguration.class.getClassLoader()
-        .getResource("accumulo-metrics.xml");
+    URL metricsUrl =
+        MetricsConfiguration.class.getClassLoader().getResource("accumulo-metrics.xml");
     if (metricsUrl == null) {
       if (!alreadyWarned)
         log.warn("accumulo-metrics.xml was not found on classpath. Metrics"

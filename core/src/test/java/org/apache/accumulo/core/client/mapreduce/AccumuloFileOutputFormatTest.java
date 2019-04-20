@@ -54,8 +54,9 @@ public class AccumuloFileOutputFormatTest {
     AccumuloFileOutputFormat.setCompressionType(job1, e);
     AccumuloFileOutputFormat.setSampler(job1, samplerConfig);
 
-    AccumuloConfiguration acuconf = org.apache.accumulo.core.clientImpl.mapreduce.lib.FileOutputConfigurator
-        .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job1.getConfiguration());
+    AccumuloConfiguration acuconf =
+        org.apache.accumulo.core.clientImpl.mapreduce.lib.FileOutputConfigurator
+            .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job1.getConfiguration());
 
     assertEquals(7, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
     assertEquals(300L, acuconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE));

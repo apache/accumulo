@@ -176,17 +176,17 @@ public class TabletServerResource {
     double currentMajorAvg = 0;
     double currentMinorStdDev = 0;
     double currentMajorStdDev = 0;
-    total = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0,
-        0);
+    total =
+        new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
     HostAndPort address = HostAndPort.fromString(tserverAddress);
-    historical = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0,
-        0, 0, 0);
+    historical =
+        new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
     List<TabletStats> tsStats = new ArrayList<>();
 
     try {
       ClientContext context = monitor.getContext();
-      TabletClientService.Client client = ThriftUtil
-          .getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client =
+          ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         for (String tableId : monitor.getMmi().tableMap.keySet()) {
           tsStats.addAll(client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId));
@@ -222,13 +222,13 @@ public class TabletServerResource {
     minorQueueStdDev = stddev(total.minors.queueTime, total.minors.num, total.minors.queueSumDev);
     majorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
     majorQueueStdDev = stddev(total.majors.queueTime, total.majors.num, total.majors.queueSumDev);
-    splitStdDev = stddev(historical.splits.num, historical.splits.elapsed,
-        historical.splits.sumDev);
+    splitStdDev =
+        stddev(historical.splits.num, historical.splits.elapsed, historical.splits.sumDev);
 
     TabletServerDetailInformation details = doDetails(tsStats.size());
 
-    List<AllTimeTabletResults> allTime = doAllTimeResults(majorQueueStdDev, minorQueueStdDev,
-        splitStdDev, majorStdDev, minorStdDev);
+    List<AllTimeTabletResults> allTime =
+        doAllTimeResults(majorQueueStdDev, minorQueueStdDev, splitStdDev, majorStdDev, minorStdDev);
 
     CurrentTabletResults currentRes = doCurrentTabletResults(currentMinorAvg, currentMinorStdDev,
         currentMajorAvg, currentMajorStdDev);

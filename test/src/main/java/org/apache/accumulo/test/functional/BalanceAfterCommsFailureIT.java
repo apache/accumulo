@@ -66,8 +66,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       c.tableOperations().create("test");
-      Collection<ProcessReference> tservers = getCluster().getProcesses()
-          .get(ServerType.TABLET_SERVER);
+      Collection<ProcessReference> tservers =
+          getCluster().getProcesses().get(ServerType.TABLET_SERVER);
       ArrayList<Integer> tserverPids = new ArrayList<>(tservers.size());
       for (ProcessReference tserver : tservers) {
         Process p = tserver.getProcess();

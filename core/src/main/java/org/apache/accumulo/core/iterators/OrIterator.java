@@ -104,8 +104,8 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value>, OptionDesc
       this.iter = Objects.requireNonNull(iter);
       this.term = Objects.requireNonNull(term);
       // The desired column families for this source is the term itself
-      this.seekColfams = Collections
-          .singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
+      this.seekColfams =
+          Collections.singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
       // No current range until we're seek()'ed for the first time
       this.currentRange = null;
     }

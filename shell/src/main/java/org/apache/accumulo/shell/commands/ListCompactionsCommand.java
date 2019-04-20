@@ -65,8 +65,8 @@ public class ListCompactionsCommand extends Command {
     Iterator<String> activeCompactionIterator = new ActiveCompactionIterator(tservers, instanceOps);
     if (filterText != null) {
       String finalFilterText = filterText;
-      activeCompactionIterator = Iterators.filter(activeCompactionIterator,
-          t -> t.matches(finalFilterText));
+      activeCompactionIterator =
+          Iterators.filter(activeCompactionIterator, t -> t.matches(finalFilterText));
     }
 
     shellState.printLines(activeCompactionIterator, paginate);

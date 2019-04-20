@@ -140,8 +140,8 @@ public class ClientContext implements AccumuloClient {
       AccumuloConfiguration serverConf) {
     this.info = info;
     this.hadoopConf = info.getHadoopConf();
-    zooCache = new ZooCacheFactory().getZooCache(info.getZooKeepers(),
-        info.getZooKeepersSessionTimeOut());
+    zooCache =
+        new ZooCacheFactory().getZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
     this.serverConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
@@ -474,8 +474,8 @@ public class ClientContext implements AccumuloClient {
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException {
-    Integer numQueryThreads = ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS
-        .getInteger(getProperties());
+    Integer numQueryThreads =
+        ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS.getInteger(getProperties());
     Objects.requireNonNull(numQueryThreads);
     ensureOpen();
     return createBatchScanner(tableName, authorizations, numQueryThreads);

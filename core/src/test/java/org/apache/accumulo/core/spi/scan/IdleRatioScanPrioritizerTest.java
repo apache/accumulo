@@ -49,8 +49,8 @@ public class IdleRatioScanPrioritizerTest {
 
     Collections.shuffle(scans);
 
-    Comparator<ScanInfo> comparator = new IdleRatioScanPrioritizer()
-        .createComparator(new ScanPrioritizer.CreateParameters() {
+    Comparator<ScanInfo> comparator =
+        new IdleRatioScanPrioritizer().createComparator(new ScanPrioritizer.CreateParameters() {
 
           @Override
           public Map<String,String> getOptions() {

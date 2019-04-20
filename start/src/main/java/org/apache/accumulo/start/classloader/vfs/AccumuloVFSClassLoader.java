@@ -81,8 +81,8 @@ public class AccumuloVFSClassLoader {
 
   }
 
-  private static List<WeakReference<DefaultFileSystemManager>> vfsInstances = Collections
-      .synchronizedList(new ArrayList<>());
+  private static List<WeakReference<DefaultFileSystemManager>> vfsInstances =
+      Collections.synchronizedList(new ArrayList<>());
 
   public static final String DYNAMIC_CLASSPATH_PROPERTY_NAME = "general.dynamic.classpaths";
 
@@ -353,16 +353,16 @@ public class AccumuloVFSClassLoader {
         String classLoaderDescription;
         switch (level) {
           case 1:
-            classLoaderDescription = level
-                + ": Java System Classloader (loads Java system resources)";
+            classLoaderDescription =
+                level + ": Java System Classloader (loads Java system resources)";
             break;
           case 2:
-            classLoaderDescription = level
-                + ": Java Classloader (loads everything defined by java classpath)";
+            classLoaderDescription =
+                level + ": Java Classloader (loads everything defined by java classpath)";
             break;
           case 3:
-            classLoaderDescription = level
-                + ": Accumulo Classloader (loads everything defined by general.classpaths)";
+            classLoaderDescription =
+                level + ": Accumulo Classloader (loads everything defined by general.classpaths)";
             break;
           case 4:
             classLoaderDescription = level + ": Accumulo Dynamic Classloader "

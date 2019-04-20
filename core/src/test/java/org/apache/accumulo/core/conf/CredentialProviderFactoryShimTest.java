@@ -45,8 +45,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class CredentialProviderFactoryShimTest {
 
   private static final Configuration hadoopConf = new Configuration();
-  private static final Logger log = LoggerFactory
-      .getLogger(CredentialProviderFactoryShimTest.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(CredentialProviderFactoryShimTest.class);
 
   private static final String populatedKeyStoreName = "/accumulo.jceks",
       emptyKeyStoreName = "/empty.jceks";
@@ -62,8 +62,8 @@ public class CredentialProviderFactoryShimTest {
       Assume.assumeNoException(e);
     }
 
-    URL populatedKeyStoreUrl = CredentialProviderFactoryShimTest.class
-        .getResource(populatedKeyStoreName),
+    URL populatedKeyStoreUrl =
+        CredentialProviderFactoryShimTest.class.getResource(populatedKeyStoreName),
         emptyKeyStoreUrl = CredentialProviderFactoryShimTest.class.getResource(emptyKeyStoreName);
 
     assertNotNull("Could not find " + populatedKeyStoreName, populatedKeyStoreUrl);
@@ -93,8 +93,8 @@ public class CredentialProviderFactoryShimTest {
 
     assertEquals(expectation.keySet(), new HashSet<>(keys));
     for (String expectedKey : keys) {
-      char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(conf,
-          expectedKey);
+      char[] value =
+          CredentialProviderFactoryShim.getValueFromCredentialProvider(conf, expectedKey);
       assertNotNull(value);
       assertEquals(expectation.get(expectedKey), new String(value));
     }
@@ -149,8 +149,8 @@ public class CredentialProviderFactoryShimTest {
   @Test
   public void testConfigurationCreation() {
     final String path = "jceks://file/tmp/foo.jks";
-    final Configuration actualConf = CredentialProviderFactoryShim.getConfiguration(hadoopConf,
-        path);
+    final Configuration actualConf =
+        CredentialProviderFactoryShim.getConfiguration(hadoopConf, path);
     assertNotNull(actualConf);
     assertEquals(path, actualConf.get(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH));
   }
@@ -215,8 +215,8 @@ public class CredentialProviderFactoryShimTest {
   public void existingConfigurationReturned() {
     Configuration conf = new Configuration(false);
     conf.set("foo", "bar");
-    Configuration conf2 = CredentialProviderFactoryShim.getConfiguration(conf,
-        "jceks:///file/accumulo.jceks");
+    Configuration conf2 =
+        CredentialProviderFactoryShim.getConfiguration(conf, "jceks:///file/accumulo.jceks");
     // Same object
     assertSame(conf, conf2);
     assertEquals("bar", conf.get("foo"));

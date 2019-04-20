@@ -87,8 +87,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
   @Test
   public void testExistingInstance() throws Exception {
 
-    AccumuloClient client = getCluster().createAccumuloClient("root",
-        new PasswordToken(ROOT_PASSWORD));
+    AccumuloClient client =
+        getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
 
     client.tableOperations().create("table1");
 
@@ -104,8 +104,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
     client.tableOperations().flush(MetadataTable.NAME, null, null, true);
     client.tableOperations().flush(RootTable.NAME, null, null, true);
 
-    Set<Entry<ServerType,Collection<ProcessReference>>> procs = getCluster().getProcesses()
-        .entrySet();
+    Set<Entry<ServerType,Collection<ProcessReference>>> procs =
+        getCluster().getProcesses().entrySet();
     for (Entry<ServerType,Collection<ProcessReference>> entry : procs) {
       if (entry.getKey() == ServerType.ZOOKEEPER)
         continue;
@@ -118,8 +118,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
         getCluster().getConfig().getSiteConfig().get(Property.INSTANCE_ZK_TIMEOUT.getKey()));
     IZooReaderWriter zrw = new ZooReaderWriterFactory().getZooReaderWriter(
         getCluster().getZooKeepers(), (int) zkTimeout, defaultConfig.get(Property.INSTANCE_SECRET));
-    final String zInstanceRoot = Constants.ZROOT + "/"
-        + client.instanceOperations().getInstanceID();
+    final String zInstanceRoot =
+        Constants.ZROOT + "/" + client.instanceOperations().getInstanceID();
     while (!AccumuloStatus.isAccumuloOffline(zrw, zInstanceRoot)) {
       log.debug("Accumulo services still have their ZK locks held");
       Thread.sleep(1000);

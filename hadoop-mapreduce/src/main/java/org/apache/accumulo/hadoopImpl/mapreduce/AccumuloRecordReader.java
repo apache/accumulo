@@ -157,8 +157,8 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
     // in case the table name changed, we can still use the previous name for terms of
     // configuration,
     // but the scanner will use the table id resolved at job setup time
-    InputTableConfig tableConfig = InputConfigurator.getInputTableConfig(CLASS, conf,
-        split.getTableName());
+    InputTableConfig tableConfig =
+        InputConfigurator.getInputTableConfig(CLASS, conf, split.getTableName());
 
     log.debug("Creating client with user: " + client.whoami());
     log.debug("Creating scanner for table: " + table);
@@ -301,8 +301,8 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
   private static void validateOptions(JobContext context, Class<?> callingClass)
       throws IOException {
     InputConfigurator.checkJobStored(callingClass, context.getConfiguration());
-    try (AccumuloClient client = InputConfigurator.createClient(callingClass,
-        context.getConfiguration())) {
+    try (AccumuloClient client =
+        InputConfigurator.createClient(callingClass, context.getConfiguration())) {
       InputConfigurator.validatePermissions(callingClass, context.getConfiguration(), client);
     }
   }
@@ -321,8 +321,8 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
     Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
     try (AccumuloClient client = createClient(context, callingClass)) {
-      Map<String,InputTableConfig> tableConfigs = InputConfigurator
-          .getInputTableConfigs(callingClass, context.getConfiguration());
+      Map<String,InputTableConfig> tableConfigs =
+          InputConfigurator.getInputTableConfigs(callingClass, context.getConfiguration());
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
 
         String tableName = tableConfigEntry.getKey();
@@ -349,8 +349,8 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
           throw new IllegalArgumentException(
               "AutoAdjustRanges must be enabled when using BatchScanner optimization");
 
-        List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges())
-            : tableConfig.getRanges();
+        List<Range> ranges =
+            autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
         if (ranges.isEmpty()) {
           ranges = new ArrayList<>(1);
           ranges.add(new Range());
@@ -418,8 +418,8 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
               ArrayList<Range> clippedRanges = new ArrayList<>();
               for (Range r : extentRanges.getValue())
                 clippedRanges.add(ke.clip(r));
-              BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges,
-                  new String[] {location});
+              BatchInputSplit split =
+                  new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
               SplitUtils.updateSplit(split, tableConfig);
 
               splits.add(split);

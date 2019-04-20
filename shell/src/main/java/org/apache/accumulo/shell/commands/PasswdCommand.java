@@ -44,8 +44,8 @@ public class PasswdCommand extends Command {
     String passwordConfirm = null;
     String oldPassword = null;
 
-    oldPassword = shellState.readMaskedLine("Enter current password for '" + currentUser + "': ",
-        '*');
+    oldPassword =
+        shellState.readMaskedLine("Enter current password for '" + currentUser + "': ", '*');
     if (oldPassword == null) {
       shellState.getReader().println();
       return 0;
@@ -60,8 +60,8 @@ public class PasswdCommand extends Command {
       shellState.getReader().println();
       return 0;
     } // user canceled
-    passwordConfirm = shellState.readMaskedLine("Please confirm new password for '" + user + "': ",
-        '*');
+    passwordConfirm =
+        shellState.readMaskedLine("Please confirm new password for '" + user + "': ", '*');
     if (passwordConfirm == null) {
       shellState.getReader().println();
       return 0;

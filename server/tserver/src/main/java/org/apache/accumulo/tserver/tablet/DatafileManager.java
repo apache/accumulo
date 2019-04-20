@@ -56,8 +56,8 @@ import org.slf4j.LoggerFactory;
 class DatafileManager {
   private final Logger log = LoggerFactory.getLogger(DatafileManager.class);
   // access to datafilesizes needs to be synchronized: see CompactionRunner#getNumFiles
-  private final Map<FileRef,DataFileValue> datafileSizes = Collections
-      .synchronizedMap(new TreeMap<>());
+  private final Map<FileRef,DataFileValue> datafileSizes =
+      Collections.synchronizedMap(new TreeMap<>());
   private final Tablet tablet;
   private Long maxMergingMinorCompactionFileSize;
 
@@ -397,8 +397,8 @@ class DatafileManager {
           tablet.getContext());
 
     Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
-    boolean replicate = ReplicationConfigurationUtil.isEnabled(tablet.getExtent(),
-        tablet.getTableConfiguration());
+    boolean replicate =
+        ReplicationConfigurationUtil.isEnabled(tablet.getExtent(), tablet.getTableConfiguration());
     Set<String> logFileOnly = null;
     if (replicate) {
       // unusedWalLogs is of the form host/fileURI, need to strip off the host portion

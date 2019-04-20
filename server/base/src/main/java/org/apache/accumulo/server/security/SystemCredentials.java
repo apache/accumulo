@@ -61,8 +61,8 @@ public final class SystemCredentials extends Credentials {
       // principal in the SystemToken as it would break equality when
       // different Accumulo servers are using different kerberos principals are their accumulo
       // principal
-      principal = SecurityUtil
-          .getServerPrincipal(siteConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL));
+      principal =
+          SecurityUtil.getServerPrincipal(siteConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL));
     }
     return new SystemCredentials(instanceID, principal, SystemToken.get(instanceID, siteConfig));
   }

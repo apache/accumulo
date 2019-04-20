@@ -426,8 +426,8 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
 
-      AccumuloConfiguration conf = context.getServerConfFactory()
-          .getNamespaceConfiguration(namespaceId);
+      AccumuloConfiguration conf =
+          context.getServerConfFactory().getNamespaceConfiguration(namespaceId);
 
       String context = conf.get(Property.TABLE_CLASSPATH);
 
@@ -488,8 +488,8 @@ public class ClientServiceHandler implements ClientService.Iface {
       throw new ThriftTableOperationException(null, ns, null,
           TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
-    AccumuloConfiguration config = context.getServerConfFactory()
-        .getNamespaceConfiguration(namespaceId);
+    AccumuloConfiguration config =
+        context.getServerConfFactory().getNamespaceConfiguration(namespaceId);
     return conf(credentials, config);
   }
 

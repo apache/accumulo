@@ -96,8 +96,8 @@ class CleanUp extends MasterRepo {
     scanner.setRange(tableRange);
 
     for (Entry<Key,Value> entry : scanner) {
-      TabletLocationState locationState = MetaDataTableScanner
-          .createTabletLocationState(entry.getKey(), entry.getValue());
+      TabletLocationState locationState =
+          MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
       TabletState state = locationState.getState(master.onlineTabletServers());
       if (!state.equals(TabletState.UNASSIGNED)) {
         // This code will even wait on tablets that are assigned to dead tablets servers. This is
@@ -125,12 +125,12 @@ class CleanUp extends MasterRepo {
     try {
       // look for other tables that references this table's files
       AccumuloClient client = master.getContext();
-      try (BatchScanner bs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY,
-          8)) {
+      try (BatchScanner bs =
+          client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
         Range allTables = MetadataSchema.TabletsSection.getRange();
         Range tableRange = MetadataSchema.TabletsSection.getRange(tableId);
-        Range beforeTable = new Range(allTables.getStartKey(), true, tableRange.getStartKey(),
-            false);
+        Range beforeTable =
+            new Range(allTables.getStartKey(), true, tableRange.getStartKey(), false);
         Range afterTable = new Range(tableRange.getEndKey(), false, allTables.getEndKey(), true);
         bs.setRanges(Arrays.asList(beforeTable, afterTable));
         bs.fetchColumnFamily(DataFileColumnFamily.NAME);

@@ -142,8 +142,8 @@ public class SummaryReader {
           int block = WritableUtils.readVInt(in);
           int offset = WritableUtils.readVInt(in);
           if (summarySelector.test(conf)) {
-            try (DataInputStream summaryIn = bcReader
-                .getMetaBlock(SummaryWriter.METASTORE_PREFIX + "." + block)) {
+            try (DataInputStream summaryIn =
+                bcReader.getMetaBlock(SummaryWriter.METASTORE_PREFIX + "." + block)) {
               long skipped = in.skip(offset);
               while (skipped < offset) {
                 skipped += in.skip(offset - skipped);
@@ -240,10 +240,8 @@ public class SummaryReader {
     // read summarizer configuration
     String summarizerClazz = in.readUTF();
     String configId = in.readUTF();
-    // @formatter:off
     org.apache.accumulo.core.client.summary.SummarizerConfiguration.Builder scb =
-      SummarizerConfiguration.builder(summarizerClazz).setPropertyId(configId);
-    // @formatter:on
+        SummarizerConfiguration.builder(summarizerClazz).setPropertyId(configId);
     int numOpts = WritableUtils.readVInt(in);
     for (int i = 0; i < numOpts; i++) {
       String k = in.readUTF();

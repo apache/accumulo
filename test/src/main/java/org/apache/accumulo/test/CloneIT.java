@@ -63,8 +63,8 @@ public class CloneIT extends AccumuloClusterHarness {
 
       try (BatchWriter bw2 = client.createBatchWriter(tableName)) {
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
-        int rc = MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client,
-            bw2);
+        int rc =
+            MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
         assertEquals(0, rc);
       }
 
@@ -103,8 +103,8 @@ public class CloneIT extends AccumuloClusterHarness {
         bw1.addMutation(mut2);
         bw1.flush();
 
-        int rc = MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client,
-            bw2);
+        int rc =
+            MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
         assertEquals(1, rc);
 
@@ -147,8 +147,8 @@ public class CloneIT extends AccumuloClusterHarness {
 
         bw1.flush();
 
-        int rc = MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client,
-            bw2);
+        int rc =
+            MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
         assertEquals(0, rc);
       }
@@ -192,8 +192,8 @@ public class CloneIT extends AccumuloClusterHarness {
 
         bw1.flush();
 
-        int rc = MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client,
-            bw2);
+        int rc =
+            MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
         assertEquals(1, rc);
 
@@ -268,8 +268,8 @@ public class CloneIT extends AccumuloClusterHarness {
 
         bw1.flush();
 
-        int rc = MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client,
-            bw2);
+        int rc =
+            MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
         assertEquals(0, rc);
       }
@@ -321,8 +321,8 @@ public class CloneIT extends AccumuloClusterHarness {
 
         bw1.flush();
 
-        int rc = MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client,
-            bw2);
+        int rc =
+            MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
         assertEquals(1, rc);
 

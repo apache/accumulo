@@ -165,15 +165,15 @@ class LoadFiles extends MasterRepo {
               // get a connection to a random tablet server, do not prefer cached connections
               // because this is running on the master and there are lots of connections to tablet
               // servers serving the metadata tablets
-              long timeInMillis = master.getConfiguration()
-                  .getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
+              long timeInMillis =
+                  master.getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
               server = servers[random.nextInt(servers.length)].getLocation();
               client = ThriftUtil.getTServerClient(server, master.getContext(), timeInMillis);
               List<String> attempt1 = Collections.singletonList(file);
               log.debug("Asking " + server + " to bulk import " + file);
-              List<String> fail = client.bulkImportFiles(TraceUtil.traceInfo(),
-                  master.getContext().rpcCreds(), tid, tableId.canonical(), attempt1, errorDir,
-                  setTime);
+              List<String> fail =
+                  client.bulkImportFiles(TraceUtil.traceInfo(), master.getContext().rpcCreds(), tid,
+                      tableId.canonical(), attempt1, errorDir, setTime);
               if (fail.isEmpty()) {
                 loaded.add(file);
               }

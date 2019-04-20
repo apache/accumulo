@@ -168,8 +168,8 @@ public class CachableBlockFile {
 
       BCFile.Reader reader = bcfr.get();
       if (reader == null) {
-        RateLimitedInputStream fsIn = new RateLimitedInputStream(
-            (InputStream & Seekable) inputSupplier.get(), readLimiter);
+        RateLimitedInputStream fsIn =
+            new RateLimitedInputStream((InputStream & Seekable) inputSupplier.get(), readLimiter);
         BCFile.Reader tmpReader = null;
         if (serializedMetadata == null) {
           if (fileLenCache == null) {
@@ -405,8 +405,8 @@ public class CachableBlockFile {
         throws IOException {
       if (_iCache != null) {
         String _lookup = this.cacheId + "R" + offset;
-        CacheEntry ce = _iCache.getBlock(_lookup,
-            new RawBlockLoader(offset, compressedSize, rawSize, true));
+        CacheEntry ce =
+            _iCache.getBlock(_lookup, new RawBlockLoader(offset, compressedSize, rawSize, true));
         if (ce != null) {
           return new CachedBlockRead(ce, ce.getBuffer());
         }
@@ -441,8 +441,8 @@ public class CachableBlockFile {
         throws IOException {
       if (_dCache != null) {
         String _lookup = this.cacheId + "R" + offset;
-        CacheEntry ce = _dCache.getBlock(_lookup,
-            new RawBlockLoader(offset, compressedSize, rawSize, false));
+        CacheEntry ce =
+            _dCache.getBlock(_lookup, new RawBlockLoader(offset, compressedSize, rawSize, false));
         if (ce != null) {
           return new CachedBlockRead(ce, ce.getBuffer());
         }

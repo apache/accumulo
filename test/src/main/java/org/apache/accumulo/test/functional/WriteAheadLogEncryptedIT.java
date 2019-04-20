@@ -38,8 +38,8 @@ public class WriteAheadLogEncryptedIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    String keyPath = System.getProperty("user.dir")
-        + "/target/mini-tests/WriteAheadLogEncryptedIT-testkeyfile";
+    String keyPath =
+        System.getProperty("user.dir") + "/target/mini-tests/WriteAheadLogEncryptedIT-testkeyfile";
     cfg.setProperty(Property.INSTANCE_CRYPTO_SERVICE,
         "org.apache.accumulo.core.cryptoImpl.AESCryptoService");
     cfg.setProperty(INSTANCE_CRYPTO_PREFIX.getKey() + "key.uri", keyPath);

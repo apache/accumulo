@@ -207,8 +207,8 @@ public class KeyTest {
 
     ColumnVisibility colVisibility2 = new ColumnVisibility("v1");
     Key bytesColVisibilityKey2 = new Key(row, colFamily, colQualifier, colVisibility2, ts);
-    Key textColVisibilityKey2 = new Key(new Text(row), new Text(colFamily), new Text(colQualifier),
-        colVisibility2, ts);
+    Key textColVisibilityKey2 =
+        new Key(new Text(row), new Text(colFamily), new Text(colQualifier), colVisibility2, ts);
     assertEquals(bytesColVisibilityKey2, textColVisibilityKey2);
   }
 }

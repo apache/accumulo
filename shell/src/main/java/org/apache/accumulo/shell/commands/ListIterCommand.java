@@ -40,8 +40,8 @@ public class ListIterCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
 
-    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt())
-        || !shellState.getTableName().isEmpty();
+    boolean tables =
+        cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
     final Map<String,EnumSet<IteratorScope>> iterators;

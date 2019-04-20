@@ -243,8 +243,8 @@ public class DefaultCompactionStrategyTest {
     DefaultCompactionStrategy s = new DefaultCompactionStrategy();
 
     // do nothing
-    TestCompactionRequest request = createRequest(MajorCompactionReason.IDLE, "file1", 10, "file2",
-        10);
+    TestCompactionRequest request =
+        createRequest(MajorCompactionReason.IDLE, "file1", 10, "file2", 10);
     s.gatherInformation(request);
     CompactionPlan plan = s.getCompactionPlan(request);
     assertTrue(plan.inputFiles.isEmpty());
@@ -338,8 +338,8 @@ public class DefaultCompactionStrategyTest {
 
     void addFiles(int num, int size, int entries) {
       for (int i = 0; i < num; i++) {
-        String name = "hdfs://nn1/accumulo/tables/5/t-0001/I" + String.format("%06d", nextFile)
-            + ".rf";
+        String name =
+            "hdfs://nn1/accumulo/tables/5/t-0001/I" + String.format("%06d", nextFile) + ".rf";
         nextFile++;
 
         files.put(new FileRef(name), new DataFileValue(size, entries));
@@ -369,8 +369,8 @@ public class DefaultCompactionStrategyTest {
           totalRead += dfv.getSize();
         }
 
-        String name = "hdfs://nn1/accumulo/tables/5/t-0001/C" + String.format("%06d", nextFile)
-            + ".rf";
+        String name =
+            "hdfs://nn1/accumulo/tables/5/t-0001/C" + String.format("%06d", nextFile) + ".rf";
         nextFile++;
 
         files.put(new FileRef(name), new DataFileValue(totalSize, totalEntries));

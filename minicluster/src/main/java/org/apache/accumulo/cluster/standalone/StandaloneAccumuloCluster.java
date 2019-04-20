@@ -53,8 +53,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @SuppressWarnings("unused")
   private static final Logger log = LoggerFactory.getLogger(StandaloneAccumuloCluster.class);
 
-  static final List<ServerType> ALL_SERVER_TYPES = Collections
-      .unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER,
+  static final List<ServerType> ALL_SERVER_TYPES =
+      Collections.unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER,
           ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
 
   private ClientInfo info;

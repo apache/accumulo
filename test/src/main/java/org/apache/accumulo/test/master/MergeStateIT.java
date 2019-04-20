@@ -58,8 +58,8 @@ public class MergeStateIT extends ConfigurableMacBase {
 
   private static class MockCurrentState implements CurrentState {
 
-    TServerInstance someTServer = new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234),
-        0x123456);
+    TServerInstance someTServer =
+        new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234), 0x123456);
     MergeInfo mergeInfo;
 
     MockCurrentState(MergeInfo info) {
@@ -110,8 +110,8 @@ public class MergeStateIT extends ConfigurableMacBase {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProperties()).build()) {
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
           MetadataTable.NAME, TablePermission.WRITE);
-      BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME,
-          new BatchWriterConfig());
+      BatchWriter bw =
+          accumuloClient.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
       // Create a fake METADATA table with these splits
       String[] splits = {"a", "e", "j", "o", "t", "z"};
@@ -135,8 +135,9 @@ public class MergeStateIT extends ConfigurableMacBase {
       bw.close();
 
       // Read out the TabletLocationStates
-      MockCurrentState state = new MockCurrentState(new MergeInfo(
-          new KeyExtent(tableId, new Text("p"), new Text("e")), MergeInfo.Operation.MERGE));
+      MockCurrentState state =
+          new MockCurrentState(new MergeInfo(new KeyExtent(tableId, new Text("p"), new Text("e")),
+              MergeInfo.Operation.MERGE));
 
       // Verify the tablet state: hosted, and count
       MetaDataStateStore metaDataStateStore = new MetaDataStateStore(context, state);

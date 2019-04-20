@@ -164,8 +164,8 @@ public class TestIngest {
   public static void createTable(AccumuloClient client, IngestParams params)
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     if (params.createTable) {
-      TreeSet<Text> splits = getSplitPoints(params.startRow, params.startRow + params.rows,
-          params.numsplits);
+      TreeSet<Text> splits =
+          getSplitPoints(params.startRow, params.startRow + params.rows, params.numsplits);
 
       if (!client.tableOperations().exists(params.tableName))
         client.tableOperations().create(params.tableName);
@@ -309,8 +309,8 @@ public class TestIngest {
           } else {
             byte[] value;
             if (params.random != null) {
-              value = genRandomValue(random, randomValue, params.random, rowid + params.startRow,
-                  j);
+              value =
+                  genRandomValue(random, randomValue, params.random, rowid + params.startRow, j);
             } else {
               value = bytevals[j % bytevals.length];
             }
@@ -332,8 +332,8 @@ public class TestIngest {
           } else {
             byte[] value;
             if (params.random != null) {
-              value = genRandomValue(random, randomValue, params.random, rowid + params.startRow,
-                  j);
+              value =
+                  genRandomValue(random, randomValue, params.random, rowid + params.startRow, j);
             } else {
               value = bytevals[j % bytevals.length];
             }

@@ -178,8 +178,8 @@ public class ConfigCommand extends Command {
         }
       }
 
-      Iterable<Entry<String,String>> acuconf = shellState.getAccumuloClient().instanceOperations()
-          .getSystemConfiguration().entrySet();
+      Iterable<Entry<String,String>> acuconf =
+          shellState.getAccumuloClient().instanceOperations().getSystemConfiguration().entrySet();
       if (tableName != null) {
         acuconf = shellState.getAccumuloClient().tableOperations().getProperties(tableName);
       } else if (namespace != null) {
@@ -294,8 +294,8 @@ public class ConfigCommand extends Command {
   }
 
   private void printConfFooter(List<String> output) {
-    int col3 = Math.max(1,
-        Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - COL2 - 6));
+    int col3 =
+        Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - COL2 - 6));
     output.add(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%-" + col3 + "s",
         Shell.repeat("-", COL1), Shell.repeat("-", COL2), Shell.repeat("-", col3)));
   }
@@ -319,8 +319,8 @@ public class ConfigCommand extends Command {
         "show only properties that contain this string in their name.");
     filterWithValuesOpt = new Option("fv", "filter-with-values", true,
         "show only properties that contain this string in their name or value");
-    disablePaginationOpt = new Option("np", "no-pagination", false,
-        "disables pagination of output");
+    disablePaginationOpt =
+        new Option("np", "no-pagination", false, "disables pagination of output");
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
         "namespace to display/set/delete properties for");

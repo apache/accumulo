@@ -100,7 +100,7 @@ public class DeleterFormatterTest {
 
   @Test
   public void testEmpty() {
-    formatter = new DeleterFormatter(writer, Collections.<Key,Value> emptyMap().entrySet(),
+    formatter = new DeleterFormatter(writer, Collections.<Key,Value>emptyMap().entrySet(),
         new FormatterConfig().setPrintTimestamps(true), shellState, true);
     assertFalse(formatter.hasNext());
   }

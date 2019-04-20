@@ -43,15 +43,15 @@ public class OutputFormatBuilderImpl<T>
 
   @Override
   public OutputFormatBuilder.OutputOptions<T> clientProperties(Properties clientProperties) {
-    this.clientProps = Objects.requireNonNull(clientProperties,
-        "clientProperties must not be null");
+    this.clientProps =
+        Objects.requireNonNull(clientProperties, "clientProperties must not be null");
     return this;
   }
 
   @Override
   public OutputFormatBuilder.OutputOptions<T> clientPropertiesPath(String clientPropsPath) {
-    this.clientPropsPath = Objects.requireNonNull(clientPropsPath,
-        "clientPropsPath must not be null");
+    this.clientPropsPath =
+        Objects.requireNonNull(clientPropsPath, "clientPropsPath must not be null");
     return this;
   }
 

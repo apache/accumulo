@@ -137,8 +137,8 @@ public class CompactCommand extends TableOperation {
     compactionConfig.setEndRow(OptUtil.getEndRow(cl));
 
     if (cl.hasOption(profileOpt.getOpt())) {
-      List<IteratorSetting> iterators = shellState.iteratorProfiles
-          .get(cl.getOptionValue(profileOpt.getOpt()));
+      List<IteratorSetting> iterators =
+          shellState.iteratorProfiles.get(cl.getOptionValue(profileOpt.getOpt()));
       if (iterators == null) {
         Shell.log.error("Profile " + cl.getOptionValue(profileOpt.getOpt()) + " does not exist");
         return -1;
@@ -154,8 +154,8 @@ public class CompactCommand extends TableOperation {
         throw new IllegalArgumentException(
             "Can not specify compaction strategy with file selection and file output options.");
 
-      CompactionStrategyConfig csc = new CompactionStrategyConfig(
-          cl.getOptionValue(strategyOpt.getOpt()));
+      CompactionStrategyConfig csc =
+          new CompactionStrategyConfig(cl.getOptionValue(strategyOpt.getOpt()));
 
       csc.setOptions(ShellUtil.parseMapOpt(cl, strategyConfigOpt));
 
@@ -182,8 +182,8 @@ public class CompactCommand extends TableOperation {
 
     opts.addOption(OptUtil.startRowOpt());
     opts.addOption(OptUtil.endRowOpt());
-    noFlushOption = new Option("nf", "noFlush", false,
-        "do not flush table data in memory before compacting.");
+    noFlushOption =
+        new Option("nf", "noFlush", false, "do not flush table data in memory before compacting.");
     opts.addOption(noFlushOption);
     waitOpt = new Option("w", "wait", false, "wait for compact to finish");
     opts.addOption(waitOpt);
@@ -211,24 +211,24 @@ public class CompactCommand extends TableOperation {
         "Select files that have no sample data or sample data that differes"
             + " from the table configuration.");
     opts.addOption(enoSampleOption);
-    enameOption = newLAO("sf-ename",
-        "Select files using regular expression to match file names. Only"
+    enameOption =
+        newLAO("sf-ename", "Select files using regular expression to match file names. Only"
             + " matches against last part of path.");
     opts.addOption(enameOption);
-    epathOption = newLAO("sf-epath",
-        "Select files using regular expression to match file paths to compact."
+    epathOption =
+        newLAO("sf-epath", "Select files using regular expression to match file paths to compact."
             + " Matches against full path.");
     opts.addOption(epathOption);
-    sizeLtOption = newLAO("sf-lt-esize",
-        "Selects files less than specified size.  Uses the estimated size of"
+    sizeLtOption =
+        newLAO("sf-lt-esize", "Selects files less than specified size.  Uses the estimated size of"
             + " file in metadata table. Can use K,M, and G suffixes");
     opts.addOption(sizeLtOption);
     sizeGtOption = newLAO("sf-gt-esize",
         "Selects files greater than specified size. Uses the estimated size of"
             + " file in metadata table. Can use K,M, and G suffixes");
     opts.addOption(sizeGtOption);
-    minFilesOption = newLAO("min-files",
-        "Only compacts if at least the specified number of files are selected."
+    minFilesOption =
+        newLAO("min-files", "Only compacts if at least the specified number of files are selected."
             + " When no file selection criteria are given, all files are selected.");
     opts.addOption(minFilesOption);
     outBlockSizeOpt = newLAO("out-data-bs",
@@ -239,16 +239,16 @@ public class CompactCommand extends TableOperation {
         "HDFS block size to use for compaction output file. Can use K,M, and G"
             + " suffixes. Uses table settings if not specified.");
     opts.addOption(outHdfsBlockSizeOpt);
-    outIndexBlockSizeOpt = newLAO("out-index-bs",
-        "Rfile index block size to use for compaction output file. Can use"
+    outIndexBlockSizeOpt =
+        newLAO("out-index-bs", "Rfile index block size to use for compaction output file. Can use"
             + " K,M, and G suffixes. Uses table settings if not specified.");
     opts.addOption(outIndexBlockSizeOpt);
     outCompressionOpt = newLAO("out-compress",
         "Compression to use for compaction output file. Either snappy, gz, lzo,"
             + " or none. Uses table settings if not specified.");
     opts.addOption(outCompressionOpt);
-    outReplication = newLAO("out-replication",
-        "HDFS replication to use for compaction output file. Uses table"
+    outReplication =
+        newLAO("out-replication", "HDFS replication to use for compaction output file. Uses table"
             + " settings if not specified.");
     opts.addOption(outReplication);
 

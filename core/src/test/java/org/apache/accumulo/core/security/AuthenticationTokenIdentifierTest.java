@@ -57,8 +57,8 @@ public class AuthenticationTokenIdentifierTest {
     String principal = "user";
     AuthenticationTokenIdentifier token = new AuthenticationTokenIdentifier(principal);
     assertEquals(token, token);
-    AuthenticationTokenIdentifier newToken = new AuthenticationTokenIdentifier(principal, 1, 5L,
-        10L, "uuid");
+    AuthenticationTokenIdentifier newToken =
+        new AuthenticationTokenIdentifier(principal, 1, 5L, 10L, "uuid");
     assertNotEquals(token, newToken);
     assertNotEquals(token.hashCode(), newToken.hashCode());
     AuthenticationTokenIdentifier dblNewToken = new AuthenticationTokenIdentifier(principal);

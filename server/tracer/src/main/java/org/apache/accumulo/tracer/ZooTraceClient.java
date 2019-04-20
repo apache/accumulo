@@ -105,8 +105,8 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
 
   protected void setInitialTraceHosts() {
     // Make a single thread pool with a daemon thread
-    final ScheduledExecutorService svc = Executors.newScheduledThreadPool(1,
-        new ThreadFactoryBuilder().setDaemon(true).build());
+    final ScheduledExecutorService svc =
+        Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setDaemon(true).build());
     final Runnable task = new Runnable() {
       @Override
       public void run() {

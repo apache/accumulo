@@ -36,10 +36,10 @@ import org.apache.accumulo.server.ServerContext;
 public class ServerConfigurationFactory extends ServerConfiguration {
 
   private static final Map<String,Map<TableId,TableConfiguration>> tableConfigs = new HashMap<>(1);
-  private static final Map<String,Map<NamespaceId,NamespaceConfiguration>> namespaceConfigs = new HashMap<>(
-      1);
-  private static final Map<String,Map<TableId,NamespaceConfiguration>> tableParentConfigs = new HashMap<>(
-      1);
+  private static final Map<String,Map<NamespaceId,NamespaceConfiguration>> namespaceConfigs =
+      new HashMap<>(1);
+  private static final Map<String,Map<TableId,NamespaceConfiguration>> tableParentConfigs =
+      new HashMap<>(1);
 
   private static void addInstanceToCaches(String iid) {
     synchronized (tableConfigs) {
@@ -124,8 +124,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public synchronized AccumuloConfiguration getSystemConfiguration() {
     if (systemConfig == null) {
-      systemConfig = new ZooConfigurationFactory().getInstance(context, zcf,
-          getSiteConfiguration());
+      systemConfig =
+          new ZooConfigurationFactory().getInstance(context, zcf, getSiteConfiguration());
     }
     return systemConfig;
   }

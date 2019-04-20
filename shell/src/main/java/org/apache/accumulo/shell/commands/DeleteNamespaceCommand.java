@@ -44,8 +44,8 @@ public class DeleteNamespaceCommand extends Command {
 
     if (!force) {
       shellState.getReader().flush();
-      String line = shellState.getReader()
-          .readLine(getName() + " { " + namespace + " } (yes|no)? ");
+      String line =
+          shellState.getReader().readLine(getName() + " { " + namespace + " } (yes|no)? ");
       operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
     }
     if (operate) {

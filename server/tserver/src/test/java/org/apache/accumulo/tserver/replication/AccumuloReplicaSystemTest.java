@@ -156,8 +156,8 @@ public class AccumuloReplicaSystemTest {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ars.setConf(conf);
 
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false)
-        .build();
+    Status status =
+        Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
     WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", TableId.of("1")), dis,
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<>());
@@ -267,8 +267,8 @@ public class AccumuloReplicaSystemTest {
     // Setting the file to be closed with the infinite end implies that we need to bump the begin up
     // to Long.MAX_VALUE
     // If it were still open, more data could be appended that we need to process
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true)
-        .build();
+    Status status =
+        Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
     WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", TableId.of("1")), dis,
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<>());
@@ -337,8 +337,8 @@ public class AccumuloReplicaSystemTest {
     // Setting the file to be closed with the infinite end implies that we need to bump the begin up
     // to Long.MAX_VALUE
     // If it were still open, more data could be appended that we need to process
-    Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true)
-        .build();
+    Status status =
+        Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
     WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", TableId.of("1")), dis,
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<>());
@@ -362,8 +362,8 @@ public class AccumuloReplicaSystemTest {
     // Setting the file to be closed with the infinite end implies that we need to bump the begin up
     // to Long.MAX_VALUE
     // If it were still open, more data could be appended that we need to process
-    Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true)
-        .setClosed(false).build();
+    Status status =
+        Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
     WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", TableId.of("1")), dis,
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<>());
@@ -424,8 +424,8 @@ public class AccumuloReplicaSystemTest {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ars.setConf(conf);
 
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false)
-        .build();
+    Status status =
+        Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
 
     HashSet<Integer> tids = new HashSet<>();

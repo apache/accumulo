@@ -469,8 +469,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     CountDownLatch latch = new CountDownLatch(splits.size());
     AtomicReference<Throwable> exception = new AtomicReference<>(null);
 
-    ExecutorService executor = Executors.newFixedThreadPool(16,
-        new NamingThreadFactory("addSplits"));
+    ExecutorService executor =
+        Executors.newFixedThreadPool(16, new NamingThreadFactory("addSplits"));
     try {
       executor.execute(
           new SplitTask(new SplitEnv(tableName, tableId, executor, latch, exception), splits));
@@ -889,8 +889,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         MasterClientService.Iface client = null;
         try {
           client = MasterClient.getConnectionWithRetry(context);
-          flushID = client.initiateFlush(TraceUtil.traceInfo(), context.rpcCreds(),
-              tableId.canonical());
+          flushID =
+              client.initiateFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical());
           break;
         } catch (TTransportException tte) {
           log.debug("Failed to call initiateFlush, retrying ... ", tte);
@@ -1155,8 +1155,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> props = context.instanceOperations().getSystemConfiguration();
     AccumuloConfiguration conf = new ConfigurationCopy(props);
 
-    FileSystem fs = VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf)
-        .getFileSystem();
+    FileSystem fs =
+        VolumeConfiguration.getVolume(dir, context.getHadoopConf(), conf).getFileSystem();
 
     if (dir.contains(":")) {
       ret = new Path(dir);
@@ -1378,8 +1378,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    TabletLocator tabLocator = TabletLocator.getLocator(context,
-        Tables.getTableId(context, tableName));
+    TabletLocator tabLocator =
+        TabletLocator.getLocator(context, Tables.getTableId(context, tableName));
     tabLocator.invalidateCache();
   }
 
@@ -1631,8 +1631,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
     clearSamplerOptions(tableName);
 
-    List<Pair<String,String>> props = new SamplerConfigurationImpl(samplerConfiguration)
-        .toTableProperties();
+    List<Pair<String,String>> props =
+        new SamplerConfigurationImpl(samplerConfiguration).toTableProperties();
     for (Pair<String,String> pair : props) {
       setProperty(tableName, pair.getFirst(), pair.getSecond());
     }
@@ -1673,8 +1673,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         for (Entry<KeyExtent,List<Range>> entry2 : entry.getValue().entrySet()) {
           TabletIdImpl tabletId = new TabletIdImpl(entry2.getKey());
           tabletLocations.put(tabletId, location);
-          List<Range> prev = groupedByTablets.put(tabletId,
-              Collections.unmodifiableList(entry2.getValue()));
+          List<Range> prev =
+              groupedByTablets.put(tabletId, Collections.unmodifiableList(entry2.getValue()));
           if (prev != null) {
             throw new RuntimeException(
                 "Unexpected : tablet at multiple locations : " + location + " " + tabletId);
@@ -1803,18 +1803,18 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
           throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
 
-        TRowRange range = new TRowRange(TextUtil.getByteBuffer(startRow),
-            TextUtil.getByteBuffer(endRow));
-        TSummaryRequest request = new TSummaryRequest(tableId.canonical(), range, summariesToFetch,
-            summarizerClassRegex);
+        TRowRange range =
+            new TRowRange(TextUtil.getByteBuffer(startRow), TextUtil.getByteBuffer(endRow));
+        TSummaryRequest request =
+            new TSummaryRequest(tableId.canonical(), range, summariesToFetch, summarizerClassRegex);
         if (flush) {
           _flush(tableId, startRow, endRow, true);
         }
 
-        TSummaries ret = ServerClient.execute(context, new TabletClientService.Client.Factory(),
-            client -> {
-              TSummaries tsr = client.startGetSummaries(TraceUtil.traceInfo(), context.rpcCreds(),
-                  request);
+        TSummaries ret =
+            ServerClient.execute(context, new TabletClientService.Client.Factory(), client -> {
+              TSummaries tsr =
+                  client.startGetSummaries(TraceUtil.traceInfo(), context.rpcCreds(), request);
               while (!tsr.finished) {
                 tsr = client.contiuneGetSummaries(TraceUtil.traceInfo(), tsr.sessionId);
               }
@@ -1874,14 +1874,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void addSummarizers(String tableName, SummarizerConfiguration... newConfigs)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    HashSet<SummarizerConfiguration> currentConfigs = new HashSet<>(
-        SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
+    HashSet<SummarizerConfiguration> currentConfigs =
+        new HashSet<>(SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
     HashSet<SummarizerConfiguration> newConfigSet = new HashSet<>(Arrays.asList(newConfigs));
 
     newConfigSet.removeIf(currentConfigs::contains);
 
-    Set<String> newIds = newConfigSet.stream().map(SummarizerConfiguration::getPropertyId)
-        .collect(toSet());
+    Set<String> newIds =
+        newConfigSet.stream().map(SummarizerConfiguration::getPropertyId).collect(toSet());
 
     for (SummarizerConfiguration csc : currentConfigs) {
       if (newIds.contains(csc.getPropertyId())) {
@@ -1889,8 +1889,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
 
-    Set<Entry<String,String>> es = SummarizerConfiguration.toTableProperties(newConfigSet)
-        .entrySet();
+    Set<Entry<String,String>> es =
+        SummarizerConfiguration.toTableProperties(newConfigSet).entrySet();
     for (Entry<String,String> entry : es) {
       setProperty(tableName, entry.getKey(), entry.getValue());
     }
@@ -1899,8 +1899,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void removeSummarizers(String tableName, Predicate<SummarizerConfiguration> predicate)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
-    Collection<SummarizerConfiguration> summarizerConfigs = SummarizerConfiguration
-        .fromTableProperties(getProperties(tableName));
+    Collection<SummarizerConfiguration> summarizerConfigs =
+        SummarizerConfiguration.fromTableProperties(getProperties(tableName));
     for (SummarizerConfiguration sc : summarizerConfigs) {
       if (predicate.test(sc)) {
         Set<String> ks = sc.toTableProperties().keySet();

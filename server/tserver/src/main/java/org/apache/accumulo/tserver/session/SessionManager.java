@@ -385,11 +385,11 @@ public class SessionManager {
           }
         }
 
-        ActiveScan activeScan = new ActiveScan(ss.client, ss.getUser(),
-            ss.extent.getTableId().canonical(), ct - ss.startTime, ct - ss.lastAccessTime,
-            ScanType.SINGLE, state, ss.extent.toThrift(),
-            Translator.translate(ss.columnSet, Translators.CT), ss.ssiList, ss.ssio,
-            ss.auths.getAuthorizationsBB(), ss.context);
+        ActiveScan activeScan =
+            new ActiveScan(ss.client, ss.getUser(), ss.extent.getTableId().canonical(),
+                ct - ss.startTime, ct - ss.lastAccessTime, ScanType.SINGLE, state,
+                ss.extent.toThrift(), Translator.translate(ss.columnSet, Translators.CT),
+                ss.ssiList, ss.ssio, ss.auths.getAuthorizationsBB(), ss.context);
 
         // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in
         // ActiveScan constructor

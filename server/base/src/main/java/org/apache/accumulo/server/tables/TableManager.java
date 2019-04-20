@@ -55,8 +55,8 @@ public class TableManager {
 
   private static final Logger log = LoggerFactory.getLogger(TableManager.class);
   private static final Set<TableObserver> observers = Collections.synchronizedSet(new HashSet<>());
-  private static final Map<TableId,TableState> tableStateCache = Collections
-      .synchronizedMap(new HashMap<>());
+  private static final Map<TableId,TableState> tableStateCache =
+      Collections.synchronizedMap(new HashMap<>());
   private static final byte[] ZERO_BYTE = {'0'};
 
   private final ServerContext context;
@@ -192,8 +192,8 @@ public class TableManager {
   private void updateTableStateCache() {
     synchronized (tableStateCache) {
       for (String tableId : zooStateCache.getChildren(zkRoot + Constants.ZTABLES))
-        if (zooStateCache
-            .get(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE) != null)
+        if (zooStateCache.get(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE)
+            != null)
           updateTableStateCache(TableId.of(tableId));
     }
   }
@@ -201,8 +201,8 @@ public class TableManager {
   public TableState updateTableStateCache(TableId tableId) {
     synchronized (tableStateCache) {
       TableState tState = TableState.UNKNOWN;
-      byte[] data = zooStateCache
-          .get(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
+      byte[] data =
+          zooStateCache.get(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
       if (data != null) {
         String sState = new String(data, UTF_8);
         try {

@@ -66,8 +66,8 @@ public class ReplicationUtil {
     int activeTservers = mmi.getTServerInfoSize();
 
     // The number of threads each tserver will use at most to replicate data
-    int replicationThreadsPerServer = Integer
-        .parseInt(context.getConfiguration().get(Property.REPLICATION_WORKER_THREADS));
+    int replicationThreadsPerServer =
+        Integer.parseInt(context.getConfiguration().get(Property.REPLICATION_WORKER_THREADS));
 
     // The total number of "slots" we have to replicate data
     return activeTservers * replicationThreadsPerServer;
@@ -130,8 +130,8 @@ public class ReplicationUtil {
 
       for (Entry<String,String> prop : tableConf
           .getAllPropertiesWithPrefix(Property.TABLE_REPLICATION_TARGET).entrySet()) {
-        String peerName = prop.getKey()
-            .substring(Property.TABLE_REPLICATION_TARGET.getKey().length());
+        String peerName =
+            prop.getKey().substring(Property.TABLE_REPLICATION_TARGET.getKey().length());
         String remoteIdentifier = prop.getValue();
         ReplicationTarget target = new ReplicationTarget(peerName, remoteIdentifier, localId);
 

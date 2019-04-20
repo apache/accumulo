@@ -178,8 +178,9 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
   private void verifyTableEquality(AccumuloClient client, String srcTable, String destTable)
       throws Exception {
-    Iterator<Entry<Key,Value>> src = client.createScanner(srcTable, Authorizations.EMPTY)
-        .iterator(), dest = client.createScanner(destTable, Authorizations.EMPTY).iterator();
+    Iterator<Entry<Key,Value>> src =
+        client.createScanner(srcTable, Authorizations.EMPTY).iterator(),
+        dest = client.createScanner(destTable, Authorizations.EMPTY).iterator();
     assertTrue("Could not read any data from source table", src.hasNext());
     assertTrue("Could not read any data from destination table", dest.hasNext());
     while (src.hasNext() && dest.hasNext()) {

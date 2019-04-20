@@ -141,8 +141,9 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
     while (work.hasNext()) {
       String filename = work.next();
       // Null equates to the work was finished
-      if (zooCache.get(ZooUtil.getRoot(instanceId) + ReplicationConstants.ZOO_WORK_QUEUE + "/"
-          + filename) == null) {
+      if (zooCache
+          .get(ZooUtil.getRoot(instanceId) + ReplicationConstants.ZOO_WORK_QUEUE + "/" + filename)
+          == null) {
         work.remove();
       }
     }
@@ -161,10 +162,10 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   @Override
   protected Set<String> getQueuedWork(ReplicationTarget target) {
-    String desiredQueueKeySuffix = DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target.getSourceTableId();
+    String desiredQueueKeySuffix =
+        DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getPeerName()
+            + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier()
+            + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getSourceTableId();
     Set<String> queuedWorkForTarget = new HashSet<>();
     for (String queuedWork : this.queuedWork) {
       if (queuedWork.endsWith(desiredQueueKeySuffix)) {

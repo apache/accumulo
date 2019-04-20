@@ -1000,8 +1000,6 @@ public class Mutation implements Writable {
    * The following is an example if using {@code at()} to put and delete. Notice how the example
    * mixes {@code String} and {@code byte[]}.
    *
-   * <p>
-   *
    * <pre>
    * <code>
    *   Mutation m = new Mutation("row0017");
@@ -1755,8 +1753,8 @@ public class Mutation implements Writable {
       this.serialize();
     }
     ByteBuffer data = serializedSnapshot();
-    TMutation tmutation = new TMutation(ByteBuffer.wrap(row), data,
-        ByteBufferUtil.toByteBuffers(values), entries);
+    TMutation tmutation =
+        new TMutation(ByteBuffer.wrap(row), data, ByteBufferUtil.toByteBuffers(values), entries);
     if (!this.replicationSources.isEmpty()) {
       tmutation.setSources(new ArrayList<>(replicationSources));
     }

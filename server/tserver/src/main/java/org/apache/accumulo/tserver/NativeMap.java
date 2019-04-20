@@ -314,8 +314,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       // as we keep filling, increase the read ahead buffer
       if (nextEntries.length < MAX_READ_AHEAD_ENTRIES)
-        nextEntries = new PreAllocatedArray<>(
-            Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES));
+        nextEntries =
+            new PreAllocatedArray<>(Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES));
 
       while (source.hasNext() && end < nextEntries.length) {
         Entry<Key,Value> ne = source.next();

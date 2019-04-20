@@ -52,8 +52,8 @@ public class HintScanPrioritizerTest {
 
     Collections.shuffle(scans);
 
-    Comparator<ScanInfo> comparator = new HintScanPrioritizer()
-        .createComparator(new ScanPrioritizer.CreateParameters() {
+    Comparator<ScanInfo> comparator =
+        new HintScanPrioritizer().createComparator(new ScanPrioritizer.CreateParameters() {
 
           @Override
           public Map<String,String> getOptions() {

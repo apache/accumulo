@@ -34,8 +34,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testEmpty() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Collector collector = entrySum.collector(sc);
@@ -75,8 +75,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testBasicRow() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1");
@@ -141,8 +141,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testBasicFamily() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "f1");
@@ -207,8 +207,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testBasicQualifier() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "f1", "q1");
@@ -273,8 +273,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testBasicVisibility() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "f1", "q1", "v1");
@@ -339,8 +339,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testBasicValue() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "f1", "q1", "v1");
@@ -407,8 +407,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testComplexRow() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1");
@@ -477,8 +477,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testComplexFamily() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "family1");
@@ -548,8 +548,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testComplexQualifier() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "family1", "columnQualifier1");
@@ -621,8 +621,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testComplexVisibility() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "family1", "columnQualifier1", "v1");
@@ -695,8 +695,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testComplexValue() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("r1", "family1", "columnQualifier1", "v1");
@@ -772,8 +772,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testAll() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("maximumnoqualifier", "f1", "q", "vis1");
@@ -858,8 +858,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testLog2Histogram() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Key k1 = new Key("row1");
@@ -927,8 +927,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testCombine() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Collector collector1 = entrySum.collector(sc);
@@ -1011,8 +1011,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testCombine2() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Collector collector1 = entrySum.collector(sc);
@@ -1092,8 +1092,8 @@ public class EntryLengthSummarizersTest {
 
   @Test
   public void testCombine3() {
-    SummarizerConfiguration sc = SummarizerConfiguration.builder(EntryLengthSummarizer.class)
-        .build();
+    SummarizerConfiguration sc =
+        SummarizerConfiguration.builder(EntryLengthSummarizer.class).build();
     EntryLengthSummarizer entrySum = new EntryLengthSummarizer();
 
     Collector collector1 = entrySum.collector(sc);

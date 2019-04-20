@@ -207,8 +207,8 @@ public class TabletServerResourceManager {
       if (factory == null) {
         queue = new LinkedBlockingQueue<>();
       } else {
-        Comparator<ScanInfo> comparator = factory
-            .createComparator(new ScanPrioritizer.CreateParameters() {
+        Comparator<ScanInfo> comparator =
+            factory.createComparator(new ScanPrioritizer.CreateParameters() {
 
               @Override
               public Map<String,String> getOptions() {
@@ -222,8 +222,8 @@ public class TabletServerResourceManager {
             });
 
         // function to extract scan scan session from runnable
-        Function<Runnable,ScanInfo> extractor = r -> ((ScanSession.ScanMeasurer) ((TraceRunnable) r)
-            .getRunnable()).getScanInfo();
+        Function<Runnable,ScanInfo> extractor =
+            r -> ((ScanSession.ScanMeasurer) ((TraceRunnable) r).getRunnable()).getScanInfo();
 
         queue = new PriorityBlockingQueue<>(sec.maxThreads,
             Comparator.comparing(extractor, comparator));
@@ -337,8 +337,8 @@ public class TabletServerResourceManager {
     final AccumuloConfiguration acuConf = conf.getSystemConfiguration();
 
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
-    boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED)
-        && NativeMap.isLoaded();
+    boolean usingNativeMap =
+        acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.isLoaded();
 
     long totalQueueSize = acuConf.getAsBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
 
@@ -367,8 +367,8 @@ public class TabletServerResourceManager {
                 + " configuration %,d",
             dCacheSize + iCacheSize + sCacheSize, totalQueueSize, runtime.maxMemory()));
       }
-    } else if (maxMemory + dCacheSize + iCacheSize + sCacheSize + totalQueueSize > runtime
-        .maxMemory()) {
+    } else if (maxMemory + dCacheSize + iCacheSize + sCacheSize + totalQueueSize
+        > runtime.maxMemory()) {
       throw new IllegalArgumentException(String.format(
           "Maximum tablet server"
               + " map memory %,d block cache sizes %,d and mutation queue size %,d is"
@@ -424,11 +424,11 @@ public class TabletServerResourceManager {
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
-    fileLenCache = CacheBuilder.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000))
-        .build();
+    fileLenCache =
+        CacheBuilder.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
 
-    fileManager = new FileManager(tserver.getContext(), fs, maxOpenFiles, fileLenCache, _dCache,
-        _iCache);
+    fileManager =
+        new FileManager(tserver.getContext(), fs, maxOpenFiles, fileLenCache, _dCache, _iCache);
 
     memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT,
         MemoryManager.class, new LargestFirstMemoryManager());
@@ -464,8 +464,8 @@ public class TabletServerResourceManager {
 
     @Override
     public void run() {
-      final long millisBeforeWarning = conf
-          .getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
+      final long millisBeforeWarning =
+          conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
       try {
         long now = System.currentTimeMillis();
         KeyExtent extent;
@@ -859,8 +859,8 @@ public class TabletServerResourceManager {
           Property.TABLE_COMPACTION_STRATEGY, CompactionStrategy.class,
           new DefaultCompactionStrategy());
       strategy.init(Property.getCompactionStrategyOptions(tableConf));
-      MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, tableConf,
-          context);
+      MajorCompactionRequest request =
+          new MajorCompactionRequest(extent, reason, tableConf, context);
       request.setFiles(tabletFiles);
       try {
         return strategy.shouldCompact(request);

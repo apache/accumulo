@@ -385,8 +385,8 @@ public class Monitor implements Runnable, HighlyAvailableService {
         Collections.sort(locks);
         address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null), UTF_8))
             .getAddress(Service.GC_CLIENT);
-        GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(),
-            address, context);
+        GCMonitorService.Client client =
+            ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, context);
         try {
           result = client.getStatus(TraceUtil.traceInfo(), context.rpcCreds());
         } finally {

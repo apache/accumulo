@@ -371,11 +371,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(),
         new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(), new PingCommand(),
         new ListBulkCommand()};
-    Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(),
-        new ScriptCommand()};
+    Command[] execCommands =
+        {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(), new ScriptCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
-    Command[] helpCommands = {new AboutCommand(), new HelpCommand(), new InfoCommand(),
-        new QuestionCommand()};
+    Command[] helpCommands =
+        {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};
     Command[] iteratorCommands = {new DeleteIterCommand(), new DeleteScanIterCommand(),
         new ListIterCommand(), new SetIterCommand(), new SetScanIterCommand(),
         new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellIterCommand()};
@@ -428,8 +428,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException, IOException,
       FileSystemException {
 
-    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt())
-        || !shellState.getTableName().isEmpty();
+    boolean tables =
+        cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
     String classpath = null;
@@ -462,8 +462,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
       try {
 
-        final Map<String,String> systemConfig = shellState.getAccumuloClient().instanceOperations()
-            .getSystemConfiguration();
+        final Map<String,String> systemConfig =
+            shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
 
         AccumuloVFSClassLoader.getContextManager()
             .setContextConfig(new ContextManager.DefaultContextsConfig() {
@@ -1089,8 +1089,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private final void printConstraintViolationException(ConstraintViolationException cve) {
     printException(cve, "");
     int COL1 = 50, COL2 = 14;
-    int col3 = Math.max(1,
-        Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - COL2 - 6));
+    int col3 =
+        Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTerminal().getWidth() - COL1 - COL2 - 6));
     logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1),
         repeat("-", COL2), repeat("-", col3)));
     logError(String.format("%-" + COL1 + "s | %" + COL2 + "s | %-" + col3 + "s%n",

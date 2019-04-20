@@ -39,8 +39,8 @@ public class CertUtilsTest {
   private static final String RDN_STRING = "o=Apache Accumulo,cn=CertUtilsTest";
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder folder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private CertUtils getUtils() {
     return new CertUtils(KEYSTORE_TYPE, RDN_STRING, "RSA", 2048, "sha1WithRSAEncryption");

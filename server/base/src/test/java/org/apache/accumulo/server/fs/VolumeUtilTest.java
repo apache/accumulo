@@ -40,8 +40,8 @@ import org.junit.rules.TemporaryFolder;
 public class VolumeUtilTest {
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Test
   public void testSwitchVolume() {

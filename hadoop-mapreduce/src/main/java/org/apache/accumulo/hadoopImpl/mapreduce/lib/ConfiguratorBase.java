@@ -103,8 +103,8 @@ public class ConfiguratorBase {
 
   public static Properties getClientProperties(Class<?> implementingClass, Configuration conf) {
     String propString;
-    String clientPropsFile = conf
-        .get(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS_FILE), "");
+    String clientPropsFile =
+        conf.get(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS_FILE), "");
     if (!clientPropsFile.isEmpty()) {
       try {
         URI[] uris = DistributedCacheHelper.getCacheFiles(conf);

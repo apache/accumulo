@@ -88,8 +88,8 @@ public class InMemoryMapIT {
   private static final Logger log = LoggerFactory.getLogger(InMemoryMapIT.class);
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @BeforeClass
   public static void ensureNativeLibrary() {
@@ -247,10 +247,10 @@ public class InMemoryMapIT {
 
       TableId testId = TableId.of("TEST");
 
-      defaultMap = new InMemoryMap(new ConfigurationCopy(defaultMapConfig), getServerContext(),
-          testId);
-      nativeMapWrapper = new InMemoryMap(new ConfigurationCopy(nativeMapConfig), getServerContext(),
-          testId);
+      defaultMap =
+          new InMemoryMap(new ConfigurationCopy(defaultMapConfig), getServerContext(), testId);
+      nativeMapWrapper =
+          new InMemoryMap(new ConfigurationCopy(nativeMapConfig), getServerContext(), testId);
       localityGroupMap = new InMemoryMap(
           updateConfigurationForLocalityGroups(new ConfigurationCopy(localityGroupConfig)),
           getServerContext(), testId);

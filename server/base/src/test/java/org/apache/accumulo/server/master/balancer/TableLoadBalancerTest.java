@@ -54,8 +54,8 @@ import com.google.common.collect.ImmutableMap;
 
 public class TableLoadBalancerTest {
 
-  private static Map<String,String> TABLE_ID_MAP = ImmutableMap.of("t1", "a1", "t2", "b12", "t3",
-      "c4");
+  private static Map<String,String> TABLE_ID_MAP =
+      ImmutableMap.of("t1", "a1", "t2", "b12", "t3", "c4");
 
   private static TServerInstance mkts(String address, String session) {
     return new TServerInstance(HostAndPort.fromParts(address, 1234), session);
@@ -136,8 +136,8 @@ public class TableLoadBalancerTest {
 
   private ServerContext createMockContext() {
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    final String instanceId = UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0})
-        .toString();
+    final String instanceId =
+        UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString();
     EasyMock.expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     EasyMock.expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
     EasyMock.expect(context.getZooKeepers()).andReturn("10.0.0.1:1234").anyTimes();
@@ -150,23 +150,23 @@ public class TableLoadBalancerTest {
   public void test() {
     final ServerContext context = createMockContext();
     replay(context);
-    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(context,
-        new SiteConfiguration()) {
-      @Override
-      public TableConfiguration getTableConfiguration(TableId tableId) {
-        // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration
-        // constructor
-        NamespaceConfiguration dummyConf = new NamespaceConfiguration(null, context, null);
-        return new TableConfiguration(context, tableId, dummyConf) {
+    ServerConfigurationFactory confFactory =
+        new ServerConfigurationFactory(context, new SiteConfiguration()) {
           @Override
-          public String get(Property property) {
-            // fake the get table configuration so the test doesn't try to look in zookeeper for
-            // per-table classpath stuff
-            return DefaultConfiguration.getInstance().get(property);
+          public TableConfiguration getTableConfiguration(TableId tableId) {
+            // create a dummy namespaceConfiguration to satisfy requireNonNull in TableConfiguration
+            // constructor
+            NamespaceConfiguration dummyConf = new NamespaceConfiguration(null, context, null);
+            return new TableConfiguration(context, tableId, dummyConf) {
+              @Override
+              public String get(Property property) {
+                // fake the get table configuration so the test doesn't try to look in zookeeper for
+                // per-table classpath stuff
+                return DefaultConfiguration.getInstance().get(property);
+              }
+            };
           }
         };
-      }
-    };
     final ServerContext context2 = createMockContext();
     EasyMock.expect(context2.getServerConfFactory()).andReturn(confFactory).anyTimes();
     replay(context2);

@@ -58,8 +58,8 @@ public class TransportCachingIT extends AccumuloClusterHarness {
         Thread.sleep(50);
       }
       ClientContext context = (ClientContext) client;
-      long rpcTimeout = ConfigurationTypeHelper
-          .getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
+      long rpcTimeout =
+          ConfigurationTypeHelper.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
       ZooCache zc = context.getZooCache();
       final String zkRoot = context.getZooKeeperRoot();

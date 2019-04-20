@@ -86,7 +86,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       batchConfig.setMaxWriteThreads(1);
       // set the max memory so that we ensure we don't flush on the write.
       batchConfig.setMaxMemory(Long.MAX_VALUE);
-      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat outputFormat = new org.apache.accumulo.core.client.mapred.AccumuloOutputFormat();
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat outputFormat =
+          new org.apache.accumulo.core.client.mapred.AccumuloOutputFormat();
       ClientInfo ci = ClientInfo.from(props);
       org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setZooKeeperInstance(job,
           ci.getInstanceName(), ci.getZooKeepers());

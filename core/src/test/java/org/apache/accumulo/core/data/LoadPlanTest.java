@@ -87,8 +87,8 @@ public class LoadPlanTest {
     expected.add("fc.rf:TABLE:agt:ctt");
     expected.add("fd.rf:TABLE:null:null");
 
-    Set<String> actual = loadPlan.getDestinations().stream().map(LoadPlanTest::toString)
-        .collect(toSet());
+    Set<String> actual =
+        loadPlan.getDestinations().stream().map(LoadPlanTest::toString).collect(toSet());
 
     assertEquals(expected, actual);
 

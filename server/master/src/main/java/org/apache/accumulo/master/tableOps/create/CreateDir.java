@@ -49,8 +49,8 @@ class CreateDir extends MasterRepo {
 
     // read in the splitDir info file and create a directory for each item
     if (tableInfo.getInitialSplitSize() > 0) {
-      SortedSet<Text> dirInfo = Utils
-          .getSortedSetFromFile(master.getInputStream(tableInfo.getSplitDirsFile()), false);
+      SortedSet<Text> dirInfo =
+          Utils.getSortedSetFromFile(master.getInputStream(tableInfo.getSplitDirsFile()), false);
       createTabletDirectories(master.getFileSystem(), dirInfo);
     }
     return new PopulateMetadata(tableInfo);
@@ -62,8 +62,8 @@ class CreateDir extends MasterRepo {
     fs.deleteRecursively(new Path(tableInfo.defaultTabletDir));
 
     if (tableInfo.getInitialSplitSize() > 0) {
-      SortedSet<Text> dirInfo = Utils
-          .getSortedSetFromFile(master.getInputStream(tableInfo.getSplitDirsFile()), false);
+      SortedSet<Text> dirInfo =
+          Utils.getSortedSetFromFile(master.getInputStream(tableInfo.getSplitDirsFile()), false);
       for (Text dirname : dirInfo) {
         fs.deleteRecursively(new Path(dirname.toString()));
       }

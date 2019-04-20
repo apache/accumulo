@@ -79,8 +79,8 @@ public class BatchInputSplit extends org.apache.accumulo.core.client.mapreduce.R
               // just look at the row progress
               rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getRowData(),
                   range.getEndKey().getRowData(), currentKey.getRowData());
-            } else if (range.getStartKey().compareTo(range.getEndKey(),
-                PartialKey.ROW_COLFAM) != 0) {
+            } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM)
+                != 0) {
               // just look at the column family progress
               rangeProgress[i] = SplitUtils.getProgress(range.getStartKey().getColumnFamilyData(),
                   range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());

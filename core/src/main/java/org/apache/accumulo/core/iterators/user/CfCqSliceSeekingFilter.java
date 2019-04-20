@@ -43,12 +43,12 @@ public class CfCqSliceSeekingFilter extends SeekingFilter implements OptionDescr
 
   private static final FilterResult SKIP_TO_HINT = FilterResult.of(false, AdvanceResult.USE_HINT);
   private static final FilterResult SKIP_TO_NEXT = FilterResult.of(false, AdvanceResult.NEXT);
-  private static final FilterResult SKIP_TO_NEXT_ROW = FilterResult.of(false,
-      AdvanceResult.NEXT_ROW);
+  private static final FilterResult SKIP_TO_NEXT_ROW =
+      FilterResult.of(false, AdvanceResult.NEXT_ROW);
   private static final FilterResult SKIP_TO_NEXT_CF = FilterResult.of(false, AdvanceResult.NEXT_CF);
   private static final FilterResult INCLUDE_AND_NEXT = FilterResult.of(true, AdvanceResult.NEXT);
-  private static final FilterResult INCLUDE_AND_NEXT_CF = FilterResult.of(true,
-      AdvanceResult.NEXT_CF);
+  private static final FilterResult INCLUDE_AND_NEXT_CF =
+      FilterResult.of(true, AdvanceResult.NEXT_CF);
 
   private CfCqSliceOpts cso;
 

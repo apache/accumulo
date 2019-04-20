@@ -670,8 +670,8 @@ public class NamespacesIT extends SharedMiniClusterBase {
     ClusterUser user1 = getUser(0), user2 = getUser(1), root = getAdminUser();
     String u1 = user1.getPrincipal();
     String u2 = user2.getPrincipal();
-    PasswordToken pass = (user1.getPassword() != null ? new PasswordToken(user1.getPassword())
-        : null);
+    PasswordToken pass =
+        (user1.getPassword() != null ? new PasswordToken(user1.getPassword()) : null);
 
     String n1 = namespace;
     String t1 = n1 + ".1";
@@ -687,8 +687,8 @@ public class NamespacesIT extends SharedMiniClusterBase {
     c.securityOperations().createLocalUser(u1, pass);
 
     loginAs(user1);
-    try (AccumuloClient user1Con = Accumulo.newClient().from(c.properties())
-        .as(u1, user1.getToken()).build()) {
+    try (AccumuloClient user1Con =
+        Accumulo.newClient().from(c.properties()).as(u1, user1.getToken()).build()) {
 
       try {
         user1Con.tableOperations().create(t2);
@@ -1458,8 +1458,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
       boolean nameIsTable) {
     try {
       Iterable<Entry<String,String>> iterable = nameIsTable
-          ? c.tableOperations().getProperties(name)
-          : c.namespaceOperations().getProperties(name);
+          ? c.tableOperations().getProperties(name) : c.namespaceOperations().getProperties(name);
       for (Entry<String,String> e : iterable)
         if (propKey.equals(e.getKey()))
           return propVal.equals(e.getValue());

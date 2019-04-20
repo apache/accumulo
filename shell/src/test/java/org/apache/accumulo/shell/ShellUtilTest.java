@@ -36,14 +36,14 @@ import com.google.common.collect.ImmutableList;
 public class ShellUtilTest {
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder folder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   // String with 3 lines, with one empty line
   private static final String FILEDATA = "line1\n\nline2";
-  private static final String B64_FILEDATA = Base64.getEncoder()
-      .encodeToString("line1".getBytes(UTF_8)) + "\n\n"
-      + Base64.getEncoder().encodeToString("line2".getBytes(UTF_8));
+  private static final String B64_FILEDATA =
+      Base64.getEncoder().encodeToString("line1".getBytes(UTF_8)) + "\n\n"
+          + Base64.getEncoder().encodeToString("line2".getBytes(UTF_8));
 
   @Test
   public void testWithoutDecode() throws IOException {

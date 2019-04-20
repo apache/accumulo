@@ -398,8 +398,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
   private void attachSlowIterator(AccumuloClient accumuloClient, final String tablename) {
     try {
 
-      IteratorSetting slowIter = new IteratorSetting(50, "slowIter",
-          "org.apache.accumulo.test.functional.SlowIterator");
+      IteratorSetting slowIter =
+          new IteratorSetting(50, "slowIter", "org.apache.accumulo.test.functional.SlowIterator");
       slowIter.addOption("sleepTime", "200");
       slowIter.addOption("seekSleepTime", "200");
 

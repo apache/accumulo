@@ -50,8 +50,8 @@ public class SimpleScanDispatcher implements ScanDispatcher {
 
   private final String EXECUTOR_PREFIX = "executor.";
 
-  private final Set<String> VALID_OPTS = ImmutableSet.of("executor", "multi_executor",
-      "single_executor");
+  private final Set<String> VALID_OPTS =
+      ImmutableSet.of("executor", "multi_executor", "single_executor");
   private String multiExecutor;
   private String singleExecutor;
 

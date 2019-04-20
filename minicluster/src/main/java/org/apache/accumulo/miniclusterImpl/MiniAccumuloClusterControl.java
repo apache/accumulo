@@ -131,8 +131,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case TABLET_SERVER:
         synchronized (tabletServerProcesses) {
           int count = 0;
-          for (int i = tabletServerProcesses.size(); count < limit
-              && i < cluster.getConfig().getNumTservers(); i++, ++count) {
+          for (int i = tabletServerProcesses.size();
+              count < limit && i < cluster.getConfig().getNumTservers(); i++, ++count) {
             tabletServerProcesses
                 .add(cluster._exec(TabletServer.class, server, configOverrides).getProcess());
           }
@@ -151,8 +151,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         break;
       case GARBAGE_COLLECTOR:
         if (gcProcess == null) {
-          gcProcess = cluster._exec(SimpleGarbageCollector.class, server, configOverrides)
-              .getProcess();
+          gcProcess =
+              cluster._exec(SimpleGarbageCollector.class, server, configOverrides).getProcess();
         }
         break;
       case MONITOR:

@@ -70,8 +70,8 @@ public class ChangeSecret {
     argsList.add("--old");
     argsList.add("--new");
     argsList.addAll(Arrays.asList(args));
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(ChangeSecret.class.getName(),
-        argsList.toArray(new String[0]))) {
+    try (TraceScope clientSpan =
+        opts.parseArgsAndTrace(ChangeSecret.class.getName(), argsList.toArray(new String[0]))) {
 
       ServerContext context = opts.getServerContext();
       verifyAccumuloIsDown(context, opts.oldPass);

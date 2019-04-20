@@ -153,18 +153,18 @@ public abstract class CountingSummarizer<K> implements Summarizer {
   // this default can not be changed as persisted summary data depends on it
   public static final String INGNORE_DELETES_DEFAULT = "true";
 
-  private static final String[] ALL_STATS = {TOO_LONG_STAT, TOO_MANY_STAT, EMITTED_STAT, SEEN_STAT,
-      DELETES_IGNORED_STAT};
+  private static final String[] ALL_STATS =
+      {TOO_LONG_STAT, TOO_MANY_STAT, EMITTED_STAT, SEEN_STAT, DELETES_IGNORED_STAT};
 
   private int maxCounters;
   private int maxCounterKeyLen;
   private boolean ignoreDeletes;
 
   private void init(SummarizerConfiguration conf) {
-    maxCounters = Integer
-        .parseInt(conf.getOptions().getOrDefault(MAX_COUNTERS_OPT, MAX_COUNTER_DEFAULT));
-    maxCounterKeyLen = Integer
-        .parseInt(conf.getOptions().getOrDefault(MAX_COUNTER_LEN_OPT, MAX_CKL_DEFAULT));
+    maxCounters =
+        Integer.parseInt(conf.getOptions().getOrDefault(MAX_COUNTERS_OPT, MAX_COUNTER_DEFAULT));
+    maxCounterKeyLen =
+        Integer.parseInt(conf.getOptions().getOrDefault(MAX_COUNTER_LEN_OPT, MAX_CKL_DEFAULT));
     ignoreDeletes = Boolean
         .parseBoolean(conf.getOptions().getOrDefault(INGNORE_DELETES_OPT, INGNORE_DELETES_DEFAULT));
   }
@@ -299,13 +299,17 @@ public abstract class CountingSummarizer<K> implements Summarizer {
 
       if (summary1.size() - ALL_STATS.length > maxCounters) {
         // find the keys with the lowest counts to remove
-        List<String> keysToRemove = summary1.entrySet().stream()
-            .filter(e -> e.getKey().startsWith(COUNTER_STAT_PREFIX)) // filter out non counters
-            .sorted((e1, e2) -> Long.compare(e2.getValue(), e1.getValue())) // sort descending by
-                                                                            // count
-            .skip(maxCounters) // skip most frequent
-            .map(Entry::getKey).collect(Collectors.toList()); // collect the least frequent
-                                                              // counters in a list
+        List<String> keysToRemove =
+            summary1.entrySet().stream().filter(e -> e.getKey().startsWith(COUNTER_STAT_PREFIX)) // filter
+                                                                                                 // out
+                                                                                                 // non
+                                                                                                 // counters
+                .sorted((e1, e2) -> Long.compare(e2.getValue(), e1.getValue())) // sort descending
+                                                                                // by
+                                                                                // count
+                .skip(maxCounters) // skip most frequent
+                .map(Entry::getKey).collect(Collectors.toList()); // collect the least frequent
+                                                                  // counters in a list
 
         long removedCount = 0;
         for (String key : keysToRemove) {

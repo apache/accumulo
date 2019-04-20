@@ -60,8 +60,8 @@ public class SetIterCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
       ShellCommandException {
 
-    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt())
-        || !shellState.getTableName().isEmpty();
+    boolean tables =
+        cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
     final int priority = Integer.parseInt(cl.getOptionValue(priorityOpt.getOpt()));
@@ -374,14 +374,14 @@ public class SetIterCommand extends Command {
   }
 
   private void setScopeOptions(Options o) {
-    allScopeOpt = new Option("all", "all-scopes", false,
-        "applied at scan time, minor and major compactions");
+    allScopeOpt =
+        new Option("all", "all-scopes", false, "applied at scan time, minor and major compactions");
     mincScopeOpt = new Option(IteratorScope.minc.name(), "minor-compaction", false,
         "applied at minor compaction");
     majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false,
         "applied at major compaction");
-    scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false,
-        "applied at scan time");
+    scanScopeOpt =
+        new Option(IteratorScope.scan.name(), "scan-time", false, "applied at scan time");
     o.addOption(allScopeOpt);
     o.addOption(mincScopeOpt);
     o.addOption(majcScopeOpt);

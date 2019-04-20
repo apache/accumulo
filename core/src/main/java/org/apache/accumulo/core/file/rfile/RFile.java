@@ -169,8 +169,8 @@ public class RFile {
       columnFamilies = new HashMap<>();
       previousColumnFamilies = pcf;
 
-      indexWriter = new MultiLevelIndex.BufferedWriter(
-          new MultiLevelIndex.Writer(bfw, indexBlockSize));
+      indexWriter =
+          new MultiLevelIndex.BufferedWriter(new MultiLevelIndex.Writer(bfw, indexBlockSize));
     }
 
     public LocalityGroupMetadata(String name, Set<ByteSequence> cfset, int indexBlockSize,
@@ -182,8 +182,8 @@ public class RFile {
         columnFamilies.put(cf, new MutableLong(0));
       }
 
-      indexWriter = new MultiLevelIndex.BufferedWriter(
-          new MultiLevelIndex.Writer(bfw, indexBlockSize));
+      indexWriter =
+          new MultiLevelIndex.BufferedWriter(new MultiLevelIndex.Writer(bfw, indexBlockSize));
     }
 
     private Key getFirstKey() {
@@ -496,8 +496,8 @@ public class RFile {
           // To constrain the growth of data blocks, we limit our worst case scenarios to closing
           // blocks if they reach the maximum configurable block size of Integer.MAX_VALUE.
           // 128 bytes added for metadata overhead
-        } else if (((long) key.getSize() + (long) value.getSize() + blockWriter.getRawSize()
-            + 128L) >= Integer.MAX_VALUE) {
+        } else if (((long) key.getSize() + (long) value.getSize() + blockWriter.getRawSize() + 128L)
+            >= Integer.MAX_VALUE) {
           closeBlock(closeKey, false);
           blockWriter = fileWriter.prepareDataBlock();
           averageKeySize = 0;
@@ -687,10 +687,10 @@ public class RFile {
 
       if (columnFamilies == null) {
         startedDefaultLocalityGroup = true;
-        currentLocalityGroup = new LocalityGroupMetadata(previousColumnFamilies, indexBlockSize,
-            fileWriter);
-        sampleLocalityGroup = new LocalityGroupMetadata(previousColumnFamilies, indexBlockSize,
-            fileWriter);
+        currentLocalityGroup =
+            new LocalityGroupMetadata(previousColumnFamilies, indexBlockSize, fileWriter);
+        sampleLocalityGroup =
+            new LocalityGroupMetadata(previousColumnFamilies, indexBlockSize, fileWriter);
       } else {
         if (!Collections.disjoint(columnFamilies, previousColumnFamilies)) {
           HashSet<ByteSequence> overlap = new HashSet<>(columnFamilies);
@@ -698,10 +698,10 @@ public class RFile {
           throw new IllegalArgumentException(
               "Column families over lap with previous locality group : " + overlap);
         }
-        currentLocalityGroup = new LocalityGroupMetadata(name, columnFamilies, indexBlockSize,
-            fileWriter);
-        sampleLocalityGroup = new LocalityGroupMetadata(name, columnFamilies, indexBlockSize,
-            fileWriter);
+        currentLocalityGroup =
+            new LocalityGroupMetadata(name, columnFamilies, indexBlockSize, fileWriter);
+        sampleLocalityGroup =
+            new LocalityGroupMetadata(name, columnFamilies, indexBlockSize, fileWriter);
         previousColumnFamilies.addAll(columnFamilies);
       }
 
@@ -962,8 +962,8 @@ public class RFile {
           // and speed up others.
 
           MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
-          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey(),
-              entriesLeft);
+          SkippR skippr =
+              RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey(), entriesLeft);
           if (skippr.skipped > 0) {
             entriesLeft -= skippr.skipped;
             val = new Value(valbs.toArray());
@@ -1050,8 +1050,8 @@ public class RFile {
             }
           }
 
-          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, currKey,
-              entriesLeft);
+          SkippR skippr =
+              RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, currKey, entriesLeft);
           prevKey = skippr.prevKey;
           entriesLeft -= skippr.skipped;
           val = new Value(valbs.toArray());
@@ -1433,8 +1433,8 @@ public class RFile {
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
         throws IOException {
-      lgCache = LocalityGroupIterator.seek(this, lgContext, range, columnFamilies, inclusive,
-          lgCache);
+      lgCache =
+          LocalityGroupIterator.seek(this, lgContext, range, columnFamilies, inclusive, lgCache);
     }
 
     int getNumLocalityGroupsSeeked() {

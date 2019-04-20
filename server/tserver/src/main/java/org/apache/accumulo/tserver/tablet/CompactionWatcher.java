@@ -57,8 +57,8 @@ public class CompactionWatcher implements Runnable {
     long time = System.currentTimeMillis();
 
     for (CompactionInfo ci : runningCompactions) {
-      List<Long> compactionKey = Arrays.asList(ci.getID(), ci.getEntriesRead(),
-          ci.getEntriesWritten());
+      List<Long> compactionKey =
+          Arrays.asList(ci.getID(), ci.getEntriesRead(), ci.getEntriesWritten());
       newKeys.add(compactionKey);
 
       if (!observedCompactions.containsKey(compactionKey)) {

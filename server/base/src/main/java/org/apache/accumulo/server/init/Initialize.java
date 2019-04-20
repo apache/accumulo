@@ -203,8 +203,8 @@ public class Initialize implements KeywordExecutable {
     // race
     // condition where a tserver compacts away Status updates because it didn't see the Combiner
     // configured
-    IteratorSetting setting = new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME,
-        StatusCombiner.class);
+    IteratorSetting setting =
+        new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, StatusCombiner.class);
     Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
     for (IteratorScope scope : IteratorScope.values()) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
@@ -491,15 +491,18 @@ public class Initialize implements KeywordExecutable {
     initSystemTablesConfig(zoo, Constants.ZROOT + "/" + uuid, hadoopConf);
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.INIT, null);
-    String tableMetadataTabletDir = fs.choose(chooserEnv,
-        ServerConstants.getBaseUris(siteConfig, hadoopConf)) + Constants.HDFS_TABLES_DIR
-        + Path.SEPARATOR + MetadataTable.ID + TABLE_TABLETS_TABLET_DIR;
-    String replicationTableDefaultTabletDir = fs.choose(chooserEnv,
-        ServerConstants.getBaseUris(siteConfig, hadoopConf)) + Constants.HDFS_TABLES_DIR
-        + Path.SEPARATOR + ReplicationTable.ID + Constants.DEFAULT_TABLET_LOCATION;
-    String defaultMetadataTabletDir = fs.choose(chooserEnv,
-        ServerConstants.getBaseUris(siteConfig, hadoopConf)) + Constants.HDFS_TABLES_DIR
-        + Path.SEPARATOR + MetadataTable.ID + Constants.DEFAULT_TABLET_LOCATION;
+    String tableMetadataTabletDir =
+        fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
+            + TABLE_TABLETS_TABLET_DIR;
+    String replicationTableDefaultTabletDir =
+        fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID
+            + Constants.DEFAULT_TABLET_LOCATION;
+    String defaultMetadataTabletDir =
+        fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
+            + Constants.DEFAULT_TABLET_LOCATION;
 
     // create table and default tablets directories
     createDirectories(fs, rootTabletDir, tableMetadataTabletDir, defaultMetadataTabletDir,
@@ -510,15 +513,15 @@ public class Initialize implements KeywordExecutable {
     // populate the metadata tables tablet with info about the replication table's one initial
     // tablet
     String metadataFileName = tableMetadataTabletDir + Path.SEPARATOR + "0_1." + ext;
-    Tablet replicationTablet = new Tablet(ReplicationTable.ID, replicationTableDefaultTabletDir,
-        null, null);
+    Tablet replicationTablet =
+        new Tablet(ReplicationTable.ID, replicationTableDefaultTabletDir, null, null);
     createMetadataFile(fs, metadataFileName, siteConfig, replicationTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
     String rootTabletFileName = rootTabletDir + Path.SEPARATOR + "00000_00000." + ext;
     Text splitPoint = TabletsSection.getRange().getEndKey().getRow();
-    Tablet tablesTablet = new Tablet(MetadataTable.ID, tableMetadataTabletDir, null, splitPoint,
-        metadataFileName);
+    Tablet tablesTablet =
+        new Tablet(MetadataTable.ID, tableMetadataTabletDir, null, splitPoint, metadataFileName);
     Tablet defaultTablet = new Tablet(MetadataTable.ID, defaultMetadataTabletDir, splitPoint, null);
     createMetadataFile(fs, rootTabletFileName, siteConfig, tablesTablet, defaultTablet);
   }
@@ -746,8 +749,8 @@ public class Initialize implements KeywordExecutable {
           "Enter initial password for " + rootUser + getInitialPasswordWarning(siteConfig), '*');
       if (rootpass == null)
         System.exit(0);
-      confirmpass = getConsoleReader().readLine("Confirm initial password for " + rootUser + ": ",
-          '*');
+      confirmpass =
+          getConsoleReader().readLine("Confirm initial password for " + rootUser + ": ", '*');
       if (confirmpass == null)
         System.exit(0);
       if (!rootpass.equals(confirmpass))
@@ -872,8 +875,8 @@ public class Initialize implements KeywordExecutable {
             aBasePath, Property.INSTANCE_VOLUMES_REPLACEMENTS, Property.INSTANCE_VOLUMES);
     }
 
-    if (ServerUtil.getAccumuloPersistentVersion(versionPath.getFileSystem(hadoopConf),
-        versionPath) != ServerConstants.DATA_VERSION) {
+    if (ServerUtil.getAccumuloPersistentVersion(versionPath.getFileSystem(hadoopConf), versionPath)
+        != ServerConstants.DATA_VERSION) {
       throw new IOException("Accumulo " + Constants.VERSION + " cannot initialize data version "
           + ServerUtil.getAccumuloPersistentVersion(fs));
     }

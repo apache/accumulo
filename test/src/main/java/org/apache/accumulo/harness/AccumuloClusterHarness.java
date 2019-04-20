@@ -133,13 +133,11 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
         }
         break;
       case STANDALONE:
-        // @formatter:off
         StandaloneAccumuloClusterConfiguration conf =
-          (StandaloneAccumuloClusterConfiguration) clusterConf;
-        // @formatter:on
-        StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(
-            conf.getClientInfo(), conf.getTmpDirectory(), conf.getUsers(),
-            conf.getServerAccumuloConfDir());
+            (StandaloneAccumuloClusterConfiguration) clusterConf;
+        StandaloneAccumuloCluster standaloneCluster =
+            new StandaloneAccumuloCluster(conf.getClientInfo(), conf.getTmpDirectory(),
+                conf.getUsers(), conf.getServerAccumuloConfDir());
         // If these are provided in the configuration, pass them into the cluster
         standaloneCluster.setAccumuloHome(conf.getAccumuloHome());
         standaloneCluster.setClientAccumuloConfDir(conf.getClientAccumuloConfDir());
@@ -185,8 +183,8 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           // permissions to)
           UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
               systemUser.getKeytab().getAbsolutePath());
-          AccumuloClient c = cluster.createAccumuloClient(systemUser.getPrincipal(),
-              new KerberosToken());
+          AccumuloClient c =
+              cluster.createAccumuloClient(systemUser.getPrincipal(), new KerberosToken());
           c.close();
 
           // Then, log back in as the "root" user and do the grant
@@ -327,8 +325,8 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           return krb.getClientPrincipal(offset);
         } else {
           // Come up with a mostly unique name
-          String principal = getClass().getSimpleName() + "_" + testName.getMethodName() + "_"
-              + offset;
+          String principal =
+              getClass().getSimpleName() + "_" + testName.getMethodName() + "_" + offset;
           // Username and password are the same
           return new ClusterUser(principal, principal);
         }

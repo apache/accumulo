@@ -71,8 +71,8 @@ public class AddSplitsCommand extends Command {
         "file with a newline-separated list of rows to split the table with");
     optSplitsFile.setArgName("filename");
 
-    base64Opt = new Option("b64", "base64encoded", false,
-        "decode encoded split points (splits file only)");
+    base64Opt =
+        new Option("b64", "base64encoded", false, "decode encoded split points (splits file only)");
 
     o.addOption(OptUtil.tableOpt("name of the table to add split points to"));
     o.addOption(optSplitsFile);

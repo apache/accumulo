@@ -242,8 +242,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    String encoded = Base64.getEncoder()
-        .encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
+    String encoded =
+        Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
     cfg.addOption(MERGES_OPTION, encoded);
   }
 
@@ -256,8 +256,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    String encoded = Base64.getEncoder()
-        .encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
+    String encoded =
+        Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
     cfg.addOption(MIGRATIONS_OPTION, encoded);
   }
 

@@ -46,8 +46,8 @@ public class NamingThreadFactory implements ThreadFactory {
 
   @Override
   public Thread newThread(Runnable r) {
-    Thread thread = new Daemon(new LoggingRunnable(log, r),
-        name + " " + threadNum.getAndIncrement());
+    Thread thread =
+        new Daemon(new LoggingRunnable(log, r), name + " " + threadNum.getAndIncrement());
     thread.setUncaughtExceptionHandler(UEH);
     if (priority.isPresent()) {
       thread.setPriority(priority.getAsInt());

@@ -146,8 +146,8 @@ public final class BCFile {
 
         fsOutputBuffer.setCapacity(getFSOutputBufferSize(conf));
 
-        this.fsBufferedOutput = new SimpleBufferedOutputStream(this.fsOut,
-            fsOutputBuffer.getBytes());
+        this.fsBufferedOutput =
+            new SimpleBufferedOutputStream(this.fsOut, fsOutputBuffer.getBytes());
         this.compressor = compressAlgo.getCompressor();
 
         try {
@@ -346,8 +346,8 @@ public final class BCFile {
           }
 
           // add metaBCFileIndex to metaIndex as the last meta block
-          try (BlockAppender appender = prepareMetaBlock(DataIndex.BLOCK_NAME,
-              getDefaultCompressionAlgorithm())) {
+          try (BlockAppender appender =
+              prepareMetaBlock(DataIndex.BLOCK_NAME, getDefaultCompressionAlgorithm())) {
             dataIndex.write(appender);
           }
 
@@ -426,8 +426,8 @@ public final class BCFile {
         throw new IllegalStateException("Cannot create Data Block after Meta Blocks.");
       }
 
-      WBlockState wbs = new WBlockState(getDefaultCompressionAlgorithm(), out, fsOutputBuffer, conf,
-          encrypter);
+      WBlockState wbs =
+          new WBlockState(getDefaultCompressionAlgorithm(), out, fsOutputBuffer, conf, encrypter);
       BlockAppender ba = new BlockAppender(wbs);
       blkInProgress = true;
       return ba;
@@ -486,8 +486,8 @@ public final class BCFile {
             fsin, this.region.getOffset(), this.region.getCompressedSize());
 
         try {
-          InputStream inputStreamToBeCompressed = decrypter
-              .decryptStream(boundedRangeFileInputStream);
+          InputStream inputStreamToBeCompressed =
+              decrypter.decryptStream(boundedRangeFileInputStream);
           this.in = compressAlgo.createDecompressionStream(inputStreamToBeCompressed, decompressor,
               getFSInputBufferSize(conf));
         } catch (IOException e) {
@@ -868,8 +868,8 @@ public final class BCFile {
 
     // for write
     public DataIndex(String defaultCompressionAlgorithmName) {
-      this.defaultCompressionAlgorithm = Compression
-          .getCompressionAlgorithmByName(defaultCompressionAlgorithmName);
+      this.defaultCompressionAlgorithm =
+          Compression.getCompressionAlgorithmByName(defaultCompressionAlgorithmName);
       listRegions = new ArrayList<>();
     }
 

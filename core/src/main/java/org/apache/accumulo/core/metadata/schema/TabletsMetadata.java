@@ -96,8 +96,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           fetchedCols = EnumSet.allOf(FetchedColumns.class);
         }
 
-        Iterable<TabletMetadata> tmi = TabletMetadata.convert(scanner, fetchedCols,
-            checkConsistency, saveKeyValues);
+        Iterable<TabletMetadata> tmi =
+            TabletMetadata.convert(scanner, fetchedCols, checkConsistency, saveKeyValues);
 
         if (endRow != null) {
           // create an iterable that will stop at the tablet which contains the endRow

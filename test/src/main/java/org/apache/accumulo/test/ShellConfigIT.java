@@ -55,8 +55,8 @@ public class ShellConfigIT extends AccumuloClusterHarness {
       // properties are not.
       // This lets us run this test more generically rather than forcibly needing to update some
       // property in accumulo.properties
-      origPropValue = client.instanceOperations().getSystemConfiguration()
-          .get(PERTABLE_CHOOSER_PROP);
+      origPropValue =
+          client.instanceOperations().getSystemConfiguration().get(PERTABLE_CHOOSER_PROP);
       client.instanceOperations().setProperty(PERTABLE_CHOOSER_PROP,
           FairVolumeChooser.class.getName());
     }
@@ -83,10 +83,8 @@ public class ShellConfigIT extends AccumuloClusterHarness {
         clientPropsFile = mac.getConfig().getClientPropsFile();
         break;
       case STANDALONE:
-        // @formatter:off
         StandaloneAccumuloClusterConfiguration standaloneConf =
-          (StandaloneAccumuloClusterConfiguration) getClusterConfiguration();
-        // @formatter:on
+            (StandaloneAccumuloClusterConfiguration) getClusterConfiguration();
         clientPropsFile = standaloneConf.getClientPropsFile();
         break;
       default:

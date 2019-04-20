@@ -63,15 +63,14 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
     }
   }
 
-  private synchronized LoadingCache<List<String>,WeightedRandomCollection> getCache(
-      VolumeChooserEnvironment env) {
+  private synchronized LoadingCache<List<String>,WeightedRandomCollection>
+      getCache(VolumeChooserEnvironment env) {
 
     if (choiceCache == null) {
       String propertyValue = env.getServiceEnv().getConfiguration().getCustom(RECOMPUTE_INTERVAL);
 
       long computationCacheDuration = StringUtils.isNotBlank(propertyValue)
-          ? Long.parseLong(propertyValue)
-          : defaultComputationCacheDuration;
+          ? Long.parseLong(propertyValue) : defaultComputationCacheDuration;
 
       choiceCache = CacheBuilder.newBuilder()
           .expireAfterWrite(computationCacheDuration, TimeUnit.MILLISECONDS)

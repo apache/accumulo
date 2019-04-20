@@ -123,8 +123,8 @@ public class InMemoryMapTest {
   }
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   public void mutate(InMemoryMap imm, String row, String column, long ts) {
     Mutation m = new Mutation(new Text(row));

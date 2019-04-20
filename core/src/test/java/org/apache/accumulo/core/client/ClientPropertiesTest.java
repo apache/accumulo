@@ -29,16 +29,16 @@ public class ClientPropertiesTest {
 
   @Test
   public void testBasic() {
-    Properties props1 = Accumulo.newClientProperties().to("inst1", "zoo1").as("user1", "pass1")
-        .build();
+    Properties props1 =
+        Accumulo.newClientProperties().to("inst1", "zoo1").as("user1", "pass1").build();
     assertEquals("inst1", ClientProperty.INSTANCE_NAME.getValue(props1));
     assertEquals("zoo1", ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props1));
     assertEquals("user1", ClientProperty.AUTH_PRINCIPAL.getValue(props1));
     assertEquals("password", ClientProperty.AUTH_TYPE.getValue(props1));
     assertEquals("pass1", ClientProperty.AUTH_TOKEN.getValue(props1));
 
-    Properties props2 = Accumulo.newClientProperties().from(props1).as("user2", Paths.get("/path2"))
-        .build();
+    Properties props2 =
+        Accumulo.newClientProperties().from(props1).as("user2", Paths.get("/path2")).build();
     assertEquals("inst1", ClientProperty.INSTANCE_NAME.getValue(props1));
     assertEquals("zoo1", ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props1));
     assertEquals("user2", ClientProperty.AUTH_PRINCIPAL.getValue(props1));

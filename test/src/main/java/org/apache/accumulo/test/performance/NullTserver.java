@@ -289,8 +289,8 @@ public class NullTserver {
     opts.parseArgs(NullTserver.class.getName(), args);
 
     // modify metadata
-    int zkTimeOut = (int) DefaultConfiguration.getInstance()
-        .getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    int zkTimeOut =
+        (int) DefaultConfiguration.getInstance().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     SiteConfiguration siteConfig = new SiteConfiguration();
     ServerContext context = new ServerContext(siteConfig, opts.iname, opts.keepers, zkTimeOut);
     TransactionWatcher watcher = new TransactionWatcher(context);

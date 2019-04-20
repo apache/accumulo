@@ -101,8 +101,8 @@ public class AgeOffFilterTest extends BaseJUnit4IteratorTest {
   private static TreeMap<Key,Value> createOutputData() {
     TreeMap<Key,Value> data = new TreeMap<>();
 
-    Iterable<Entry<Key,Value>> filtered = Iterables.filter(data.entrySet(),
-        input -> NOW - input.getKey().getTimestamp() > TTL);
+    Iterable<Entry<Key,Value>> filtered =
+        Iterables.filter(data.entrySet(), input -> NOW - input.getKey().getTimestamp() > TTL);
 
     for (Entry<Key,Value> entry : filtered) {
       data.put(entry.getKey(), entry.getValue());

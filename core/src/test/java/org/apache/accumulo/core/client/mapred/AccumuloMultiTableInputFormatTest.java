@@ -50,17 +50,22 @@ public class AccumuloMultiTableInputFormatTest {
     String table2Name = testName.getMethodName() + "2";
     JobConf job = new JobConf();
 
-    org.apache.accumulo.core.client.mapreduce.InputTableConfig table1 = new org.apache.accumulo.core.client.mapreduce.InputTableConfig()
-        .setRanges(Collections.singletonList(new Range("a", "b")))
-        .fetchColumns(Collections.singleton(new Pair<>(new Text("CF1"), new Text("CQ1"))))
-        .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
+    org.apache.accumulo.core.client.mapreduce.InputTableConfig table1 =
+        new org.apache.accumulo.core.client.mapreduce.InputTableConfig()
+            .setRanges(Collections.singletonList(new Range("a", "b")))
+            .fetchColumns(Collections.singleton(new Pair<>(new Text("CF1"), new Text("CQ1"))))
+            .setIterators(
+                Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
 
-    org.apache.accumulo.core.client.mapreduce.InputTableConfig table2 = new org.apache.accumulo.core.client.mapreduce.InputTableConfig()
-        .setRanges(Collections.singletonList(new Range("a", "b")))
-        .fetchColumns(Collections.singleton(new Pair<>(new Text("CF1"), new Text("CQ1"))))
-        .setIterators(Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
+    org.apache.accumulo.core.client.mapreduce.InputTableConfig table2 =
+        new org.apache.accumulo.core.client.mapreduce.InputTableConfig()
+            .setRanges(Collections.singletonList(new Range("a", "b")))
+            .fetchColumns(Collections.singleton(new Pair<>(new Text("CF1"), new Text("CQ1"))))
+            .setIterators(
+                Collections.singletonList(new IteratorSetting(50, "iter1", "iterclass1")));
 
-    Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> configMap = new HashMap<>();
+    Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> configMap =
+        new HashMap<>();
     configMap.put(table1Name, table1);
     configMap.put(table2Name, table2);
     AccumuloMultiTableInputFormat.setInputTableConfigs(job, configMap);

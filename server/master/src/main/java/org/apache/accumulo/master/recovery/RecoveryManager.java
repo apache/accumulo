@@ -66,9 +66,9 @@ public class RecoveryManager {
     executor = Executors.newScheduledThreadPool(4, new NamingThreadFactory("Walog sort starter "));
     zooCache = new ZooCache(master.getContext().getZooReaderWriter(), null);
     try {
-      List<String> workIDs = new DistributedWorkQueue(
-          master.getZooKeeperRoot() + Constants.ZRECOVERY, master.getConfiguration())
-              .getWorkQueued();
+      List<String> workIDs =
+          new DistributedWorkQueue(master.getZooKeeperRoot() + Constants.ZRECOVERY,
+              master.getConfiguration()).getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
       log.warn("{}", e.getMessage(), e);
@@ -158,8 +158,9 @@ public class RecoveryManager {
           sortQueued = sortsQueued.contains(sortId);
         }
 
-        if (sortQueued && zooCache
-            .get(master.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId) == null) {
+        if (sortQueued
+            && zooCache.get(master.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId)
+                == null) {
           synchronized (this) {
             sortsQueued.remove(sortId);
           }

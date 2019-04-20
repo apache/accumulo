@@ -272,8 +272,8 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
           user.getKeytab().getAbsolutePath());
       final UserGroupInformation badUgi = UserGroupInformation.getCurrentUser();
       // Get a "Credentials" object for the proxy
-      TestProxyClient badClient = new TestProxyClient(hostname, proxyPort, factory, proxyPrimary,
-          badUgi);
+      TestProxyClient badClient =
+          new TestProxyClient(hostname, proxyPort, factory, proxyPrimary, badUgi);
       try {
         Client badProxy = badClient.proxy();
         badLogin = badProxy.login(user.getPrincipal(), properties);
@@ -403,7 +403,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
   @Test(expected = AccumuloSecurityException.class, timeout = 5000)
   public void getMaxRowLoginFailure() throws Exception {
-    client.getMaxRow(badLogin, tableName, Collections.<ByteBuffer> emptySet(), null, false, null,
+    client.getMaxRow(badLogin, tableName, Collections.<ByteBuffer>emptySet(), null, false, null,
         false);
   }
 
@@ -813,7 +813,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
-      client.addSplits(creds, doesNotExist, Collections.<ByteBuffer> emptySet());
+      client.addSplits(creds, doesNotExist, Collections.<ByteBuffer>emptySet());
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     final IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(),
@@ -881,7 +881,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
     try {
-      client.getMaxRow(creds, doesNotExist, Collections.<ByteBuffer> emptySet(), null, false, null,
+      client.getMaxRow(creds, doesNotExist, Collections.<ByteBuffer>emptySet(), null, false, null,
           false);
       fail("exception not thrown");
     } catch (TableNotFoundException ex) {}
@@ -1154,8 +1154,8 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
     ColumnUpdate upd = new ColumnUpdate(s2bb("cf"), s2bb("cq"));
     upd.setDeleteCell(false);
-    Map<ByteBuffer,List<ColumnUpdate>> notDelete = Collections.singletonMap(s2bb("row0"),
-        Collections.singletonList(upd));
+    Map<ByteBuffer,List<ColumnUpdate>> notDelete =
+        Collections.singletonMap(s2bb("row0"), Collections.singletonList(upd));
     client.updateAndFlush(creds, tableName, notDelete);
     String scanner = client.createScanner(creds, tableName, null);
     ScanResult entries = client.nextK(scanner, 10);
@@ -1165,8 +1165,8 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
     upd = new ColumnUpdate(s2bb("cf"), s2bb("cq"));
     upd.setDeleteCell(true);
-    Map<ByteBuffer,List<ColumnUpdate>> delete = Collections.singletonMap(s2bb("row0"),
-        Collections.singletonList(upd));
+    Map<ByteBuffer,List<ColumnUpdate>> delete =
+        Collections.singletonMap(s2bb("row0"), Collections.singletonList(upd));
 
     client.updateAndFlush(creds, tableName, delete);
 
@@ -1418,7 +1418,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   public void userAuthentication() throws Exception {
     if (isKerberosEnabled()) {
       assertTrue(
-          client.authenticateUser(creds, clientPrincipal, Collections.<String,String> emptyMap()));
+          client.authenticateUser(creds, clientPrincipal, Collections.<String,String>emptyMap()));
       // Can't really authenticate "badly" at the application level w/ kerberos. It's going to fail
       // to even set up
       // an RPC
@@ -1471,7 +1471,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       TestProxyClient otherProxyClient = null;
       try {
         otherProxyClient = new TestProxyClient(hostname, proxyPort, factory, proxyPrimary, ugi);
-        otherProxyClient.proxy().login(user, Collections.<String,String> emptyMap());
+        otherProxyClient.proxy().login(user, Collections.<String,String>emptyMap());
       } finally {
         if (otherProxyClient != null) {
           otherProxyClient.close();
@@ -1510,7 +1510,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       origClient = client;
       userClient = client = userProxyClient.proxy();
 
-      user = client.login(userName, Collections.<String,String> emptyMap());
+      user = client.login(userName, Collections.<String,String>emptyMap());
     } else {
       userName = getUniqueNames(1)[0];
       // create a user
@@ -1668,7 +1668,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       origClient = client;
       userClient = client = userProxyClient.proxy();
 
-      user = client.login(userName, Collections.<String,String> emptyMap());
+      user = client.login(userName, Collections.<String,String>emptyMap());
     } else {
       userName = getUniqueNames(1)[0];
       // create a user
@@ -1952,8 +1952,8 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
     HashMap<String,String> options = new HashMap<>();
     options.put("type", "STRING");
     options.put("columns", "cf");
-    IteratorSetting setting = new IteratorSetting(10, tableName, SummingCombiner.class.getName(),
-        options);
+    IteratorSetting setting =
+        new IteratorSetting(10, tableName, SummingCombiner.class.getName(), options);
     client.attachIterator(creds, tableName, setting, EnumSet.allOf(IteratorScope.class));
     for (int i = 0; i < 10; i++) {
       client.updateAndFlush(creds, tableName, mutation("row1", "cf", "cq", "1"));
@@ -2509,8 +2509,8 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
           cwuser.getKeytab().getAbsolutePath());
       final UserGroupInformation cwuserUgi = UserGroupInformation.getCurrentUser();
       // Re-login in and make a new connection. Can't use the previous one
-      cwuserProxyClient = new TestProxyClient(hostname, proxyPort, factory, proxyPrimary,
-          cwuserUgi);
+      cwuserProxyClient =
+          new TestProxyClient(hostname, proxyPort, factory, proxyPrimary, cwuserUgi);
       origClient = client;
       client = cwuserProxyClient.proxy();
       cwProperties = Collections.emptyMap();
@@ -2694,8 +2694,8 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
   @Test
   public void testGetRowRange() throws Exception {
     Range range = client.getRowRange(s2bb("xyzzy"));
-    org.apache.accumulo.core.data.Range range2 = new org.apache.accumulo.core.data.Range(
-        new Text("xyzzy"));
+    org.apache.accumulo.core.data.Range range2 =
+        new org.apache.accumulo.core.data.Range(new Text("xyzzy"));
     assertEquals(0, range.start.row.compareTo(t2bb(range2.getStartKey().getRow())));
     assertEquals(0, range.stop.row.compareTo(t2bb(range2.getEndKey().getRow())));
     assertEquals(range.startInclusive, range2.isStartKeyInclusive());

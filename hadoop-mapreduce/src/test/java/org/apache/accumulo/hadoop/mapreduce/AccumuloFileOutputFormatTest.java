@@ -71,8 +71,8 @@ public class AccumuloFileOutputFormatTest {
     assertEquals(new SamplerConfigurationImpl(samplerConfig),
         SamplerConfigurationImpl.newSamplerConfig(acuconf));
 
-    Collection<SummarizerConfiguration> summarizerConfigs = SummarizerConfiguration
-        .fromTableProperties(acuconf);
+    Collection<SummarizerConfiguration> summarizerConfigs =
+        SummarizerConfiguration.fromTableProperties(acuconf);
     assertEquals(2, summarizerConfigs.size());
     assertTrue(summarizerConfigs.contains(sc1));
     assertTrue(summarizerConfigs.contains(sc2));

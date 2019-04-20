@@ -180,8 +180,8 @@ public class RowFilterTest {
 
   @Test
   public void test1() throws Exception {
-    ColumnFamilySkippingIterator source = new ColumnFamilySkippingIterator(
-        new SortedMapIterator(createKeyValues()));
+    ColumnFamilySkippingIterator source =
+        new ColumnFamilySkippingIterator(new SortedMapIterator(createKeyValues()));
 
     RowFilter filter = new SummingRowFilter();
     filter.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());

@@ -139,8 +139,8 @@ public class SummaryIT extends AccumuloClusterHarness {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
-      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(BasicSummarizer.class.getName())
-          .build();
+      SummarizerConfiguration sc1 =
+          SummarizerConfiguration.builder(BasicSummarizer.class.getName()).build();
       ntc.enableSummarization(sc1);
       c.tableOperations().create(table, ntc);
 
@@ -329,8 +329,8 @@ public class SummaryIT extends AccumuloClusterHarness {
 
       LongSummaryStatistics stats = getTimestampStats(table, c);
 
-      Collection<Summary> summaries = c.tableOperations().summaries(table).withConfiguration(sc2)
-          .retrieve();
+      Collection<Summary> summaries =
+          c.tableOperations().summaries(table).withConfiguration(sc2).retrieve();
       assertEquals(1, summaries.size());
       checkSummary(summaries, sc2, "len=14", 100_000L);
 
@@ -480,8 +480,8 @@ public class SummaryIT extends AccumuloClusterHarness {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
-      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FooCounter.class.getName())
-          .build();
+      SummarizerConfiguration sc1 =
+          SummarizerConfiguration.builder(FooCounter.class.getName()).build();
       ntc.enableSummarization(sc1);
       c.tableOperations().create(table, ntc);
 
@@ -495,8 +495,8 @@ public class SummaryIT extends AccumuloClusterHarness {
       // data
       // to know if there are too many foos.
       CompactionStrategyConfig csc = new CompactionStrategyConfig(FooCS.class.getName());
-      List<IteratorSetting> iterators = Collections
-          .singletonList(new IteratorSetting(100, FooFilter.class));
+      List<IteratorSetting> iterators =
+          Collections.singletonList(new IteratorSetting(100, FooFilter.class));
       CompactionConfig compactConfig = new CompactionConfig().setFlush(true)
           .setCompactionStrategy(csc).setIterators(iterators).setWait(true);
 
@@ -592,8 +592,8 @@ public class SummaryIT extends AccumuloClusterHarness {
       PasswordToken passTok = new PasswordToken("letmesee");
       c.securityOperations().createLocalUser("user1", passTok);
 
-      try (AccumuloClient c2 = Accumulo.newClient().from(c.properties()).as("user1", passTok)
-          .build()) {
+      try (AccumuloClient c2 =
+          Accumulo.newClient().from(c.properties()).as("user1", passTok).build()) {
         try {
           c2.tableOperations().summaries(table).retrieve();
           fail("Expected operation to fail because user does not have permssion to get summaries");
@@ -758,15 +758,16 @@ public class SummaryIT extends AccumuloClusterHarness {
           summaries.stream().map(Summary::getSummarizerConfiguration).distinct().count());
       for (Summary summary : summaries) {
         if (summary.getSummarizerConfiguration().equals(sc1)) {
-          Map<String,Long> expectedStats = nm("c:chocolate", 4L, "c:coffee", 2L, "c:broccoli", 2L,
-              "c:cheddar", 2L, "c:cabbage", 1L, TOO_LONG_STAT, 0L, TOO_MANY_STAT, 0L, SEEN_STAT,
-              11L, EMITTED_STAT, 11L, DELETES_IGNORED_STAT, 0L);
+          Map<String,
+              Long> expectedStats = nm("c:chocolate", 4L, "c:coffee", 2L, "c:broccoli", 2L,
+                  "c:cheddar", 2L, "c:cabbage", 1L, TOO_LONG_STAT, 0L, TOO_MANY_STAT, 0L, SEEN_STAT,
+                  11L, EMITTED_STAT, 11L, DELETES_IGNORED_STAT, 0L);
           assertEquals(expectedStats, summary.getStatistics());
           assertEquals(0, summary.getFileStatistics().getInaccurate());
           assertEquals(1, summary.getFileStatistics().getTotal());
         } else if (summary.getSummarizerConfiguration().equals(sc2)) {
-          Map<String,Long> expectedStats = nm(DELETES_STAT, 0L, TOTAL_STAT, 11L, MIN_TIMESTAMP_STAT,
-              3L, MAX_TIMESTAMP_STAT, 8L);
+          Map<String,Long> expectedStats =
+              nm(DELETES_STAT, 0L, TOTAL_STAT, 11L, MIN_TIMESTAMP_STAT, 3L, MAX_TIMESTAMP_STAT, 8L);
           assertEquals(expectedStats, summary.getStatistics());
           assertEquals(0, summary.getFileStatistics().getInaccurate());
           assertEquals(1, summary.getFileStatistics().getTotal());
@@ -808,10 +809,10 @@ public class SummaryIT extends AccumuloClusterHarness {
         fail();
       } catch (TableNotFoundException e) {}
 
-      SummarizerConfiguration sc1 = SummarizerConfiguration.builder(FamilySummarizer.class)
-          .setPropertyId("p1").build();
-      SummarizerConfiguration sc2 = SummarizerConfiguration.builder(VisibilitySummarizer.class)
-          .setPropertyId("p1").build();
+      SummarizerConfiguration sc1 =
+          SummarizerConfiguration.builder(FamilySummarizer.class).setPropertyId("p1").build();
+      SummarizerConfiguration sc2 =
+          SummarizerConfiguration.builder(VisibilitySummarizer.class).setPropertyId("p1").build();
 
       c.tableOperations().create("foo");
       c.tableOperations().addSummarizers("foo", sc1);

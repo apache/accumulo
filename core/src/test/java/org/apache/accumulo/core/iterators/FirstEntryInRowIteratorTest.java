@@ -84,8 +84,8 @@ public class FirstEntryInRowIteratorTest {
     assertEquals(resultMap.size(), 2);
 
     resultMap.clear();
-    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r4")),
-        iteratorSetting);
+    numNexts =
+        process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r4")), iteratorSetting);
     assertEquals(numNexts, resultMap.size() + 10);
     assertEquals(resultMap.size(), 3);
   }

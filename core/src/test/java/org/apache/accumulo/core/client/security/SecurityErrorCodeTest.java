@@ -32,12 +32,9 @@ public class SecurityErrorCodeTest {
     for (SecurityErrorCode sec : SecurityErrorCode.values())
       secNames1.add(sec.name());
 
-    // @formatter:off
-    for (org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode sec :
-        org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode
+    for (org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode sec : org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode
         .values())
       secNames2.add(sec.name());
-    // @formatter:on
 
     assertEquals(secNames1, secNames2);
   }

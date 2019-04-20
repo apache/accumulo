@@ -324,8 +324,8 @@ public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
     String fileToRemove = "/accumulo/wal/tserver+port/" + UUID.randomUUID();
     Mutation m = new Mutation(fileToRemove);
     ReplicationTarget target = new ReplicationTarget("peer1", "5", TableId.of("5"));
-    Value value = ProtobufUtil
-        .toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build());
+    Value value =
+        ProtobufUtil.toValue(builder.setBegin(10000).setEnd(10000).setClosed(true).build());
     StatusSection.add(m, TableId.of("5"), value);
     WorkSection.add(m, target.toText(), value);
     target = new ReplicationTarget("peer2", "5", TableId.of("5"));

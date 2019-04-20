@@ -57,8 +57,8 @@ public class TTimeoutTransport {
       synchronized (this) {
         if (GET_INPUT_STREAM_METHOD == null) {
           try {
-            GET_INPUT_STREAM_METHOD = NetUtils.class.getMethod("getInputStream", Socket.class,
-                Long.TYPE);
+            GET_INPUT_STREAM_METHOD =
+                NetUtils.class.getMethod("getInputStream", Socket.class, Long.TYPE);
           } catch (Exception e) {
             throw new RuntimeException(e);
           }

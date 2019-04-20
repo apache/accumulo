@@ -274,8 +274,8 @@ class LoadFiles extends MasterRepo {
 
         for (final Bulk.FileInfo fileInfo : files) {
           String fullPath = new Path(bulkDir, fileInfo.getFileName()).toString();
-          byte[] val = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries())
-              .encode();
+          byte[] val =
+              new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries()).encode();
           mutation.put(fam, fullPath.getBytes(UTF_8), val);
         }
 
@@ -311,9 +311,9 @@ class LoadFiles extends MasterRepo {
 
     Text startRow = loadMapEntry.getKey().getPrevEndRow();
 
-    Iterator<TabletMetadata> tabletIter = TabletsMetadata.builder().forTable(tableId)
-        .overlapping(startRow, null).checkConsistency().fetchPrev().fetchLocation().fetchLoaded()
-        .build(master.getContext()).iterator();
+    Iterator<TabletMetadata> tabletIter =
+        TabletsMetadata.builder().forTable(tableId).overlapping(startRow, null).checkConsistency()
+            .fetchPrev().fetchLocation().fetchLoaded().build(master.getContext()).iterator();
 
     Loader loader;
     if (bulkInfo.tableState == TableState.ONLINE) {

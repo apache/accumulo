@@ -54,8 +54,8 @@ public class AuthenticationKeyTest {
     SecretKey secretKey = keyGen.generateKey();
     int keyId = 20;
     long creationDate = 38383838L, expirationDate = 83838383L;
-    AuthenticationKey authKey = new AuthenticationKey(keyId, creationDate, expirationDate,
-        secretKey);
+    AuthenticationKey authKey =
+        new AuthenticationKey(keyId, creationDate, expirationDate, secretKey);
     assertEquals(secretKey, authKey.getKey());
     assertEquals(keyId, authKey.getKeyId());
     assertEquals(expirationDate, authKey.getExpirationDate());
@@ -67,8 +67,8 @@ public class AuthenticationKeyTest {
     assertNotEquals(badCopy.hashCode(), authKey.hashCode());
 
     // Different object, same arguments
-    AuthenticationKey goodCopy = new AuthenticationKey(keyId, creationDate, expirationDate,
-        secretKey);
+    AuthenticationKey goodCopy =
+        new AuthenticationKey(keyId, creationDate, expirationDate, secretKey);
     assertEquals(authKey, goodCopy);
     assertEquals(authKey.hashCode(), goodCopy.hashCode());
   }
@@ -78,8 +78,8 @@ public class AuthenticationKeyTest {
     SecretKey secretKey = keyGen.generateKey();
     int keyId = 20;
     long creationDate = 38383838L, expirationDate = 83838383L;
-    AuthenticationKey authKey = new AuthenticationKey(keyId, creationDate, expirationDate,
-        secretKey);
+    AuthenticationKey authKey =
+        new AuthenticationKey(keyId, creationDate, expirationDate, secretKey);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream out = new DataOutputStream(baos);
     authKey.write(out);

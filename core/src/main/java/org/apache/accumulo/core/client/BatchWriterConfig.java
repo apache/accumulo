@@ -42,27 +42,27 @@ import org.apache.hadoop.util.StringUtils;
  */
 public class BatchWriterConfig implements Writable {
 
-  private static final Long DEFAULT_MAX_MEMORY = ConfigurationTypeHelper
-      .getMemoryAsBytes(BATCH_WRITER_MEMORY_MAX.getDefaultValue());
+  private static final Long DEFAULT_MAX_MEMORY =
+      ConfigurationTypeHelper.getMemoryAsBytes(BATCH_WRITER_MEMORY_MAX.getDefaultValue());
   private Long maxMemory = null;
 
-  private static final Long DEFAULT_MAX_LATENCY = ConfigurationTypeHelper
-      .getTimeInMillis(BATCH_WRITER_LATENCY_MAX.getDefaultValue());
+  private static final Long DEFAULT_MAX_LATENCY =
+      ConfigurationTypeHelper.getTimeInMillis(BATCH_WRITER_LATENCY_MAX.getDefaultValue());
   private Long maxLatency = null;
 
   private static final long DEFAULT_TIMEOUT = getDefaultTimeout();
   private Long timeout = null;
 
-  private static final Integer DEFAULT_MAX_WRITE_THREADS = Integer
-      .parseInt(BATCH_WRITER_THREADS_MAX.getDefaultValue());
+  private static final Integer DEFAULT_MAX_WRITE_THREADS =
+      Integer.parseInt(BATCH_WRITER_THREADS_MAX.getDefaultValue());
   private Integer maxWriteThreads = null;
 
   private Durability durability = Durability.DEFAULT;
   private boolean isDurabilitySet = false;
 
   private static long getDefaultTimeout() {
-    long defVal = ConfigurationTypeHelper
-        .getTimeInMillis(BATCH_WRITER_TIMEOUT_MAX.getDefaultValue());
+    long defVal =
+        ConfigurationTypeHelper.getTimeInMillis(BATCH_WRITER_TIMEOUT_MAX.getDefaultValue());
     if (defVal == 0L)
       return Long.MAX_VALUE;
     else

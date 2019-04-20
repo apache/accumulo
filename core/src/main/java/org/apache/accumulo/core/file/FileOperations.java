@@ -39,8 +39,8 @@ import com.google.common.cache.Cache;
 
 public abstract class FileOperations {
 
-  private static final HashSet<String> validExtensions = new HashSet<>(
-      Arrays.asList(Constants.MAPFILE_EXTENSION, RFile.EXTENSION));
+  private static final HashSet<String> validExtensions =
+      new HashSet<>(Arrays.asList(Constants.MAPFILE_EXTENSION, RFile.EXTENSION));
 
   public static Set<String> getValidExtensions() {
     return validExtensions;

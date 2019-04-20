@@ -138,8 +138,8 @@ public class FileUtil {
       String newMapFile = String.format("%s/%04d.%s", newDir, count++, RFile.EXTENSION);
 
       outFiles.add(newMapFile);
-      FileSystem ns = context.getVolumeManager().getVolumeByPath(new Path(newMapFile))
-          .getFileSystem();
+      FileSystem ns =
+          context.getVolumeManager().getVolumeByPath(new Path(newMapFile)).getFileSystem();
       FileSKVWriter writer = new RFileOperations().newWriterBuilder()
           .forFile(newMapFile.toString(), ns, ns.getConf(), context.getCryptoService())
           .withTableConfiguration(acuConf).build();
@@ -212,8 +212,8 @@ public class FileUtil {
 
     Path tmpDir = null;
 
-    int maxToOpen = context.getConfiguration()
-        .getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
+    int maxToOpen =
+        context.getConfiguration().getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
     ArrayList<FileSKVIterator> readers = new ArrayList<>(mapFiles.size());
 
     try {
@@ -292,8 +292,8 @@ public class FileUtil {
 
     Path tmpDir = null;
 
-    int maxToOpen = context.getConfiguration()
-        .getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
+    int maxToOpen =
+        context.getConfiguration().getCount(Property.TSERV_TABLET_SPLIT_FINDMIDPOINT_MAXOPEN);
     ArrayList<FileSKVIterator> readers = new ArrayList<>(mapFiles.size());
 
     try {
@@ -383,8 +383,8 @@ public class FileUtil {
 
       // sanity check
       for (Key key : ret.values()) {
-        boolean inRange = (key.compareRow(prevEndRow) > 0
-            && (endRow == null || key.compareRow(endRow) < 1));
+        boolean inRange =
+            (key.compareRow(prevEndRow) > 0 && (endRow == null || key.compareRow(endRow) < 1));
         if (!inRange) {
           throw new IOException("Found mid point is not in range " + key + " " + prevEndRow + " "
               + endRow + " " + mapFiles);

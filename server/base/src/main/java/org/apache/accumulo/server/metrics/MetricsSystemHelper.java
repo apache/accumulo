@@ -40,8 +40,8 @@ public class MetricsSystemHelper {
 
   private static class MetricsSystemHolder {
     // Singleton, rely on JVM to initialize the MetricsSystem only when it is accessed.
-    private static final MetricsSystem metricsSystem = DefaultMetricsSystem
-        .initialize(Metrics.PREFIX);
+    private static final MetricsSystem metricsSystem =
+        DefaultMetricsSystem.initialize(Metrics.PREFIX);
   }
 
   public static MetricsSystem getInstance() {

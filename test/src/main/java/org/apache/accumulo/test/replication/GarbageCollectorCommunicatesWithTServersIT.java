@@ -73,8 +73,8 @@ import org.slf4j.LoggerFactory;
  * if a WAL will never be used in the future.
  */
 public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacBase {
-  private static final Logger log = LoggerFactory
-      .getLogger(GarbageCollectorCommunicatesWithTServersIT.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(GarbageCollectorCommunicatesWithTServersIT.class);
 
   private final int GC_PERIOD_SECONDS = 1;
 
@@ -391,8 +391,8 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     log.info("Fetching active WALs from {}", tserver);
 
     Client cli = ThriftUtil.getTServerClient(tserver, context);
-    List<String> activeWalsForTserver = cli.getActiveLogs(TraceUtil.traceInfo(),
-        context.rpcCreds());
+    List<String> activeWalsForTserver =
+        cli.getActiveLogs(TraceUtil.traceInfo(), context.rpcCreds());
 
     log.info("Active wals: {}", activeWalsForTserver);
 

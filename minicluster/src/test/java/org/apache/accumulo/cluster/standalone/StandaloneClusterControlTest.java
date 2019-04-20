@@ -27,8 +27,8 @@ public class StandaloneClusterControlTest {
     String accumuloHome = "/usr/lib/accumulo", accumuloConfDir = "/etc/accumulo/conf",
         accumuloServerConfDir = "/etc/accumulo/conf/server";
 
-    StandaloneClusterControl control = new StandaloneClusterControl(accumuloHome, accumuloConfDir,
-        accumuloServerConfDir, "", "");
+    StandaloneClusterControl control =
+        new StandaloneClusterControl(accumuloHome, accumuloConfDir, accumuloServerConfDir, "", "");
 
     assertEquals(accumuloHome, control.accumuloHome);
     assertEquals(accumuloConfDir, control.clientAccumuloConfDir);

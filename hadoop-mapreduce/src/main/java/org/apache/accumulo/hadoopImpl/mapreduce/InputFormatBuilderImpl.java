@@ -58,15 +58,15 @@ public class InputFormatBuilderImpl<T>
 
   @Override
   public InputFormatBuilder.TableParams<T> clientProperties(Properties clientProperties) {
-    this.clientProps = Objects.requireNonNull(clientProperties,
-        "clientProperties must not be null");
+    this.clientProps =
+        Objects.requireNonNull(clientProperties, "clientProperties must not be null");
     return this;
   }
 
   @Override
   public TableParams<T> clientPropertiesPath(String clientPropsPath) {
-    this.clientPropsPath = Objects.requireNonNull(clientPropsPath,
-        "clientPropsPath must not be null");
+    this.clientPropsPath =
+        Objects.requireNonNull(clientPropsPath, "clientPropsPath must not be null");
     return this;
   }
 
@@ -94,8 +94,8 @@ public class InputFormatBuilderImpl<T>
 
   @Override
   public InputFormatBuilder.InputFormatOptions<T> ranges(Collection<Range> ranges) {
-    List<Range> newRanges = ImmutableList
-        .copyOf(Objects.requireNonNull(ranges, "Collection of ranges is null"));
+    List<Range> newRanges =
+        ImmutableList.copyOf(Objects.requireNonNull(ranges, "Collection of ranges is null"));
     if (newRanges.size() == 0)
       throw new IllegalArgumentException("Specified collection of ranges is empty.");
     tableConfigMap.get(currentTable).setRanges(newRanges);
@@ -103,8 +103,8 @@ public class InputFormatBuilderImpl<T>
   }
 
   @Override
-  public InputFormatBuilder.InputFormatOptions<T> fetchColumns(
-      Collection<IteratorSetting.Column> fetchColumns) {
+  public InputFormatBuilder.InputFormatOptions<T>
+      fetchColumns(Collection<IteratorSetting.Column> fetchColumns) {
     Collection<IteratorSetting.Column> newFetchColumns = ImmutableList
         .copyOf(Objects.requireNonNull(fetchColumns, "Collection of fetch columns is null"));
     if (newFetchColumns.size() == 0)
@@ -132,8 +132,8 @@ public class InputFormatBuilderImpl<T>
   }
 
   @Override
-  public InputFormatBuilder.InputFormatOptions<T> samplerConfiguration(
-      SamplerConfiguration samplerConfig) {
+  public InputFormatBuilder.InputFormatOptions<T>
+      samplerConfiguration(SamplerConfiguration samplerConfig) {
     tableConfigMap.get(currentTable).setSamplerConfiguration(samplerConfig);
     return this;
   }

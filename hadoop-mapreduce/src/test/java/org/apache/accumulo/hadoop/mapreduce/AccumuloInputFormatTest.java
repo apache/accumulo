@@ -67,8 +67,8 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testMissingTable() throws Exception {
-    Properties clientProps = org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest
-        .setupClientProperties();
+    Properties clientProps =
+        org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest.setupClientProperties();
     exception.expect(IllegalArgumentException.class);
     AccumuloInputFormat.configure().clientProperties(clientProps).store(Job.getInstance());
   }
@@ -103,8 +103,8 @@ public class AccumuloInputFormatTest {
         .auths(Authorizations.EMPTY).addIterator(iter1).addIterator(iter2).addIterator(iter3)
         .store(job);
 
-    List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class,
-        job.getConfiguration());
+    List<IteratorSetting> list =
+        InputConfigurator.getIterators(AccumuloInputFormat.class, job.getConfiguration());
 
     // Check the list size
     assertEquals(3, list.size());
@@ -151,8 +151,8 @@ public class AccumuloInputFormatTest {
         .clientProperties(clientProperties).table("test").auths(Authorizations.EMPTY);
     opts.addIterator(iter1).store(job);
 
-    List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class,
-        job.getConfiguration());
+    List<IteratorSetting> list =
+        InputConfigurator.getIterators(AccumuloInputFormat.class, job.getConfiguration());
     assertEquals(1, list.size());
     assertEquals(1, list.get(0).getOptions().size());
     assertEquals(list.get(0).getOptions().get(key), value);
@@ -184,8 +184,8 @@ public class AccumuloInputFormatTest {
         .auths(Authorizations.EMPTY).addIterator(iter1).addIterator(iter2).addIterator(iter3)
         .store(job);
 
-    List<IteratorSetting> list = InputConfigurator.getIterators(AccumuloInputFormat.class,
-        job.getConfiguration());
+    List<IteratorSetting> list =
+        InputConfigurator.getIterators(AccumuloInputFormat.class, job.getConfiguration());
 
     // Check the list size
     assertEquals(3, list.size());

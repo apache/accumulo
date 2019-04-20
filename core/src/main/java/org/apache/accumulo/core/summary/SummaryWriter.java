@@ -144,8 +144,8 @@ public class SummaryWriter implements FileSKVWriter {
 
   public static FileSKVWriter wrap(FileSKVWriter writer, AccumuloConfiguration tableConfig,
       boolean useAccumuloStart) {
-    List<SummarizerConfiguration> configs = SummarizerConfigurationUtil
-        .getSummarizerConfigs(tableConfig);
+    List<SummarizerConfiguration> configs =
+        SummarizerConfigurationUtil.getSummarizerConfigs(tableConfig);
 
     if (configs.size() == 0) {
       return writer;

@@ -43,8 +43,8 @@ public class WriteLotsIT extends AccumuloClusterHarness {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
     bwConfig.setMaxMemory(1024L * 1024);
     bwConfig.setMaxWriteThreads(2);
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).batchWriterConfig(bwConfig)
-        .build()) {
+    try (AccumuloClient c =
+        Accumulo.newClient().from(getClientProps()).batchWriterConfig(bwConfig).build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       final AtomicReference<Exception> ref = new AtomicReference<>();

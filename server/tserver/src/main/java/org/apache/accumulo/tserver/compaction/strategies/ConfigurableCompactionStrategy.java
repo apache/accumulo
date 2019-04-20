@@ -77,14 +77,13 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
     @Override
     void gatherInformation(MajorCompactionRequest request) {
       gatherCalled = true;
-      Collection<SummarizerConfiguration> configs = SummarizerConfiguration
-          .fromTableProperties(request.getTableProperties());
+      Collection<SummarizerConfiguration> configs =
+          SummarizerConfiguration.fromTableProperties(request.getTableProperties());
       if (configs.size() == 0) {
         summaryConfigured = false;
       } else {
         Set<SummarizerConfiguration> configsSet = configs instanceof Set
-            ? (Set<SummarizerConfiguration>) configs
-            : new HashSet<>(configs);
+            ? (Set<SummarizerConfiguration>) configs : new HashSet<>(configs);
         okFiles = new HashSet<>();
 
         for (FileRef fref : request.getFiles().keySet()) {
@@ -125,8 +124,8 @@ public class ConfigurableCompactionStrategy extends CompactionStrategy {
         MajorCompactionRequest request) {
 
       if (!gatherCalled) {
-        Collection<SummarizerConfiguration> configs = SummarizerConfiguration
-            .fromTableProperties(request.getTableProperties());
+        Collection<SummarizerConfiguration> configs =
+            SummarizerConfiguration.fromTableProperties(request.getTableProperties());
         return configs.size() > 0;
       }
 

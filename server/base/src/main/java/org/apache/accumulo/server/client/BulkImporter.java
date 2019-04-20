@@ -106,8 +106,8 @@ public class BulkImporter {
   public AssignmentStats importFiles(List<String> files) {
 
     int numThreads = context.getConfiguration().getCount(Property.TSERV_BULK_PROCESS_THREADS);
-    int numAssignThreads = context.getConfiguration()
-        .getCount(Property.TSERV_BULK_ASSIGNMENT_THREADS);
+    int numAssignThreads =
+        context.getConfiguration().getCount(Property.TSERV_BULK_ASSIGNMENT_THREADS);
 
     timer = new StopWatch<>(Timers.class);
     timer.start(Timers.TOTAL);
@@ -120,19 +120,19 @@ public class BulkImporter {
     }
     AssignmentStats assignmentStats = new AssignmentStats(paths.size());
 
-    final Map<Path,List<KeyExtent>> completeFailures = Collections
-        .synchronizedSortedMap(new TreeMap<>());
+    final Map<Path,List<KeyExtent>> completeFailures =
+        Collections.synchronizedSortedMap(new TreeMap<>());
 
     ClientService.Client client = null;
     final TabletLocator locator = TabletLocator.getLocator(context, TableId.of(tableId));
 
     try {
-      final Map<Path,List<TabletLocation>> assignments = Collections
-          .synchronizedSortedMap(new TreeMap<>());
+      final Map<Path,List<TabletLocation>> assignments =
+          Collections.synchronizedSortedMap(new TreeMap<>());
 
       timer.start(Timers.EXAMINE_MAP_FILES);
-      ExecutorService threadPool = Executors.newFixedThreadPool(numThreads,
-          new NamingThreadFactory("findOverlapping"));
+      ExecutorService threadPool =
+          Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("findOverlapping"));
 
       for (Path path : paths) {
         final Path mapFile = path;
@@ -167,8 +167,8 @@ public class BulkImporter {
       timer.stop(Timers.EXAMINE_MAP_FILES);
 
       assignmentStats.attemptingAssignments(assignments);
-      Map<Path,List<KeyExtent>> assignmentFailures = assignMapFiles(fs, assignments, paths,
-          numAssignThreads, numThreads);
+      Map<Path,List<KeyExtent>> assignmentFailures =
+          assignMapFiles(fs, assignments, paths, numAssignThreads, numThreads);
       assignmentStats.assignmentsFailed(assignmentFailures);
 
       Map<Path,Integer> failureCount = new TreeMap<>();
@@ -220,8 +220,8 @@ public class BulkImporter {
         }
 
         assignmentStats.attemptingAssignments(assignments);
-        Map<Path,List<KeyExtent>> assignmentFailures2 = assignMapFiles(fs, assignments, paths,
-            numAssignThreads, numThreads);
+        Map<Path,List<KeyExtent>> assignmentFailures2 =
+            assignMapFiles(fs, assignments, paths, numAssignThreads, numThreads);
         assignmentStats.assignmentsFailed(assignmentFailures2);
 
         // merge assignmentFailures2 into assignmentFailures
@@ -352,8 +352,8 @@ public class BulkImporter {
 
     final Map<Path,List<AssignmentInfo>> ais = Collections.synchronizedMap(new TreeMap<>());
 
-    ExecutorService threadPool = Executors.newFixedThreadPool(numThreads,
-        new NamingThreadFactory("estimateSizes"));
+    ExecutorService threadPool =
+        Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("estimateSizes"));
 
     for (final Entry<Path,List<TabletLocation>> entry : assignments.entrySet()) {
       if (entry.getValue().size() == 1) {
@@ -382,8 +382,8 @@ public class BulkImporter {
           if (estimatedSizes == null) {
             // estimation failed, do a simple estimation
             estimatedSizes = new TreeMap<>();
-            long estSize = (long) (mapFileSizes.get(entry.getKey())
-                / (double) entry.getValue().size());
+            long estSize =
+                (long) (mapFileSizes.get(entry.getKey()) / (double) entry.getValue().size());
             for (TabletLocation tl : entry.getValue())
               estimatedSizes.put(tl.tablet_extent, estSize);
           }
@@ -433,8 +433,8 @@ public class BulkImporter {
       Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads,
       int numMapThreads) {
     timer.start(Timers.EXAMINE_MAP_FILES);
-    Map<Path,List<AssignmentInfo>> assignInfo = estimateSizes(fs, assignments, paths,
-        numMapThreads);
+    Map<Path,List<AssignmentInfo>> assignInfo =
+        estimateSizes(fs, assignments, paths, numMapThreads);
     timer.stop(Timers.EXAMINE_MAP_FILES);
 
     Map<Path,List<KeyExtent>> ret;
@@ -572,8 +572,8 @@ public class BulkImporter {
       apt.put(entry.getKey(), entry.getValue());
     }
 
-    ExecutorService threadPool = Executors.newFixedThreadPool(numThreads,
-        new NamingThreadFactory("submit"));
+    ExecutorService threadPool =
+        Executors.newFixedThreadPool(numThreads, new NamingThreadFactory("submit"));
 
     for (Entry<String,Map<KeyExtent,List<PathSize>>> entry : assignmentsPerTabletServer
         .entrySet()) {
@@ -601,19 +601,19 @@ public class BulkImporter {
       throws AccumuloException, AccumuloSecurityException {
     try {
       long timeInMillis = context.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, context,
-          timeInMillis);
+      TabletClientService.Iface client =
+          ThriftUtil.getTServerClient(location, context, timeInMillis);
       try {
-        HashMap<KeyExtent,Map<String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files = new HashMap<>();
+        HashMap<KeyExtent,Map<String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo>> files =
+            new HashMap<>();
         for (Entry<KeyExtent,List<PathSize>> entry : assignmentsPerTablet.entrySet()) {
-          HashMap<String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo> tabletFiles = new HashMap<>();
+          HashMap<String,org.apache.accumulo.core.dataImpl.thrift.MapFileInfo> tabletFiles =
+              new HashMap<>();
           files.put(entry.getKey(), tabletFiles);
 
           for (PathSize pathSize : entry.getValue()) {
-            // @formatter:off
             org.apache.accumulo.core.dataImpl.thrift.MapFileInfo mfi =
-              new org.apache.accumulo.core.dataImpl.thrift.MapFileInfo(pathSize.estSize);
-            // @formatter:on
+                new org.apache.accumulo.core.dataImpl.thrift.MapFileInfo(pathSize.estSize);
             tabletFiles.put(pathSize.path.toString(), mfi);
           }
         }

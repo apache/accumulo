@@ -294,8 +294,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
           "Received TableNotFoundException on method which should not throw that exception", e);
     }
 
-    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier(
-        thriftToken.getIdentifier());
+    AuthenticationTokenIdentifier identifier =
+        new AuthenticationTokenIdentifier(thriftToken.getIdentifier());
 
     // Get the password out of the thrift delegation token
     return new DelegationTokenImpl(thriftToken.getPassword(), identifier);

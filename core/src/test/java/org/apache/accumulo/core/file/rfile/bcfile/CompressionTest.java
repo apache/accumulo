@@ -52,8 +52,8 @@ public class CompressionTest {
     String extClazz = System.getProperty(Compression.Algorithm.CONF_LZO_CLASS);
     String clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.LzoCodec";
     try {
-      CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz),
-          myConf);
+      CompressionCodec codec =
+          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
 
       assertNotNull(codec);
       isSupported.put(Compression.Algorithm.LZO, true);
@@ -65,8 +65,8 @@ public class CompressionTest {
     extClazz = System.getProperty(Compression.Algorithm.CONF_SNAPPY_CLASS);
     clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.SnappyCodec";
     try {
-      CompressionCodec codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz),
-          myConf);
+      CompressionCodec codec =
+          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
 
       assertNotNull(codec);
 

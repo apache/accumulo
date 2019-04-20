@@ -52,8 +52,8 @@ public class AccumuloMonitorAppender extends AsyncAppender implements AutoClosea
     // create the background thread to watch for updates to monitor location
     trackerScheduled = new AtomicBoolean(false);
     executorService = Executors.newSingleThreadScheduledExecutor(runnable -> {
-      Thread t = new Thread(runnable,
-          AccumuloMonitorAppender.class.getSimpleName() + " Location Tracker");
+      Thread t =
+          new Thread(runnable, AccumuloMonitorAppender.class.getSimpleName() + " Location Tracker");
       t.setDaemon(true);
       return t;
     });
@@ -84,8 +84,8 @@ public class AccumuloMonitorAppender extends AsyncAppender implements AutoClosea
         frequency = 5000;
       }
       if (tracker == null) {
-        tracker = new MonitorTracker(this, new ZooCacheLocationSupplier(),
-            new SocketAppenderFactory());
+        tracker =
+            new MonitorTracker(this, new ZooCacheLocationSupplier(), new SocketAppenderFactory());
       }
       executorService.scheduleWithFixedDelay(tracker, frequency, frequency, TimeUnit.MILLISECONDS);
     }

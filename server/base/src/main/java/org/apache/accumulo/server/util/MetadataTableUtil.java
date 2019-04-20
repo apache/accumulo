@@ -436,8 +436,8 @@ public class MetadataTableUtil {
             new DataFileValue(lowSize, lowEntries, entry.getValue().getTime()));
 
         long highSize = (long) Math.ceil((entry.getValue().getSize() * (1.0 - splitRatio)));
-        long highEntries = (long) Math
-            .ceil((entry.getValue().getNumEntries() * (1.0 - splitRatio)));
+        long highEntries =
+            (long) Math.ceil((entry.getValue().getNumEntries() * (1.0 - splitRatio)));
         highDatafileSizes.put(entry.getKey(),
             new DataFileValue(highSize, highEntries, entry.getValue().getTime()));
       }
@@ -532,9 +532,9 @@ public class MetadataTableUtil {
     }
   }
 
-  public static Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>> getFileAndLogEntries(
-      ServerContext context, KeyExtent extent)
-      throws KeeperException, InterruptedException, IOException {
+  public static Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>>
+      getFileAndLogEntries(ServerContext context, KeyExtent extent)
+          throws KeeperException, InterruptedException, IOException {
     ArrayList<LogEntry> result = new ArrayList<>();
     TreeMap<FileRef,DataFileValue> sizes = new TreeMap<>();
 
@@ -640,8 +640,8 @@ public class MetadataTableUtil {
     LogEntryIterator(ServerContext context)
         throws IOException, KeeperException, InterruptedException {
       zookeeperEntries = getLogEntries(context, RootTable.EXTENT).iterator();
-      rootTableEntries = getLogEntries(context, new KeyExtent(MetadataTable.ID, null, null))
-          .iterator();
+      rootTableEntries =
+          getLogEntries(context, new KeyExtent(MetadataTable.ID, null, null)).iterator();
       try {
         Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         log.info("Setting range to {}", MetadataSchema.TabletsSection.getRange());
@@ -789,10 +789,10 @@ public class MetadataTableUtil {
       AccumuloClient client, BatchWriter bw)
       throws TableNotFoundException, MutationsRejectedException {
 
-    Iterator<TabletMetadata> srcIter = createCloneScanner(testTableName, srcTableId, client)
-        .iterator();
-    Iterator<TabletMetadata> cloneIter = createCloneScanner(testTableName, tableId, client)
-        .iterator();
+    Iterator<TabletMetadata> srcIter =
+        createCloneScanner(testTableName, srcTableId, client).iterator();
+    Iterator<TabletMetadata> cloneIter =
+        createCloneScanner(testTableName, tableId, client).iterator();
 
     if (!cloneIter.hasNext() || !srcIter.hasNext())
       throw new RuntimeException(
@@ -936,8 +936,8 @@ public class MetadataTableUtil {
   public static void removeBulkLoadEntries(AccumuloClient client, TableId tableId, long tid)
       throws Exception {
     try (
-        Scanner mscanner = new IsolatedScanner(
-            client.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+        Scanner mscanner =
+            new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
         BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
       mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
@@ -1025,8 +1025,8 @@ public class MetadataTableUtil {
    */
   public static void createReplicationTable(ServerContext context) {
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(ReplicationTable.ID,
-        null, context);
+    VolumeChooserEnvironment chooserEnv =
+        new VolumeChooserEnvironmentImpl(ReplicationTable.ID, null, context);
     String dir = context.getVolumeManager().choose(chooserEnv, ServerConstants.getBaseUris(context))
         + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID
         + Constants.DEFAULT_TABLET_LOCATION;
@@ -1101,8 +1101,8 @@ public class MetadataTableUtil {
     update(context, m, oldExtent);
   }
 
-  public static SortedMap<Text,SortedMap<ColumnFQ,Value>> getTabletEntries(
-      SortedMap<Key,Value> tabletKeyValues, List<ColumnFQ> columns) {
+  public static SortedMap<Text,SortedMap<ColumnFQ,Value>>
+      getTabletEntries(SortedMap<Key,Value> tabletKeyValues, List<ColumnFQ> columns) {
     TreeMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries = new TreeMap<>();
 
     HashSet<ColumnFQ> colSet = null;

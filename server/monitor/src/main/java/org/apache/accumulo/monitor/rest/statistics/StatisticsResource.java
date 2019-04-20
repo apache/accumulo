@@ -185,8 +185,8 @@ public class StatisticsResource {
     List<Pair<String,List<Pair<Long,Integer>>>> scanEntries = new ArrayList<>();
 
     Pair<String,List<Pair<Long,Integer>>> read = new Pair<>("Read", monitor.getScanRateOverTime());
-    Pair<String,List<Pair<Long,Integer>>> returned = new Pair<>("Returned",
-        monitor.getQueryRateOverTime());
+    Pair<String,List<Pair<Long,Integer>>> returned =
+        new Pair<>("Returned", monitor.getQueryRateOverTime());
 
     scanEntries.add(read);
     scanEntries.add(returned);

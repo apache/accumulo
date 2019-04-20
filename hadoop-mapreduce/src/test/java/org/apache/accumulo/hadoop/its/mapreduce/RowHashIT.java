@@ -66,8 +66,8 @@ public class RowHashIT extends ConfigurableMacBase {
     return 60;
   }
 
-  public static final String hadoopTmpDirArg = "-Dhadoop.tmp.dir=" + System.getProperty("user.dir")
-      + "/target/hadoop-tmp";
+  public static final String hadoopTmpDirArg =
+      "-Dhadoop.tmp.dir=" + System.getProperty("user.dir") + "/target/hadoop-tmp";
 
   static final String tablename = "mapredf";
   static final String input_cf = "cf-HASHTYPE";

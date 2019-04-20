@@ -35,8 +35,10 @@ public class PerTableVolumeChooser implements VolumeChooser {
   private static final Logger log = LoggerFactory.getLogger(PerTableVolumeChooser.class);
   // TODO Add hint of expected size to construction, see ACCUMULO-3410
   /* Track VolumeChooser instances so they can keep state. */
-  private final ConcurrentHashMap<TableId,VolumeChooser> tableSpecificChooserCache = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<ChooserScope,VolumeChooser> scopeSpecificChooserCache = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<TableId,VolumeChooser> tableSpecificChooserCache =
+      new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<ChooserScope,VolumeChooser> scopeSpecificChooserCache =
+      new ConcurrentHashMap<>();
   private final RandomVolumeChooser randomChooser = new RandomVolumeChooser();
 
   private static final String TABLE_CUSTOM_SUFFIX = "volume.chooser";
@@ -45,8 +47,8 @@ public class PerTableVolumeChooser implements VolumeChooser {
     return "volume.chooser." + scope.name().toLowerCase();
   }
 
-  private static final String DEFAULT_SCOPED_VOLUME_CHOOSER = getCustomPropertySuffix(
-      ChooserScope.DEFAULT);
+  private static final String DEFAULT_SCOPED_VOLUME_CHOOSER =
+      getCustomPropertySuffix(ChooserScope.DEFAULT);
 
   @Override
   public String choose(VolumeChooserEnvironment env, String[] options)
@@ -73,8 +75,8 @@ public class PerTableVolumeChooser implements VolumeChooser {
   private VolumeChooser getVolumeChooserForTable(VolumeChooserEnvironment env) {
     log.trace("Looking up property {} for table id: {}", TABLE_CUSTOM_SUFFIX, env.getTableId());
 
-    String clazz = env.getServiceEnv().getConfiguration(env.getTableId())
-        .getTableCustom(TABLE_CUSTOM_SUFFIX);
+    String clazz =
+        env.getServiceEnv().getConfiguration(env.getTableId()).getTableCustom(TABLE_CUSTOM_SUFFIX);
 
     // fall back to global default scope, so setting only one default is necessary, rather than a
     // separate default for TABLE scope than other scopes
@@ -107,9 +109,9 @@ public class PerTableVolumeChooser implements VolumeChooser {
       clazz = env.getServiceEnv().getConfiguration().getCustom(DEFAULT_SCOPED_VOLUME_CHOOSER);
 
       if (clazz == null || clazz.isEmpty()) {
-        String msg = "Property " + property + " or " + DEFAULT_SCOPED_VOLUME_CHOOSER
-            + " must be a valid " + VolumeChooser.class.getSimpleName() + " to use the "
-            + getClass().getSimpleName();
+        String msg =
+            "Property " + property + " or " + DEFAULT_SCOPED_VOLUME_CHOOSER + " must be a valid "
+                + VolumeChooser.class.getSimpleName() + " to use the " + getClass().getSimpleName();
         throw new VolumeChooserException(msg);
       }
 

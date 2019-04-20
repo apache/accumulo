@@ -323,9 +323,9 @@ public class KeyBuilder {
     }
 
     private byte[] encodeCharSequence(CharSequence chars) {
-      CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder()
-          .onMalformedInput(CodingErrorAction.REPORT)
-          .onUnmappableCharacter(CodingErrorAction.REPORT);
+      CharsetEncoder encoder =
+          Charset.forName("UTF-8").newEncoder().onMalformedInput(CodingErrorAction.REPORT)
+              .onUnmappableCharacter(CodingErrorAction.REPORT);
       try {
         return encoder.encode(CharBuffer.wrap(chars)).array();
       } catch (CharacterCodingException ex) {

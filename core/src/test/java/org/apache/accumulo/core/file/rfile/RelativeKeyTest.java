@@ -181,8 +181,8 @@ public class RelativeKeyTest {
     Key currKey = null;
     MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
 
-    RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey,
-        expectedKeys.size());
+    RelativeKey.SkippR skippr =
+        RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size());
     assertEquals(1, skippr.skipped);
     assertEquals(new Key(), skippr.prevKey);
     assertEquals(expectedKeys.get(0), skippr.rk.getKey());
@@ -234,8 +234,8 @@ public class RelativeKeyTest {
     Key currKey = null;
     MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
 
-    RelativeKey.SkippR skippr = RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey,
-        expectedKeys.size());
+    RelativeKey.SkippR skippr =
+        RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size());
 
     assertEquals(seekIndex + 1, skippr.skipped);
     assertEquals(expectedKeys.get(seekIndex - 1), skippr.prevKey);
@@ -253,8 +253,8 @@ public class RelativeKeyTest {
 
     int left = expectedKeys.size();
 
-    skippr = RelativeKey.fastSkip(in, expectedKeys.get(i), value, prevKey, currKey,
-        expectedKeys.size());
+    skippr =
+        RelativeKey.fastSkip(in, expectedKeys.get(i), value, prevKey, currKey, expectedKeys.size());
     assertEquals(i + 1, skippr.skipped);
     left -= skippr.skipped;
     assertEquals(expectedKeys.get(i - 1), skippr.prevKey);
@@ -274,8 +274,8 @@ public class RelativeKeyTest {
     fKey = expectedKeys.get(i).followingKey(PartialKey.ROW_COLFAM);
     int j;
     for (j = i; expectedKeys.get(j).compareTo(fKey) < 0; j++) {}
-    skippr = RelativeKey.fastSkip(in, fKey, value, expectedKeys.get(i - 1), expectedKeys.get(i),
-        left);
+    skippr =
+        RelativeKey.fastSkip(in, fKey, value, expectedKeys.get(i - 1), expectedKeys.get(i), left);
     assertEquals(j - i, skippr.skipped);
     assertEquals(expectedKeys.get(j - 1), skippr.prevKey);
     assertEquals(expectedKeys.get(j), skippr.rk.getKey());

@@ -28,10 +28,14 @@ import org.junit.Test;
 @SuppressWarnings("deprecation")
 public class ClientConfigurationTest {
 
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_NAME = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_HOST = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty RPC_SSL_TRUSTSTORE_TYPE = ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_TYPE;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_NAME =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_HOST =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty RPC_SSL_TRUSTSTORE_TYPE =
+      ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_TYPE;
 
   @Test
   public void testOverrides() {

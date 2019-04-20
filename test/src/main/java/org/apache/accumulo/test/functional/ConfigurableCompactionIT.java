@@ -107,8 +107,8 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
   public void testPerTableClasspath() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       final String tableName = getUniqueNames(1)[0];
-      File destFile = installJar(getCluster().getConfig().getAccumuloDir(),
-          "/TestCompactionStrat.jar");
+      File destFile =
+          installJar(getCluster().getConfig().getAccumuloDir(), "/TestCompactionStrat.jar");
       c.tableOperations().create(tableName);
       c.instanceOperations().setProperty(
           Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());

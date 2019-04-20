@@ -221,8 +221,8 @@ class PopulateMetadataTable extends MasterRepo {
   protected String getClonedTabletDir(Master master, Text endRow, String[] volumes,
       String tabletDir) {
     // We can try to spread out the tablet dirs across all volumes
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(tableInfo.tableId,
-        endRow, master.getContext());
+    VolumeChooserEnvironment chooserEnv =
+        new VolumeChooserEnvironmentImpl(tableInfo.tableId, endRow, master.getContext());
     String volume = master.getFileSystem().choose(chooserEnv, volumes);
 
     // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX

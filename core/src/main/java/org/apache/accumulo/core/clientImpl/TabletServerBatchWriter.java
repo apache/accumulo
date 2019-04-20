@@ -121,8 +121,8 @@ public class TabletServerBatchWriter {
 
   // latency timers
   private final Timer jtimer = new Timer("BatchWriterLatencyTimer", true);
-  private final Map<String,TimeoutTracker> timeoutTrackers = Collections
-      .synchronizedMap(new HashMap<>());
+  private final Map<String,TimeoutTracker> timeoutTrackers =
+      Collections.synchronizedMap(new HashMap<>());
 
   // stats
   private long totalMemUsed = 0;
@@ -211,8 +211,8 @@ public class TabletServerBatchWriter {
         public void run() {
           try {
             synchronized (TabletServerBatchWriter.this) {
-              if ((System.currentTimeMillis()
-                  - lastProcessingStartTime) > TabletServerBatchWriter.this.maxLatency)
+              if ((System.currentTimeMillis() - lastProcessingStartTime)
+                  > TabletServerBatchWriter.this.maxLatency)
                 startProcessing();
             }
           } catch (Throwable t) {
@@ -546,7 +546,8 @@ public class TabletServerBatchWriter {
   private void checkForFailures() throws MutationsRejectedException {
     if (somethingFailed) {
       List<ConstraintViolationSummary> cvsList = violations.asList();
-      HashMap<TabletId,Set<org.apache.accumulo.core.client.security.SecurityErrorCode>> af = new HashMap<>();
+      HashMap<TabletId,Set<org.apache.accumulo.core.client.security.SecurityErrorCode>> af =
+          new HashMap<>();
       for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : authorizationFailures.entrySet()) {
         HashSet<org.apache.accumulo.core.client.security.SecurityErrorCode> codes = new HashSet<>();
 
@@ -736,8 +737,8 @@ public class TabletServerBatchWriter {
       addMutations(binnedMutations);
     }
 
-    private synchronized void addMutations(
-        Map<String,TabletServerMutations<Mutation>> binnedMutations) {
+    private synchronized void
+        addMutations(Map<String,TabletServerMutations<Mutation>> binnedMutations) {
 
       int count = 0;
 
@@ -923,8 +924,8 @@ public class TabletServerBatchWriter {
             timeoutTracker.madeProgress();
           } else {
 
-            long usid = client.startUpdate(tinfo, context.rpcCreds(),
-                DurabilityImpl.toThrift(durability));
+            long usid =
+                client.startUpdate(tinfo, context.rpcCreds(), DurabilityImpl.toThrift(durability));
 
             List<TMutation> updates = new ArrayList<>();
             for (Entry<KeyExtent,List<Mutation>> entry : tabMuts.entrySet()) {
@@ -945,8 +946,8 @@ public class TabletServerBatchWriter {
 
             UpdateErrors updateErrors = client.closeUpdate(tinfo, usid);
 
-            Map<KeyExtent,Long> failures = Translator.translate(updateErrors.failedExtents,
-                Translators.TKET);
+            Map<KeyExtent,Long> failures =
+                Translator.translate(updateErrors.failedExtents, Translators.TKET);
             updatedConstraintViolations(
                 Translator.translate(updateErrors.violationSummaries, Translators.TCVST));
             updateAuthorizationFailures(

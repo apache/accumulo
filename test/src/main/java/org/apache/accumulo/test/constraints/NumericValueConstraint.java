@@ -33,8 +33,8 @@ public class NumericValueConstraint implements Constraint {
   static final short NON_NUMERIC_VALUE = 1;
   static final String VIOLATION_MESSAGE = "Value is not numeric";
 
-  private static final List<Short> VIOLATION_LIST = Collections
-      .unmodifiableList(Arrays.asList(NON_NUMERIC_VALUE));
+  private static final List<Short> VIOLATION_LIST =
+      Collections.unmodifiableList(Arrays.asList(NON_NUMERIC_VALUE));
 
   private boolean isNumeric(byte[] bytes) {
     for (byte b : bytes) {

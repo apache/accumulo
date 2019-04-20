@@ -99,8 +99,8 @@ public class SortedLogRecovery {
   private int findMaxTabletId(KeyExtent extent, List<Path> recoveryLogs) throws IOException {
     int tabletId = -1;
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(fs, recoveryLogs,
-        minKey(DEFINE_TABLET), maxKey(DEFINE_TABLET))) {
+    try (RecoveryLogsIterator rli =
+        new RecoveryLogsIterator(fs, recoveryLogs, minKey(DEFINE_TABLET), maxKey(DEFINE_TABLET))) {
 
       KeyExtent alternative = extent;
       if (extent.isRootTablet()) {
@@ -156,7 +156,7 @@ public class SortedLogRecovery {
     }
 
     if (logsThatDefineTablet.isEmpty()) {
-      return new AbstractMap.SimpleEntry<>(-1, Collections.<Path> emptyList());
+      return new AbstractMap.SimpleEntry<>(-1, Collections.<Path>emptyList());
     } else {
       return Collections.max(logsThatDefineTablet.entrySet(),
           (o1, o2) -> Integer.compare(o1.getKey(), o2.getKey()));

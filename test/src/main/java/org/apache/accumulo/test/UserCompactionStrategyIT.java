@@ -95,8 +95,8 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
       writeFlush(c, tableName, "d");
 
       // drop files that start with A
-      CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-          TestCompactionStrategy.class.getName());
+      CompactionStrategyConfig csConfig =
+          new CompactionStrategyConfig(TestCompactionStrategy.class.getName());
       csConfig.setOptions(ImmutableMap.of("dropPrefix", "A", "inputPrefix", "F"));
       c.tableOperations().compact(tableName,
           new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
@@ -121,8 +121,8 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
       writeFlush(c, tableName, "a");
       writeFlush(c, tableName, "b");
 
-      CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-          TestCompactionStrategy.class.getName());
+      CompactionStrategyConfig csConfig =
+          new CompactionStrategyConfig(TestCompactionStrategy.class.getName());
       csConfig.setOptions(options);
       c.tableOperations().compact(tableName,
           new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
@@ -177,8 +177,8 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
       // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are
       // compacted.
-      CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-          "org.apache.accumulo.test.EfgCompactionStrat");
+      CompactionStrategyConfig csConfig =
+          new CompactionStrategyConfig("org.apache.accumulo.test.EfgCompactionStrat");
       c.tableOperations().compact(tableName,
           new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));
 
@@ -218,8 +218,8 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
       assertEquals(3, FunctionalTestUtils.countRFiles(c, tableName));
 
       // drop files that start with A
-      CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-          TestCompactionStrategy.class.getName());
+      CompactionStrategyConfig csConfig =
+          new CompactionStrategyConfig(TestCompactionStrategy.class.getName());
       csConfig.setOptions(ImmutableMap.of("inputPrefix", "F"));
 
       IteratorSetting iterConf = new IteratorSetting(21, "myregex", RegExFilter.class);
@@ -261,8 +261,8 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
 
       assertEquals(5, FunctionalTestUtils.countRFiles(c, tableName));
 
-      CompactionStrategyConfig csConfig = new CompactionStrategyConfig(
-          SizeCompactionStrategy.class.getName());
+      CompactionStrategyConfig csConfig =
+          new CompactionStrategyConfig(SizeCompactionStrategy.class.getName());
       csConfig.setOptions(ImmutableMap.of("size", "" + (1 << 15)));
       c.tableOperations().compact(tableName,
           new CompactionConfig().setWait(true).setCompactionStrategy(csConfig));

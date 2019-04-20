@@ -117,8 +117,8 @@ public class CheckForMetadataProblems {
 
         count++;
 
-        String tableName = (new KeyExtent(entry.getKey().getRow(), (Text) null)).getTableId()
-            .canonical();
+        String tableName =
+            (new KeyExtent(entry.getKey().getRow(), (Text) null)).getTableId().canonical();
 
         TreeSet<KeyExtent> tablets = tables.get(tableName);
         if (tablets == null) {
@@ -167,8 +167,8 @@ public class CheckForMetadataProblems {
 
   public static void main(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(CheckForMetadataProblems.class.getName(),
-        args)) {
+    try (TraceScope clientSpan =
+        opts.parseArgsAndTrace(CheckForMetadataProblems.class.getName(), args)) {
 
       checkMetadataAndRootTableEntries(RootTable.NAME, opts);
       checkMetadataAndRootTableEntries(MetadataTable.NAME, opts);

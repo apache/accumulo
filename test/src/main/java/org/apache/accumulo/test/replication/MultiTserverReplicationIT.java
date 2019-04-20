@@ -65,8 +65,8 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
     try (Scanner s = client.createScanner("foo", Authorizations.EMPTY)) {
       assertEquals(0, Iterables.size(s));
 
-      ZooReader zreader = new ZooReader(context.getZooKeepers(),
-          context.getZooKeepersSessionTimeOut());
+      ZooReader zreader =
+          new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
       Set<String> tserverHost = new HashSet<>();
       tserverHost.addAll(zreader.getChildren(
           ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZTSERVERS));
@@ -75,8 +75,8 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
 
       for (String tserver : tserverHost) {
         try {
-          byte[] portData = zreader
-              .getData(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+          byte[] portData =
+              zreader.getData(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
                   + ReplicationConstants.ZOO_TSERVERS + "/" + tserver, null);
           HostAndPort replAddress = HostAndPort.fromString(new String(portData, UTF_8));
           replicationServices.add(replAddress);
@@ -103,8 +103,8 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
     try (Scanner s = client.createScanner("foo", Authorizations.EMPTY)) {
       assertEquals(0, Iterables.size(s));
 
-      ZooReader zreader = new ZooReader(context.getZooKeepers(),
-          context.getZooKeepersSessionTimeOut());
+      ZooReader zreader =
+          new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
 
       // Should have one master instance
       assertEquals(1, context.getMasterLocations().size());
@@ -113,10 +113,9 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
       String masterAddr = Iterables.getOnlyElement(context.getMasterLocations());
 
       // Get the master replication coordinator addr
-      String replCoordAddr = new String(
-          zreader.getData(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
-              + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR, null),
-          UTF_8);
+      String replCoordAddr =
+          new String(zreader.getData(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+              + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR, null), UTF_8);
 
       // They shouldn't be the same
       assertNotEquals(masterAddr, replCoordAddr);

@@ -41,13 +41,13 @@ public class AuthenticationTokenTest {
     assertFalse(allZero);
 
     byte[] serialized = AuthenticationTokenSerializer.serialize(new PasswordToken(randomBytes));
-    PasswordToken passwordToken = AuthenticationTokenSerializer.deserialize(PasswordToken.class,
-        serialized);
+    PasswordToken passwordToken =
+        AuthenticationTokenSerializer.deserialize(PasswordToken.class, serialized);
     assertArrayEquals(randomBytes, passwordToken.getPassword());
 
     serialized = AuthenticationTokenSerializer.serialize(new NullToken());
-    AuthenticationToken nullToken = AuthenticationTokenSerializer.deserialize(NullToken.class,
-        serialized);
+    AuthenticationToken nullToken =
+        AuthenticationTokenSerializer.deserialize(NullToken.class, serialized);
     assertEquals(new NullToken(), nullToken);
   }
 }

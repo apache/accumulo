@@ -123,9 +123,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       job.setInputFormat(AccumuloInputFormat.class);
 
-      InputFormatBuilder.InputFormatOptions<JobConf> opts = AccumuloInputFormat.configure()
-          .clientProperties(getClientInfo().getProperties()).table(table)
-          .auths(Authorizations.EMPTY);
+      InputFormatBuilder.InputFormatOptions<JobConf> opts =
+          AccumuloInputFormat.configure().clientProperties(getClientInfo().getProperties())
+              .table(table).auths(Authorizations.EMPTY);
 
       if (sample) {
         opts.samplerConfiguration(SAMPLER_CONFIG);
@@ -173,8 +173,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
   }
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
-      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG =
+      new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
+          .addOption("modulus", "3");
 
   @Test
   public void testSample() throws Exception {
@@ -213,8 +214,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<IteratorSetting.Column> fetchColumns = Collections
-        .singleton(new IteratorSetting.Column(new Text("foo"), new Text("bar")));
+    Collection<IteratorSetting.Column> fetchColumns =
+        Collections.singleton(new IteratorSetting.Column(new Text("foo"), new Text("bar")));
 
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       accumuloClient.tableOperations().create(table);

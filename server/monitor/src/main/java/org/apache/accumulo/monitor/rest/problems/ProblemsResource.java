@@ -127,15 +127,15 @@ public class ProblemsResource {
     if (monitor.getProblemException() == null) {
       for (Entry<TableId,Map<ProblemType,Integer>> entry : monitor.getProblemSummary().entrySet()) {
         ArrayList<ProblemReport> problemReports = new ArrayList<>();
-        Iterator<ProblemReport> iter = entry.getKey() == null
-            ? ProblemReports.getInstance(monitor.getContext()).iterator()
-            : ProblemReports.getInstance(monitor.getContext()).iterator(entry.getKey());
+        Iterator<ProblemReport> iter =
+            entry.getKey() == null ? ProblemReports.getInstance(monitor.getContext()).iterator()
+                : ProblemReports.getInstance(monitor.getContext()).iterator(entry.getKey());
         while (iter.hasNext()) {
           problemReports.add(iter.next());
         }
         for (ProblemReport pr : problemReports) {
-          String tableName = Tables.getPrintableTableInfoFromId(monitor.getContext(),
-              pr.getTableId());
+          String tableName =
+              Tables.getPrintableTableInfoFromId(monitor.getContext(), pr.getTableId());
 
           problems.addProblemDetail(
               new ProblemDetailInformation(tableName, entry.getKey(), pr.getProblemType().name(),

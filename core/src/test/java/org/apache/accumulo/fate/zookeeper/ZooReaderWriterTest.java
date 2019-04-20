@@ -122,8 +122,8 @@ public class ZooReaderWriterTest {
     final byte[] mutatedBytes = {1};
     Mutator mutator = currentValue -> mutatedBytes;
 
-    Method getDataMethod = ZooReaderWriter.class.getMethod("getData", String.class, boolean.class,
-        Stat.class);
+    Method getDataMethod =
+        ZooReaderWriter.class.getMethod("getData", String.class, boolean.class, Stat.class);
     zrw = EasyMock.createMockBuilder(ZooReaderWriter.class)
         .addMockedMethods("getRetryFactory", "getZooKeeper").addMockedMethod(getDataMethod)
         .createMock();
@@ -155,8 +155,8 @@ public class ZooReaderWriterTest {
     final byte[] mutatedBytes = {1};
     Mutator mutator = currentValue -> mutatedBytes;
 
-    Method getDataMethod = ZooReaderWriter.class.getMethod("getData", String.class, boolean.class,
-        Stat.class);
+    Method getDataMethod =
+        ZooReaderWriter.class.getMethod("getData", String.class, boolean.class, Stat.class);
     zrw = EasyMock.createMockBuilder(ZooReaderWriter.class)
         .addMockedMethods("getRetryFactory", "getZooKeeper").addMockedMethod(getDataMethod)
         .createMock();

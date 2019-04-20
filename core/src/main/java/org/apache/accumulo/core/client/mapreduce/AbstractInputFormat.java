@@ -244,8 +244,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setConnectorInfo(Job, String, String)
    */
   protected static AuthenticationToken getAuthenticationToken(JobContext job) {
-    AuthenticationToken token = InputConfigurator.getAuthenticationToken(CLASS,
-        job.getConfiguration());
+    AuthenticationToken token =
+        InputConfigurator.getAuthenticationToken(CLASS, job.getConfiguration());
     return InputConfigurator.unwrapAuthenticationToken(job, token);
   }
 
@@ -400,8 +400,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @return The ClientConfiguration
    * @since 1.7.0
    */
-  protected static org.apache.accumulo.core.client.ClientConfiguration getClientConfiguration(
-      JobContext job) {
+  protected static org.apache.accumulo.core.client.ClientConfiguration
+      getClientConfiguration(JobContext job) {
     return InputConfigurator.getClientConfiguration(CLASS, job.getConfiguration());
   }
 
@@ -508,7 +508,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       log.debug("Authorizations are: " + authorizations);
 
       if (split instanceof org.apache.accumulo.core.clientImpl.mapreduce.BatchInputSplit) {
-        org.apache.accumulo.core.clientImpl.mapreduce.BatchInputSplit batchSplit = (org.apache.accumulo.core.clientImpl.mapreduce.BatchInputSplit) split;
+        org.apache.accumulo.core.clientImpl.mapreduce.BatchInputSplit batchSplit =
+            (org.apache.accumulo.core.clientImpl.mapreduce.BatchInputSplit) split;
 
         BatchScanner scanner;
         try {
@@ -700,8 +701,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         throw new IllegalArgumentException(
             "AutoAdjustRanges must be enabled when using BatchScanner optimization");
 
-      List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges())
-          : tableConfig.getRanges();
+      List<Range> ranges =
+          autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
       if (ranges.isEmpty()) {
         ranges = new ArrayList<>(1);
         ranges.add(new Range());
@@ -766,8 +767,9 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             ArrayList<Range> clippedRanges = new ArrayList<>();
             for (Range r : extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
-            org.apache.accumulo.core.clientImpl.mapreduce.BatchInputSplit split = new org.apache.accumulo.core.clientImpl.mapreduce.BatchInputSplit(
-                tableName, tableId, clippedRanges, new String[] {location});
+            org.apache.accumulo.core.clientImpl.mapreduce.BatchInputSplit split =
+                new org.apache.accumulo.core.clientImpl.mapreduce.BatchInputSplit(tableName,
+                    tableId, clippedRanges, new String[] {location});
             org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils.updateSplit(split, tableConfig,
                 logLevel);
 

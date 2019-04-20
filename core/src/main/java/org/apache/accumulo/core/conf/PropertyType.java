@@ -193,8 +193,8 @@ public enum PropertyType {
   }
 
   private static final Pattern SUFFIX_REGEX = Pattern.compile("[^\\d]*$");
-  private static final Function<String,String> stripUnits = x -> x == null ? null
-      : SUFFIX_REGEX.matcher(x.trim()).replaceAll("");
+  private static final Function<String,String> stripUnits =
+      x -> x == null ? null : SUFFIX_REGEX.matcher(x.trim()).replaceAll("");
 
   private static class HasSuffix implements Predicate<String> {
 

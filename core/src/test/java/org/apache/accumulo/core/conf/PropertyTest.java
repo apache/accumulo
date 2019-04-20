@@ -109,13 +109,14 @@ public class PropertyTest {
     conf.set("trace.token.property.blah", "something");
 
     // ignores duplicates because ConfigurationCopy already de-duplicates
-    Collector<Entry<String,String>,?,TreeMap<String,String>> treeMapCollector = Collectors
-        .toMap(Entry::getKey, Entry::getValue, (a, b) -> a, TreeMap::new);
+    Collector<Entry<String,String>,?,TreeMap<String,String>> treeMapCollector =
+        Collectors.toMap(Entry::getKey, Entry::getValue, (a, b) -> a, TreeMap::new);
 
-    Predicate<Entry<String,String>> sensitiveNames = e -> e.getKey()
-        .equals(Property.INSTANCE_SECRET.getKey()) || e.getKey().toLowerCase().contains("password")
-        || e.getKey().toLowerCase().endsWith("secret")
-        || e.getKey().startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey());
+    Predicate<Entry<String,String>> sensitiveNames =
+        e -> e.getKey().equals(Property.INSTANCE_SECRET.getKey())
+            || e.getKey().toLowerCase().contains("password")
+            || e.getKey().toLowerCase().endsWith("secret")
+            || e.getKey().startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey());
 
     Predicate<Entry<String,String>> isMarkedSensitive = e -> Property.isSensitive(e.getKey());
 

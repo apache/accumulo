@@ -134,8 +134,8 @@ public class TabletData {
   // Read basic root table metadata from zookeeper
   public TabletData(ServerContext context, VolumeManager fs, AccumuloConfiguration conf)
       throws IOException {
-    directory = VolumeUtil.switchRootTableVolume(context,
-        MetadataTableUtil.getRootTabletDir(context));
+    directory =
+        VolumeUtil.switchRootTableVolume(context, MetadataTableUtil.getRootTabletDir(context));
 
     Path location = new Path(directory);
 

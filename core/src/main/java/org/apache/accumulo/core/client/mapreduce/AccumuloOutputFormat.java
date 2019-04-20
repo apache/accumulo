@@ -214,8 +214,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setConnectorInfo(Job, String, String)
    */
   protected static AuthenticationToken getAuthenticationToken(JobContext context) {
-    AuthenticationToken token = OutputConfigurator.getAuthenticationToken(CLASS,
-        context.getConfiguration());
+    AuthenticationToken token =
+        OutputConfigurator.getAuthenticationToken(CLASS, context.getConfiguration());
     return OutputConfigurator.unwrapAuthenticationToken(context, token);
   }
 

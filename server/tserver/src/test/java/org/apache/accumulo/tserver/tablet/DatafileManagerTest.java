@@ -90,8 +90,8 @@ public class DatafileManagerTest {
   public void testReserveMergingMinorCompactionFile_MaxFilesNotReached() {
     EasyMock.replay(tablet, tableConf);
 
-    SortedMap<FileRef,DataFileValue> testFiles = createFileMap("smallfile", "100B", "file2", "100M",
-        "file3", "100M", "file4", "100M");
+    SortedMap<FileRef,DataFileValue> testFiles =
+        createFileMap("smallfile", "100B", "file2", "100M", "file3", "100M", "file4", "100M");
 
     DatafileManager dfm = new DatafileManager(tablet, testFiles);
     FileRef mergeFile = dfm.reserveMergingMinorCompactionFile();

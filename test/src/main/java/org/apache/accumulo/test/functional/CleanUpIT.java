@@ -73,9 +73,9 @@ public class CleanUpIT extends SharedMiniClusterBase {
 
     // CleanUp was created to clean up after connectors. This test intentionally creates a connector
     // instead of an AccumuloClient
-    org.apache.accumulo.core.client.Connector conn = new org.apache.accumulo.core.client.ZooKeeperInstance(
-        getCluster().getInstanceName(), getCluster().getZooKeepers()).getConnector(getPrincipal(),
-            getToken());
+    org.apache.accumulo.core.client.Connector conn =
+        new org.apache.accumulo.core.client.ZooKeeperInstance(getCluster().getInstanceName(),
+            getCluster().getZooKeepers()).getConnector(getPrincipal(), getToken());
 
     String tableName = getUniqueNames(1)[0];
     conn.tableOperations().create(tableName);

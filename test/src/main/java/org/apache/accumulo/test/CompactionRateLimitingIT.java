@@ -46,8 +46,8 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
   public void majorCompactionsAreRateLimited() throws Exception {
     long bytesWritten = 0;
     String tableName = getUniqueNames(1)[0];
-    AccumuloClient client = getCluster().createAccumuloClient("root",
-        new PasswordToken(ROOT_PASSWORD));
+    AccumuloClient client =
+        getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD));
     client.tableOperations().create(tableName);
     try (BatchWriter bw = client.createBatchWriter(tableName)) {
       Random r = new SecureRandom();

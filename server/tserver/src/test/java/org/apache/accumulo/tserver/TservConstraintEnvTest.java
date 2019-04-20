@@ -41,8 +41,8 @@ public class TservConstraintEnvTest {
     TCredentials badCred = createMock(TCredentials.class);
 
     ByteSequence bs = new ArrayByteSequence("foo".getBytes());
-    List<ByteBuffer> bbList = Collections
-        .singletonList(ByteBuffer.wrap(bs.getBackingArray(), bs.offset(), bs.length()));
+    List<ByteBuffer> bbList =
+        Collections.singletonList(ByteBuffer.wrap(bs.getBackingArray(), bs.offset(), bs.length()));
 
     expect(security.authenticatedUserHasAuthorizations(goodCred, bbList)).andReturn(true);
     expect(security.authenticatedUserHasAuthorizations(badCred, bbList)).andReturn(false);

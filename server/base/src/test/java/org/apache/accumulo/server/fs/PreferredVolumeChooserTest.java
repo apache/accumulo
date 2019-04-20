@@ -74,13 +74,13 @@ public class PreferredVolumeChooserTest {
   }
 
   private String[] chooseForTable() {
-    VolumeChooserEnvironment env = new VolumeChooserEnvironmentImpl(TableId.of("testTable"), null,
-        null) {
-      @Override
-      public ServiceEnvironment getServiceEnv() {
-        return serviceEnv;
-      }
-    };
+    VolumeChooserEnvironment env =
+        new VolumeChooserEnvironmentImpl(TableId.of("testTable"), null, null) {
+          @Override
+          public ServiceEnvironment getServiceEnv() {
+            return serviceEnv;
+          }
+        };
     return chooser.getPreferredVolumes(env, ALL_OPTIONS);
   }
 

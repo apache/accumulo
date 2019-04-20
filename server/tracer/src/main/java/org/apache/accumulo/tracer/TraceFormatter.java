@@ -43,8 +43,8 @@ import org.apache.thrift.transport.TMemoryInputTransport;
 public class TraceFormatter implements Formatter {
   public static final String DATE_FORMAT = DateFormatSupplier.HUMAN_READABLE_FORMAT;
   // ugh... SimpleDataFormat is not thread safe
-  private static final DateFormatSupplier formatter = DateFormatSupplier
-      .createSimpleFormatSupplier(DATE_FORMAT);
+  private static final DateFormatSupplier formatter =
+      DateFormatSupplier.createSimpleFormatSupplier(DATE_FORMAT);
 
   public static String formatDate(final Date date) {
     return formatter.get().format(date);
@@ -84,9 +84,8 @@ public class TraceFormatter implements Formatter {
       result.append(String.format(" %12s:%s%n", "trace", Long.toHexString(span.traceId)));
       result.append(String.format(" %12s:%s%n", "loc", span.svc + "@" + span.sender));
       result.append(String.format(" %12s:%s%n", "span", Long.toHexString(span.spanId)));
-      String parentString = span.getParentIdsSize() == 0 ? ""
-          : span.getParentIds().stream().map(x -> Long.toHexString(x)).collect(Collectors.toList())
-              .toString();
+      String parentString = span.getParentIdsSize() == 0 ? "" : span.getParentIds().stream()
+          .map(x -> Long.toHexString(x)).collect(Collectors.toList()).toString();
       result.append(String.format(" %12s:%s%n", "parent", parentString));
       result.append(String.format(" %12s:%s%n", "start", dateFormatter.format(span.start)));
       result.append(String.format(" %12s:%s%n", "ms", span.stop - span.start));

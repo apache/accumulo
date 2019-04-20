@@ -60,8 +60,9 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
       @Override
       protected void map(Key k, Value v, Context context) {
         try {
-          String tableName = ((org.apache.accumulo.core.client.mapreduce.RangeInputSplit) context
-              .getInputSplit()).getTableName();
+          String tableName =
+              ((org.apache.accumulo.core.client.mapreduce.RangeInputSplit) context.getInputSplit())
+                  .getTableName();
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
           assertEquals(new Text(String.format("%s_%09x", tableName, count + 1)), k.getRow());
@@ -107,10 +108,13 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
       org.apache.accumulo.core.client.mapreduce.AccumuloMultiTableInputFormat.setConnectorInfo(job,
           ci.getPrincipal(), ci.getAuthenticationToken());
 
-      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig1 = new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
-      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig2 = new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
+      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig1 =
+          new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
+      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig2 =
+          new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
 
-      Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> configMap = new HashMap<>();
+      Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> configMap =
+          new HashMap<>();
       configMap.put(table1, tableConfig1);
       configMap.put(table2, tableConfig2);
 

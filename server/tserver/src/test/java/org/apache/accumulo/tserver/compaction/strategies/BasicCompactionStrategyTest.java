@@ -96,8 +96,8 @@ public class BasicCompactionStrategyTest {
     conf = DefaultConfiguration.getInstance();
     KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
     mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf, getServerContext());
-    Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "2G", "f2", "2G", "f3", "2G", "f4",
-        "2G");
+    Map<FileRef,DataFileValue> fileMap =
+        createFileMap("f1", "2G", "f2", "2G", "f3", "2G", "f4", "2G");
     mcr.setFiles(fileMap);
 
     assertTrue(ttcs.shouldCompact(mcr));
@@ -140,8 +140,8 @@ public class BasicCompactionStrategyTest {
     mcr = new MajorCompactionRequest(ke, MajorCompactionReason.NORMAL, conf, getServerContext());
     Map<FileRef,DataFileValue> fileMap = createFileMap("f1", "1G", "f2", "10M", "f3", "10M", "f4",
         "10M", "f5", "10M", "f6", "10M", "f7", "10M");
-    Map<FileRef,DataFileValue> filesToCompactMap = createFileMap("f2", "10M", "f3", "10M", "f4",
-        "10M", "f5", "10M", "f6", "10M", "f7", "10M");
+    Map<FileRef,DataFileValue> filesToCompactMap =
+        createFileMap("f2", "10M", "f3", "10M", "f4", "10M", "f5", "10M", "f6", "10M", "f7", "10M");
     mcr.setFiles(fileMap);
 
     assertTrue(ttcs.shouldCompact(mcr));

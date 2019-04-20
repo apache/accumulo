@@ -38,11 +38,11 @@ public class AddAuthsCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException {
-    final String user = cl.getOptionValue(userOpt.getOpt(),
-        shellState.getAccumuloClient().whoami());
+    final String user =
+        cl.getOptionValue(userOpt.getOpt(), shellState.getAccumuloClient().whoami());
     final String scanOpts = cl.getOptionValue(scanOptAuths.getOpt());
-    Authorizations auths = shellState.getAccumuloClient().securityOperations()
-        .getUserAuthorizations(user);
+    Authorizations auths =
+        shellState.getAccumuloClient().securityOperations().getUserAuthorizations(user);
     StringBuilder userAuths = new StringBuilder();
     if (!auths.isEmpty()) {
       userAuths.append(auths);

@@ -37,8 +37,8 @@ public class FateMetricValuesTest {
 
     FateMetricValues.Builder builder = FateMetricValues.builder();
 
-    FateMetricValues v = builder.withCurrentFateOps(1).withZkFateChildOpsTotal(2)
-        .withZkConnectionErrors(3).build();
+    FateMetricValues v =
+        builder.withCurrentFateOps(1).withZkFateChildOpsTotal(2).withZkConnectionErrors(3).build();
 
     assertEquals(1, v.getCurrentFateOps());
     assertEquals(2, v.getZkFateChildOpsTotal());

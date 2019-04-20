@@ -76,8 +76,8 @@ public class Metrics2FateMetrics implements Metrics, MetricsSource {
 
     currentFateOps = registry.newGauge(CUR_FATE_OPS, "Current number of FATE Ops", 0L);
     zkChildFateOpsTotal = registry.newGauge(TOTAL_FATE_OPS, "Total FATE Ops", 0L);
-    zkConnectionErrorsTotal = registry.newGauge(TOTAL_ZK_CONN_ERRORS, "Total ZK Connection Errors",
-        0L);
+    zkConnectionErrorsTotal =
+        registry.newGauge(TOTAL_ZK_CONN_ERRORS, "Total ZK Connection Errors", 0L);
 
   }
 

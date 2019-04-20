@@ -38,11 +38,11 @@ public class GetAuthsCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, IOException {
-    final String user = cl.getOptionValue(userOpt.getOpt(),
-        shellState.getAccumuloClient().whoami());
+    final String user =
+        cl.getOptionValue(userOpt.getOpt(), shellState.getAccumuloClient().whoami());
     // Sort authorizations
-    Authorizations auths = shellState.getAccumuloClient().securityOperations()
-        .getUserAuthorizations(user);
+    Authorizations auths =
+        shellState.getAccumuloClient().securityOperations().getUserAuthorizations(user);
     List<String> set = sortAuthorizations(auths);
     shellState.getReader().println(StringUtils.join(set, ','));
     return 0;

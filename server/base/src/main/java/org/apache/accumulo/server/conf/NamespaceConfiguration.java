@@ -40,7 +40,8 @@ public class NamespaceConfiguration extends ObservableConfiguration {
   private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<>();
 
   private final AccumuloConfiguration parent;
-  private final AtomicReference<ZooCachePropertyAccessor> propCacheAccessor = new AtomicReference<>();
+  private final AtomicReference<ZooCachePropertyAccessor> propCacheAccessor =
+      new AtomicReference<>();
   protected NamespaceId namespaceId = null;
   protected ServerContext context;
   private ZooCacheFactory zcf = new ZooCacheFactory();

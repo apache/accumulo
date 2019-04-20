@@ -66,8 +66,8 @@ public class MiniAccumuloClusterImplTest {
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
 
-    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(testDir, "superSecret")
-        .setJDWPEnabled(true);
+    MiniAccumuloConfigImpl config =
+        new MiniAccumuloConfigImpl(testDir, "superSecret").setJDWPEnabled(true);
     // expressly set number of tservers since we assert it later, in case the default changes
     config.setNumTservers(NUM_TSERVERS);
     accumulo = new MiniAccumuloClusterImpl(config);

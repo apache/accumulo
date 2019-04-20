@@ -43,14 +43,14 @@ public class CreateUserCommand extends Command {
     if (userToken instanceof KerberosToken) {
       passwordToken = new PasswordToken();
     } else {
-      final String password = shellState.readMaskedLine("Enter new password for '" + user + "': ",
-          '*');
+      final String password =
+          shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
       if (password == null) {
         shellState.getReader().println();
         return 0;
       } // user canceled
-      String passwordConfirm = shellState
-          .readMaskedLine("Please confirm new password for '" + user + "': ", '*');
+      String passwordConfirm =
+          shellState.readMaskedLine("Please confirm new password for '" + user + "': ", '*');
       if (passwordConfirm == null) {
         shellState.getReader().println();
         return 0;

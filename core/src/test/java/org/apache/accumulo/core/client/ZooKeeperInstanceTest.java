@@ -40,10 +40,14 @@ public class ZooKeeperInstanceTest {
   private ZooCache zc;
   private ZooKeeperInstance zki;
 
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ID = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ID;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_NAME = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_HOST = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT = org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ID =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ID;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_NAME =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_HOST =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
 
   private void mockIdConstruction(ClientConfiguration config) {
     expect(config.get(INSTANCE_ID)).andReturn(IID_STRING);
@@ -180,8 +184,8 @@ public class ZooKeeperInstanceTest {
         .andReturn(IID_STRING.getBytes(UTF_8));
     expect(zc.get(Constants.ZROOT + "/" + IID_STRING)).andReturn("yup".getBytes());
     replay(zc, factory);
-    ClientConfiguration cfg = ClientConfiguration.loadDefault().withInstance(instanceName)
-        .withZkHosts(zookeepers);
+    ClientConfiguration cfg =
+        ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeepers);
     ZooKeeperInstance zki = new ZooKeeperInstance(cfg, factory);
     assertEquals(zookeepers, zki.getZooKeepers());
     assertEquals(instanceName, zki.getInstanceName());

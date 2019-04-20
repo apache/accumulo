@@ -50,12 +50,12 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
       Progressable progress) {
     // get the path of the temporary output file
     final Configuration conf = job;
-    final AccumuloConfiguration acuConf = FileOutputConfigurator
-        .getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
+    final AccumuloConfiguration acuConf =
+        FileOutputConfigurator.getAccumuloConfiguration(AccumuloFileOutputFormat.class, job);
 
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);
-    final Path file = new Path(getWorkOutputPath(job),
-        getUniqueName(job, "part") + "." + extension);
+    final Path file =
+        new Path(getWorkOutputPath(job), getUniqueName(job, "part") + "." + extension);
     final int visCacheSize = ConfiguratorBase.getVisibilityCacheSize(conf);
 
     return new RecordWriter<Key,Value>() {

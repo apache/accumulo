@@ -156,8 +156,8 @@ public class WebViews {
   @GET
   @Path("tservers")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTabletServers(
-      @QueryParam("s") @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
+  public Map<String,Object>
+      getTabletServers(@QueryParam("s") @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
 
     Map<String,Object> model = getModel();
     model.put("title", "Tablet Server Status");
@@ -370,8 +370,8 @@ public class WebViews {
   @GET
   @Path("trace/show")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTraceShow(
-      @QueryParam("id") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String id) {
+  public Map<String,Object>
+      getTraceShow(@QueryParam("id") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String id) {
 
     Map<String,Object> model = getModel();
     model.put("title", "Trace ID " + id);
@@ -410,8 +410,8 @@ public class WebViews {
   @GET
   @Path("problems")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getProblems(
-      @QueryParam("table") @Pattern(regexp = ALPHA_NUM_REGEX_BLANK_OK) String table) {
+  public Map<String,Object>
+      getProblems(@QueryParam("table") @Pattern(regexp = ALPHA_NUM_REGEX_BLANK_OK) String table) {
 
     Map<String,Object> model = getModel();
     model.put("title", "Per-Table Problem Report");

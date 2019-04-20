@@ -72,33 +72,35 @@ public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value
   public RecordReader<Key,Value> getRecordReader(InputSplit split, JobConf job, Reporter reporter)
       throws IOException {
     log.setLevel(getLogLevel(job));
-    InputFormatBase.RecordReaderBase<Key,Value> recordReader = new InputFormatBase.RecordReaderBase<Key,Value>() {
+    InputFormatBase.RecordReaderBase<Key,Value> recordReader =
+        new InputFormatBase.RecordReaderBase<Key,Value>() {
 
-      @Override
-      public boolean next(Key key, Value value) throws IOException {
-        if (scannerIterator.hasNext()) {
-          ++numKeysRead;
-          Map.Entry<Key,Value> entry = scannerIterator.next();
-          key.set(currentKey = entry.getKey());
-          value.set(entry.getValue().get());
-          if (log.isTraceEnabled())
-            log.trace("Processing key/value pair: " + DefaultFormatter.formatEntry(entry, true));
-          return true;
-        }
-        return false;
-      }
+          @Override
+          public boolean next(Key key, Value value) throws IOException {
+            if (scannerIterator.hasNext()) {
+              ++numKeysRead;
+              Map.Entry<Key,Value> entry = scannerIterator.next();
+              key.set(currentKey = entry.getKey());
+              value.set(entry.getValue().get());
+              if (log.isTraceEnabled())
+                log.trace(
+                    "Processing key/value pair: " + DefaultFormatter.formatEntry(entry, true));
+              return true;
+            }
+            return false;
+          }
 
-      @Override
-      public Key createKey() {
-        return new Key();
-      }
+          @Override
+          public Key createKey() {
+            return new Key();
+          }
 
-      @Override
-      public Value createValue() {
-        return new Value();
-      }
+          @Override
+          public Value createValue() {
+            return new Value();
+          }
 
-    };
+        };
     recordReader.initialize(split, job);
     return recordReader;
   }

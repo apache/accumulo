@@ -99,8 +99,8 @@ public class TraceUtil {
   private static void enableTracing(String hostname, String service, String spanReceivers,
       String zookeepers, long timeout, String zkPath, Map<String,String> spanReceiverProps) {
 
-    Map<String,String> htraceConfigProps = spanReceiverProps.entrySet().stream()
-        .collect(Collectors.toMap(
+    Map<String,
+        String> htraceConfigProps = spanReceiverProps.entrySet().stream().collect(Collectors.toMap(
             k -> String.valueOf(k).substring(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey().length()),
             v -> String.valueOf(v), (a, b) -> {
               throw new AssertionError("duplicate can't happen");

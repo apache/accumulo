@@ -58,8 +58,8 @@ public class RandomWriter {
 
     @Override
     public Mutation next() {
-      Text row_value = new Text(
-          Long.toString(((r.nextLong() & 0x7fffffffffffffffL) / 177) % 100000000000L));
+      Text row_value =
+          new Text(Long.toString(((r.nextLong() & 0x7fffffffffffffffL) / 177) % 100000000000L));
       Mutation m = new Mutation(row_value);
       for (int column = 0; column < num_columns_per_row; column++) {
         Text column_fam = new Text("col_fam");

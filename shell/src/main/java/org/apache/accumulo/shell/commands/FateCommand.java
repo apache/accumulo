@@ -125,8 +125,8 @@ public class FateCommand extends Command {
 
     String path = context.getZooKeeperRoot() + Constants.ZFATE;
     String masterPath = context.getZooKeeperRoot() + Constants.ZMASTER_LOCK;
-    IZooReaderWriter zk = getZooReaderWriter(context, siteConfig,
-        cl.getOptionValue(secretOption.getOpt()));
+    IZooReaderWriter zk =
+        getZooReaderWriter(context, siteConfig, cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = new ZooStore<>(path, zk);
 
     if ("fail".equals(cmd)) {
@@ -202,11 +202,11 @@ public class FateCommand extends Command {
         }
       }
 
-      Gson gson = new GsonBuilder()
-          .registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
-          .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
-          .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting()
-          .create();
+      Gson gson =
+          new GsonBuilder().registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
+              .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
+              .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting()
+              .create();
 
       List<FateStack> txStacks = new ArrayList<>();
 
@@ -256,8 +256,8 @@ public class FateCommand extends Command {
     statusOption.setArgs(Option.UNLIMITED_VALUES);
     statusOption.setOptionalArg(false);
     o.addOption(statusOption);
-    disablePaginationOpt = new Option("np", "no-pagination", false,
-        "disables pagination of output");
+    disablePaginationOpt =
+        new Option("np", "no-pagination", false, "disables pagination of output");
     o.addOption(disablePaginationOpt);
     return o;
   }

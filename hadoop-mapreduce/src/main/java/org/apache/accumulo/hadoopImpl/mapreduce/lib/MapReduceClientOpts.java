@@ -58,8 +58,8 @@ public class MapReduceClientOpts extends ClientOpts {
         String newPrincipal = user.getUserName();
         log.info("Obtaining delegation token for {}", newPrincipal);
 
-        try (AccumuloClient client = Accumulo.newClient().from(props).as(newPrincipal, krbToken)
-            .build()) {
+        try (AccumuloClient client =
+            Accumulo.newClient().from(props).as(newPrincipal, krbToken).build()) {
 
           // Do the explicit check to see if the user has the permission to get a delegation token
           if (!client.securityOperations().hasSystemPermission(client.whoami(),
@@ -75,8 +75,8 @@ public class MapReduceClientOpts extends ClientOpts {
           }
 
           // Get the delegation token from Accumulo
-          AuthenticationToken token = client.securityOperations()
-              .getDelegationToken(new DelegationTokenConfig());
+          AuthenticationToken token =
+              client.securityOperations().getDelegationToken(new DelegationTokenConfig());
 
           props.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), newPrincipal);
           ClientProperty.setAuthenticationToken(props, token);

@@ -67,7 +67,7 @@ public class ReadOnlyStoreTest {
     assertEquals(TStatus.UNKNOWN,
         store.waitForStatusChange(0xdeadbeefL, EnumSet.allOf(TStatus.class)));
     assertEquals("property", store.getProperty(0xdeadbeefL, "com.example.anyproperty"));
-    assertEquals(Collections.<Long> emptyList(), store.list());
+    assertEquals(Collections.<Long>emptyList(), store.list());
 
     EasyMock.verify(repo);
     EasyMock.verify(mock);

@@ -57,8 +57,8 @@ public class BloomFilterLayerLookupTest {
   public TestName testName = new TestName();
 
   @Rule
-  public TemporaryFolder tempDir = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempDir =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "tempDir is not provided by user")

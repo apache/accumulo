@@ -138,8 +138,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
 
     // in case the table name changed, we can still use the previous name for terms of
     // configuration, but the scanner will use the table id resolved at job setup time
-    InputTableConfig tableConfig = InputConfigurator.getInputTableConfig(CLASS, job,
-        baseSplit.getTableName());
+    InputTableConfig tableConfig =
+        InputConfigurator.getInputTableConfig(CLASS, job, baseSplit.getTableName());
 
     log.debug("Created client with user: " + context.whoami());
     log.debug("Creating scanner for table: " + table);
@@ -288,8 +288,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
 
     Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
-    Map<String,InputTableConfig> tableConfigs = InputConfigurator.getInputTableConfigs(callingClass,
-        job);
+    Map<String,InputTableConfig> tableConfigs =
+        InputConfigurator.getInputTableConfigs(callingClass, job);
     try (AccumuloClient client = createClient(job, callingClass)) {
       for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
         String tableName = tableConfigEntry.getKey();
@@ -316,8 +316,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
           throw new IllegalArgumentException(
               "AutoAdjustRanges must be enabled when using BatchScanner optimization");
 
-        List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges())
-            : tableConfig.getRanges();
+        List<Range> ranges =
+            autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
         if (ranges.isEmpty()) {
           ranges = new ArrayList<>(1);
           ranges.add(new Range());
@@ -382,8 +382,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
               for (Range r : extentRanges.getValue())
                 clippedRanges.add(ke.clip(r));
 
-              BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges,
-                  new String[] {location});
+              BatchInputSplit split =
+                  new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
               SplitUtils.updateSplit(split, tableConfig);
 
               splits.add(split);

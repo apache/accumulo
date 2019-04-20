@@ -113,8 +113,8 @@ public class ChaoticLoadBalancerTest {
     assertEquals(assignments.size(), metadataTable.size());
   }
 
-  SortedMap<TServerInstance,TabletServerStatus> getAssignments(
-      Map<TServerInstance,FakeTServer> servers) {
+  SortedMap<TServerInstance,TabletServerStatus>
+      getAssignments(Map<TServerInstance,FakeTServer> servers) {
     SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<>();
     for (Entry<TServerInstance,FakeTServer> entry : servers.entrySet()) {
       result.put(entry.getKey(), entry.getValue().getStatus());

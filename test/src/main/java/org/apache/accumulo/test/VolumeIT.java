@@ -157,8 +157,8 @@ public class VolumeIT extends ConfigurableMacBase {
           fileCount++;
         }
         assertEquals(4, fileCount);
-        List<DiskUsage> diskUsage = client.tableOperations()
-            .getDiskUsage(Collections.singleton(tableName));
+        List<DiskUsage> diskUsage =
+            client.tableOperations().getDiskUsage(Collections.singleton(tableName));
         assertEquals(1, diskUsage.size());
         long usage = diskUsage.get(0).getUsage();
         log.debug("usage {}", usage);
@@ -536,8 +536,8 @@ public class VolumeIT extends ConfigurableMacBase {
 
     // check that root tablet is not on volume 1 or 2
     ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-    String zpath = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
-        + RootTable.ZROOT_TABLET_PATH;
+    String zpath =
+        ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + RootTable.ZROOT_TABLET_PATH;
     String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
     assertTrue(rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
 

@@ -160,12 +160,12 @@ public class Gatherer {
    * @return A map of the form : {@code map<tserver location, map<path, list<range>>} . The ranges
    *         associated with a file represent the tablets that use the file.
    */
-  private Map<String,Map<String,List<TRowRange>>> getFilesGroupedByLocation(
-      Predicate<String> fileSelector) {
+  private Map<String,Map<String,List<TRowRange>>>
+      getFilesGroupedByLocation(Predicate<String> fileSelector) {
 
-    Iterable<TabletMetadata> tmi = TabletsMetadata.builder().forTable(tableId)
-        .overlapping(startRow, endRow).fetchFiles().fetchLocation().fetchLast().fetchPrev()
-        .build(ctx);
+    Iterable<TabletMetadata> tmi =
+        TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow).fetchFiles()
+            .fetchLocation().fetchLast().fetchPrev().build(ctx);
 
     // get a subset of files
     Map<String,List<TabletMetadata>> files = new HashMap<>();
@@ -215,8 +215,12 @@ public class Gatherer {
       // merge contiguous ranges
       List<Range> merged = Range
           .mergeOverlapping(Lists.transform(entry.getValue(), tm -> tm.getExtent().toDataRange()));
-      List<TRowRange> ranges = merged.stream().map(r -> toClippedExtent(r).toThrift())
-          .collect(Collectors.toList()); // clip ranges to queried range
+      List<TRowRange> ranges =
+          merged.stream().map(r -> toClippedExtent(r).toThrift()).collect(Collectors.toList()); // clip
+                                                                                                // ranges
+                                                                                                // to
+                                                                                                // queried
+                                                                                                // range
 
       locations.computeIfAbsent(location, s -> new HashMap<>()).put(entry.getKey(), ranges);
     }
@@ -307,8 +311,8 @@ public class Gatherer {
           }
 
           try {
-            TSummaries tSums = client.startGetSummariesFromFiles(tinfo, ctx.rpcCreds(),
-                getRequest(), files);
+            TSummaries tSums =
+                client.startGetSummariesFromFiles(tinfo, ctx.rpcCreds(), getRequest(), files);
             while (!tSums.finished && !cancelFlag.get()) {
               tSums = client.contiuneGetSummaries(tinfo, tSums.sessionId);
             }
@@ -356,8 +360,9 @@ public class Gatherer {
 
     private synchronized void initiateProcessing(ProcessedFiles previousWork) {
       try {
-        Predicate<String> fileSelector = file -> Math
-            .abs(Hashing.murmur3_32().hashString(file, UTF_8).asInt()) % modulus == remainder;
+        Predicate<String> fileSelector =
+            file -> Math.abs(Hashing.murmur3_32().hashString(file, UTF_8).asInt()) % modulus
+                == remainder;
         if (previousWork != null) {
           fileSelector = fileSelector.and(previousWork.failedFiles::contains);
         }
@@ -492,8 +497,8 @@ public class Gatherer {
    */
   public Future<SummaryCollection> processPartition(ExecutorService execSrv, int modulus,
       int remainder) {
-    PartitionFuture future = new PartitionFuture(TraceUtil.traceInfo(), execSrv, modulus,
-        remainder);
+    PartitionFuture future =
+        new PartitionFuture(TraceUtil.traceInfo(), execSrv, modulus, remainder);
     future.initiateProcessing();
     return future;
   }
@@ -547,8 +552,8 @@ public class Gatherer {
       TSummaries tSums;
       try {
         tSums = ServerClient.execute(ctx, new TabletClientService.Client.Factory(), client -> {
-          TSummaries tsr = client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus,
-              remainder);
+          TSummaries tsr =
+              client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus, remainder);
           while (!tsr.finished && !cancelFlag.get()) {
             tsr = client.contiuneGetSummaries(tinfo, tsr.sessionId);
           }

@@ -118,9 +118,9 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   @Test(expected = RuntimeException.class)
   public void invalidInstanceName() {
-    try (AccumuloClient client = Accumulo.newClient()
-        .to("fake_instance_name", cluster.getZooKeepers()).as(getAdminPrincipal(), getAdminToken())
-        .build()) {
+    try (AccumuloClient client =
+        Accumulo.newClient().to("fake_instance_name", cluster.getZooKeepers())
+            .as(getAdminPrincipal(), getAdminToken()).build()) {
       client.instanceOperations().getTabletServers();
     }
   }
@@ -148,8 +148,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       String scheme = "http://";
       if (getCluster() instanceof StandaloneAccumuloCluster) {
         StandaloneAccumuloCluster standaloneCluster = (StandaloneAccumuloCluster) getCluster();
-        File accumuloProps = new File(standaloneCluster.getServerAccumuloConfDir(),
-            "accumulo.properties");
+        File accumuloProps =
+            new File(standaloneCluster.getServerAccumuloConfDir(), "accumulo.properties");
         if (accumuloProps.isFile()) {
           Configuration conf = new Configuration(false);
           conf.addResource(new Path(accumuloProps.toURI()));
@@ -389,8 +389,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     ingest(accumuloClient, getClientInfo(), 2000, 1, 50, 0, tableName);
     verify(accumuloClient, getClientInfo(), 2000, 1, 50, 0, tableName);
     accumuloClient.tableOperations().flush(tableName, null, null, true);
-    try (BatchScanner bscanner = accumuloClient.createBatchScanner(MetadataTable.NAME,
-        Authorizations.EMPTY, 1)) {
+    try (BatchScanner bscanner =
+        accumuloClient.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
       String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
       bscanner.setRanges(
           Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));

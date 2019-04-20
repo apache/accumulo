@@ -152,8 +152,8 @@ public class BulkImport extends MasterRepo {
 
   private static Path createNewBulkDir(ServerContext context, VolumeManager fs, String sourceDir,
       TableId tableId) throws IOException {
-    Path tempPath = fs.matchingFileSystem(new Path(sourceDir),
-        ServerConstants.getTablesDirs(context));
+    Path tempPath =
+        fs.matchingFileSystem(new Path(sourceDir), ServerConstants.getTablesDirs(context));
     if (tempPath == null)
       throw new IOException(sourceDir + " is not in a volume configured for Accumulo");
 
@@ -230,8 +230,8 @@ public class BulkImport extends MasterRepo {
               return null;
             }
             try {
-              FileStatus dataStatus = fs
-                  .getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
+              FileStatus dataStatus =
+                  fs.getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
               if (dataStatus.isDirectory()) {
                 log.warn("{} is not a map file, ignoring", fileStatus.getPath());
                 return null;

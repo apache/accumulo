@@ -37,10 +37,10 @@ public class Column implements WritableComparable<Column> {
   private static final Comparator<byte[]> BYTE_COMPARATOR = Comparator
       .nullsFirst((a, b) -> WritableComparator.compareBytes(a, 0, a.length, b, 0, b.length));
 
-  private static final Comparator<Column> COMPARATOR = Comparator
-      .comparing(Column::getColumnFamily, BYTE_COMPARATOR)
-      .thenComparing(Column::getColumnQualifier, BYTE_COMPARATOR)
-      .thenComparing(Column::getColumnVisibility, BYTE_COMPARATOR);
+  private static final Comparator<Column> COMPARATOR =
+      Comparator.comparing(Column::getColumnFamily, BYTE_COMPARATOR)
+          .thenComparing(Column::getColumnQualifier, BYTE_COMPARATOR)
+          .thenComparing(Column::getColumnVisibility, BYTE_COMPARATOR);
 
   /**
    * Compares this column to another. Column families are compared first, then qualifiers, then

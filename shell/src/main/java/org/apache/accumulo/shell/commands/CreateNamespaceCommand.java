@@ -84,8 +84,8 @@ public class CreateNamespaceCommand extends Command {
   public Options getOptions() {
     final Options o = new Options();
 
-    createNamespaceOptCopyConfig = new Option("cc", "copy-config", true,
-        "namespace to copy configuration from");
+    createNamespaceOptCopyConfig =
+        new Option("cc", "copy-config", true, "namespace to copy configuration from");
     createNamespaceOptCopyConfig.setArgName("namespace");
 
     OptionGroup ogp = new OptionGroup();

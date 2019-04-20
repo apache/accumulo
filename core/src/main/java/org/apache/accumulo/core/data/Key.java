@@ -972,8 +972,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public int compareTo(Key other, PartialKey part) {
     // check for matching row
-    int result = WritableComparator.compareBytes(row, 0, row.length, other.row, 0,
-        other.row.length);
+    int result =
+        WritableComparator.compareBytes(row, 0, row.length, other.row, 0, other.row.length);
     if (result != 0 || part.equals(PartialKey.ROW))
       return result;
 

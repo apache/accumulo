@@ -55,8 +55,8 @@ public class ShutdownIT extends ConfigurableMacBase {
     assertEquals(0,
         cluster.exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--createTable")
             .getProcess().waitFor());
-    Process verify = cluster.exec(VerifyIngest.class, "-c", cluster.getClientPropsPath())
-        .getProcess();
+    Process verify =
+        cluster.exec(VerifyIngest.class, "-c", cluster.getClientPropsPath()).getProcess();
     sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     verify.destroy();
@@ -67,8 +67,8 @@ public class ShutdownIT extends ConfigurableMacBase {
     assertEquals(0,
         cluster.exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--createTable")
             .getProcess().waitFor());
-    Process deleter = cluster.exec(TestRandomDeletes.class, "-c", cluster.getClientPropsPath())
-        .getProcess();
+    Process deleter =
+        cluster.exec(TestRandomDeletes.class, "-c", cluster.getClientPropsPath()).getProcess();
     sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
     assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     deleter.destroy();

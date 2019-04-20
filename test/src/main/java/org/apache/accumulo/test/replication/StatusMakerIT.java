@@ -87,9 +87,9 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     BatchWriter bw = client.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
-    Set<String> files = Sets.newHashSet(walPrefix + UUID.randomUUID(),
-        walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
-        walPrefix + UUID.randomUUID());
+    Set<String> files =
+        Sets.newHashSet(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
+            walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID());
     Map<String,Integer> fileToTableId = new HashMap<>();
 
     int index = 1;
@@ -137,9 +137,9 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     BatchWriter bw = client.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
-    Set<String> files = Sets.newHashSet(walPrefix + UUID.randomUUID(),
-        walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
-        walPrefix + UUID.randomUUID());
+    Set<String> files =
+        Sets.newHashSet(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
+            walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID());
     Map<String,Integer> fileToTableId = new HashMap<>();
 
     int index = 1;
@@ -176,9 +176,9 @@ public class StatusMakerIT extends ConfigurableMacBase {
 
     BatchWriter bw = client.createBatchWriter(sourceTable, new BatchWriterConfig());
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
-    Set<String> files = Sets.newHashSet(walPrefix + UUID.randomUUID(),
-        walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
-        walPrefix + UUID.randomUUID());
+    Set<String> files =
+        Sets.newHashSet(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
+            walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID());
     Map<String,Integer> fileToTableId = new HashMap<>();
 
     Status stat = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true)
@@ -227,8 +227,8 @@ public class StatusMakerIT extends ConfigurableMacBase {
         walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID());
     Map<String,Integer> fileToTableId = new HashMap<>();
 
-    Status.Builder statBuilder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true)
-        .setClosed(true);
+    Status.Builder statBuilder =
+        Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true);
 
     int index = 1;
     long time = System.currentTimeMillis();
@@ -289,8 +289,8 @@ public class StatusMakerIT extends ConfigurableMacBase {
         walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID());
     Map<String,Long> fileToTableId = new HashMap<>();
 
-    Status.Builder statBuilder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true)
-        .setClosed(true);
+    Status.Builder statBuilder =
+        Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true);
 
     Map<String,Long> statuses = new HashMap<>();
     long index = 1;

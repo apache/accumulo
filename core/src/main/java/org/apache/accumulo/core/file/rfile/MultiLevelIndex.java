@@ -605,8 +605,8 @@ public class MultiLevelIndex {
       }
 
       private Node lookup(Key key) throws IOException {
-        int pos = Collections.binarySearch(indexBlock.getKeyIndex(), key,
-            Comparator.naturalOrder());
+        int pos =
+            Collections.binarySearch(indexBlock.getKeyIndex(), key, Comparator.naturalOrder());
 
         if (pos < 0)
           pos = (pos * -1) - 1;
@@ -804,8 +804,8 @@ public class MultiLevelIndex {
 
     private IndexBlock getIndexBlock(IndexEntry ie) throws IOException {
       IndexBlock iblock = new IndexBlock();
-      CachableBlockFile.CachedBlockRead in = blockStore.getMetaBlock(ie.getOffset(),
-          ie.getCompressedSize(), ie.getRawSize());
+      CachableBlockFile.CachedBlockRead in =
+          blockStore.getMetaBlock(ie.getOffset(), ie.getCompressedSize(), ie.getRawSize());
       iblock.readFields(in, version);
       in.close();
 

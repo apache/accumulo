@@ -136,17 +136,17 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
 
   private static final int MAX_LOGS = 50;
 
-  private LinkedHashMap<String,DedupedLogEvent> events = new LinkedHashMap<String,DedupedLogEvent>(
-      MAX_LOGS + 1, (float) .75, true) {
+  private LinkedHashMap<String,DedupedLogEvent> events =
+      new LinkedHashMap<String,DedupedLogEvent>(MAX_LOGS + 1, (float) .75, true) {
 
-    private static final long serialVersionUID = 1L;
+        private static final long serialVersionUID = 1L;
 
-    @Override
-    @SuppressWarnings("rawtypes")
-    protected boolean removeEldestEntry(Map.Entry eldest) {
-      return size() > MAX_LOGS;
-    }
-  };
+        @Override
+        @SuppressWarnings("rawtypes")
+        protected boolean removeEldestEntry(Map.Entry eldest) {
+          return size() > MAX_LOGS;
+        }
+      };
 
   public LogService() {
     synchronized (LogService.class) {

@@ -139,8 +139,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       if (keystorePassword != null) {
         peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), keystorePassword);
       }
-      String truststorePassword = primarySiteConfig
-          .get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
+      String truststorePassword =
+          primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
       if (truststorePassword != null) {
         peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
       }
@@ -150,8 +150,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     }
 
     // Use the CredentialProvider if the primary also uses one
-    String credProvider = primarySiteConfig
-        .get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+    String credProvider =
+        primarySiteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
     if (credProvider != null) {
       Map<String,String> peerSiteConfig = peerCfg.getSiteConfig();
       peerSiteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(),
@@ -176,8 +176,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peerCluster.start();
 
     try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
-        AccumuloClient clientPeer = peerCluster.createAccumuloClient("root",
-            new PasswordToken(ROOT_PASSWORD))) {
+        AccumuloClient clientPeer =
+            peerCluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
       ReplicationTable.setOnline(clientMaster);
 
@@ -233,8 +233,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       log.info("Wrote all data to master cluster");
 
-      final Set<String> filesNeedingReplication = clientMaster.replicationOperations()
-          .referencedFiles(masterTable);
+      final Set<String> filesNeedingReplication =
+          clientMaster.replicationOperations().referencedFiles(masterTable);
 
       log.info("Files to replicate: " + filesNeedingReplication);
 
@@ -349,8 +349,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peer1Cluster.start();
 
     try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
-        AccumuloClient clientPeer = peer1Cluster.createAccumuloClient("root",
-            new PasswordToken(ROOT_PASSWORD))) {
+        AccumuloClient clientPeer =
+            peer1Cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
       String peerClusterName = "peer";
       String peerUserName = "peer", peerPassword = "foo";
 
@@ -507,8 +507,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peerCluster.start();
 
     try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
-        AccumuloClient clientPeer = peerCluster.createAccumuloClient("root",
-            new PasswordToken(ROOT_PASSWORD))) {
+        AccumuloClient clientPeer =
+            peerCluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
       String peerUserName = "repl";
       String peerPassword = "passwd";
@@ -626,8 +626,8 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     peer1Cluster.start();
 
     try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
-        AccumuloClient clientPeer = peer1Cluster.createAccumuloClient("root",
-            new PasswordToken(ROOT_PASSWORD))) {
+        AccumuloClient clientPeer =
+            peer1Cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
       String peerClusterName = "peer";
 

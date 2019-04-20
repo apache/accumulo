@@ -179,8 +179,8 @@ public class RemoveEntriesForMissingFiles {
   }
 
   static int checkAllTables(ServerContext context, boolean fix) throws Exception {
-    int missing = checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(),
-        fix);
+    int missing =
+        checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
 
     if (missing == 0)
       return checkTable(context, MetadataTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
@@ -202,8 +202,8 @@ public class RemoveEntriesForMissingFiles {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    try (TraceScope clientSpan = opts
-        .parseArgsAndTrace(RemoveEntriesForMissingFiles.class.getName(), args)) {
+    try (TraceScope clientSpan =
+        opts.parseArgsAndTrace(RemoveEntriesForMissingFiles.class.getName(), args)) {
       checkAllTables(opts.getServerContext(), opts.fix);
     }
   }

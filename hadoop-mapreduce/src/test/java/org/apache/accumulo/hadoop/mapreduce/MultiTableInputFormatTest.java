@@ -53,11 +53,11 @@ public class MultiTableInputFormatTest {
     String table1Name = testName.getMethodName() + "1";
     String table2Name = testName.getMethodName() + "2";
     Job job = Job.getInstance();
-    Properties clientProps = org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest
-        .setupClientProperties();
+    Properties clientProps =
+        org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest.setupClientProperties();
     List<Range> ranges = singletonList(new Range("a", "b"));
-    Set<IteratorSetting.Column> cols = singleton(
-        new IteratorSetting.Column(new Text("CF1"), new Text("CQ1")));
+    Set<IteratorSetting.Column> cols =
+        singleton(new IteratorSetting.Column(new Text("CF1"), new Text("CQ1")));
     IteratorSetting iter1 = new IteratorSetting(50, "iter1", "iterclass1");
     IteratorSetting iter2 = new IteratorSetting(60, "iter2", "iterclass2");
     List<IteratorSetting> allIters = new ArrayList<>();
@@ -90,15 +90,15 @@ public class MultiTableInputFormatTest {
   @Test
   public void testManyTables() throws Exception {
     Job job = Job.getInstance();
-    Properties clientProps = org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest
-        .setupClientProperties();
+    Properties clientProps =
+        org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormatTest.setupClientProperties();
 
     // if auths are not set client will try to get from server, we dont want that here
     Authorizations auths = Authorizations.EMPTY;
 
     // set the client properties once then loop over tables
-    InputFormatBuilder.TableParams<Job> opts = AccumuloInputFormat.configure()
-        .clientProperties(clientProps);
+    InputFormatBuilder.TableParams<Job> opts =
+        AccumuloInputFormat.configure().clientProperties(clientProps);
     for (int i = 0; i < 10_000; i++) {
       List<Range> ranges = singletonList(new Range("a" + i, "b" + i));
       Set<Column> cols = singleton(new Column(new Text("CF" + i), new Text("CQ" + i)));
@@ -108,8 +108,8 @@ public class MultiTableInputFormatTest {
     opts.store(job);
 
     // verify
-    Map<String,InputTableConfig> configs = InputConfigurator.getInputTableConfigs(CLASS,
-        job.getConfiguration());
+    Map<String,InputTableConfig> configs =
+        InputConfigurator.getInputTableConfigs(CLASS, job.getConfiguration());
     assertEquals(10_000, configs.size());
 
     // create objects to test against
