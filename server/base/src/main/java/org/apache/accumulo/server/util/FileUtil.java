@@ -242,10 +242,8 @@ public class FileUtil {
         return .5;
       }
 
-      // @formatter:off
       List<SortedKeyValueIterator<Key,Value>> iters =
         new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
-      // @formatter:on
       MultiIterator mmfi = new MultiIterator(iters, true);
 
       // skip the prevendrow
@@ -336,10 +334,8 @@ public class FileUtil {
         return ImmutableSortedMap.of();
       }
 
-      // @formatter:off
       List<SortedKeyValueIterator<Key,Value>> iters =
         new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
-      // @formatter:on
       MultiIterator mmfi = new MultiIterator(iters, true);
 
       // skip the prevendrow

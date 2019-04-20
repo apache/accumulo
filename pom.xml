@@ -754,7 +754,7 @@
         <plugin>
           <groupId>net.revelc.code.formatter</groupId>
           <artifactId>formatter-maven-plugin</artifactId>
-          <version>2.7.4</version>
+          <version>2.9.0</version>
           <configuration>
             <configFile>${eclipseFormatterStyle}</configFile>
             <compilerCompliance>${maven.compiler.source}</compilerCompliance>
@@ -904,9 +904,7 @@
               <property name="severity" value="warning" />
               <!-- Checks for whitespace                               -->
               <!-- See http://checkstyle.sf.net/config_whitespace.html -->
-              <module name="FileTabCharacter">
-                <property name="eachLine" value="true" />
-              </module>
+              <module name="FileTabCharacter" />
               <module name="TreeWalker">
                 <module name="OneTopLevelClass" />
                 <module name="RegexpSinglelineJava">
@@ -934,14 +932,7 @@
                   <property name="message" value="Use static imports for Assert.* methods for consistency" />
                 </module>
                 <module name="OuterTypeFilename" />
-                <module name="LineLength">
-                  <property name="max" value="100" />
-                  <property name="ignorePattern" value="^[ ]*[*].*@(link|see) |Map.* = new .*Map|org[.]apache[.]accumulo[.]|a href=|http://|https://|ftp://" />
-                </module>
                 <module name="AvoidStarImport" />
-                <module name="UnusedImports">
-                  <property name="processJavadoc" value="true" />
-                </module>
                 <module name="NoLineWrap" />
                 <module name="LeftCurly" />
                 <module name="RightCurly">
@@ -962,20 +953,7 @@
                 <module name="MethodTypeParameterName">
                   <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
                 </module>
-                <module name="MethodParamPad" />
-                <module name="OperatorWrap">
-                  <property name="option" value="NL" />
-                  <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
-                </module>
-                <module name="AnnotationLocation">
-                  <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
-                </module>
-                <module name="AnnotationLocation">
-                  <property name="tokens" value="VARIABLE_DEF" />
-                  <property name="allowSamelineMultipleAnnotations" value="true" />
-                </module>
                 <module name="NonEmptyAtclauseDescription" />
-                <module name="JavadocTagContinuationIndentation" />
                 <module name="JavadocMethod">
                   <property name="allowMissingJavadoc" value="true" />
                   <property name="allowMissingParamTags" value="true" />
@@ -984,9 +962,7 @@
                   <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
                   <property name="allowThrowsTagsForSubclasses" value="true" />
                 </module>
-                <module name="SingleLineJavadoc" />
                 <module name="MissingOverrideCheck" />
-                <module name="AnnotationLocation" />
               </module>
             </module>
           </checkstyleRules>

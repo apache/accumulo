@@ -513,10 +513,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       List<InputSplit> splits = super.getSplits(context);
 
       for (InputSplit split : splits) {
-        // @formatter:off
         org.apache.accumulo.core.client.mapreduce.RangeInputSplit rangeSplit =
           (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
-        // @formatter:on
         rangeSplit.setToken(new PasswordToken("anythingelse"));
       }
 
@@ -536,11 +534,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       // Copy only the necessary information
       for (InputSplit oldSplit : oldSplits) {
-        // @formatter:off
         org.apache.accumulo.core.client.mapreduce.RangeInputSplit newSplit =
           new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(
             (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) oldSplit);
-        // @formatter:on
         newSplits.add(newSplit);
       }
 

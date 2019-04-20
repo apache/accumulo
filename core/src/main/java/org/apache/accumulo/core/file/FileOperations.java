@@ -139,10 +139,8 @@ public abstract class FileOperations {
    */
   @SuppressWarnings("unchecked")
   public NeedsFile<NeedsRange<OpenScanReaderOperationBuilder>> newScanReaderBuilder() {
-    // @formatter:off
     return (NeedsFile<NeedsRange<OpenScanReaderOperationBuilder>>)
       (NeedsFile<?>) new OpenScanReaderOperation();
-    // @formatter:on
   }
 
   /**
@@ -178,10 +176,8 @@ public abstract class FileOperations {
   /**
    * Options common to all FileOperations.
    */
-  // @formatter:off
   protected static class
     FileAccessOperation<SubclassType extends FileAccessOperation<SubclassType>> {
-  // @formatter:on
     private AccumuloConfiguration tableConfiguration;
 
     private String filename;

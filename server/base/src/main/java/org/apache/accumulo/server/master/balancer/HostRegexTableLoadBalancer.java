@@ -132,10 +132,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
    *          map of current tservers
    * @return current servers grouped by pool name, if not a match it is put into a default pool.
    */
-  // @formatter:off
   protected synchronized Map<String,SortedMap<TServerInstance,TabletServerStatus>>
     splitCurrentByRegex(SortedMap<TServerInstance,TabletServerStatus> current) {
-  // @formatter:on
     LOG.debug("Performing pool recheck - regrouping tablet servers based on regular expressions");
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> newPools = new HashMap<>();
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {

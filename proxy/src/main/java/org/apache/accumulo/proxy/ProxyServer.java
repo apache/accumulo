@@ -415,11 +415,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
           .setIterators(getIteratorSettings(iterators)).setFlush(flush).setWait(wait);
 
       if (compactionStrategy != null) {
-        // @formatter:off
         org.apache.accumulo.core.client.admin.CompactionStrategyConfig ccc =
           new org.apache.accumulo.core.client.admin.CompactionStrategyConfig(
             compactionStrategy.getClassName());
-        // @formatter:on
         if (compactionStrategy.options != null)
           ccc.setOptions(compactionStrategy.options);
         compactionConfig.setCompactionStrategy(ccc);
@@ -812,10 +810,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
       List<ActiveScan> activeScans = getConnector(login).instanceOperations()
           .getActiveScans(tserver);
       for (ActiveScan scan : activeScans) {
-        // @formatter:off
         org.apache.accumulo.proxy.thrift.ActiveScan pscan =
           new org.apache.accumulo.proxy.thrift.ActiveScan();
-        // @formatter:on
         pscan.client = scan.getClient();
         pscan.user = scan.getUser();
         pscan.table = scan.getTable();
@@ -829,10 +825,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
         pscan.columns = new ArrayList<>();
         if (scan.getColumns() != null) {
           for (Column c : scan.getColumns()) {
-            // @formatter:off
             org.apache.accumulo.proxy.thrift.Column column =
               new org.apache.accumulo.proxy.thrift.Column();
-            // @formatter:on
             column.setColFamily(c.getColumnFamily());
             column.setColQualifier(c.getColumnQualifier());
             column.setColVisibility(c.getColumnVisibility());
@@ -846,11 +840,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
             String name = parts[0];
             int priority = Integer.parseInt(parts[1]);
             String classname = parts[2];
-            // @formatter:off
             org.apache.accumulo.proxy.thrift.IteratorSetting settings =
               new org.apache.accumulo.proxy.thrift.IteratorSetting(
                 priority, name, classname, scan.getSsio().get(name));
-            // @formatter:on
             pscan.iterators.add(settings);
           }
         }
@@ -879,10 +871,8 @@ public class ProxyServer implements AccumuloProxy.Iface {
       List<ActiveCompaction> active = getConnector(login).instanceOperations()
           .getActiveCompactions(tserver);
       for (ActiveCompaction comp : active) {
-        // @formatter:off
         org.apache.accumulo.proxy.thrift.ActiveCompaction pcomp =
           new org.apache.accumulo.proxy.thrift.ActiveCompaction();
-        // @formatter:on
         pcomp.age = comp.getAge();
         pcomp.entriesRead = comp.getEntriesRead();
         pcomp.entriesWritten = comp.getEntriesWritten();
@@ -901,12 +891,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
         pcomp.iterators = new ArrayList<>();
         if (comp.getIterators() != null) {
           for (IteratorSetting setting : comp.getIterators()) {
-            // @formatter:off
             org.apache.accumulo.proxy.thrift.IteratorSetting psetting =
               new org.apache.accumulo.proxy.thrift.IteratorSetting(
                 setting.getPriority(), setting.getName(), setting.getIteratorClass(),
                 setting.getOptions());
-            // @formatter:on
             pcomp.iterators.add(psetting);
           }
         }
@@ -2193,11 +2181,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
         ConditionalMutation cmut = new ConditionalMutation(ByteBufferUtil.toBytes(cu.getKey()));
 
         for (Condition tcond : cu.getValue().conditions) {
-          // @formatter:off
           org.apache.accumulo.core.data.Condition cond =
             new org.apache.accumulo.core.data.Condition(
               tcond.column.getColFamily(), tcond.column.getColQualifier());
-          // @formatter:on
 
           if (tcond.getColumn().getColVisibility() != null
               && tcond.getColumn().getColVisibility().length > 0) {

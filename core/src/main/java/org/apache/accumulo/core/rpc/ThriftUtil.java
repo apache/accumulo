@@ -271,11 +271,9 @@ public class ThriftUtil {
 
           // Wrap the real factory with our own that will set the protocol on the Socket before
           // returning it
-          // @formatter:off
           ProtocolOverridingSSLSocketFactory wrappingSslSockFactory =
             new ProtocolOverridingSSLSocketFactory(sslSockFactory,
                 new String[] {sslParams.getClientProtocol()});
-          // @formatter:on
 
           // Create the TSocket from that
           transport = createClient(wrappingSslSockFactory, address.getHost(), address.getPort(),

@@ -350,10 +350,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
       if (hasToken) { // implied hasTokenOptions
         // Fully qualified name so we don't shadow java.util.Properties
-        // @formatter:off
         org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties props =
           new org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties();
-        // @formatter:on
 
         if (!loginOptions.isEmpty()) {
           props.putAllStrings(loginOptions);

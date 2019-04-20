@@ -56,10 +56,8 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
     // Override the log level from the configuration as if the InputSplit has one it's the more
     // correct one to use.
     if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
-      // @formatter:off
       org.apache.accumulo.core.client.mapreduce.RangeInputSplit accSplit =
         (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
-      // @formatter:on
       Level level = accSplit.getLogLevel();
       if (null != level) {
         log.setLevel(level);

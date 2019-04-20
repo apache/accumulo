@@ -404,11 +404,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
             // The DefaultCryptoModule will want to read the parameters from the underlying file, so
             // we will put the file back to that spot.
-            // @formatter:off
             org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule =
               org.apache.accumulo.core.security.crypto.CryptoModuleFactory
                 .getCryptoModule(DefaultCryptoModule.class.getName());
-            // @formatter:on
 
             CryptoModuleParameters params = CryptoModuleFactory
                 .createParamsObjectFromAccumuloConfiguration(conf);
@@ -480,11 +478,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
       flush = logFile.getClass().getMethod("hflush");
 
       // Initialize the crypto operations.
-      // @formatter:off
       org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule =
         org.apache.accumulo.core.security.crypto.CryptoModuleFactory
           .getCryptoModule(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
-      // @formatter:on
 
       // Initialize the log file with a header and the crypto params used to set up this log file.
       logFile.write(LOG_FILE_HEADER_V3.getBytes(UTF_8));

@@ -556,10 +556,8 @@ public final class BCFile {
   }
 
   // sha256 of some random data
-  // @formatter:off
   private static final byte[] NO_CPYPTO_KEY =
     "ce18cf53c4c5077f771249b38033fa14bcb31cca0e5e95a371ee72daa8342ea2".getBytes(UTF_8);
-  // @formatter:on
 
   // This class is used as a place holder in the cache for RFiles that have no crypto....
   private static final BCFileCryptoModuleParameters NO_CRYPTO = new BCFileCryptoModuleParameters() {

@@ -28,7 +28,6 @@ public class TabletIdImpl implements TabletId {
   private KeyExtent ke;
 
   @SuppressWarnings("deprecation")
-  // @formatter:off
   public static final Function<org.apache.accumulo.core.data.KeyExtent,TabletId> KE_2_TID_OLD =
     new Function<org.apache.accumulo.core.data.KeyExtent,TabletId>() {
     @Override
@@ -39,10 +38,8 @@ public class TabletIdImpl implements TabletId {
       return input == null ? null : new TabletIdImpl(input);
     }
   };
-  // @formatter:on
 
   @SuppressWarnings("deprecation")
-  // @formatter:off
   public static final Function<TabletId,org.apache.accumulo.core.data.KeyExtent> TID_2_KE_OLD =
     new Function<TabletId,org.apache.accumulo.core.data.KeyExtent>() {
     @Override
@@ -53,7 +50,6 @@ public class TabletIdImpl implements TabletId {
           input.getPrevEndRow());
     }
   };
-  // @formatter:on
 
   @Deprecated
   public TabletIdImpl(org.apache.accumulo.core.data.KeyExtent ke) {

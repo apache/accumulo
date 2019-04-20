@@ -109,10 +109,8 @@ public class InMemoryMap {
   public static final String TYPE_LOCALITY_GROUP_MAP = "LocalityGroupMap";
   public static final String TYPE_LOCALITY_GROUP_MAP_NATIVE = "LocalityGroupMap with native";
 
-  // @formatter:off
   private AtomicReference<Pair<SamplerConfigurationImpl,Sampler>> samplerRef =
     new AtomicReference<>(null);
-  // @formatter:on
 
   private AccumuloConfiguration config;
 

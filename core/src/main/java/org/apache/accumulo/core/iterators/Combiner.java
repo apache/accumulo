@@ -81,10 +81,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   protected static final String COLUMNS_OPTION = "columns";
   protected static final String ALL_OPTION = "all";
-  // @formatter:off
   protected static final String REDUCE_ON_FULL_COMPACTION_ONLY_OPTION =
     "reduceOnFullCompactionOnly";
-  // @formatter:on
 
   private boolean isMajorCompaction;
   private boolean reduceOnFullCompactionOnly;

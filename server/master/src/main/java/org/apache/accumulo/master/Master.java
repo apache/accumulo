@@ -1381,10 +1381,8 @@ public class Master extends AccumuloServerContext
 
     // Start the replication coordinator which assigns tservers to service replication requests
     MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
-    // @formatter:off
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
       new ReplicationCoordinator.Processor<>(
-    // @formatter:on
             RpcWrapper.service(impl,
                 new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(impl)));
     ServerAddress replAddress = TServerUtils.startServer(this, hostname,

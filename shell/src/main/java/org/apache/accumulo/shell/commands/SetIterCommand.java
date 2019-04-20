@@ -150,11 +150,9 @@ public class SetIterCommand extends Command {
     ScanCommand.ensureTserversCanLoadIterator(shellState, tableName, classname);
 
     final String aggregatorClass = options.get("aggregatorClass");
-    // @formatter:off
     @SuppressWarnings("deprecation")
     String deprecatedAggregatorClassName =
       org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
-    // @formatter:on
     if (aggregatorClass != null && !shellState.getConnector().tableOperations()
         .testClassLoad(tableName, aggregatorClass, deprecatedAggregatorClassName)) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
@@ -201,11 +199,9 @@ public class SetIterCommand extends Command {
     }
 
     final String aggregatorClass = options.get("aggregatorClass");
-    // @formatter:off
     @SuppressWarnings("deprecation")
     String deprecatedAggregatorClassName =
       org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
-    // @formatter:on
     if (aggregatorClass != null && !shellState.getConnector().namespaceOperations()
         .testClassLoad(namespace, aggregatorClass, deprecatedAggregatorClassName)) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,

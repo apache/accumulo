@@ -2532,10 +2532,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         new ReplicationServicer.Processor<ReplicationServicer.Iface>(handler));
     ReplicationServicer.Iface repl = TCredentialsUpdatingWrapper.service(rpcProxy,
         handler.getClass(), getConfiguration());
-    // @formatter:off
     ReplicationServicer.Processor<ReplicationServicer.Iface> processor =
       new ReplicationServicer.Processor<>(repl);
-    // @formatter:on
     AccumuloConfiguration conf = getServerConfigurationFactory().getConfiguration();
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
         ? Property.TSERV_MAX_MESSAGE_SIZE

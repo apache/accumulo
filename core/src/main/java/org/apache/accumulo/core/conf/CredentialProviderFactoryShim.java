@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 public class CredentialProviderFactoryShim {
   private static final Logger log = LoggerFactory.getLogger(CredentialProviderFactoryShim.class);
 
-  // @formatter:off
   public static final String HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME =
     "org.apache.hadoop.security.alias.JavaKeyStoreProvider$Factory";
   public static final String HADOOP_CRED_PROVIDER_FACTORY_GET_PROVIDERS_METHOD_NAME =
@@ -60,7 +59,6 @@ public class CredentialProviderFactoryShim {
   public static final String HADOOP_CRED_ENTRY_CLASS_NAME =
     "org.apache.hadoop.security.alias.CredentialProvider$CredentialEntry";
   public static final String HADOOP_CRED_ENTRY_GET_CREDENTIAL_METHOD_NAME = "getCredential";
-  // @formatter:on
 
   public static final String CREDENTIAL_PROVIDER_PATH = "hadoop.security.credential.provider.path";
 

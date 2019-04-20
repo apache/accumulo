@@ -134,10 +134,8 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
         }
         break;
       case STANDALONE:
-        // @formatter:off
         StandaloneAccumuloClusterConfiguration conf =
           (StandaloneAccumuloClusterConfiguration) clusterConf;
-        // @formatter:on
         ClientConfiguration clientConf = conf.getClientConf();
         StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(
             conf.getInstance(), clientConf, conf.getTmpDirectory(), conf.getUsers(),

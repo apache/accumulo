@@ -46,7 +46,6 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
   private static final Logger log = LoggerFactory.getLogger(SequentialWorkAssigner.class);
   private static final String NAME = "Sequential Work Assigner";
 
-  // @formatter:off
   /*
    * {
    *    peer1 => {sourceTableId1 => work_queue_key1, sourceTableId2 => work_queue_key2, ...}
@@ -54,7 +53,6 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
    *    ...
    * }
    */
-  // @formatter:on
   private Map<String,Map<String,String>> queuedWorkByPeerName;
 
   public SequentialWorkAssigner() {}

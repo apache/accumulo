@@ -43,10 +43,8 @@ import org.slf4j.LoggerFactory;
 public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
 
   private SortedKeyValueIterator<Key,Value> iterator;
-  // @formatter:off
   private ColumnToClassMapping<org.apache.accumulo.core.iterators.aggregation.Aggregator>
     aggregators;
-  // @formatter:on
 
   private Key workKey = new Key();
 

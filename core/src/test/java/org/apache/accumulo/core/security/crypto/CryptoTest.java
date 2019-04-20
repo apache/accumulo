@@ -59,10 +59,8 @@ public class CryptoTest {
   public static final String CONFIG_FILE_SYSTEM_PROP = "org.apache.accumulo.config.file";
   public static final String CRYPTO_ON_CONF = "crypto-on-accumulo-site.xml";
   public static final String CRYPTO_OFF_CONF = "crypto-off-accumulo-site.xml";
-  // @formatter:off
   public static final String CRYPTO_ON_KEK_OFF_CONF =
     "crypto-on-no-key-encryption-accumulo-site.xml";
-  // @formatter:on
 
   @Rule
   public ExpectedException exception = ExpectedException.none();

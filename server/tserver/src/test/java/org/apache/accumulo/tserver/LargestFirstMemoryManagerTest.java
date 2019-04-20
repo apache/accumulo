@@ -203,10 +203,8 @@ public class LargestFirstMemoryManagerTest {
         return !deletedTableId.equals(tableId);
       }
     };
-    // @formatter:off
     LargestFirstMemoryManagerWithExistenceCheck mgr =
       new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
-    // @formatter:on
     ServerConfiguration config = new ServerConfiguration() {
       ServerConfigurationFactory delegate = new ServerConfigurationFactory(inst);
 
