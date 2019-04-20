@@ -185,8 +185,8 @@ public class RemoveEntriesForMissingFiles {
   }
 
   static int checkAllTables(ClientContext context, boolean fix) throws Exception {
-    int missing = checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(),
-        fix);
+    int missing =
+        checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
 
     if (missing == 0)
       return checkTable(context, MetadataTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);

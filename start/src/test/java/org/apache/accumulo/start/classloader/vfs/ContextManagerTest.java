@@ -38,10 +38,10 @@ import org.junit.rules.TemporaryFolder;
 
 public class ContextManagerTest {
 
-  private TemporaryFolder folder1 = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
-  private TemporaryFolder folder2 = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  private TemporaryFolder folder1 =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  private TemporaryFolder folder2 =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
   private FileSystemManager vfs;
   private String uri1;
   private String uri2;

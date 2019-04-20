@@ -116,7 +116,7 @@ public class MockConnectorTest {
       fail("addMutations should throw IAE for null iterable");
     } catch (IllegalArgumentException iae) {}
 
-    bw.addMutations(Collections.<Mutation> emptyList());
+    bw.addMutations(Collections.<Mutation>emptyList());
 
     Mutation bad = new Mutation("bad");
     try {
@@ -212,8 +212,8 @@ public class MockConnectorTest {
       c.tableOperations().delete("test");
     c.tableOperations().create("test");
 
-    BatchDeleter deleter = c.createBatchDeleter("test", Authorizations.EMPTY, 2,
-        new BatchWriterConfig());
+    BatchDeleter deleter =
+        c.createBatchDeleter("test", Authorizations.EMPTY, 2, new BatchWriterConfig());
     // first make sure it deletes fine when its empty
     deleter.setRanges(Collections.singletonList(new Range(("r1"))));
     deleter.delete();

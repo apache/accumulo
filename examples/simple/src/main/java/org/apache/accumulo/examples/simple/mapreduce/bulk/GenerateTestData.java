@@ -42,8 +42,8 @@ public class GenerateTestData {
     opts.parseArgs(GenerateTestData.class.getName(), args);
 
     FileSystem fs = FileSystem.get(new Configuration());
-    PrintStream out = new PrintStream(
-        new BufferedOutputStream(fs.create(new Path(opts.outputFile))));
+    PrintStream out =
+        new PrintStream(new BufferedOutputStream(fs.create(new Path(opts.outputFile))));
 
     for (int i = 0; i < opts.numRows; i++) {
       out.println(String.format("row_%010d\tvalue_%010d", i + opts.startRow, i + opts.startRow));

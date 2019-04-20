@@ -57,7 +57,7 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
     // correct one to use.
     if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
       org.apache.accumulo.core.client.mapreduce.RangeInputSplit accSplit =
-        (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
+          (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
       Level level = accSplit.getLogLevel();
       if (null != level) {
         log.setLevel(level);

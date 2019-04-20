@@ -128,8 +128,8 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
   }
 
   public void init() throws TableNotFoundException {
-    DefaultMutableTreeNode root = new DefaultMutableTreeNode(
-        new NodeInfo(topPath, q.getData(topPath)));
+    DefaultMutableTreeNode root =
+        new DefaultMutableTreeNode(new NodeInfo(topPath, q.getData(topPath)));
     populate(root);
     populateChildren(root);
 

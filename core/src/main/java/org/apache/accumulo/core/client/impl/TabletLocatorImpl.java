@@ -503,8 +503,8 @@ public class TabletLocatorImpl extends TabletLocator {
     TabletLocation ptl = parent.locateTablet(context, metadataRow, false, retry);
 
     if (ptl != null) {
-      TabletLocations locations = locationObtainer.lookupTablet(context, ptl, metadataRow,
-          lastTabletRow, parent);
+      TabletLocations locations =
+          locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
       while (locations != null && locations.getLocations().isEmpty()
           && locations.getLocationless().isEmpty()) {
         // try the next tablet, the current tablet does not have any tablets that overlap the row
@@ -513,8 +513,8 @@ public class TabletLocatorImpl extends TabletLocator {
           // System.out.println("er "+er+" ltr "+lastTabletRow);
           ptl = parent.locateTablet(context, er, true, retry);
           if (ptl != null)
-            locations = locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow,
-                parent);
+            locations =
+                locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
           else
             break;
         } else {
@@ -537,9 +537,9 @@ public class TabletLocatorImpl extends TabletLocator {
         // create new location if current prevEndRow == endRow
         if ((lastEndRow != null) && (ke.getPrevEndRow() != null)
             && ke.getPrevEndRow().equals(lastEndRow)) {
-          locToCache = new TabletLocation(
-              new KeyExtent(ke.getTableId(), ke.getEndRow(), lastEndRow),
-              tabletLocation.tablet_location, tabletLocation.tablet_session);
+          locToCache =
+              new TabletLocation(new KeyExtent(ke.getTableId(), ke.getEndRow(), lastEndRow),
+                  tabletLocation.tablet_location, tabletLocation.tablet_session);
         } else {
           locToCache = tabletLocation;
         }
@@ -729,8 +729,8 @@ public class TabletLocatorImpl extends TabletLocator {
       Collections.shuffle(tabletServers);
 
       for (String tserver : tabletServers) {
-        List<TabletLocation> locations = locationObtainer.lookupTablets(context, tserver,
-            binnedRanges.get(tserver), parent);
+        List<TabletLocation> locations =
+            locationObtainer.lookupTablets(context, tserver, binnedRanges.get(tserver), parent);
 
         for (TabletLocation tabletLocation : locations) {
           updateCache(tabletLocation, lcSession);

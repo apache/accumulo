@@ -57,8 +57,8 @@ abstract public class BasicServlet extends HttpServlet {
     StringBuilder sb = new StringBuilder();
     try {
       Monitor.fetchData();
-      bannerText = sanitize(
-          Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_TEXT));
+      bannerText =
+          sanitize(Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_TEXT));
       bannerColor = Monitor.getContext().getConfiguration().get(Property.MONITOR_BANNER_COLOR)
           .replace("'", "&#39;");
       bannerBackground = Monitor.getContext().getConfiguration()

@@ -88,7 +88,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -111,7 +111,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("badrow")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("badrow")));
 
     key.write(dos);
     value.write(dos);
@@ -143,7 +143,7 @@ public class AccumuloReplicaSystemTest {
     key.event = LogEvents.MUTATION;
     key.tabletId = 3;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -157,8 +157,8 @@ public class AccumuloReplicaSystemTest {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ars.setConf(conf);
 
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false)
-        .build();
+    Status status =
+        Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
     WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
@@ -197,7 +197,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -220,7 +220,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("badrow")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("badrow")));
 
     key.write(dos);
     value.write(dos);
@@ -252,7 +252,7 @@ public class AccumuloReplicaSystemTest {
     key.event = LogEvents.MUTATION;
     key.tabletId = 3;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -269,8 +269,8 @@ public class AccumuloReplicaSystemTest {
     // Setting the file to be closed with the infinite end implies that we need to bump the begin up
     // to Long.MAX_VALUE
     // If it were still open, more data could be appended that we need to process
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true)
-        .build();
+    Status status =
+        Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
     WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
@@ -339,8 +339,8 @@ public class AccumuloReplicaSystemTest {
     // Setting the file to be closed with the infinite end implies that we need to bump the begin up
     // to Long.MAX_VALUE
     // If it were still open, more data could be appended that we need to process
-    Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true)
-        .build();
+    Status status =
+        Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
     WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
@@ -365,8 +365,8 @@ public class AccumuloReplicaSystemTest {
     // Setting the file to be closed with the infinite end implies that we need to bump the begin up
     // to Long.MAX_VALUE
     // If it were still open, more data could be appended that we need to process
-    Status status = Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true)
-        .setClosed(false).build();
+    Status status =
+        Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
     WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
         new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
@@ -405,7 +405,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -414,7 +414,7 @@ public class AccumuloReplicaSystemTest {
     key.event = LogEvents.MUTATION;
     key.tabletId = 1;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation> asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -428,8 +428,8 @@ public class AccumuloReplicaSystemTest {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ars.setConf(conf);
 
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false)
-        .build();
+    Status status =
+        Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
 
     HashSet<Integer> tids = new HashSet<>();
@@ -461,7 +461,7 @@ public class AccumuloReplicaSystemTest {
   public void dontSendEmptyDataToPeer() throws Exception {
     Client replClient = createMock(Client.class);
     AccumuloReplicaSystem ars = createMock(AccumuloReplicaSystem.class);
-    WalEdits edits = new WalEdits(Collections.<ByteBuffer> emptyList());
+    WalEdits edits = new WalEdits(Collections.<ByteBuffer>emptyList());
     WalReplication walReplication = new WalReplication(edits, 0, 0, 0);
 
     ReplicationTarget target = new ReplicationTarget("peer", "2", "1");
@@ -491,7 +491,7 @@ public class AccumuloReplicaSystemTest {
   public void consumedButNotSentDataShouldBeRecorded() throws Exception {
     Client replClient = createMock(Client.class);
     AccumuloReplicaSystem ars = createMock(AccumuloReplicaSystem.class);
-    WalEdits edits = new WalEdits(Collections.<ByteBuffer> emptyList());
+    WalEdits edits = new WalEdits(Collections.<ByteBuffer>emptyList());
     WalReplication walReplication = new WalReplication(edits, 0, 5, 0);
 
     ReplicationTarget target = new ReplicationTarget("peer", "2", "1");

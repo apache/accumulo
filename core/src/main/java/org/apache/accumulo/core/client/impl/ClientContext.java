@@ -237,8 +237,8 @@ public class ClientContext {
           org.apache.hadoop.conf.Configuration hadoopConf = getHadoopConfiguration();
           if (null != hadoopConf) {
             try {
-              char[] value = CredentialProviderFactoryShim
-                  .getValueFromCredentialProvider(hadoopConf, key);
+              char[] value =
+                  CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
               if (null != value) {
                 log.trace("Loaded sensitive value for {} from CredentialProvider", key);
                 return new String(value);
@@ -283,8 +283,8 @@ public class ClientContext {
         // the Kerberos instance from the principle, but servers do
         // Automatically reconstruct the server property when converting a client config.
         if (props.containsKey(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey())) {
-          final String serverPrimary = props
-              .remove(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
+          final String serverPrimary =
+              props.remove(ClientProperty.KERBEROS_SERVER_PRIMARY.getKey());
           if (filter.apply(Property.GENERAL_KERBEROS_PRINCIPAL.getKey())) {
             // Use the _HOST expansion. It should be unnecessary in "client land".
             props.put(Property.GENERAL_KERBEROS_PRINCIPAL.getKey(),
@@ -302,8 +302,8 @@ public class ClientContext {
               }
 
               if (filter.apply(key)) {
-                char[] value = CredentialProviderFactoryShim
-                    .getValueFromCredentialProvider(hadoopConf, key);
+                char[] value =
+                    CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
                 if (null != value) {
                   props.put(key, new String(value));
                 }
@@ -317,8 +317,8 @@ public class ClientContext {
       }
 
       private org.apache.hadoop.conf.Configuration getHadoopConfiguration() {
-        String credProviderPaths = config
-            .getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+        String credProviderPaths =
+            config.getString(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
         if (null != credProviderPaths && !credProviderPaths.isEmpty()) {
           org.apache.hadoop.conf.Configuration hConf = new org.apache.hadoop.conf.Configuration();
           hConf.set(CredentialProviderFactoryShim.CREDENTIAL_PROVIDER_PATH, credProviderPaths);

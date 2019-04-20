@@ -88,8 +88,8 @@ public class BulkIngestExample extends Configured implements Tool {
 
       int index = 0;
       for (Text value : values) {
-        Key outputKey = new Key(key, new Text("colf"), new Text(String.format("col_%07d", index)),
-            timestamp);
+        Key outputKey =
+            new Key(key, new Text("colf"), new Text(String.format("col_%07d", index)), timestamp);
         index++;
 
         Value outputValue = new Value(value.getBytes(), 0, value.getLength());

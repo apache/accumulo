@@ -101,7 +101,7 @@ public class ZooReaderWriterTest {
   public void testMutateNodeCreationFails() throws Exception {
     final String path = "/foo";
     final byte[] value = new byte[] {0};
-    final List<ACL> acls = Collections.<ACL> emptyList();
+    final List<ACL> acls = Collections.<ACL>emptyList();
     Mutator mutator = new Mutator() {
       @Override
       public byte[] mutate(byte[] currentValue) throws Exception {
@@ -123,7 +123,7 @@ public class ZooReaderWriterTest {
   public void testMutateWithBadVersion() throws Exception {
     final String path = "/foo";
     final byte[] value = new byte[] {0};
-    final List<ACL> acls = Collections.<ACL> emptyList();
+    final List<ACL> acls = Collections.<ACL>emptyList();
     final byte[] mutatedBytes = new byte[] {1};
     Mutator mutator = new Mutator() {
       @Override
@@ -132,8 +132,8 @@ public class ZooReaderWriterTest {
       }
     };
 
-    Method getDataMethod = ZooReaderWriter.class.getMethod("getData", String.class, boolean.class,
-        Stat.class);
+    Method getDataMethod =
+        ZooReaderWriter.class.getMethod("getData", String.class, boolean.class, Stat.class);
     zrw = EasyMock.createMockBuilder(ZooReaderWriter.class)
         .addMockedMethods("getRetryFactory", "getZooKeeper").addMockedMethod(getDataMethod)
         .createMock();
@@ -161,7 +161,7 @@ public class ZooReaderWriterTest {
   public void testMutateWithRetryOnSetData() throws Exception {
     final String path = "/foo";
     final byte[] value = new byte[] {0};
-    final List<ACL> acls = Collections.<ACL> emptyList();
+    final List<ACL> acls = Collections.<ACL>emptyList();
     final byte[] mutatedBytes = new byte[] {1};
     Mutator mutator = new Mutator() {
       @Override
@@ -170,8 +170,8 @@ public class ZooReaderWriterTest {
       }
     };
 
-    Method getDataMethod = ZooReaderWriter.class.getMethod("getData", String.class, boolean.class,
-        Stat.class);
+    Method getDataMethod =
+        ZooReaderWriter.class.getMethod("getData", String.class, boolean.class, Stat.class);
     zrw = EasyMock.createMockBuilder(ZooReaderWriter.class)
         .addMockedMethods("getRetryFactory", "getZooKeeper").addMockedMethod(getDataMethod)
         .createMock();

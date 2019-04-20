@@ -126,9 +126,9 @@ public class ReplicationServlet extends BasicServlet {
 
     // Up to 2x the number of slots for replication available, WARN
     // More than 2x the number of slots for replication available, ERROR
-    NumberType<Long> filesPendingFormat = new NumberType<>(Long.valueOf(0),
-        Long.valueOf(2 * totalWorkQueueSize), Long.valueOf(0),
-        Long.valueOf(4 * totalWorkQueueSize));
+    NumberType<Long> filesPendingFormat =
+        new NumberType<>(Long.valueOf(0), Long.valueOf(2 * totalWorkQueueSize), Long.valueOf(0),
+            Long.valueOf(4 * totalWorkQueueSize));
 
     String utilization = filesPendingFormat.format(filesPendingOverAllTargets);
 
@@ -149,13 +149,13 @@ public class ReplicationServlet extends BasicServlet {
     String zkRoot = ZooUtil.getRoot(Monitor.getContext().getInstance());
     final String workQueuePath = zkRoot + ReplicationConstants.ZOO_WORK_QUEUE;
 
-    DistributedWorkQueue workQueue = new DistributedWorkQueue(workQueuePath,
-        Monitor.getContext().getConfiguration());
+    DistributedWorkQueue workQueue =
+        new DistributedWorkQueue(workQueuePath, Monitor.getContext().getConfiguration());
 
     try {
       for (String queueKey : workQueue.getWorkQueued()) {
-        Entry<String,ReplicationTarget> queueKeyPair = DistributedWorkQueueWorkAssignerHelper
-            .fromQueueKey(queueKey);
+        Entry<String,ReplicationTarget> queueKeyPair =
+            DistributedWorkQueueWorkAssignerHelper.fromQueueKey(queueKey);
         String filename = queueKeyPair.getKey();
         ReplicationTarget target = queueKeyPair.getValue();
 

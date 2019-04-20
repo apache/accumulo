@@ -263,8 +263,8 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
       try {
         Map<String,WalState> result = new HashMap<>();
         Instance i = c.getInstance();
-        ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-            "");
+        ZooReaderWriter zk =
+            new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
         WalStateManager wals = new WalStateManager(c.getInstance(), zk);
         for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
           // WALs are in use if they are not unreferenced

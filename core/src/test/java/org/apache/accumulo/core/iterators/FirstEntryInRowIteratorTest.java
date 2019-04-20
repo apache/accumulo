@@ -43,7 +43,7 @@ public class FirstEntryInRowIteratorTest {
     feiri.init(counter, Collections.singletonMap(FirstEntryInRowIterator.NUM_SCANS_STRING_NAME,
         Integer.toString(numScans)), env);
 
-    feiri.seek(range, Collections.<ByteSequence> emptySet(), false);
+    feiri.seek(range, Collections.<ByteSequence>emptySet(), false);
     while (feiri.hasTop()) {
       resultMap.put(feiri.getTopKey(), feiri.getTopValue());
       feiri.next();

@@ -93,8 +93,8 @@ public class Merge {
         return;
       }
       if (opts.goalSize == null || opts.goalSize < 1) {
-        AccumuloConfiguration tableConfig = new ConfigurationCopy(
-            conn.tableOperations().getProperties(opts.getTableName()));
+        AccumuloConfiguration tableConfig =
+            new ConfigurationCopy(conn.tableOperations().getProperties(opts.getTableName()));
         opts.goalSize = tableConfig.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
       }
 

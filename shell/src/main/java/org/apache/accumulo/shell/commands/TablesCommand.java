@@ -51,8 +51,7 @@ public class TablesCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, IOException, NamespaceNotFoundException {
 
     final String namespace = cl.hasOption(OptUtil.namespaceOpt().getOpt())
-        ? OptUtil.getNamespaceOpt(cl, shellState)
-        : null;
+        ? OptUtil.getNamespaceOpt(cl, shellState) : null;
     Map<String,String> tables = shellState.getConnector().tableOperations().tableIdMap();
 
     // filter only specified namespace
@@ -93,8 +92,8 @@ public class TablesCommand extends Command {
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    tableIdOption = new Option("l", "list-ids", false,
-        "display internal table ids along with the table name");
+    tableIdOption =
+        new Option("l", "list-ids", false, "display internal table ids along with the table name");
     o.addOption(tableIdOption);
     sortByTableIdOption = new Option("s", "sort-ids", false, "with -l: sort output by table ids");
     o.addOption(sortByTableIdOption);

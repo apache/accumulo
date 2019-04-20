@@ -30,8 +30,8 @@ public class ZooKeeperStatusTest {
 
   @Test
   public void zkHostSortingTest() {
-    List<String> expectedHosts = Arrays.asList("rack1node1", "rack2node1", "rack4node1",
-        "rack4node4");
+    List<String> expectedHosts =
+        Arrays.asList("rack1node1", "rack2node1", "rack4node1", "rack4node4");
 
     // Add the states in a not correctly sorted order
     TreeSet<ZooKeeperState> states = new TreeSet<>();

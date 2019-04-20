@@ -39,8 +39,8 @@ public class ImportTableTest {
     iti.tableId = "5";
 
     // Different volumes with different paths
-    String[] volumes = new String[] {"hdfs://nn1:8020/apps/accumulo1",
-        "hdfs://nn2:8020/applications/accumulo"};
+    String[] volumes =
+        new String[] {"hdfs://nn1:8020/apps/accumulo1", "hdfs://nn2:8020/applications/accumulo"};
     // This needs to be unique WRT the importtable command
     String tabletDir = "/c-00000001";
 

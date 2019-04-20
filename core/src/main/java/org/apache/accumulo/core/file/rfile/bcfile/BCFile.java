@@ -154,8 +154,8 @@ public final class BCFile {
 
         fsOutputBuffer.setCapacity(getFSOutputBufferSize(conf));
 
-        this.fsBufferedOutput = new SimpleBufferedOutputStream(this.fsOut,
-            fsOutputBuffer.getBytes());
+        this.fsBufferedOutput =
+            new SimpleBufferedOutputStream(this.fsOut, fsOutputBuffer.getBytes());
 
         // *This* is very important. Without this, when the crypto stream is closed (in order to
         // flush its last bytes),
@@ -375,13 +375,13 @@ public final class BCFile {
       this.cryptoModule = CryptoModuleFactory.getCryptoModule(accumuloConfiguration);
       this.cryptoParams = new BCFileCryptoModuleParameters();
       CryptoModuleFactory.fillParamsObjectFromConfiguration(cryptoParams, accumuloConfiguration);
-      this.cryptoParams = (BCFileCryptoModuleParameters) cryptoModule
-          .generateNewRandomSessionKey(cryptoParams);
+      this.cryptoParams =
+          (BCFileCryptoModuleParameters) cryptoModule.generateNewRandomSessionKey(cryptoParams);
 
-      this.secretKeyEncryptionStrategy = CryptoModuleFactory
-          .getSecretKeyEncryptionStrategy(accumuloConfiguration);
-      this.cryptoParams = (BCFileCryptoModuleParameters) secretKeyEncryptionStrategy
-          .encryptSecretKey(cryptoParams);
+      this.secretKeyEncryptionStrategy =
+          CryptoModuleFactory.getSecretKeyEncryptionStrategy(accumuloConfiguration);
+      this.cryptoParams =
+          (BCFileCryptoModuleParameters) secretKeyEncryptionStrategy.encryptSecretKey(cryptoParams);
 
       // secretKeyEncryptionStrategy.encryptSecretKey(cryptoParameters);
 
@@ -404,8 +404,8 @@ public final class BCFile {
           }
 
           // add metaBCFileIndex to metaIndex as the last meta block
-          BlockAppender appender = prepareMetaBlock(DataIndex.BLOCK_NAME,
-              getDefaultCompressionAlgorithm());
+          BlockAppender appender =
+              prepareMetaBlock(DataIndex.BLOCK_NAME, getDefaultCompressionAlgorithm());
           try {
             dataIndex.write(appender);
           } finally {
@@ -452,8 +452,8 @@ public final class BCFile {
       }
 
       MetaBlockRegister mbr = new MetaBlockRegister(name, compressAlgo);
-      WBlockState wbs = new WBlockState(compressAlgo, out, fsOutputBuffer, conf, cryptoModule,
-          cryptoParams);
+      WBlockState wbs =
+          new WBlockState(compressAlgo, out, fsOutputBuffer, conf, cryptoModule, cryptoParams);
       BlockAppender ba = new BlockAppender(mbr, wbs);
       blkInProgress = true;
       metaBlkSeen = true;
@@ -557,7 +557,7 @@ public final class BCFile {
 
   // sha256 of some random data
   private static final byte[] NO_CPYPTO_KEY =
-    "ce18cf53c4c5077f771249b38033fa14bcb31cca0e5e95a371ee72daa8342ea2".getBytes(UTF_8);
+      "ce18cf53c4c5077f771249b38033fa14bcb31cca0e5e95a371ee72daa8342ea2".getBytes(UTF_8);
 
   // This class is used as a place holder in the cache for RFiles that have no crypto....
   private static final BCFileCryptoModuleParameters NO_CRYPTO = new BCFileCryptoModuleParameters() {
@@ -850,10 +850,10 @@ public final class BCFile {
         // TODO: Do I need this? Hmmm, maybe I do.
         if (accumuloConfiguration
             .getBoolean(Property.CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY)) {
-          Map<String,String> cryptoConfFromAccumuloConf = accumuloConfiguration
-              .getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
-          Map<String,String> instanceConf = accumuloConfiguration
-              .getAllPropertiesWithPrefix(Property.INSTANCE_PREFIX);
+          Map<String,String> cryptoConfFromAccumuloConf =
+              accumuloConfiguration.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
+          Map<String,String> instanceConf =
+              accumuloConfiguration.getAllPropertiesWithPrefix(Property.INSTANCE_PREFIX);
 
           cryptoConfFromAccumuloConf.putAll(instanceConf);
 
@@ -941,10 +941,10 @@ public final class BCFile {
 
           if (accumuloConfiguration
               .getBoolean(Property.CRYPTO_OVERRIDE_KEY_STRATEGY_WITH_CONFIGURED_STRATEGY)) {
-            Map<String,String> cryptoConfFromAccumuloConf = accumuloConfiguration
-                .getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
-            Map<String,String> instanceConf = accumuloConfiguration
-                .getAllPropertiesWithPrefix(Property.INSTANCE_PREFIX);
+            Map<String,String> cryptoConfFromAccumuloConf =
+                accumuloConfiguration.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX);
+            Map<String,String> instanceConf =
+                accumuloConfiguration.getAllPropertiesWithPrefix(Property.INSTANCE_PREFIX);
 
             cryptoConfFromAccumuloConf.putAll(instanceConf);
 
@@ -1039,8 +1039,8 @@ public final class BCFile {
             .getSecretKeyEncryptionStrategy(params.getKeyEncryptionStrategyClass());
 
         // This call should put the decrypted session key within the cryptoParameters object
-        cryptoParams = (BCFileCryptoModuleParameters) secretKeyEncryptionStrategy
-            .decryptSecretKey(params);
+        cryptoParams =
+            (BCFileCryptoModuleParameters) secretKeyEncryptionStrategy.decryptSecretKey(params);
       }
     }
 
@@ -1132,8 +1132,8 @@ public final class BCFile {
 
     private BlockReader createReader(Algorithm compressAlgo, BlockRegion region)
         throws IOException {
-      RBlockState rbs = new RBlockState(compressAlgo, in, region, conf, cryptoModule, version,
-          cryptoParams);
+      RBlockState rbs =
+          new RBlockState(compressAlgo, in, region, conf, cryptoModule, version, cryptoParams);
       return new BlockReader(rbs);
     }
 
@@ -1257,8 +1257,8 @@ public final class BCFile {
     // for write
     public DataIndex(String defaultCompressionAlgorithmName, boolean trackBlocks) {
       this.trackBlocks = trackBlocks;
-      this.defaultCompressionAlgorithm = Compression
-          .getCompressionAlgorithmByName(defaultCompressionAlgorithmName);
+      this.defaultCompressionAlgorithm =
+          Compression.getCompressionAlgorithmByName(defaultCompressionAlgorithmName);
       listRegions = new ArrayList<>();
     }
 

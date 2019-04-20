@@ -300,8 +300,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       assertionErrors.put(table + "_cleanup", new AssertionError("Dummy_cleanup"));
 
       @SuppressWarnings("unchecked")
-      Class<? extends InputFormat<?,?>> inputFormatClass = (Class<? extends InputFormat<?,?>>) Class
-          .forName(inputFormatClassName);
+      Class<? extends InputFormat<?,?>> inputFormatClass =
+          (Class<? extends InputFormat<?,?>>) Class.forName(inputFormatClassName);
 
       Job job = Job.getInstance(getConf(),
           this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
@@ -359,8 +359,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     assertEquals(1, assertionErrors.get(TEST_TABLE_1 + "_cleanup").size());
   }
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
-      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG =
+      new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
+          .addOption("modulus", "3");
 
   @Test
   public void testSample() throws Exception {
@@ -421,8 +422,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<Pair<Text,Text>> fetchColumns = Collections
-        .singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
@@ -514,7 +515,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
       for (InputSplit split : splits) {
         org.apache.accumulo.core.client.mapreduce.RangeInputSplit rangeSplit =
-          (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
+            (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
         rangeSplit.setToken(new PasswordToken("anythingelse"));
       }
 
@@ -535,8 +536,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       // Copy only the necessary information
       for (InputSplit oldSplit : oldSplits) {
         org.apache.accumulo.core.client.mapreduce.RangeInputSplit newSplit =
-          new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(
-            (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) oldSplit);
+            new org.apache.accumulo.core.client.mapreduce.RangeInputSplit(
+                (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) oldSplit);
         newSplits.add(newSplit);
       }
 

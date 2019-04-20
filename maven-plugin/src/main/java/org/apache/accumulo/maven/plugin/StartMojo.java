@@ -57,8 +57,8 @@ public class StartMojo extends AbstractAccumuloMojo {
 
   private String miniClasspath;
 
-  static Set<MiniAccumuloClusterImpl> runningClusters = Collections
-      .synchronizedSet(new HashSet<MiniAccumuloClusterImpl>());
+  static Set<MiniAccumuloClusterImpl> runningClusters =
+      Collections.synchronizedSet(new HashSet<MiniAccumuloClusterImpl>());
 
   @Override
   public void execute() throws MojoExecutionException {

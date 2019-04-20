@@ -194,10 +194,10 @@ public class Master extends AccumuloServerContext
   final SecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers = Collections
       .synchronizedMap(new DefaultMap<TServerInstance,AtomicInteger>(new AtomicInteger()));
-  final Set<TServerInstance> serversToShutdown = Collections
-      .synchronizedSet(new HashSet<TServerInstance>());
-  final SortedMap<KeyExtent,TServerInstance> migrations = Collections
-      .synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
+  final Set<TServerInstance> serversToShutdown =
+      Collections.synchronizedSet(new HashSet<TServerInstance>());
+  final SortedMap<KeyExtent,TServerInstance> migrations =
+      Collections.synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
   final EventCoordinator nextEvent = new EventCoordinator();
   final private Object mergeLock = new Object();
   private ReplicationDriver replicationWorkDriver;
@@ -218,8 +218,8 @@ public class Master extends AccumuloServerContext
 
   Fate<Master> fate;
 
-  volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections
-      .unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
+  volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus =
+      Collections.unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   @Override
@@ -429,9 +429,9 @@ public class Master extends AccumuloServerContext
         // put existing tables in the correct namespaces
         String tables = ZooUtil.getRoot(getInstance()) + Constants.ZTABLES;
         for (String tableId : zoo.getChildren(tables)) {
-          String targetNamespace = (MetadataTable.ID.equals(tableId)
-              || RootTable.ID.equals(tableId)) ? Namespaces.ACCUMULO_NAMESPACE_ID
-                  : Namespaces.DEFAULT_NAMESPACE_ID;
+          String targetNamespace =
+              (MetadataTable.ID.equals(tableId) || RootTable.ID.equals(tableId))
+                  ? Namespaces.ACCUMULO_NAMESPACE_ID : Namespaces.DEFAULT_NAMESPACE_ID;
           log.debug("Upgrade moving table "
               + new String(zoo.getData(tables + "/" + tableId + Constants.ZTABLE_NAME, null), UTF_8)
               + " (ID: " + tableId + ") into namespace with ID " + targetNamespace);
@@ -687,8 +687,8 @@ public class Master extends AccumuloServerContext
       // SASL is enabled, create the key distributor (ZooKeeper) and manager (generates/rolls secret
       // keys)
       log.info("SASL is enabled, creating delegation token key manager and distributor");
-      final long tokenUpdateInterval = aconf
-          .getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
+      final long tokenUpdateInterval =
+          aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
       keyDistributor = new ZooAuthenticationKeyDistributor(ZooReaderWriter.getInstance(),
           ZooUtil.getRoot(getInstance()) + Constants.ZDELEGATION_TOKEN_KEYS);
       authenticationTokenKeyManager = new AuthenticationTokenKeyManager(getSecretManager(),
@@ -1157,12 +1157,12 @@ public class Master extends AccumuloServerContext
 
   }
 
-  private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation(
-      Set<TServerInstance> currentServers) {
+  private SortedMap<TServerInstance,TabletServerStatus>
+      gatherTableInformation(Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MASTER_STATUS_THREAD_POOL_SIZE);
-    ExecutorService tp = threads == 0 ? Executors.newCachedThreadPool()
-        : Executors.newFixedThreadPool(threads);
+    ExecutorService tp =
+        threads == 0 ? Executors.newCachedThreadPool() : Executors.newFixedThreadPool(threads);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     for (TServerInstance serverInstance : currentServers) {
@@ -1382,14 +1382,13 @@ public class Master extends AccumuloServerContext
     // Start the replication coordinator which assigns tservers to service replication requests
     MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
-      new ReplicationCoordinator.Processor<>(
-            RpcWrapper.service(impl,
-                new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(impl)));
-    ServerAddress replAddress = TServerUtils.startServer(this, hostname,
-        Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
-        "Master Replication Coordinator", "Replication Coordinator", null,
-        Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
-        Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+        new ReplicationCoordinator.Processor<>(RpcWrapper.service(impl,
+            new ReplicationCoordinator.Processor<ReplicationCoordinator.Iface>(impl)));
+    ServerAddress replAddress =
+        TServerUtils.startServer(this, hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT,
+            replicationCoordinatorProcessor, "Master Replication Coordinator",
+            "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
+            Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
 
     log.info("Started replication coordinator service at " + replAddress.address);
 
@@ -1510,8 +1509,8 @@ public class Master extends AccumuloServerContext
   private void getMasterLock(final String zMasterLoc) throws KeeperException, InterruptedException {
     log.info("trying to get master lock");
 
-    final String masterClientAddress = hostname + ":"
-        + getConfiguration().getPort(Property.MASTER_CLIENTPORT)[0];
+    final String masterClientAddress =
+        hostname + ":" + getConfiguration().getPort(Property.MASTER_CLIENTPORT)[0];
 
     while (true) {
 
@@ -1546,8 +1545,8 @@ public class Master extends AccumuloServerContext
       ServerOpts opts = new ServerOpts();
       opts.parseArgs(app, args);
       String hostname = opts.getAddress();
-      ServerConfigurationFactory conf = new ServerConfigurationFactory(
-          HdfsZooInstance.getInstance());
+      ServerConfigurationFactory conf =
+          new ServerConfigurationFactory(HdfsZooInstance.getInstance());
       VolumeManager fs = VolumeManagerImpl.get();
       MetricsSystemHelper.configure(Master.class.getSimpleName());
       Accumulo.init(fs, conf, app);
@@ -1567,8 +1566,8 @@ public class Master extends AccumuloServerContext
       Set<TServerInstance> added) {
     // if we have deleted or added tservers, then adjust our dead server list
     if (!deleted.isEmpty() || !added.isEmpty()) {
-      DeadServerList obit = new DeadServerList(
-          ZooUtil.getRoot(getInstance()) + Constants.ZDEADTSERVERS);
+      DeadServerList obit =
+          new DeadServerList(ZooUtil.getRoot(getInstance()) + Constants.ZDEADTSERVERS);
       if (added.size() > 0) {
         log.info("New servers: " + added);
         for (TServerInstance up : added)
@@ -1761,8 +1760,8 @@ public class Master extends AccumuloServerContext
       for (TServerInstance server : serversToShutdown)
         result.serversShuttingDown.add(server.hostPort());
     }
-    DeadServerList obit = new DeadServerList(
-        ZooUtil.getRoot(getInstance()) + Constants.ZDEADTSERVERS);
+    DeadServerList obit =
+        new DeadServerList(ZooUtil.getRoot(getInstance()) + Constants.ZDEADTSERVERS);
     result.deadTabletServers = obit.getList();
     result.bulkImports = bulkImportStatus.getBulkLoadStatus();
     return result;

@@ -110,8 +110,8 @@ public class RFileTest {
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   static class SeekableByteArrayInputStream extends ByteArrayInputStream
       implements Seekable, PositionedReadable {
@@ -225,8 +225,8 @@ public class RFileTest {
       CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(PositionedOutputs.wrap(dos),
           "gz", conf, accumuloConfiguration);
 
-      SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
-          .newSamplerConfig(accumuloConfiguration);
+      SamplerConfigurationImpl samplerConfig =
+          SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
       Sampler sampler = null;
 
       if (samplerConfig != null) {
@@ -1738,8 +1738,8 @@ public class RFileTest {
   }
 
   private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
-    ConfigurationCopy result = new ConfigurationCopy(
-        AccumuloConfiguration.getDefaultConfiguration());
+    ConfigurationCopy result =
+        new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
     Configuration conf = new Configuration(false);
     conf.addResource(cryptoConfSetting);
     for (Entry<String,String> e : conf) {
@@ -2031,8 +2031,8 @@ public class RFileTest {
 
         trf.openReader();
 
-        FileSKVIterator sample = trf.reader
-            .getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
+        FileSKVIterator sample =
+            trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
 
         checkSample(sample, sampleData);
 
@@ -2148,8 +2148,8 @@ public class RFileTest {
         assertTrue(sampleDataLG2.size() > 0);
 
         trf.openReader(false);
-        FileSKVIterator sample = trf.reader
-            .getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
+        FileSKVIterator sample =
+            trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
 
         checkSample(sample, sampleDataLG1, newColFamByteSequence("metaA", "metaB"), true);
         checkSample(sample, sampleDataLG1, newColFamByteSequence("metaA"), true);
@@ -2284,50 +2284,50 @@ public class RFileTest {
         MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
 
     // table tablet's directory
-    Key tableDirKey = new Key(tableExtent,
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    Key tableDirKey =
+        new Key(tableExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+            TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
     mfw.append(tableDirKey, new Value(/* TABLE_TABLETS_TABLET_DIR */"/table_info".getBytes()));
 
     // table tablet time
-    Key tableTimeKey = new Key(tableExtent,
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
+    Key tableTimeKey =
+        new Key(tableExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+            TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(tableTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
 
     // table tablet's prevrow
-    Key tablePrevRowKey = new Key(tableExtent,
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    Key tablePrevRowKey =
+        new Key(tableExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+            TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(tablePrevRowKey, KeyExtent.encodePrevEndRow(null));
 
     // ----------] default tablet info
     Text defaultExtent = new Text(KeyExtent.getMetadataEntry(MetadataTable.ID, null));
 
     // default's directory
-    Key defaultDirKey = new Key(defaultExtent,
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
+    Key defaultDirKey =
+        new Key(defaultExtent, TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+            TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_LOCATION.getBytes()));
 
     // default's time
-    Key defaultTimeKey = new Key(defaultExtent,
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
-        TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
+    Key defaultTimeKey =
+        new Key(defaultExtent, TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+            TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultTimeKey, new Value((/* TabletTime.LOGICAL_TIME_ID */'L' + "0").getBytes()));
 
     // default's prevrow
-    Key defaultPrevRowKey = new Key(defaultExtent,
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
-        TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
+    Key defaultPrevRowKey =
+        new Key(defaultExtent, TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnFamily(),
+            TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.getColumnQualifier(), 0);
     mfw.append(defaultPrevRowKey,
         KeyExtent.encodePrevEndRow(MetadataSchema.TabletsSection.getRange().getEndKey().getRow()));
 
     testRfile.closeWriter();
 
     if (true) {
-      FileOutputStream fileOutputStream = new FileOutputStream(
-          tempFolder.newFile("testEncryptedRootFile.rf"));
+      FileOutputStream fileOutputStream =
+          new FileOutputStream(tempFolder.newFile("testEncryptedRootFile.rf"));
       fileOutputStream.write(testRfile.baos.toByteArray());
       fileOutputStream.flush();
       fileOutputStream.close();

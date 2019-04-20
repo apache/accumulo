@@ -102,10 +102,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       List<IterInfo> serverSideIteratorList = new ArrayList<>();
       serverSideIteratorList.add(new IterInfo(10000, WholeRowIterator.class.getName(), "WRI"));
       Map<String,Map<String,String>> serverSideIteratorOptions = Collections.emptyMap();
-      boolean more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent,
-          src.tablet_location, encodedResults, locCols, serverSideIteratorList,
-          serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, 0L,
-          null);
+      boolean more =
+          ThriftScanner.getBatchFromServer(context, range, src.tablet_extent, src.tablet_location,
+              encodedResults, locCols, serverSideIteratorList, serverSideIteratorOptions,
+              Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, 0L, null);
 
       decodeRows(encodedResults, results);
 
@@ -113,10 +113,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         range = new Range(results.lastKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME),
             true, new Key(stopRow).followingKey(PartialKey.ROW), false);
         encodedResults.clear();
-        more = ThriftScanner.getBatchFromServer(context, range, src.tablet_extent,
-            src.tablet_location, encodedResults, locCols, serverSideIteratorList,
-            serverSideIteratorOptions, Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, 0L,
-            null);
+        more =
+            ThriftScanner.getBatchFromServer(context, range, src.tablet_extent, src.tablet_location,
+                encodedResults, locCols, serverSideIteratorList, serverSideIteratorOptions,
+                Constants.SCAN_BATCH_SIZE, Authorizations.EMPTY, false, 0L, null);
 
         decodeRows(encodedResults, results);
       }

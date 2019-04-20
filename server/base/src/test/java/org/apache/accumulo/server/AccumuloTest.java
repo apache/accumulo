@@ -142,8 +142,8 @@ public class AccumuloTest {
 
   @Test
   public void testLocateLogConfig() throws Exception {
-    File confDir = new File(FileUtils.getTempDirectory(),
-        "AccumuloTest" + System.currentTimeMillis());
+    File confDir =
+        new File(FileUtils.getTempDirectory(), "AccumuloTest" + System.currentTimeMillis());
     String confDirName = confDir.getAbsolutePath();
     assertTrue("Failed to make test configuration directory", confDir.mkdir());
     try {
@@ -166,8 +166,8 @@ public class AccumuloTest {
 
   @Test
   public void testLocateLogConfig_Default() throws Exception {
-    File confDir = new File(FileUtils.getTempDirectory(),
-        "AccumuloTest" + System.currentTimeMillis());
+    File confDir =
+        new File(FileUtils.getTempDirectory(), "AccumuloTest" + System.currentTimeMillis());
     String confDirName = confDir.getAbsolutePath();
     assertTrue("Failed to make test configuration directory", confDir.mkdir());
     try {
@@ -181,8 +181,8 @@ public class AccumuloTest {
 
   @Test
   public void testLocateLogConfig_Explicit() throws Exception {
-    File confDir = new File(FileUtils.getTempDirectory(),
-        "AccumuloTest" + System.currentTimeMillis());
+    File confDir =
+        new File(FileUtils.getTempDirectory(), "AccumuloTest" + System.currentTimeMillis());
     String confDirName = confDir.getAbsolutePath();
     System.setProperty("log4j.configuration", "myconfig.xml");
     try {

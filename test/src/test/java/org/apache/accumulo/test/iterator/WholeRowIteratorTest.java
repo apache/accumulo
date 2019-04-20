@@ -136,7 +136,7 @@ public class WholeRowIteratorTest extends BaseJUnit4IteratorTest {
   }
 
   private static IteratorTestInput getIteratorInput() {
-    return new IteratorTestInput(WholeRowIterator.class, Collections.<String,String> emptyMap(),
+    return new IteratorTestInput(WholeRowIterator.class, Collections.<String,String>emptyMap(),
         new Range(), INPUT_DATA);
   }
 

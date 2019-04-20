@@ -1220,8 +1220,8 @@ public class Mutation implements Writable {
       this.serialize();
     }
     ByteBuffer data = serializedSnapshot();
-    TMutation tmutation = new TMutation(ByteBuffer.wrap(row), data,
-        ByteBufferUtil.toByteBuffers(values), entries);
+    TMutation tmutation =
+        new TMutation(ByteBuffer.wrap(row), data, ByteBufferUtil.toByteBuffers(values), entries);
     if (!this.replicationSources.isEmpty()) {
       tmutation.setSources(new ArrayList<>(replicationSources));
     }

@@ -144,15 +144,15 @@ public class MetaDataStateStore extends TabletStateStore {
             List<Path> logs = logsForDeadServers.get(tls.current);
             if (logs != null) {
               for (Path log : logs) {
-                LogEntry entry = new LogEntry(tls.extent, 0, tls.current.hostPort(),
-                    log.toString());
+                LogEntry entry =
+                    new LogEntry(tls.extent, 0, tls.current.hostPort(), log.toString());
                 m.put(entry.getColumnFamily(), entry.getColumnQualifier(), entry.getValue());
               }
             }
           }
           if (suspensionTimestamp >= 0) {
-            SuspendingTServer suspender = new SuspendingTServer(tls.current.getLocation(),
-                suspensionTimestamp);
+            SuspendingTServer suspender =
+                new SuspendingTServer(tls.current.getLocation(), suspensionTimestamp);
             suspender.setSuspension(m);
           }
         }

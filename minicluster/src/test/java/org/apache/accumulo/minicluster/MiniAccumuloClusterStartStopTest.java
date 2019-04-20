@@ -34,8 +34,8 @@ import org.slf4j.LoggerFactory;
 public class MiniAccumuloClusterStartStopTest {
 
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloClusterStartStopTest.class);
-  private File baseDir = new File(
-      System.getProperty("user.dir") + "/target/mini-tests/" + this.getClass().getName());
+  private File baseDir =
+      new File(System.getProperty("user.dir") + "/target/mini-tests/" + this.getClass().getName());
   private MiniAccumuloCluster accumulo;
 
   @Rule

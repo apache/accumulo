@@ -100,8 +100,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     getCluster().killProcess(ServerType.GARBAGE_COLLECTOR,
         getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
-    String path = ZooUtil.getRoot(new ZooKeeperInstance(getCluster().getClientConfig()))
-        + Constants.ZGC_LOCK;
+    String path =
+        ZooUtil.getRoot(new ZooKeeperInstance(getCluster().getClientConfig())) + Constants.ZGC_LOCK;
     ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
     try {
       ZooLock.deleteLock(zk, path);

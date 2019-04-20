@@ -59,8 +59,8 @@ public class ColumnToClassMapping<K> {
 
       Class<?> clazz;
       if (context != null && !context.equals(""))
-        clazz = AccumuloVFSClassLoader.getContextManager().getClassLoader(context)
-            .loadClass(className);
+        clazz =
+            AccumuloVFSClassLoader.getContextManager().getClassLoader(context).loadClass(className);
       else
         clazz = AccumuloVFSClassLoader.loadClass(className, c);
 

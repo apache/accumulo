@@ -163,8 +163,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   public Status replicate(final Path p, final Status status, final ReplicationTarget target,
       final ReplicaSystemHelper helper) {
     final Instance localInstance = HdfsZooInstance.getInstance();
-    final AccumuloConfiguration localConf = new ServerConfigurationFactory(localInstance)
-        .getConfiguration();
+    final AccumuloConfiguration localConf =
+        new ServerConfigurationFactory(localInstance).getConfiguration();
 
     log.debug("Replication RPC timeout is {}",
         localConf.get(Property.REPLICATION_RPC_TIMEOUT.getKey()));
@@ -642,10 +642,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     requireNonNull(localConf);
     requireNonNull(target);
 
-    Map<String,String> peerPasswords = localConf
-        .getAllPropertiesWithPrefix(Property.REPLICATION_PEER_PASSWORD);
-    String password = peerPasswords
-        .get(Property.REPLICATION_PEER_PASSWORD.getKey() + target.getPeerName());
+    Map<String,String> peerPasswords =
+        localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_PASSWORD);
+    String password =
+        peerPasswords.get(Property.REPLICATION_PEER_PASSWORD.getKey() + target.getPeerName());
     if (null == password) {
       throw new IllegalArgumentException("Cannot get password for " + target.getPeerName());
     }
@@ -656,10 +656,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     requireNonNull(localConf);
     requireNonNull(target);
 
-    Map<String,String> peerKeytabs = localConf
-        .getAllPropertiesWithPrefix(Property.REPLICATION_PEER_KEYTAB);
-    String keytab = peerKeytabs
-        .get(Property.REPLICATION_PEER_KEYTAB.getKey() + target.getPeerName());
+    Map<String,String> peerKeytabs =
+        localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_KEYTAB);
+    String keytab =
+        peerKeytabs.get(Property.REPLICATION_PEER_KEYTAB.getKey() + target.getPeerName());
     if (null == keytab) {
       throw new IllegalArgumentException("Cannot get keytab for " + target.getPeerName());
     }
@@ -672,8 +672,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     String peerName = target.getPeerName();
     String userKey = Property.REPLICATION_PEER_USER.getKey() + peerName;
-    Map<String,String> peerUsers = localConf
-        .getAllPropertiesWithPrefix(Property.REPLICATION_PEER_USER);
+    Map<String,String> peerUsers =
+        localConf.getAllPropertiesWithPrefix(Property.REPLICATION_PEER_USER);
 
     String user = peerUsers.get(userKey);
     if (null == user) {

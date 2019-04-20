@@ -295,8 +295,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
       if (opts.useSystemIterators) {
         SortedSet<Column> cols = this.getFetchedColumns();
         families = LocalityGroupUtil.families(cols);
-        iterator = IteratorUtil.setupSystemScanIterators(iterator, cols, getAuthorizations(),
-            EMPTY_BYTES);
+        iterator =
+            IteratorUtil.setupSystemScanIterators(iterator, cols, getAuthorizations(), EMPTY_BYTES);
       }
 
       try {

@@ -59,8 +59,8 @@ import com.google.common.collect.Iterables;
  *
  */
 public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
-  private static final Logger log = LoggerFactory
-      .getLogger(MissingWalHeaderCompletesRecoveryIT.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(MissingWalHeaderCompletesRecoveryIT.class);
 
   private boolean rootHasWritePermission;
 
@@ -194,8 +194,8 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     String tableId = conn.tableOperations().tableIdMap().get(tableName);
     assertNotNull("Table ID was null", tableId);
 
-    LogEntry logEntry = new LogEntry(null, 0, "127.0.0.1:12345",
-        partialHeaderWalog.toURI().toString());
+    LogEntry logEntry =
+        new LogEntry(null, 0, "127.0.0.1:12345", partialHeaderWalog.toURI().toString());
 
     log.info("Taking {} offline", tableName);
     conn.tableOperations().offline(tableName, true);

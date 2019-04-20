@@ -1045,14 +1045,14 @@ public enum Property {
   }
 
   private void precomputeAnnotations() {
-    isSensitive = hasAnnotation(Sensitive.class)
-        || hasPrefixWithAnnotation(getKey(), Sensitive.class);
-    isDeprecated = hasAnnotation(Deprecated.class)
-        || hasPrefixWithAnnotation(getKey(), Deprecated.class);
-    isExperimental = hasAnnotation(Experimental.class)
-        || hasPrefixWithAnnotation(getKey(), Experimental.class);
-    isInterpolated = hasAnnotation(Interpolated.class)
-        || hasPrefixWithAnnotation(getKey(), Interpolated.class);
+    isSensitive =
+        hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
+    isDeprecated =
+        hasAnnotation(Deprecated.class) || hasPrefixWithAnnotation(getKey(), Deprecated.class);
+    isExperimental =
+        hasAnnotation(Experimental.class) || hasPrefixWithAnnotation(getKey(), Experimental.class);
+    isInterpolated =
+        hasAnnotation(Interpolated.class) || hasPrefixWithAnnotation(getKey(), Interpolated.class);
     annotationsComputed = true;
   }
 
@@ -1159,18 +1159,18 @@ public enum Property {
    * Properties we check the value of within the TabletServer request handling or maintenance
    * processing loops.
    */
-  public static final EnumSet<Property> HOT_PATH_PROPERTIES = EnumSet.of(
-      Property.TSERV_CLIENT_TIMEOUT, Property.TSERV_TOTAL_MUTATION_QUEUE_MAX,
-      Property.TSERV_ARCHIVE_WALOGS, Property.GC_TRASH_IGNORE, Property.TSERV_MAJC_DELAY,
-      Property.TABLE_MINC_LOGS_MAX, Property.TSERV_MAJC_MAXCONCURRENT,
-      Property.REPLICATION_WORKER_THREADS, Property.TABLE_DURABILITY, Property.INSTANCE_ZK_TIMEOUT,
-      Property.TABLE_CLASSPATH, Property.MASTER_METADATA_SUSPENDABLE,
-      Property.TABLE_FAILURES_IGNORE, Property.TABLE_SCAN_MAXMEM,
-      Property.TSERV_SLOW_FILEPERMIT_MILLIS);
+  public static final EnumSet<Property> HOT_PATH_PROPERTIES =
+      EnumSet.of(Property.TSERV_CLIENT_TIMEOUT, Property.TSERV_TOTAL_MUTATION_QUEUE_MAX,
+          Property.TSERV_ARCHIVE_WALOGS, Property.GC_TRASH_IGNORE, Property.TSERV_MAJC_DELAY,
+          Property.TABLE_MINC_LOGS_MAX, Property.TSERV_MAJC_MAXCONCURRENT,
+          Property.REPLICATION_WORKER_THREADS, Property.TABLE_DURABILITY,
+          Property.INSTANCE_ZK_TIMEOUT, Property.TABLE_CLASSPATH,
+          Property.MASTER_METADATA_SUSPENDABLE, Property.TABLE_FAILURES_IGNORE,
+          Property.TABLE_SCAN_MAXMEM, Property.TSERV_SLOW_FILEPERMIT_MILLIS);
 
-  private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT,
-      Property.TSERV_NATIVEMAP_ENABLED, Property.TSERV_SCAN_MAX_OPENFILES,
-      Property.MASTER_CLIENTPORT, Property.GC_PORT);
+  private static final EnumSet<Property> fixedProperties =
+      EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
+          Property.TSERV_SCAN_MAX_OPENFILES, Property.MASTER_CLIENTPORT, Property.GC_PORT);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
@@ -1219,10 +1219,12 @@ public enum Property {
    * @return true if this is property is a class property
    */
   public static boolean isClassProperty(String key) {
-    return (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey()) && key
-        .substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()).split("\\.").length == 1)
-        || (key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) && key
-            .substring(Property.TABLE_ITERATOR_PREFIX.getKey().length()).split("\\.").length == 2)
+    return (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
+        && key.substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()).split("\\.").length
+            == 1)
+        || (key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
+            && key.substring(Property.TABLE_ITERATOR_PREFIX.getKey().length()).split("\\.").length
+                == 2)
         || key.equals(Property.TABLE_LOAD_BALANCER.getKey());
   }
 
@@ -1311,8 +1313,8 @@ public enum Property {
    *         from each key
    */
   public static Map<String,String> getCompactionStrategyOptions(AccumuloConfiguration tableConf) {
-    Map<String,String> longNames = tableConf
-        .getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
+    Map<String,String> longNames =
+        tableConf.getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
     Map<String,String> result = new HashMap<>();
     for (Entry<String,String> entry : longNames.entrySet()) {
       result.put(

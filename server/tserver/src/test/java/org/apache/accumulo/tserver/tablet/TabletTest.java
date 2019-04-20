@@ -62,7 +62,7 @@ public class TabletTest {
     String compressType = "snappy";
 
     EasyMock.expect(tableConf.iterator())
-        .andReturn(Collections.<Entry<String,String>> emptyIterator());
+        .andReturn(Collections.<Entry<String,String>>emptyIterator());
     EasyMock.expect(writeParams.getHdfsBlockSize()).andReturn(hdfsBlockSize).times(2);
     EasyMock.expect(writeParams.getBlockSize()).andReturn(blockSize).times(2);
     EasyMock.expect(writeParams.getIndexBlockSize()).andReturn(indexBlockSize).times(2);

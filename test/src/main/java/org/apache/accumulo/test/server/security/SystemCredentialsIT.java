@@ -236,8 +236,8 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
     } catch (RuntimeException e) {
       // catch the runtime exception from the scanner iterator
       if (e.getCause() instanceof AccumuloSecurityException
-          && ((AccumuloSecurityException) e.getCause())
-              .getSecurityErrorCode() == SecurityErrorCode.BAD_CREDENTIALS) {
+          && ((AccumuloSecurityException) e.getCause()).getSecurityErrorCode()
+              == SecurityErrorCode.BAD_CREDENTIALS) {
         e.printStackTrace(System.err);
         System.exit(FAIL_CODE);
       }

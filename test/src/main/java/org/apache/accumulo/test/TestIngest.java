@@ -116,8 +116,8 @@ public class TestIngest {
   public static void createTable(Connector conn, Opts args)
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     if (args.createTable) {
-      TreeSet<Text> splits = getSplitPoints(args.startRow, args.startRow + args.rows,
-          args.numsplits);
+      TreeSet<Text> splits =
+          getSplitPoints(args.startRow, args.startRow + args.rows, args.numsplits);
 
       if (!conn.tableOperations().exists(args.getTableName()))
         conn.tableOperations().create(args.getTableName());

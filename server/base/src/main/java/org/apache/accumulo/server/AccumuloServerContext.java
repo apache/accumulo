@@ -81,8 +81,8 @@ public class AccumuloServerContext extends ClientContext {
   void enforceKerberosLogin() {
     final AccumuloConfiguration conf = confFactory.getSiteConfiguration();
     // Unwrap _HOST into the FQDN to make the kerberos principal we'll compare against
-    final String kerberosPrincipal = SecurityUtil
-        .getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
+    final String kerberosPrincipal =
+        SecurityUtil.getServerPrincipal(conf.get(Property.GENERAL_KERBEROS_PRINCIPAL));
     UserGroupInformation loginUser;
     try {
       // The system user should be logged in via keytab when the process is started, not the

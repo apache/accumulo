@@ -58,8 +58,8 @@ public class RandomizeVolumes {
     opts.parseArgs(RandomizeVolumes.class.getName(), args);
     Connector c;
     if (opts.getToken() == null) {
-      AccumuloServerContext context = new AccumuloServerContext(
-          new ServerConfigurationFactory(opts.getInstance()));
+      AccumuloServerContext context =
+          new AccumuloServerContext(new ServerConfigurationFactory(opts.getInstance()));
       c = context.getConnector();
     } else {
       c = opts.getConnector();
@@ -116,9 +116,9 @@ public class RandomizeVolumes {
       Key key = entry.getKey();
       Mutation m = new Mutation(key.getRow());
 
-      final String newLocation = vm.choose(Optional.of(tableId), ServerConstants.getBaseUris())
-          + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
-          + directory;
+      final String newLocation =
+          vm.choose(Optional.of(tableId), ServerConstants.getBaseUris()) + Path.SEPARATOR
+              + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR + directory;
       m.put(key.getColumnFamily(), key.getColumnQualifier(),
           new Value(newLocation.getBytes(UTF_8)));
       if (log.isTraceEnabled()) {

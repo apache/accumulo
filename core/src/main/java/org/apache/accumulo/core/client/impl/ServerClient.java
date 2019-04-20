@@ -147,10 +147,10 @@ public class ServerClient {
 
     boolean opened = false;
     try {
-      Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers,
-          preferCachedConnections);
-      ClientService.Client client = ThriftUtil.createClient(new ClientService.Client.Factory(),
-          pair.getSecond());
+      Pair<String,TTransport> pair =
+          ThriftTransportPool.getInstance().getAnyTransport(servers, preferCachedConnections);
+      ClientService.Client client =
+          ThriftUtil.createClient(new ClientService.Client.Factory(), pair.getSecond());
       opened = true;
       warnedAboutTServersBeingDown = false;
       return new Pair<>(pair.getFirst(), client);

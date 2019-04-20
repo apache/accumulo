@@ -105,8 +105,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
     implements MasterClientService.Iface {
 
   private static final Logger log = Master.log;
-  private static final Logger drainLog = LoggerFactory
-      .getLogger("org.apache.accumulo.master.MasterDrainImpl");
+  private static final Logger drainLog =
+      LoggerFactory.getLogger("org.apache.accumulo.master.MasterDrainImpl");
   private Instance instance;
 
   protected MasterClientServiceHandler(Master master) {
@@ -186,10 +186,10 @@ public class MasterClientServiceHandler extends FateServiceHandler
           scanner = new IsolatedScanner(conn.createScanner(RootTable.NAME, Authorizations.EMPTY));
           scanner.setRange(MetadataSchema.TabletsSection.getRange());
         } else {
-          scanner = new IsolatedScanner(
-              conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-          Range range = new KeyExtent(tableId, null, ByteBufferUtil.toText(startRow))
-              .toMetadataRange();
+          scanner =
+              new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+          Range range =
+              new KeyExtent(tableId, null, ByteBufferUtil.toText(startRow)).toMetadataRange();
           scanner.setRange(range.clip(MetadataSchema.TabletsSection.getRange()));
         }
         TabletsSection.ServerColumnFamily.FLUSH_COLUMN.fetch(scanner);
@@ -539,8 +539,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
     final DelegationTokenConfig config = DelegationTokenConfigSerializer.deserialize(tConfig);
     final AuthenticationTokenSecretManager secretManager = master.getSecretManager();
     try {
-      Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair = secretManager
-          .generateToken(credentials.principal, config);
+      Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair =
+          secretManager.generateToken(credentials.principal, config);
 
       return new TDelegationToken(ByteBuffer.wrap(pair.getKey().getPassword()),
           pair.getValue().getThriftIdentifier());

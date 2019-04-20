@@ -87,7 +87,7 @@ public class ComputeRootHash {
       Range range = RangeSerialization.toRange(entry.getKey());
       byte[] hash = entry.getValue().get();
 
-      leaves.add(new MerkleTreeNode(range, 0, Collections.<Range> emptyList(), hash));
+      leaves.add(new MerkleTreeNode(range, 0, Collections.<Range>emptyList(), hash));
     }
 
     return leaves;

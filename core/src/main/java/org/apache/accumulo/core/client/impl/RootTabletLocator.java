@@ -96,8 +96,8 @@ public class RootTabletLocator extends TabletLocator {
 
   @Override
   public void invalidateCache(Instance instance, String server) {
-    ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(),
-        instance.getZooKeepersSessionTimeOut());
+    ZooCache zooCache =
+        zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     String root = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
     zooCache.clear(root + "/" + server);
   }
@@ -108,8 +108,8 @@ public class RootTabletLocator extends TabletLocator {
   protected TabletLocation getRootTabletLocation(ClientContext context) {
     Instance instance = context.getInstance();
     String zRootLocPath = ZooUtil.getRoot(instance) + RootTable.ZROOT_TABLET_LOCATION;
-    ZooCache zooCache = zcf.getZooCache(instance.getZooKeepers(),
-        instance.getZooKeepersSessionTimeOut());
+    ZooCache zooCache =
+        zcf.getZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
 
     Logger log = LoggerFactory.getLogger(this.getClass());
 

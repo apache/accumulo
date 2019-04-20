@@ -97,7 +97,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
       try {
         @SuppressWarnings("unchecked")
         Class<? extends AuthenticationToken> tmpTokenType =
-          (Class<? extends AuthenticationToken>) Class.forName(tokenClassName);
+            (Class<? extends AuthenticationToken>) Class.forName(tokenClassName);
         tokenType = tmpTokenType;
       } catch (ClassNotFoundException e) {
         throw new IllegalArgumentException("Class not available " + tokenClassName, e);

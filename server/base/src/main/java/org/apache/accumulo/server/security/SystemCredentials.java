@@ -46,8 +46,8 @@ import org.apache.hadoop.io.Writable;
  */
 public final class SystemCredentials extends Credentials {
 
-  private static final SecurityPermission SYSTEM_CREDENTIALS_PERMISSION = new SecurityPermission(
-      "systemCredentialsPermission");
+  private static final SecurityPermission SYSTEM_CREDENTIALS_PERMISSION =
+      new SecurityPermission("systemCredentialsPermission");
 
   private static final String SYSTEM_PRINCIPAL = "!SYSTEM";
 

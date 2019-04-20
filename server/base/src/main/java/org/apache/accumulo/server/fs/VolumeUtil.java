@@ -167,8 +167,8 @@ public class VolumeUtil {
   }
 
   public static String switchRootTableVolume(String location) throws IOException {
-    String newLocation = switchVolume(location, FileType.TABLE,
-        ServerConstants.getVolumeReplacements());
+    String newLocation =
+        switchVolume(location, FileType.TABLE, ServerConstants.getVolumeReplacements());
     if (newLocation != null) {
       MetadataTableUtil.setRootTabletDir(newLocation);
       log.info("Volume replaced: " + location + " -> " + newLocation);
@@ -274,10 +274,10 @@ public class VolumeUtil {
       throw new IllegalArgumentException("Unexpected table dir " + dir);
     }
 
-    Path newDir = new Path(
-        vm.choose(Optional.of(extent.getTableId()), ServerConstants.getBaseUris()) + Path.SEPARATOR
-            + ServerConstants.TABLE_DIR + Path.SEPARATOR + dir.getParent().getName()
-            + Path.SEPARATOR + dir.getName());
+    Path newDir =
+        new Path(vm.choose(Optional.of(extent.getTableId()), ServerConstants.getBaseUris())
+            + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR
+            + dir.getParent().getName() + Path.SEPARATOR + dir.getName());
 
     log.info("Updating directory for " + extent + " from " + dir + " to " + newDir);
     if (extent.isRootTablet()) {

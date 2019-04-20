@@ -43,8 +43,8 @@ import org.junit.rules.TemporaryFolder;
 public class RootFilesTest {
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private class TestWrapper {
     File rootTabletDir;
@@ -92,8 +92,8 @@ public class RootFilesTest {
     }
 
     public Collection<String> cleanupReplacement(String... expectedFiles) throws IOException {
-      Collection<String> ret = RootFiles.cleanupReplacement(vm,
-          vm.listStatus(new Path(rootTabletDir.toURI())), true);
+      Collection<String> ret =
+          RootFiles.cleanupReplacement(vm, vm.listStatus(new Path(rootTabletDir.toURI())), true);
 
       HashSet<String> expected = new HashSet<>();
       for (String efile : expectedFiles)

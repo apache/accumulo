@@ -110,7 +110,7 @@ public class InMemoryMap {
   public static final String TYPE_LOCALITY_GROUP_MAP_NATIVE = "LocalityGroupMap with native";
 
   private AtomicReference<Pair<SamplerConfigurationImpl,Sampler>> samplerRef =
-    new AtomicReference<>(null);
+      new AtomicReference<>(null);
 
   private AccumuloConfiguration config;
 
@@ -396,8 +396,8 @@ public class InMemoryMap {
   }
 
   private static class DefaultMap implements SimpleMap {
-    private ConcurrentSkipListMap<Key,Value> map = new ConcurrentSkipListMap<>(
-        new MemKeyComparator());
+    private ConcurrentSkipListMap<Key,Value> map =
+        new ConcurrentSkipListMap<>(new MemKeyComparator());
     private AtomicLong bytesInMemory = new AtomicLong();
     private AtomicInteger size = new AtomicInteger();
 
@@ -567,8 +567,8 @@ public class InMemoryMap {
     return map.size();
   }
 
-  private final Set<MemoryIterator> activeIters = Collections
-      .synchronizedSet(new HashSet<MemoryIterator>());
+  private final Set<MemoryIterator> activeIters =
+      Collections.synchronizedSet(new HashSet<MemoryIterator>());
 
   class MemoryDataSource implements DataSource {
 
@@ -863,8 +863,8 @@ public class InMemoryMap {
   }
 
   private AccumuloConfiguration createSampleConfig(AccumuloConfiguration siteConf) {
-    ConfigurationCopy confCopy = new ConfigurationCopy(
-        Iterables.filter(siteConf, new Predicate<Entry<String,String>>() {
+    ConfigurationCopy confCopy =
+        new ConfigurationCopy(Iterables.filter(siteConf, new Predicate<Entry<String,String>>() {
           @Override
           public boolean apply(Entry<String,String> input) {
             return !input.getKey().startsWith(Property.TABLE_SAMPLER.getKey());

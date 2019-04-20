@@ -63,8 +63,8 @@ public class ZKAuthenticatorTest {
     for (SystemPermission s : SystemPermission.values())
       perms.add(s);
 
-    Set<SystemPermission> converted = ZKSecurityTool
-        .convertSystemPermissions(ZKSecurityTool.convertSystemPermissions(perms));
+    Set<SystemPermission> converted =
+        ZKSecurityTool.convertSystemPermissions(ZKSecurityTool.convertSystemPermissions(perms));
     assertTrue(perms.size() == converted.size());
     for (SystemPermission s : perms)
       assertTrue(converted.contains(s));
@@ -76,8 +76,8 @@ public class ZKAuthenticatorTest {
     for (TablePermission s : TablePermission.values())
       perms.add(s);
 
-    Set<TablePermission> converted = ZKSecurityTool
-        .convertTablePermissions(ZKSecurityTool.convertTablePermissions(perms));
+    Set<TablePermission> converted =
+        ZKSecurityTool.convertTablePermissions(ZKSecurityTool.convertTablePermissions(perms));
     assertTrue(perms.size() == converted.size());
     for (TablePermission s : perms)
       assertTrue(converted.contains(s));

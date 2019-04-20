@@ -171,8 +171,9 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     assertNull(e2);
   }
 
-  private static final SamplerConfiguration SAMPLER_CONFIG = new SamplerConfiguration(
-      RowSampler.class.getName()).addOption("hasher", "murmur3_32").addOption("modulus", "3");
+  private static final SamplerConfiguration SAMPLER_CONFIG =
+      new SamplerConfiguration(RowSampler.class.getName()).addOption("hasher", "murmur3_32")
+          .addOption("modulus", "3");
 
   @Test
   public void testSample() throws Exception {
@@ -211,8 +212,8 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     String table = getUniqueNames(1)[0];
     Authorizations auths = new Authorizations("foo");
-    Collection<Pair<Text,Text>> fetchColumns = Collections
-        .singleton(new Pair<>(new Text("foo"), new Text("bar")));
+    Collection<Pair<Text,Text>> fetchColumns =
+        Collections.singleton(new Pair<>(new Text("foo"), new Text("bar")));
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 

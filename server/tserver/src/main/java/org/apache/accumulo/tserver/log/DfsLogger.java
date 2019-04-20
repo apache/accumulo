@@ -141,8 +141,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
   private final Object closeLock = new Object();
 
-  private static final DfsLogger.LogWork CLOSED_MARKER = new DfsLogger.LogWork(null,
-      Durability.FLUSH);
+  private static final DfsLogger.LogWork CLOSED_MARKER =
+      new DfsLogger.LogWork(null, Durability.FLUSH);
 
   private static final LogFileValue EMPTY = new LogFileValue();
 
@@ -219,8 +219,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
         }
         if (expectedReplication == 0 && logFile.getWrappedStream() instanceof DFSOutputStream) {
           try {
-            expectedReplication = ((DFSOutputStream) logFile.getWrappedStream())
-                .getCurrentBlockReplication();
+            expectedReplication =
+                ((DFSOutputStream) logFile.getWrappedStream()).getCurrentBlockReplication();
           } catch (IOException e) {
             fail(work, e, "getting replication level");
           }
@@ -325,8 +325,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
   private DfsLogger(ServerResources conf) {
     this.conf = conf;
-    this.slowFlushMillis = conf.getConfiguration()
-        .getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
+    this.slowFlushMillis =
+        conf.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
   }
 
   public DfsLogger(ServerResources conf, AtomicLong syncCounter, AtomicLong flushCounter)
@@ -362,8 +362,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
         CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(cryptoModuleClassname);
 
         // Create the parameters and set the input stream into those parameters
-        CryptoModuleParameters params = CryptoModuleFactory
-            .createParamsObjectFromAccumuloConfiguration(conf);
+        CryptoModuleParameters params =
+            CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
         params.setEncryptedInputStream(input);
 
         // Create the plaintext input stream from the encrypted one
@@ -405,11 +405,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
             // The DefaultCryptoModule will want to read the parameters from the underlying file, so
             // we will put the file back to that spot.
             org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule =
-              org.apache.accumulo.core.security.crypto.CryptoModuleFactory
-                .getCryptoModule(DefaultCryptoModule.class.getName());
+                org.apache.accumulo.core.security.crypto.CryptoModuleFactory
+                    .getCryptoModule(DefaultCryptoModule.class.getName());
 
-            CryptoModuleParameters params = CryptoModuleFactory
-                .createParamsObjectFromAccumuloConfiguration(conf);
+            CryptoModuleParameters params =
+                CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
             // go back to the beginning, but skip over magicV2 already checked earlier
             input.seek(magicV2.length);
@@ -457,7 +457,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     log.debug("DfsLogger.open() begin");
     VolumeManager fs = conf.getFileSystem();
 
-    logPath = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris()) + Path.SEPARATOR
+    logPath = fs.choose(Optional.<String>absent(), ServerConstants.getBaseUris()) + Path.SEPARATOR
         + ServerConstants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
 
     metaReference = toString();
@@ -468,8 +468,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
         replication = fs.getDefaultReplication(new Path(logPath));
       long blockSize = conf.getConfiguration().getMemoryInBytes(Property.TSERV_WAL_BLOCKSIZE);
       if (blockSize == 0)
-        blockSize = (long) (conf.getConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE)
-            * 1.1);
+        blockSize =
+            (long) (conf.getConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE) * 1.1);
       if (conf.getConfiguration().getBoolean(Property.TSERV_WAL_SYNC))
         logFile = fs.createSyncable(new Path(logPath), 0, replication, blockSize);
       else
@@ -479,14 +479,14 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
       // Initialize the crypto operations.
       org.apache.accumulo.core.security.crypto.CryptoModule cryptoModule =
-        org.apache.accumulo.core.security.crypto.CryptoModuleFactory
-          .getCryptoModule(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
+          org.apache.accumulo.core.security.crypto.CryptoModuleFactory
+              .getCryptoModule(conf.getConfiguration().get(Property.CRYPTO_MODULE_CLASS));
 
       // Initialize the log file with a header and the crypto params used to set up this log file.
       logFile.write(LOG_FILE_HEADER_V3.getBytes(UTF_8));
 
-      CryptoModuleParameters params = CryptoModuleFactory
-          .createParamsObjectFromAccumuloConfiguration(conf.getConfiguration());
+      CryptoModuleParameters params =
+          CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf.getConfiguration());
 
       NoFlushOutputStream nfos = new NoFlushOutputStream(logFile);
       params.setPlaintextOutputStream(nfos);

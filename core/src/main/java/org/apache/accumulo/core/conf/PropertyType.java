@@ -38,7 +38,7 @@ import com.google.common.collect.Collections2;
  * valid values match. All of these fields are optional.
  */
 public enum PropertyType {
-  PREFIX(null, Predicates.<String> alwaysFalse(), null),
+  PREFIX(null, Predicates.<String>alwaysFalse(), null),
 
   TIMEDURATION("duration", boundedUnits(0, Long.MAX_VALUE, true, "", "ms", "s", "m", "h", "d"),
       "A non-negative integer optionally followed by a unit of time (whitespace"
@@ -87,7 +87,7 @@ public enum PropertyType {
           + " '5%', '0.2%', '0.0005'.\n"
           + "Examples of invalid fractions/percentages are '', '10 percent'," + " 'Hulk Hogan'"),
 
-  PATH("path", Predicates.<String> alwaysTrue(),
+  PATH("path", Predicates.<String>alwaysTrue(),
       "A string that represents a filesystem path, which can be either relative"
           + " or absolute to some directory. The filesystem depends on the property."
           + " The following environment variables will be substituted: "
@@ -112,14 +112,14 @@ public enum PropertyType {
   DURABILITY("durability", in(true, null, "none", "log", "flush", "sync"),
       "One of 'none', 'log', 'flush' or 'sync'."),
 
-  STRING("string", Predicates.<String> alwaysTrue(),
+  STRING("string", Predicates.<String>alwaysTrue(),
       "An arbitrary string of characters whose format is unspecified and"
           + " interpreted based on the context of the property to which it applies."),
 
   BOOLEAN("boolean", in(false, null, "true", "false"),
       "Has a value of either 'true' or 'false' (case-insensitive)"),
 
-  URI("uri", Predicates.<String> alwaysTrue(), "A valid URI");
+  URI("uri", Predicates.<String>alwaysTrue(), "A valid URI");
 
   private String shortname, format;
   private Predicate<String> predicate;

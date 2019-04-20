@@ -47,8 +47,8 @@ public class TabletServerSyncCheckTest {
     conf.set(DFS_SUPPORT_APPEND, "false");
 
     FileSystem fs = new TestFileSystem(conf);
-    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(
-        ImmutableMap.<String,Volume> of("foo", new VolumeImpl(fs, "/")));
+    TestVolumeManagerImpl vm =
+        new TestVolumeManagerImpl(ImmutableMap.<String,Volume>of("foo", new VolumeImpl(fs, "/")));
 
     vm.ensureSyncIsEnabled();
   }
@@ -71,7 +71,7 @@ public class TabletServerSyncCheckTest {
 
     public TestVolumeManagerImpl(Map<String,Volume> volumes) {
       super(volumes, volumes.values().iterator().next(),
-          new ConfigurationCopy(Collections.<String,String> emptyMap()));
+          new ConfigurationCopy(Collections.<String,String>emptyMap()));
     }
 
     @Override

@@ -33,7 +33,8 @@ public class CryptoModuleFactory {
 
   private static final Logger log = LoggerFactory.getLogger(CryptoModuleFactory.class);
   private static final Map<String,CryptoModule> cryptoModulesCache = new HashMap<>();
-  private static final Map<String,SecretKeyEncryptionStrategy> secretKeyEncryptionStrategyCache = new HashMap<>();
+  private static final Map<String,SecretKeyEncryptionStrategy> secretKeyEncryptionStrategyCache =
+      new HashMap<>();
 
   /**
    * This method returns a crypto module based on settings in the given configuration parameter.
@@ -125,8 +126,8 @@ public class CryptoModuleFactory {
     return cryptoModule;
   }
 
-  public static SecretKeyEncryptionStrategy getSecretKeyEncryptionStrategy(
-      AccumuloConfiguration conf) {
+  public static SecretKeyEncryptionStrategy
+      getSecretKeyEncryptionStrategy(AccumuloConfiguration conf) {
     String className = conf.get(Property.CRYPTO_SECRET_KEY_ENCRYPTION_STRATEGY_CLASS);
     return getSecretKeyEncryptionStrategy(className);
   }
@@ -155,8 +156,8 @@ public class CryptoModuleFactory {
   }
 
   @SuppressWarnings("rawtypes")
-  private static SecretKeyEncryptionStrategy instantiateSecreteKeyEncryptionStrategy(
-      String className) {
+  private static SecretKeyEncryptionStrategy
+      instantiateSecreteKeyEncryptionStrategy(String className) {
 
     log.debug("About to instantiate secret key encryption strategy " + className);
 
@@ -264,18 +265,18 @@ public class CryptoModuleFactory {
     return cipherTransform.split("/");
   }
 
-  public static CryptoModuleParameters createParamsObjectFromAccumuloConfiguration(
-      AccumuloConfiguration conf) {
+  public static CryptoModuleParameters
+      createParamsObjectFromAccumuloConfiguration(AccumuloConfiguration conf) {
     CryptoModuleParameters params = new CryptoModuleParameters();
 
     return fillParamsObjectFromConfiguration(params, conf);
   }
 
-  public static CryptoModuleParameters fillParamsObjectFromConfiguration(
-      CryptoModuleParameters params, AccumuloConfiguration conf) {
+  public static CryptoModuleParameters
+      fillParamsObjectFromConfiguration(CryptoModuleParameters params, AccumuloConfiguration conf) {
     // Get all the options from the configuration
-    Map<String,String> cryptoOpts = new HashMap<>(
-        conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX));
+    Map<String,String> cryptoOpts =
+        new HashMap<>(conf.getAllPropertiesWithPrefix(Property.CRYPTO_PREFIX));
     cryptoOpts.putAll(conf.getAllPropertiesWithPrefix(Property.INSTANCE_PREFIX));
     cryptoOpts.remove(Property.INSTANCE_SECRET.getKey());
     cryptoOpts.put(Property.CRYPTO_BLOCK_STREAM_SIZE.getKey(),
@@ -288,8 +289,8 @@ public class CryptoModuleFactory {
       Map<String,String> cryptoOpts) {
 
     // Parse the cipher suite for the mode and padding options
-    String[] cipherTransformParts = parseCipherTransform(
-        cryptoOpts.get(Property.CRYPTO_CIPHER_SUITE.getKey()));
+    String[] cipherTransformParts =
+        parseCipherTransform(cryptoOpts.get(Property.CRYPTO_CIPHER_SUITE.getKey()));
 
     // If no encryption has been specified, then we abort here.
     if (cipherTransformParts[0] == null || cipherTransformParts[0].equals("NullCipher")) {

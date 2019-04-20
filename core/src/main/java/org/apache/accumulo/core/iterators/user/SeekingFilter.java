@@ -54,10 +54,10 @@ public abstract class SeekingFilter extends WrappingIterator {
   }
 
   public static class FilterResult {
-    private static final EnumMap<AdvanceResult,FilterResult> PASSES = new EnumMap<>(
-        AdvanceResult.class);
-    private static final EnumMap<AdvanceResult,FilterResult> FAILS = new EnumMap<>(
-        AdvanceResult.class);
+    private static final EnumMap<AdvanceResult,FilterResult> PASSES =
+        new EnumMap<>(AdvanceResult.class);
+    private static final EnumMap<AdvanceResult,FilterResult> FAILS =
+        new EnumMap<>(AdvanceResult.class);
     static {
       for (AdvanceResult ar : AdvanceResult.values()) {
         PASSES.put(ar, new FilterResult(true, ar));

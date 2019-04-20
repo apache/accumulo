@@ -166,8 +166,7 @@ public class MiniAccumuloRunner {
     }
 
     String rootPass = opts.prop.containsKey(ROOT_PASSWORD_PROP)
-        ? opts.prop.getProperty(ROOT_PASSWORD_PROP)
-        : "secret";
+        ? opts.prop.getProperty(ROOT_PASSWORD_PROP) : "secret";
 
     MiniAccumuloConfig config = new MiniAccumuloConfig(miniDir, rootPass);
 

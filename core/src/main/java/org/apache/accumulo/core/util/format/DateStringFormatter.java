@@ -34,8 +34,8 @@ import org.apache.accumulo.core.data.Value;
  * <pre>
  * final DateFormatSupplier dfSupplier = DateFormatSupplier.createSimpleFormatSupplier(
  *     DateFormatSupplier.HUMAN_READABLE_FORMAT, TimeZone.getTimeZone(&quot;UTC&quot;));
- * final FormatterConfig config = new FormatterConfig().setPrintTimestamps(true)
- *     .setDateFormatSupplier(dfSupplier);
+ * final FormatterConfig config =
+ *     new FormatterConfig().setPrintTimestamps(true).setDateFormatSupplier(dfSupplier);
  * </pre>
  */
 @Deprecated

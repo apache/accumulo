@@ -510,8 +510,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     fileWriter.append("<configuration>\n");
 
     for (Entry<String,String> entry : settings) {
-      String value = entry.getValue().replace("&", "&amp;").replace("<", "&lt;").replace(">",
-          "&gt;");
+      String value =
+          entry.getValue().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
       fileWriter.append(
           "<property><name>" + entry.getKey() + "</name><value>" + value + "</value></property>\n");
     }
@@ -635,8 +635,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         args.add("--clear-instance-name");
 
         // If we aren't using SASL, add in the root password
-        final String saslEnabled = config.getSiteConfig()
-            .get(Property.INSTANCE_RPC_SASL_ENABLED.getKey());
+        final String saslEnabled =
+            config.getSiteConfig().get(Property.INSTANCE_RPC_SASL_ENABLED.getKey());
         if (null == saslEnabled || !Boolean.parseBoolean(saslEnabled)) {
           args.add("--password");
           args.add(config.getRootPassword());

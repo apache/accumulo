@@ -23,8 +23,8 @@ import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 public class TabletServerUpdateMetrics extends AbstractMetricsImpl
     implements TabletServerUpdateMetricsMBean {
 
-  static final org.slf4j.Logger log = org.slf4j.LoggerFactory
-      .getLogger(TabletServerUpdateMetrics.class);
+  static final org.slf4j.Logger log =
+      org.slf4j.LoggerFactory.getLogger(TabletServerUpdateMetrics.class);
 
   private static final String METRICS_PREFIX = "tserver.update";
 

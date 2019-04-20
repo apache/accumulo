@@ -89,8 +89,8 @@ public class LargestFirstMemoryManagerTest {
     mgr.init(config);
     MemoryManagementActions result;
     // nothing to do
-    result = mgr
-        .getMemoryManagementActions(tablets(t(k("x"), ZERO, 1000, 0), t(k("y"), ZERO, 2000, 0)));
+    result =
+        mgr.getMemoryManagementActions(tablets(t(k("x"), ZERO, 1000, 0), t(k("y"), ZERO, 2000, 0)));
     assertEquals(0, result.tabletsToMinorCompact.size());
     // one tablet is really big
     result = mgr
@@ -204,7 +204,7 @@ public class LargestFirstMemoryManagerTest {
       }
     };
     LargestFirstMemoryManagerWithExistenceCheck mgr =
-      new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
+        new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
     ServerConfiguration config = new ServerConfiguration() {
       ServerConfigurationFactory delegate = new ServerConfigurationFactory(inst);
 

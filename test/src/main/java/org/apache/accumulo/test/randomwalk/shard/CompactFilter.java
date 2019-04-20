@@ -77,8 +77,8 @@ public class CompactFilter extends Test {
     log.debug(
         "Filtered documents using compaction iterators " + regex + " " + (t3) + " " + (t2 - t1));
 
-    BatchScanner bscanner = env.getConnector().createBatchScanner(docTableName,
-        new Authorizations(), 10);
+    BatchScanner bscanner =
+        env.getConnector().createBatchScanner(docTableName, new Authorizations(), 10);
 
     List<Range> ranges = new ArrayList<>();
     for (int i = 0; i < 16; i++) {

@@ -94,8 +94,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       AccumuloSecurityException, TableNotFoundException, TException {
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
-    List<DiskUsage> diskUsage = connector.tableOperations()
-        .getDiskUsage(Collections.singleton(tableName));
+    List<DiskUsage> diskUsage =
+        connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsage.size());
     assertEquals(0, (long) diskUsage.get(0).getUsage());
     assertEquals(tableName, diskUsage.get(0).getTables().iterator().next());
@@ -122,8 +122,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     connector.tableOperations().create(tableName);
 
     // verify 0 disk usage
-    List<DiskUsage> diskUsages = connector.tableOperations()
-        .getDiskUsage(Collections.singleton(tableName));
+    List<DiskUsage> diskUsages =
+        connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsages.size());
     assertEquals(1, diskUsages.get(0).getTables().size());
     assertEquals(Long.valueOf(0), diskUsages.get(0).getUsage());
@@ -179,8 +179,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       AccumuloSecurityException, TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
     connector.tableOperations().create(tableName);
-    Iterable<Map.Entry<String,String>> itrProps = connector.tableOperations()
-        .getProperties(tableName);
+    Iterable<Map.Entry<String,String>> itrProps =
+        connector.tableOperations().getProperties(tableName);
     Map<String,String> props = propsToMap(itrProps);
     assertEquals(DefaultKeySizeConstraint.class.getName(),
         props.get(Property.TABLE_CONSTRAINT_PREFIX.toString() + "1"));
@@ -193,8 +193,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     String originalTable = names[0];
     TableOperations tops = connector.tableOperations();
 
-    TreeSet<Text> splits = Sets
-        .newTreeSet(Arrays.asList(new Text("a"), new Text("b"), new Text("c"), new Text("d")));
+    TreeSet<Text> splits =
+        Sets.newTreeSet(Arrays.asList(new Text("a"), new Text("b"), new Text("c"), new Text("d")));
 
     tops.create(originalTable);
     tops.addSplits(originalTable, splits);

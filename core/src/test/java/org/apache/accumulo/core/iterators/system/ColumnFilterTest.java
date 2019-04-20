@@ -77,9 +77,9 @@ public class ColumnFilterTest {
     columns.add(newColumn("cf1"));
     columns.add(newColumn("cf2", "cq1"));
 
-    SortedKeyValueIterator<Key,Value> cf = ColumnQualifierFilter.wrap(new SortedMapIterator(data),
-        columns);
-    cf.seek(new Range(), Collections.<ByteSequence> emptySet(), false);
+    SortedKeyValueIterator<Key,Value> cf =
+        ColumnQualifierFilter.wrap(new SortedMapIterator(data), columns);
+    cf.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
 
     assertTrue(cf.hasTop());
     assertEquals(newKey("r1", "cf1", "cq1"), cf.getTopKey());
@@ -102,9 +102,9 @@ public class ColumnFilterTest {
 
     columns.add(newColumn("cf2", "cq1"));
 
-    SortedKeyValueIterator<Key,Value> cf = ColumnQualifierFilter.wrap(new SortedMapIterator(data),
-        columns);
-    cf.seek(new Range(), Collections.<ByteSequence> emptySet(), false);
+    SortedKeyValueIterator<Key,Value> cf =
+        ColumnQualifierFilter.wrap(new SortedMapIterator(data), columns);
+    cf.seek(new Range(), Collections.<ByteSequence>emptySet(), false);
 
     assertTrue(cf.hasTop());
     assertEquals(newKey("r1", "cf2", "cq1"), cf.getTopKey());

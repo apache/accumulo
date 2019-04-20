@@ -90,8 +90,8 @@ public class CyclicReplicationIT {
   private File createTestDir(String name) {
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    File testDir = new File(baseDir,
-        this.getClass().getName() + "_" + testName.getMethodName() + "_" + name);
+    File testDir =
+        new File(baseDir, this.getClass().getName() + "_" + testName.getMethodName() + "_" + name);
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
     return testDir;
@@ -133,8 +133,8 @@ public class CyclicReplicationIT {
       if (null != keystorePassword) {
         peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), keystorePassword);
       }
-      String truststorePassword = primarySiteConfig
-          .get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
+      String truststorePassword =
+          primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
       if (null != truststorePassword) {
         peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
       }
@@ -144,8 +144,8 @@ public class CyclicReplicationIT {
     }
 
     // Use the CredentialProvider if the primary also uses one
-    String credProvider = primarySiteConfig
-        .get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+    String credProvider =
+        primarySiteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
     if (null != credProvider) {
       Map<String,String> peerSiteConfig = peerCfg.getSiteConfig();
       peerSiteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(),

@@ -111,8 +111,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
       this.term = term;
       this.notFlag = notFlag;
       // The desired column families for this source is the term itself
-      this.seekColfams = Collections.<ByteSequence> singletonList(
-          new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
+      this.seekColfams = Collections.<
+          ByteSequence>singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
     }
 
     public String getTermString() {
@@ -200,8 +200,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
             break;
           }
         }
-        int partitionCompare = currentPartition
-            .compareTo(getPartition(sources[sourceID].iter.getTopKey()));
+        int partitionCompare =
+            currentPartition.compareTo(getPartition(sources[sourceID].iter.getTopKey()));
         // check if this source is already at or beyond currentRow
         // if not, then seek to at least the current row
 
@@ -221,8 +221,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
         // now we must make sure we're in the right columnFamily in the current row
         // Note: Iterators are auto-magically set to the correct columnFamily
         if (sources[sourceID].term != null) {
-          int termCompare = sources[sourceID].term
-              .compareTo(getTerm(sources[sourceID].iter.getTopKey()));
+          int termCompare =
+              sources[sourceID].term.compareTo(getTerm(sources[sourceID].iter.getTopKey()));
           // check if this source is already on the right columnFamily
           // if not, then seek forwards to the right columnFamily
           if (termCompare > 0) {
@@ -285,8 +285,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
             return true;
           }
         }
-        int partitionCompare = currentPartition
-            .compareTo(getPartition(sources[sourceID].iter.getTopKey()));
+        int partitionCompare =
+            currentPartition.compareTo(getPartition(sources[sourceID].iter.getTopKey()));
         // check if this source is already at or beyond currentRow
         // if not, then seek to at least the current row
         if (partitionCompare > 0) {
@@ -309,8 +309,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
         // Note: Iterators are auto-magically set to the correct columnFamily
 
         if (sources[sourceID].term != null) {
-          int termCompare = sources[sourceID].term
-              .compareTo(getTerm(sources[sourceID].iter.getTopKey()));
+          int termCompare =
+              sources[sourceID].term.compareTo(getTerm(sources[sourceID].iter.getTopKey()));
           // check if this source is already on the right columnFamily
           // if not, then seek forwards to the right columnFamily
           if (termCompare > 0) {

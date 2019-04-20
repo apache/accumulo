@@ -36,8 +36,8 @@ import org.slf4j.LoggerFactory;
 public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   private static final Logger log = LoggerFactory.getLogger(ZooReaderWriter.class);
 
-  private static SecurityPermission ZOOWRITER_PERMISSION = new SecurityPermission(
-      "zookeeperWriterPermission");
+  private static SecurityPermission ZOOWRITER_PERMISSION =
+      new SecurityPermission("zookeeperWriterPermission");
 
   private static ZooReaderWriter instance = null;
   private final String scheme;

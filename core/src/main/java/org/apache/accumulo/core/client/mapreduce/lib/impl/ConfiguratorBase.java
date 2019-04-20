@@ -407,8 +407,8 @@ public class ConfiguratorBase {
    */
   public static ClientConfiguration getClientConfiguration(Class<?> implementingClass,
       Configuration conf) {
-    String clientConfigString = conf
-        .get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
+    String clientConfigString =
+        conf.get(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG));
     if (null != clientConfigString) {
       return ClientConfiguration.deserialize(clientConfigString);
     }
@@ -497,8 +497,8 @@ public class ConfiguratorBase {
     requireNonNull(token);
     if (token instanceof DelegationTokenStub) {
       DelegationTokenStub delTokenStub = (DelegationTokenStub) token;
-      Token<? extends TokenIdentifier> hadoopToken = job.getCredentials()
-          .getToken(new Text(delTokenStub.getServiceName()));
+      Token<? extends TokenIdentifier> hadoopToken =
+          job.getCredentials().getToken(new Text(delTokenStub.getServiceName()));
       AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
       try {
         identifier
@@ -527,8 +527,8 @@ public class ConfiguratorBase {
     requireNonNull(token);
     if (token instanceof DelegationTokenStub) {
       DelegationTokenStub delTokenStub = (DelegationTokenStub) token;
-      Token<? extends TokenIdentifier> hadoopToken = job.getCredentials()
-          .getToken(new Text(delTokenStub.getServiceName()));
+      Token<? extends TokenIdentifier> hadoopToken =
+          job.getCredentials().getToken(new Text(delTokenStub.getServiceName()));
       AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier();
       try {
         identifier

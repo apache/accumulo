@@ -221,8 +221,8 @@ public class Tablet implements TabletCommitter {
   private volatile CompactionState minorCompactionState = null;
   private volatile CompactionState majorCompactionState = null;
 
-  private final Set<MajorCompactionReason> majorCompactionQueued = Collections
-      .synchronizedSet(EnumSet.noneOf(MajorCompactionReason.class));
+  private final Set<MajorCompactionReason> majorCompactionQueued =
+      Collections.synchronizedSet(EnumSet.noneOf(MajorCompactionReason.class));
 
   private final AtomicReference<ConstraintChecker> constraintChecker = new AtomicReference<>();
 
@@ -347,10 +347,10 @@ public class Tablet implements TabletCommitter {
 
     // translate any volume changes
     VolumeManager fs = tabletServer.getFileSystem();
-    boolean replicationEnabled = ReplicationConfigurationUtil.isEnabled(extent,
-        this.tableConfiguration);
-    TabletFiles tabletPaths = new TabletFiles(data.getDirectory(), data.getLogEntris(),
-        data.getDataFiles());
+    boolean replicationEnabled =
+        ReplicationConfigurationUtil.isEnabled(extent, this.tableConfiguration);
+    TabletFiles tabletPaths =
+        new TabletFiles(data.getDirectory(), data.getLogEntris(), data.getDataFiles());
     tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer, tabletServer.getLock(), fs, extent,
         tabletPaths, replicationEnabled);
 
@@ -701,8 +701,8 @@ public class Tablet implements TabletCommitter {
   private void addUnfinishedRange(LookupResult lookupResult, Range range, Key key,
       boolean inclusiveStartKey) {
     if (range.getEndKey() == null || key.compareTo(range.getEndKey()) < 0) {
-      Range nlur = new Range(new Key(key), inclusiveStartKey, range.getEndKey(),
-          range.isEndKeyInclusive());
+      Range nlur =
+          new Range(new Key(key), inclusiveStartKey, range.getEndKey(), range.isEndKeyInclusive());
       lookupResult.unfinishedRanges.add(nlur);
     }
   }
@@ -710,8 +710,8 @@ public class Tablet implements TabletCommitter {
   public void checkConditions(ConditionChecker checker, Authorizations authorizations,
       AtomicBoolean iFlag) throws IOException {
 
-    ScanDataSource dataSource = new ScanDataSource(this, authorizations, this.defaultSecurityLabel,
-        iFlag);
+    ScanDataSource dataSource =
+        new ScanDataSource(this, authorizations, this.defaultSecurityLabel, iFlag);
 
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
@@ -969,8 +969,8 @@ public class Tablet implements TabletCommitter {
       mergeFile = getDatafileManager().reserveMergingMinorCompactionFile();
     }
 
-    double tracePercent = tabletServer.getConfiguration()
-        .getFraction(Property.TSERV_MINC_TRACE_PERCENT);
+    double tracePercent =
+        tabletServer.getConfiguration().getFraction(Property.TSERV_MINC_TRACE_PERCENT);
 
     return new MinorCompactionTask(this, mergeFile, oldCommitSession, flushId, mincReason,
         tracePercent);
@@ -1148,16 +1148,16 @@ public class Tablet implements TabletCommitter {
       String zTablePath = Constants.ZROOT + "/" + tabletServer.getInstance().getInstanceID()
           + Constants.ZTABLES + "/" + extent.getTableId() + Constants.ZTABLE_COMPACT_ID;
 
-      String[] tokens = new String(ZooReaderWriter.getInstance().getData(zTablePath, null), UTF_8)
-          .split(",");
+      String[] tokens =
+          new String(ZooReaderWriter.getInstance().getData(zTablePath, null), UTF_8).split(",");
       long compactID = Long.parseLong(tokens[0]);
 
       UserCompactionConfig compactionConfig = new UserCompactionConfig();
 
       if (tokens.length > 1) {
         Hex hex = new Hex();
-        ByteArrayInputStream bais = new ByteArrayInputStream(
-            hex.decode(tokens[1].split("=")[1].getBytes(UTF_8)));
+        ByteArrayInputStream bais =
+            new ByteArrayInputStream(hex.decode(tokens[1].split("=")[1].getBytes(UTF_8)));
         DataInputStream dis = new DataInputStream(bais);
 
         try {
@@ -1502,8 +1502,8 @@ public class Tablet implements TabletCommitter {
     }
 
     try {
-      Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>> fileLog = MetadataTableUtil
-          .getFileAndLogEntries(tabletServer, extent);
+      Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>> fileLog =
+          MetadataTableUtil.getFileAndLogEntries(tabletServer, extent);
 
       if (fileLog.getFirst().size() != 0) {
         String msg = "Closed tablet " + extent + " has walog entries in " + MetadataTable.NAME + " "
@@ -1523,9 +1523,9 @@ public class Tablet implements TabletCommitter {
         }
       } else {
         if (!fileLog.getSecond().equals(getDatafileManager().getDatafileSizes())) {
-          String msg = "Data file in " + MetadataTable.NAME + " differ from in memory data "
-              + extent + "  " + fileLog.getSecond() + "  "
-              + getDatafileManager().getDatafileSizes();
+          String msg =
+              "Data file in " + MetadataTable.NAME + " differ from in memory data " + extent + "  "
+                  + fileLog.getSecond() + "  " + getDatafileManager().getDatafileSizes();
           log.error(msg);
           throw new RuntimeException(msg);
         }
@@ -1752,9 +1752,9 @@ public class Tablet implements TabletCommitter {
     for (Entry<FileRef,DataFileValue> entry : allFiles.entrySet()) {
       FileRef file = entry.getKey();
       FileSystem ns = fs.getVolumeByPath(file.path()).getFileSystem();
-      FileSKVIterator openReader = fileFactory.newReaderBuilder()
-          .forFile(file.path().toString(), ns, ns.getConf())
-          .withTableConfiguration(this.getTableConfiguration()).seekToBeginning().build();
+      FileSKVIterator openReader =
+          fileFactory.newReaderBuilder().forFile(file.path().toString(), ns, ns.getConf())
+              .withTableConfiguration(this.getTableConfiguration()).seekToBeginning().build();
       try {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();
@@ -1883,8 +1883,8 @@ public class Tablet implements TabletCommitter {
         // enforce rules: files with keys outside our range need to be compacted
         inputFiles.addAll(findChopFiles(extent, firstAndLastKeys, allFiles.keySet()));
       } else {
-        MajorCompactionRequest request = new MajorCompactionRequest(extent, reason, fs,
-            tableConfiguration);
+        MajorCompactionRequest request =
+            new MajorCompactionRequest(extent, reason, fs, tableConfiguration);
         request.setFiles(allFiles);
         plan = strategy.getCompactionPlan(request);
         if (plan != null) {
@@ -1981,8 +1981,8 @@ public class Tablet implements TabletCommitter {
 
         Set<FileRef> smallestFiles = removeSmallest(filesToCompact, numToCompact);
 
-        FileRef fileName = getNextMapFilename(
-            (filesToCompact.size() == 0 && !propogateDeletes) ? "A" : "C");
+        FileRef fileName =
+            getNextMapFilename((filesToCompact.size() == 0 && !propogateDeletes) ? "A" : "C");
         FileRef compactTmpName = new FileRef(fileName.path().toString() + "_tmp");
 
         AccumuloConfiguration tableConf = createTableConfiguration(tableConfiguration, plan);
@@ -2015,8 +2015,8 @@ public class Tablet implements TabletCommitter {
 
           };
 
-          HashMap<FileRef,DataFileValue> copy = new HashMap<>(
-              getDatafileManager().getDatafileSizes());
+          HashMap<FileRef,DataFileValue> copy =
+              new HashMap<>(getDatafileManager().getDatafileSizes());
           if (!copy.keySet().containsAll(smallestFiles))
             throw new IllegalStateException("Cannot find data file values for " + smallestFiles
                 + " on " + extent + " during MajC");
@@ -2096,8 +2096,8 @@ public class Tablet implements TabletCommitter {
       return smallestFiles;
     }
 
-    PriorityQueue<Pair<FileRef,Long>> fileHeap = new PriorityQueue<>(filesToCompact.size(),
-        new Comparator<Pair<FileRef,Long>>() {
+    PriorityQueue<Pair<FileRef,Long>> fileHeap =
+        new PriorityQueue<>(filesToCompact.size(), new Comparator<Pair<FileRef,Long>>() {
           @Override
           public int compare(Pair<FileRef,Long> o1, Pair<FileRef,Long> o2) {
             if (o1.getSecond() == o2.getSecond())
@@ -2108,8 +2108,8 @@ public class Tablet implements TabletCommitter {
           }
         });
 
-    for (Iterator<Entry<FileRef,DataFileValue>> iterator = filesToCompact.entrySet()
-        .iterator(); iterator.hasNext();) {
+    for (Iterator<Entry<FileRef,DataFileValue>> iterator = filesToCompact.entrySet().iterator();
+        iterator.hasNext();) {
       Entry<FileRef,DataFileValue> entry = iterator.next();
       fileHeap.add(new Pair<>(entry.getKey(), entry.getValue().getSize()));
     }
@@ -2153,8 +2153,8 @@ public class Tablet implements TabletCommitter {
     Span span = null;
 
     try {
-      double tracePercent = tabletServer.getConfiguration()
-          .getFraction(Property.TSERV_MAJC_TRACE_PERCENT);
+      double tracePercent =
+          tabletServer.getConfiguration().getFraction(Property.TSERV_MAJC_TRACE_PERCENT);
       ProbabilitySampler sampler = new ProbabilitySampler(tracePercent);
       span = Trace.on("majorCompaction", sampler);
 
@@ -2285,9 +2285,9 @@ public class Tablet implements TabletCommitter {
     // this info is used for optimization... it is ok if map files are missing
     // from the set... can still query and insert into the tablet while this
     // map file operation is happening
-    Map<FileRef,FileUtil.FileInfo> firstAndLastRows = FileUtil.tryToGetFirstAndLastRows(
-        getTabletServer().getFileSystem(), getTabletServer().getConfiguration(),
-        getDatafileManager().getFiles());
+    Map<FileRef,FileUtil.FileInfo> firstAndLastRows =
+        FileUtil.tryToGetFirstAndLastRows(getTabletServer().getFileSystem(),
+            getTabletServer().getConfiguration(), getDatafileManager().getFiles());
 
     synchronized (this) {
       // java needs tuples ...
@@ -2300,11 +2300,10 @@ public class Tablet implements TabletCommitter {
         splitPoint = findSplitRow(getDatafileManager().getFiles());
       else {
         Text tsp = new Text(sp);
-        splitPoint = new SplitRowSpec(
-            FileUtil.estimatePercentageLTE(getTabletServer().getFileSystem(),
+        splitPoint =
+            new SplitRowSpec(FileUtil.estimatePercentageLTE(getTabletServer().getFileSystem(),
                 getTabletServer().getConfiguration(), extent.getPrevEndRow(), extent.getEndRow(),
-                FileUtil.toPathStrings(getDatafileManager().getFiles()), tsp),
-            tsp);
+                FileUtil.toPathStrings(getDatafileManager().getFiles()), tsp), tsp);
       }
 
       if (splitPoint == null || splitPoint.row == null) {
@@ -2322,8 +2321,8 @@ public class Tablet implements TabletCommitter {
       KeyExtent low = new KeyExtent(extent.getTableId(), midRow, extent.getPrevEndRow());
       KeyExtent high = new KeyExtent(extent.getTableId(), extent.getEndRow(), midRow);
 
-      String lowDirectory = createTabletDirectory(getTabletServer().getFileSystem(),
-          extent.getTableId(), midRow);
+      String lowDirectory =
+          createTabletDirectory(getTabletServer().getFileSystem(), extent.getTableId(), midRow);
 
       // write new tablet information to MetadataTable
       SortedMap<FileRef,DataFileValue> lowDatafileSizes = new TreeMap<>();
@@ -2424,8 +2423,8 @@ public class Tablet implements TabletCommitter {
 
       // TODO check seems uneeded now - ACCUMULO-1291
       long lockWait = System.currentTimeMillis() - now;
-      if (lockWait > getTabletServer().getConfiguration()
-          .getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)) {
+      if (lockWait
+          > getTabletServer().getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)) {
         throw new IOException(
             "Timeout waiting " + (lockWait / 1000.) + " seconds to get tablet lock");
       }

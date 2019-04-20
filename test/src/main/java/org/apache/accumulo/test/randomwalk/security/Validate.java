@@ -42,8 +42,8 @@ public class Validate extends Test {
     Connector conn = env.getConnector();
 
     boolean tableExists = WalkingSecurity.get(state, env).getTableExists();
-    boolean cloudTableExists = conn.tableOperations().list()
-        .contains(WalkingSecurity.get(state, env).getTableName());
+    boolean cloudTableExists =
+        conn.tableOperations().list().contains(WalkingSecurity.get(state, env).getTableName());
     if (tableExists != cloudTableExists)
       throw new AccumuloException("Table existance out of sync");
 

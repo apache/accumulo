@@ -60,20 +60,21 @@ public class MetadataConstraints implements Constraint {
 
   {
     for (int i = 0; i < 256; i++) {
-      validTableNameChars[i] = ((i >= 'a' && i <= 'z') || (i >= '0' && i <= '9')) || i == '!'
-          || i == '+';
+      validTableNameChars[i] =
+          ((i >= 'a' && i <= 'z') || (i >= '0' && i <= '9')) || i == '!' || i == '+';
     }
   }
 
-  private static final HashSet<ColumnFQ> validColumnQuals = new HashSet<>(Arrays.asList(
-      TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
-      TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN,
-      TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN,
-      TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
-      TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN,
-      TabletsSection.ServerColumnFamily.TIME_COLUMN, TabletsSection.ServerColumnFamily.LOCK_COLUMN,
-      TabletsSection.ServerColumnFamily.FLUSH_COLUMN,
-      TabletsSection.ServerColumnFamily.COMPACT_COLUMN));
+  private static final HashSet<ColumnFQ> validColumnQuals =
+      new HashSet<>(Arrays.asList(TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
+          TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN,
+          TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN,
+          TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
+          TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN,
+          TabletsSection.ServerColumnFamily.TIME_COLUMN,
+          TabletsSection.ServerColumnFamily.LOCK_COLUMN,
+          TabletsSection.ServerColumnFamily.FLUSH_COLUMN,
+          TabletsSection.ServerColumnFamily.COMPACT_COLUMN));
 
   private static final HashSet<Text> validColumnFams = new HashSet<>(Arrays.asList(
       TabletsSection.BulkFileColumnFamily.NAME, LogColumnFamily.NAME, ScanFileColumnFamily.NAME,
@@ -256,8 +257,8 @@ public class MetadataConstraints implements Constraint {
 
           Text per = KeyExtent.decodePrevEndRow(new Value(columnUpdate.getValue()));
 
-          boolean prevEndRowLessThanEndRow = per == null || ke.getEndRow() == null
-              || per.compareTo(ke.getEndRow()) < 0;
+          boolean prevEndRowLessThanEndRow =
+              per == null || ke.getEndRow() == null || per.compareTo(ke.getEndRow()) < 0;
 
           if (!prevEndRowLessThanEndRow) {
             violations = addViolation(violations, 3);

@@ -276,24 +276,24 @@ public class AccumuloClassLoader {
       ClassLoader parentClassLoader = AccumuloClassLoader.class.getClassLoader();
 
       log.debug("Create 2nd tier ClassLoader using URLs: " + urls.toString());
-      URLClassLoader aClassLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]),
-          parentClassLoader) {
-        @Override
-        protected synchronized Class<?> loadClass(String name, boolean resolve)
-            throws ClassNotFoundException {
+      URLClassLoader aClassLoader =
+          new URLClassLoader(urls.toArray(new URL[urls.size()]), parentClassLoader) {
+            @Override
+            protected synchronized Class<?> loadClass(String name, boolean resolve)
+                throws ClassNotFoundException {
 
-          if (name.startsWith("org.apache.accumulo.start.classloader.vfs")) {
-            Class<?> c = findLoadedClass(name);
-            if (c == null) {
-              try {
-                // try finding this class here instead of parent
-                findClass(name);
-              } catch (ClassNotFoundException e) {}
+              if (name.startsWith("org.apache.accumulo.start.classloader.vfs")) {
+                Class<?> c = findLoadedClass(name);
+                if (c == null) {
+                  try {
+                    // try finding this class here instead of parent
+                    findClass(name);
+                  } catch (ClassNotFoundException e) {}
+                }
+              }
+              return super.loadClass(name, resolve);
             }
-          }
-          return super.loadClass(name, resolve);
-        }
-      };
+          };
       classloader = aClassLoader;
     }
 

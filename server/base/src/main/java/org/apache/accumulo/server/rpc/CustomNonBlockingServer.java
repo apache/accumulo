@@ -53,8 +53,8 @@ public class CustomNonBlockingServer extends THsHaServer {
     // start the selector
     try {
       // Hack in our SelectAcceptThread impl
-      SelectAcceptThread selectAcceptThread_ = new CustomSelectAcceptThread(
-          (TNonblockingServerTransport) serverTransport_);
+      SelectAcceptThread selectAcceptThread_ =
+          new CustomSelectAcceptThread((TNonblockingServerTransport) serverTransport_);
       // Set the private field before continuing.
       selectAcceptThreadField.set(this, selectAcceptThread_);
 

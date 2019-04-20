@@ -59,8 +59,8 @@ public class ReplicaSystemHelper {
    */
   public void recordNewStatus(Path filePath, Status status, ReplicationTarget target)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    BatchWriter bw = context.getConnector().createBatchWriter(ReplicationTable.NAME,
-        new BatchWriterConfig());
+    BatchWriter bw =
+        context.getConnector().createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig());
     try {
       log.debug("Recording new status for {}, {}", filePath.toString(),
           ProtobufUtil.toString(status));

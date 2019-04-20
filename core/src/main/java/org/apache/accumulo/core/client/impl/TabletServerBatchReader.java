@@ -64,8 +64,8 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     this.tableId = tableId;
     this.numThreads = numQueryThreads;
 
-    queryThreadPool = new SimpleThreadPool(numQueryThreads,
-        "batch scanner " + batchReaderInstance + "-");
+    queryThreadPool =
+        new SimpleThreadPool(numQueryThreads, "batch scanner " + batchReaderInstance + "-");
 
     ranges = null;
     ex = new Throwable();

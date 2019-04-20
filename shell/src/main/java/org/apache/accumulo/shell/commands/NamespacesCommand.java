@@ -42,8 +42,8 @@ public class NamespacesCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, IOException {
-    Map<String,String> namespaces = new TreeMap<>(
-        shellState.getConnector().namespaceOperations().namespaceIdMap());
+    Map<String,String> namespaces =
+        new TreeMap<>(shellState.getConnector().namespaceOperations().namespaceIdMap());
 
     Iterator<String> it = Iterators.transform(namespaces.entrySet().iterator(),
         new Function<Entry<String,String>,String>() {
@@ -72,8 +72,8 @@ public class NamespacesCommand extends Command {
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    namespaceIdOption = new Option("l", "list-ids", false,
-        "display internal namespace ids along with the name");
+    namespaceIdOption =
+        new Option("l", "list-ids", false, "display internal namespace ids along with the name");
     o.addOption(namespaceIdOption);
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     o.addOption(disablePaginationOpt);

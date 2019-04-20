@@ -82,8 +82,8 @@ public class WalRemovalOrderTest {
   private static void runTest(LinkedHashSet<DfsLogger> closedLogs, Set<DfsLogger> inUseLogs,
       Set<DfsLogger> expected) {
     List<DfsLogger> copy = TabletServer.copyClosedLogs(closedLogs);
-    Set<DfsLogger> eligible = TabletServer.findOldestUnreferencedWals(copy,
-        new TestRefRemover(inUseLogs));
+    Set<DfsLogger> eligible =
+        TabletServer.findOldestUnreferencedWals(copy, new TestRefRemover(inUseLogs));
     assertEquals(expected, eligible);
   }
 

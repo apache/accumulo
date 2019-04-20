@@ -151,8 +151,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       timer = new OpTimer().start();
     }
 
-    TreeSet<String> tableNames = new TreeSet<>(
-        Tables.getNameToIdMap(context.getInstance()).keySet());
+    TreeSet<String> tableNames =
+        new TreeSet<>(Tables.getNameToIdMap(context.getInstance()).keySet());
 
     if (timer != null) {
       timer.stop();
@@ -334,8 +334,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw new NamespaceNotFoundException(null, tableOrNamespaceName,
               "Target namespace does not exist");
         default:
-          String tableInfo = Tables.getPrintableTableInfoFromName(context.getInstance(),
-              tableOrNamespaceName);
+          String tableInfo =
+              Tables.getPrintableTableInfoFromName(context.getInstance(), tableOrNamespaceName);
           throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
       }
     } catch (ThriftTableOperationException e) {
@@ -439,8 +439,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     CountDownLatch latch = new CountDownLatch(splits.size());
     AtomicReference<Throwable> exception = new AtomicReference<>(null);
 
-    ExecutorService executor = Executors.newFixedThreadPool(16,
-        new NamingThreadFactory("addSplits"));
+    ExecutorService executor =
+        Executors.newFixedThreadPool(16, new NamingThreadFactory("addSplits"));
     try {
       executor.execute(
           new SplitTask(new SplitEnv(tableName, tableId, executor, latch, exception), splits));
@@ -1162,8 +1162,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> props = context.getConnector().instanceOperations().getSystemConfiguration();
     AccumuloConfiguration conf = new ConfigurationCopy(props);
 
-    FileSystem fs = VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), conf)
-        .getFileSystem();
+    FileSystem fs =
+        VolumeConfiguration.getVolume(dir, CachedConfiguration.getInstance(), conf).getFileSystem();
 
     if (dir.contains(":")) {
       ret = new Path(dir);
@@ -1420,8 +1420,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    TabletLocator tabLocator = TabletLocator.getLocator(context,
-        Tables.getTableId(context.getInstance(), tableName));
+    TabletLocator tabLocator =
+        TabletLocator.getLocator(context, Tables.getTableId(context.getInstance(), tableName));
     tabLocator.invalidateCache();
   }
 
@@ -1673,8 +1673,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
     clearSamplerOptions(tableName);
 
-    List<Pair<String,String>> props = new SamplerConfigurationImpl(samplerConfiguration)
-        .toTableProperties();
+    List<Pair<String,String>> props =
+        new SamplerConfigurationImpl(samplerConfiguration).toTableProperties();
     for (Pair<String,String> pair : props) {
       setProperty(tableName, pair.getFirst(), pair.getSecond());
     }
@@ -1715,8 +1715,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         for (Entry<KeyExtent,List<Range>> entry2 : entry.getValue().entrySet()) {
           TabletIdImpl tabletId = new TabletIdImpl(entry2.getKey());
           tabletLocations.put(tabletId, location);
-          List<Range> prev = groupedByTablets.put(tabletId,
-              Collections.unmodifiableList(entry2.getValue()));
+          List<Range> prev =
+              groupedByTablets.put(tabletId, Collections.unmodifiableList(entry2.getValue()));
           if (prev != null) {
             throw new RuntimeException(
                 "Unexpected : tablet at multiple locations : " + location + " " + tabletId);

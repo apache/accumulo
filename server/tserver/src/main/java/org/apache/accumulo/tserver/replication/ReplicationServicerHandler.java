@@ -66,8 +66,8 @@ public class ReplicationServicerHandler implements Iface {
 
     AccumuloConfiguration conf = tabletServer.getConfiguration();
 
-    Map<String,String> replicationHandlers = conf
-        .getAllPropertiesWithPrefix(Property.TSERV_REPLICATION_REPLAYERS);
+    Map<String,String> replicationHandlers =
+        conf.getAllPropertiesWithPrefix(Property.TSERV_REPLICATION_REPLAYERS);
     String propertyForHandlerTable = Property.TSERV_REPLICATION_REPLAYERS.getKey() + tableId;
 
     String handlerClassForTable = replicationHandlers.get(propertyForHandlerTable);

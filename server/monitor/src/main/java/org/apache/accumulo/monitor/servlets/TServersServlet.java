@@ -121,17 +121,17 @@ public class TServersServlet extends BasicServlet {
     double currentMajorAvg = 0;
     double currentMinorStdDev = 0;
     double currentMajorStdDev = 0;
-    TabletStats total = new TabletStats(null, new ActionStats(), new ActionStats(),
-        new ActionStats(), 0, 0, 0, 0);
+    TabletStats total =
+        new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
 
     HostAndPort address = HostAndPort.fromString(tserverAddress);
-    TabletStats historical = new TabletStats(null, new ActionStats(), new ActionStats(),
-        new ActionStats(), 0, 0, 0, 0);
+    TabletStats historical =
+        new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
     List<TabletStats> tsStats = new ArrayList<>();
     try {
       ClientContext context = Monitor.getContext();
-      TabletClientService.Client client = ThriftUtil
-          .getClient(new TabletClientService.Client.Factory(), address, context);
+      TabletClientService.Client client =
+          ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
         for (String tableId : Monitor.getMmi().tableMap.keySet()) {
           tsStats.addAll(client.getTabletStats(Tracer.traceInfo(), context.rpcCreds(), tableId));
@@ -214,8 +214,8 @@ public class TServersServlet extends BasicServlet {
     minorQueueStdDev = stddev(total.minors.queueTime, total.minors.num, total.minors.queueSumDev);
     majorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
     majorQueueStdDev = stddev(total.majors.queueTime, total.majors.num, total.majors.queueSumDev);
-    splitStdDev = stddev(historical.splits.num, historical.splits.elapsed,
-        historical.splits.sumDev);
+    splitStdDev =
+        stddev(historical.splits.num, historical.splits.elapsed, historical.splits.sumDev);
 
     doDetailTable(req, sb, address, tsStats.size(), total, historical);
     doAllTimeTable(req, sb, total, historical, majorQueueStdDev, minorQueueStdDev,
@@ -227,8 +227,8 @@ public class TServersServlet extends BasicServlet {
 
   private void doCurrentTabletOps(HttpServletRequest req, StringBuilder sb, double currentMinorAvg,
       double currentMinorStdDev, double currentMajorAvg, double currentMajorStdDev) {
-    Table currentTabletOps = new Table("currentTabletOps",
-        "Current&nbsp;Tablet&nbsp;Operation&nbsp;Results");
+    Table currentTabletOps =
+        new Table("currentTabletOps", "Current&nbsp;Tablet&nbsp;Operation&nbsp;Results");
     currentTabletOps.addSortableColumn("Minor&nbsp;Average", new SecondType(), null);
     currentTabletOps.addSortableColumn("Minor&nbsp;Std&nbsp;Dev", new SecondType(), null);
     currentTabletOps.addSortableColumn("Major&nbsp;Avg", new SecondType(), null);
@@ -242,8 +242,8 @@ public class TServersServlet extends BasicServlet {
       TabletStats historical, double majorQueueStdDev, double minorQueueStdDev,
       double totalElapsedForAll, double splitStdDev, double majorStdDev, double minorStdDev) {
 
-    Table opHistoryDetails = new Table("opHistoryDetails",
-        "All-Time&nbsp;Tablet&nbsp;Operation&nbsp;Results");
+    Table opHistoryDetails =
+        new Table("opHistoryDetails", "All-Time&nbsp;Tablet&nbsp;Operation&nbsp;Results");
     opHistoryDetails.addSortableColumn("Operation");
     opHistoryDetails.addSortableColumn("Success", new NumberType<Integer>(), null);
     opHistoryDetails.addSortableColumn("Failure", new NumberType<Integer>(), null);
@@ -298,8 +298,8 @@ public class TServersServlet extends BasicServlet {
 
   private void doBadTserverList(HttpServletRequest req, StringBuilder sb) {
     if (Monitor.getMmi() != null && !Monitor.getMmi().badTServers.isEmpty()) {
-      Table badTServerList = new Table("badtservers", "Non-Functioning&nbsp;Tablet&nbsp;Servers",
-          "error");
+      Table badTServerList =
+          new Table("badtservers", "Non-Functioning&nbsp;Tablet&nbsp;Servers", "error");
       badTServerList
           .setSubCaption("The following tablet servers reported a status other than Online.");
       badTServerList.addSortableColumn("Tablet&nbsp;Server");
@@ -412,11 +412,11 @@ public class TServersServlet extends BasicServlet {
       row.add(summary); // add for scans
       row.add(summary); // add for minor compactions
       row.add(summary); // add for major compactions
-      double indexCacheHitRate = status.indexCacheHits
-          / (double) Math.max(status.indexCacheRequest, 1);
+      double indexCacheHitRate =
+          status.indexCacheHits / (double) Math.max(status.indexCacheRequest, 1);
       row.add(indexCacheHitRate);
-      double dataCacheHitRate = status.dataCacheHits
-          / (double) Math.max(status.dataCacheRequest, 1);
+      double dataCacheHitRate =
+          status.dataCacheHits / (double) Math.max(status.dataCacheRequest, 1);
       row.add(dataCacheHitRate);
       row.add(status.osLoad);
       tServerList.addRow(row);

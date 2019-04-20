@@ -41,8 +41,8 @@ public class CloneTable extends MasterRepo {
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    long val = Utils.reserveNamespace(cloneInfo.srcNamespaceId, tid, false, true,
-        TableOperation.CLONE);
+    long val =
+        Utils.reserveNamespace(cloneInfo.srcNamespaceId, tid, false, true, TableOperation.CLONE);
     val += Utils.reserveTable(cloneInfo.srcTableId, tid, false, true, TableOperation.CLONE);
     return val;
   }

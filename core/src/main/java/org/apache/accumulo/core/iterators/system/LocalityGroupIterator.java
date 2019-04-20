@@ -286,8 +286,8 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
       }
     } else { // otherwise capture the parameters, and use the static seek method to locate the
              // locality groups to use.
-      lgSeekCache.lastColumnFamilies = (cfSet == null ? ImmutableSet.copyOf(columnFamilies)
-          : cfSet);
+      lgSeekCache.lastColumnFamilies =
+          (cfSet == null ? ImmutableSet.copyOf(columnFamilies) : cfSet);
       lgSeekCache.lastInclusive = inclusive;
       lgSeekCache.lastUsed = _seek(hiter, lgContext, range, columnFamilies, inclusive);
     }

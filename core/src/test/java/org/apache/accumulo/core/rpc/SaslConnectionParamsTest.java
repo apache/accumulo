@@ -75,8 +75,8 @@ public class SaslConnectionParamsTest {
         final SaslConnectionParams saslParams = new SaslConnectionParams(clientConf, token);
         assertEquals(primary, saslParams.getKerberosServerPrimary());
 
-        final QualityOfProtection defaultQop = QualityOfProtection
-            .get(Property.RPC_SASL_QOP.getDefaultValue());
+        final QualityOfProtection defaultQop =
+            QualityOfProtection.get(Property.RPC_SASL_QOP.getDefaultValue());
         assertEquals(defaultQop, saslParams.getQualityOfProtection());
 
         Map<String,String> properties = saslParams.getSaslProperties();
@@ -106,8 +106,8 @@ public class SaslConnectionParamsTest {
         final SaslConnectionParams saslParams = new SaslConnectionParams(rpcConf, token);
         assertEquals(primary, saslParams.getKerberosServerPrimary());
 
-        final QualityOfProtection defaultQop = QualityOfProtection
-            .get(Property.RPC_SASL_QOP.getDefaultValue());
+        final QualityOfProtection defaultQop =
+            QualityOfProtection.get(Property.RPC_SASL_QOP.getDefaultValue());
         assertEquals(defaultQop, saslParams.getQualityOfProtection());
 
         Map<String,String> properties = saslParams.getSaslProperties();
@@ -138,8 +138,8 @@ public class SaslConnectionParamsTest {
         final SaslConnectionParams saslParams = new SaslConnectionParams(rpcConf, token);
         assertEquals(primary, saslParams.getKerberosServerPrimary());
 
-        final QualityOfProtection defaultQop = QualityOfProtection
-            .get(Property.RPC_SASL_QOP.getDefaultValue());
+        final QualityOfProtection defaultQop =
+            QualityOfProtection.get(Property.RPC_SASL_QOP.getDefaultValue());
         assertEquals(defaultQop, saslParams.getQualityOfProtection());
 
         assertEquals(SaslMechanism.DIGEST_MD5, saslParams.getMechanism());
@@ -159,8 +159,8 @@ public class SaslConnectionParamsTest {
   @Test
   public void testEquality() throws Exception {
     final KerberosToken token = EasyMock.createMock(KerberosToken.class);
-    SaslConnectionParams params1 = testUser
-        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
+    SaslConnectionParams params1 =
+        testUser.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
           @Override
           public SaslConnectionParams run() throws Exception {
             final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
@@ -176,8 +176,8 @@ public class SaslConnectionParamsTest {
           }
         });
 
-    SaslConnectionParams params2 = testUser
-        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
+    SaslConnectionParams params2 =
+        testUser.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
           @Override
           public SaslConnectionParams run() throws Exception {
             final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
@@ -198,8 +198,8 @@ public class SaslConnectionParamsTest {
 
     final DelegationTokenImpl delToken1 = new DelegationTokenImpl(new byte[0],
         new AuthenticationTokenIdentifier("user", 1, 10l, 20l, "instanceid"));
-    SaslConnectionParams params3 = testUser
-        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
+    SaslConnectionParams params3 =
+        testUser.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
           @Override
           public SaslConnectionParams run() throws Exception {
             final ClientConfiguration clientConf = ClientConfiguration.loadDefault();
@@ -222,8 +222,8 @@ public class SaslConnectionParamsTest {
 
     final DelegationTokenImpl delToken2 = new DelegationTokenImpl(new byte[0],
         new AuthenticationTokenIdentifier("user", 1, 10l, 20l, "instanceid"));
-    SaslConnectionParams params4 = testUser
-        .doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
+    SaslConnectionParams params4 =
+        testUser.doAs(new PrivilegedExceptionAction<SaslConnectionParams>() {
           @Override
           public SaslConnectionParams run() throws Exception {
             final ClientConfiguration clientConf = ClientConfiguration.loadDefault();

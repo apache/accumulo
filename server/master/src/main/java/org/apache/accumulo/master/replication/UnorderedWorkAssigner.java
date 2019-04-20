@@ -161,10 +161,10 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
 
   @Override
   protected Set<String> getQueuedWork(ReplicationTarget target) {
-    String desiredQueueKeySuffix = DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target.getRemoteIdentifier() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
-        + target.getSourceTableId();
+    String desiredQueueKeySuffix =
+        DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getPeerName()
+            + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier()
+            + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getSourceTableId();
     Set<String> queuedWorkForTarget = new HashSet<>();
     for (String queuedWork : this.queuedWork) {
       if (queuedWork.endsWith(desiredQueueKeySuffix)) {

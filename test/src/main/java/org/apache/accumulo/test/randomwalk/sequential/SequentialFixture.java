@@ -40,8 +40,8 @@ public class SequentialFixture extends Fixture {
 
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
 
-    seqTableName = String.format("sequential_%s_%s_%d", hostname, env.getPid(),
-        System.currentTimeMillis());
+    seqTableName =
+        String.format("sequential_%s_%s_%d", hostname, env.getPid(), System.currentTimeMillis());
     state.set("seqTableName", seqTableName);
 
     try {

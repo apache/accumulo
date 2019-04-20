@@ -42,8 +42,8 @@ import org.apache.thrift.transport.TMemoryInputTransport;
 public class TraceFormatter implements Formatter {
   public static final String DATE_FORMAT = DateFormatSupplier.HUMAN_READABLE_FORMAT;
   // ugh... SimpleDataFormat is not thread safe
-  private static final DateFormatSupplier formatter = DateFormatSupplier
-      .createSimpleFormatSupplier(DATE_FORMAT);
+  private static final DateFormatSupplier formatter =
+      DateFormatSupplier.createSimpleFormatSupplier(DATE_FORMAT);
 
   public static String formatDate(final Date date) {
     return formatter.get().format(date);

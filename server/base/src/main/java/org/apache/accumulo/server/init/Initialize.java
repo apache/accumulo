@@ -198,8 +198,8 @@ public class Initialize implements KeywordExecutable {
     // race
     // condition where a tserver compacts away Status updates because it didn't see the Combiner
     // configured
-    IteratorSetting setting = new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME,
-        StatusCombiner.class);
+    IteratorSetting setting =
+        new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, StatusCombiner.class);
     Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
     for (IteratorScope scope : IteratorScope.values()) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
@@ -355,7 +355,7 @@ public class Initialize implements KeywordExecutable {
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
     String[] configuredVolumes = VolumeConfiguration.getVolumeUris(SiteConfiguration.getInstance());
-    final String rootTabletDir = new Path(fs.choose(Optional.<String> absent(), configuredVolumes)
+    final String rootTabletDir = new Path(fs.choose(Optional.<String>absent(), configuredVolumes)
         + Path.SEPARATOR + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID
         + RootTable.ROOT_TABLET_LOCATION).toString();
 
@@ -390,8 +390,8 @@ public class Initialize implements KeywordExecutable {
       return false;
     }
 
-    final ServerConfigurationFactory confFactory = new ServerConfigurationFactory(
-        HdfsZooInstance.getInstance());
+    final ServerConfigurationFactory confFactory =
+        new ServerConfigurationFactory(HdfsZooInstance.getInstance());
 
     // When we're using Kerberos authentication, we need valid credentials to perform
     // initialization. If the user provided some, use them.
@@ -467,35 +467,38 @@ public class Initialize implements KeywordExecutable {
     // initialize initial system tables config in zookeeper
     initSystemTablesConfig();
 
-    String tableMetadataTabletDir = fs.choose(Optional.<String> absent(),
-        ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-        + MetadataTable.ID + TABLE_TABLETS_TABLET_DIR;
-    String replicationTableDefaultTabletDir = fs.choose(Optional.<String> absent(),
-        ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-        + ReplicationTable.ID + Constants.DEFAULT_TABLET_LOCATION;
-    String defaultMetadataTabletDir = fs.choose(Optional.<String> absent(),
-        ServerConstants.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-        + MetadataTable.ID + Constants.DEFAULT_TABLET_LOCATION;
+    String tableMetadataTabletDir =
+        fs.choose(Optional.<String>absent(), ServerConstants.getBaseUris())
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
+            + TABLE_TABLETS_TABLET_DIR;
+    String replicationTableDefaultTabletDir =
+        fs.choose(Optional.<String>absent(), ServerConstants.getBaseUris())
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID
+            + Constants.DEFAULT_TABLET_LOCATION;
+    String defaultMetadataTabletDir =
+        fs.choose(Optional.<String>absent(), ServerConstants.getBaseUris())
+            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID
+            + Constants.DEFAULT_TABLET_LOCATION;
 
     // create table and default tablets directories
     createDirectories(fs, rootTabletDir, tableMetadataTabletDir, defaultMetadataTabletDir,
         replicationTableDefaultTabletDir);
 
-    String ext = FileOperations
-        .getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
+    String ext =
+        FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
 
     // populate the metadata tables tablet with info about the replication table's one initial
     // tablet
     String metadataFileName = tableMetadataTabletDir + Path.SEPARATOR + "0_1." + ext;
-    Tablet replicationTablet = new Tablet(ReplicationTable.ID, replicationTableDefaultTabletDir,
-        null, null);
+    Tablet replicationTablet =
+        new Tablet(ReplicationTable.ID, replicationTableDefaultTabletDir, null, null);
     createMetadataFile(fs, metadataFileName, replicationTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
     String rootTabletFileName = rootTabletDir + Path.SEPARATOR + "00000_00000." + ext;
     Text splitPoint = TabletsSection.getRange().getEndKey().getRow();
-    Tablet tablesTablet = new Tablet(MetadataTable.ID, tableMetadataTabletDir, null, splitPoint,
-        metadataFileName);
+    Tablet tablesTablet =
+        new Tablet(MetadataTable.ID, tableMetadataTabletDir, null, splitPoint, metadataFileName);
     Tablet defaultTablet = new Tablet(MetadataTable.ID, defaultMetadataTabletDir, splitPoint, null);
     createMetadataFile(fs, rootTabletFileName, tablesTablet, defaultTablet);
   }
@@ -522,9 +525,9 @@ public class Initialize implements KeywordExecutable {
       createEntriesForTablet(sorted, tablet);
     }
     FileSystem fs = volmanager.getVolumeByPath(new Path(fileName)).getFileSystem();
-    FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fileName, fs, fs.getConf())
-        .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).build();
+    FileSKVWriter tabletWriter =
+        FileOperations.getInstance().newWriterBuilder().forFile(fileName, fs, fs.getConf())
+            .withTableConfiguration(AccumuloConfiguration.getDefaultConfiguration()).build();
     tabletWriter.startDefaultLocalityGroup();
 
     for (Entry<Key,Value> entry : sorted.entrySet()) {
@@ -720,8 +723,8 @@ public class Initialize implements KeywordExecutable {
           + " (this may not be applicable for your security setup): ", '*');
       if (rootpass == null)
         System.exit(0);
-      confirmpass = getConsoleReader().readLine("Confirm initial password for " + rootUser + ": ",
-          '*');
+      confirmpass =
+          getConsoleReader().readLine("Confirm initial password for " + rootUser + ": ", '*');
       if (confirmpass == null)
         System.exit(0);
       if (!rootpass.equals(confirmpass))
@@ -808,8 +811,8 @@ public class Initialize implements KeywordExecutable {
     Path iidPath = new Path(aBasePath, ServerConstants.INSTANCE_ID_DIR);
     Path versionPath = new Path(aBasePath, ServerConstants.VERSION_DIR);
 
-    UUID uuid = UUID
-        .fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, SiteConfiguration.getInstance()));
+    UUID uuid =
+        UUID.fromString(ZooUtil.getInstanceIDFromHdfs(iidPath, SiteConfiguration.getInstance()));
     for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements()) {
       if (aBasePath.equals(replacementVolume.getFirst()))
         log.error(aBasePath + " is set to be replaced in " + Property.INSTANCE_VOLUMES_REPLACEMENTS

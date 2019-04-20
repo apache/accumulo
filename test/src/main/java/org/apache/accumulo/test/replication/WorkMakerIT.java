@@ -151,8 +151,8 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
     MockWorkMaker workMaker = new MockWorkMaker(conn);
 
-    Map<String,String> targetClusters = ImmutableMap.of("remote_cluster_1", "4", "remote_cluster_2",
-        "6", "remote_cluster_3", "8");
+    Map<String,String> targetClusters =
+        ImmutableMap.of("remote_cluster_1", "4", "remote_cluster_2", "6", "remote_cluster_3", "8");
     Set<ReplicationTarget> expectedTargets = new HashSet<>();
     for (Entry<String,String> cluster : targetClusters.entrySet()) {
       expectedTargets.add(new ReplicationTarget(cluster.getKey(), cluster.getValue(), tableId));

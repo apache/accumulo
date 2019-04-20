@@ -172,8 +172,8 @@ public class Accumulo {
 
     // Set up polling log4j updates and log-forwarding using information advertised in zookeeper by
     // the monitor
-    MonitorLog4jWatcher logConfigWatcher = new MonitorLog4jWatcher(instance.getInstanceID(),
-        logConfigFile);
+    MonitorLog4jWatcher logConfigWatcher =
+        new MonitorLog4jWatcher(instance.getInstanceID(), logConfigFile);
     logConfigWatcher.setDelay(5000L);
     logConfigWatcher.start();
 

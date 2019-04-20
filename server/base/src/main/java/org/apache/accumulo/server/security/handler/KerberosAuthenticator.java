@@ -52,9 +52,9 @@ public class KerberosAuthenticator implements Authenticator {
   private static final Logger log = LoggerFactory.getLogger(KerberosAuthenticator.class);
 
   private static final Set<Class<? extends AuthenticationToken>> SUPPORTED_TOKENS = Sets.newHashSet(
-      Arrays.<Class<? extends AuthenticationToken>> asList(KerberosToken.class, SystemToken.class));
-  private static final Set<String> SUPPORTED_TOKEN_NAMES = Sets
-      .newHashSet(KerberosToken.class.getName(), SystemToken.class.getName());
+      Arrays.<Class<? extends AuthenticationToken>>asList(KerberosToken.class, SystemToken.class));
+  private static final Set<String> SUPPORTED_TOKEN_NAMES =
+      Sets.newHashSet(KerberosToken.class.getName(), SystemToken.class.getName());
 
   private final ZKAuthenticator zkAuthenticator = new ZKAuthenticator();
   private String zkUserPath;

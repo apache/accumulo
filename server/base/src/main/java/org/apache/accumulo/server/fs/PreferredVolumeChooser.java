@@ -61,8 +61,8 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
   };
 
   @SuppressWarnings("unchecked")
-  private final Map<String,Set<String>> parsedPreferredVolumes = Collections
-      .synchronizedMap(new LRUMap(1000));
+  private final Map<String,Set<String>> parsedPreferredVolumes =
+      Collections.synchronizedMap(new LRUMap(1000));
   // TODO has to be lazily initialized currently because of the reliance on HdfsZooInstance. see
   // ACCUMULO-3411
   private volatile ServerConfigurationFactory serverConfs;

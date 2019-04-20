@@ -39,8 +39,8 @@ import org.junit.rules.TemporaryFolder;
  */
 public class ServerConstantsTest {
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder folder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Test
   public void testCheckBaseDirs() throws IOException {

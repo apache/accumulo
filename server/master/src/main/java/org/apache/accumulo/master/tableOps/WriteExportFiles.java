@@ -82,9 +82,9 @@ class WriteExportFiles extends MasterRepo {
   @Override
   public long isReady(long tid, Master master) throws Exception {
 
-    long reserved = Utils.reserveNamespace(tableInfo.namespaceID, tid, false, true,
-        TableOperation.EXPORT)
-        + Utils.reserveTable(tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
+    long reserved =
+        Utils.reserveNamespace(tableInfo.namespaceID, tid, false, true, TableOperation.EXPORT)
+            + Utils.reserveTable(tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
     if (reserved > 0)
       return reserved;
 
@@ -215,8 +215,8 @@ class WriteExportFiles extends MasterRepo {
 
     Map<String,String> uniqueFiles = new HashMap<>();
 
-    Scanner metaScanner = context.getConnector().createScanner(MetadataTable.NAME,
-        Authorizations.EMPTY);
+    Scanner metaScanner =
+        context.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);
     TabletsSection.ServerColumnFamily.TIME_COLUMN.fetch(metaScanner);
@@ -259,8 +259,8 @@ class WriteExportFiles extends MasterRepo {
     Map<String,String> siteConfig = conn.instanceOperations().getSiteConfiguration();
     Map<String,String> systemConfig = conn.instanceOperations().getSystemConfiguration();
 
-    TableConfiguration tableConfig = context.getServerConfigurationFactory()
-        .getTableConfiguration(tableID);
+    TableConfiguration tableConfig =
+        context.getServerConfigurationFactory().getTableConfiguration(tableID);
 
     OutputStreamWriter osw = new OutputStreamWriter(dataOut, UTF_8);
 

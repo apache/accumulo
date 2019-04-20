@@ -62,8 +62,8 @@ abstract class TableMetadataServicer extends MetadataServicer {
   public void getTabletLocations(SortedMap<KeyExtent,String> tablets)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
-    Scanner scanner = context.getConnector().createScanner(getServicingTableName(),
-        Authorizations.EMPTY);
+    Scanner scanner =
+        context.getConnector().createScanner(getServicingTableName(), Authorizations.EMPTY);
 
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(TabletsSection.CurrentLocationColumnFamily.NAME);

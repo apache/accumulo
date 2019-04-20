@@ -49,8 +49,8 @@ public class DistributedWorkQueueWorkAssignerHelperTest {
 
     String key = DistributedWorkQueueWorkAssignerHelper.getQueueKey(p.toString(), target);
 
-    Entry<String,ReplicationTarget> result = DistributedWorkQueueWorkAssignerHelper
-        .fromQueueKey(key);
+    Entry<String,ReplicationTarget> result =
+        DistributedWorkQueueWorkAssignerHelper.fromQueueKey(key);
     assertEquals(p.toString(), result.getKey());
     assertEquals(target, result.getValue());
   }

@@ -78,9 +78,9 @@ public class MajorCompactionRequest implements Cloneable {
     // @TODO ensure these files are always closed?
     FileOperations fileFactory = FileOperations.getInstance();
     FileSystem ns = volumeManager.getVolumeByPath(ref.path()).getFileSystem();
-    FileSKVIterator openReader = fileFactory.newReaderBuilder()
-        .forFile(ref.path().toString(), ns, ns.getConf()).withTableConfiguration(tableConfig)
-        .seekToBeginning().build();
+    FileSKVIterator openReader =
+        fileFactory.newReaderBuilder().forFile(ref.path().toString(), ns, ns.getConf())
+            .withTableConfiguration(tableConfig).seekToBeginning().build();
     return openReader;
   }
 

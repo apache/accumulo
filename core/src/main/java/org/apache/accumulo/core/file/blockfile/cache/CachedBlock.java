@@ -29,8 +29,8 @@ import java.util.Objects;
  */
 public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntry {
 
-  public final static long PER_BLOCK_OVERHEAD = ClassSize
-      .align(ClassSize.OBJECT + (3 * ClassSize.REFERENCE) + (2 * SizeConstants.SIZEOF_LONG)
+  public final static long PER_BLOCK_OVERHEAD =
+      ClassSize.align(ClassSize.OBJECT + (3 * ClassSize.REFERENCE) + (2 * SizeConstants.SIZEOF_LONG)
           + ClassSize.STRING + ClassSize.BYTE_BUFFER);
 
   static enum BlockPriority {
@@ -59,8 +59,8 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock>, CacheEntr
     this.blockName = blockName;
     this.buf = buf;
     this.accessTime = accessTime;
-    this.size = ClassSize.align(blockName.length()) + ClassSize.align(buf.length)
-        + PER_BLOCK_OVERHEAD;
+    this.size =
+        ClassSize.align(blockName.length()) + ClassSize.align(buf.length) + PER_BLOCK_OVERHEAD;
     if (inMemory) {
       this.priority = BlockPriority.MEMORY;
     } else {

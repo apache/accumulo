@@ -58,8 +58,8 @@ public class ThriftUtil {
   private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
 
   private static final TraceProtocolFactory protocolFactory = new TraceProtocolFactory();
-  private static final TFramedTransport.Factory transportFactory = new TFramedTransport.Factory(
-      Integer.MAX_VALUE);
+  private static final TFramedTransport.Factory transportFactory =
+      new TFramedTransport.Factory(Integer.MAX_VALUE);
   private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<>();
 
   public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
@@ -143,8 +143,8 @@ public class ThriftUtil {
    */
   public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory,
       HostAndPort address, ClientContext context, long timeout) throws TTransportException {
-    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, timeout,
-        context);
+    TTransport transport =
+        ThriftTransportPool.getInstance().getTransport(address, timeout, context);
     return createClient(factory, transport);
   }
 
@@ -257,8 +257,8 @@ public class ThriftUtil {
 
         // TSSLTransportFactory handles timeout 0 -> forever natively
         if (sslParams.useJsse()) {
-          transport = TSSLTransportFactory.getClientSocket(address.getHost(), address.getPort(),
-              timeout);
+          transport =
+              TSSLTransportFactory.getClientSocket(address.getHost(), address.getPort(), timeout);
         } else {
           // JDK6's factory doesn't appear to pass the protocol onto the Socket properly so we have
           // to do some magic to make sure that happens. Not an issue in JDK7
@@ -272,12 +272,12 @@ public class ThriftUtil {
           // Wrap the real factory with our own that will set the protocol on the Socket before
           // returning it
           ProtocolOverridingSSLSocketFactory wrappingSslSockFactory =
-            new ProtocolOverridingSSLSocketFactory(sslSockFactory,
-                new String[] {sslParams.getClientProtocol()});
+              new ProtocolOverridingSSLSocketFactory(sslSockFactory,
+                  new String[] {sslParams.getClientProtocol()});
 
           // Create the TSocket from that
-          transport = createClient(wrappingSslSockFactory, address.getHost(), address.getPort(),
-              timeout);
+          transport =
+              createClient(wrappingSslSockFactory, address.getHost(), address.getPort(), timeout);
           // TSSLTransportFactory leaves transports open, so no need to open here
         }
 

@@ -97,8 +97,8 @@ public class CreateToken implements KeywordExecutable {
         principal = getConsoleReader().readLine("Username (aka principal): ");
       }
 
-      AuthenticationToken token = Class.forName(opts.tokenClassName)
-          .asSubclass(AuthenticationToken.class).newInstance();
+      AuthenticationToken token =
+          Class.forName(opts.tokenClassName).asSubclass(AuthenticationToken.class).newInstance();
       Properties props = new Properties();
       for (TokenProperty tp : token.getProperties()) {
         String input;
@@ -114,8 +114,8 @@ public class CreateToken implements KeywordExecutable {
         props.put(tp.getKey(), input);
         token.init(props);
       }
-      String tokenBase64 = Base64
-          .encodeBase64String(AuthenticationTokenSerializer.serialize(token));
+      String tokenBase64 =
+          Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token));
 
       String tokenFile = opts.tokenFile;
       if (tokenFile == null) {

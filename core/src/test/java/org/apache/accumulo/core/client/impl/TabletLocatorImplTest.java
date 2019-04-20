@@ -144,8 +144,8 @@ public class TabletLocatorImplTest {
     TestTabletLocationObtainer ttlo = new TestTabletLocationObtainer(tservers);
 
     RootTabletLocator rtl = new TestRootTabletLocator();
-    TabletLocatorImpl rootTabletCache = new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo,
-        new YesLockChecker());
+    TabletLocatorImpl rootTabletCache =
+        new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
     TabletLocatorImpl tab1TabletCache = new TabletLocatorImpl(table, rootTabletCache, ttlo, tslc);
 
     setLocation(tservers, rootTabLoc, RTE, MTE, metaTabLoc);
@@ -365,8 +365,8 @@ public class TabletLocatorImplTest {
   public void testRemoveOverlapping2() {
 
     // test removes when cache does not contain all tablets in a table
-    TreeMap<Text,TabletLocation> mc = createMetaCache(nke("0", "r", "g"), "l1", nke("0", null, "r"),
-        "l1");
+    TreeMap<Text,TabletLocation> mc =
+        createMetaCache(nke("0", "r", "g"), "l1", nke("0", null, "r"), "l1");
 
     runTest(mc, nke("0", "a", null), nkes(nke("0", "r", "g"), nke("0", null, "r")));
     runTest(mc, nke("0", "g", null), nkes(nke("0", "r", "g"), nke("0", null, "r")));
@@ -711,10 +711,10 @@ public class TabletLocatorImplTest {
     TestTabletLocationObtainer ttlo = new TestTabletLocationObtainer(tservers);
 
     RootTabletLocator rtl = new TestRootTabletLocator();
-    TabletLocatorImpl rootTabletCache = new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo,
-        new YesLockChecker());
-    TabletLocatorImpl tab1TabletCache = new TabletLocatorImpl("tab1", rootTabletCache, ttlo,
-        new YesLockChecker());
+    TabletLocatorImpl rootTabletCache =
+        new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    TabletLocatorImpl tab1TabletCache =
+        new TabletLocatorImpl("tab1", rootTabletCache, ttlo, new YesLockChecker());
 
     locateTabletTest(tab1TabletCache, "r1", null, null);
 
@@ -831,8 +831,8 @@ public class TabletLocatorImplTest {
 
     // simulate a hole in the metadata, caused by a partial split
     KeyExtent mte11 = new KeyExtent(MetadataTable.ID, tab1e1.getMetadataEntry(), RTE.getEndRow());
-    KeyExtent mte12 = new KeyExtent(MetadataTable.ID, tab1e21.getMetadataEntry(),
-        tab1e1.getMetadataEntry());
+    KeyExtent mte12 =
+        new KeyExtent(MetadataTable.ID, tab1e21.getMetadataEntry(), tab1e1.getMetadataEntry());
     deleteServer(tservers, "tserver10");
     setLocation(tservers, "tserver4", RTE, mte12, "tserver10");
     setLocation(tservers, "tserver10", mte12, tab1e21, "tserver12");
@@ -879,10 +879,10 @@ public class TabletLocatorImplTest {
     TabletLocatorImpl metaCache = createLocators("foo", nke("foo", null, null), "l1");
 
     List<Range> ranges = nrl(nr(null, null));
-    Map<String,Map<KeyExtent,List<Range>>> expected = createExpectedBinnings("l1",
-        nol(nke("foo", null, null), nrl(nr(null, null)))
+    Map<String,Map<KeyExtent,List<Range>>> expected =
+        createExpectedBinnings("l1", nol(nke("foo", null, null), nrl(nr(null, null)))
 
-    );
+        );
 
     runTest(tableName, ranges, metaCache, expected);
 
@@ -907,14 +907,14 @@ public class TabletLocatorImplTest {
     Text tableName = new Text("foo");
 
     List<Range> ranges = nrl(nr(null, null));
-    TabletLocatorImpl metaCache = createLocators("foo", nke("foo", "g", null), "l1",
-        nke("foo", null, "g"), "l2");
+    TabletLocatorImpl metaCache =
+        createLocators("foo", nke("foo", "g", null), "l1", nke("foo", null, "g"), "l2");
 
-    Map<String,Map<KeyExtent,List<Range>>> expected = createExpectedBinnings("l1",
-        nol(nke("foo", "g", null), nrl(nr(null, null))), "l2",
-        nol(nke("foo", null, "g"), nrl(nr(null, null)))
+    Map<String,Map<KeyExtent,List<Range>>> expected =
+        createExpectedBinnings("l1", nol(nke("foo", "g", null), nrl(nr(null, null))), "l2",
+            nol(nke("foo", null, "g"), nrl(nr(null, null)))
 
-    );
+        );
 
     runTest(tableName, ranges, metaCache, expected);
   }
@@ -949,48 +949,48 @@ public class TabletLocatorImplTest {
 
     // test is same as above, but has an additional range that spans the first two tablets
     ranges = nrl(nr(null, "c"), nr("f", "i"), nr("s", "y"), nr("z", null));
-    expected = createExpectedBinnings("l1",
-        nol(nke("foo", "g", null), nrl(nr(null, "c"), nr("f", "i"))), "l2",
-        nol(nke("foo", "m", "g"), nrl(nr("f", "i")), nke("foo", null, "m"),
-            nrl(nr("s", "y"), nr("z", null)))
+    expected =
+        createExpectedBinnings("l1", nol(nke("foo", "g", null), nrl(nr(null, "c"), nr("f", "i"))),
+            "l2", nol(nke("foo", "m", "g"), nrl(nr("f", "i")), nke("foo", null, "m"),
+                nrl(nr("s", "y"), nr("z", null)))
 
-    );
+        );
 
     runTest(tableName, ranges, metaCache, expected);
 
     // test where start of range is not inclusive and same as tablet endrow
     ranges = nrl(nr("g", false, "m", true));
-    expected = createExpectedBinnings("l2",
-        nol(nke("foo", "m", "g"), nrl(nr("g", false, "m", true)))
+    expected =
+        createExpectedBinnings("l2", nol(nke("foo", "m", "g"), nrl(nr("g", false, "m", true)))
 
-    );
+        );
 
     runTest(tableName, ranges, metaCache, expected);
 
     // test where start of range is inclusive and same as tablet endrow
     ranges = nrl(nr("g", true, "m", true));
-    expected = createExpectedBinnings("l1",
-        nol(nke("foo", "g", null), nrl(nr("g", true, "m", true))), "l2",
-        nol(nke("foo", "m", "g"), nrl(nr("g", true, "m", true)))
+    expected =
+        createExpectedBinnings("l1", nol(nke("foo", "g", null), nrl(nr("g", true, "m", true))),
+            "l2", nol(nke("foo", "m", "g"), nrl(nr("g", true, "m", true)))
 
-    );
+        );
 
     runTest(tableName, ranges, metaCache, expected);
 
     ranges = nrl(nr("g", true, "m", false));
-    expected = createExpectedBinnings("l1",
-        nol(nke("foo", "g", null), nrl(nr("g", true, "m", false))), "l2",
-        nol(nke("foo", "m", "g"), nrl(nr("g", true, "m", false)))
+    expected =
+        createExpectedBinnings("l1", nol(nke("foo", "g", null), nrl(nr("g", true, "m", false))),
+            "l2", nol(nke("foo", "m", "g"), nrl(nr("g", true, "m", false)))
 
-    );
+        );
 
     runTest(tableName, ranges, metaCache, expected);
 
     ranges = nrl(nr("g", false, "m", false));
-    expected = createExpectedBinnings("l2",
-        nol(nke("foo", "m", "g"), nrl(nr("g", false, "m", false)))
+    expected =
+        createExpectedBinnings("l2", nol(nke("foo", "m", "g"), nrl(nr("g", false, "m", false)))
 
-    );
+        );
 
     runTest(tableName, ranges, metaCache, expected);
   }
@@ -1000,26 +1000,26 @@ public class TabletLocatorImplTest {
     Text tableName = new Text("foo");
 
     List<Range> ranges = nrl(new Range(new Text("1")));
-    TabletLocatorImpl metaCache = createLocators("foo", nke("foo", "0", null), "l1",
-        nke("foo", "1", "0"), "l2", nke("foo", "2", "1"), "l3", nke("foo", "3", "2"), "l4",
-        nke("foo", null, "3"), "l5");
+    TabletLocatorImpl metaCache =
+        createLocators("foo", nke("foo", "0", null), "l1", nke("foo", "1", "0"), "l2",
+            nke("foo", "2", "1"), "l3", nke("foo", "3", "2"), "l4", nke("foo", null, "3"), "l5");
 
-    Map<String,Map<KeyExtent,List<Range>>> expected = createExpectedBinnings("l2",
-        nol(nke("foo", "1", "0"), nrl(new Range(new Text("1"))))
+    Map<String,Map<KeyExtent,List<Range>>> expected =
+        createExpectedBinnings("l2", nol(nke("foo", "1", "0"), nrl(new Range(new Text("1"))))
 
-    );
+        );
 
     runTest(tableName, ranges, metaCache, expected);
 
     Key rowColKey = new Key(new Text("3"), new Text("cf1"), new Text("cq1"));
-    Range range = new Range(rowColKey, true, new Key(new Text("3")).followingKey(PartialKey.ROW),
-        false);
+    Range range =
+        new Range(rowColKey, true, new Key(new Text("3")).followingKey(PartialKey.ROW), false);
 
     ranges = nrl(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected4 = createExpectedBinnings("l4",
-        nol(nke("foo", "3", "2"), nrl(range))
+    Map<String,Map<KeyExtent,List<Range>>> expected4 =
+        createExpectedBinnings("l4", nol(nke("foo", "3", "2"), nrl(range))
 
-    );
+        );
 
     runTest(tableName, ranges, metaCache, expected4, nrl());
 
@@ -1035,10 +1035,10 @@ public class TabletLocatorImplTest {
 
     range = new Range(new Text("2"), false, new Text("3"), false);
     ranges = nrl(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected6 = createExpectedBinnings("l4",
-        nol(nke("foo", "3", "2"), nrl(range))
+    Map<String,Map<KeyExtent,List<Range>>> expected6 =
+        createExpectedBinnings("l4", nol(nke("foo", "3", "2"), nrl(range))
 
-    );
+        );
     runTest(tableName, ranges, metaCache, expected6, nrl());
 
     range = new Range(new Text("2"), true, new Text("3"), false);
@@ -1051,10 +1051,10 @@ public class TabletLocatorImplTest {
 
     range = new Range(new Text("2"), false, new Text("3"), true);
     ranges = nrl(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected8 = createExpectedBinnings("l4",
-        nol(nke("foo", "3", "2"), nrl(range))
+    Map<String,Map<KeyExtent,List<Range>>> expected8 =
+        createExpectedBinnings("l4", nol(nke("foo", "3", "2"), nrl(range))
 
-    );
+        );
     runTest(tableName, ranges, metaCache, expected8, nrl());
 
     range = new Range(new Text("2"), true, new Text("3"), true);
@@ -1076,10 +1076,10 @@ public class TabletLocatorImplTest {
     TabletLocatorImpl metaCache = createLocators("foo", nke("foo", "0", null), "l1",
         nke("foo", "1", "0"), "l2", nke("foo", "3", "2"), "l4", nke("foo", null, "3"), "l5");
 
-    Map<String,Map<KeyExtent,List<Range>>> expected1 = createExpectedBinnings("l2",
-        nol(nke("foo", "1", "0"), nrl(new Range(new Text("1"))))
+    Map<String,Map<KeyExtent,List<Range>>> expected1 =
+        createExpectedBinnings("l2", nol(nke("foo", "1", "0"), nrl(new Range(new Text("1"))))
 
-    );
+        );
 
     runTest(tableName, ranges, metaCache, expected1);
 
@@ -1093,23 +1093,23 @@ public class TabletLocatorImplTest {
     runTest(tableName, ranges, metaCache, expected1, nrl(new Range(new Text("2"))));
 
     ranges = nrl(nr("0", "2"), nr("3", "4"));
-    Map<String,Map<KeyExtent,List<Range>>> expected3 = createExpectedBinnings("l4",
-        nol(nke("foo", "3", "2"), nrl(nr("3", "4"))), "l5",
-        nol(nke("foo", null, "3"), nrl(nr("3", "4")))
+    Map<String,Map<KeyExtent,List<Range>>> expected3 =
+        createExpectedBinnings("l4", nol(nke("foo", "3", "2"), nrl(nr("3", "4"))), "l5",
+            nol(nke("foo", null, "3"), nrl(nr("3", "4")))
 
-    );
+        );
 
     runTest(tableName, ranges, metaCache, expected3, nrl(nr("0", "2")));
 
-    ranges = nrl(nr("0", "1"), nr("0", "11"), nr("1", "2"), nr("0", "4"), nr("2", "4"),
-        nr("21", "4"));
-    Map<String,Map<KeyExtent,List<Range>>> expected4 = createExpectedBinnings("l1",
-        nol(nke("foo", "0", null), nrl(nr("0", "1"))), "l2",
-        nol(nke("foo", "1", "0"), nrl(nr("0", "1"))), "l4",
-        nol(nke("foo", "3", "2"), nrl(nr("21", "4"))), "l5",
-        nol(nke("foo", null, "3"), nrl(nr("21", "4")))
+    ranges =
+        nrl(nr("0", "1"), nr("0", "11"), nr("1", "2"), nr("0", "4"), nr("2", "4"), nr("21", "4"));
+    Map<String,Map<KeyExtent,List<Range>>> expected4 =
+        createExpectedBinnings("l1", nol(nke("foo", "0", null), nrl(nr("0", "1"))), "l2",
+            nol(nke("foo", "1", "0"), nrl(nr("0", "1"))), "l4",
+            nol(nke("foo", "3", "2"), nrl(nr("21", "4"))), "l5",
+            nol(nke("foo", null, "3"), nrl(nr("21", "4")))
 
-    );
+        );
 
     runTest(tableName, ranges, metaCache, expected4,
         nrl(nr("0", "11"), nr("1", "2"), nr("0", "4"), nr("2", "4")));
@@ -1121,8 +1121,8 @@ public class TabletLocatorImplTest {
     KeyExtent ke1 = nke("foo", null, null);
     TabletLocatorImpl metaCache = createLocators("foo", ke1, "l1");
 
-    List<Mutation> ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"),
-        nm("c", "cf1:cq1=v3", "cf1:cq2=v4"));
+    List<Mutation> ml =
+        nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("c", "cf1:cq1=v3", "cf1:cq2=v4"));
     Map<String,Map<KeyExtent,List<String>>> emb = cemb(nol("a", "l1", ke1), nol("c", "l1", ke1));
     runTest(metaCache, ml, emb);
 
@@ -1141,8 +1141,8 @@ public class TabletLocatorImplTest {
     // no tablets for table
     TabletLocatorImpl metaCache = createLocators("foo");
 
-    List<Mutation> ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"),
-        nm("c", "cf1:cq1=v3", "cf1:cq2=v4"));
+    List<Mutation> ml =
+        nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("c", "cf1:cq1=v3", "cf1:cq2=v4"));
     Map<String,Map<KeyExtent,List<String>>> emb = cemb();
     runTest(metaCache, ml, emb, "a", "c");
   }
@@ -1156,8 +1156,8 @@ public class TabletLocatorImplTest {
 
     TabletLocatorImpl metaCache = createLocators("foo", ke1, "l1", ke2, "l2", ke3, "l3");
 
-    List<Mutation> ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"),
-        nm("i", "cf1:cq1=v3", "cf1:cq2=v4"));
+    List<Mutation> ml =
+        nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("i", "cf1:cq1=v3", "cf1:cq2=v4"));
     Map<String,Map<KeyExtent,List<String>>> emb = cemb(nol("a", "l1", ke1), nol("i", "l2", ke2));
     runTest(metaCache, ml, emb);
 
@@ -1191,8 +1191,8 @@ public class TabletLocatorImplTest {
 
     TabletLocatorImpl metaCache = createLocators("foo", ke1, "l1", ke3, "l3");
 
-    List<Mutation> ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"),
-        nm("i", "cf1:cq1=v3", "cf1:cq2=v4"));
+    List<Mutation> ml =
+        nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("i", "cf1:cq1=v3", "cf1:cq2=v4"));
     Map<String,Map<KeyExtent,List<String>>> emb = cemb(nol("a", "l1", ke1));
     runTest(metaCache, ml, emb, "i");
 
@@ -1229,23 +1229,23 @@ public class TabletLocatorImplTest {
 
       KeyExtent ke1 = nke("foo", null, null);
       TServers tservers = new TServers();
-      TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo", ke1,
-          "l1");
+      TabletLocatorImpl metaCache =
+          createLocators(tservers, "tserver1", "tserver2", "foo", ke1, "l1");
 
       List<Mutation> ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"),
           nm("m", "cf1:cq1=v3", "cf1:cq2=v4"), nm("z", "cf1:cq1=v5"));
-      Map<String,Map<KeyExtent,List<String>>> emb = cemb(nol("a", "l1", ke1), nol("m", "l1", ke1),
-          nol("z", "l1", ke1));
+      Map<String,Map<KeyExtent,List<String>>> emb =
+          cemb(nol("a", "l1", ke1), nol("m", "l1", ke1), nol("z", "l1", ke1));
       if (i == 0 || i == 2)
         runTest(metaCache, ml, emb);
 
-      List<Range> ranges = nrl(new Range(new Text("a")), new Range(new Text("m")),
-          new Range(new Text("z")));
+      List<Range> ranges =
+          nrl(new Range(new Text("a")), new Range(new Text("m")), new Range(new Text("z")));
 
-      Map<String,Map<KeyExtent,List<Range>>> expected1 = createExpectedBinnings("l1",
-          nol(nke("foo", null, null), ranges)
+      Map<String,Map<KeyExtent,List<Range>>> expected1 =
+          createExpectedBinnings("l1", nol(nke("foo", null, null), ranges)
 
-      );
+          );
 
       if (i == 1 || i == 2)
         runTest(new Text("foo"), ranges, metaCache, expected1);
@@ -1261,10 +1261,10 @@ public class TabletLocatorImplTest {
       if (i == 0 || i == 2)
         runTest(metaCache, ml, emb, "a", "m");
 
-      Map<String,Map<KeyExtent,List<Range>>> expected2 = createExpectedBinnings("l2",
-          nol(nke("foo", null, "n"), nrl(new Range(new Text("z"))))
+      Map<String,Map<KeyExtent,List<Range>>> expected2 =
+          createExpectedBinnings("l2", nol(nke("foo", null, "n"), nrl(new Range(new Text("z"))))
 
-      );
+          );
 
       if (i == 1 || i == 2)
         runTest(new Text("foo"), ranges, metaCache, expected2,
@@ -1275,9 +1275,10 @@ public class TabletLocatorImplTest {
       if (i == 0 || i == 2)
         runTest(metaCache, ml, emb);
 
-      Map<String,Map<KeyExtent,List<Range>>> expected3 = createExpectedBinnings("l2",
-          nol(nke("foo", null, "n"), nrl(new Range(new Text("z")))), "l3",
-          nol(nke("foo", "n", null), nrl(new Range(new Text("a")), new Range(new Text("m"))))
+      Map<String,
+          Map<KeyExtent,List<Range>>> expected3 = createExpectedBinnings("l2",
+              nol(nke("foo", null, "n"), nrl(new Range(new Text("z")))), "l3",
+              nol(nke("foo", "n", null), nrl(new Range(new Text("a")), new Range(new Text("m"))))
 
       );
 
@@ -1296,10 +1297,10 @@ public class TabletLocatorImplTest {
     TestTabletLocationObtainer ttlo = new TestTabletLocationObtainer(tservers);
 
     RootTabletLocator rtl = new TestRootTabletLocator();
-    TabletLocatorImpl rootTabletCache = new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo,
-        new YesLockChecker());
-    TabletLocatorImpl tab0TabletCache = new TabletLocatorImpl("0", rootTabletCache, ttlo,
-        new YesLockChecker());
+    TabletLocatorImpl rootTabletCache =
+        new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    TabletLocatorImpl tab0TabletCache =
+        new TabletLocatorImpl("0", rootTabletCache, ttlo, new YesLockChecker());
 
     setLocation(tservers, "tserver1", RTE, mte1, "tserver2");
     setLocation(tservers, "tserver1", RTE, mte2, "tserver3");
@@ -1325,10 +1326,10 @@ public class TabletLocatorImplTest {
     TestTabletLocationObtainer ttlo = new TestTabletLocationObtainer(tservers);
 
     RootTabletLocator rtl = new TestRootTabletLocator();
-    TabletLocatorImpl rootTabletCache = new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo,
-        new YesLockChecker());
-    TabletLocatorImpl tab0TabletCache = new TabletLocatorImpl("0", rootTabletCache, ttlo,
-        new YesLockChecker());
+    TabletLocatorImpl rootTabletCache =
+        new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    TabletLocatorImpl tab0TabletCache =
+        new TabletLocatorImpl("0", rootTabletCache, ttlo, new YesLockChecker());
 
     setLocation(tservers, "tserver1", RTE, mte1, "tserver2");
     setLocation(tservers, "tserver1", RTE, mte2, "tserver3");
@@ -1359,10 +1360,10 @@ public class TabletLocatorImplTest {
 
     RootTabletLocator rtl = new TestRootTabletLocator();
 
-    TabletLocatorImpl rootTabletCache = new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo,
-        new YesLockChecker());
-    TabletLocatorImpl tab0TabletCache = new TabletLocatorImpl("1", rootTabletCache, ttlo,
-        new YesLockChecker());
+    TabletLocatorImpl rootTabletCache =
+        new TabletLocatorImpl(MetadataTable.ID, rtl, ttlo, new YesLockChecker());
+    TabletLocatorImpl tab0TabletCache =
+        new TabletLocatorImpl("1", rootTabletCache, ttlo, new YesLockChecker());
 
     setLocation(tservers, "tserver1", RTE, mte1, "tserver2");
     setLocation(tservers, "tserver1", RTE, mte2, "tserver3");
@@ -1408,8 +1409,8 @@ public class TabletLocatorImplTest {
     final HashSet<String> activeLocks = new HashSet<>();
 
     TServers tservers = new TServers();
-    TabletLocatorImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo",
-        new TabletServerLockChecker() {
+    TabletLocatorImpl metaCache =
+        createLocators(tservers, "tserver1", "tserver2", "foo", new TabletServerLockChecker() {
           @Override
           public boolean isLockHeld(String tserver, String session) {
             return activeLocks.contains(tserver + ":" + session);
@@ -1493,9 +1494,9 @@ public class TabletLocatorImplTest {
     runTest(metaCache, ml, emb);
 
     List<Range> ranges = nrl(new Range("a"), nr("b", "o"), nr("r", "z"));
-    Map<String,Map<KeyExtent,List<Range>>> expected = createExpectedBinnings("L1",
-        nol(ke11, nrl(new Range("a"), nr("b", "o"))), "L2",
-        nol(ke12, nrl(nr("b", "o"), nr("r", "z"))));
+    Map<String,Map<KeyExtent,List<Range>>> expected =
+        createExpectedBinnings("L1", nol(ke11, nrl(new Range("a"), nr("b", "o"))), "L2",
+            nol(ke12, nrl(nr("b", "o"), nr("r", "z"))));
 
     runTest(null, ranges, metaCache, expected);
 

@@ -84,8 +84,8 @@ public class InMemoryMapIT {
   private static final Logger log = LoggerFactory.getLogger(InMemoryMapIT.class);
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @BeforeClass
   public static void ensureNativeLibrary() throws FileNotFoundException {

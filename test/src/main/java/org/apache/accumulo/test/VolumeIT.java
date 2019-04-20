@@ -158,8 +158,8 @@ public class VolumeIT extends ConfigurableMacBase {
       fileCount++;
     }
     assertEquals(4, fileCount);
-    List<DiskUsage> diskUsage = connector.tableOperations()
-        .getDiskUsage(Collections.singleton(tableName));
+    List<DiskUsage> diskUsage =
+        connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
     assertEquals(1, diskUsage.size());
     long usage = diskUsage.get(0).getUsage().longValue();
     log.debug("usage {}", usage);
@@ -448,8 +448,8 @@ public class VolumeIT extends ConfigurableMacBase {
     // keep retrying until WAL state information in ZooKeeper stabilizes or until test times out
     retry: while (true) {
       Instance i = conn.getInstance();
-      ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-          "");
+      ZooReaderWriter zk =
+          new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
       WalStateManager wals = new WalStateManager(i, zk);
       try {
         outer: for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {

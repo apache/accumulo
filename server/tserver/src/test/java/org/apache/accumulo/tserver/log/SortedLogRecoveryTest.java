@@ -138,8 +138,8 @@ public class SortedLogRecoveryTest {
 
   private static List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files,
       KeyExtent extent) throws IOException {
-    TemporaryFolder root = new TemporaryFolder(
-        new File(System.getProperty("user.dir") + "/target"));
+    TemporaryFolder root =
+        new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
     root.create();
     final String workdir = root.getRoot().getAbsolutePath() + "/workdir";
     VolumeManager fs = VolumeManagerImpl.getLocal(workdir);
@@ -729,12 +729,12 @@ public class SortedLogRecoveryTest {
     Mutation m4 = new ServerMutation(new Text("s"));
     m4.put("f1", "q2", "v4");
 
-    KeyValue entries1[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 7, 10, e1), createKeyValue(DEFINE_TABLET, 5, 11, e2),
-        createKeyValue(MUTATION, 8, 10, m1), createKeyValue(COMPACTION_START, 9, 10, "/t/f1"),
-        createKeyValue(MUTATION, 10, 10, m2), createKeyValue(COMPACTION_FINISH, 10, 10, null),
-        createKeyValue(MUTATION, 6, 11, m3), createKeyValue(COMPACTION_START, 7, 11, "/t/f2"),
-        createKeyValue(MUTATION, 8, 11, m4)};
+    KeyValue entries1[] =
+        new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 7, 10, e1),
+            createKeyValue(DEFINE_TABLET, 5, 11, e2), createKeyValue(MUTATION, 8, 10, m1),
+            createKeyValue(COMPACTION_START, 9, 10, "/t/f1"), createKeyValue(MUTATION, 10, 10, m2),
+            createKeyValue(COMPACTION_FINISH, 10, 10, null), createKeyValue(MUTATION, 6, 11, m3),
+            createKeyValue(COMPACTION_START, 7, 11, "/t/f2"), createKeyValue(MUTATION, 8, 11, m4)};
 
     Arrays.sort(entries1);
 

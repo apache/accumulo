@@ -101,8 +101,8 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
     Path jarPath = new Path(rootPath + "/lib/ext/Test.jar");
     copyStreamToFileSystem(fs, "/TestCombinerX.jar", jarPath);
     sleepUninterruptibly(1, TimeUnit.SECONDS);
-    IteratorSetting is = new IteratorSetting(10, "TestCombiner",
-        "org.apache.accumulo.test.functional.TestCombiner");
+    IteratorSetting is =
+        new IteratorSetting(10, "TestCombiner", "org.apache.accumulo.test.functional.TestCombiner");
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf")));
     c.tableOperations().attachIterator(tableName, is, EnumSet.of(IteratorScope.scan));
     sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);

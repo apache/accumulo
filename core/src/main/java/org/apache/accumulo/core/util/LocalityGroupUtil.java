@@ -97,8 +97,8 @@ public class LocalityGroupUtil {
     }
   }
 
-  public static Map<String,Set<ByteSequence>> getLocalityGroupsIgnoringErrors(
-      AccumuloConfiguration acuconf, String tableId) {
+  public static Map<String,Set<ByteSequence>>
+      getLocalityGroupsIgnoringErrors(AccumuloConfiguration acuconf, String tableId) {
     try {
       return getLocalityGroups(acuconf);
     } catch (LocalityGroupConfigurationError | RuntimeException e) {

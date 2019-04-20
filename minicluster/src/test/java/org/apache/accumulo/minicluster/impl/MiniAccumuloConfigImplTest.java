@@ -34,8 +34,8 @@ import org.junit.rules.TemporaryFolder;
 
 public class MiniAccumuloConfigImplTest {
 
-  static TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  static TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @BeforeClass
   public static void setUp() throws IOException {
@@ -79,8 +79,8 @@ public class MiniAccumuloConfigImplTest {
   @Test
   public void testMemoryConfig() {
 
-    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password")
-        .initialize();
+    MiniAccumuloConfigImpl config =
+        new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").initialize();
     config.setDefaultMemory(96, MemoryUnit.MEGABYTE);
     assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.MASTER));
     assertEquals(96 * 1024 * 1024l, config.getMemory(ServerType.TABLET_SERVER));

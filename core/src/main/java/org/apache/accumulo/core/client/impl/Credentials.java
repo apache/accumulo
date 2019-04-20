@@ -139,10 +139,10 @@ public class Credentials {
    */
   public static final Credentials deserialize(String serializedForm) {
     String[] split = serializedForm.split(":", 3);
-    String principal = split[0].equals("-") ? null
-        : new String(Base64.decodeBase64(split[0]), UTF_8);
-    String tokenType = split[1].equals("-") ? null
-        : new String(Base64.decodeBase64(split[1]), UTF_8);
+    String principal =
+        split[0].equals("-") ? null : new String(Base64.decodeBase64(split[0]), UTF_8);
+    String tokenType =
+        split[1].equals("-") ? null : new String(Base64.decodeBase64(split[1]), UTF_8);
     AuthenticationToken token = null;
     if (!split[2].equals("-")) {
       byte[] tokenBytes = Base64.decodeBase64(split[2]);
@@ -165,8 +165,8 @@ public class Credentials {
         : (getPrincipal().equals(other.getPrincipal()));
     if (!pEq)
       return false;
-    boolean tEq = getToken() == null ? (other.getToken() == null)
-        : (getToken().equals(other.getToken()));
+    boolean tEq =
+        getToken() == null ? (other.getToken() == null) : (getToken().equals(other.getToken()));
     return tEq;
   }
 

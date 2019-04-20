@@ -51,8 +51,8 @@ import com.google.common.collect.ImmutableMap;
 
 public class TableLoadBalancerTest {
 
-  private static Map<String,String> TABLE_ID_MAP = ImmutableMap.of("t1", "a1", "t2", "b12", "t3",
-      "c4");
+  private static Map<String,String> TABLE_ID_MAP =
+      ImmutableMap.of("t1", "a1", "t2", "b12", "t3", "c4");
 
   static private TServerInstance mkts(String address, String session) throws Exception {
     return new TServerInstance(HostAndPort.fromParts(address, 1234), session);

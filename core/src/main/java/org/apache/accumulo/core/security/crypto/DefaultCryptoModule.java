@@ -112,8 +112,8 @@ public class DefaultCryptoModule implements CryptoModule {
   }
 
   private String getCipherTransformation(CryptoModuleParameters params) {
-    String cipherSuite = params.getAlgorithmName() + "/" + params.getEncryptionMode() + "/"
-        + params.getPadding();
+    String cipherSuite =
+        params.getAlgorithmName() + "/" + params.getEncryptionMode() + "/" + params.getPadding();
     return cipherSuite;
   }
 
@@ -170,8 +170,8 @@ public class DefaultCryptoModule implements CryptoModule {
         return true;
       }
 
-      allIsWell = validateNotEmpty(params.getPadding(), allIsWell, errorBuf,
-          "No padding was specified.");
+      allIsWell =
+          validateNotEmpty(params.getPadding(), allIsWell, errorBuf, "No padding was specified.");
       allIsWell = validateNotZero(params.getKeyLength(), allIsWell, errorBuf,
           "No key length was specified.");
       allIsWell = validateNotEmpty(params.getEncryptionMode(), allIsWell, errorBuf,
@@ -197,8 +197,8 @@ public class DefaultCryptoModule implements CryptoModule {
           + " decrypt operation:\n");
       boolean allIsWell = true;
 
-      allIsWell = validateNotEmpty(params.getPadding(), allIsWell, errorBuf,
-          "No padding was specified.");
+      allIsWell =
+          validateNotEmpty(params.getPadding(), allIsWell, errorBuf, "No padding was specified.");
       allIsWell = validateNotZero(params.getKeyLength(), allIsWell, errorBuf,
           "No key length was specified.");
       allIsWell = validateNotEmpty(params.getEncryptionMode(), allIsWell, errorBuf,
@@ -267,8 +267,8 @@ public class DefaultCryptoModule implements CryptoModule {
 
     // Encrypt the secret key
 
-    SecretKeyEncryptionStrategy keyEncryptionStrategy = CryptoModuleFactory
-        .getSecretKeyEncryptionStrategy(params.getKeyEncryptionStrategyClass());
+    SecretKeyEncryptionStrategy keyEncryptionStrategy =
+        CryptoModuleFactory.getSecretKeyEncryptionStrategy(params.getKeyEncryptionStrategyClass());
     params = keyEncryptionStrategy.encryptSecretKey(params);
 
     // Now the encrypted version of the key and any opaque ID are within the params object.
@@ -292,8 +292,8 @@ public class DefaultCryptoModule implements CryptoModule {
       throw new RuntimeException("Encryption cipher must be a block cipher");
     }
 
-    CipherOutputStream cipherOutputStream = new CipherOutputStream(
-        params.getPlaintextOutputStream(), cipher);
+    CipherOutputStream cipherOutputStream =
+        new CipherOutputStream(params.getPlaintextOutputStream(), cipher);
     BlockedOutputStream blockedOutputStream = new BlockedOutputStream(cipherOutputStream,
         cipher.getBlockSize(), params.getBlockStreamSize());
 
@@ -418,8 +418,8 @@ public class DefaultCryptoModule implements CryptoModule {
 
         byte[] bytesToPutBack = tempByteOut.toByteArray();
 
-        PushbackInputStream pushbackStream = new PushbackInputStream(
-            params.getEncryptedInputStream(), bytesToPutBack.length);
+        PushbackInputStream pushbackStream =
+            new PushbackInputStream(params.getEncryptedInputStream(), bytesToPutBack.length);
         pushbackStream.unread(bytesToPutBack);
 
         params.setPlaintextInputStream(pushbackStream);
@@ -450,8 +450,8 @@ public class DefaultCryptoModule implements CryptoModule {
       throw new RuntimeException(e);
     }
 
-    InputStream blockedDecryptingInputStream = new CipherInputStream(
-        params.getEncryptedInputStream(), cipher);
+    InputStream blockedDecryptingInputStream =
+        new CipherInputStream(params.getEncryptedInputStream(), cipher);
 
     if (params.getBlockStreamSize() > 0)
       blockedDecryptingInputStream = new BlockedInputStream(blockedDecryptingInputStream,

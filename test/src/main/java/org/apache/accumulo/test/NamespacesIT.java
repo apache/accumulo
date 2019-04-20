@@ -655,8 +655,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
     ClusterUser user1 = getUser(0), user2 = getUser(1), root = getAdminUser();
     String u1 = user1.getPrincipal();
     String u2 = user2.getPrincipal();
-    PasswordToken pass = (null != user1.getPassword() ? new PasswordToken(user1.getPassword())
-        : null);
+    PasswordToken pass =
+        (null != user1.getPassword() ? new PasswordToken(user1.getPassword()) : null);
 
     String n1 = namespace;
     String t1 = n1 + ".1";
@@ -1110,8 +1110,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
             break;
           case 1:
             ops.create("a");
-            ops.clone("a", tableName, true, Collections.<String,String> emptyMap(),
-                Collections.<String> emptySet());
+            ops.clone("a", tableName, true, Collections.<String,String>emptyMap(),
+                Collections.<String>emptySet());
             fail();
             break;
           case 2:
@@ -1194,8 +1194,8 @@ public class NamespacesIT extends AccumuloClusterHarness {
             fail();
             break;
           case 6:
-            ops.clone(tableName, "2", true, Collections.<String,String> emptyMap(),
-                Collections.<String> emptySet());
+            ops.clone(tableName, "2", true, Collections.<String,String>emptyMap(),
+                Collections.<String>emptySet());
             fail();
             break;
           case 7:
@@ -1284,7 +1284,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
             fail();
             break;
           case 28:
-            ops.setLocalityGroups(tableName, Collections.<String,Set<Text>> emptyMap());
+            ops.setLocalityGroups(tableName, Collections.<String,Set<Text>>emptyMap());
             fail();
             break;
           default:
@@ -1442,8 +1442,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
       boolean nameIsTable) {
     try {
       Iterable<Entry<String,String>> iterable = nameIsTable
-          ? c.tableOperations().getProperties(name)
-          : c.namespaceOperations().getProperties(name);
+          ? c.tableOperations().getProperties(name) : c.namespaceOperations().getProperties(name);
       for (Entry<String,String> e : iterable)
         if (propKey.equals(e.getKey()))
           return propVal.equals(e.getValue());

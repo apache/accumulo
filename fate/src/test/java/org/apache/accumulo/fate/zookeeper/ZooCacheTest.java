@@ -48,8 +48,8 @@ import org.junit.Test;
 public class ZooCacheTest {
   private static final String ZPATH = "/some/path/in/zk";
   private static final byte[] DATA = {(byte) 1, (byte) 2, (byte) 3, (byte) 4};
-  private static final List<String> CHILDREN = java.util.Arrays
-      .asList(new String[] {"huey", "dewey", "louie"});
+  private static final List<String> CHILDREN =
+      java.util.Arrays.asList(new String[] {"huey", "dewey", "louie"});
 
   private ZooReader zr;
   private ZooKeeper zk;
@@ -261,8 +261,8 @@ public class ZooCacheTest {
 
   private void testWatchDataNode(byte[] initialData, Watcher.Event.EventType eventType,
       boolean stillCached) throws Exception {
-    WatchedEvent event = new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected,
-        ZPATH);
+    WatchedEvent event =
+        new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
     zc = new ZooCache(zr, exw);
 
@@ -333,8 +333,8 @@ public class ZooCacheTest {
 
   private void testWatchChildrenNode(List<String> initialChildren,
       Watcher.Event.EventType eventType, boolean stillCached) throws Exception {
-    WatchedEvent event = new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected,
-        ZPATH);
+    WatchedEvent event =
+        new WatchedEvent(eventType, Watcher.Event.KeeperState.SyncConnected, ZPATH);
     TestWatcher exw = new TestWatcher(event);
     zc = new ZooCache(zr, exw);
 

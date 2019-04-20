@@ -75,8 +75,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterators;
 
 public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
-  private static final Logger log = LoggerFactory
-      .getLogger(UnorderedWorkAssignerReplicationIT.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(UnorderedWorkAssignerReplicationIT.class);
 
   private ExecutorService executor;
   private int timeoutFactor = 1;
@@ -145,8 +145,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
       if (null != keystorePassword) {
         peerSiteConfig.put(Property.RPC_SSL_KEYSTORE_PASSWORD.getKey(), keystorePassword);
       }
-      String truststorePassword = primarySiteConfig
-          .get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
+      String truststorePassword =
+          primarySiteConfig.get(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey());
       if (null != truststorePassword) {
         peerSiteConfig.put(Property.RPC_SSL_TRUSTSTORE_PASSWORD.getKey(), truststorePassword);
       }
@@ -156,8 +156,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
     }
 
     // Use the CredentialProvider if the primary also uses one
-    String credProvider = primarySiteConfig
-        .get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
+    String credProvider =
+        primarySiteConfig.get(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey());
     if (null != credProvider) {
       Map<String,String> peerSiteConfig = peerCfg.getSiteConfig();
       peerSiteConfig.put(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(),
@@ -240,8 +240,8 @@ public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
 
       log.info("Wrote all data to master cluster");
 
-      final Set<String> filesNeedingReplication = connMaster.replicationOperations()
-          .referencedFiles(masterTable);
+      final Set<String> filesNeedingReplication =
+          connMaster.replicationOperations().referencedFiles(masterTable);
 
       for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
         cluster.killProcess(ServerType.TABLET_SERVER, proc);

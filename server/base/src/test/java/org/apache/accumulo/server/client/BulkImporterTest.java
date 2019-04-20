@@ -145,8 +145,8 @@ public class BulkImporterTest {
     writer.append(new Key("xyzzy", "cf", "cq"), empty);
     writer.close();
     VolumeManager vm = VolumeManagerImpl.get(context.getConfiguration());
-    List<TabletLocation> overlaps = BulkImporter.findOverlappingTablets(context, vm, locator,
-        new Path(file));
+    List<TabletLocation> overlaps =
+        BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file));
     assertEquals(5, overlaps.size());
     Collections.sort(overlaps);
     assertEquals(new KeyExtent(tableId, new Text("a"), null), overlaps.get(0).tablet_extent);

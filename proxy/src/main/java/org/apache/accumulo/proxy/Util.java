@@ -37,8 +37,8 @@ public class Util {
     return ByteBuffer.wrap(new BigInteger(numbytes * 5, random).toString(32).getBytes(UTF_8));
   }
 
-  public static IteratorSetting iteratorSetting2ProxyIteratorSetting(
-      org.apache.accumulo.core.client.IteratorSetting is) {
+  public static IteratorSetting
+      iteratorSetting2ProxyIteratorSetting(org.apache.accumulo.core.client.IteratorSetting is) {
     return new IteratorSetting(is.getPriority(), is.getName(), is.getIteratorClass(),
         is.getOptions());
   }

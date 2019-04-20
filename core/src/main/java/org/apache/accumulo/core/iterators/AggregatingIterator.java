@@ -43,8 +43,8 @@ import org.slf4j.LoggerFactory;
 public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
 
   private SortedKeyValueIterator<Key,Value> iterator;
-  private ColumnToClassMapping<org.apache.accumulo.core.iterators.aggregation.Aggregator>
-    aggregators;
+  private ColumnToClassMapping<
+      org.apache.accumulo.core.iterators.aggregation.Aggregator> aggregators;
 
   private Key workKey = new Key();
 
@@ -95,8 +95,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
   private void findTop() throws IOException {
     // check if aggregation is needed
     if (iterator.hasTop()) {
-      org.apache.accumulo.core.iterators.aggregation.Aggregator aggr = aggregators
-          .getObject(iterator.getTopKey());
+      org.apache.accumulo.core.iterators.aggregation.Aggregator aggr =
+          aggregators.getObject(iterator.getTopKey());
       if (aggr != null) {
         aggregateRowColumn(aggr);
       }

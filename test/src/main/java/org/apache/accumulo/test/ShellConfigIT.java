@@ -79,7 +79,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
         break;
       case STANDALONE:
         StandaloneAccumuloClusterConfiguration standaloneConf =
-          (StandaloneAccumuloClusterConfiguration) getClusterConfiguration();
+            (StandaloneAccumuloClusterConfiguration) getClusterConfiguration();
         clientConfFile = standaloneConf.getClientConfFile();
         break;
       default:

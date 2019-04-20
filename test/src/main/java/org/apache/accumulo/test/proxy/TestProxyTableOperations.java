@@ -183,8 +183,8 @@ public class TestProxyTableOperations {
 
   private static void addMutation(Map<ByteBuffer,List<ColumnUpdate>> mutations, String row,
       String cf, String cq, String value) {
-    ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()),
-        ByteBuffer.wrap(cq.getBytes()));
+    ColumnUpdate update =
+        new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()), ByteBuffer.wrap(cq.getBytes()));
     update.setValue(value.getBytes());
     mutations.put(ByteBuffer.wrap(row.getBytes()), Collections.singletonList(update));
   }

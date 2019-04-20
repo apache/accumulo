@@ -62,8 +62,8 @@ public class CopyTool extends Configured implements Tool {
       return 1;
     }
 
-    ClientConfiguration clientConf = ClientConfiguration.create().withInstance(args[3])
-        .withZkHosts(args[4]);
+    ClientConfiguration clientConf =
+        ClientConfiguration.create().withInstance(args[3]).withZkHosts(args[4]);
 
     job.setInputFormatClass(AccumuloInputFormat.class);
     AccumuloInputFormat.setInputTableName(job, args[2]);

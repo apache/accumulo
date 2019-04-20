@@ -48,8 +48,8 @@ public class BatchInputSplitTest {
   @Test
   public void testSimpleWritable() throws IOException {
     Range[] ranges = new Range[] {new Range(new Key("a"), new Key("b"))};
-    BatchInputSplit split = new BatchInputSplit("table", "1", Arrays.asList(ranges),
-        new String[] {"localhost"});
+    BatchInputSplit split =
+        new BatchInputSplit("table", "1", Arrays.asList(ranges), new String[] {"localhost"});
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
@@ -70,8 +70,8 @@ public class BatchInputSplitTest {
   @Test
   public void testAllFieldsWritable() throws IOException {
     Range[] ranges = new Range[] {new Range(new Key("a"), new Key("b"))};
-    BatchInputSplit split = new BatchInputSplit("table", "1", Arrays.asList(ranges),
-        new String[] {"localhost"});
+    BatchInputSplit split =
+        new BatchInputSplit("table", "1", Arrays.asList(ranges), new String[] {"localhost"});
 
     Set<Pair<Text,Text>> fetchedColumns = new HashSet<>();
 

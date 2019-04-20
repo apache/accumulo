@@ -144,8 +144,8 @@ public class MetadataSchema {
      * Column family for storing suspension location, as a demand for assignment.
      */
     public static class SuspendLocationColumn {
-      public static final ColumnFQ SUSPEND_COLUMN = new ColumnFQ(new Text("suspend"),
-          new Text("loc"));
+      public static final ColumnFQ SUSPEND_COLUMN =
+          new ColumnFQ(new Text("suspend"), new Text("loc"));
     }
 
     /**
@@ -214,8 +214,8 @@ public class MetadataSchema {
    * Holds delete markers for potentially unused files/directories
    */
   public static class DeletesSection {
-    private static final Section section = new Section(RESERVED_PREFIX + "del", true,
-        RESERVED_PREFIX + "dem", false);
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "del", true, RESERVED_PREFIX + "dem", false);
 
     public static Range getRange() {
       return section.getRange();
@@ -231,8 +231,8 @@ public class MetadataSchema {
    * Holds bulk-load-in-progress processing flags
    */
   public static class BlipSection {
-    private static final Section section = new Section(RESERVED_PREFIX + "blip", true,
-        RESERVED_PREFIX + "bliq", false);
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "blip", true, RESERVED_PREFIX + "bliq", false);
 
     public static Range getRange() {
       return section.getRange();
@@ -256,8 +256,8 @@ public class MetadataSchema {
   public static class ReplicationSection {
     public static final Text COLF = new Text("stat");
     private static final ArrayByteSequence COLF_BYTE_SEQ = new ArrayByteSequence(COLF.toString());
-    private static final Section section = new Section(RESERVED_PREFIX + "repl", true,
-        RESERVED_PREFIX + "repm", false);
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "repl", true, RESERVED_PREFIX + "repm", false);
 
     public static Range getRange() {
       return section.getRange();

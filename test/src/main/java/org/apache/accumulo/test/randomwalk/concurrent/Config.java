@@ -179,8 +179,8 @@ public class Config extends Test {
     Setting setting = tableSettings[choice];
 
     // pick a random table
-    SortedSet<String> tables = env.getConnector().tableOperations().list().tailSet("ctt")
-        .headSet("ctu");
+    SortedSet<String> tables =
+        env.getConnector().tableOperations().list().tailSet("ctt").headSet("ctu");
     if (tables.isEmpty())
       return;
     String table = random.nextSample(tables, 1)[0].toString();
@@ -209,8 +209,8 @@ public class Config extends Test {
     Setting setting = tableSettings[choice];
 
     // pick a random table
-    SortedSet<String> namespaces = env.getConnector().namespaceOperations().list().tailSet("nspc")
-        .headSet("nspd");
+    SortedSet<String> namespaces =
+        env.getConnector().namespaceOperations().list().tailSet("nspc").headSet("nspd");
     if (namespaces.isEmpty())
       return;
     String namespace = random.nextSample(namespaces, 1)[0].toString();

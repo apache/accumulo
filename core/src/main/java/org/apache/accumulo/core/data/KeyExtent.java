@@ -52,8 +52,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
   }
 
   public KeyExtent(Text table, Text endRow, Text prevEndRow) {
-    this.wrapped = new org.apache.accumulo.core.data.impl.KeyExtent(table.toString(), endRow,
-        prevEndRow);
+    this.wrapped =
+        new org.apache.accumulo.core.data.impl.KeyExtent(table.toString(), endRow, prevEndRow);
   }
 
   public KeyExtent(KeyExtent extent) {
@@ -182,8 +182,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     return wrapped.isRootTablet();
   }
 
-  private static SortedSet<org.apache.accumulo.core.data.impl.KeyExtent> unwrap(
-      Set<KeyExtent> tablets) {
+  private static SortedSet<org.apache.accumulo.core.data.impl.KeyExtent>
+      unwrap(Set<KeyExtent> tablets) {
     SortedSet<org.apache.accumulo.core.data.impl.KeyExtent> trans = new TreeSet<>();
     for (KeyExtent wrapper : tablets) {
       trans.add(wrapper.wrapped);
@@ -196,8 +196,8 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     return new KeyExtent(new Text(ke.getTableId()), ke.getEndRow(), ke.getPrevEndRow());
   }
 
-  private static SortedSet<KeyExtent> wrap(
-      Collection<org.apache.accumulo.core.data.impl.KeyExtent> unwrapped) {
+  private static SortedSet<KeyExtent>
+      wrap(Collection<org.apache.accumulo.core.data.impl.KeyExtent> unwrapped) {
     SortedSet<KeyExtent> wrapped = new TreeSet<>();
     for (org.apache.accumulo.core.data.impl.KeyExtent wrappee : unwrapped) {
       wrapped.add(wrap(wrappee));

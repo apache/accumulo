@@ -66,8 +66,8 @@ public class ContinuousQuery {
 
     Connector conn = opts.getConnector();
 
-    ArrayList<Text[]> randTerms = findRandomTerms(conn.createScanner(opts.doc2Term, opts.auths),
-        opts.numTerms);
+    ArrayList<Text[]> randTerms =
+        findRandomTerms(conn.createScanner(opts.doc2Term, opts.auths), opts.numTerms);
 
     Random rand = new Random();
 

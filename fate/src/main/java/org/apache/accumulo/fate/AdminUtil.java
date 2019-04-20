@@ -205,7 +205,7 @@ public class AdminUtil<T> {
       EnumSet<TStatus> filterStatus) {
 
     FateStatus status = getTransactionStatus(zs, filterTxid, filterStatus,
-        Collections.<Long,List<String>> emptyMap(), Collections.<Long,List<String>> emptyMap());
+        Collections.<Long,List<String>>emptyMap(), Collections.<Long,List<String>>emptyMap());
 
     return status.getTransactions();
   }

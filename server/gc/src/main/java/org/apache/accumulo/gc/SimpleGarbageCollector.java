@@ -143,8 +143,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
   private Opts opts = new Opts();
   private ZooLock lock;
 
-  private GCStatus status = new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(),
-      new GcCycleStats());
+  private GCStatus status =
+      new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
   public static void main(String[] args) throws UnknownHostException, IOException {
     final String app = "gc";
@@ -286,8 +286,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     public Iterator<String> getBlipIterator()
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
       @SuppressWarnings("resource")
-      IsolatedScanner scanner = new IsolatedScanner(
-          getConnector().createScanner(tableName, Authorizations.EMPTY));
+      IsolatedScanner scanner =
+          new IsolatedScanner(getConnector().createScanner(tableName, Authorizations.EMPTY));
 
       scanner.setRange(MetadataSchema.BlipSection.getRange());
 
@@ -303,13 +303,13 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
     @Override
     public Iterator<Entry<Key,Value>> getReferenceIterator()
         throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-      IsolatedScanner scanner = new IsolatedScanner(
-          getConnector().createScanner(tableName, Authorizations.EMPTY));
+      IsolatedScanner scanner =
+          new IsolatedScanner(getConnector().createScanner(tableName, Authorizations.EMPTY));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       scanner.fetchColumnFamily(ScanFileColumnFamily.NAME);
       TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(scanner);
-      TabletIterator tabletIterator = new TabletIterator(scanner,
-          MetadataSchema.TabletsSection.getRange(), false, true);
+      TabletIterator tabletIterator =
+          new TabletIterator(scanner, MetadataSchema.TabletsSection.getRange(), false, true);
 
       return Iterators.concat(Iterators.transform(tabletIterator,
           new Function<Map<Key,Value>,Iterator<Entry<Key,Value>>>() {
@@ -374,8 +374,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
       final BatchWriter finalWriter = writer;
 
-      ExecutorService deleteThreadPool = Executors.newFixedThreadPool(getNumDeleteThreads(),
-          new NamingThreadFactory("deleting"));
+      ExecutorService deleteThreadPool =
+          Executors.newFixedThreadPool(getNumDeleteThreads(), new NamingThreadFactory("deleting"));
 
       final List<Pair<Path,Path>> replacements = ServerConstants.getVolumeReplacements();
 
@@ -561,8 +561,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
       return;
     }
 
-    ProbabilitySampler sampler = new ProbabilitySampler(
-        getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
+    ProbabilitySampler sampler =
+        new ProbabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
 
     while (true) {
       Trace.on("gc", sampler);
@@ -608,8 +608,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
       Span waLogs = Trace.start("walogs");
       try {
-        GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(this, fs,
-            isUsingTrash());
+        GarbageCollectWriteAheadLogs walogCollector =
+            new GarbageCollectWriteAheadLogs(this, fs, isUsingTrash());
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
       } catch (Exception e) {
@@ -785,8 +785,8 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
    * @see #CANDIDATE_MEMORY_PERCENTAGE
    */
   static boolean almostOutOfMemory(Runtime runtime) {
-    return runtime.totalMemory() - runtime.freeMemory() > CANDIDATE_MEMORY_PERCENTAGE
-        * runtime.maxMemory();
+    return runtime.totalMemory() - runtime.freeMemory()
+        > CANDIDATE_MEMORY_PERCENTAGE * runtime.maxMemory();
   }
 
   private static void putMarkerDeleteMutation(final String delete, final BatchWriter writer)

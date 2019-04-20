@@ -52,14 +52,14 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 public class TableManager {
-  private static SecurityPermission TABLE_MANAGER_PERMISSION = new SecurityPermission(
-      "tableManagerPermission");
+  private static SecurityPermission TABLE_MANAGER_PERMISSION =
+      new SecurityPermission("tableManagerPermission");
 
   private static final Logger log = LoggerFactory.getLogger(TableManager.class);
-  private static final Set<TableObserver> observers = Collections
-      .synchronizedSet(new HashSet<TableObserver>());
-  private static final Map<String,TableState> tableStateCache = Collections
-      .synchronizedMap(new HashMap<String,TableState>());
+  private static final Set<TableObserver> observers =
+      Collections.synchronizedSet(new HashSet<TableObserver>());
+  private static final Map<String,TableState> tableStateCache =
+      Collections.synchronizedMap(new HashMap<String,TableState>());
   private static final byte[] ZERO_BYTE = new byte[] {'0'};
 
   private static TableManager tableManager = null;
@@ -143,8 +143,8 @@ public class TableManager {
       if (StringUtils.isNotEmpty(message))
         this.message = message;
       else {
-        String defaultMessage = "Error transitioning from " + oldState + " state to " + newState
-            + " state";
+        String defaultMessage =
+            "Error transitioning from " + oldState + " state to " + newState + " state";
         this.message = defaultMessage;
       }
     }
@@ -218,8 +218,9 @@ public class TableManager {
     synchronized (tableStateCache) {
       for (String tableId : zooStateCache
           .getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES))
-        if (zooStateCache.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId
-            + Constants.ZTABLE_STATE) != null)
+        if (zooStateCache.get(
+            ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE)
+            != null)
           updateTableStateCache(tableId);
     }
   }

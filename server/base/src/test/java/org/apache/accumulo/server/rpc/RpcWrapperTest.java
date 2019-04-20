@@ -74,7 +74,7 @@ public class RpcWrapperTest {
     procs.put("barfoo", createProcessFunction("barfoo", false));
 
     Set<String> onewayMethods = RpcWrapper.getOnewayMethods(procs);
-    assertEquals(Collections.<String> emptySet(), onewayMethods);
+    assertEquals(Collections.<String>emptySet(), onewayMethods);
   }
 
   @Test
@@ -97,8 +97,8 @@ public class RpcWrapperTest {
 
     // "short" names throw RTEs and are oneway, while long names do not throw exceptions and are not
     // oneway.
-    RpcServerInvocationHandler<FakeService> handler = RpcWrapper.getInvocationHandler(impl,
-        Sets.newHashSet("foo", "bar"));
+    RpcServerInvocationHandler<FakeService> handler =
+        RpcWrapper.getInvocationHandler(impl, Sets.newHashSet("foo", "bar"));
 
     // Should throw an exception, but not be wrapped because the method is oneway
     try {
@@ -120,8 +120,8 @@ public class RpcWrapperTest {
 
     // "short" names throw RTEs and are not oneway, while long names do not throw exceptions and are
     // oneway.
-    RpcServerInvocationHandler<FakeService> handler = RpcWrapper.getInvocationHandler(impl,
-        Sets.newHashSet("foobar", "barfoo"));
+    RpcServerInvocationHandler<FakeService> handler =
+        RpcWrapper.getInvocationHandler(impl, Sets.newHashSet("foobar", "barfoo"));
 
     // Should throw an exception, but not be wrapped because the method is oneway
     try {

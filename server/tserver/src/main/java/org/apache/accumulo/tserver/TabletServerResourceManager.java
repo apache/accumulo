@@ -162,8 +162,8 @@ public class TabletServerResourceManager {
     final AccumuloConfiguration acuConf = conf.getConfiguration();
 
     long maxMemory = acuConf.getMemoryInBytes(Property.TSERV_MAXMEM);
-    boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED)
-        && NativeMap.isLoaded();
+    boolean usingNativeMap =
+        acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.isLoaded();
 
     long blockSize = acuConf.getMemoryInBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
     long dCacheSize = acuConf.getMemoryInBytes(Property.TSERV_DATACACHE_SIZE);
@@ -225,13 +225,13 @@ public class TabletServerResourceManager {
     activeAssignments = new ConcurrentHashMap<>();
 
     readAheadThreadPool = createEs(Property.TSERV_READ_AHEAD_MAXCONCURRENT, "tablet read ahead");
-    defaultReadAheadThreadPool = createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT,
-        "metadata tablets read ahead");
+    defaultReadAheadThreadPool =
+        createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT, "metadata tablets read ahead");
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
-    Cache<String,Long> fileLenCache = CacheBuilder.newBuilder()
-        .maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
+    Cache<String,Long> fileLenCache =
+        CacheBuilder.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
 
     fileManager = new FileManager(tserver, fs, maxOpenFiles, fileLenCache, _dCache, _iCache);
 
@@ -269,8 +269,8 @@ public class TabletServerResourceManager {
 
     @Override
     public void run() {
-      final long millisBeforeWarning = conf
-          .getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
+      final long millisBeforeWarning =
+          conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
       try {
         long now = System.currentTimeMillis();
         KeyExtent extent;
@@ -435,8 +435,8 @@ public class TabletServerResourceManager {
           synchronized (tabletReports) {
             tabletReportsCopy = new HashMap<>(tabletReports);
           }
-          ArrayList<TabletState> tabletStates = new ArrayList<TabletState>(
-              tabletReportsCopy.values());
+          ArrayList<TabletState> tabletStates =
+              new ArrayList<TabletState>(tabletReportsCopy.values());
           mma = memoryManager.getMemoryManagementActions(tabletStates);
 
         } catch (Throwable t) {

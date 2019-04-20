@@ -60,7 +60,7 @@ public class CryptoTest {
   public static final String CRYPTO_ON_CONF = "crypto-on-accumulo-site.xml";
   public static final String CRYPTO_OFF_CONF = "crypto-off-accumulo-site.xml";
   public static final String CRYPTO_ON_KEK_OFF_CONF =
-    "crypto-on-no-key-encryption-accumulo-site.xml";
+      "crypto-on-no-key-encryption-accumulo-site.xml";
 
   @Rule
   public ExpectedException exception = ExpectedException.none();
@@ -69,8 +69,8 @@ public class CryptoTest {
   public void testNoCryptoStream() throws IOException {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_OFF_CONF);
 
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
+    CryptoModuleParameters params =
+        CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
     assertNotNull(params);
     assertEquals("NullCipher", params.getAlgorithmName());
@@ -94,8 +94,8 @@ public class CryptoTest {
   public void testCryptoModuleParamsParsing() {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
 
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
+    CryptoModuleParameters params =
+        CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
     assertNotNull(params);
     assertEquals("AES", params.getAlgorithmName());
@@ -112,8 +112,8 @@ public class CryptoTest {
   public void testCryptoModuleDoesntLeakSensitive() throws IOException {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
 
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
+    CryptoModuleParameters params =
+        CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     params.setPlaintextOutputStream(baos);
 
@@ -137,8 +137,8 @@ public class CryptoTest {
   public void testCryptoModuleParamsValidation1() throws IOException {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
 
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
+    CryptoModuleParameters params =
+        CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
     CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
 
     assertTrue(cryptoModule instanceof DefaultCryptoModule);
@@ -151,8 +151,8 @@ public class CryptoTest {
   public void testCryptoModuleParamsValidation2() throws IOException {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
 
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
+    CryptoModuleParameters params =
+        CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
     CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
 
     assertTrue(cryptoModule instanceof DefaultCryptoModule);
@@ -188,8 +188,8 @@ public class CryptoTest {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_KEK_OFF_CONF);
 
     CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
+    CryptoModuleParameters params =
+        CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
     assertTrue(cryptoModule instanceof DefaultCryptoModule);
 
@@ -248,8 +248,8 @@ public class CryptoTest {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
 
     CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
+    CryptoModuleParameters params =
+        CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
     assertTrue(cryptoModule instanceof DefaultCryptoModule);
     assertNotNull(params.getKeyEncryptionStrategyClass());
@@ -284,8 +284,8 @@ public class CryptoTest {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
 
     CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
+    CryptoModuleParameters params =
+        CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
     assertTrue(cryptoModule instanceof DefaultCryptoModule);
     assertNotNull(params.getKeyEncryptionStrategyClass());
@@ -318,8 +318,8 @@ public class CryptoTest {
     AccumuloConfiguration conf = setAndGetAccumuloConfig(CRYPTO_ON_CONF);
 
     CryptoModule cryptoModule = CryptoModuleFactory.getCryptoModule(conf);
-    CryptoModuleParameters params = CryptoModuleFactory
-        .createParamsObjectFromAccumuloConfiguration(conf);
+    CryptoModuleParameters params =
+        CryptoModuleFactory.createParamsObjectFromAccumuloConfiguration(conf);
 
     assertTrue(cryptoModule instanceof DefaultCryptoModule);
     assertNotNull(params.getKeyEncryptionStrategyClass());
@@ -350,8 +350,8 @@ public class CryptoTest {
   }
 
   private AccumuloConfiguration setAndGetAccumuloConfig(String cryptoConfSetting) {
-    ConfigurationCopy result = new ConfigurationCopy(
-        AccumuloConfiguration.getDefaultConfiguration());
+    ConfigurationCopy result =
+        new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
     Configuration conf = new Configuration(false);
     conf.addResource(cryptoConfSetting);
     for (Entry<String,String> e : conf) {

@@ -122,8 +122,8 @@ public class ReplicationTableUtilTest {
     Text row = new Text(filePath.toString());
     KeyExtent extent = new KeyExtent("1", new Text("b"), new Text("a"));
 
-    Mutation m = ReplicationTableUtil.createUpdateMutation(filePath, ProtobufUtil.toValue(stat),
-        extent);
+    Mutation m =
+        ReplicationTableUtil.createUpdateMutation(filePath, ProtobufUtil.toValue(stat), extent);
 
     assertEquals(new Text(MetadataSchema.ReplicationSection.getRowPrefix() + row),
         new Text(m.getRow()));
@@ -153,7 +153,7 @@ public class ReplicationTableUtilTest {
     expectLastCall().once();
 
     expect(tops.getProperties(myMetadataTable))
-        .andReturn(Collections.<Entry<String,String>> emptyList());
+        .andReturn(Collections.<Entry<String,String>>emptyList());
     tops.setProperty(myMetadataTable, Property.TABLE_FORMATTER_CLASS.getKey(),
         ReplicationTableUtil.STATUS_FORMATTER_CLASS_NAME);
     expectLastCall().once();

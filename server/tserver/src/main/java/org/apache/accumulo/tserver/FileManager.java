@@ -189,8 +189,8 @@ public class FileManager {
     SimpleTimer.getInstance(context.getConfiguration()).schedule(new IdleFileCloser(), maxIdleTime,
         maxIdleTime / 2);
 
-    this.slowFilePermitMillis = context.getConfiguration()
-        .getTimeInMillis(Property.TSERV_SLOW_FILEPERMIT_MILLIS);
+    this.slowFilePermitMillis =
+        context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FILEPERMIT_MILLIS);
   }
 
   private static int countReaders(Map<String,List<OpenReader>> files) {
@@ -314,8 +314,8 @@ public class FileManager {
         int numOpen = countReaders(openFiles);
 
         if (filesToOpen.size() + numOpen + reservedReaders.size() > maxOpen) {
-          filesToClose = takeLRUOpenFiles(
-              (filesToOpen.size() + numOpen + reservedReaders.size()) - maxOpen);
+          filesToClose =
+              takeLRUOpenFiles((filesToOpen.size() + numOpen + reservedReaders.size()) - maxOpen);
         }
       }
     }
@@ -523,8 +523,8 @@ public class FileManager {
                 + maxOpen + " tablet = " + tablet);
       }
 
-      Map<FileSKVIterator,String> newlyReservedReaders = reserveReaders(tablet, files,
-          continueOnFailure);
+      Map<FileSKVIterator,String> newlyReservedReaders =
+          reserveReaders(tablet, files, continueOnFailure);
 
       tabletReservedReaders.addAll(newlyReservedReaders.keySet());
       return newlyReservedReaders;

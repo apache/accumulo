@@ -81,8 +81,8 @@ public class CombinerTest {
     }
   }
 
-  static final IteratorEnvironment SCAN_IE = new CombinerIteratorEnvironment(IteratorScope.scan,
-      false);
+  static final IteratorEnvironment SCAN_IE =
+      new CombinerIteratorEnvironment(IteratorScope.scan, false);
 
   static Key newKey(int row, int colf, int colq, long ts, boolean deleted) {
     Key k = newKey(row, colf, colq, ts);

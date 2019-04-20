@@ -44,12 +44,12 @@ public class Tables {
 
   public static final String VALID_NAME_REGEX = "^(\\w+\\.)?(\\w+)$";
 
-  private static final SecurityPermission TABLES_PERMISSION = new SecurityPermission(
-      "tablesPermission");
+  private static final SecurityPermission TABLES_PERMISSION =
+      new SecurityPermission("tablesPermission");
   // Per instance cache will expire after 10 minutes in case we encounter an instance not used
   // frequently
-  private static Cache<String,TableMap> instanceToMapCache = CacheBuilder.newBuilder()
-      .expireAfterAccess(10, TimeUnit.MINUTES).build();
+  private static Cache<String,TableMap> instanceToMapCache =
+      CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
 
   /**
    * Return the cached ZooCache for provided instance. ZooCache is initially created with a watcher
@@ -215,8 +215,8 @@ public class Tables {
   public static TableState getTableState(Instance instance, String tableId,
       boolean clearCachedState) {
 
-    String statePath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId
-        + Constants.ZTABLE_STATE;
+    String statePath =
+        ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
 
     if (clearCachedState) {
       Tables.clearCacheByPath(instance, statePath);

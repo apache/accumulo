@@ -110,8 +110,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
       if (null != hadoopConf) {
         // Try to find the sensitive value from the CredentialProvider
         try {
-          char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
-              key);
+          char[] value =
+              CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
           if (null != value) {
             return new String(value);
           }
@@ -126,8 +126,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
      * Check the available-on-load configs and fall-back to the possibly-update Configuration
      * object.
      */
-    String value = staticConfigs.containsKey(key) ? staticConfigs.get(key)
-        : getXmlConfig().get(key);
+    String value =
+        staticConfigs.containsKey(key) ? staticConfigs.get(key) : getXmlConfig().get(key);
 
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null)
@@ -156,8 +156,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
           }
 
           if (filter.apply(key)) {
-            char[] value = CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf,
-                key);
+            char[] value =
+                CredentialProviderFactoryShim.getValueFromCredentialProvider(hadoopConf, key);
             if (null != value) {
               props.put(key, new String(value));
             }

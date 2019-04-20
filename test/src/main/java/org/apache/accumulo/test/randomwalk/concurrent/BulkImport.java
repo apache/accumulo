@@ -111,8 +111,8 @@ public class BulkImport extends Test {
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = FileSystem.get(conf);
 
-    String bulkDir = "/tmp/concurrent_bulk/b_"
-        + String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl);
+    String bulkDir =
+        "/tmp/concurrent_bulk/b_" + String.format("%016x", rand.nextLong() & 0x7fffffffffffffffl);
 
     fs.mkdirs(new Path(bulkDir));
     fs.mkdirs(new Path(bulkDir + "_f"));

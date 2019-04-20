@@ -53,8 +53,8 @@ public class Grep extends Test {
       words[i] = new Text(Insert.generateRandomWord(rand));
     }
 
-    BatchScanner bs = env.getConnector().createBatchScanner(indexTableName, Authorizations.EMPTY,
-        16);
+    BatchScanner bs =
+        env.getConnector().createBatchScanner(indexTableName, Authorizations.EMPTY, 16);
     IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class.getName());
     IntersectingIterator.setColumnFamilies(ii, words);
     bs.addScanIterator(ii);

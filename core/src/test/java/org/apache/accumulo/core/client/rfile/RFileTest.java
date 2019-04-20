@@ -128,14 +128,14 @@ public class RFileTest {
     Range range1 = Range.exact(rowStr(5));
     scanner.setRange(range1);
     Iterator<Entry<Key,Value>> scnIter1 = scanner.iterator();
-    Iterator<Entry<Key,Value>> mapIter1 = testData.subMap(range1.getStartKey(), range1.getEndKey())
-        .entrySet().iterator();
+    Iterator<Entry<Key,Value>> mapIter1 =
+        testData.subMap(range1.getStartKey(), range1.getEndKey()).entrySet().iterator();
 
     Range range2 = new Range(rowStr(3), true, rowStr(4), true);
     scanner.setRange(range2);
     Iterator<Entry<Key,Value>> scnIter2 = scanner.iterator();
-    Iterator<Entry<Key,Value>> mapIter2 = testData.subMap(range2.getStartKey(), range2.getEndKey())
-        .entrySet().iterator();
+    Iterator<Entry<Key,Value>> mapIter2 =
+        testData.subMap(range2.getStartKey(), range2.getEndKey()).entrySet().iterator();
 
     while (scnIter1.hasNext() || scnIter2.hasNext()) {
       if (scnIter1.hasNext()) {
@@ -199,8 +199,8 @@ public class RFileTest {
     Map<String,String> props = new HashMap<>();
     props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K");
     props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(), "1K");
-    RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs)
-        .withTableProperties(props).build();
+    RFileWriter writer =
+        RFile.newWriter().to(testFile).withFileSystem(localFs).withTableProperties(props).build();
 
     SortedMap<Key,Value> testData1 = createTestData(10, 10, 10);
     writer.append(testData1.entrySet());
@@ -359,8 +359,8 @@ public class RFileTest {
     assertFalse(scanner.iterator().hasNext());
     scanner.close();
 
-    scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withoutSystemIterators()
-        .build();
+    scanner =
+        RFile.newScanner().from(testFile).withFileSystem(localFs).withoutSystemIterators().build();
     assertEquals(ImmutableMap.of(k2, v2, k1, v1), toMap(scanner));
     scanner.setRange(new Range("r2"));
     assertFalse(scanner.iterator().hasNext());
@@ -375,8 +375,8 @@ public class RFileTest {
 
     // set a lower bound row
     Range bounds = new Range(rowStr(3), false, null, true);
-    Scanner scanner = RFile.newScanner().from(testFile).withFileSystem(localFs).withBounds(bounds)
-        .build();
+    Scanner scanner =
+        RFile.newScanner().from(testFile).withFileSystem(localFs).withBounds(bounds).build();
     assertEquals(createTestData(4, 6, 0, 10, 10), toMap(scanner));
     scanner.close();
 
@@ -442,8 +442,8 @@ public class RFileTest {
     SamplerConfiguration sc = new SamplerConfiguration(RowSampler.class)
         .setOptions(ImmutableMap.of("hasher", "murmur3_32", "modulus", "19"));
 
-    RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).withSampler(sc)
-        .build();
+    RFileWriter writer =
+        RFile.newWriter().to(testFile).withFileSystem(localFs).withSampler(sc).build();
     writer.append(testData1.entrySet());
     writer.close();
 
@@ -644,8 +644,8 @@ public class RFileTest {
   @Test
   public void testMultipleFilesAndCache() throws Exception {
     SortedMap<Key,Value> testData = createTestData(100, 10, 10);
-    List<String> files = Arrays.asList(createTmpTestFile(), createTmpTestFile(),
-        createTmpTestFile());
+    List<String> files =
+        Arrays.asList(createTmpTestFile(), createTmpTestFile(), createTmpTestFile());
 
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
 

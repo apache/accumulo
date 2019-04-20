@@ -92,8 +92,8 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     String classname = null;
     Map<String,String> settings = new HashMap<>();
 
-    String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
-        scope.name().toLowerCase(), name);
+    String root =
+        String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
     String opt = root + ".opt.";
     for (Entry<String,String> property : this.getProperties(namespace)) {
       if (property.getKey().equals(root)) {
@@ -141,8 +141,8 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     if (!exists(namespace))
       throw new NamespaceNotFoundException(null, namespace, null);
     for (IteratorScope scope : scopes) {
-      String scopeStr = String.format("%s%s", Property.TABLE_ITERATOR_PREFIX,
-          scope.name().toLowerCase());
+      String scopeStr =
+          String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
       String nameStr = String.format("%s.%s", scopeStr, setting.getName());
       String optStr = String.format("%s.opt.", nameStr);
       Map<String,String> optionConflicts = new TreeMap<>();

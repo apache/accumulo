@@ -64,8 +64,8 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
   @Before
   public void alterConfig() throws Exception {
     Connector conn = getConnector();
-    majcDelay = conn.instanceOperations().getSystemConfiguration()
-        .get(Property.TSERV_MAJC_DELAY.getKey());
+    majcDelay =
+        conn.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
     if (!"1s".equals(majcDelay)) {
       conn.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);

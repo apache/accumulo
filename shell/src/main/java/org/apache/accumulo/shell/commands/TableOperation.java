@@ -56,8 +56,8 @@ public abstract class TableOperation extends Command {
       tableSet.add(cl.getOptionValue(optTableName.getOpt()));
     } else if (cl.hasOption(optNamespace.getOpt())) {
       Instance instance = shellState.getInstance();
-      String namespaceId = Namespaces.getNamespaceId(instance,
-          cl.getOptionValue(optNamespace.getOpt()));
+      String namespaceId =
+          Namespaces.getNamespaceId(instance, cl.getOptionValue(optNamespace.getOpt()));
       for (String tableId : Namespaces.getTableIds(instance, namespaceId)) {
         tableSet.add(Tables.getTableName(instance, tableId));
       }
@@ -85,8 +85,8 @@ public abstract class TableOperation extends Command {
       boolean operate = true;
       if (!force) {
         shellState.getReader().flush();
-        String line = shellState.getReader()
-            .readLine(getName() + " { " + tableName + " } (yes|no)? ");
+        String line =
+            shellState.getReader().readLine(getName() + " { " + tableName + " } (yes|no)? ");
         more = line != null;
         operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
       }
@@ -121,12 +121,12 @@ public abstract class TableOperation extends Command {
   public Options getOptions() {
     final Options o = new Options();
 
-    optTablePattern = new Option("p", "pattern", true,
-        "regex pattern of table names to operate on");
+    optTablePattern =
+        new Option("p", "pattern", true, "regex pattern of table names to operate on");
     optTablePattern.setArgName("pattern");
 
-    optTableName = new Option(ShellOptions.tableOption, "table", true,
-        "name of a table to operate on");
+    optTableName =
+        new Option(ShellOptions.tableOption, "table", true, "name of a table to operate on");
     optTableName.setArgName("tableName");
 
     optNamespace = new Option(ShellOptions.namespaceOption, "namespace", true,

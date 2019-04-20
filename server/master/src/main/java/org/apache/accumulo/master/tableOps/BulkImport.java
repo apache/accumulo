@@ -230,8 +230,8 @@ public class BulkImport extends MasterRepo {
                 return null;
               }
               try {
-                FileStatus dataStatus = fs
-                    .getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
+                FileStatus dataStatus =
+                    fs.getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
                 if (dataStatus.isDirectory()) {
                   log.warn(fileStatus.getPath() + " is not a map file, ignoring");
                   return null;

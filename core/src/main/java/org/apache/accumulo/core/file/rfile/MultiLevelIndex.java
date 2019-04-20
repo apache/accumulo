@@ -810,8 +810,8 @@ public class MultiLevelIndex {
 
     private IndexBlock getIndexBlock(IndexEntry ie) throws IOException {
       IndexBlock iblock = new IndexBlock();
-      ABlockReader in = blockStore.getMetaBlock(ie.getOffset(), ie.getCompressedSize(),
-          ie.getRawSize());
+      ABlockReader in =
+          blockStore.getMetaBlock(ie.getOffset(), ie.getCompressedSize(), ie.getRawSize());
       iblock.readFields(in, version);
       in.close();
 

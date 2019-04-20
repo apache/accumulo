@@ -148,8 +148,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     String scheme = "http://";
     if (getCluster() instanceof StandaloneAccumuloCluster) {
       StandaloneAccumuloCluster standaloneCluster = (StandaloneAccumuloCluster) getCluster();
-      File accumuloSite = new File(standaloneCluster.getServerAccumuloConfDir(),
-          "accumulo-site.xml");
+      File accumuloSite =
+          new File(standaloneCluster.getServerAccumuloConfDir(), "accumulo-site.xml");
       if (accumuloSite.isFile()) {
         Configuration conf = new Configuration(false);
         conf.addResource(new Path(accumuloSite.toURI()));
@@ -430,8 +430,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     verify(connector, getCluster().getClientConfig(), getAdminPrincipal(), 2000, 1, 50, 0,
         tableName);
     connector.tableOperations().flush(tableName, null, null, true);
-    try (BatchScanner bscanner = connector.createBatchScanner(MetadataTable.NAME,
-        Authorizations.EMPTY, 1)) {
+    try (BatchScanner bscanner =
+        connector.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 1)) {
       String tableId = connector.tableOperations().tableIdMap().get(tableName);
       bscanner.setRanges(
           Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));

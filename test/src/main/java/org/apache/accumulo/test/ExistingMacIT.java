@@ -98,8 +98,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
     conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
     conn.tableOperations().flush(RootTable.NAME, null, null, true);
 
-    Set<Entry<ServerType,Collection<ProcessReference>>> procs = getCluster().getProcesses()
-        .entrySet();
+    Set<Entry<ServerType,Collection<ProcessReference>>> procs =
+        getCluster().getProcesses().entrySet();
     for (Entry<ServerType,Collection<ProcessReference>> entry : procs) {
       if (entry.getKey() == ServerType.ZOOKEEPER)
         continue;

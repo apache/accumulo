@@ -36,10 +36,10 @@ import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 public class ServerConfigurationFactory extends ServerConfiguration {
 
   private static final Map<String,Map<String,TableConfiguration>> tableConfigs = new HashMap<>(1);
-  private static final Map<String,Map<String,NamespaceConfiguration>> namespaceConfigs = new HashMap<>(
-      1);
-  private static final Map<String,Map<String,NamespaceConfiguration>> tableParentConfigs = new HashMap<>(
-      1);
+  private static final Map<String,Map<String,NamespaceConfiguration>> namespaceConfigs =
+      new HashMap<>(1);
+  private static final Map<String,Map<String,NamespaceConfiguration>> tableParentConfigs =
+      new HashMap<>(1);
 
   private static void addInstanceToCaches(String iid) {
     synchronized (tableConfigs) {
@@ -59,8 +59,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     }
   }
 
-  private static final SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission(
-      "configurationPermission");
+  private static final SecurityPermission CONFIGURATION_PERMISSION =
+      new SecurityPermission("configurationPermission");
   private static final SecurityManager SM = System.getSecurityManager();
 
   private static void checkPermissions() {
@@ -141,8 +141,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public synchronized AccumuloConfiguration getConfiguration() {
     if (systemConfig == null) {
       checkPermissions();
-      systemConfig = new ZooConfigurationFactory().getInstance(instance, zcf,
-          getSiteConfiguration());
+      systemConfig =
+          new ZooConfigurationFactory().getInstance(instance, zcf, getSiteConfiguration());
     }
     return systemConfig;
   }

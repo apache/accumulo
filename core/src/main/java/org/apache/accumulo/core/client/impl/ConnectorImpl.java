@@ -46,8 +46,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.Tracer;
 
 public class ConnectorImpl extends Connector {
-  private static final String SYSTEM_TOKEN_NAME = "org.apache.accumulo.server.security."
-      + "SystemCredentials$SystemToken";
+  private static final String SYSTEM_TOKEN_NAME =
+      "org.apache.accumulo.server.security." + "SystemCredentials$SystemToken";
   private final ClientContext context;
   private SecurityOperations secops = null;
   private TableOperationsImpl tableops = null;

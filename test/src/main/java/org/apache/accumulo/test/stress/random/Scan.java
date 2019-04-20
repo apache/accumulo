@@ -51,8 +51,8 @@ public class Scan {
         : new IterativeLoopControl(opts.scan_iterations);
 
     while (scanning_condition.keepScanning()) {
-      Range range = pickRange(connector.tableOperations(), opts.getTableName(),
-          tablet_index_generator);
+      Range range =
+          pickRange(connector.tableOperations(), opts.getTableName(), tablet_index_generator);
       scanner.setRange(range);
       if (opts.batch_size > 0) {
         scanner.setBatchSize(opts.batch_size);

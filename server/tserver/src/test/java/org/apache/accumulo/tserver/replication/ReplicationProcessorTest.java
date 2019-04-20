@@ -84,8 +84,8 @@ public class ReplicationProcessorTest {
         .createMock();
 
     ReplicationTarget target = new ReplicationTarget("peer", "1", "1");
-    Status status = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true)
-        .build();
+    Status status =
+        Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     Path path = new Path("/accumulo");
 
     String queueKey = DistributedWorkQueueWorkAssignerHelper.getQueueKey(path.toString(), target);

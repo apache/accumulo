@@ -48,8 +48,8 @@ import org.powermock.reflect.Whitebox;
     "org.apache.hadoop.*"})
 public class AccumuloVFSClassLoaderTest {
 
-  private TemporaryFolder folder1 = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  private TemporaryFolder folder1 =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Before
   public void setup() throws IOException {

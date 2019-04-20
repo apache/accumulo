@@ -125,8 +125,8 @@ public class ClassSize {
 
     CONCURRENT_HASHMAP = align((2 * SizeConstants.SIZEOF_INT) + ARRAY + (6 * REFERENCE) + OBJECT);
 
-    CONCURRENT_HASHMAP_ENTRY = align(
-        REFERENCE + OBJECT + (3 * REFERENCE) + (2 * SizeConstants.SIZEOF_INT));
+    CONCURRENT_HASHMAP_ENTRY =
+        align(REFERENCE + OBJECT + (3 * REFERENCE) + (2 * SizeConstants.SIZEOF_INT));
 
     CONCURRENT_HASHMAP_SEGMENT = align(
         REFERENCE + OBJECT + (3 * SizeConstants.SIZEOF_INT) + SizeConstants.SIZEOF_FLOAT + ARRAY);

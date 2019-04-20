@@ -99,9 +99,9 @@ public class ProblemServlet extends BasicServlet {
       return;
 
     ArrayList<ProblemReport> problemReports = new ArrayList<>();
-    Iterator<ProblemReport> iter = tableId == null
-        ? ProblemReports.getInstance(Monitor.getContext()).iterator()
-        : ProblemReports.getInstance(Monitor.getContext()).iterator(tableId);
+    Iterator<ProblemReport> iter =
+        tableId == null ? ProblemReports.getInstance(Monitor.getContext()).iterator()
+            : ProblemReports.getInstance(Monitor.getContext()).iterator(tableId);
     while (iter.hasNext())
       problemReports.add(iter.next());
     final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss zzz");

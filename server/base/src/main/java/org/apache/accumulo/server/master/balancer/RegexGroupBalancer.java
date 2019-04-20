@@ -47,12 +47,12 @@ import com.google.common.base.Function;
 
 public class RegexGroupBalancer extends GroupBalancer {
 
-  public static final String REGEX_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
-      + "balancer.group.regex.pattern";
-  public static final String DEFAUT_GROUP_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
-      + "balancer.group.regex.default";
-  public static final String WAIT_TIME_PROPERTY = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey()
-      + "balancer.group.regex.wait.time";
+  public static final String REGEX_PROPERTY =
+      Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.group.regex.pattern";
+  public static final String DEFAUT_GROUP_PROPERTY =
+      Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.group.regex.default";
+  public static final String WAIT_TIME_PROPERTY =
+      Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "balancer.group.regex.wait.time";
 
   private final String tableId;
 

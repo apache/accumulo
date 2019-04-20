@@ -104,8 +104,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
   private final EvictionThread evictionThread;
 
   /** Statistics thread schedule pool (for heavy debugging, could remove) */
-  private final ScheduledExecutorService scheduleThreadPool = Executors.newScheduledThreadPool(1,
-      new NamingThreadFactory("LRUBlockCacheStats"));
+  private final ScheduledExecutorService scheduleThreadPool =
+      Executors.newScheduledThreadPool(1, new NamingThreadFactory("LRUBlockCacheStats"));
 
   /** Current size of cache */
   private final AtomicLong size;
@@ -687,8 +687,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
     }
   }
 
-  public final static long CACHE_FIXED_OVERHEAD = ClassSize
-      .align((3 * SizeConstants.SIZEOF_LONG) + (8 * ClassSize.REFERENCE)
+  public final static long CACHE_FIXED_OVERHEAD =
+      ClassSize.align((3 * SizeConstants.SIZEOF_LONG) + (8 * ClassSize.REFERENCE)
           + (5 * SizeConstants.SIZEOF_FLOAT) + SizeConstants.SIZEOF_BOOLEAN + ClassSize.OBJECT);
 
   // HeapSize implementation

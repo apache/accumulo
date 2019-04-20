@@ -46,9 +46,9 @@ public class ViewFSUtilsTest {
       conf.set("fs.viewfs.mounttable.default.link./ns2", "file:///tmp/ns2");
       conf.set("fs.viewfs.mounttable.default.link./ns22", "file:///tmp/ns22");
 
-      String[] tablesDirs1 = shuffle("viewfs:///ns1/accumulo/tables",
-          "viewfs:///ns2/accumulo/tables", "viewfs:///ns22/accumulo/tables",
-          "viewfs:///ns/accumulo/tables");
+      String[] tablesDirs1 =
+          shuffle("viewfs:///ns1/accumulo/tables", "viewfs:///ns2/accumulo/tables",
+              "viewfs:///ns22/accumulo/tables", "viewfs:///ns/accumulo/tables");
       String[] tablesDirs2 = shuffle("viewfs:/ns1/accumulo/tables", "viewfs:/ns2/accumulo/tables",
           "viewfs:/ns22/accumulo/tables", "viewfs:/ns/accumulo/tables");
 
@@ -83,10 +83,10 @@ public class ViewFSUtilsTest {
       conf.set("fs.viewfs.mounttable.default.link./ns1/C", "file:///tmp/3");
       conf.set("fs.viewfs.mounttable.default.link./ns2", "file:///tmp/3");
 
-      String[] tablesDirs1 = shuffle("viewfs:///ns1/accumulo/tables",
-          "viewfs:///ns1/A/accumulo/tables", "viewfs:///ns1/AA/accumulo/tables",
-          "viewfs:///ns1/C/accumulo/tables", "viewfs:///ns2/accumulo/tables",
-          "viewfs:///accumulo/tables");
+      String[] tablesDirs1 =
+          shuffle("viewfs:///ns1/accumulo/tables", "viewfs:///ns1/A/accumulo/tables",
+              "viewfs:///ns1/AA/accumulo/tables", "viewfs:///ns1/C/accumulo/tables",
+              "viewfs:///ns2/accumulo/tables", "viewfs:///accumulo/tables");
       String[] tablesDirs2 = shuffle("viewfs:/ns1/accumulo/tables", "viewfs:/ns1/A/accumulo/tables",
           "viewfs:/ns1/AA/accumulo/tables", "viewfs:/ns1/C/accumulo/tables",
           "viewfs:/ns2/accumulo/tables", "viewfs:/accumulo/tables");

@@ -45,8 +45,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
 public class ThriftTransportPool {
-  private static SecurityPermission TRANSPORT_POOL_PERMISSION = new SecurityPermission(
-      "transportPoolPermission");
+  private static SecurityPermission TRANSPORT_POOL_PERMISSION =
+      new SecurityPermission("transportPoolPermission");
 
   private static final Random random = new Random();
   private long killTime = 1000 * 3;

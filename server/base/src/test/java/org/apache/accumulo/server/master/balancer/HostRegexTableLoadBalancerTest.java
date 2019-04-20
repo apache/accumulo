@@ -142,8 +142,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   @Test
   public void testSplitCurrentByRegexUsingHostname() {
     init(factory);
-    Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups = this
-        .splitCurrentByRegex(createCurrent(15));
+    Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups =
+        this.splitCurrentByRegex(createCurrent(15));
     assertEquals(3, groups.size());
     assertTrue(groups.containsKey(FOO.getTableName()));
     SortedMap<TServerInstance,TabletServerStatus> fooHosts = groups.get(FOO.getTableName());
@@ -207,8 +207,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
         };
       }
     });
-    Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups = this
-        .splitCurrentByRegex(createCurrent(15));
+    Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups =
+        this.splitCurrentByRegex(createCurrent(15));
 
     // Groups foo, bar, and the default pool which contains all known hosts
     assertEquals(3, groups.size());
@@ -295,8 +295,8 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       }
     });
     assertTrue(isIpBasedRegex());
-    Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups = this
-        .splitCurrentByRegex(createCurrent(15));
+    Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups =
+        this.splitCurrentByRegex(createCurrent(15));
     assertEquals(3, groups.size());
     assertTrue(groups.containsKey(FOO.getTableName()));
     SortedMap<TServerInstance,TabletServerStatus> fooHosts = groups.get(FOO.getTableName());

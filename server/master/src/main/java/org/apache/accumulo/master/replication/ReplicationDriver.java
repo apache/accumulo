@@ -53,8 +53,8 @@ public class ReplicationDriver extends Daemon {
 
   @Override
   public void run() {
-    ProbabilitySampler sampler = new ProbabilitySampler(
-        conf.getFraction(Property.REPLICATION_TRACE_PERCENT));
+    ProbabilitySampler sampler =
+        new ProbabilitySampler(conf.getFraction(Property.REPLICATION_TRACE_PERCENT));
 
     long millisToWait = conf.getTimeInMillis(Property.REPLICATION_DRIVER_DELAY);
     log.debug("Waiting " + millisToWait + "ms before starting main replication loop");

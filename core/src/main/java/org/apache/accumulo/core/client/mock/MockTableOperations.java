@@ -222,8 +222,8 @@ class MockTableOperations extends TableOperationsHelper {
       throw new TableNotFoundException(null, tableName, null);
     }
 
-    Set<Entry<String,String>> props = new HashSet<>(
-        acu.namespaces.get(namespace).settings.entrySet());
+    Set<Entry<String,String>> props =
+        new HashSet<>(acu.namespaces.get(namespace).settings.entrySet());
 
     Set<Entry<String,String>> tableProps = acu.tables.get(tableName).settings.entrySet();
     for (Entry<String,String> e : tableProps) {

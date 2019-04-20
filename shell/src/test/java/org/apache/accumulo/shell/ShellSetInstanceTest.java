@@ -161,7 +161,7 @@ public class ShellSetInstanceTest {
     expect(opts.getClientConfiguration()).andReturn(clientConf);
     expect(opts.isHdfsZooInstance()).andReturn(explicitHdfs);
     if (!explicitHdfs) {
-      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String> emptyList());
+      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String>emptyList());
       if (onlyInstance) {
         expect(opts.getZooKeeperInstanceName()).andReturn("instance");
         expect(clientConf.withInstance("instance")).andReturn(clientConf);
@@ -182,7 +182,7 @@ public class ShellSetInstanceTest {
     }
 
     mockStatic(ConfigSanityCheck.class);
-    ConfigSanityCheck.validate(EasyMock.<AccumuloConfiguration> anyObject());
+    ConfigSanityCheck.validate(EasyMock.<AccumuloConfiguration>anyObject());
     expectLastCall().atLeastOnce();
     replay(ConfigSanityCheck.class);
 
@@ -265,7 +265,7 @@ public class ShellSetInstanceTest {
       expect(clientConf.withZkHosts("host3,host4")).andReturn(clientConf);
       expect(clientConf.getString(ClientProperty.INSTANCE_ZK_HOST.getKey()))
           .andReturn("host3,host4");
-      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String> emptyList());
+      expect(opts.getZooKeeperInstance()).andReturn(Collections.<String>emptyList());
       expect(opts.getZooKeeperInstanceName()).andReturn("bar");
       expect(opts.getZooKeeperHosts()).andReturn("host3,host4");
     }

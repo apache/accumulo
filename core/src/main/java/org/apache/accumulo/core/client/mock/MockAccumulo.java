@@ -119,8 +119,8 @@ public class MockAccumulo {
     }
 
     MockNamespace n = namespaces.get(namespace);
-    MockTable t = new MockTable(n, timeType, Integer.toString(tableIdCounter.incrementAndGet()),
-        props);
+    MockTable t =
+        new MockTable(n, timeType, Integer.toString(tableIdCounter.incrementAndGet()), props);
     t.userPermissions.put(username, EnumSet.allOf(TablePermission.class));
     t.setNamespaceName(namespace);
     t.setNamespace(n);

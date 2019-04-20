@@ -151,16 +151,16 @@ public class ReplicationIT extends ConfigurableMacBase {
     scanner.setRange(MetadataSchema.TabletsSection.getRange());
     scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
     for (Entry<Key,Value> entry : scanner) {
-      TServerInstance key = new TServerInstance(entry.getValue(),
-          entry.getKey().getColumnQualifier());
+      TServerInstance key =
+          new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier());
       byte[] tableId = KeyExtent.tableOfMetadataRow(entry.getKey().getRow());
       serverToTableID.put(key, new String(tableId, UTF_8));
     }
     // Map of logs to tableId
     Multimap<String,String> logs = HashMultimap.create();
     Instance i = conn.getInstance();
-    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-        "");
+    ZooReaderWriter zk =
+        new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
     WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
     for (Entry<TServerInstance,List<UUID>> entry : wals.getAllMarkers().entrySet()) {
       for (UUID id : entry.getValue()) {
@@ -233,8 +233,8 @@ public class ReplicationIT extends ConfigurableMacBase {
     assertTrue(iterators.get(ReplicationTable.COMBINER_NAME)
         .containsAll(EnumSet.allOf(IteratorScope.class)));
     for (IteratorScope scope : EnumSet.allOf(IteratorScope.class)) {
-      IteratorSetting is = tops.getIteratorSetting(ReplicationTable.NAME,
-          ReplicationTable.COMBINER_NAME, scope);
+      IteratorSetting is =
+          tops.getIteratorSetting(ReplicationTable.NAME, ReplicationTable.COMBINER_NAME, scope);
       assertEquals(30, is.getPriority());
       assertEquals(StatusCombiner.class.getName(), is.getIteratorClass());
       assertEquals(1, is.getOptions().size());
@@ -351,8 +351,8 @@ public class ReplicationIT extends ConfigurableMacBase {
     Set<String> wals = new HashSet<>();
     attempts = 5;
     Instance i = conn.getInstance();
-    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-        "");
+    ZooReaderWriter zk =
+        new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
     while (wals.isEmpty() && attempts > 0) {
       WalStateManager markers = new WalStateManager(i, zk);
       for (Entry<Path,WalState> entry : markers.getAllState().entrySet()) {
@@ -658,8 +658,8 @@ public class ReplicationIT extends ConfigurableMacBase {
     Status stat2 = StatusUtil.fileClosed();
 
     BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-    Mutation m = new Mutation(
-        ReplicationSection.getRowPrefix() + "file:/accumulo/wals/tserver+port/uuid");
+    Mutation m =
+        new Mutation(ReplicationSection.getRowPrefix() + "file:/accumulo/wals/tserver+port/uuid");
     m.put(ReplicationSection.COLF, new Text("1"), ProtobufUtil.toValue(stat1));
     bw.addMutation(m);
     bw.close();

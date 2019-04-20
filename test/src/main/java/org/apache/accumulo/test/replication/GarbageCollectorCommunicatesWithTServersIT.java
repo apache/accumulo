@@ -74,8 +74,8 @@ import org.slf4j.LoggerFactory;
  * if a WAL will never be used in the future.
  */
 public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacBase {
-  private static final Logger log = LoggerFactory
-      .getLogger(GarbageCollectorCommunicatesWithTServersIT.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(GarbageCollectorCommunicatesWithTServersIT.class);
 
   private final int GC_PERIOD_SECONDS = 1;
 
@@ -112,8 +112,8 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     assertNotNull("Could not determine table ID for " + tableName, tableId);
 
     Instance i = conn.getInstance();
-    ZooReaderWriter zk = new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(),
-        "");
+    ZooReaderWriter zk =
+        new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
     WalStateManager wals = new WalStateManager(conn.getInstance(), zk);
 
     Set<String> result = new HashSet<>();
@@ -404,8 +404,8 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     log.info("Fetching active WALs from {}", tserver);
 
     Client client = ThriftUtil.getTServerClient(tserver, context);
-    List<String> activeWalsForTserver = client.getActiveLogs(Tracer.traceInfo(),
-        context.rpcCreds());
+    List<String> activeWalsForTserver =
+        client.getActiveLogs(Tracer.traceInfo(), context.rpcCreds());
 
     log.info("Active wals: {}", activeWalsForTserver);
 

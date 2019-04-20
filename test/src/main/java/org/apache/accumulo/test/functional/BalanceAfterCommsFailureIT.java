@@ -64,8 +64,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
   public void test() throws Exception {
     Connector c = this.getConnector();
     c.tableOperations().create("test");
-    Collection<ProcessReference> tservers = getCluster().getProcesses()
-        .get(ServerType.TABLET_SERVER);
+    Collection<ProcessReference> tservers =
+        getCluster().getProcesses().get(ServerType.TABLET_SERVER);
     ArrayList<Integer> tserverPids = new ArrayList<>(tservers.size());
     for (ProcessReference tserver : tservers) {
       Process p = tserver.getProcess();

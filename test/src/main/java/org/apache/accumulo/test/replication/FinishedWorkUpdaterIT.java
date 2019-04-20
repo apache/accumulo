@@ -67,8 +67,8 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     ReplicationTable.setOnline(conn);
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    Status stat = Status.newBuilder().setBegin(100).setEnd(200).setClosed(true)
-        .setInfiniteEnd(false).build();
+    Status stat =
+        Status.newBuilder().setBegin(100).setEnd(200).setClosed(true).setInfiniteEnd(false).build();
     ReplicationTarget target = new ReplicationTarget("peer", "table1", "1");
 
     // Create a single work record for a file to some peer
@@ -106,8 +106,8 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
         .setInfiniteEnd(false).build();
     Status stat2 = Status.newBuilder().setBegin(500).setEnd(1000).setClosed(true)
         .setInfiniteEnd(false).build();
-    Status stat3 = Status.newBuilder().setBegin(1).setEnd(1000).setClosed(true)
-        .setInfiniteEnd(false).build();
+    Status stat3 =
+        Status.newBuilder().setBegin(1).setEnd(1000).setClosed(true).setInfiniteEnd(false).build();
     ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", "1");
     ReplicationTarget target2 = new ReplicationTarget("peer2", "table2", "1");
     ReplicationTarget target3 = new ReplicationTarget("peer3", "table3", "1");
@@ -145,12 +145,12 @@ public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
     ReplicationTable.setOnline(conn);
 
     String file = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    Status stat1 = Status.newBuilder().setBegin(100).setEnd(1000).setClosed(true)
-        .setInfiniteEnd(true).build();
-    Status stat2 = Status.newBuilder().setBegin(1).setEnd(1000).setClosed(true).setInfiniteEnd(true)
-        .build();
-    Status stat3 = Status.newBuilder().setBegin(500).setEnd(1000).setClosed(true)
-        .setInfiniteEnd(true).build();
+    Status stat1 =
+        Status.newBuilder().setBegin(100).setEnd(1000).setClosed(true).setInfiniteEnd(true).build();
+    Status stat2 =
+        Status.newBuilder().setBegin(1).setEnd(1000).setClosed(true).setInfiniteEnd(true).build();
+    Status stat3 =
+        Status.newBuilder().setBegin(500).setEnd(1000).setClosed(true).setInfiniteEnd(true).build();
     ReplicationTarget target1 = new ReplicationTarget("peer1", "table1", "1");
     ReplicationTarget target2 = new ReplicationTarget("peer2", "table2", "1");
     ReplicationTarget target3 = new ReplicationTarget("peer3", "table3", "1");

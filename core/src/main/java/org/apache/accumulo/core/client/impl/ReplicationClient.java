@@ -46,8 +46,8 @@ public class ReplicationClient {
    *          the client session for the peer replicant
    * @return Client to the ReplicationCoordinator service
    */
-  public static ReplicationCoordinator.Client getCoordinatorConnectionWithRetry(
-      ClientContext context) throws AccumuloException {
+  public static ReplicationCoordinator.Client
+      getCoordinatorConnectionWithRetry(ClientContext context) throws AccumuloException {
     requireNonNull(context);
     Instance instance = context.getInstance();
 
@@ -94,8 +94,8 @@ public class ReplicationClient {
 
     // Get the coordinator port for the master we're trying to connect to
     try {
-      ZooReader reader = new ZooReader(instance.getZooKeepers(),
-          instance.getZooKeepersSessionTimeOut());
+      ZooReader reader =
+          new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
       replCoordinatorAddr = new String(reader.getData(zkPath, null), UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch remote coordinator port", e);

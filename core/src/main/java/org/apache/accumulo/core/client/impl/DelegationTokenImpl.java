@@ -61,8 +61,8 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
     requireNonNull(identifier);
 
     Credentials creds = user.getCredentials();
-    Token<? extends TokenIdentifier> token = creds
-        .getToken(new Text(SERVICE_NAME + "-" + instance.getInstanceID()));
+    Token<? extends TokenIdentifier> token =
+        creds.getToken(new Text(SERVICE_NAME + "-" + instance.getInstanceID()));
     if (null == token) {
       throw new IllegalArgumentException(
           "Did not find Accumulo delegation token in provided UserGroupInformation");

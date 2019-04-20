@@ -84,7 +84,7 @@ public class FileUtil {
 
   private static Path createTmpDir(AccumuloConfiguration acuConf, VolumeManager fs)
       throws IOException {
-    String accumuloDir = fs.choose(Optional.<String> absent(), ServerConstants.getBaseUris());
+    String accumuloDir = fs.choose(Optional.<String>absent(), ServerConstants.getBaseUris());
 
     Path result = null;
     while (result == null) {
@@ -221,8 +221,8 @@ public class FileUtil {
             + prevEndRow + ", reducing in tmpDir = " + tmpDir);
 
         long t1 = System.currentTimeMillis();
-        mapFiles = reduceFiles(acuconf, conf, fs, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir,
-            0);
+        mapFiles =
+            reduceFiles(acuconf, conf, fs, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
 
         log.debug("Finished reducing indexes for " + endRow + " " + prevEndRow + " in "
@@ -243,7 +243,7 @@ public class FileUtil {
       }
 
       List<SortedKeyValueIterator<Key,Value>> iters =
-        new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
+          new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
       MultiIterator mmfi = new MultiIterator(iters, true);
 
       // skip the prevendrow
@@ -305,8 +305,8 @@ public class FileUtil {
             + prevEndRow + ", reducing in tmpDir = " + tmpDir);
 
         long t1 = System.currentTimeMillis();
-        mapFiles = reduceFiles(acuConf, conf, fs, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir,
-            0);
+        mapFiles =
+            reduceFiles(acuConf, conf, fs, prevEndRow, endRow, mapFiles, maxToOpen, tmpDir, 0);
         long t2 = System.currentTimeMillis();
 
         log.debug("Finished reducing indexes for " + endRow + " " + prevEndRow + " in "
@@ -335,7 +335,7 @@ public class FileUtil {
       }
 
       List<SortedKeyValueIterator<Key,Value>> iters =
-        new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
+          new ArrayList<SortedKeyValueIterator<Key,Value>>(readers);
       MultiIterator mmfi = new MultiIterator(iters, true);
 
       // skip the prevendrow
@@ -380,8 +380,8 @@ public class FileUtil {
 
       // sanity check
       for (Key key : ret.values()) {
-        boolean inRange = (key.compareRow(prevEndRow) > 0
-            && (endRow == null || key.compareRow(endRow) < 1));
+        boolean inRange =
+            (key.compareRow(prevEndRow) > 0 && (endRow == null || key.compareRow(endRow) < 1));
         if (!inRange) {
           throw new IOException("Found mid point is not in range " + key + " " + prevEndRow + " "
               + endRow + " " + mapFiles);
@@ -521,9 +521,9 @@ public class FileUtil {
     for (FileRef ref : mapFiles) {
       Path path = ref.path();
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();
-      FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(path.toString(), ns, ns.getConf()).withTableConfiguration(acuConf)
-          .seekToBeginning().build();
+      FileSKVIterator reader =
+          FileOperations.getInstance().newReaderBuilder().forFile(path.toString(), ns, ns.getConf())
+              .withTableConfiguration(acuConf).seekToBeginning().build();
 
       try {
         if (!reader.hasTop())

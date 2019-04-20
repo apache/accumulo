@@ -92,8 +92,8 @@ public class CfCqSliceFilterTest extends BaseJUnit4IteratorTest {
   private static TreeMap<Key,Value> createOutputData() {
     TreeMap<Key,Value> data = new TreeMap<>();
 
-    Iterable<Entry<Key,Value>> filtered = Iterables.filter(INPUT_DATA.entrySet(),
-        new Predicate<Entry<Key,Value>>() {
+    Iterable<Entry<Key,Value>> filtered =
+        Iterables.filter(INPUT_DATA.entrySet(), new Predicate<Entry<Key,Value>>() {
 
           @Override
           public boolean apply(Entry<Key,Value> entry) {

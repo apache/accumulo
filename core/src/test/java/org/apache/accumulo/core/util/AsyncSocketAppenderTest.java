@@ -67,10 +67,10 @@ public class AsyncSocketAppenderTest {
   public void testAppend() {
     asa = new AsyncSocketAppender(sa);
     assertFalse(asa.isAttached(sa));
-    LoggingEvent event1 = new LoggingEvent("java.lang.String", Logger.getRootLogger(), Level.INFO,
-        "event1", null);
-    LoggingEvent event2 = new LoggingEvent("java.lang.Integer", Logger.getRootLogger(), Level.WARN,
-        "event2", null);
+    LoggingEvent event1 =
+        new LoggingEvent("java.lang.String", Logger.getRootLogger(), Level.INFO, "event1", null);
+    LoggingEvent event2 =
+        new LoggingEvent("java.lang.Integer", Logger.getRootLogger(), Level.WARN, "event2", null);
     sa.activateOptions();
     sa.doAppend(event1);
     sa.doAppend(event2);

@@ -383,8 +383,8 @@ public class MetadataTableUtil {
   public static Mutation createDeleteMutation(String tableId, String pathToRemove)
       throws IOException {
     Path path = VolumeManagerImpl.get().getFullPath(tableId, pathToRemove);
-    Mutation delFlag = new Mutation(
-        new Text(MetadataSchema.DeletesSection.getRowPrefix() + path.toString()));
+    Mutation delFlag =
+        new Mutation(new Text(MetadataSchema.DeletesSection.getRowPrefix() + path.toString()));
     delFlag.put(EMPTY_TEXT, EMPTY_TEXT, new Value(new byte[] {}));
     return delFlag;
   }
@@ -440,8 +440,8 @@ public class MetadataTableUtil {
             new DataFileValue(lowSize, lowEntries, entry.getValue().getTime()));
 
         long highSize = (long) Math.ceil((entry.getValue().getSize() * (1.0 - splitRatio)));
-        long highEntries = (long) Math
-            .ceil((entry.getValue().getNumEntries() * (1.0 - splitRatio)));
+        long highEntries =
+            (long) Math.ceil((entry.getValue().getNumEntries() * (1.0 - splitRatio)));
         highDatafileSizes.put(entry.getKey(),
             new DataFileValue(highSize, highEntries, entry.getValue().getTime()));
       }
@@ -536,9 +536,9 @@ public class MetadataTableUtil {
     }
   }
 
-  public static Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>> getFileAndLogEntries(
-      ClientContext context, KeyExtent extent)
-      throws KeeperException, InterruptedException, IOException {
+  public static Pair<List<LogEntry>,SortedMap<FileRef,DataFileValue>>
+      getFileAndLogEntries(ClientContext context, KeyExtent extent)
+          throws KeeperException, InterruptedException, IOException {
     ArrayList<LogEntry> result = new ArrayList<>();
     TreeMap<FileRef,DataFileValue> sizes = new TreeMap<>();
 
@@ -652,11 +652,11 @@ public class MetadataTableUtil {
     LogEntryIterator(ClientContext context)
         throws IOException, KeeperException, InterruptedException {
       zookeeperEntries = getLogEntries(context, RootTable.EXTENT).iterator();
-      rootTableEntries = getLogEntries(context, new KeyExtent(MetadataTable.ID, null, null))
-          .iterator();
+      rootTableEntries =
+          getLogEntries(context, new KeyExtent(MetadataTable.ID, null, null)).iterator();
       try {
-        Scanner scanner = context.getConnector().createScanner(MetadataTable.NAME,
-            Authorizations.EMPTY);
+        Scanner scanner =
+            context.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
         log.info("Setting range to " + MetadataSchema.TabletsSection.getRange());
         scanner.setRange(MetadataSchema.TabletsSection.getRange());
         scanner.fetchColumnFamily(LogColumnFamily.NAME);
@@ -812,8 +812,8 @@ public class MetadataTableUtil {
 
     while (cloneIter.hasNext()) {
       Map<Key,Value> cloneTablet = cloneIter.next();
-      Text cloneEndRow = new KeyExtent(cloneTablet.keySet().iterator().next().getRow(), (Text) null)
-          .getEndRow();
+      Text cloneEndRow =
+          new KeyExtent(cloneTablet.keySet().iterator().next().getRow(), (Text) null).getEndRow();
       HashSet<String> cloneFiles = new HashSet<>();
 
       boolean cloneSuccessful = false;
@@ -831,8 +831,8 @@ public class MetadataTableUtil {
       Map<Key,Value> srcTablet = srcIter.next();
       srcTablets.add(srcTablet);
 
-      Text srcEndRow = new KeyExtent(srcTablet.keySet().iterator().next().getRow(), (Text) null)
-          .getEndRow();
+      Text srcEndRow =
+          new KeyExtent(srcTablet.keySet().iterator().next().getRow(), (Text) null).getEndRow();
 
       int cmp = compareEndRows(cloneEndRow, srcEndRow);
       if (cmp < 0)
@@ -846,8 +846,8 @@ public class MetadataTableUtil {
       while (cmp > 0) {
         srcTablet = srcIter.next();
         srcTablets.add(srcTablet);
-        srcEndRow = new KeyExtent(srcTablet.keySet().iterator().next().getRow(), (Text) null)
-            .getEndRow();
+        srcEndRow =
+            new KeyExtent(srcTablet.keySet().iterator().next().getRow(), (Text) null).getEndRow();
         cmp = compareEndRows(cloneEndRow, srcEndRow);
         if (cmp < 0)
           throw new TabletIterator.TabletDeletedException(
@@ -955,8 +955,8 @@ public class MetadataTableUtil {
   public static void removeBulkLoadEntries(Connector conn, String tableId, long tid)
       throws Exception {
     try (
-        Scanner mscanner = new IsolatedScanner(
-            conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
+        Scanner mscanner =
+            new IsolatedScanner(conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
         BatchWriter bw = conn.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
       mscanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
@@ -1117,8 +1117,8 @@ public class MetadataTableUtil {
     update(context, m, oldExtent);
   }
 
-  public static SortedMap<Text,SortedMap<ColumnFQ,Value>> getTabletEntries(
-      SortedMap<Key,Value> tabletKeyValues, List<ColumnFQ> columns) {
+  public static SortedMap<Text,SortedMap<ColumnFQ,Value>>
+      getTabletEntries(SortedMap<Key,Value> tabletKeyValues, List<ColumnFQ> columns) {
     TreeMap<Text,SortedMap<ColumnFQ,Value>> tabletEntries = new TreeMap<>();
 
     HashSet<ColumnFQ> colSet = null;

@@ -61,8 +61,8 @@ public class SetIterCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
       ShellCommandException {
 
-    boolean tables = cl.hasOption(OptUtil.tableOpt().getOpt())
-        || !shellState.getTableName().isEmpty();
+    boolean tables =
+        cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
     final int priority = Integer.parseInt(cl.getOptionValue(priorityOpt.getOpt()));
@@ -72,8 +72,8 @@ public class SetIterCommand extends Command {
     if (cl.hasOption(aggTypeOpt.getOpt())) {
       Shell.log.warn("aggregators are deprecated");
       @SuppressWarnings("deprecation")
-      String deprecatedClassName = org.apache.accumulo.core.iterators.AggregatingIterator.class
-          .getName();
+      String deprecatedClassName =
+          org.apache.accumulo.core.iterators.AggregatingIterator.class.getName();
       classname = deprecatedClassName;
     } else if (cl.hasOption(regexTypeOpt.getOpt())) {
       classname = RegExFilter.class.getName();
@@ -152,7 +152,7 @@ public class SetIterCommand extends Command {
     final String aggregatorClass = options.get("aggregatorClass");
     @SuppressWarnings("deprecation")
     String deprecatedAggregatorClassName =
-      org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
+        org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
     if (aggregatorClass != null && !shellState.getConnector().tableOperations()
         .testClassLoad(tableName, aggregatorClass, deprecatedAggregatorClassName)) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
@@ -201,7 +201,7 @@ public class SetIterCommand extends Command {
     final String aggregatorClass = options.get("aggregatorClass");
     @SuppressWarnings("deprecation")
     String deprecatedAggregatorClassName =
-      org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
+        org.apache.accumulo.core.iterators.aggregation.Aggregator.class.getName();
     if (aggregatorClass != null && !shellState.getConnector().namespaceOperations()
         .testClassLoad(namespace, aggregatorClass, deprecatedAggregatorClassName)) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE,
@@ -413,14 +413,14 @@ public class SetIterCommand extends Command {
   }
 
   private void setScopeOptions(Options o) {
-    allScopeOpt = new Option("all", "all-scopes", false,
-        "applied at scan time, minor and major compactions");
+    allScopeOpt =
+        new Option("all", "all-scopes", false, "applied at scan time, minor and major compactions");
     mincScopeOpt = new Option(IteratorScope.minc.name(), "minor-compaction", false,
         "applied at minor compaction");
     majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false,
         "applied at major compaction");
-    scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false,
-        "applied at scan time");
+    scanScopeOpt =
+        new Option(IteratorScope.scan.name(), "scan-time", false, "applied at scan time");
     o.addOption(allScopeOpt);
     o.addOption(mincScopeOpt);
     o.addOption(majcScopeOpt);

@@ -306,15 +306,15 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   private final VolumeManager fs;
 
-  private final SortedMap<KeyExtent,Tablet> onlineTablets = Collections
-      .synchronizedSortedMap(new TreeMap<KeyExtent,Tablet>());
-  private final SortedSet<KeyExtent> unopenedTablets = Collections
-      .synchronizedSortedSet(new TreeSet<KeyExtent>());
-  private final SortedSet<KeyExtent> openingTablets = Collections
-      .synchronizedSortedSet(new TreeSet<KeyExtent>());
+  private final SortedMap<KeyExtent,Tablet> onlineTablets =
+      Collections.synchronizedSortedMap(new TreeMap<KeyExtent,Tablet>());
+  private final SortedSet<KeyExtent> unopenedTablets =
+      Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
+  private final SortedSet<KeyExtent> openingTablets =
+      Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
   @SuppressWarnings("unchecked")
-  private final Map<KeyExtent,Long> recentlyUnloadedCache = Collections
-      .synchronizedMap(new LRUMap(1000));
+  private final Map<KeyExtent,Long> recentlyUnloadedCache =
+      Collections.synchronizedMap(new LRUMap(1000));
 
   private final TabletServerResourceManager resourceManager;
   private final SecurityOperation security;
@@ -375,26 +375,26 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
     final long walogMaxSize = aconf.getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE);
     final long walogMaxAge = aconf.getTimeInMillis(Property.TSERV_WALOG_MAX_AGE);
-    final long minBlockSize = CachedConfiguration.getInstance()
-        .getLong("dfs.namenode.fs-limits.min-block-size", 0);
+    final long minBlockSize =
+        CachedConfiguration.getInstance().getLong("dfs.namenode.fs-limits.min-block-size", 0);
     if (minBlockSize != 0 && minBlockSize > walogMaxSize)
       throw new RuntimeException("Unable to start TabletServer. Logger is set to use blocksize "
           + walogMaxSize + " but hdfs minimum block size is " + minBlockSize
           + ". Either increase the " + Property.TSERV_WALOG_MAX_SIZE
           + " or decrease dfs.namenode.fs-limits.min-block-size in hdfs-site.xml.");
 
-    final long toleratedWalCreationFailures = aconf
-        .getCount(Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES);
-    final long walFailureRetryIncrement = aconf
-        .getTimeInMillis(Property.TSERV_WALOG_TOLERATED_WAIT_INCREMENT);
-    final long walFailureRetryMax = aconf
-        .getTimeInMillis(Property.TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION);
-    final RetryFactory walCreationRetryFactory = Retry.builder()
-        .maxRetries(toleratedWalCreationFailures)
-        .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-        .incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-        .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).logInterval(3, TimeUnit.MINUTES)
-        .createFactory();
+    final long toleratedWalCreationFailures =
+        aconf.getCount(Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES);
+    final long walFailureRetryIncrement =
+        aconf.getTimeInMillis(Property.TSERV_WALOG_TOLERATED_WAIT_INCREMENT);
+    final long walFailureRetryMax =
+        aconf.getTimeInMillis(Property.TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION);
+    final RetryFactory walCreationRetryFactory =
+        Retry.builder().maxRetries(toleratedWalCreationFailures)
+            .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
+            .incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
+            .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).logInterval(3, TimeUnit.MINUTES)
+            .createFactory();
     // Tolerate infinite failures for the write, however backing off the same as for creation
     // failures.
     final RetryFactory walWritingRetryFactory = Retry.builder().infiniteRetries()
@@ -426,9 +426,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       log.info("SASL is enabled, creating ZooKeeper watcher for AuthenticationKeys");
       // Watcher to notice new AuthenticationKeys which enable delegation tokens
-      authKeyWatcher = new ZooAuthenticationKeyWatcher(getSecretManager(),
-          ZooReaderWriter.getInstance(),
-          ZooUtil.getRoot(instance) + Constants.ZDELEGATION_TOKEN_KEYS);
+      authKeyWatcher =
+          new ZooAuthenticationKeyWatcher(getSecretManager(), ZooReaderWriter.getInstance(),
+              ZooUtil.getRoot(instance) + Constants.ZDELEGATION_TOKEN_KEYS);
     } else {
       authKeyWatcher = null;
     }
@@ -604,8 +604,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         TSampleNotPresentException {
 
       if (scanSession.nextBatchTask == null) {
-        scanSession.nextBatchTask = new NextBatchTask(TabletServer.this, scanID,
-            scanSession.interruptFlag);
+        scanSession.nextBatchTask =
+            new NextBatchTask(TabletServer.this, scanID, scanSession.interruptFlag);
         resourceManager.executeReadAhead(scanSession.extent, scanSession.nextBatchTask);
       }
 
@@ -640,8 +640,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           throw new NoSuchScanIDException();
       } catch (TimeoutException e) {
         List<TKeyValue> param = Collections.emptyList();
-        long timeout = TabletServer.this.getConfiguration()
-            .getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
+        long timeout =
+            TabletServer.this.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
         sessionManager.removeIfNotAccessed(scanID, timeout);
         return new ScanResult(param, true);
       } catch (Throwable t) {
@@ -659,8 +659,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       if (scanResult.more && scanSession.batchCount > scanSession.readaheadThreshold) {
         // start reading next batch while current batch is transmitted
         // to client
-        scanSession.nextBatchTask = new NextBatchTask(TabletServer.this, scanID,
-            scanSession.interruptFlag);
+        scanSession.nextBatchTask =
+            new NextBatchTask(TabletServer.this, scanID, scanSession.interruptFlag);
         resourceManager.executeReadAhead(scanSession.extent, scanSession.nextBatchTask);
       }
 
@@ -789,8 +789,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
 
       try {
-        MultiScanResult scanResult = session.lookupTask.get(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS,
-            TimeUnit.MILLISECONDS);
+        MultiScanResult scanResult =
+            session.lookupTask.get(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
         session.lookupTask = null;
         return scanResult;
       } catch (ExecutionException e) {
@@ -802,8 +802,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           throw new RuntimeException(e);
         }
       } catch (TimeoutException e1) {
-        long timeout = TabletServer.this.getConfiguration()
-            .getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
+        long timeout =
+            TabletServer.this.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
         sessionManager.removeIfNotAccessed(scanID, timeout);
         List<TKeyValue> results = Collections.emptyList();
         Map<TKeyExtent,List<TRange>> failures = Collections.emptyMap();
@@ -843,8 +843,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       if (updateMetrics.isEnabled())
         updateMetrics.add(TabletServerUpdateMetrics.PERMISSION_ERRORS, 0);
 
-      UpdateSession us = new UpdateSession(new TservConstraintEnv(security, credentials),
-          credentials, durability);
+      UpdateSession us =
+          new UpdateSession(new TservConstraintEnv(security, credentials), credentials, durability);
       long sid = sessionManager.createSession(us, false);
       return sid;
     }
@@ -1254,8 +1254,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     private void checkConditions(Map<KeyExtent,List<ServerConditionalMutation>> updates,
         ArrayList<TCMResult> results, ConditionalSession cs, List<String> symbols)
         throws IOException {
-      Iterator<Entry<KeyExtent,List<ServerConditionalMutation>>> iter = updates.entrySet()
-          .iterator();
+      Iterator<Entry<KeyExtent,List<ServerConditionalMutation>>> iter =
+          updates.entrySet().iterator();
 
       final CompressedIterators compressedIters = new CompressedIterators(symbols);
       ConditionCheckerContext checkerContext = new ConditionCheckerContext(compressedIters,
@@ -1270,12 +1270,12 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
           iter.remove();
         } else {
-          final List<ServerConditionalMutation> okMutations = new ArrayList<>(
-              entry.getValue().size());
+          final List<ServerConditionalMutation> okMutations =
+              new ArrayList<>(entry.getValue().size());
           final List<TCMResult> resultsSubList = results.subList(results.size(), results.size());
 
-          ConditionChecker checker = checkerContext.newChecker(entry.getValue(), okMutations,
-              resultsSubList);
+          ConditionChecker checker =
+              checkerContext.newChecker(entry.getValue(), okMutations, resultsSubList);
           try {
             tablet.checkConditions(checker, cs.auths, cs.interruptFlag);
 
@@ -1319,8 +1319,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             try {
 
               @SuppressWarnings("unchecked")
-              List<Mutation> mutations = (List<Mutation>) (List<? extends Mutation>) entry
-                  .getValue();
+              List<Mutation> mutations =
+                  (List<Mutation>) (List<? extends Mutation>) entry.getValue();
               if (mutations.size() > 0) {
 
                 CommitSession cs = tablet.prepareMutationsForCommit(
@@ -1460,9 +1460,9 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           throw new ThriftSecurityException(credentials.getPrincipal(),
               SecurityErrorCode.BAD_AUTHORIZATIONS);
 
-      ConditionalSession cs = new ConditionalSession(credentials,
-          new Authorizations(authorizations), tableId, DurabilityImpl.fromThrift(tdurabilty),
-          classLoaderContext);
+      ConditionalSession cs =
+          new ConditionalSession(credentials, new Authorizations(authorizations), tableId,
+              DurabilityImpl.fromThrift(tdurabilty), classLoaderContext);
 
       long sid = sessionManager.createSession(cs, false);
       return new TConditionalSession(sid, lockID, sessionManager.getMaxIdleTime());
@@ -1503,8 +1503,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
         ArrayList<TCMResult> results = new ArrayList<>();
 
-        Map<KeyExtent,List<ServerConditionalMutation>> deferred = conditionalUpdate(cs, updates,
-            results, symbols);
+        Map<KeyExtent,List<ServerConditionalMutation>> deferred =
+            conditionalUpdate(cs, updates, results, symbols);
 
         while (deferred.size() > 0) {
           deferred = conditionalUpdate(cs, deferred, results, symbols);
@@ -1645,8 +1645,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       }
 
       if (lock != null) {
-        ZooUtil.LockID lid = new ZooUtil.LockID(
-            ZooUtil.getRoot(getInstance()) + Constants.ZMASTER_LOCK, lock);
+        ZooUtil.LockID lid =
+            new ZooUtil.LockID(ZooUtil.getRoot(getInstance()) + Constants.ZMASTER_LOCK, lock);
 
         try {
           if (!ZooLock.isLockHeld(masterLockCache, lid)) {
@@ -1700,8 +1700,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
               // ignore any tablets that have recently split, for error logging
               for (KeyExtent e2 : onlineOverlapping) {
                 Tablet tablet = onlineTablets.get(e2);
-                if (System.currentTimeMillis()
-                    - tablet.getSplitCreationTime() < RECENTLY_SPLIT_MILLIES) {
+                if (System.currentTimeMillis() - tablet.getSplitCreationTime()
+                    < RECENTLY_SPLIT_MILLIES) {
                   all.remove(e2);
                 }
               }
@@ -1779,8 +1779,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
       ArrayList<Tablet> tabletsToFlush = new ArrayList<>();
 
-      KeyExtent ke = new KeyExtent(tableId, ByteBufferUtil.toText(endRow),
-          ByteBufferUtil.toText(startRow));
+      KeyExtent ke =
+          new KeyExtent(tableId, ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
 
       synchronized (onlineTablets) {
         for (Tablet tablet : onlineTablets.values())
@@ -1905,8 +1905,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         throw new RuntimeException(e);
       }
 
-      KeyExtent ke = new KeyExtent(tableId, ByteBufferUtil.toText(endRow),
-          ByteBufferUtil.toText(startRow));
+      KeyExtent ke =
+          new KeyExtent(tableId, ByteBufferUtil.toText(endRow), ByteBufferUtil.toText(startRow));
 
       ArrayList<Tablet> tabletsToCompact = new ArrayList<>();
       synchronized (onlineTablets) {
@@ -2058,8 +2058,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
             }
           }
 
-          int idleCompactionsToStart = Math.max(1,
-              getConfiguration().getCount(Property.TSERV_MAJC_MAXCONCURRENT) / 2);
+          int idleCompactionsToStart =
+              Math.max(1, getConfiguration().getCount(Property.TSERV_MAJC_MAXCONCURRENT) / 2);
 
           if (numMajorCompactionsInProgress < idleCompactionsToStart) {
             // system is not major compacting, can schedule some
@@ -2311,9 +2311,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       Text locationToOpen = null;
       SortedMap<Key,Value> tabletsKeyValues = new TreeMap<>();
       try {
-        Pair<Text,KeyExtent> pair = verifyTabletInformation(TabletServer.this, extent,
-            TabletServer.this.getTabletSession(), tabletsKeyValues, getClientAddressString(),
-            getLock());
+        Pair<Text,
+            KeyExtent> pair = verifyTabletInformation(TabletServer.this, extent,
+                TabletServer.this.getTabletSession(), tabletsKeyValues, getClientAddressString(),
+                getLock());
         if (pair != null) {
           locationToOpen = pair.getFirst();
           if (pair.getSecond() != null) {
@@ -2361,8 +2362,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       try {
         acquireRecoveryMemory(extent);
 
-        TabletResourceManager trm = resourceManager.createTabletResourceManager(extent,
-            getTableConfiguration(extent));
+        TabletResourceManager trm =
+            resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
         TabletData data;
         if (extent.isRootTablet()) {
           data = new TabletData(fs, ZooReaderWriter.getInstance(), getTableConfiguration(extent));
@@ -2466,8 +2467,7 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private HostAndPort startServer(AccumuloConfiguration conf, String address, Property portHint,
       TProcessor processor, String threadName) throws UnknownHostException {
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
-        ? Property.TSERV_MAX_MESSAGE_SIZE
-        : Property.GENERAL_MAX_MESSAGE_SIZE);
+        ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(this, address, portHint, processor,
         this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
         Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK, maxMessageSizeProperty);
@@ -2494,8 +2494,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       if (address == null) {
         return null;
       }
-      MasterClientService.Client client = ThriftUtil
-          .getClient(new MasterClientService.Client.Factory(), address, this);
+      MasterClientService.Client client =
+          ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, this);
       // log.info("Listener API to master has been opened");
       return client;
     } catch (Exception e) {
@@ -2530,14 +2530,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     final ReplicationServicerHandler handler = new ReplicationServicerHandler(this);
     ReplicationServicer.Iface rpcProxy = RpcWrapper.service(handler,
         new ReplicationServicer.Processor<ReplicationServicer.Iface>(handler));
-    ReplicationServicer.Iface repl = TCredentialsUpdatingWrapper.service(rpcProxy,
-        handler.getClass(), getConfiguration());
+    ReplicationServicer.Iface repl =
+        TCredentialsUpdatingWrapper.service(rpcProxy, handler.getClass(), getConfiguration());
     ReplicationServicer.Processor<ReplicationServicer.Iface> processor =
-      new ReplicationServicer.Processor<>(repl);
+        new ReplicationServicer.Processor<>(repl);
     AccumuloConfiguration conf = getServerConfigurationFactory().getConfiguration();
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
-        ? Property.TSERV_MAX_MESSAGE_SIZE
-        : Property.GENERAL_MAX_MESSAGE_SIZE);
+        ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(this, clientAddress.getHost(),
         Property.REPLICATION_RECEIPT_SERVICE_PORT, processor, "ReplicationServicerHandler",
         "Replication Servicer", null, Property.REPLICATION_MIN_THREADS,
@@ -2568,8 +2567,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   private void announceExistence() {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
-      String zPath = ZooUtil.getRoot(getInstance()) + Constants.ZTSERVERS + "/"
-          + getClientAddressString();
+      String zPath =
+          ZooUtil.getRoot(getInstance()) + Constants.ZTSERVERS + "/" + getClientAddressString();
 
       try {
         zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
@@ -2872,8 +2871,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     if (extent.isMeta())
       tableToVerify = RootTable.ID;
 
-    List<ColumnFQ> columnsToFetch = Arrays
-        .asList(new ColumnFQ[] {TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
+    List<ColumnFQ> columnsToFetch =
+        Arrays.asList(new ColumnFQ[] {TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
             TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
             TabletsSection.TabletColumnFamily.SPLIT_RATIO_COLUMN,
             TabletsSection.TabletColumnFamily.OLD_PREV_ROW_COLUMN,
@@ -3023,8 +3022,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
 
   public void config(String hostname) {
     log.info("Tablet server starting on " + hostname);
-    majorCompactorThread = new Daemon(
-        new LoggingRunnable(log, new MajorCompactor(getConfiguration())));
+    majorCompactorThread =
+        new Daemon(new LoggingRunnable(log, new MajorCompactor(getConfiguration())));
     majorCompactorThread.setName("Split/MajC initiator");
     majorCompactorThread.start();
 
@@ -3196,8 +3195,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
       ServerOpts opts = new ServerOpts();
       opts.parseArgs(app, args);
       String hostname = opts.getAddress();
-      ServerConfigurationFactory conf = new ServerConfigurationFactory(
-          HdfsZooInstance.getInstance());
+      ServerConfigurationFactory conf =
+          new ServerConfigurationFactory(HdfsZooInstance.getInstance());
       VolumeManager fs = VolumeManagerImpl.get();
       MetricsSystemHelper.configure(TabletServer.class.getSimpleName());
       Accumulo.init(fs, conf, app);
@@ -3262,8 +3261,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     });
     for (LogEntry entry : sorted) {
       Path recovery = null;
-      Path finished = RecoveryPath.getRecoveryPath(fs,
-          fs.getFullPath(FileType.WAL, entry.filename));
+      Path finished =
+          RecoveryPath.getRecoveryPath(fs, fs.getFullPath(FileType.WAL, entry.filename));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
       if (fs.exists(finished)) {
@@ -3335,7 +3334,8 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
   }
 
   // avoid unnecessary redundant markings to meta
-  final ConcurrentHashMap<DfsLogger,EnumSet<TabletLevel>> metadataTableLogs = new ConcurrentHashMap<>();
+  final ConcurrentHashMap<DfsLogger,EnumSet<TabletLevel>> metadataTableLogs =
+      new ConcurrentHashMap<>();
   final Object levelLocks[] = new Object[TabletLevel.values().length];
 
   {

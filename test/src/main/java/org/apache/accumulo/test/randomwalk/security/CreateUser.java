@@ -30,9 +30,9 @@ public class CreateUser extends Test {
 
   @Override
   public void visit(State state, Environment env, Properties props) throws Exception {
-    Connector conn = env.getInstance().getConnector(
-        WalkingSecurity.get(state, env).getSysUserName(),
-        WalkingSecurity.get(state, env).getSysToken());
+    Connector conn =
+        env.getInstance().getConnector(WalkingSecurity.get(state, env).getSysUserName(),
+            WalkingSecurity.get(state, env).getSysToken());
 
     String tableUserName = WalkingSecurity.get(state, env).getTabUserName();
 

@@ -205,8 +205,8 @@ public class TableConfiguration extends ObservableConfiguration {
       List<IterInfo> iters = new ArrayList<>();
       Map<String,Map<String,String>> allOptions = new HashMap<>();
       IteratorUtil.parseIterConf(scope, iters, allOptions, this);
-      ParsedIteratorConfig newPic = new ParsedIteratorConfig(iters, allOptions,
-          get(Property.TABLE_CLASSPATH), count);
+      ParsedIteratorConfig newPic =
+          new ParsedIteratorConfig(iters, allOptions, get(Property.TABLE_CLASSPATH), count);
       ref.compareAndSet(pic, newPic);
       pic = newPic;
     }

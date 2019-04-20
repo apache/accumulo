@@ -96,8 +96,8 @@ public class BlockIndexTest {
 
       BlockIndexEntry bie;
 
-      bie = blockIndex.seekBlock(new Key(RFileTest.formatString("", row), "cf1", "cq1"),
-          cacheBlock);
+      bie =
+          blockIndex.seekBlock(new Key(RFileTest.formatString("", row), "cf1", "cq1"), cacheBlock);
       if (i == 0)
         assertSame(null, bie);
       else

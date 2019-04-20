@@ -172,10 +172,10 @@ public class CreateTableCommand extends Command {
   public Options getOptions() {
     final Options o = new Options();
 
-    createTableOptCopyConfig = new Option("cc", "copy-config", true,
-        "table to copy configuration from");
-    createTableOptCopySplits = new Option("cs", "copy-splits", true,
-        "table to copy current splits from");
+    createTableOptCopyConfig =
+        new Option("cc", "copy-config", true, "table to copy configuration from");
+    createTableOptCopySplits =
+        new Option("cs", "copy-splits", true, "table to copy current splits from");
     createTableOptSplit = new Option("sf", "splits-file", true,
         "file with a newline-separated list of rows to split the table with");
     createTableOptTimeLogical = new Option("tl", "time-logical", false, "use logical time");
@@ -186,8 +186,8 @@ public class CreateTableCommand extends Command {
         "prevent users from writing data they cannot read. When enabling this,"
             + " consider disabling bulk import and alter table.");
     createTableOptFormatter = new Option("f", "formatter", true, "default formatter to set");
-    createTableOptInitProp = new Option("prop", "init-properties", true,
-        "user defined initial properties");
+    createTableOptInitProp =
+        new Option("prop", "init-properties", true, "user defined initial properties");
 
     createTableOptCopyConfig.setArgName("table");
     createTableOptCopySplits.setArgName("table");

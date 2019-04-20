@@ -93,8 +93,8 @@ public class LargeRowIT extends AccumuloClusterHarness {
     PRE_SPLIT_TABLE_NAME = names[1];
 
     Connector c = getConnector();
-    tservMajcDelay = c.instanceOperations().getSystemConfiguration()
-        .get(Property.TSERV_MAJC_DELAY.getKey());
+    tservMajcDelay =
+        c.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
     c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "10ms");
   }
 

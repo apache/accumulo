@@ -249,8 +249,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
    * @see #setConnectorInfo(Job, String, String)
    */
   protected static AuthenticationToken getAuthenticationToken(JobContext context) {
-    AuthenticationToken token = InputConfigurator.getAuthenticationToken(CLASS,
-        context.getConfiguration());
+    AuthenticationToken token =
+        InputConfigurator.getAuthenticationToken(CLASS, context.getConfiguration());
     return ConfiguratorBase.unwrapAuthenticationToken(context, token);
   }
 
@@ -624,8 +624,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
                 authorizations);
           } else {
             ClientConfiguration clientConf = getClientConfiguration(attempt);
-            ClientContext context = new ClientContext(instance, new Credentials(principal, token),
-                clientConf);
+            ClientContext context =
+                new ClientContext(instance, new Credentials(principal, token), clientConf);
             scanner = new ScannerImpl(context, split.getTableId(), authorizations);
           }
           if (isIsolated) {
@@ -778,8 +778,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         throw new IllegalArgumentException(
             "AutoAdjustRanges must be enabled when using BatchScanner optimization");
 
-      List<Range> ranges = autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges())
-          : tableConfig.getRanges();
+      List<Range> ranges =
+          autoAdjust ? Range.mergeOverlapping(tableConfig.getRanges()) : tableConfig.getRanges();
       if (ranges.isEmpty()) {
         ranges = new ArrayList<>(1);
         ranges.add(new Range());
@@ -849,8 +849,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             ArrayList<Range> clippedRanges = new ArrayList<>();
             for (Range r : extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
-            BatchInputSplit split = new BatchInputSplit(tableName, tableId, clippedRanges,
-                new String[] {location});
+            BatchInputSplit split =
+                new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
             SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
 
             splits.add(split);
@@ -859,8 +859,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
             for (Range r : extentRanges.getValue()) {
               if (autoAdjust) {
                 // divide ranges into smaller ranges, based on the tablets
-                RangeInputSplit split = new RangeInputSplit(tableName, tableId, ke.clip(r),
-                    new String[] {location});
+                RangeInputSplit split =
+                    new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location});
                 SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths,
                     logLevel);
                 split.setOffline(tableConfig.isOfflineScan());

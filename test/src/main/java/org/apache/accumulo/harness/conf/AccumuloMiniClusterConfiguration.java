@@ -58,8 +58,8 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
     }
 
     this.conf = getConfiguration(type);
-    this.saslEnabled = TRUE
-        .equals(System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION));
+    this.saslEnabled =
+        TRUE.equals(System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION));
     log.debug("SASL is {}enabled", (saslEnabled ? "" : "not "));
   }
 

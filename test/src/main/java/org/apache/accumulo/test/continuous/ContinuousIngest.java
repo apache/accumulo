@@ -60,8 +60,8 @@ public class ContinuousIngest {
     visibilities = new ArrayList<>();
 
     FileSystem fs = FileSystem.get(new Configuration());
-    BufferedReader in = new BufferedReader(
-        new InputStreamReader(fs.open(new Path(opts.visFile)), UTF_8));
+    BufferedReader in =
+        new BufferedReader(new InputStreamReader(fs.open(new Path(opts.visFile)), UTF_8));
 
     String line;
 
@@ -95,8 +95,8 @@ public class ContinuousIngest {
           "Consult the README and create the table before starting ingest.");
     }
 
-    BatchWriter bw = conn.createBatchWriter(clientOpts.getTableName(),
-        bwOpts.getBatchWriterConfig());
+    BatchWriter bw =
+        conn.createBatchWriter(clientOpts.getTableName(), bwOpts.getBatchWriterConfig());
     bw = Trace.wrapAll(bw, new CountSampler(1024));
 
     Random r = new Random();
@@ -136,8 +136,8 @@ public class ContinuousIngest {
         firstColFams[index] = cf;
         firstColQuals[index] = cq;
 
-        Mutation m = genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null, r,
-            opts.checksum);
+        Mutation m =
+            genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null, r, opts.checksum);
         count++;
         bw.addMutation(m);
       }

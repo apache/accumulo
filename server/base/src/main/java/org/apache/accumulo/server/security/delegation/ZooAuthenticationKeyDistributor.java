@@ -105,7 +105,7 @@ public class ZooAuthenticationKeyDistributor {
 
     // Shortcircuit to avoid a list creation
     if (children.isEmpty()) {
-      return Collections.<AuthenticationKey> emptyList();
+      return Collections.<AuthenticationKey>emptyList();
     }
 
     // Deserialize each byte[] into an AuthenticationKey

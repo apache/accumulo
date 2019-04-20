@@ -62,9 +62,9 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
       log.info("HardListIterator ignores/replaces parent source passed in init(): " + source);
 
     IteratorUtil.IteratorScope scope = env.getIteratorScope();
-    log.debug(this.getClass() + ": init on scope " + scope
-        + (scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction()
-            : ""));
+    log.debug(
+        this.getClass() + ": init on scope " + scope + (scope == IteratorUtil.IteratorScope.majc
+            ? " fullScan=" + env.isFullMajorCompaction() : ""));
 
     // define behavior before seek as seek to start at negative infinity
     inner = new PeekingIterator<>(allEntriesToInject.entrySet().iterator());

@@ -272,8 +272,8 @@ public class ZooKeeperInstance implements Instance {
   @Override
   public String getInstanceName() {
     if (instanceName == null)
-      instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache,
-          UUID.fromString(getInstanceID()));
+      instanceName =
+          InstanceOperationsImpl.lookupInstanceName(zooCache, UUID.fromString(getInstanceID()));
 
     return instanceName;
   }

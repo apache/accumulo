@@ -164,8 +164,8 @@ public class ZooKeeperInstanceTest {
         .andReturn(IID_STRING.getBytes(UTF_8));
     expect(zc.get(Constants.ZROOT + "/" + IID_STRING)).andReturn("yup".getBytes());
     replay(zc, factory);
-    ClientConfiguration cfg = ClientConfiguration.loadDefault().withInstance(instanceName)
-        .withZkHosts(zookeepers);
+    ClientConfiguration cfg =
+        ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeepers);
     ZooKeeperInstance zki = new ZooKeeperInstance(cfg, factory);
     assertEquals(zookeepers, zki.getZooKeepers());
     assertEquals(instanceName, zki.getInstanceName());

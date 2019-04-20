@@ -173,9 +173,9 @@ public class BulkInsert extends Test {
   private void sort(State state, Environment env, FileSystem fs, String tableName, String seqFile,
       String outputDir, String workDir, int maxSplits) throws Exception {
 
-    PrintStream out = new PrintStream(
-        new BufferedOutputStream(fs.create(new Path(workDir + "/splits.txt"))), false,
-        UTF_8.name());
+    PrintStream out =
+        new PrintStream(new BufferedOutputStream(fs.create(new Path(workDir + "/splits.txt"))),
+            false, UTF_8.name());
 
     Connector conn = env.getConnector();
 

@@ -60,8 +60,8 @@ public class AlterTablePerm extends Test {
     } else
       tabPerm = TablePermission.valueOf(perm);
     String tableName = WalkingSecurity.get(state, env).getTableName();
-    boolean hasPerm = WalkingSecurity.get(state, env).hasTablePermission(target, tableName,
-        tabPerm);
+    boolean hasPerm =
+        WalkingSecurity.get(state, env).hasTablePermission(target, tableName, tabPerm);
     boolean canGive;
     String sourceUser;
     AuthenticationToken sourceToken;
@@ -86,8 +86,8 @@ public class AlterTablePerm extends Test {
     if (!"take".equals(action) && !"give".equals(action)) {
       try {
         boolean res;
-        if (hasPerm != (res = env.getConnector().securityOperations().hasTablePermission(target,
-            tableName, tabPerm)))
+        if (hasPerm != (res =
+            env.getConnector().securityOperations().hasTablePermission(target, tableName, tabPerm)))
           throw new AccumuloException(
               "Test framework and accumulo are out of sync for user " + conn.whoami() + " for perm "
                   + tabPerm.name() + " with local vs. accumulo being " + hasPerm + " " + res);

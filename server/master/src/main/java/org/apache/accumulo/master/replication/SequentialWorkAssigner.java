@@ -46,6 +46,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
   private static final Logger log = LoggerFactory.getLogger(SequentialWorkAssigner.class);
   private static final String NAME = "Sequential Work Assigner";
 
+  // @formatter:off
   /*
    * {
    *    peer1 => {sourceTableId1 => work_queue_key1, sourceTableId2 => work_queue_key2, ...}
@@ -53,6 +54,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
    *    ...
    * }
    */
+  // @formatter:on
   private Map<String,Map<String,String>> queuedWorkByPeerName;
 
   public SequentialWorkAssigner() {}
@@ -94,8 +96,8 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
     log.info("Restoring replication work queue state from zookeeper");
 
     for (String work : existingWork) {
-      Entry<String,ReplicationTarget> entry = DistributedWorkQueueWorkAssignerHelper
-          .fromQueueKey(work);
+      Entry<String,ReplicationTarget> entry =
+          DistributedWorkQueueWorkAssignerHelper.fromQueueKey(work);
       String filename = entry.getKey();
       String peerName = entry.getValue().getPeerName();
       String sourceTableId = entry.getValue().getSourceTableId();
@@ -118,8 +120,8 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
    */
   @Override
   protected void cleanupFinishedWork() {
-    final Iterator<Entry<String,Map<String,String>>> queuedWork = queuedWorkByPeerName.entrySet()
-        .iterator();
+    final Iterator<Entry<String,Map<String,String>>> queuedWork =
+        queuedWorkByPeerName.entrySet().iterator();
     final String instanceId = conn.getInstance().getInstanceID();
 
     int elementsRemoved = 0;

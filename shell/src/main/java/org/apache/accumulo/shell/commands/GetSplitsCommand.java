@@ -62,8 +62,8 @@ public class GetSplitsCommand extends Command {
     final boolean encode = cl.hasOption(base64Opt.getOpt());
     final boolean verbose = cl.hasOption(verboseOpt.getOpt());
 
-    final PrintLine p = outputFile == null ? new PrintShell(shellState.getReader())
-        : new PrintFile(outputFile);
+    final PrintLine p =
+        outputFile == null ? new PrintShell(shellState.getReader()) : new PrintFile(outputFile);
 
     try {
       if (!verbose) {
@@ -73,13 +73,13 @@ public class GetSplitsCommand extends Command {
           p.print(encode(encode, row));
         }
       } else {
-        String systemTableToCheck = MetadataTable.NAME.equals(tableName) ? RootTable.NAME
-            : MetadataTable.NAME;
-        final Scanner scanner = shellState.getConnector().createScanner(systemTableToCheck,
-            Authorizations.EMPTY);
+        String systemTableToCheck =
+            MetadataTable.NAME.equals(tableName) ? RootTable.NAME : MetadataTable.NAME;
+        final Scanner scanner =
+            shellState.getConnector().createScanner(systemTableToCheck, Authorizations.EMPTY);
         TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-        final Text start = new Text(
-            shellState.getConnector().tableOperations().tableIdMap().get(tableName));
+        final Text start =
+            new Text(shellState.getConnector().tableOperations().tableIdMap().get(tableName));
         final Text end = new Text(start);
         end.append(new byte[] {'<'}, 0, 1);
         scanner.setRange(new Range(start, end));
@@ -143,14 +143,14 @@ public class GetSplitsCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the splits to");
     outputFileOpt.setArgName("file");
 
-    maxSplitsOpt = new Option("m", "max", true,
-        "maximum number of splits to return (evenly spaced)");
+    maxSplitsOpt =
+        new Option("m", "max", true, "maximum number of splits to return (evenly spaced)");
     maxSplitsOpt.setArgName("num");
 
     base64Opt = new Option("b64", "base64encoded", false, "encode the split points");
 
-    verboseOpt = new Option("v", "verbose", false,
-        "print out the tablet information with start/end rows");
+    verboseOpt =
+        new Option("v", "verbose", false, "print out the tablet information with start/end rows");
 
     opts.addOption(outputFileOpt);
     opts.addOption(maxSplitsOpt);

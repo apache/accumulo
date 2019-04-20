@@ -78,8 +78,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       timer = new OpTimer().start();
     }
 
-    TreeSet<String> namespaces = new TreeSet<>(
-        Namespaces.getNameToIdMap(context.getInstance()).keySet());
+    TreeSet<String> namespaces =
+        new TreeSet<>(Namespaces.getNameToIdMap(context.getInstance()).keySet());
 
     if (timer != null) {
       timer.stop();
@@ -121,7 +121,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     try {
       doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE,
           Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8))),
-          Collections.<String,String> emptyMap(), namespace);
+          Collections.<String,String>emptyMap(), namespace);
     } catch (NamespaceNotFoundException e) {
       // should not happen
       throw new AssertionError(e);

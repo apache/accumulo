@@ -106,8 +106,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
 
     long fateTxid = 99999999L;
 
-    AccumuloServerContext asCtx = new AccumuloServerContext(
-        new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
+    AccumuloServerContext asCtx =
+        new AccumuloServerContext(new ServerConfigurationFactory(HdfsZooInstance.getInstance()));
     ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, fateTxid);
 
     VolumeManager vm = VolumeManagerImpl.get();
@@ -185,8 +185,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     fs.mkdirs(base);
     Path files = new Path(base, "files");
 
-    try (RFileWriter writer = RFile.newWriter().to(new Path(files, "ici_01.rf").toString())
-        .withFileSystem(fs).build()) {
+    try (RFileWriter writer =
+        RFile.newWriter().to(new Path(files, "ici_01.rf").toString()).withFileSystem(fs).build()) {
       writer.append(testData.entrySet());
     }
 

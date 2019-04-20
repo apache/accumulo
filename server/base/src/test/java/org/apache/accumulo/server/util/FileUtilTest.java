@@ -48,8 +48,8 @@ import org.junit.rules.TestName;
 public class FileUtilTest {
 
   @Rule
-  public TemporaryFolder tmpDir = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tmpDir =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Rule
   public TestName testName = new TestName();

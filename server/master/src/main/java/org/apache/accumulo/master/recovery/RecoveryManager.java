@@ -68,8 +68,9 @@ public class RecoveryManager {
     zooCache = new ZooCache();
     try {
       AccumuloConfiguration aconf = master.getConfiguration();
-      List<String> workIDs = new DistributedWorkQueue(
-          ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY, aconf).getWorkQueued();
+      List<String> workIDs =
+          new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY,
+              aconf).getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
       log.warn("{}", e.getMessage(), e);
@@ -138,8 +139,8 @@ public class RecoveryManager {
     for (Collection<String> logs : walogs) {
       for (String walog : logs) {
 
-        String switchedWalog = VolumeUtil.switchVolume(walog, FileType.WAL,
-            ServerConstants.getVolumeReplacements());
+        String switchedWalog =
+            VolumeUtil.switchVolume(walog, FileType.WAL, ServerConstants.getVolumeReplacements());
         if (switchedWalog != null) {
           // replaces the volume used for sorting, but do not change entry in metadata table. When
           // the tablet loads it will change the metadata table entry. If
@@ -151,8 +152,8 @@ public class RecoveryManager {
         String parts[] = walog.split("/");
         String sortId = parts[parts.length - 1];
         String filename = master.getFileSystem().getFullPath(FileType.WAL, walog).toString();
-        String dest = RecoveryPath.getRecoveryPath(master.getFileSystem(), new Path(filename))
-            .toString();
+        String dest =
+            RecoveryPath.getRecoveryPath(master.getFileSystem(), new Path(filename)).toString();
         log.debug("Recovering " + filename + " to " + dest);
 
         boolean sortQueued;

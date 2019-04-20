@@ -62,8 +62,8 @@ public class IsolationAndDeepCopyIT extends AccumuloClusterHarness {
     // its a bug when using rfiles, so flush
     conn.tableOperations().flush(table, null, null, true);
 
-    IteratorSetting iterCfg = new IteratorSetting(30, "ayeaye",
-        IntersectingIterator.class.getName());
+    IteratorSetting iterCfg =
+        new IteratorSetting(30, "ayeaye", IntersectingIterator.class.getName());
     IntersectingIterator.setColumnFamilies(iterCfg,
         new Text[] {new Text("the"), new Text("hamster")});
 

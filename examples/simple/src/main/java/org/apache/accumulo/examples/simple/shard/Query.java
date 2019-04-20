@@ -95,8 +95,8 @@ public class Query {
     BatchScanner bs = conn.createBatchScanner(opts.getTableName(), opts.auths, bsOpts.scanThreads);
     bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
     if (opts.useSample) {
-      SamplerConfiguration samplerConfig = conn.tableOperations()
-          .getSamplerConfiguration(opts.getTableName());
+      SamplerConfiguration samplerConfig =
+          conn.tableOperations().getSamplerConfiguration(opts.getTableName());
       CutoffIntersectingIterator.validateSamplerConfig(
           conn.tableOperations().getSamplerConfiguration(opts.getTableName()));
       bs.setSamplerConfiguration(samplerConfig);

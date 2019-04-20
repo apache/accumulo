@@ -219,8 +219,8 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   protected static final Table BAZ = new Table("baz", "3");
 
   protected final TestInstance instance = new TestInstance();
-  protected final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(
-      instance);
+  protected final TestServerConfigurationFactory factory =
+      new TestServerConfigurationFactory(instance);
   protected final Map<String,String> servers = new HashMap<>(15);
   protected final SortedMap<TServerInstance,TabletServerStatus> allTabletServers = new TreeMap<>();
   protected final Map<String,List<KeyExtent>> tableExtents = new HashMap<>(3);

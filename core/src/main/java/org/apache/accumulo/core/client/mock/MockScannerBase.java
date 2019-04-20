@@ -135,13 +135,13 @@ public class MockScannerBase extends ScannerOptions {
       throws IOException {
     byte[] defaultLabels = {};
     inner = new ColumnFamilySkippingIterator(new DeletingIterator(inner, false));
-    SortedKeyValueIterator<Key,Value> cqf = ColumnQualifierFilter.wrap(inner,
-        new HashSet<>(fetchedColumns));
+    SortedKeyValueIterator<Key,Value> cqf =
+        ColumnQualifierFilter.wrap(inner, new HashSet<>(fetchedColumns));
     SortedKeyValueIterator<Key,Value> vf = VisibilityFilter.wrap(cqf, auths, defaultLabels);
     AccumuloConfiguration conf = new MockConfiguration(table.settings);
     MockIteratorEnvironment iterEnv = new MockIteratorEnvironment(auths);
-    SortedKeyValueIterator<Key,Value> result = iterEnv
-        .getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, vf, null, conf,
+    SortedKeyValueIterator<Key,Value> result =
+        iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, vf, null, conf,
             serverSideIteratorList, serverSideIteratorOptions, iterEnv, false));
     return result;
   }

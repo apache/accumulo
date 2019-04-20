@@ -84,7 +84,7 @@ public class ZooAuthenticationKeyWatcherTest {
   public void testBaseNodeCreated() throws Exception {
     WatchedEvent event = new WatchedEvent(EventType.NodeCreated, null, baseNode);
 
-    expect(zk.getChildren(baseNode, keyWatcher)).andReturn(Collections.<String> emptyList());
+    expect(zk.getChildren(baseNode, keyWatcher)).andReturn(Collections.<String>emptyList());
     replay(instance, zk);
 
     keyWatcher.process(event);

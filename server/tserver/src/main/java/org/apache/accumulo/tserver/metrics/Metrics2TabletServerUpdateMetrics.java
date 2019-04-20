@@ -50,20 +50,20 @@ public class Metrics2TabletServerUpdateMetrics
     this.registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
     this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
 
-    permissionErrorsCounter = registry
-        .newCounter(Interns.info(PERMISSION_ERRORS, "Permission Errors"), 0l);
-    unknownTabletErrorsCounter = registry
-        .newCounter(Interns.info(UNKNOWN_TABLET_ERRORS, "Unknown Tablet Errors"), 0l);
-    constraintViolationsCounter = registry
-        .newCounter(Interns.info(CONSTRAINT_VIOLATIONS, "Table Constraint Violations"), 0l);
+    permissionErrorsCounter =
+        registry.newCounter(Interns.info(PERMISSION_ERRORS, "Permission Errors"), 0l);
+    unknownTabletErrorsCounter =
+        registry.newCounter(Interns.info(UNKNOWN_TABLET_ERRORS, "Unknown Tablet Errors"), 0l);
+    constraintViolationsCounter =
+        registry.newCounter(Interns.info(CONSTRAINT_VIOLATIONS, "Table Constraint Violations"), 0l);
 
-    commitPrepStat = registry.newStat(COMMIT_PREP, "preparing to commit mutations", "Ops", "Time",
-        true);
-    walogWriteTimeStat = registry.newStat(WALOG_WRITE_TIME, "writing mutations to WAL", "Ops",
-        "Time", true);
+    commitPrepStat =
+        registry.newStat(COMMIT_PREP, "preparing to commit mutations", "Ops", "Time", true);
+    walogWriteTimeStat =
+        registry.newStat(WALOG_WRITE_TIME, "writing mutations to WAL", "Ops", "Time", true);
     commitTimeStat = registry.newStat(COMMIT_TIME, "committing mutations", "Ops", "Time", true);
-    mutationArraySizeStat = registry.newStat(MUTATION_ARRAY_SIZE, "mutation array", "ops", "Size",
-        true);
+    mutationArraySizeStat =
+        registry.newStat(MUTATION_ARRAY_SIZE, "mutation array", "ops", "Size", true);
   }
 
   @Override

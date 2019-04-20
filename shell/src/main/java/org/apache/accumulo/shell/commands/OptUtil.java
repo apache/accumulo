@@ -82,8 +82,8 @@ public abstract class OptUtil {
   }
 
   public static Option namespaceOpt(final String description) {
-    final Option namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
-        description);
+    final Option namespaceOpt =
+        new Option(ShellOptions.namespaceOption, "namespace", true, description);
     namespaceOpt.setArgName("namespace");
     namespaceOpt.setRequired(false);
     return namespaceOpt;

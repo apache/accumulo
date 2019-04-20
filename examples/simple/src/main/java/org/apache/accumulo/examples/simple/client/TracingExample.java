@@ -101,8 +101,8 @@ public class TracingExample {
     TraceScope scope = Trace.startSpan("Client Write", Sampler.ALWAYS);
 
     System.out.println("TraceID: " + Long.toHexString(scope.getSpan().getTraceId()));
-    BatchWriter batchWriter = opts.getConnector().createBatchWriter(opts.getTableName(),
-        new BatchWriterConfig());
+    BatchWriter batchWriter =
+        opts.getConnector().createBatchWriter(opts.getTableName(), new BatchWriterConfig());
 
     Mutation m = new Mutation("row");
     m.put("cf", "cq", "value");

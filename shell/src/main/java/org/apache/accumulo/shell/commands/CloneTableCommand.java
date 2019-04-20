@@ -96,8 +96,8 @@ public class CloneTableCommand extends Command {
     excludePropsOption = new Option("e", "exclude", true,
         "exclude properties that should not be copied from source table. Expects <prop>{,<prop>}");
     o.addOption(excludePropsOption);
-    noFlushOption = new Option("nf", "noFlush", false,
-        "do not flush table data in memory before cloning.");
+    noFlushOption =
+        new Option("nf", "noFlush", false, "do not flush table data in memory before cloning.");
     o.addOption(noFlushOption);
     return o;
   }

@@ -57,8 +57,8 @@ public class MergeStateIT extends ConfigurableMacBase {
 
   private static class MockCurrentState implements CurrentState {
 
-    TServerInstance someTServer = new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234),
-        0x123456);
+    TServerInstance someTServer =
+        new TServerInstance(HostAndPort.fromParts("127.0.0.1", 1234), 0x123456);
     MergeInfo mergeInfo;
 
     MockCurrentState(MergeInfo info) {
@@ -135,8 +135,9 @@ public class MergeStateIT extends ConfigurableMacBase {
     bw.close();
 
     // Read out the TabletLocationStates
-    MockCurrentState state = new MockCurrentState(new MergeInfo(
-        new KeyExtent(tableId, new Text("p"), new Text("e")), MergeInfo.Operation.MERGE));
+    MockCurrentState state =
+        new MockCurrentState(new MergeInfo(new KeyExtent(tableId, new Text("p"), new Text("e")),
+            MergeInfo.Operation.MERGE));
 
     // Verify the tablet state: hosted, and count
     MetaDataStateStore metaDataStateStore = new MetaDataStateStore(context, state);

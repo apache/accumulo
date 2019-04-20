@@ -68,8 +68,8 @@ public class MultiThreadedRFileTest {
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder tempFolder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private static void checkIndex(Reader reader) throws IOException {
     FileSKVIterator indexIter = reader.getIndex();
@@ -148,8 +148,8 @@ public class MultiThreadedRFileTest {
       dos = fs.create(path, true);
       CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(PositionedOutputs.wrap(dos),
           "gz", conf, accumuloConfiguration);
-      SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl
-          .newSamplerConfig(accumuloConfiguration);
+      SamplerConfigurationImpl samplerConfig =
+          SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
       Sampler sampler = null;
       if (samplerConfig != null) {
         sampler = SamplerFactory.newSampler(samplerConfig, accumuloConfiguration);
@@ -208,8 +208,8 @@ public class MultiThreadedRFileTest {
 
   @Test
   public void testMultipleReaders() throws IOException {
-    final List<Throwable> threadExceptions = Collections
-        .synchronizedList(new ArrayList<Throwable>());
+    final List<Throwable> threadExceptions =
+        Collections.synchronizedList(new ArrayList<Throwable>());
     Map<String,MutableInt> messages = new HashMap<>();
     Map<String,String> stackTrace = new HashMap<>();
 

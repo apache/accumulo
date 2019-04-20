@@ -143,8 +143,8 @@ public class RandomBatchWriter {
       r = new Random(opts.seed);
     }
     Connector connector = opts.getConnector();
-    BatchWriter bw = connector.createBatchWriter(opts.getTableName(),
-        bwOpts.getBatchWriterConfig());
+    BatchWriter bw =
+        connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
 
     // reuse the ColumnVisibility object to improve performance
     ColumnVisibility cv = opts.visiblity;

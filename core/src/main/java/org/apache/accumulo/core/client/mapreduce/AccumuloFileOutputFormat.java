@@ -165,8 +165,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   public RecordWriter<Key,Value> getRecordWriter(TaskAttemptContext context) throws IOException {
     // get the path of the temporary output file
     final Configuration conf = context.getConfiguration();
-    final AccumuloConfiguration acuConf = FileOutputConfigurator.getAccumuloConfiguration(CLASS,
-        context.getConfiguration());
+    final AccumuloConfiguration acuConf =
+        FileOutputConfigurator.getAccumuloConfiguration(CLASS, context.getConfiguration());
 
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);
     final Path file = this.getDefaultWorkFile(context, "." + extension);

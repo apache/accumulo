@@ -41,8 +41,8 @@ public class ContextManager {
         return null;
 
       if (loader == null) {
-        loader = new AccumuloReloadingVFSClassLoader(cconfig.uris, vfs, parent,
-            cconfig.preDelegation);
+        loader =
+            new AccumuloReloadingVFSClassLoader(cconfig.uris, vfs, parent, cconfig.preDelegation);
       }
 
       return loader.getClassLoader();

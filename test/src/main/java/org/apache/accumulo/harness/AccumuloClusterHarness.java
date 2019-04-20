@@ -135,11 +135,11 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
         break;
       case STANDALONE:
         StandaloneAccumuloClusterConfiguration conf =
-          (StandaloneAccumuloClusterConfiguration) clusterConf;
+            (StandaloneAccumuloClusterConfiguration) clusterConf;
         ClientConfiguration clientConf = conf.getClientConf();
-        StandaloneAccumuloCluster standaloneCluster = new StandaloneAccumuloCluster(
-            conf.getInstance(), clientConf, conf.getTmpDirectory(), conf.getUsers(),
-            conf.getAccumuloServerUser());
+        StandaloneAccumuloCluster standaloneCluster =
+            new StandaloneAccumuloCluster(conf.getInstance(), clientConf, conf.getTmpDirectory(),
+                conf.getUsers(), conf.getAccumuloServerUser());
         // If these are provided in the configuration, pass them into the cluster
         standaloneCluster.setAccumuloHome(conf.getAccumuloHome());
         standaloneCluster.setClientAccumuloConfDir(conf.getClientAccumuloConfDir());
@@ -301,8 +301,8 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
           return krb.getClientPrincipal(offset);
         } else {
           // Come up with a mostly unique name
-          String principal = getClass().getSimpleName() + "_" + testName.getMethodName() + "_"
-              + offset;
+          String principal =
+              getClass().getSimpleName() + "_" + testName.getMethodName() + "_" + offset;
           // Username and password are the same
           return new ClusterUser(principal, principal);
         }

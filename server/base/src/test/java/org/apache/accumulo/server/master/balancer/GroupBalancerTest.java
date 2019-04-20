@@ -88,8 +88,8 @@ public class GroupBalancerTest {
               new Function<Map.Entry<KeyExtent,TServerInstance>,Pair<KeyExtent,Location>>() {
 
                 @Override
-                public Pair<KeyExtent,Location> apply(
-                    final Entry<KeyExtent,TServerInstance> input) {
+                public Pair<KeyExtent,Location>
+                    apply(final Entry<KeyExtent,TServerInstance> input) {
                   return new Pair<>(input.getKey(), new Location(input.getValue()));
                 }
               });

@@ -112,8 +112,8 @@ public class MasterServlet extends BasicServlet {
           long diff = System.currentTimeMillis() - start;
           gcStatus = label + " " + DateFormat.getInstance().format(new Date(start));
           gcStatus = gcStatus.replace(" ", "&nbsp;");
-          long normalDelay = Monitor.getContext().getConfiguration()
-              .getTimeInMillis(Property.GC_CYCLE_DELAY);
+          long normalDelay =
+              Monitor.getContext().getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
           if (diff > normalDelay * 2)
             gcStatus = "<span class='warning'>" + gcStatus + "</span>";
         }

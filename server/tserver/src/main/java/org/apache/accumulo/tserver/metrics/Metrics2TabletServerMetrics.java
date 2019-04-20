@@ -51,21 +51,21 @@ public class Metrics2TabletServerMetrics
     this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
 
     entries = registry.newGauge(Interns.info(ENTRIES, "Number of entries"), 0l);
-    entriesInMemory = registry.newGauge(Interns.info(ENTRIES_IN_MEM, "Number of entries in memory"),
-        0l);
-    activeMajcs = registry
-        .newGauge(Interns.info(ACTIVE_MAJCS, "Number of active major compactions"), 0l);
-    queuedMajcs = registry
-        .newGauge(Interns.info(QUEUED_MAJCS, "Number of queued major compactions"), 0l);
-    activeMincs = registry
-        .newGauge(Interns.info(ACTIVE_MINCS, "Number of active minor compactions"), 0l);
-    queuedMincs = registry
-        .newGauge(Interns.info(QUEUED_MINCS, "Number of queued minor compactions"), 0l);
+    entriesInMemory =
+        registry.newGauge(Interns.info(ENTRIES_IN_MEM, "Number of entries in memory"), 0l);
+    activeMajcs =
+        registry.newGauge(Interns.info(ACTIVE_MAJCS, "Number of active major compactions"), 0l);
+    queuedMajcs =
+        registry.newGauge(Interns.info(QUEUED_MAJCS, "Number of queued major compactions"), 0l);
+    activeMincs =
+        registry.newGauge(Interns.info(ACTIVE_MINCS, "Number of active minor compactions"), 0l);
+    queuedMincs =
+        registry.newGauge(Interns.info(QUEUED_MINCS, "Number of queued minor compactions"), 0l);
     onlineTablets = registry.newGauge(Interns.info(ONLINE_TABLETS, "Number of online tablets"), 0l);
-    openingTablets = registry.newGauge(Interns.info(OPENING_TABLETS, "Number of opening tablets"),
-        0l);
-    unopenedTablets = registry
-        .newGauge(Interns.info(UNOPENED_TABLETS, "Number of unopened tablets"), 0l);
+    openingTablets =
+        registry.newGauge(Interns.info(OPENING_TABLETS, "Number of opening tablets"), 0l);
+    unopenedTablets =
+        registry.newGauge(Interns.info(UNOPENED_TABLETS, "Number of unopened tablets"), 0l);
     queries = registry.newGauge(Interns.info(QUERIES, "Number of queries"), 0l);
     totalMincs = registry
         .newGauge(Interns.info(TOTAL_MINCS, "Total number of minor compactions performed"), 0l);

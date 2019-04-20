@@ -229,8 +229,8 @@ public class Admin implements KeywordExecutable {
           rc = 5;
         System.out.println("\n*** Looking for missing files ***\n");
         if (checkTabletsCommand.tableName == null) {
-          if (RemoveEntriesForMissingFiles.checkAllTables(context,
-              checkTabletsCommand.fixFiles) != 0)
+          if (RemoveEntriesForMissingFiles.checkAllTables(context, checkTabletsCommand.fixFiles)
+              != 0)
             rc = 6;
         } else {
           if (RemoveEntriesForMissingFiles.checkTable(context, checkTabletsCommand.tableName,
@@ -376,8 +376,8 @@ public class Admin implements KeywordExecutable {
     for (String server : servers) {
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);
-        final String finalServer = qualifyWithZooKeeperSessionId(zTServerRoot, zc,
-            address.toString());
+        final String finalServer =
+            qualifyWithZooKeeperSessionId(zTServerRoot, zc, address.toString());
         log.info("Stopping server " + finalServer);
         MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
           @Override
@@ -432,14 +432,14 @@ public class Admin implements KeywordExecutable {
   private static final MessageFormat createTableFormat = new MessageFormat("createtable {0}\n");
   private static final MessageFormat createUserFormat = new MessageFormat("createuser {0}\n");
   private static final MessageFormat nsConfigFormat = new MessageFormat("config -ns {0} -s {1}\n");
-  private static final MessageFormat sysPermFormat = new MessageFormat(
-      "grant System.{0} -s -u {1}\n");
-  private static final MessageFormat nsPermFormat = new MessageFormat(
-      "grant Namespace.{0} -ns {1} -u {2}\n");
-  private static final MessageFormat tablePermFormat = new MessageFormat(
-      "grant Table.{0} -t {1} -u {2}\n");
-  private static final MessageFormat userAuthsFormat = new MessageFormat(
-      "setauths -u {0} -s {1}\n");
+  private static final MessageFormat sysPermFormat =
+      new MessageFormat("grant System.{0} -s -u {1}\n");
+  private static final MessageFormat nsPermFormat =
+      new MessageFormat("grant Namespace.{0} -ns {1} -u {2}\n");
+  private static final MessageFormat tablePermFormat =
+      new MessageFormat("grant Table.{0} -t {1} -u {2}\n");
+  private static final MessageFormat userAuthsFormat =
+      new MessageFormat("setauths -u {0} -s {1}\n");
 
   private DefaultConfiguration defaultConfig;
   private Map<String,String> siteConfig, systemConfig;

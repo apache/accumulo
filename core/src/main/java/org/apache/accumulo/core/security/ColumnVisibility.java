@@ -214,12 +214,14 @@ public class ColumnVisibility {
     return normalize(root, expression, new NodeComparator(expression));
   }
 
+  // @formatter:off
   /*
    * Walks an expression's AST in order to:
    *  1) roll up expressions with the same operant (`a&(b&c) becomes a&b&c`)
    *  2) sort labels lexicographically (permutations of `a&b&c` are re-ordered to appear as `a&b&c`)
    *  3) dedupes labels (`a&b&a` becomes `a&b`)
    */
+  // @formatter:on
   public static Node normalize(Node root, byte[] expression, NodeComparator comparator) {
     if (root.type != NodeType.TERM) {
       TreeSet<Node> rolledUp = new TreeSet<>(comparator);

@@ -173,9 +173,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     OnlineOpTiming timing3 = task.get();
 
-    assertTrue("online should take less time than expected compaction time",
-        timing3.runningTime() < TimeUnit.NANOSECONDS.convert(NUM_ROWS * SLOW_SCAN_SLEEP_MS,
-            TimeUnit.MILLISECONDS));
+    assertTrue("online should take less time than expected compaction time", timing3.runningTime()
+        < TimeUnit.NANOSECONDS.convert(NUM_ROWS * SLOW_SCAN_SLEEP_MS, TimeUnit.MILLISECONDS));
 
     assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
 

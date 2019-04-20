@@ -50,8 +50,8 @@ public class ListBulkCommand extends Command {
     MasterMonitorInfo stats;
     MasterClientService.Iface client = null;
     try {
-      AccumuloServerContext context = new AccumuloServerContext(
-          new ServerConfigurationFactory(shellState.getInstance()));
+      AccumuloServerContext context =
+          new AccumuloServerContext(new ServerConfigurationFactory(shellState.getInstance()));
       client = MasterClient.getConnectionWithRetry(context);
       stats = client.getMasterStats(Tracer.traceInfo(), context.rpcCreds());
     } finally {

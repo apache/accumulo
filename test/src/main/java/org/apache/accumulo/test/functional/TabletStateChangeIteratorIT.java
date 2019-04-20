@@ -165,8 +165,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   private void removeLocation(String table, String tableNameToModify)
       throws TableNotFoundException, MutationsRejectedException {
     String tableIdToModify = getConnector().tableOperations().tableIdMap().get(tableNameToModify);
-    BatchDeleter deleter = getConnector().createBatchDeleter(table, Authorizations.EMPTY, 1,
-        new BatchWriterConfig());
+    BatchDeleter deleter =
+        getConnector().createBatchDeleter(table, Authorizations.EMPTY, 1, new BatchWriterConfig());
     deleter.setRanges(
         Collections.singleton(new KeyExtent(tableIdToModify, null, null).toMetadataRange()));
     deleter.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
@@ -223,8 +223,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       HashSet<TServerInstance> tservers = new HashSet<>();
       for (String tserver : getConnector().instanceOperations().getTabletServers()) {
         try {
-          String zPath = ZooUtil.getRoot(getConnector().getInstance()) + Constants.ZTSERVERS + "/"
-              + tserver;
+          String zPath =
+              ZooUtil.getRoot(getConnector().getInstance()) + Constants.ZTSERVERS + "/" + tserver;
           long sessionId = ZooLock.getSessionId(new ZooCache(getCluster().getZooKeepers(),
               getConnector().getInstance().getZooKeepersSessionTimeOut()), zPath);
           tservers.add(new TServerInstance(tserver, sessionId));
@@ -237,8 +237,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
     @Override
     public Set<String> onlineTables() {
-      HashSet<String> onlineTables = new HashSet<>(
-          getConnector().tableOperations().tableIdMap().values());
+      HashSet<String> onlineTables =
+          new HashSet<>(getConnector().tableOperations().tableIdMap().values());
       return Sets.filter(onlineTables, new Predicate<String>() {
         @Override
         public boolean apply(String tableId) {

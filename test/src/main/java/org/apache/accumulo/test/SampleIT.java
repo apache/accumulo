@@ -69,15 +69,15 @@ import com.google.common.collect.Iterables;
 
 public class SampleIT extends AccumuloClusterHarness {
 
-  private static final Map<String,String> OPTIONS_1 = ImmutableMap.of("hasher", "murmur3_32",
-      "modulus", "1009");
-  private static final Map<String,String> OPTIONS_2 = ImmutableMap.of("hasher", "murmur3_32",
-      "modulus", "997");
+  private static final Map<String,String> OPTIONS_1 =
+      ImmutableMap.of("hasher", "murmur3_32", "modulus", "1009");
+  private static final Map<String,String> OPTIONS_2 =
+      ImmutableMap.of("hasher", "murmur3_32", "modulus", "997");
 
-  private static final SamplerConfiguration SC1 = new SamplerConfiguration(
-      RowSampler.class.getName()).setOptions(OPTIONS_1);
-  private static final SamplerConfiguration SC2 = new SamplerConfiguration(
-      RowSampler.class.getName()).setOptions(OPTIONS_2);
+  private static final SamplerConfiguration SC1 =
+      new SamplerConfiguration(RowSampler.class.getName()).setOptions(OPTIONS_1);
+  private static final SamplerConfiguration SC2 =
+      new SamplerConfiguration(RowSampler.class.getName()).setOptions(OPTIONS_2);
 
   public static class IteratorThatUsesSample extends WrappingIterator {
     private SortedKeyValueIterator<Key,Value> sampleDC;
@@ -137,8 +137,8 @@ public class SampleIT extends AccumuloClusterHarness {
 
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     Scanner isoScanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
-    Scanner csiScanner = new ClientSideIteratorScanner(
-        conn.createScanner(tableName, Authorizations.EMPTY));
+    Scanner csiScanner =
+        new ClientSideIteratorScanner(conn.createScanner(tableName, Authorizations.EMPTY));
     scanner.setSamplerConfiguration(SC1);
     csiScanner.setSamplerConfiguration(SC1);
     isoScanner.setSamplerConfiguration(SC1);
@@ -324,8 +324,8 @@ public class SampleIT extends AccumuloClusterHarness {
 
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     Scanner isoScanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
-    ClientSideIteratorScanner csiScanner = new ClientSideIteratorScanner(
-        conn.createScanner(tableName, Authorizations.EMPTY));
+    ClientSideIteratorScanner csiScanner =
+        new ClientSideIteratorScanner(conn.createScanner(tableName, Authorizations.EMPTY));
     BatchScanner bScanner = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2);
 
     csiScanner.setIteratorSamplerConfiguration(SC1);
@@ -409,8 +409,8 @@ public class SampleIT extends AccumuloClusterHarness {
     Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
     Scanner isoScanner = new IsolatedScanner(conn.createScanner(tableName, Authorizations.EMPTY));
     isoScanner.setBatchSize(10);
-    Scanner csiScanner = new ClientSideIteratorScanner(
-        conn.createScanner(tableName, Authorizations.EMPTY));
+    Scanner csiScanner =
+        new ClientSideIteratorScanner(conn.createScanner(tableName, Authorizations.EMPTY));
     BatchScanner bScanner = conn.createBatchScanner(tableName, Authorizations.EMPTY, 2);
     bScanner.setRanges(Arrays.asList(new Range()));
 

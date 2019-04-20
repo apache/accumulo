@@ -158,8 +158,8 @@ public class MiniAccumuloClusterTest {
   }
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder(
-      new File(System.getProperty("user.dir") + "/target"));
+  public TemporaryFolder folder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Test(timeout = 60000)
   public void testPerTableClasspath() throws Exception {
