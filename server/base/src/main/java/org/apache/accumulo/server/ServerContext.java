@@ -19,10 +19,8 @@ package org.apache.accumulo.server;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
-import java.util.Objects;
 import java.util.Properties;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -32,11 +30,9 @@ import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -44,8 +40,6 @@ import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretM
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Provides a server context for Accumulo server components that operate with the system credentials
@@ -53,16 +47,11 @@ import org.slf4j.LoggerFactory;
  */
 public class ServerContext extends ClientContext {
 
-  private static final Logger log = LoggerFactory.getLogger(ServerContext.class);
-
   private final ServerInfo info;
   private TableManager tableManager;
   private UniqueNameAllocator nameAllocator;
   private ZooReaderWriter zooReaderWriter;
   private ServerConfigurationFactory serverConfFactory = null;
-  private String applicationName = null;
-  private String applicationClassName = null;
-  private String hostname = null;
   private AuthenticationTokenSecretManager secretManager;
   private CryptoService cryptoService = null;
 
@@ -90,42 +79,17 @@ public class ServerContext extends ClientContext {
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
   }
 
-  public void setupServer(String appName, String appClassName, String hostname) {
-    applicationName = appName;
-    applicationClassName = appClassName;
-    this.hostname = hostname;
-    SecurityUtil.serverLogin(info.getSiteConfiguration());
-    log.info("Version " + Constants.VERSION);
-    log.info("Instance " + info.getInstanceID());
-    ServerUtil.init(this, applicationName);
-    MetricsSystemHelper.configure(applicationClassName);
-    TraceUtil.enableServerTraces(hostname, applicationName,
-        getServerConfFactory().getSystemConfiguration());
-    if (getSaslParams() != null) {
-      // Server-side "client" check to make sure we're logged in as a user we expect to be
-      enforceKerberosLogin();
-    }
-  }
-
   /**
    * Should only be called by the Tablet server
    */
   public synchronized void setupCrypto() throws CryptoService.CryptoException {
-    if (cryptoService != null)
+    if (cryptoService != null) {
       throw new CryptoService.CryptoException("Crypto Service " + cryptoService.getClass().getName()
           + " already exists and cannot be setup again");
+    }
 
     AccumuloConfiguration acuConf = getConfiguration();
     cryptoService = CryptoServiceFactory.newInstance(acuConf, ClassloaderType.ACCUMULO);
-  }
-
-  public void teardownServer() {
-    TraceUtil.disable();
-  }
-
-  public String getHostname() {
-    Objects.requireNonNull(hostname);
-    return hostname;
   }
 
   public synchronized ServerConfigurationFactory getServerConfFactory() {
@@ -244,4 +208,5 @@ public class ServerContext extends ClientContext {
     }
     return cryptoService;
   }
+
 }

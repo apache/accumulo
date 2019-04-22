@@ -96,6 +96,7 @@ import org.apache.accumulo.master.replication.MasterReplicationCoordinator;
 import org.apache.accumulo.master.replication.ReplicationDriver;
 import org.apache.accumulo.master.replication.WorkDriver;
 import org.apache.accumulo.master.state.TableCounts;
+import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -175,7 +176,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <p>
  * The master will also coordinate log recoveries and reports general status.
  */
-public class Master
+public class Master extends AbstractServer
     implements LiveTServerSet.Listener, TableObserver, CurrentState, HighlyAvailableService {
 
   static final Logger log = LoggerFactory.getLogger(Master.class);
@@ -191,7 +192,6 @@ public class Master
   private static final int MAX_BAD_STATUS_COUNT = 3;
 
   final VolumeManager fs;
-  private final String hostname;
   private final Object balancedNotifier = new Object();
   final LiveTServerSet tserverSet;
   private final List<TabletGroupWatcher> watchers = new ArrayList<>();
@@ -279,6 +279,7 @@ public class Master
   }
 
   private void moveRootTabletToRootTable(IZooReaderWriter zoo) throws Exception {
+    ServerContext context = getContext();
     String dirZPath = getZooKeeperRoot() + RootTable.ZROOT_TABLET_PATH;
 
     if (!zoo.exists(dirZPath)) {
@@ -324,6 +325,8 @@ public class Master
   @SuppressFBWarnings(value = "DM_EXIT",
       justification = "TODO probably not the best to call System.exit here")
   private void upgradeZookeeper() {
+    ServerContext context = getContext();
+
     // 1.5.1 and 1.6.0 both do some state checking after obtaining the zoolock for the
     // monitor and before starting up. It's not tied to the data version at all (and would
     // introduce unnecessary complexity to try to make the master do it), but be aware
@@ -339,7 +342,7 @@ public class Master
             + " initialized prior to the Master transitioning to active. Please"
             + " save all logs and file a bug.");
       }
-      ServerUtil.abortIfFateTransactions(getContext());
+      ServerUtil.abortIfFateTransactions(context);
       try {
         log.info("Upgrading zookeeper");
 
@@ -461,7 +464,7 @@ public class Master
         // that uses the ZKPermHandler for permissions storage so long
         // as the PermHandler only overrides the user name, and we don't care what the user name is.
         ZKPermHandler perm = new ZKPermHandler();
-        perm.initialize(getContext(), true);
+        perm.initialize(context, true);
         String users = getZooKeeperRoot() + "/users";
         for (String user : zoo.getChildren(users)) {
           zoo.putPersistentData(users + "/" + user + "/Namespaces", new byte[0],
@@ -498,7 +501,6 @@ public class Master
   private final AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
   private final CountDownLatch waitForMetadataUpgrade = new CountDownLatch(1);
 
-  private final ServerContext context;
   private final ServerConfigurationFactory serverConfig;
 
   private MasterClientServiceHandler clientHandler;
@@ -529,6 +531,7 @@ public class Master
               justification = "TODO probably not the best to call System.exit here")
           @Override
           public void run() {
+            ServerContext context = getContext();
             try {
               log.info("Starting to upgrade metadata table.");
               if (version == ServerConstants.MOVE_DELETE_MARKERS - 1) {
@@ -611,7 +614,7 @@ public class Master
       case NORMAL:
         // Count offline tablets for online tables
         for (TabletGroupWatcher watcher : watchers) {
-          TableManager manager = context.getTableManager();
+          TableManager manager = getContext().getTableManager();
           for (Entry<TableId,TableCounts> entry : watcher.getStats().entrySet()) {
             TableId tableId = entry.getKey();
             TableCounts counts = entry.getValue();
@@ -644,6 +647,7 @@ public class Master
   }
 
   public void mustBeOnline(final TableId tableId) throws ThriftTableOperationException {
+    ServerContext context = getContext();
     Tables.clearCache(context);
     if (!Tables.getTableState(context, tableId).equals(TableState.ONLINE)) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.MERGE,
@@ -651,19 +655,21 @@ public class Master
     }
   }
 
-  public ServerContext getContext() {
-    return context;
-  }
-
   public TableManager getTableManager() {
-    return context.getTableManager();
+    return getContext().getTableManager();
   }
 
-  public Master(ServerContext context) throws IOException {
-    this.context = context;
+  public static void main(String[] args) throws Exception {
+    try (Master master = new Master(new ServerOpts(), args)) {
+      master.runServer();
+    }
+  }
+
+  Master(ServerOpts opts, String[] args) throws IOException {
+    super("master", opts, args);
+    ServerContext context = super.getContext();
     this.serverConfig = context.getServerConfFactory();
     this.fs = context.getVolumeManager();
-    this.hostname = context.getHostname();
 
     AccumuloConfiguration aconf = serverConfig.getSystemConfiguration();
 
@@ -677,18 +683,14 @@ public class Master
         Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
     this.tabletBalancer.init(context);
 
-    try {
-      AccumuloVFSClassLoader.getContextManager()
-          .setContextConfig(new ContextManager.DefaultContextsConfig() {
-            @Override
-            public Map<String,String> getVfsContextClasspathProperties() {
-              return getConfiguration()
-                  .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
-            }
-          });
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    AccumuloVFSClassLoader.getContextManager()
+        .setContextConfig(new ContextManager.DefaultContextsConfig() {
+          @Override
+          public Map<String,String> getVfsContextClasspathProperties() {
+            return getConfiguration()
+                .getAllPropertiesWithPrefix(Property.VFS_CONTEXT_CLASSPATH_PROPERTY);
+          }
+        });
 
     this.security = AuditedSecurityOperation.getInstance(context);
 
@@ -717,15 +719,11 @@ public class Master
   }
 
   public String getInstanceID() {
-    return context.getInstanceID();
+    return getContext().getInstanceID();
   }
 
   public String getZooKeeperRoot() {
-    return context.getZooKeeperRoot();
-  }
-
-  public AccumuloConfiguration getConfiguration() {
-    return context.getConfiguration();
+    return getContext().getZooKeeperRoot();
   }
 
   public TServerConnection getConnection(TServerInstance server) {
@@ -733,6 +731,7 @@ public class Master
   }
 
   public MergeInfo getMergeInfo(TableId tableId) {
+    ServerContext context = getContext();
     synchronized (mergeLock) {
       try {
         String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
@@ -757,6 +756,7 @@ public class Master
 
   public void setMergeState(MergeInfo info, MergeState state)
       throws KeeperException, InterruptedException {
+    ServerContext context = getContext();
     synchronized (mergeLock) {
       String path =
           getZooKeeperRoot() + Constants.ZTABLES + "/" + info.getExtent().getTableId() + "/merge";
@@ -782,7 +782,7 @@ public class Master
   public void clearMergeState(TableId tableId) throws KeeperException, InterruptedException {
     synchronized (mergeLock) {
       String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
-      context.getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
+      getContext().getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
       mergeLock.notifyAll();
     }
     nextEvent.event("Merge state of %s cleared", tableId);
@@ -790,7 +790,7 @@ public class Master
 
   void setMasterGoalState(MasterGoalState state) {
     try {
-      context.getZooReaderWriter().putPersistentData(
+      getContext().getZooReaderWriter().putPersistentData(
           getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, state.name().getBytes(),
           NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
@@ -801,7 +801,7 @@ public class Master
   MasterGoalState getMasterGoalState() {
     while (true) {
       try {
-        byte[] data = context.getZooReaderWriter()
+        byte[] data = getContext().getZooReaderWriter()
             .getData(getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, null);
         return MasterGoalState.valueOf(new String(data));
       } catch (Exception e) {
@@ -871,7 +871,7 @@ public class Master
   }
 
   TabletGoalState getTableGoalState(KeyExtent extent) {
-    TableState tableState = context.getTableManager().getTableState(extent.getTableId());
+    TableState tableState = getContext().getTableManager().getTableState(extent.getTableId());
     if (tableState == null) {
       return TabletGoalState.DELETED;
     }
@@ -946,7 +946,7 @@ public class Master
         if (!migrations.isEmpty()) {
           try {
             cleanupOfflineMigrations();
-            cleanupNonexistentMigrations(context);
+            cleanupNonexistentMigrations(getContext());
           } catch (Exception ex) {
             log.error("Error cleaning up migrations", ex);
           }
@@ -979,6 +979,7 @@ public class Master
      * tablet server will load the tablet. check for offline tables and remove their migrations.
      */
     private void cleanupOfflineMigrations() {
+      ServerContext context = getContext();
       TableManager manager = context.getTableManager();
       for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
         TableState state = manager.getTableState(tableId);
@@ -1258,7 +1259,9 @@ public class Master
     return info;
   }
 
-  public void run() throws IOException, InterruptedException, KeeperException {
+  @Override
+  public void run() {
+    final ServerContext context = getContext();
     final String zroot = getZooKeeperRoot();
 
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
@@ -1277,14 +1280,23 @@ public class Master
     } else {
       processor = new Processor<>(rpcProxy);
     }
-    ServerAddress sa = TServerUtils.startServer(context, hostname, Property.MASTER_CLIENTPORT,
-        processor, "Master", "Master Client Service Handler", null, Property.MASTER_MINTHREADS,
-        Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+    ServerAddress sa;
+    try {
+      sa = TServerUtils.startServer(context, getHostname(), Property.MASTER_CLIENTPORT, processor,
+          "Master", "Master Client Service Handler", null, Property.MASTER_MINTHREADS,
+          Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+    } catch (UnknownHostException e) {
+      throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
+    }
     clientService = sa.server;
     log.info("Started Master client service at {}", sa.address);
 
     // block until we can obtain the ZK lock for the master
-    getMasterLock(zroot + Constants.ZMASTER_LOCK);
+    try {
+      getMasterLock(zroot + Constants.ZMASTER_LOCK);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Exception getting master lock", e);
+    }
 
     recoveryManager = new RecoveryManager(this);
 
@@ -1300,18 +1312,22 @@ public class Master
 
     ZooReaderWriter zReaderWriter = context.getZooReaderWriter();
 
-    zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
-      @Override
-      public void process(WatchedEvent event) {
-        nextEvent.event("Noticed recovery changes %s", event.getType());
-        try {
-          // watcher only fires once, add it back
-          zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, this);
-        } catch (Exception e) {
-          log.error("Failed to add log recovery watcher back", e);
+    try {
+      zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
+        @Override
+        public void process(WatchedEvent event) {
+          nextEvent.event("Noticed recovery changes %s", event.getType());
+          try {
+            // watcher only fires once, add it back
+            zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, this);
+          } catch (Exception e) {
+            log.error("Failed to add log recovery watcher back", e);
+          }
         }
-      }
-    });
+      });
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Unable to read " + zroot + Constants.ZRECOVERY, e);
+    }
 
     watchers.add(new TabletGroupWatcher(this, new MetaDataStateStore(context, this), null) {
       @Override
@@ -1346,7 +1362,11 @@ public class Master
     }
 
     // Once we are sure the upgrade is complete, we can safely allow fate use.
-    waitForMetadataUpgrade.await();
+    try {
+      waitForMetadataUpgrade.await();
+    } catch (InterruptedException e) {
+      throw new IllegalStateException("Metadata upgrade interrupted", e);
+    }
 
     try {
       final AgeOffStore<Master> store = new AgeOffStore<>(new org.apache.accumulo.fate.ZooStore<>(
@@ -1359,16 +1379,24 @@ public class Master
 
       SimpleTimer.getInstance(getConfiguration()).schedule(() -> store.ageOff(), 63000, 63000);
     } catch (KeeperException | InterruptedException e) {
-      throw new IOException(e);
+      throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
 
-    ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
+    try {
+      ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
+    }
 
     // Make sure that we have a secret key (either a new one or an old one from ZK) before we start
     // the master client service.
     if (authenticationTokenKeyManager != null && keyDistributor != null) {
       log.info("Starting delegation-token key manager");
-      keyDistributor.initialize();
+      try {
+        keyDistributor.initialize();
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException("Exception setting up delegation-token key manager", e);
+      }
       authenticationTokenKeyManager.start();
       boolean logged = false;
       while (!authenticationTokenKeyManager.isInitialized()) {
@@ -1385,7 +1413,11 @@ public class Master
 
     String address = sa.address.toString();
     log.info("Setting master lock data to {}", address);
-    masterLock.replaceLockData(address.getBytes());
+    try {
+      masterLock.replaceLockData(address.getBytes());
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Exception updating master lock", e);
+    }
 
     while (!clientService.isServing()) {
       sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
@@ -1430,42 +1462,55 @@ public class Master
     timeKeeper.shutdown();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
-    statusThread.join(remaining(deadline));
-    if (replicationWorkAssigner != null) {
-      replicationWorkAssigner.join(remaining(deadline));
-    }
-    if (replicationWorkDriver != null) {
-      replicationWorkDriver.join(remaining(deadline));
+    try {
+      statusThread.join(remaining(deadline));
+      if (replicationWorkAssigner != null) {
+        replicationWorkAssigner.join(remaining(deadline));
+      }
+      if (replicationWorkDriver != null) {
+        replicationWorkDriver.join(remaining(deadline));
+      }
+    } catch (InterruptedException e) {
+      throw new IllegalStateException("Exception starting replication workers", e);
     }
     TServerUtils.stopTServer(replServer.get());
 
     // Signal that we want it to stop, and wait for it to do so.
     if (authenticationTokenKeyManager != null) {
       authenticationTokenKeyManager.gracefulStop();
-      authenticationTokenKeyManager.join(remaining(deadline));
+      try {
+        authenticationTokenKeyManager.join(remaining(deadline));
+      } catch (InterruptedException e) {
+        throw new IllegalStateException("Exception waiting on delegation-token key manager", e);
+      }
     }
 
     // quit, even if the tablet servers somehow jam up and the watchers
     // don't stop
     for (TabletGroupWatcher watcher : watchers) {
-      watcher.join(remaining(deadline));
+      try {
+        watcher.join(remaining(deadline));
+      } catch (InterruptedException e) {
+        throw new IllegalStateException("Exception waiting on watcher", e);
+      }
     }
     log.info("exiting");
   }
 
   private TServer setupReplication()
       throws UnknownHostException, KeeperException, InterruptedException {
+    ServerContext context = getContext();
     // Start the replication coordinator which assigns tservers to service replication requests
     MasterReplicationCoordinator impl = new MasterReplicationCoordinator(this);
     ReplicationCoordinator.Iface haReplicationProxy =
         HighlyAvailableServiceWrapper.service(impl, this);
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
         new ReplicationCoordinator.Processor<>(TraceUtil.wrapService(haReplicationProxy));
-    ServerAddress replAddress =
-        TServerUtils.startServer(context, hostname, Property.MASTER_REPLICATION_COORDINATOR_PORT,
-            replicationCoordinatorProcessor, "Master Replication Coordinator",
-            "Replication Coordinator", null, Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
-            Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+    ServerAddress replAddress = TServerUtils.startServer(context, getHostname(),
+        Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
+        "Master Replication Coordinator", "Replication Coordinator", null,
+        Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,
+        Property.MASTER_REPLICATION_COORDINATOR_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
 
     log.info("Started replication coordinator service at " + replAddress.address);
     // Start the daemon to scan the replication table and make units of work
@@ -1549,15 +1594,16 @@ public class Master
   }
 
   private void getMasterLock(final String zMasterLoc) throws KeeperException, InterruptedException {
+    ServerContext context = getContext();
     log.info("trying to get master lock");
 
     final String masterClientAddress =
-        hostname + ":" + getConfiguration().getPort(Property.MASTER_CLIENTPORT)[0];
+        getHostname() + ":" + getConfiguration().getPort(Property.MASTER_CLIENTPORT)[0];
 
     while (true) {
 
       MasterLockWatcher masterLockWatcher = new MasterLockWatcher();
-      masterLock = new ZooLock(getContext().getZooReaderWriter(), zMasterLoc);
+      masterLock = new ZooLock(context.getZooReaderWriter(), zMasterLoc);
       masterLock.lockAsync(masterLockWatcher, masterClientAddress.getBytes());
 
       masterLockWatcher.waitForChange();
@@ -1578,27 +1624,13 @@ public class Master
     setMasterState(MasterState.HAVE_LOCK);
   }
 
-  public static void main(String[] args) throws Exception {
-    final String app = "master";
-    ServerOpts opts = new ServerOpts();
-    opts.parseArgs(app, args);
-    ServerContext context = new ServerContext(opts.getSiteConfiguration());
-    context.setupServer(app, Master.class.getName(), opts.getAddress());
-    try {
-      Master master = new Master(context);
-      master.run();
-    } finally {
-      context.teardownServer();
-    }
-  }
-
   @Override
   public void update(LiveTServerSet current, Set<TServerInstance> deleted,
       Set<TServerInstance> added) {
     // if we have deleted or added tservers, then adjust our dead server list
     if (!deleted.isEmpty() || !added.isEmpty()) {
       DeadServerList obit =
-          new DeadServerList(context, getZooKeeperRoot() + Constants.ZDEADTSERVERS);
+          new DeadServerList(getContext(), getZooKeeperRoot() + Constants.ZDEADTSERVERS);
       if (added.size() > 0) {
         log.info("New servers: {}", added);
         for (TServerInstance up : added) {
@@ -1697,6 +1729,7 @@ public class Master
       }
       return result;
     }
+    ServerContext context = getContext();
     TableManager manager = context.getTableManager();
 
     for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
@@ -1718,7 +1751,7 @@ public class Master
   @Override
   public Collection<MergeInfo> merges() {
     List<MergeInfo> result = new ArrayList<>();
-    for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
+    for (TableId tableId : Tables.getIdToNameMap(getContext()).keySet()) {
       result.add(getMergeInfo(tableId));
     }
     return result;
@@ -1799,7 +1832,8 @@ public class Master
         result.serversShuttingDown.add(server.hostPort());
       }
     }
-    DeadServerList obit = new DeadServerList(context, getZooKeeperRoot() + Constants.ZDEADTSERVERS);
+    DeadServerList obit =
+        new DeadServerList(getContext(), getZooKeeperRoot() + Constants.ZDEADTSERVERS);
     result.deadTabletServers = obit.getList();
     result.bulkImports = bulkImportStatus.getBulkLoadStatus();
     return result;
@@ -1830,7 +1864,7 @@ public class Master
 
   public void markDeadServerLogsAsClosed(Map<TServerInstance,List<Path>> logsForDeadServers)
       throws WalMarkerException {
-    WalStateManager mgr = new WalStateManager(context);
+    WalStateManager mgr = new WalStateManager(getContext());
     for (Entry<TServerInstance,List<Path>> server : logsForDeadServers.entrySet()) {
       for (Path path : server.getValue()) {
         mgr.closeWal(server.getKey(), path);

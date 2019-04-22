@@ -39,7 +39,7 @@ public class MonitorExecutable implements KeywordExecutable {
   }
 
   @Override
-  public void execute(final String[] args) {
+  public void execute(final String[] args) throws Exception {
     Monitor.main(args);
   }
 
