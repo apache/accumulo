@@ -1286,7 +1286,7 @@ public class Master extends AbstractServer
           "Master", "Master Client Service Handler", null, Property.MASTER_MINTHREADS,
           Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     } catch (UnknownHostException e) {
-      throw new IllegalStateException("Unable to start server", e);
+      throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }
     clientService = sa.server;
     log.info("Started Master client service at {}", sa.address);
