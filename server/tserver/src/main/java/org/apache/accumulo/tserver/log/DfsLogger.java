@@ -84,9 +84,9 @@ import com.google.common.base.Preconditions;
  *
  */
 public class DfsLogger implements Comparable<DfsLogger> {
-  // older versions should no longer be supported in 2.0
-  public static final String LOG_FILE_HEADER_V2 = "--- Log File Header (v2) ---";
+  // older version supported for upgrade
   public static final String LOG_FILE_HEADER_V3 = "--- Log File Header (v3) ---";
+
   /**
    * Simplified encryption technique supported in V4.
    *
@@ -361,11 +361,16 @@ public class DfsLogger implements Comparable<DfsLogger> {
       AccumuloConfiguration conf) throws IOException {
     DataInputStream decryptingInput;
 
-    byte[] magic = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
-    byte[] magicBuffer = new byte[magic.length];
+    byte[] magic4 = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
+    byte[] magic3 = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
+
+    if (magic4.length != magic3.length)
+      throw new IllegalStateException();
+
+    byte[] magicBuffer = new byte[magic4.length];
     try {
       input.readFully(magicBuffer);
-      if (Arrays.equals(magicBuffer, magic)) {
+      if (Arrays.equals(magicBuffer, magic4)) {
         byte[] params = CryptoUtils.readParams(input);
         CryptoService cryptoService =
             CryptoServiceFactory.newInstance(conf, ClassloaderType.ACCUMULO);
@@ -375,10 +380,19 @@ public class DfsLogger implements Comparable<DfsLogger> {
         log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
         decryptingInput = cryptoService instanceof NoCryptoService ? input
             : new DataInputStream(decrypter.decryptStream(input));
-      } else {
-        log.error("Unsupported WAL version.");
-        input.seek(0);
+      } else if (Arrays.equals(magicBuffer, magic3)) {
+        // Read logs files from Accumulo 1.9
+        String cryptoModuleClassname = input.readUTF();
+        if (!cryptoModuleClassname.equals("NullCryptoModule")) {
+          throw new IllegalArgumentException(
+              "Old encryption modules not supported at this time.  Unsupported module : "
+                  + cryptoModuleClassname);
+        }
+
         decryptingInput = input;
+      } else {
+        throw new IllegalArgumentException(
+            "Unsupported write ahead log version " + new String(magicBuffer));
       }
     } catch (Exception e) {
       log.warn("Got EOFException trying to read WAL header information,"
