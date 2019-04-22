@@ -80,7 +80,7 @@ public class KeyTest {
     assertEquals(k1, k2);
 
   }
-  
+
   @Test
   public void testCopyDataWithByteArrayConstructors() {
     byte[] row = "r".getBytes();
@@ -94,83 +94,102 @@ public class KeyTest {
     Key kRowcolFamColQual = new Key(row, cf, cq);
     Key kRowcolFamColQualColVis = new Key(row, cf, cq, cv);
     Key kRowcolFamColQualColVisTimeStamp = new Key(row, cf, cq, cv, 5L);
-    
+
     // test row constructor
     assertNotSameByteArray(kRow, row, empty, empty, empty);
-    
+
     // test row, column family constructor
     assertNotSameByteArray(kRowcolFam, row, cf, empty, empty);
-    
+
     // test row, column family, column qualifier constructor
     assertNotSameByteArray(kRowcolFamColQual, row, cf, cq, empty);
-    
+
     // test row, column family, column qualifier, column visibility constructor
     assertNotSameByteArray(kRowcolFamColQualColVis, row, cf, cq, cv);
-    
+
     // test row, column family, column qualifier, column visibility, timestamp constructor
     assertNotSameByteArray(kRowcolFamColQualColVisTimeStamp, row, cf, cq, cv);
   }
-  
+
+  private void assertNotSameByteArray(Key key, byte[] row, byte[] cf, byte[] cq, byte[] cv) {
+    if (key.getRowBytes().length != 0) {
+      assertNotSame(row, key.getRowBytes());
+      assertNotSame(row, key.getRowData().getBackingArray());
+      assertTrue(Arrays.equals(row, key.getRowBytes()));
+
+    }
+    if (key.getColFamily().length != 0) {
+      assertNotSame(cf, key.getColFamily());
+      assertNotSame(cf, key.getColumnFamilyData().getBackingArray());
+      assertTrue(Arrays.equals(cf, key.getColFamily()));
+
+    }
+    if (key.getColQualifier().length != 0) {
+      assertNotSame(cq, key.getColQualifier());
+      assertNotSame(cq, key.getColumnQualifierData().getBackingArray());
+      assertTrue(Arrays.equals(cq, key.getColQualifier()));
+
+    }
+    if (key.getColVisibility().length != 0) {
+      assertNotSame(cv, key.getColVisibility());
+      assertNotSame(cv, key.getColumnVisibilityData().getBackingArray());
+      assertTrue(Arrays.equals(cv, key.getColVisibility()));
+    }
+  }
+
   @Test
-  public void testCopyDataWithTextConstructors() {
+  public void testTextConstructorByteArrayConversion() {
     Text rowText = new Text("r");
     Text cfText = new Text("cf");
     Text cqText = new Text("cq");
     Text cvText = new Text("cv");
-    
+
+    // make Keys from Text parameters
+    Key kRow = new Key(rowText);
+    Key kRowColFam = new Key(rowText, cfText);
+    Key kRowColFamColQual = new Key(rowText, cfText, cqText);
+    Key kRowColFamColQualColVis = new Key(rowText, cfText, cqText, cvText);
+    Key kRowColFamColQualColVisTimeStamp = new Key(rowText, cfText, cqText, cvText, 5L);
+
+    // test row constructor
+    assertTextValueConversionToByteArray(kRow);
+
+    // test row, column family constructor
+    assertTextValueConversionToByteArray(kRowColFam);
+
+    // test row, column family, column qualifier constructor
+    assertTextValueConversionToByteArray(kRowColFamColQual);
+
+    // test row, column family, column qualifier, column visibility constructor
+    assertTextValueConversionToByteArray(kRowColFamColQualColVis);
+
+    // test row, column family, column qualifier, column visibility, timestamp constructor
+    assertTextValueConversionToByteArray(kRowColFamColQualColVisTimeStamp);
+  }
+
+  private void assertTextValueConversionToByteArray(Key key) {
     byte[] row = "r".getBytes();
     byte[] cf = "cf".getBytes();
     byte[] cq = "cq".getBytes();
     byte[] cv = "cv".getBytes();
-    byte[] empty = "".getBytes();
+    // show Text values submitted in constructor
+    // are converted to byte array containing
+    // the same value
+    if (key.getRowBytes().length != 0) {
+      assertTrue(Arrays.equals(row, key.getRowBytes()));
 
-    //make Keys from Text parameters
-    Key kRow = new Key(rowText);
-    Key kRowcolFam = new Key(rowText, cfText);
-    Key kRowcolFamColQual = new Key(rowText, cfText, cqText);
-    Key kRowcolFamColQualColVis = new Key(rowText, cfText, cqText, cvText);
-    Key kRowcolFamColQualColVisTimeStamp = new Key(rowText, cfText, cqText, cvText, 5L);
+    }
+    if (key.getColFamily().length != 0) {
+      assertTrue(Arrays.equals(cf, key.getColFamily()));
 
-    // test row constructor
-    assertNotSameByteArray(kRow, row, empty, empty, empty);
-    
-    // test row, column family constructor
-    assertNotSameByteArray(kRowcolFam, row, cf, empty, empty);
-    
-    // test row, column family, column qualifier constructor
-    assertNotSameByteArray(kRowcolFamColQual, row, cf, cq, empty);
-    
-    // test row, column family, column qualifier, column visibility constructor
-    assertNotSameByteArray(kRowcolFamColQualColVis, row, cf, cq, cv);
-    
-    // test row, column family, column qualifier, column visibility, timestamp constructor
-    assertNotSameByteArray(kRowcolFamColQualColVisTimeStamp, row, cf, cq, cv);
-  }
-  
-  private void assertNotSameByteArray(Key key, byte[] row, byte[] cf, byte[]cq, byte[]cv) {
-	  if (key.getRowBytes().length != 0) {
-		    assertNotSame(row, key.getRowBytes());
-		    assertNotSame(row, key.getRowData().getBackingArray());
-		    assertTrue(Arrays.equals(row, key.getRowBytes()));
+    }
+    if (key.getColQualifier().length != 0) {
+      assertTrue(Arrays.equals(cq, key.getColQualifier()));
 
-	  }
-	  if (key.getColFamily().length != 0) {
-		    assertNotSame(cf, key.getColFamily());
-		    assertNotSame(cf, key.getColumnFamilyData().getBackingArray());
-		    assertTrue(Arrays.equals(cf, key.getColFamily()));
-
-	  }
-	  if (key.getColQualifier().length != 0) {
-		    assertNotSame(cq, key.getColQualifier());
-		    assertNotSame(cq, key.getColumnQualifierData().getBackingArray());
-		    assertTrue(Arrays.equals(cq, key.getColQualifier()));
-
-	  }
-	  if (key.getColVisibility().length != 0) {
-		    assertNotSame(cv, key.getColVisibility());
-		    assertNotSame(cv, key.getColumnVisibilityData().getBackingArray());
-		    assertTrue(Arrays.equals(cv, key.getColVisibility()));
-	  }
+    }
+    if (key.getColVisibility().length != 0) {
+      assertTrue(Arrays.equals(cv, key.getColVisibility()));
+    }
   }
 
   @Test
