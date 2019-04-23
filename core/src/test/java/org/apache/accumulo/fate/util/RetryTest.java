@@ -46,6 +46,7 @@ public class RetryTest {
   private Retry retry;
   private static final long INITIAL_WAIT = 1000;
   private static final long WAIT_INC = 1000;
+  private static final double BACKOFF_FACTOR = 1.0;
   private static final long MAX_RETRIES = 5;
   private static final long LOG_INTERVAL = 1000;
   private Retry unlimitedRetry;
@@ -57,11 +58,11 @@ public class RetryTest {
   @Before
   public void setup() {
     retry = Retry.builder().maxRetries(MAX_RETRIES).retryAfter(INITIAL_WAIT, MS)
-        .incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS).logInterval(LOG_INTERVAL, MS)
-        .createRetry();
-    unlimitedRetry =
-        Retry.builder().infiniteRetries().retryAfter(INITIAL_WAIT, MS).incrementBy(WAIT_INC, MS)
-            .maxWait(MAX_RETRIES * WAIT_INC, MS).logInterval(LOG_INTERVAL, MS).createRetry();
+        .incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS).backOffFactor(BACKOFF_FACTOR)
+        .logInterval(LOG_INTERVAL, MS).createRetry();
+    unlimitedRetry = Retry.builder().infiniteRetries().retryAfter(INITIAL_WAIT, MS)
+        .incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS).backOffFactor(BACKOFF_FACTOR)
+        .logInterval(LOG_INTERVAL, MS).createRetry();
   }
 
   @Test
@@ -112,12 +113,45 @@ public class RetryTest {
     retry.setStartWait(INITIAL_WAIT);
     retry.setWaitIncrement(WAIT_INC);
     retry.setMaxWait(MAX_RETRIES * 1000);
+    retry.setBackOffFactor(1);
+    retry.setDoTimeJitter(false);
 
     long currentWait = INITIAL_WAIT;
     for (int i = 1; i <= MAX_RETRIES; i++) {
       retry.sleep(currentWait);
       EasyMock.expectLastCall();
       currentWait += WAIT_INC;
+    }
+
+    EasyMock.replay(retry);
+
+    while (retry.canRetry()) {
+      retry.useRetry();
+      retry.waitForNextAttempt();
+    }
+
+    EasyMock.verify(retry);
+  }
+
+  @Test
+  public void testBackOffFactor() throws InterruptedException {
+    retry = EasyMock.createMockBuilder(Retry.class).addMockedMethod("sleep").createStrictMock();
+    retry.setMaxRetries(MAX_RETRIES);
+    retry.setBackOffFactor(1.5);
+    retry.setStartWait(INITIAL_WAIT);
+    long waitIncrement = 0, currentWait = INITIAL_WAIT;
+    retry.setWaitIncrement(WAIT_INC);
+    retry.setMaxWait(MAX_RETRIES * 128000);
+    retry.setDoTimeJitter(false);
+    double backOfFactor = 1.5, originalBackoff = 1.5;
+
+    for (int i = 1; i <= MAX_RETRIES; i++) {
+      retry.sleep(currentWait);
+      double waitFactor = backOfFactor;
+      backOfFactor *= originalBackoff;
+      waitIncrement = (long) (Math.ceil(waitFactor * WAIT_INC));
+      currentWait = Math.min(retry.getMaxWait(), INITIAL_WAIT + waitIncrement);
+      EasyMock.expectLastCall();
     }
 
     EasyMock.replay(retry);
@@ -138,6 +172,8 @@ public class RetryTest {
     retry.setWaitIncrement(WAIT_INC);
     // Make the last retry not increment in length
     retry.setMaxWait((MAX_RETRIES - 1) * 1000);
+    retry.setBackOffFactor(1);
+    retry.setDoTimeJitter(false);
 
     long currentWait = INITIAL_WAIT;
     for (int i = 1; i <= MAX_RETRIES; i++) {
@@ -257,7 +293,7 @@ public class RetryTest {
   @Test
   public void testLogInterval() {
     NeedsLogInterval builder = Retry.builder().maxRetries(10).retryAfter(15, MILLISECONDS)
-        .incrementBy(10, MILLISECONDS).maxWait(16, MINUTES);
+        .incrementBy(10, MILLISECONDS).maxWait(16, MINUTES).backOffFactor(1);
     builder.logInterval(10, DAYS);
     builder.logInterval(10, HOURS);
     builder.logInterval(10, NANOSECONDS);
@@ -275,8 +311,8 @@ public class RetryTest {
     long maxRetries = 10, startWait = 50L, maxWait = 5000L, waitIncrement = 500L,
         logInterval = 10000L;
     RetryFactory factory = Retry.builder().maxRetries(maxRetries).retryAfter(startWait, MS)
-        .incrementBy(waitIncrement, MS).maxWait(maxWait, MS).logInterval(logInterval, MS)
-        .createFactory();
+        .incrementBy(waitIncrement, MS).maxWait(maxWait, MS).backOffFactor(1)
+        .logInterval(logInterval, MS).createFactory();
     Retry retry = factory.createRetry();
 
     assertEquals(maxRetries, retry.getMaxRetries());
@@ -289,9 +325,10 @@ public class RetryTest {
   @Test
   public void properArgumentsInUnlimitedRetry() {
     long startWait = 50L, maxWait = 5000L, waitIncrement = 500L, logInterval = 10000L;
-    RetryFactory factory =
-        Retry.builder().infiniteRetries().retryAfter(startWait, MS).incrementBy(waitIncrement, MS)
-            .maxWait(maxWait, MS).logInterval(logInterval, MS).createFactory();
+    double waitFactor = 1.0;
+    RetryFactory factory = Retry.builder().infiniteRetries().retryAfter(startWait, MS)
+        .incrementBy(waitIncrement, MS).maxWait(maxWait, MS).backOffFactor(waitFactor)
+        .logInterval(logInterval, MS).createFactory();
     Retry retry = factory.createRetry();
 
     assertEquals(-1, retry.getMaxRetries());

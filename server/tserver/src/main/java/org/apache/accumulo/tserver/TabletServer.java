@@ -402,15 +402,15 @@ public class TabletServer extends AbstractServer {
         Retry.builder().maxRetries(toleratedWalCreationFailures)
             .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
             .incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-            .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).logInterval(3, TimeUnit.MINUTES)
-            .createFactory();
+            .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).backOffFactor(1.5)
+            .logInterval(3, TimeUnit.MINUTES).createFactory();
     // Tolerate infinite failures for the write, however backing off the same as for creation
     // failures.
     final RetryFactory walWritingRetryFactory = Retry.builder().infiniteRetries()
         .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
         .incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-        .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).logInterval(3, TimeUnit.MINUTES)
-        .createFactory();
+        .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).backOffFactor(1.5)
+        .logInterval(3, TimeUnit.MINUTES).createFactory();
 
     logger = new TabletServerLogger(this, walogMaxSize, syncCounter, flushCounter,
         walCreationRetryFactory, walWritingRetryFactory, walogMaxAge);
