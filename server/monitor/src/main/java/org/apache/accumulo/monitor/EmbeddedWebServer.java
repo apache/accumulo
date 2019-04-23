@@ -63,7 +63,7 @@ public class EmbeddedWebServer {
       return new AbstractConnectionFactory[] {httpFactory};
     } else {
       LOG.debug("Configuring Jetty to use TLS");
-      final SslContextFactory sslContextFactory = new SslContextFactory();
+      final SslContextFactory sslContextFactory = new SslContextFactory.Server();
       // If the key password is the same as the keystore password, we don't
       // have to explicitly set it. Thus, if the user doesn't provide a key
       // password, don't set anything.
