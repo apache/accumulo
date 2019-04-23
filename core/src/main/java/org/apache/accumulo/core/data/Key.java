@@ -358,7 +358,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * To avoid copying, use
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
    * instead.
-   * 
+   *
    * @see #builder()
    */
   public Key(Text row, Text cf) {
@@ -391,7 +391,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * To avoid copying, use
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
    * instead.
-   * 
+   *
    * @see #builder()
    */
   public Key(Text row, Text cf, Text cq) {
@@ -457,7 +457,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * To avoid copying, use
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
    * instead.
-   * 
+   *
    * @see #builder()
    */
   public Key(Text row, Text cf, Text cq, long ts) {
@@ -490,7 +490,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * To avoid copying, use
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
    * instead.
-   * 
+   *
    * @see #builder()
    */
   public Key(Text row, Text cf, Text cq, Text cv, long ts) {
@@ -506,7 +506,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * To avoid copying, use
    * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
    * instead.
-   * 
+   *
    * @see #builder()
    */
   public Key(Text row, Text cf, Text cq, ColumnVisibility cv, long ts) {
