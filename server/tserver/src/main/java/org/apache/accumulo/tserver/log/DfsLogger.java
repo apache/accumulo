@@ -27,6 +27,7 @@ import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
@@ -365,7 +366,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
     byte[] magic3 = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
 
     if (magic4.length != magic3.length)
-      throw new IllegalStateException();
+      throw new AssertionError("Always expect log file headers to be same length : " + magic4.length
+          + " != " + magic3.length);
 
     byte[] magicBuffer = new byte[magic4.length];
     try {
@@ -394,8 +396,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
         throw new IllegalArgumentException(
             "Unsupported write ahead log version " + new String(magicBuffer));
       }
-    } catch (Exception e) {
-      log.warn("Got EOFException trying to read WAL header information,"
+    } catch (EOFException e) {
+      // Explicitly catch any exceptions that should be converted to LogHeaderIncompleteException
+      log.info("Got " + e.getClass().getSimpleName() + " trying to read WAL header information,"
           + " assuming the rest of the file has no data.");
       // A TabletServer might have died before the (complete) header was written
       throw new LogHeaderIncompleteException(e);
