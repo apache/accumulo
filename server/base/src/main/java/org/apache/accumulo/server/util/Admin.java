@@ -508,21 +508,21 @@ public class Admin implements KeywordExecutable {
       throws IOException, AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
     try (BufferedWriter nsWriter = new BufferedWriter(new FileWriter(namespaceScript))) {
-    nsWriter.write(createNsFormat.format(new String[] {namespace}));
-    TreeMap<String,String> props = new TreeMap<>();
-    for (Entry<String,String> p : accumuloClient.namespaceOperations().getProperties(namespace)) {
-      props.put(p.getKey(), p.getValue());
-    }
-    for (Entry<String,String> entry : props.entrySet()) {
-      String defaultValue = getDefaultConfigValue(entry.getKey());
-      if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
-        if (!entry.getValue().equals(siteConfig.get(entry.getKey()))
-            && !entry.getValue().equals(systemConfig.get(entry.getKey()))) {
-          nsWriter.write(nsConfigFormat
-              .format(new String[] {namespace, entry.getKey() + "=" + entry.getValue()}));
+      nsWriter.write(createNsFormat.format(new String[] {namespace}));
+      TreeMap<String,String> props = new TreeMap<>();
+      for (Entry<String,String> p : accumuloClient.namespaceOperations().getProperties(namespace)) {
+        props.put(p.getKey(), p.getValue());
+      }
+      for (Entry<String,String> entry : props.entrySet()) {
+        String defaultValue = getDefaultConfigValue(entry.getKey());
+        if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
+          if (!entry.getValue().equals(siteConfig.get(entry.getKey()))
+              && !entry.getValue().equals(systemConfig.get(entry.getKey()))) {
+            nsWriter.write(nsConfigFormat
+                .format(new String[] {namespace, entry.getKey() + "=" + entry.getValue()}));
+          }
         }
       }
-    }
     }
   }
 
@@ -532,28 +532,28 @@ public class Admin implements KeywordExecutable {
       File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
     File userScript = new File(outputDirectory, user + USER_FILE_SUFFIX);
     try (BufferedWriter userWriter = new BufferedWriter(new FileWriter(userScript))) {
-    userWriter.write(createUserFormat.format(new String[] {user}));
-    Authorizations auths = accumuloClient.securityOperations().getUserAuthorizations(user);
-    userWriter.write(userAuthsFormat.format(new String[] {user, auths.toString()}));
-    for (SystemPermission sp : SystemPermission.values()) {
-      if (accumuloClient.securityOperations().hasSystemPermission(user, sp)) {
-        userWriter.write(sysPermFormat.format(new String[] {sp.name(), user}));
-      }
-    }
-    for (String namespace : accumuloClient.namespaceOperations().list()) {
-      for (NamespacePermission np : NamespacePermission.values()) {
-        if (accumuloClient.securityOperations().hasNamespacePermission(user, namespace, np)) {
-          userWriter.write(nsPermFormat.format(new String[] {np.name(), namespace, user}));
+      userWriter.write(createUserFormat.format(new String[] {user}));
+      Authorizations auths = accumuloClient.securityOperations().getUserAuthorizations(user);
+      userWriter.write(userAuthsFormat.format(new String[] {user, auths.toString()}));
+      for (SystemPermission sp : SystemPermission.values()) {
+        if (accumuloClient.securityOperations().hasSystemPermission(user, sp)) {
+          userWriter.write(sysPermFormat.format(new String[] {sp.name(), user}));
         }
       }
-    }
-    for (String tableName : accumuloClient.tableOperations().list()) {
-      for (TablePermission perm : TablePermission.values()) {
-        if (accumuloClient.securityOperations().hasTablePermission(user, tableName, perm)) {
-          userWriter.write(tablePermFormat.format(new String[] {perm.name(), tableName, user}));
+      for (String namespace : accumuloClient.namespaceOperations().list()) {
+        for (NamespacePermission np : NamespacePermission.values()) {
+          if (accumuloClient.securityOperations().hasNamespacePermission(user, namespace, np)) {
+            userWriter.write(nsPermFormat.format(new String[] {np.name(), namespace, user}));
+          }
         }
       }
-    }
+      for (String tableName : accumuloClient.tableOperations().list()) {
+        for (TablePermission perm : TablePermission.values()) {
+          if (accumuloClient.securityOperations().hasTablePermission(user, tableName, perm)) {
+            userWriter.write(tablePermFormat.format(new String[] {perm.name(), tableName, user}));
+          }
+        }
+      }
     }
   }
 
@@ -587,23 +587,23 @@ public class Admin implements KeywordExecutable {
       File outputDirectory) throws AccumuloException, TableNotFoundException, IOException {
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(tableBackup))) {
-    writer.write(createTableFormat.format(new String[] {tableName}));
-    TreeMap<String,String> props = new TreeMap<>();
-    for (Entry<String,String> p : accumuloClient.tableOperations().getProperties(tableName)) {
-      props.put(p.getKey(), p.getValue());
-    }
-    for (Entry<String,String> prop : props.entrySet()) {
-      if (prop.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
-        String defaultValue = getDefaultConfigValue(prop.getKey());
-        if (defaultValue == null || !defaultValue.equals(prop.getValue())) {
-          if (!prop.getValue().equals(siteConfig.get(prop.getKey()))
-              && !prop.getValue().equals(systemConfig.get(prop.getKey()))) {
-            writer.write(configFormat
-                .format(new String[] {tableName, prop.getKey() + "=" + prop.getValue()}));
+      writer.write(createTableFormat.format(new String[] {tableName}));
+      TreeMap<String,String> props = new TreeMap<>();
+      for (Entry<String,String> p : accumuloClient.tableOperations().getProperties(tableName)) {
+        props.put(p.getKey(), p.getValue());
+      }
+      for (Entry<String,String> prop : props.entrySet()) {
+        if (prop.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
+          String defaultValue = getDefaultConfigValue(prop.getKey());
+          if (defaultValue == null || !defaultValue.equals(prop.getValue())) {
+            if (!prop.getValue().equals(siteConfig.get(prop.getKey()))
+                && !prop.getValue().equals(systemConfig.get(prop.getKey()))) {
+              writer.write(configFormat
+                  .format(new String[] {tableName, prop.getKey() + "=" + prop.getValue()}));
+            }
           }
         }
       }
-    }
     }
   }
 }
