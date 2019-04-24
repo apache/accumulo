@@ -398,8 +398,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
     } catch (EOFException e) {
       // Explicitly catch any exceptions that should be converted to LogHeaderIncompleteException
-      log.info("Got " + e.getClass().getSimpleName() + " trying to read WAL header information,"
-          + " assuming the rest of the file has no data.");
+
       // A TabletServer might have died before the (complete) header was written
       throw new LogHeaderIncompleteException(e);
     }
