@@ -24,7 +24,7 @@
           <table class="table table-bordered table-striped table-condensed">
             <tbody>
               <tr><th colspan="2"><a href="/master">Accumulo Master</a></th></tr>
-              <tr><td colspan="2" class="center" ><span class="label label-danger nowrap">Master is Down</span></td></tr>
+              <tr><td colspan="2" class="center" style="display:none;"><span class="label label-danger nowrap">Master is Down</span></td></tr>
               <tr><td class="left"><a href="/tables">Tables</a></td><td class="right"></td></tr>
               <tr><td class="left"><a href="/tservers">Tablet&nbsp;Servers</a></td><td class="right"></td></tr>
               <tr><td class="left"><a href="/tservers">Dead&nbsp;Tablet&nbsp;Servers</a></td><td class="right"></td></tr>
