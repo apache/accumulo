@@ -81,6 +81,7 @@ public class VerifyIngest {
 
     public VerifyParams getVerifyParams() {
       VerifyParams params = new VerifyParams(getClientProps(), tableName);
+      populateIngestPrams(params);
       params.useGet = useGet;
       return params;
     }

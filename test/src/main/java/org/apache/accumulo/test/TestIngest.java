@@ -142,8 +142,7 @@ public class TestIngest {
         description = "place columns in this column family", converter = VisibilityConverter.class)
     ColumnVisibility columnVisibility = new ColumnVisibility();
 
-    public IngestParams getIngestPrams() {
-      IngestParams params = new IngestParams(getClientProps(), tableName);
+    protected void populateIngestPrams(IngestParams params) {
       params.createTable = createTable;
       params.numsplits = numsplits;
       params.startRow = startRow;
@@ -157,6 +156,11 @@ public class TestIngest {
       params.stride = stride;
       params.columnFamily = columnFamily;
       params.columnVisibility = columnVisibility;
+    }
+
+    public IngestParams getIngestPrams() {
+      IngestParams params = new IngestParams(getClientProps(), tableName);
+      populateIngestPrams(params);
       return params;
     }
   }
