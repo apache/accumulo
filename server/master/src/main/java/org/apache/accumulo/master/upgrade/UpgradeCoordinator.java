@@ -71,9 +71,9 @@ public class UpgradeCoordinator {
           log.info("Upgrading Zookeeper from data version {}", v);
           upgraders.get(v).upgradeZookeeper(context);
         }
-
-        haveUpgradedZooKeeper = true;
       }
+
+      haveUpgradedZooKeeper = true;
     } catch (Exception e) {
       handleFailure(e);
     }
