@@ -17,38 +17,98 @@
 
 package org.apache.accumulo.master.upgrade;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public interface UpgradeCoordinator {
+import com.google.common.collect.ImmutableMap;
 
-  void upgradeZookeeper();
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-  Future<Void> upgradeMetadata();
+public class UpgradeCoordinator {
 
-  public static UpgradeCoordinator create(ServerContext ctx) {
-    final int accumuloPersistentVersion =
-        ServerUtil.getAccumuloPersistentVersion(ctx.getVolumeManager());
+  private static Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
 
-    ServerUtil.ensureDataVersionCompatible(accumuloPersistentVersion);
+  private ServerContext context;
+  private boolean haveUpgradedZooKeeper = false;
+  private boolean startedMetadataUpgrade = false;
+  private int currentVersion;
+  private Map<Integer,Upgrader> upgraders =
+      ImmutableMap.of(ServerConstants.SHORTEN_RFILE_KEYS, new Upgrader8to9());
 
-    if (ServerUtil.persistentVersionNeedsUpgrade(accumuloPersistentVersion)) {
-      return new UpgradeCoordinatorImpl(accumuloPersistentVersion, ctx);
-    } else {
-      // No upgrade needed so return a no-op coordinator
-      return new UpgradeCoordinator() {
-        @Override
-        public void upgradeZookeeper() {}
+  public UpgradeCoordinator(ServerContext ctx) {
+    int currentVersion = ServerUtil.getAccumuloPersistentVersion(ctx.getVolumeManager());
 
-        @Override
-        public Future<Void> upgradeMetadata() {
-          return CompletableFuture.completedFuture(null);
+    ServerUtil.ensureDataVersionCompatible(currentVersion);
+
+    this.currentVersion = currentVersion;
+    this.context = ctx;
+  }
+
+  @SuppressFBWarnings(value = "DM_EXIT",
+      justification = "Want to immediately stop all master threads on upgrade error")
+  private void handleFailure(Exception e) {
+    log.error("FATAL: Error performing upgrade", e);
+    System.exit(1);
+  }
+
+  public synchronized void upgradeZookeeper() {
+    if (haveUpgradedZooKeeper)
+      throw new IllegalStateException("Only expect this method to be called once");
+
+    try {
+      if (currentVersion < ServerConstants.DATA_VERSION) {
+        ServerUtil.abortIfFateTransactions(context);
+
+        for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
+          log.info("Upgrading Zookeeper from data version {}", v);
+          upgraders.get(v).upgradeZookeeper(context);
         }
-      };
+
+        haveUpgradedZooKeeper = true;
+      }
+    } catch (Exception e) {
+      handleFailure(e);
     }
   }
 
+  public synchronized Future<Void> upgradeMetadata() {
+    if (startedMetadataUpgrade)
+      throw new IllegalStateException("Only expect this method to be called once");
+
+    if (!haveUpgradedZooKeeper) {
+      throw new IllegalStateException("We should only attempt to upgrade"
+          + " Accumulo's metadata table if we've already upgraded ZooKeeper."
+          + " Please save all logs and file a bug.");
+    }
+
+    startedMetadataUpgrade = true;
+
+    if (currentVersion < ServerConstants.DATA_VERSION) {
+      return Executors.newCachedThreadPool().submit(() -> {
+        try {
+          for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
+            log.info("Upgrading Metadata from data version {}", v);
+            upgraders.get(v).upgradeMetadata(context);
+          }
+
+          log.info("Updating persistent data version.");
+          ServerUtil.updateAccumuloVersion(context.getVolumeManager(), currentVersion);
+          log.info("Upgrade complete");
+        } catch (Exception e) {
+          handleFailure(e);
+        }
+        return null;
+      });
+    } else {
+      return CompletableFuture.completedFuture(null);
+    }
+  }
 }

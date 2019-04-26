@@ -418,7 +418,7 @@ public class Master extends AbstractServer
       delegationTokensAvailable = false;
     }
 
-    upgradeCoordinator = UpgradeCoordinator.create(context);
+    upgradeCoordinator = new UpgradeCoordinator(context);
   }
 
   public String getInstanceID() {
