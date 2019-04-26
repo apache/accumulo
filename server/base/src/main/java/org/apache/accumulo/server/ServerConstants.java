@@ -19,10 +19,10 @@ package org.apache.accumulo.server;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -33,6 +33,9 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 public class ServerConstants {
 
@@ -48,40 +51,33 @@ public class ServerConstants {
   public static final Integer WIRE_VERSION = 3;
 
   /**
-   * version (8) reflects changes to RFile index (ACCUMULO-1124) in version 1.8.0
+   * version (9) reflects changes to crypto that resulted in RFiles and WALs being serialized
+   * differently in version 2.0.0. Also RFiles in 2.0.0 may have summary data.
+   */
+  public static final int CRYPTO_CHANGES = 9;
+  /**
+   * version (8) reflects changes to RFile index (ACCUMULO-1124) AND the change to WAL tracking in
+   * ZK in version 1.8.0
    */
   public static final int SHORTEN_RFILE_KEYS = 8;
+
   /**
-   * version (7) also reflects the addition of a replication table
+   * Historic data versions
+   *
+   * <ul>
+   * <li>version (7) also reflects the addition of a replication table in 1.7.0
+   * <li>version (6) reflects the addition of a separate root table (ACCUMULO-1481) in 1.6.0 -
+   * <li>version (5) moves delete file markers for the metadata table into the root tablet
+   * <li>version (4) moves logging to HDFS in 1.5.0
+   * </ul>
+   *
+   *
    */
-  public static final int MOVE_TO_REPLICATION_TABLE = 7;
-  /**
-   * this is the current data version
-   */
-  public static final int DATA_VERSION = SHORTEN_RFILE_KEYS;
-  /**
-   * version (6) reflects the addition of a separate root table (ACCUMULO-1481) in version 1.6.0
-   */
-  public static final int MOVE_TO_ROOT_TABLE = 6;
-  /**
-   * version (5) moves delete file markers for the metadata table into the root tablet
-   */
-  public static final int MOVE_DELETE_MARKERS = 5;
-  /**
-   * version (4) moves logging to HDFS in 1.5.0
-   */
-  public static final int LOGGING_TO_HDFS = 4;
-  public static final BitSet CAN_UPGRADE = new BitSet();
-  static {
-    for (int i : new int[] {DATA_VERSION, MOVE_TO_REPLICATION_TABLE, MOVE_TO_ROOT_TABLE}) {
-      CAN_UPGRADE.set(i);
-    }
-  }
-  public static final BitSet NEEDS_UPGRADE = new BitSet();
-  static {
-    NEEDS_UPGRADE.xor(CAN_UPGRADE);
-    NEEDS_UPGRADE.clear(DATA_VERSION);
-  }
+  public static final int DATA_VERSION = CRYPTO_CHANGES;
+
+  public static final Set<Integer> CAN_RUN = ImmutableSet.of(SHORTEN_RFILE_KEYS, DATA_VERSION);
+  public static final Set<Integer> NEEDS_UPGRADE =
+      Sets.difference(CAN_RUN, ImmutableSet.of(DATA_VERSION));
 
   private static String[] baseUris = null;
 

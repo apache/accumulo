@@ -113,10 +113,7 @@ public class ServerUtil {
     log.info("Data Version {}", dataVersion);
     ServerUtil.waitForZookeeperAndHdfs(context);
 
-    if (!(canUpgradeFromDataVersion(dataVersion))) {
-      throw new RuntimeException("This version of accumulo (" + Constants.VERSION
-          + ") is not compatible with files stored using data version " + dataVersion);
-    }
+    ensureDataVersionCompatible(dataVersion);
 
     TreeMap<String,String> sortedProps = new TreeMap<>();
     for (Entry<String,String> entry : conf)
@@ -152,14 +149,13 @@ public class ServerUtil {
   }
 
   /**
-   * Sanity check that the current persistent version is allowed to upgrade to the version of
-   * Accumulo running.
-   *
-   * @param dataVersion
-   *          the version that is persisted in the backing Volumes
+   * Check to see if this version of Accumulo can run against or upgrade the passed in data version.
    */
-  public static boolean canUpgradeFromDataVersion(final int dataVersion) {
-    return ServerConstants.CAN_UPGRADE.get(dataVersion);
+  public static void ensureDataVersionCompatible(int dataVersion) {
+    if (!(ServerConstants.CAN_RUN.contains(dataVersion))) {
+      throw new IllegalStateException("This version of accumulo (" + Constants.VERSION
+          + ") is not compatible with files stored using data version " + dataVersion);
+    }
   }
 
   /**
@@ -167,7 +163,7 @@ public class ServerUtil {
    * something?
    */
   public static boolean persistentVersionNeedsUpgrade(final int accumuloPersistentVersion) {
-    return ServerConstants.NEEDS_UPGRADE.get(accumuloPersistentVersion);
+    return ServerConstants.NEEDS_UPGRADE.contains(accumuloPersistentVersion);
   }
 
   public static void monitorSwappiness(AccumuloConfiguration config) {
