@@ -17,13 +17,16 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
+import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang.StringUtils;
 
 public class EGrepCommand extends GrepCommand {
 
@@ -31,10 +34,30 @@ public class EGrepCommand extends GrepCommand {
 
   @Override
   protected void setUpIterator(final int prio, final String name, final String term,
-      final BatchScanner scanner, CommandLine cl, boolean negate) throws IOException {
+      final BatchScanner scanner, CommandLine cl, boolean negate, final Shell shellState,
+      String profileName) throws IOException {
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
     }
+
+    // if a profileName is provided, only grep from
+    // the iterators from that profile
+    if (StringUtils.isNotEmpty(profileName)) {
+      List<IteratorSetting> tableScanIterators;
+      tableScanIterators = shellState.iteratorProfiles.get(profileName);
+
+      if (tableScanIterators == null) {
+        throw new IllegalArgumentException("Profile " + profileName + " does not exist");
+      }
+
+      for (IteratorSetting iteratorSetting : tableScanIterators) {
+        for (int i = 0; i < cl.getArgs().length; i++) {
+          scanner.addScanIterator(iteratorSetting);
+        }
+
+      }
+    }
+
     final IteratorSetting si = new IteratorSetting(prio, name, RegExFilter.class);
     RegExFilter.setRegexs(si, term, term, term, term, true,
         cl.hasOption(matchSubstringOption.getOpt()));
