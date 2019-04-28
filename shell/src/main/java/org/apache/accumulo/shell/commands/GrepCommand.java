@@ -69,7 +69,7 @@ public class GrepCommand extends ScanCommand {
 
       String profileName = "";
       if (cl.hasOption(profileNameOpt.getOpt())) {
-        profileName = cl.getOptionValue(numThreadsOpt.getOpt());
+        profileName = cl.getOptionValue(profileNameOpt.getOpt());
       }
 
       final Authorizations auths = getAuths(cl, shellState);
@@ -108,8 +108,9 @@ public class GrepCommand extends ScanCommand {
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
     }
+
     // if a profileName is provided, only grep from
-    // that profile
+    // the iterators from that profile
     if (StringUtils.isNotEmpty(profileName)) {
       List<IteratorSetting> tableScanIterators;
       tableScanIterators = shellState.iteratorProfiles.get(profileName);
@@ -120,20 +121,16 @@ public class GrepCommand extends ScanCommand {
 
       for (IteratorSetting iteratorSetting : tableScanIterators) {
         for (int i = 0; i < cl.getArgs().length; i++) {
-          iteratorSetting.setIteratorClass(GrepIterator.class.getName());
-          iteratorSetting.setName(name);
-          GrepIterator.setTerm(iteratorSetting, term);
-          GrepIterator.setNegate(iteratorSetting, negate);
           scanner.addScanIterator(iteratorSetting);
         }
 
       }
-    } else {
-      final IteratorSetting grep = new IteratorSetting(prio, name, GrepIterator.class);
-      GrepIterator.setTerm(grep, term);
-      GrepIterator.setNegate(grep, negate);
-      scanner.addScanIterator(grep);
     }
+
+    final IteratorSetting grep = new IteratorSetting(prio, name, GrepIterator.class);
+    GrepIterator.setTerm(grep, term);
+    GrepIterator.setNegate(grep, negate);
+    scanner.addScanIterator(grep);
   }
 
   @Override
@@ -147,7 +144,7 @@ public class GrepCommand extends ScanCommand {
     final Options opts = super.getOptions();
     numThreadsOpt = new Option("nt", "num-threads", true, "number of threads to use");
     negateOpt = new Option("v", "negate", false, "only include rows without search term");
-    profileNameOpt = new Option("pn", "profile-name", false,
+    profileNameOpt = new Option("pn", "profile-name", true,
         "only include rows from that iterator profile");
     opts.addOption(numThreadsOpt);
     opts.addOption(negateOpt);

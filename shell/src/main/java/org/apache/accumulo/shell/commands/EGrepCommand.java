@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -37,12 +36,12 @@ public class EGrepCommand extends GrepCommand {
   protected void setUpIterator(final int prio, final String name, final String term,
       final BatchScanner scanner, CommandLine cl, boolean negate, final Shell shellState,
       String profileName) throws IOException {
-
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
     }
-    // if a profileName is provided, only egrep from
-    // that profile
+
+    // if a profileName is provided, only grep from
+    // the iterators from that profile
     if (StringUtils.isNotEmpty(profileName)) {
       List<IteratorSetting> tableScanIterators;
       tableScanIterators = shellState.iteratorProfiles.get(profileName);
@@ -50,23 +49,20 @@ public class EGrepCommand extends GrepCommand {
       if (tableScanIterators == null) {
         throw new IllegalArgumentException("Profile " + profileName + " does not exist");
       }
+
       for (IteratorSetting iteratorSetting : tableScanIterators) {
         for (int i = 0; i < cl.getArgs().length; i++) {
-          iteratorSetting.setIteratorClass(RegExFilter.class.getName());
-          iteratorSetting.setName(name);
-          iteratorSetting.setPriority(prio);
-          RegExFilter.setRegexs(iteratorSetting, term, term, term, term, true,
-              cl.hasOption(matchSubstringOption.getOpt()));
-          RegExFilter.setNegate(iteratorSetting, negate);
           scanner.addScanIterator(iteratorSetting);
         }
+
       }
-    } else {
-      final IteratorSetting grep = new IteratorSetting(prio, name, GrepIterator.class);
-      GrepIterator.setTerm(grep, term);
-      GrepIterator.setNegate(grep, negate);
-      scanner.addScanIterator(grep);
     }
+
+    final IteratorSetting si = new IteratorSetting(prio, name, RegExFilter.class);
+    RegExFilter.setRegexs(si, term, term, term, term, true,
+        cl.hasOption(matchSubstringOption.getOpt()));
+    RegExFilter.setNegate(si, negate);
+    scanner.addScanIterator(si);
   }
 
   @Override
