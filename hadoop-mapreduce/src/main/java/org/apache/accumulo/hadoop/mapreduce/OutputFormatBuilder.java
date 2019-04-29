@@ -79,14 +79,6 @@ public interface OutputFormatBuilder {
     OutputOptions<T> createTables(boolean value);
 
     /**
-     * Enables the directive to use simulation mode for this job. In simulation mode, no output is
-     * produced. This is useful for testing.
-     * <p>
-     * By default, this feature is <b>disabled</b>.
-     */
-    OutputOptions<T> simulationMode(boolean value);
-
-    /**
      * Finish configuring, verify and serialize options into the Job or JobConf
      */
     void store(T j);
