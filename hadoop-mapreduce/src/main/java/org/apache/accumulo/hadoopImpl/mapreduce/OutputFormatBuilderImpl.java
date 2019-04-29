@@ -68,12 +68,6 @@ public class OutputFormatBuilderImpl<T>
   }
 
   @Override
-  public OutputFormatBuilder.OutputOptions<T> simulationMode(boolean value) {
-    this.simulationMode = value;
-    return this;
-  }
-
-  @Override
   public void store(T j) {
     if (j instanceof Job) {
       store((Job) j);
