@@ -252,11 +252,6 @@
         <version>1.12</version>
       </dependency>
       <dependency>
-        <groupId>commons-collections</groupId>
-        <artifactId>commons-collections</artifactId>
-        <version>3.2</version>
-      </dependency>
-      <dependency>
         <groupId>commons-configuration</groupId>
         <artifactId>commons-configuration</artifactId>
         <version>1.10</version>
@@ -412,6 +407,11 @@
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-tserver</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-collections4</artifactId>
+        <version>4.3</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>

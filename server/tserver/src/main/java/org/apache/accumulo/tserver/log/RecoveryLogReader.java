@@ -23,13 +23,13 @@ import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.PriorityQueue;
 
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.commons.collections.buffer.PriorityBuffer;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -111,7 +111,7 @@ public class RecoveryLogReader implements CloseableIterator<Entry<LogFileKey,Log
     }
   }
 
-  private PriorityBuffer heap = new PriorityBuffer();
+  private PriorityQueue heap = new PriorityQueue<>();
   private Iterator<Entry<LogFileKey,LogFileValue>> iter;
 
   public RecoveryLogReader(VolumeManager fs, Path directory) throws IOException {
@@ -170,7 +170,7 @@ public class RecoveryLogReader implements CloseableIterator<Entry<LogFileKey,Log
 
   @VisibleForTesting
   synchronized boolean seek(WritableComparable<?> key) throws IOException {
-    PriorityBuffer reheap = new PriorityBuffer(heap.size());
+    PriorityQueue reheap = new PriorityQueue(heap.size());
     boolean result = false;
     for (Object obj : heap) {
       Index index = (Index) obj;
