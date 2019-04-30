@@ -280,7 +280,7 @@ public class ScanCommand extends Command {
       // did not see a way to make commons cli do this check... it has mutually exclusive options
       // but does not support the or
       throw new IllegalArgumentException("Options -" + scanOptRow.getOpt() + " AND (-"
-          + OptUtil.START_ROW_OPT + " OR -" + OptUtil.END_ROW_OPT + ") are mutally exclusive ");
+          + OptUtil.START_ROW_OPT + " OR -" + OptUtil.END_ROW_OPT + ") are mutually exclusive ");
     }
 
     if (cl.hasOption(scanOptRow.getOpt())) {
