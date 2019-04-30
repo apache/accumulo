@@ -44,11 +44,10 @@ public class ServerConstants {
   public static final String INSTANCE_ID_DIR = "instance_id";
 
   /**
-   * current version (3) reflects additional namespace operations (ACCUMULO-802) in version
-   * 1.6.0<br>
-   * (versions should never be negative)
+   * Accumulo servers will only communicate with each other when this is the same. Bumped for 2.0 to
+   * prevent 1.9 and 2.0 servers from communicating.
    */
-  public static final Integer WIRE_VERSION = 3;
+  public static final Integer INTERNAL_WIRE_VERSION = 4;
 
   /**
    * version (9) reflects changes to crypto that resulted in RFiles and WALs being serialized
