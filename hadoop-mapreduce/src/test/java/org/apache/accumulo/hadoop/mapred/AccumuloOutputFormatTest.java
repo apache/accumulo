@@ -26,10 +26,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Test;
 
@@ -103,28 +101,7 @@ public class AccumuloOutputFormatTest {
     AccumuloOutputFormat.configure().clientProperties(cp).defaultTable(tableName).createTables(true)
         .store(job);
 
-    assertEquals("createTables should be set to true", true,
+    assertEquals("Should have been able to create table", true,
         OutputConfigurator.canCreateTables(AccumuloOutputFormat.class, job));
   }
-
-  @Test
-  public void testSimulationMode() throws Exception {
-    JobConf job = new JobConf();
-    String tableName = "test_create_tables";
-    Text tname = new Text(tableName);
-    Mutation mutation = new Mutation();
-    AccumuloOutputFormat myAOF = new AccumuloOutputFormat();
-
-    Properties cp = Accumulo.newClientProperties().to("test", "zk").as("blah", "blah").build();
-
-    AccumuloOutputFormat.configure().clientProperties(cp).simulationMode(true).store(job);
-
-    if (OutputConfigurator.getSimulationMode(AccumuloOutputFormat.class, job)) {
-      // No output will occur since simulation mode is active. This line fails if simulation mode is
-      // false
-      myAOF.getRecordWriter(null, job, tableName, null).write(tname, mutation);
-    } else
-      fail("Simulation mode was not set");
-  }
-
 }
