@@ -38,7 +38,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.commons.collections.BufferOverflowException;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -156,7 +155,7 @@ public class RowEncodingIteratorTest {
     assertFalse(iter.hasTop());
   }
 
-  @Test(expected = BufferOverflowException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testEncodeSome() throws IOException {
     byte[] kbVal = new byte[1024];
     // This code is shamelessly borrowed from the WholeRowIteratorTest.
@@ -173,7 +172,6 @@ public class RowEncodingIteratorTest {
     bigBufferOpts.put(RowEncodingIterator.MAX_BUFFER_SIZE_OPT, "1K");
     iter.init(src, bigBufferOpts, new DummyIteratorEnv());
     iter.seek(range, new ArrayList<>(), false);
-    // BufferOverflowException should be thrown as RowEncodingIterator can't fit the whole row into
-    // its buffer.
+    // IllegalArgumentException should be thrown as we can't fit the whole row into its buffer
   }
 }

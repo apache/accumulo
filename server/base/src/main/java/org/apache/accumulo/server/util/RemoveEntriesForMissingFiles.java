@@ -44,7 +44,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.commons.collections.map.LRUMap;
+import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.Path;
 import org.apache.htrace.TraceScope;
 
