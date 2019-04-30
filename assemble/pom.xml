@@ -113,11 +113,6 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>commons-collections</groupId>
-      <artifactId>commons-collections</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
       <groupId>commons-configuration</groupId>
       <artifactId>commons-configuration</artifactId>
       <optional>true</optional>
@@ -251,6 +246,11 @@
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-tserver</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-collections4</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
