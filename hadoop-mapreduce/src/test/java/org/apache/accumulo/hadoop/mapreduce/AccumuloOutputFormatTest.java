@@ -93,4 +93,18 @@ public class AccumuloOutputFormatTest {
     } catch (IllegalStateException e) {}
   }
 
+  @Test
+  public void testCreateTables() throws Exception {
+    Job job = Job.getInstance();
+    String tableName = "test_create_tables";
+
+    Properties cp = Accumulo.newClientProperties().to("test", "zk").as("blah", "blah").build();
+
+    AccumuloOutputFormat.configure().clientProperties(cp).defaultTable(tableName).createTables(true)
+        .store(job);
+
+    assertEquals("Should have been able to create table", true,
+        OutputConfigurator.canCreateTables(AccumuloOutputFormat.class, job.getConfiguration()));
+  }
+
 }
