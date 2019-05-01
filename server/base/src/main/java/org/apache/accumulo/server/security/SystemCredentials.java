@@ -107,7 +107,7 @@ public final class SystemCredentials extends Credentials {
       }
 
       // seed the config with the version and instance id, so at least it's not empty
-      md.update(SystemToken.INTERNAL_WIRE_VERSION.toString().getBytes(UTF_8));
+      md.update(INTERNAL_WIRE_VERSION.toString().getBytes(UTF_8));
       md.update(instanceIdBytes);
 
       for (Entry<String,String> entry : siteConfig) {
@@ -119,7 +119,7 @@ public final class SystemCredentials extends Credentials {
       }
       confChecksum = md.digest();
 
-      int wireVersion = SystemToken.INTERNAL_WIRE_VERSION;
+      int wireVersion = INTERNAL_WIRE_VERSION;
 
       ByteArrayOutputStream bytes = new ByteArrayOutputStream(
           3 * (Integer.SIZE / Byte.SIZE) + instanceIdBytes.length + confChecksum.length);
