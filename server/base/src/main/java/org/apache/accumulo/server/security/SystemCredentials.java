@@ -33,7 +33,6 @@ import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.io.Writable;
 
 /**
@@ -83,6 +82,12 @@ public final class SystemCredentials extends Credentials {
   public static final class SystemToken extends PasswordToken {
 
     /**
+     * Accumulo servers will only communicate with each other when this is the same. Bumped for 2.0
+     * to prevent 1.9 and 2.0 servers from communicating.
+     */
+    private static final Integer INTERNAL_WIRE_VERSION = 4;
+
+    /**
      * A Constructor for {@link Writable}.
      */
     public SystemToken() {}
@@ -102,7 +107,7 @@ public final class SystemCredentials extends Credentials {
       }
 
       // seed the config with the version and instance id, so at least it's not empty
-      md.update(ServerConstants.INTERNAL_WIRE_VERSION.toString().getBytes(UTF_8));
+      md.update(SystemToken.INTERNAL_WIRE_VERSION.toString().getBytes(UTF_8));
       md.update(instanceIdBytes);
 
       for (Entry<String,String> entry : siteConfig) {
@@ -114,7 +119,7 @@ public final class SystemCredentials extends Credentials {
       }
       confChecksum = md.digest();
 
-      int wireVersion = ServerConstants.INTERNAL_WIRE_VERSION;
+      int wireVersion = SystemToken.INTERNAL_WIRE_VERSION;
 
       ByteArrayOutputStream bytes = new ByteArrayOutputStream(
           3 * (Integer.SIZE / Byte.SIZE) + instanceIdBytes.length + confChecksum.length);
