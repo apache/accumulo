@@ -44,13 +44,6 @@ public class ServerConstants {
   public static final String INSTANCE_ID_DIR = "instance_id";
 
   /**
-   * current version (3) reflects additional namespace operations (ACCUMULO-802) in version
-   * 1.6.0<br>
-   * (versions should never be negative)
-   */
-  public static final Integer WIRE_VERSION = 3;
-
-  /**
    * version (9) reflects changes to crypto that resulted in RFiles and WALs being serialized
    * differently in version 2.0.0. Also RFiles in 2.0.0 may have summary data.
    */
