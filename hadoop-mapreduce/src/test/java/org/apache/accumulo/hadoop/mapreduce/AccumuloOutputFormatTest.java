@@ -20,6 +20,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -91,6 +93,47 @@ public class AccumuloOutputFormatTest {
       new AccumuloOutputFormat().checkOutputSpecs(job);
       fail("IllegalStateException should have been thrown.");
     } catch (IllegalStateException e) {}
+  }
+
+  @Test
+  public void testCreateTables() throws Exception {
+    Job job = Job.getInstance();
+    String tableName = "test_create_tables";
+
+    Properties cp = Accumulo.newClientProperties().to("test", "zk").as("blah", "blah").build();
+
+    AccumuloOutputFormat.configure().clientProperties(cp).defaultTable(tableName).createTables(true)
+        .store(job);
+
+    assertEquals("Should have been able to create table", true,
+        OutputConfigurator.canCreateTables(AccumuloOutputFormat.class, job.getConfiguration()));
+  }
+
+  @Test
+  public void testClientPropertiesPath() throws Exception {
+    Job job = Job.getInstance();
+    Properties cp = Accumulo.newClientProperties().to("test", "zk").as("blah", "blah").build();
+
+    try {
+      File file = File.createTempFile("accumulo-client", ".properties", null);
+      file.deleteOnExit();
+
+      FileWriter writer = new FileWriter(file);
+      writer.write("auth.type=password\n");
+      writer.write("instance.zookeepers=zk\n");
+      writer.write("instance.name=test\n");
+      writer.write("auth.principal=blah\n");
+      writer.write("auth.token=blah");
+      writer.close();
+
+      AccumuloOutputFormat.configure().clientPropertiesPath(file.getAbsolutePath()).store(job);
+
+      assertEquals("Properties from path does not match the expected values ", cp,
+          OutputConfigurator.getClientProperties(AccumuloOutputFormat.class,
+              job.getConfiguration()));
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
 }
