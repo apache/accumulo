@@ -16,9 +16,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchScanner;
@@ -34,13 +32,11 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.MissingArgumentException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.lang.StringUtils;
 
 public class GrepCommand extends ScanCommand {
 
   private Option numThreadsOpt;
   private Option negateOpt;
-  private Option profileNameOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -67,11 +63,6 @@ public class GrepCommand extends ScanCommand {
         negate = true;
       }
 
-      String profileName = "";
-      if (cl.hasOption(profileNameOpt.getOpt())) {
-        profileName = cl.getOptionValue(profileNameOpt.getOpt());
-      }
-
       final Authorizations auths = getAuths(cl, shellState);
       final BatchScanner scanner = shellState.getAccumuloClient().createBatchScanner(tableName,
           auths, numThreads);
@@ -80,10 +71,11 @@ public class GrepCommand extends ScanCommand {
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
 
       setupSampling(tableName, cl, shellState, scanner);
+      addScanIterators(shellState, cl, scanner, "");
 
       for (int i = 0; i < cl.getArgs().length; i++) {
         setUpIterator(Integer.MAX_VALUE - cl.getArgs().length + i, "grep" + i, cl.getArgs()[i],
-            scanner, cl, negate, shellState, profileName);
+            scanner, cl, negate, shellState);
       }
       try {
         // handle columns
@@ -102,31 +94,11 @@ public class GrepCommand extends ScanCommand {
   }
 
   protected void setUpIterator(final int prio, final String name, final String term,
-      final BatchScanner scanner, CommandLine cl, boolean negate, final Shell shellState,
-      String profileName) throws IOException {
+      final BatchScanner scanner, CommandLine cl, boolean negate, final Shell shellState) throws Exception {
 
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
     }
-
-    // if a profileName is provided, only grep from
-    // the iterators from that profile
-    if (StringUtils.isNotEmpty(profileName)) {
-      List<IteratorSetting> tableScanIterators;
-      tableScanIterators = shellState.iteratorProfiles.get(profileName);
-
-      if (tableScanIterators == null) {
-        throw new IllegalArgumentException("Profile " + profileName + " does not exist");
-      }
-
-      for (IteratorSetting iteratorSetting : tableScanIterators) {
-        for (int i = 0; i < cl.getArgs().length; i++) {
-          scanner.addScanIterator(iteratorSetting);
-        }
-
-      }
-    }
-
     final IteratorSetting grep = new IteratorSetting(prio, name, GrepIterator.class);
     GrepIterator.setTerm(grep, term);
     GrepIterator.setNegate(grep, negate);
@@ -144,11 +116,8 @@ public class GrepCommand extends ScanCommand {
     final Options opts = super.getOptions();
     numThreadsOpt = new Option("nt", "num-threads", true, "number of threads to use");
     negateOpt = new Option("v", "negate", false, "only include rows without search term");
-    profileNameOpt = new Option("pn", "profile-name", true,
-        "only include rows from that iterator profile");
     opts.addOption(numThreadsOpt);
     opts.addOption(negateOpt);
-    opts.addOption(profileNameOpt);
     return opts;
   }
 
