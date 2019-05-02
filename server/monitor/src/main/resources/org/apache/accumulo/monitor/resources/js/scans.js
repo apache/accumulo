@@ -20,7 +20,41 @@
  */
 $(document).ready(function() {
   refreshScans();
+  getTables();
+
+  // bind enter key to query input box
+  $('#quick-query').bind("enterKey",function(e){
+    doQuery();
+  });
+  $('#quick-query').keyup(function(e){
+    if(e.keyCode == 13)
+    {
+      $(this).trigger("enterKey");
+    }
+  });
+
+  $.each(JSON.parse(sessionStorage.tables).table,function(key, value)
+  {
+    console.log("key = " + key);
+    console.log("value.tablename = " + value.tablename);
+
+    $('#query-select-tables').append('<option value=' + value.tablename + '>' + value.tablename + '</option>');
+  });
 });
+
+function getQueryResult(){
+  $('#query-output').val(QUERY);
+}
+
+/**
+ * Execute a the REST quick query: "/query/{tableName}/{value}"
+ */
+function doQuery() {
+  var value = $('#quick-query').val();
+  var tableName = $('#query-select-tables').val();
+  console.log("user entered: " + value);
+  runQuery(tableName, value);
+}
 
 /**
  * Makes the REST calls, generates the tables with the new information

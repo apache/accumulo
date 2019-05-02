@@ -31,3 +31,11 @@
           </table>
         </div>
       </div>
+    <div class="row">
+      <div class="col-xs-12">
+        <span id="query">Quick Query:</span><input id="quick-query"></input><select id="query-select-tables" ></select>
+      <input type="button" value="GO!" onclick="doQuery()"></input></br>
+      <input type="button" value="Load Result" onclick="getQueryResult()"/>
+        <textarea id="query-output"></textarea>
+      </div>
+    </div>

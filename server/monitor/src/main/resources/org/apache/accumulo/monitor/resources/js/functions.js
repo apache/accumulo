@@ -254,6 +254,14 @@ function createTableCell(index, sortValue, showValue) {
 }
 
 ///// REST Calls /////////////
+/**
+ * REST GET call for the query, stores it on a sessionStorage variable
+ */
+function runQuery(tableName, value) {
+  return $.getJSON('/rest/query/' + tableName + "/" + value, function(data) {
+    QUERY = JSON.stringify(data);
+  });
+}
 
 /**
  * REST GET call for the master information,

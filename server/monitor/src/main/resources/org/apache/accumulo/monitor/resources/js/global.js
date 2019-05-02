@@ -24,3 +24,5 @@ var NAMESPACES = '';
  * Timer object
  */
 var TIMER;
+
+var QUERY;

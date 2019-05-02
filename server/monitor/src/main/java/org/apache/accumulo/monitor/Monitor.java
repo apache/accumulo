@@ -39,9 +39,14 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.MasterClient;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -49,6 +54,7 @@ import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -63,6 +69,8 @@ import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.monitor.rest.query.Query;
+import org.apache.accumulo.monitor.rest.query.QueryInformation;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
@@ -219,6 +227,30 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
       return count;
     }
+  }
+
+  public Query fetchQuery(String tableName, String value) {
+    if (tableName == null)
+      tableName = "test_ingest";
+    ServerContext context = getContext();
+    Query result = new Query();
+    long count = 0L;
+    log.info("MIKE query value = " + value);
+
+    try {
+      BatchScanner scanner = context.createBatchScanner(tableName, Authorizations.EMPTY);
+      ArrayList<Range> ranges = new ArrayList<>();
+      ranges.add(new Range(value));
+      scanner.setRanges(ranges);
+      for (Entry<Key, Value> entry : scanner) {
+        count++;
+      }
+      log.info("MIKE count = " + count);
+    } catch (Exception ex) {
+      log.error("Exception calling fetchQuery", ex);
+    }
+    result.query = new QueryInformation(count);
+    return result;
   }
 
   public void fetchData() {

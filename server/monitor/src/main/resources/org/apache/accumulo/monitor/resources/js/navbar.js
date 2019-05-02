@@ -22,6 +22,7 @@ $(document).ready(function() {
   refreshSidebar();
 });
 
+
 /**
  * Makes the REST calls, generates the sidebar with the new information
  */

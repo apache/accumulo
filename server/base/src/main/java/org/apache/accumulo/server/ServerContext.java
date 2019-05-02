@@ -21,6 +21,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.IOException;
 import java.util.Properties;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -29,6 +33,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
@@ -209,4 +214,8 @@ public class ServerContext extends ClientContext {
     return cryptoService;
   }
 
+  @Override
+  public Scanner createScanner(String tableName) throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    return super.createScanner(tableName, Authorizations.EMPTY);
+  }
 }
