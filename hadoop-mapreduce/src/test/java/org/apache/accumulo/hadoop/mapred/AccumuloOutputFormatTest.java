@@ -20,6 +20,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -103,5 +105,31 @@ public class AccumuloOutputFormatTest {
 
     assertEquals("Should have been able to create table", true,
         OutputConfigurator.canCreateTables(AccumuloOutputFormat.class, job));
+  }
+
+  @Test
+  public void testClientPropertiesPath() throws Exception {
+    JobConf job = new JobConf();
+    Properties cp = Accumulo.newClientProperties().to("test", "zk").as("blah", "blah").build();
+
+    try {
+      File file = File.createTempFile("accumulo-client", ".properties", null);
+      file.deleteOnExit();
+
+      FileWriter writer = new FileWriter(file);
+      writer.write("auth.type=password\n");
+      writer.write("instance.zookeepers=zk\n");
+      writer.write("instance.name=test\n");
+      writer.write("auth.principal=blah\n");
+      writer.write("auth.token=blah");
+      writer.close();
+
+      AccumuloOutputFormat.configure().clientPropertiesPath(file.getAbsolutePath()).store(job);
+
+      assertEquals("Properties from path does not match the expected values ", cp,
+          OutputConfigurator.getClientProperties(AccumuloOutputFormat.class, job));
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
   }
 }
