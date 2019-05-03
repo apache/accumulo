@@ -54,7 +54,9 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.Authorizations;
@@ -325,7 +327,6 @@ public class ClientContext implements AccumuloClient {
    */
   public String getRootTabletLocation() {
     ensureOpen();
-    String zRootLocPath = getZooKeeperRoot() + RootTable.ZROOT_TABLET_LOCATION;
 
     OpTimer timer = null;
 
@@ -335,20 +336,20 @@ public class ClientContext implements AccumuloClient {
       timer = new OpTimer().start();
     }
 
-    byte[] loc = zooCache.get(zRootLocPath);
+    Location loc = TabletsMetadata.getRootMetadata(this).getLocation();
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(),
-          (loc == null ? "null" : new String(loc, UTF_8)),
+      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 
-    if (loc == null) {
+    if (loc == null || loc.getType() != LocationType.CURRENT) {
       return null;
     }
 
-    return new String(loc, UTF_8).split("\\|")[0];
+    // TODO return host and port object?
+    return loc.getHostAndPort().toString();
   }
 
   /**

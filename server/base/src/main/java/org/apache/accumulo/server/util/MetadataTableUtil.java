@@ -63,9 +63,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -75,16 +73,16 @@ import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.metadata.GcMutatorImpl;
+import org.apache.accumulo.server.metadata.MetadataMutator;
+import org.apache.accumulo.server.metadata.MetadataMutator.TabletMutator;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -93,6 +91,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
 /**
@@ -100,7 +99,7 @@ import com.google.common.collect.Iterables;
  */
 public class MetadataTableUtil {
 
-  private static final Text EMPTY_TEXT = new Text();
+  public static final Text EMPTY_TEXT = new Text();
   private static Map<Credentials,Writer> root_tables = new HashMap<>();
   private static Map<Credentials,Writer> metadata_tables = new HashMap<>();
   private static final Logger log = LoggerFactory.getLogger(MetadataTableUtil.class);
@@ -222,66 +221,24 @@ public class MetadataTableUtil {
 
       if (filesToRemove.size() != 0 || filesToAdd.size() != 0)
         throw new IllegalArgumentException("files not expected for " + extent);
+    }
 
-      // add before removing in case of process death
-      for (LogEntry logEntry : logsToAdd)
-        addRootLogEntry(context, zooLock, logEntry);
+    try (MetadataMutator metaMutator = context.newMetadataMutator()) {
+      TabletMutator tabletMutator = metaMutator.mutateTablet(extent);
 
-      removeUnusedWALEntries(context, extent, logsToRemove, zooLock);
-    } else {
-      Mutation m = new Mutation(extent.getMetadataEntry());
+      logsToRemove.forEach(tabletMutator::deleteWal);
+      logsToAdd.forEach(tabletMutator::putWal);
 
-      for (LogEntry logEntry : logsToRemove)
-        m.putDelete(logEntry.getColumnFamily(), logEntry.getColumnQualifier());
-
-      for (LogEntry logEntry : logsToAdd)
-        m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
-
-      for (FileRef fileRef : filesToRemove)
-        m.putDelete(DataFileColumnFamily.NAME, fileRef.meta());
-
-      for (Entry<FileRef,DataFileValue> entry : filesToAdd.entrySet())
-        m.put(DataFileColumnFamily.NAME, entry.getKey().meta(),
-            new Value(entry.getValue().encode()));
+      filesToRemove.forEach(tabletMutator::deleteFile);
+      filesToAdd.forEach(tabletMutator::putFile);
 
       if (newDir != null)
-        ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(newDir.getBytes(UTF_8)));
+        tabletMutator.putDir(newDir);
 
-      update(context, m, extent);
+      tabletMutator.putZooLock(zooLock);
+
+      tabletMutator.mutate();
     }
-  }
-
-  private interface ZooOperation {
-    void run(IZooReaderWriter rw) throws KeeperException, InterruptedException, IOException;
-  }
-
-  private static void retryZooKeeperUpdate(ServerContext context, ZooLock zooLock,
-      ZooOperation op) {
-    while (true) {
-      try {
-        IZooReaderWriter zoo = context.getZooReaderWriter();
-        if (zoo.isLockHeld(zooLock.getLockID())) {
-          op.run(zoo);
-        }
-        break;
-      } catch (Exception e) {
-        log.error("Unexpected exception {}", e.getMessage(), e);
-      }
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
-    }
-  }
-
-  private static void addRootLogEntry(ServerContext context, ZooLock zooLock,
-      final LogEntry entry) {
-    retryZooKeeperUpdate(context, zooLock, new ZooOperation() {
-      @Override
-      public void run(IZooReaderWriter rw)
-          throws KeeperException, InterruptedException, IOException {
-        String root = getZookeeperLogLocation(context);
-        rw.putPersistentData(root + "/" + entry.getUniqueID(), entry.toBytes(),
-            NodeExistsPolicy.OVERWRITE);
-      }
-    });
   }
 
   public static SortedMap<FileRef,DataFileValue> getDataFileSizes(KeyExtent extent,
@@ -361,22 +318,14 @@ public class MetadataTableUtil {
     // TODO could use batch writer,would need to handle failure and retry like update does -
     // ACCUMULO-1294
     for (FileRef pathToRemove : datafilesToDelete) {
-      update(context, createDeleteMutation(context, tableId, pathToRemove.path().toString()),
+      update(context, GcMutatorImpl.createDeleteMutation(context, tableId, pathToRemove.path().toString()),
           extent);
     }
   }
 
   public static void addDeleteEntry(ServerContext context, TableId tableId, String path) {
-    update(context, createDeleteMutation(context, tableId, path),
+    update(context, GcMutatorImpl.createDeleteMutation(context, tableId, path),
         new KeyExtent(tableId, null, null));
-  }
-
-  public static Mutation createDeleteMutation(ServerContext context, TableId tableId,
-      String pathToRemove) {
-    Path path = context.getVolumeManager().getFullPath(tableId, pathToRemove);
-    Mutation delFlag = new Mutation(new Text(MetadataSchema.DeletesSection.getRowPrefix() + path));
-    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, new Value(new byte[] {}));
-    return delFlag;
   }
 
   public static void removeScanFiles(KeyExtent extent, Set<FileRef> scanFiles,
@@ -460,11 +409,11 @@ public class MetadataTableUtil {
 
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             FileRef ref = new FileRef(context.getVolumeManager(), key);
-            bw.addMutation(createDeleteMutation(context, tableId, ref.meta().toString()));
+            bw.addMutation(GcMutatorImpl.createDeleteMutation(context, tableId, ref.meta().toString()));
           }
 
           if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-            bw.addMutation(createDeleteMutation(context, tableId, cell.getValue().toString()));
+            bw.addMutation(GcMutatorImpl.createDeleteMutation(context, tableId, cell.getValue().toString()));
           }
         }
 
@@ -497,32 +446,15 @@ public class MetadataTableUtil {
   }
 
   static String getZookeeperLogLocation(ServerContext context) {
-    return context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_WALOGS;
+    throw new UnsupportedOperationException();
   }
 
   public static void setRootTabletDir(ServerContext context, String dir) throws IOException {
-    IZooReaderWriter zoo = context.getZooReaderWriter();
-    String zpath = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_PATH;
-    try {
-      zoo.putPersistentData(zpath, dir.getBytes(UTF_8), -1, NodeExistsPolicy.OVERWRITE);
-    } catch (KeeperException e) {
-      throw new IOException(e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IOException(e);
-    }
-  }
-
-  public static String getRootTabletDir(ServerContext context) throws IOException {
-    IZooReaderWriter zoo = context.getZooReaderWriter();
-    String zpath = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_PATH;
-    try {
-      return new String(zoo.getData(zpath, null), UTF_8);
-    } catch (KeeperException e) {
-      throw new IOException(e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IOException(e);
+    // TODO can this method be removed??
+    try (MetadataMutator metaMutator = context.newMetadataMutator()) {
+      TabletMutator tabletMutator = metaMutator.mutateTablet(RootTable.EXTENT);
+      tabletMutator.putDir(dir);
+      tabletMutator.mutate();
     }
   }
 
@@ -533,29 +465,31 @@ public class MetadataTableUtil {
     TreeMap<FileRef,DataFileValue> sizes = new TreeMap<>();
 
     VolumeManager fs = context.getVolumeManager();
-    if (extent.isRootTablet()) {
-      getRootLogEntries(context, result);
-      Path rootDir = new Path(getRootTabletDir(context));
-      FileStatus[] files = fs.listStatus(rootDir);
-      for (FileStatus fileStatus : files) {
-        if (fileStatus.getPath().toString().endsWith("_tmp")) {
-          continue;
+
+    try (TabletsMetadata tablets = TabletsMetadata.builder().forTablet(extent).fetchFiles()
+        .fetchLogs().fetchPrev().fetchDir().build(context)) {
+
+      TabletMetadata tablet = Iterables.getOnlyElement(tablets);
+
+      if (!tablet.getExtent().equals(extent))
+        throw new RuntimeException(
+            "Unexpected extent " + tablet.getExtent() + " expected " + extent);
+
+      result.addAll(tablet.getLogs());
+
+      if (extent.isRootTablet()) {
+        Preconditions.checkState(tablet.getFiles().isEmpty(),
+            "Saw unexpected files in root tablet metadata %s", tablet.getFiles());
+
+        FileStatus[] files = fs.listStatus(new Path(tablet.getDir()));
+        for (FileStatus fileStatus : files) {
+          if (fileStatus.getPath().toString().endsWith("_tmp")) {
+            continue;
+          }
+          DataFileValue dfv = new DataFileValue(0, 0);
+          sizes.put(new FileRef(fileStatus.getPath().toString(), fileStatus.getPath()), dfv);
         }
-        DataFileValue dfv = new DataFileValue(0, 0);
-        sizes.put(new FileRef(fileStatus.getPath().toString(), fileStatus.getPath()), dfv);
-      }
-
-    } else {
-      try (TabletsMetadata tablets = TabletsMetadata.builder().forTablet(extent).fetchFiles()
-          .fetchLogs().fetchPrev().build(context)) {
-
-        TabletMetadata tablet = Iterables.getOnlyElement(tablets);
-
-        if (!tablet.getExtent().equals(extent))
-          throw new RuntimeException(
-              "Unexpected extent " + tablet.getExtent() + " expected " + extent);
-
-        result.addAll(tablet.getLogs());
+      } else {
         tablet.getFilesMap().forEach((k, v) -> {
           sizes.put(new FileRef(k, fs.getFullPath(tablet.getTableId(), k)), v);
         });
@@ -565,136 +499,14 @@ public class MetadataTableUtil {
     return new Pair<>(result, sizes);
   }
 
-  public static List<LogEntry> getLogEntries(ServerContext context, KeyExtent extent)
-      throws IOException, KeeperException, InterruptedException {
-    log.info("Scanning logging entries for {}", extent);
-    ArrayList<LogEntry> result = new ArrayList<>();
-    if (extent.equals(RootTable.EXTENT)) {
-      log.info("Getting logs for root tablet from zookeeper");
-      getRootLogEntries(context, result);
-    } else {
-      log.info("Scanning metadata for logs used for tablet {}", extent);
-      Scanner scanner = getTabletLogScanner(context, extent);
-      Text pattern = extent.getMetadataEntry();
-      for (Entry<Key,Value> entry : scanner) {
-        Text row = entry.getKey().getRow();
-        if (entry.getKey().getColumnFamily().equals(LogColumnFamily.NAME)) {
-          if (row.equals(pattern)) {
-            result.add(LogEntry.fromKeyValue(entry.getKey(), entry.getValue()));
-          }
-        }
-      }
-    }
-
-    log.info("Returning logs {} for extent {}", result, extent);
-    return result;
-  }
-
-  static void getRootLogEntries(ServerContext context, final ArrayList<LogEntry> result)
-      throws KeeperException, InterruptedException, IOException {
-    IZooReaderWriter zoo = context.getZooReaderWriter();
-    String root = getZookeeperLogLocation(context);
-    // there's a little race between getting the children and fetching
-    // the data. The log can be removed in between.
-    while (true) {
-      result.clear();
-      for (String child : zoo.getChildren(root)) {
-        try {
-          LogEntry e = LogEntry.fromBytes(zoo.getData(root + "/" + child, null));
-          // upgrade from !0;!0<< -> +r<<
-          e = new LogEntry(RootTable.EXTENT, 0, e.server, e.filename);
-          result.add(e);
-        } catch (KeeperException.NoNodeException ex) {
-          continue;
-        }
-      }
-      break;
-    }
-  }
-
-  private static Scanner getTabletLogScanner(ServerContext context, KeyExtent extent) {
-    TableId tableId = MetadataTable.ID;
-    if (extent.isMeta())
-      tableId = RootTable.ID;
-    Scanner scanner = new ScannerImpl(context, tableId, Authorizations.EMPTY);
-    scanner.fetchColumnFamily(LogColumnFamily.NAME);
-    Text start = extent.getMetadataEntry();
-    Key endKey = new Key(start, LogColumnFamily.NAME);
-    endKey = endKey.followingKey(PartialKey.ROW_COLFAM);
-    scanner.setRange(new Range(new Key(start), endKey));
-    return scanner;
-  }
-
-  private static class LogEntryIterator implements Iterator<LogEntry> {
-
-    Iterator<LogEntry> zookeeperEntries = null;
-    Iterator<LogEntry> rootTableEntries = null;
-    Iterator<Entry<Key,Value>> metadataEntries = null;
-
-    LogEntryIterator(ServerContext context)
-        throws IOException, KeeperException, InterruptedException {
-      zookeeperEntries = getLogEntries(context, RootTable.EXTENT).iterator();
-      rootTableEntries =
-          getLogEntries(context, new KeyExtent(MetadataTable.ID, null, null)).iterator();
-      try {
-        Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-        log.info("Setting range to {}", MetadataSchema.TabletsSection.getRange());
-        scanner.setRange(MetadataSchema.TabletsSection.getRange());
-        scanner.fetchColumnFamily(LogColumnFamily.NAME);
-        metadataEntries = scanner.iterator();
-      } catch (Exception ex) {
-        throw new IOException(ex);
-      }
-    }
-
-    @Override
-    public boolean hasNext() {
-      return zookeeperEntries.hasNext() || rootTableEntries.hasNext() || metadataEntries.hasNext();
-    }
-
-    @Override
-    public LogEntry next() {
-      if (zookeeperEntries.hasNext()) {
-        return zookeeperEntries.next();
-      }
-      if (rootTableEntries.hasNext()) {
-        return rootTableEntries.next();
-      }
-      Entry<Key,Value> entry = metadataEntries.next();
-      return LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
-    }
-
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException();
-    }
-  }
-
-  public static Iterator<LogEntry> getLogEntries(ServerContext context)
-      throws IOException, KeeperException, InterruptedException {
-    return new LogEntryIterator(context);
-  }
-
   public static void removeUnusedWALEntries(ServerContext context, KeyExtent extent,
       final List<LogEntry> entries, ZooLock zooLock) {
-    if (extent.isRootTablet()) {
-      retryZooKeeperUpdate(context, zooLock, new ZooOperation() {
-        @Override
-        public void run(IZooReaderWriter rw) throws KeeperException, InterruptedException {
-          String root = getZookeeperLogLocation(context);
-          for (LogEntry entry : entries) {
-            String path = root + "/" + entry.getUniqueID();
-            log.debug("Removing " + path + " from zookeeper");
-            rw.recursiveDelete(path, NodeMissingPolicy.SKIP);
-          }
-        }
-      });
-    } else {
-      Mutation m = new Mutation(extent.getMetadataEntry());
-      for (LogEntry entry : entries) {
-        m.putDelete(entry.getColumnFamily(), entry.getColumnQualifier());
-      }
-      update(context, zooLock, m, extent);
+
+    try (MetadataMutator metaMutator = context.newMetadataMutator()) {
+      TabletMutator tabletMutator = metaMutator.mutateTablet(extent);
+      entries.forEach(tabletMutator::deleteWal);
+      tabletMutator.putZooLock(zooLock);
+      tabletMutator.mutate();
     }
   }
 
@@ -1042,5 +854,4 @@ public class MetadataTableUtil {
 
     return tabletEntries;
   }
-
 }

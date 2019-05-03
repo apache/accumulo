@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -52,9 +54,11 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.FetchedColumns;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 
 /**
  * An abstraction layer for reading tablet metadata from the accumulo.metadata and accumulo.root
@@ -74,8 +78,28 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private boolean saveKeyValues;
     private TableId tableId;
 
+    // An internal constant that represents a fictional table where the root tablet stores its
+    // metadata
+    private static String SEED_TABLE = "accumulo.seed";
+
     @Override
     public TabletsMetadata build(AccumuloClient client) {
+      if (table.equals(SEED_TABLE)) {
+        return buildSeed(client);
+      } else {
+        return buildNonSeed(client);
+      }
+    }
+
+    private TabletsMetadata buildSeed(AccumuloClient client) {
+      ClientContext ctx = ((ClientContext) client);
+      ZooCache zc = ctx.getZooCache();
+      String zkRoot = ctx.getZooKeeperRoot();
+
+      return new TabletsMetadata(getRootMetadata(zkRoot, zc));
+    }
+
+    private TabletsMetadata buildNonSeed(AccumuloClient client) {
       try {
         Scanner scanner = new IsolatedScanner(client.createScanner(table, Authorizations.EMPTY));
         scanner.setRange(range);
@@ -204,9 +228,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public TableRangeOptions forTable(TableId tableId) {
-      Preconditions.checkArgument(!tableId.equals(RootTable.ID),
-          "Getting tablet metadata for " + RootTable.NAME + " not supported at this time.");
-      if (tableId.equals(MetadataTable.ID)) {
+      if (tableId.equals(RootTable.ID)) {
+        this.table = SEED_TABLE;
+      } else if (tableId.equals(MetadataTable.ID)) {
         this.table = RootTable.NAME;
       } else {
         this.table = MetadataTable.NAME;
@@ -246,6 +270,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public RangeOptions scanTable(String tableName) {
+      Preconditions.checkArgument(!tableName.equals(SEED_TABLE));
       this.table = tableName;
       this.range = TabletsSection.getRange();
       return this;
@@ -378,9 +403,28 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     return new Builder();
   }
 
+  public static TabletMetadata getRootMetadata(ClientContext ctx) {
+    try (TabletsMetadata tablets = TabletsMetadata.builder().forTable(RootTable.ID).build(ctx)) {
+      return Iterables.getOnlyElement(tablets);
+    }
+  }
+
+  // TODO, should this be read from zookeeper or zoocache? should the code using the data be given a
+  // choice? maybe a read consistency level?
+  public static TabletMetadata getRootMetadata(String zkRoot, ZooCache zc) {
+    RootTabletMetadata rtm = RootTabletMetadata.fromJson(zc.get(zkRoot + RootTable.ZROOT_TABLET));
+    return TabletMetadata.convertRow(rtm.getEntries().entrySet().iterator(),
+        EnumSet.allOf(FetchedColumns.class), false);
+  }
+
   private Scanner scanner;
 
   private Iterable<TabletMetadata> tablets;
+
+  private TabletsMetadata(TabletMetadata tm) {
+    this.scanner = null;
+    this.tablets = Collections.singleton(tm);
+  }
 
   private TabletsMetadata(Scanner scanner, Iterable<TabletMetadata> tmi) {
     this.scanner = scanner;
@@ -389,7 +433,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
   @Override
   public void close() {
-    scanner.close();
+    if (scanner != null) {
+      scanner.close();
+    }
   }
 
   @Override

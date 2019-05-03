@@ -33,6 +33,8 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.metadata.MetadataMutator;
+import org.apache.accumulo.server.metadata.MetadataMutatorImpl;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -45,7 +47,7 @@ import org.apache.hadoop.security.UserGroupInformation;
  * Provides a server context for Accumulo server components that operate with the system credentials
  * and have access to the system files and configuration.
  */
-public class ServerContext extends ClientContext {
+public class ServerContext extends ClientContext implements MetadataMutator.Factory {
 
   private final ServerInfo info;
   private TableManager tableManager;
@@ -209,4 +211,8 @@ public class ServerContext extends ClientContext {
     return cryptoService;
   }
 
+  @Override
+  public MetadataMutator newMetadataMutator() {
+    return new MetadataMutatorImpl(this);
+  }
 }

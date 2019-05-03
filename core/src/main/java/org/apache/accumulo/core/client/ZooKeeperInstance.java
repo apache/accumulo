@@ -33,7 +33,9 @@ import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.clientImpl.InstanceOperationsImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.util.OpTimer;
@@ -174,8 +176,6 @@ public class ZooKeeperInstance implements Instance {
 
   @Override
   public String getRootTabletLocation() {
-    String zRootLocPath = ZooUtil.getRoot(getInstanceID()) + RootTable.ZROOT_TABLET_LOCATION;
-
     OpTimer timer = null;
 
     if (log.isTraceEnabled()) {
@@ -184,20 +184,20 @@ public class ZooKeeperInstance implements Instance {
       timer = new OpTimer().start();
     }
 
-    byte[] loc = zooCache.get(zRootLocPath);
+    Location loc =
+        TabletsMetadata.getRootMetadata(ZooUtil.getRoot(getInstanceID()), zooCache).getLocation();
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(),
-          (loc == null ? "null" : new String(loc, UTF_8)),
+      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 
-    if (loc == null) {
+    if (loc == null || loc.getType() != LocationType.CURRENT) {
       return null;
     }
 
-    return new String(loc, UTF_8).split("\\|")[0];
+    return loc.getHostAndPort().toString();
   }
 
   @Override

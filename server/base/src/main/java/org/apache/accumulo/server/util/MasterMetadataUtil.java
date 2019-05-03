@@ -41,19 +41,21 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
 import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.metadata.MetadataMutator;
+import org.apache.accumulo.server.metadata.MetadataMutator.TabletMutator;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -209,35 +211,36 @@ public class MasterMetadataUtil {
       DataFileValue size, String address, TServerInstance lastLocation, ZooLock zooLock,
       boolean insertDeleteFlags) {
 
-    if (insertDeleteFlags) {
-      // add delete flags for those paths before the data file reference is removed
-      MetadataTableUtil.addDeleteEntries(extent, datafilesToDelete, context);
+    try (MetadataMutator meta = context.newMetadataMutator()) {
+
+      if (insertDeleteFlags) {
+        datafilesToDelete.forEach(meta.mutateDeletes(extent.getTableId())::put);
+        // must ensure all delete markers are persisted before updating tablet in case of failure
+        meta.flush();
+      }
+
+      TabletMutator tablet = meta.mutateTablet(extent);
+
+      datafilesToDelete.forEach(tablet::deleteFile);
+      scanFiles.forEach(tablet::putScan);
+
+      if (size.getNumEntries() > 0)
+        tablet.putFile(path, size);
+
+      if (compactionId != null)
+        tablet.putCompactionId(compactionId);
+
+      TServerInstance self = getTServerInstance(address, zooLock);
+      tablet.putLocation(self, LocationType.LAST);
+
+      // remove the old location
+      if (lastLocation != null && !lastLocation.equals(self))
+        tablet.deleteLocation(lastLocation, LocationType.LAST);
+
+      tablet.putZooLock(zooLock);
+
+      tablet.mutate();
     }
-
-    // replace data file references to old mapfiles with the new mapfiles
-    Mutation m = new Mutation(extent.getMetadataEntry());
-
-    for (FileRef pathToRemove : datafilesToDelete)
-      m.putDelete(DataFileColumnFamily.NAME, pathToRemove.meta());
-
-    for (FileRef scanFile : scanFiles)
-      m.put(ScanFileColumnFamily.NAME, scanFile.meta(), new Value(new byte[0]));
-
-    if (size.getNumEntries() > 0)
-      m.put(DataFileColumnFamily.NAME, path.meta(), new Value(size.encode()));
-
-    if (compactionId != null)
-      TabletsSection.ServerColumnFamily.COMPACT_COLUMN.put(m,
-          new Value(("" + compactionId).getBytes()));
-
-    TServerInstance self = getTServerInstance(address, zooLock);
-    self.putLastLocation(m);
-
-    // remove the old location
-    if (lastLocation != null && !lastLocation.equals(self))
-      lastLocation.clearLastLocation(m);
-
-    MetadataTableUtil.update(context, zooLock, m, extent);
   }
 
   /**
@@ -266,23 +269,12 @@ public class MasterMetadataUtil {
    * Update the data file for the root tablet
    */
   private static void updateRootTabletDataFile(ServerContext context, Set<String> unusedWalLogs) {
-    IZooReaderWriter zk = context.getZooReaderWriter();
-    String root = MetadataTableUtil.getZookeeperLogLocation(context);
-    for (String entry : unusedWalLogs) {
-      String[] parts = entry.split("/");
-      String zpath = root + "/" + parts[parts.length - 1];
-      while (true) {
-        try {
-          if (zk.exists(zpath)) {
-            log.debug("Removing WAL reference for root table {}", zpath);
-            zk.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
-          }
-          break;
-        } catch (KeeperException | InterruptedException e) {
-          log.error("{}", e.getMessage(), e);
-        }
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
-      }
+
+    // TODO drop entire method
+    try (MetadataMutator meta = context.newMetadataMutator()) {
+      TabletMutator tablet = meta.mutateTablet(RootTable.EXTENT);
+      unusedWalLogs.forEach(tablet::deleteWal);
+      tablet.mutate();
     }
   }
 

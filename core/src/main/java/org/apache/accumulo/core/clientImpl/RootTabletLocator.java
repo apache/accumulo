@@ -30,6 +30,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
@@ -91,8 +94,6 @@ public class RootTabletLocator extends TabletLocator {
   public void invalidateCache() {}
 
   protected TabletLocation getRootTabletLocation(ClientContext context) {
-    String zRootLocPath = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_LOCATION;
-    ZooCache zooCache = context.getZooCache();
 
     Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -104,23 +105,22 @@ public class RootTabletLocator extends TabletLocator {
       timer = new OpTimer().start();
     }
 
-    byte[] loc = zooCache.get(zRootLocPath);
+    Location loc = TabletsMetadata.getRootMetadata(context).getLocation();
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(),
-          (loc == null ? "null" : new String(loc)),
+      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 
-    if (loc == null) {
+    if (loc == null || loc.getType() != LocationType.CURRENT) {
       return null;
     }
 
-    String[] tokens = new String(loc).split("\\|");
+    String server = loc.getHostAndPort().toString();
 
-    if (lockChecker.isLockHeld(tokens[0], tokens[1]))
-      return new TabletLocation(RootTable.EXTENT, tokens[0], tokens[1]);
+    if (lockChecker.isLockHeld(server, loc.getSession()))
+      return new TabletLocation(RootTable.EXTENT, server, loc.getSession());
     else
       return null;
   }

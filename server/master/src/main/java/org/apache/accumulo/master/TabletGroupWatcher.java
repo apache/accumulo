@@ -87,6 +87,7 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.TabletStateStore;
+import org.apache.accumulo.server.metadata.GcMutatorImpl;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
@@ -720,7 +721,7 @@ abstract class TabletGroupWatcher extends Daemon {
         } else if (TabletsSection.ServerColumnFamily.TIME_COLUMN.hasColumns(key)) {
           maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, value.toString());
         } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          bw.addMutation(MetadataTableUtil.createDeleteMutation(master.getContext(),
+          bw.addMutation(GcMutatorImpl.createDeleteMutation(master.getContext(),
               range.getTableId(), entry.getValue().toString()));
         }
       }

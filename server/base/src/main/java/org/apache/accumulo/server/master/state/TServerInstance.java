@@ -78,6 +78,7 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
     this(location.getHostAndPort(), location.getSession());
   }
 
+  // TODO could remove following
   public void putLocation(Mutation m) {
     m.put(TabletsSection.CurrentLocationColumnFamily.NAME, asColumnQualifier(), asMutationValue());
   }
@@ -135,10 +136,12 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
     return getLocation().toString();
   }
 
+  // TODO could remove following
   private Text asColumnQualifier() {
     return new Text(this.getSession());
   }
 
+  // TODO could remove following
   private Value asMutationValue() {
     return new Value(getLocation().toString().getBytes(UTF_8));
   }

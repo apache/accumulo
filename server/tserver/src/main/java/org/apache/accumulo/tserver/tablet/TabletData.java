@@ -47,6 +47,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.La
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.FileRef;
@@ -54,7 +56,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.tablets.TabletTime;
-import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -134,8 +135,10 @@ public class TabletData {
   // Read basic root table metadata from zookeeper
   public TabletData(ServerContext context, VolumeManager fs, AccumuloConfiguration conf)
       throws IOException {
-    directory =
-        VolumeUtil.switchRootTableVolume(context, MetadataTableUtil.getRootTabletDir(context));
+
+    TabletMetadata rootMeta = TabletsMetadata.getRootMetadata(context);
+
+    directory = VolumeUtil.switchRootTableVolume(context, rootMeta.getDir());
 
     Path location = new Path(directory);
 
@@ -167,7 +170,7 @@ public class TabletData {
     }
 
     try {
-      logEntries = MetadataTableUtil.getLogEntries(context, RootTable.EXTENT);
+      logEntries = new ArrayList<>(rootMeta.getLogs());
     } catch (Exception ex) {
       throw new RuntimeException("Unable to read tablet log entries", ex);
     }

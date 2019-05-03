@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
@@ -27,6 +26,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
@@ -62,10 +63,11 @@ public class ListVolumesUsed {
     System.out.println("Listing volumes referenced in zookeeper");
     TreeSet<String> volumes = new TreeSet<>();
 
-    volumes.add(getTableURI(MetadataTableUtil.getRootTabletDir(context)));
-    ArrayList<LogEntry> result = new ArrayList<>();
-    MetadataTableUtil.getRootLogEntries(context, result);
-    for (LogEntry logEntry : result) {
+    TabletMetadata rootMeta = TabletsMetadata.getRootMetadata(context);
+
+    volumes.add(getTableURI(rootMeta.getDir()));
+
+    for (LogEntry logEntry : rootMeta.getLogs()) {
       getLogURIs(volumes, logEntry);
     }
 

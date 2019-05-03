@@ -16,20 +16,21 @@
  */
 package org.apache.accumulo.server.master.state;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.metadata.MetadataMutator;
+import org.apache.accumulo.server.metadata.MetadataMutator.TabletMutator;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -39,6 +40,7 @@ public class ZooTabletStateStore extends TabletStateStore {
 
   private static final Logger log = LoggerFactory.getLogger(ZooTabletStateStore.class);
   private final DistributedStore store;
+  private ServerContext context;
 
   public ZooTabletStateStore(DistributedStore store) {
     this.store = store;
@@ -46,10 +48,12 @@ public class ZooTabletStateStore extends TabletStateStore {
 
   public ZooTabletStateStore(ServerContext context) {
     store = new ZooStore(context);
+    this.context = context;
   }
 
   @Override
   public ClosableIterator<TabletLocationState> iterator() {
+
     return new ClosableIterator<TabletLocationState>() {
       boolean finished = false;
 
@@ -62,33 +66,31 @@ public class ZooTabletStateStore extends TabletStateStore {
       public TabletLocationState next() {
         finished = true;
         try {
-          byte[] future = store.get(RootTable.ZROOT_TABLET_FUTURE_LOCATION);
-          byte[] current = store.get(RootTable.ZROOT_TABLET_LOCATION);
-          byte[] last = store.get(RootTable.ZROOT_TABLET_LAST_LOCATION);
+
+          TabletMetadata rootMeta = TabletsMetadata.getRootMetadata(context);
 
           TServerInstance currentSession = null;
           TServerInstance futureSession = null;
           TServerInstance lastSession = null;
 
-          if (future != null)
-            futureSession = parse(future);
+          Location loc = rootMeta.getLocation();
 
-          if (last != null)
-            lastSession = parse(last);
+          if (loc != null && loc.getType() == LocationType.FUTURE)
+            futureSession = new TServerInstance(loc);
 
-          if (current != null) {
-            currentSession = parse(current);
-            futureSession = null;
+          if (rootMeta.getLast() != null)
+            lastSession = new TServerInstance(rootMeta.getLast());
+
+          if (loc != null && loc.getType() == LocationType.CURRENT) {
+            currentSession = new TServerInstance(loc);
           }
+
           List<Collection<String>> logs = new ArrayList<>();
-          for (String entry : store.getChildren(RootTable.ZROOT_TABLET_WALOGS)) {
-            byte[] logInfo = store.get(RootTable.ZROOT_TABLET_WALOGS + "/" + entry);
-            if (logInfo != null) {
-              LogEntry logEntry = LogEntry.fromBytes(logInfo);
-              logs.add(Collections.singleton(logEntry.filename));
-              log.debug("root tablet log {}", logEntry.filename);
-            }
-          }
+          rootMeta.getLogs().forEach(logEntry -> {
+            logs.add(Collections.singleton(logEntry.filename));
+            log.debug("root tablet log {}", logEntry.filename);
+          });
+
           TabletLocationState result = new TabletLocationState(RootTable.EXTENT, futureSession,
               currentSession, lastSession, null, logs, false);
           log.debug("Returning root tablet state: {}", result);
@@ -108,18 +110,6 @@ public class ZooTabletStateStore extends TabletStateStore {
     };
   }
 
-  protected TServerInstance parse(byte[] current) {
-    String str = new String(current, UTF_8);
-    String[] parts = str.split("[|]", 2);
-    HostAndPort address = HostAndPort.fromString(parts[0]);
-    if (parts.length > 1 && parts[1] != null && parts[1].length() > 0) {
-      return new TServerInstance(address, parts[1]);
-    } else {
-      // a 1.2 location specification: DO NOT WANT
-      return null;
-    }
-  }
-
   @Override
   public void setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
@@ -128,14 +118,13 @@ public class ZooTabletStateStore extends TabletStateStore {
     Assignment assignment = assignments.iterator().next();
     if (assignment.tablet.compareTo(RootTable.EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
-    String value = assignment.server.getLocation() + "|" + assignment.server.getSession();
-    Iterator<TabletLocationState> currentIter = iterator();
-    TabletLocationState current = currentIter.next();
-    if (current.current != null) {
-      throw new DistributedStoreException(
-          "Trying to set the root tablet location: it is already set to " + current.current);
+
+    try (MetadataMutator metaMutator = context.newMetadataMutator()) {
+      TabletMutator tabletMutator = metaMutator.mutateTablet(assignment.tablet);
+      tabletMutator.putLocation(assignment.server.getLocation(), assignment.server.getSession(),
+          LocationType.FUTURE);
+      tabletMutator.mutate();
     }
-    store.put(RootTable.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes(UTF_8));
   }
 
   @Override
@@ -145,21 +134,16 @@ public class ZooTabletStateStore extends TabletStateStore {
     Assignment assignment = assignments.iterator().next();
     if (assignment.tablet.compareTo(RootTable.EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
-    String value = assignment.server.getLocation() + "|" + assignment.server.getSession();
-    Iterator<TabletLocationState> currentIter = iterator();
-    TabletLocationState current = currentIter.next();
-    if (current.current != null) {
-      throw new DistributedStoreException(
-          "Trying to set the root tablet location: it is already set to " + current.current);
+
+    try (MetadataMutator metaMutator = context.newMetadataMutator()) {
+      TabletMutator tabletMutator = metaMutator.mutateTablet(assignment.tablet);
+      tabletMutator.putLocation(assignment.server.getLocation(), assignment.server.getSession(),
+          LocationType.CURRENT);
+      tabletMutator.deleteLocation(assignment.server.getSession(), LocationType.FUTURE);
+      // TODO was setting last location, but this seems uneeded
+
+      tabletMutator.mutate();
     }
-    if (!current.future.equals(assignment.server)) {
-      throw new DistributedStoreException("Root tablet is already assigned to " + current.future);
-    }
-    store.put(RootTable.ZROOT_TABLET_LOCATION, value.getBytes(UTF_8));
-    store.put(RootTable.ZROOT_TABLET_LAST_LOCATION, value.getBytes(UTF_8));
-    // Make the following unnecessary by making the entire update atomic
-    store.remove(RootTable.ZROOT_TABLET_FUTURE_LOCATION);
-    log.debug("Put down root tablet location");
   }
 
   @Override
@@ -170,24 +154,26 @@ public class ZooTabletStateStore extends TabletStateStore {
     TabletLocationState tls = tablets.iterator().next();
     if (tls.extent.compareTo(RootTable.EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
-    if (logsForDeadServers != null) {
-      List<Path> logs = logsForDeadServers.get(tls.futureOrCurrent());
-      if (logs != null) {
-        for (Path entry : logs) {
-          LogEntry logEntry = new LogEntry(RootTable.EXTENT, System.currentTimeMillis(),
-              tls.futureOrCurrent().getLocation().toString(), entry.toString());
-          byte[] value;
-          try {
-            value = logEntry.toBytes();
-          } catch (IOException ex) {
-            throw new DistributedStoreException(ex);
+
+    try (MetadataMutator metaMutator = context.newMetadataMutator()) {
+      TabletMutator tabletMutator = metaMutator.mutateTablet(tls.extent);
+
+      tabletMutator.deleteLocation(tls.futureOrCurrent(), LocationType.FUTURE);
+      tabletMutator.deleteLocation(tls.futureOrCurrent(), LocationType.CURRENT);
+      if (logsForDeadServers != null) {
+        List<Path> logs = logsForDeadServers.get(tls.futureOrCurrent());
+        if (logs != null) {
+          for (Path entry : logs) {
+            LogEntry logEntry = new LogEntry(RootTable.EXTENT, System.currentTimeMillis(),
+                tls.futureOrCurrent().getLocation().toString(), entry.toString());
+            tabletMutator.putWal(logEntry);
           }
-          store.put(RootTable.ZROOT_TABLET_WALOGS + "/" + logEntry.getUniqueID(), value);
         }
       }
+
+      tabletMutator.mutate();
     }
-    store.remove(RootTable.ZROOT_TABLET_LOCATION);
-    store.remove(RootTable.ZROOT_TABLET_FUTURE_LOCATION);
+
     log.debug("unassign root tablet location");
   }
 
