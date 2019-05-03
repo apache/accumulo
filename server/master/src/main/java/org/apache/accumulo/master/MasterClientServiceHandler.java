@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.master;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.nio.ByteBuffer;
@@ -180,8 +184,8 @@ public class MasterClientServiceHandler extends FateServiceHandler
       serversToFlush.clear();
 
       try (TabletsMetadata tablets =
-          TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow).fetchFlushId()
-              .fetchLocation().fetchLogs().fetchPrev().build(master.getContext())) {
+          TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow)
+              .fetch(FLUSH_ID, LOCATION, LOGS, PREV_ROW).build(master.getContext())) {
         int tabletsToWaitFor = 0;
         int tabletCount = 0;
 

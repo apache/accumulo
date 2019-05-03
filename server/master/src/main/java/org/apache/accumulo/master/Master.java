@@ -113,7 +113,6 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.master.state.TabletServerState;
 import org.apache.accumulo.server.master.state.TabletState;
-import org.apache.accumulo.server.master.state.ZooStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
@@ -1059,14 +1058,14 @@ public class Master extends AbstractServer
           }
         });
 
-    watchers.add(new TabletGroupWatcher(this, new ZooTabletStateStore(new ZooStore(context)),
-        watchers.get(1)) {
-      @Override
-      boolean canSuspendTablets() {
-        // Never allow root tablet to enter suspended state.
-        return false;
-      }
-    });
+    watchers.add(
+        new TabletGroupWatcher(this, new ZooTabletStateStore(context.getAmple()), watchers.get(1)) {
+          @Override
+          boolean canSuspendTablets() {
+            // Never allow root tablet to enter suspended state.
+            return false;
+          }
+        });
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
     }

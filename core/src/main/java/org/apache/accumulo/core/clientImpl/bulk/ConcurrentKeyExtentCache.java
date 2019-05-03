@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.clientImpl.bulk;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -84,7 +86,7 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
   protected Stream<KeyExtent> lookupExtents(Text row)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     return TabletsMetadata.builder().forTable(tableId).overlapping(row, null).checkConsistency()
-        .fetchPrev().build(ctx).stream().limit(100).map(TabletMetadata::getExtent);
+        .fetch(PREV_ROW).build(ctx).stream().limit(100).map(TabletMetadata::getExtent);
   }
 
   @Override

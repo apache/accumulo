@@ -16,141 +16,70 @@
  */
 package org.apache.accumulo.master.state;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.master.state.Assignment;
-import org.apache.accumulo.server.master.state.DistributedStore;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
+import org.apache.accumulo.server.metadata.TabletMutatorBase;
 import org.junit.Test;
+
+import com.google.common.base.Preconditions;
 
 public class RootTabletStateStoreTest {
 
-  static class Node {
-    Node(String name) {
-      this.name = name;
-    }
+  private static class TestAmple implements Ample {
 
-    List<Node> children = new ArrayList<>();
-    String name;
-    byte[] value = {};
+    private String json =
+        new String(RootTabletMetadata.getInitialJson("/some/dir"), StandardCharsets.UTF_8);
 
-    Node find(String name) {
-      for (Node node : children)
-        if (node.name.equals(name))
-          return node;
-      return null;
-    }
-  }
-
-  static class FakeZooStore implements DistributedStore {
-
-    Node root = new Node("/");
-
-    private Node recurse(Node root, String[] path, int depth) {
-      if (depth == path.length)
-        return root;
-      Node child = root.find(path[depth]);
-      if (child == null)
-        return null;
-      return recurse(child, path, depth + 1);
-    }
-
-    private Node navigate(String path) {
-      path = path.replaceAll("/$", "");
-      return recurse(root, path.split("/"), 1);
+    @Override
+    public TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch) {
+      Preconditions.checkArgument(extent.equals(RootTable.EXTENT));
+      return RootTabletMetadata.fromJson(json).convertToTabletMetadata();
     }
 
     @Override
-    public List<String> getChildren(String path) {
-      Node node = navigate(path);
-      if (node == null)
-        return Collections.emptyList();
-      List<String> children = new ArrayList<>(node.children.size());
-      for (Node child : node.children)
-        children.add(child.name);
-      return children;
+    public TabletMutator mutateTablet(KeyExtent extent) {
+      Preconditions.checkArgument(extent.equals(RootTable.EXTENT));
+      return new TabletMutatorBase(null, extent) {
+
+        @Override
+        public void mutate() {
+          Mutation m = getMutation();
+
+          RootTabletMetadata rtm = RootTabletMetadata.fromJson(json);
+
+          rtm.update(m);
+
+          json = rtm.toJson();
+        }
+      };
     }
 
-    @Override
-    public void put(String path, byte[] bs) {
-      create(path).value = bs;
-    }
-
-    private Node create(String path) {
-      String[] parts = path.split("/");
-      return recurseCreate(root, parts, 1);
-    }
-
-    private Node recurseCreate(Node root, String[] path, int index) {
-      if (path.length == index)
-        return root;
-      Node node = root.find(path[index]);
-      if (node == null) {
-        node = new Node(path[index]);
-        root.children.add(node);
-      }
-      return recurseCreate(node, path, index + 1);
-    }
-
-    @Override
-    public void remove(String path) {
-      String[] parts = path.split("/");
-      String[] parentPath = Arrays.copyOf(parts, parts.length - 1);
-      Node parent = recurse(root, parentPath, 1);
-      if (parent == null)
-        return;
-      Node child = parent.find(parts[parts.length - 1]);
-      if (child != null)
-        parent.children.remove(child);
-    }
-
-    @Override
-    public byte[] get(String path) {
-      Node node = navigate(path);
-      if (node != null)
-        return node.value;
-      return null;
-    }
-  }
-
-  @Test
-  public void testFakeZoo() throws DistributedStoreException {
-    DistributedStore store = new FakeZooStore();
-    store.put("/a/b/c", "abc".getBytes());
-    byte[] abc = store.get("/a/b/c");
-    assertArrayEquals(abc, "abc".getBytes());
-    byte[] empty = store.get("/a/b");
-    assertArrayEquals(empty, "".getBytes());
-    store.put("/a/b", "ab".getBytes());
-    assertArrayEquals(store.get("/a/b"), "ab".getBytes());
-    store.put("/a/b/b", "abb".getBytes());
-    List<String> children = store.getChildren("/a/b");
-    assertEquals(new HashSet<>(children), new HashSet<>(Arrays.asList("b", "c")));
-    store.remove("/a/b/c");
-    children = store.getChildren("/a/b");
-    assertEquals(new HashSet<>(children), new HashSet<>(Arrays.asList("b")));
   }
 
   @Test
   public void testRootTabletStateStore() throws DistributedStoreException {
-    ZooTabletStateStore tstore = new ZooTabletStateStore(new FakeZooStore());
+    ZooTabletStateStore tstore = new ZooTabletStateStore(new TestAmple());
     KeyExtent root = RootTable.EXTENT;
     String sessionId = "this is my unique session data";
     TServerInstance server =
@@ -212,7 +141,4 @@ public class RootTabletStateStoreTest {
       fail("should not get here");
     } catch (IllegalArgumentException ex) {}
   }
-
-  // @Test
-  // public void testMetaDataStore() { } // see functional test
 }

@@ -102,7 +102,7 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
 
   protected static TabletStateStore getStoreForTablet(KeyExtent extent, ServerContext context) {
     if (extent.isRootTablet()) {
-      return new ZooTabletStateStore(context);
+      return new ZooTabletStateStore(context.getAmple());
     } else if (extent.isMeta()) {
       return new RootTabletStateStore(context);
     } else {

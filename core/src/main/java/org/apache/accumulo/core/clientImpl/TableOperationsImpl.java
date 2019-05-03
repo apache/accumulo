@@ -22,6 +22,8 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.BufferedReader;
@@ -1240,7 +1242,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         range = new Range(startRow, lastRow);
 
       TabletsMetadata tablets = TabletsMetadata.builder().scanMetadataTable().overRange(range)
-          .fetchLocation().fetchPrev().build(context);
+          .fetch(LOCATION, PREV_ROW).build(context);
 
       KeyExtent lastExtent = null;
 

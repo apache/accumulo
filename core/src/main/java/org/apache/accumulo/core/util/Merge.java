@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.util;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -231,7 +234,7 @@ public class Merge {
       ClientContext context = (ClientContext) client;
       tableId = Tables.getTableId(context, tablename);
       tablets = TabletsMetadata.builder().scanMetadataTable()
-          .overRange(new KeyExtent(tableId, end, start).toMetadataRange()).fetchFiles().fetchPrev()
+          .overRange(new KeyExtent(tableId, end, start).toMetadataRange()).fetch(FILES, PREV_ROW)
           .build(context);
     } catch (Exception e) {
       throw new MergeException(e);

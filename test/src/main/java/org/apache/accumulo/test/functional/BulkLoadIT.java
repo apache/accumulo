@@ -17,6 +17,9 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -411,8 +414,8 @@ public class BulkLoadIT extends SharedMiniClusterBase {
     Set<String> endRowsSeen = new HashSet<>();
 
     String id = client.tableOperations().tableIdMap().get(tableName);
-    try (TabletsMetadata tablets = TabletsMetadata.builder().forTable(TableId.of(id)).fetchFiles()
-        .fetchLoaded().fetchPrev().build(client)) {
+    try (TabletsMetadata tablets = TabletsMetadata.builder().forTable(TableId.of(id))
+        .fetch(FILES, LOADED, PREV_ROW).build(client)) {
       for (TabletMetadata tablet : tablets) {
         assertTrue(tablet.getLoaded().isEmpty());
 

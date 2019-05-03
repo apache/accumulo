@@ -76,7 +76,7 @@ public class TabletMetadata {
   private Map<String,DataFileValue> files;
   private List<String> scans;
   private Set<String> loadedFiles;
-  private EnumSet<FetchedColumns> fetchedCols;
+  private EnumSet<ColumnType> fetchedCols;
   private KeyExtent extent;
   private Location last;
   private String dir;
@@ -91,7 +91,7 @@ public class TabletMetadata {
     CURRENT, FUTURE, LAST
   }
 
-  public static enum FetchedColumns {
+  public static enum ColumnType {
     LOCATION, PREV_ROW, FILES, LAST, LOADED, SCANS, DIR, TIME, CLONED, FLUSH_ID, LOGS, COMPACT_ID
   }
 
@@ -142,12 +142,12 @@ public class TabletMetadata {
     return extent;
   }
 
-  private void ensureFetched(FetchedColumns col) {
+  private void ensureFetched(ColumnType col) {
     Preconditions.checkState(fetchedCols.contains(col), "%s was not fetched", col);
   }
 
   public Text getPrevEndRow() {
-    ensureFetched(FetchedColumns.PREV_ROW);
+    ensureFetched(ColumnType.PREV_ROW);
     if (!sawPrevEndRow)
       throw new IllegalStateException(
           "No prev endrow seen.  tableId: " + tableId + " endrow: " + endRow);
@@ -155,7 +155,7 @@ public class TabletMetadata {
   }
 
   public boolean sawPrevEndRow() {
-    ensureFetched(FetchedColumns.PREV_ROW);
+    ensureFetched(ColumnType.PREV_ROW);
     return sawPrevEndRow;
   }
 
@@ -164,67 +164,67 @@ public class TabletMetadata {
   }
 
   public Location getLocation() {
-    ensureFetched(FetchedColumns.LOCATION);
+    ensureFetched(ColumnType.LOCATION);
     return location;
   }
 
   public boolean hasCurrent() {
-    ensureFetched(FetchedColumns.LOCATION);
+    ensureFetched(ColumnType.LOCATION);
     return location != null && location.getType() == LocationType.CURRENT;
   }
 
   public Set<String> getLoaded() {
-    ensureFetched(FetchedColumns.LOADED);
+    ensureFetched(ColumnType.LOADED);
     return loadedFiles;
   }
 
   public Location getLast() {
-    ensureFetched(FetchedColumns.LAST);
+    ensureFetched(ColumnType.LAST);
     return last;
   }
 
   public Collection<String> getFiles() {
-    ensureFetched(FetchedColumns.FILES);
+    ensureFetched(ColumnType.FILES);
     return files.keySet();
   }
 
   public Map<String,DataFileValue> getFilesMap() {
-    ensureFetched(FetchedColumns.FILES);
+    ensureFetched(ColumnType.FILES);
     return files;
   }
 
   public Collection<LogEntry> getLogs() {
-    ensureFetched(FetchedColumns.LOGS);
+    ensureFetched(ColumnType.LOGS);
     return logs;
   }
 
   public List<String> getScans() {
-    ensureFetched(FetchedColumns.SCANS);
+    ensureFetched(ColumnType.SCANS);
     return scans;
   }
 
   public String getDir() {
-    ensureFetched(FetchedColumns.DIR);
+    ensureFetched(ColumnType.DIR);
     return dir;
   }
 
   public String getTime() {
-    ensureFetched(FetchedColumns.TIME);
+    ensureFetched(ColumnType.TIME);
     return time;
   }
 
   public String getCloned() {
-    ensureFetched(FetchedColumns.CLONED);
+    ensureFetched(ColumnType.CLONED);
     return cloned;
   }
 
   public OptionalLong getFlushId() {
-    ensureFetched(FetchedColumns.FLUSH_ID);
+    ensureFetched(ColumnType.FLUSH_ID);
     return flush;
   }
 
   public OptionalLong getCompactId() {
-    ensureFetched(FetchedColumns.COMPACT_ID);
+    ensureFetched(ColumnType.COMPACT_ID);
     return compact;
   }
 
@@ -234,7 +234,7 @@ public class TabletMetadata {
   }
 
   static TabletMetadata convertRow(Iterator<Entry<Key,Value>> rowIter,
-      EnumSet<FetchedColumns> fetchedColumns, boolean buildKeyValueMap) {
+      EnumSet<ColumnType> fetchedColumns, boolean buildKeyValueMap) {
     Objects.requireNonNull(rowIter);
 
     TabletMetadata te = new TabletMetadata();
@@ -340,7 +340,7 @@ public class TabletMetadata {
     location = new Location(val, qual, lt);
   }
 
-  static Iterable<TabletMetadata> convert(Scanner input, EnumSet<FetchedColumns> fetchedColumns,
+  static Iterable<TabletMetadata> convert(Scanner input, EnumSet<ColumnType> fetchedColumns,
       boolean checkConsistency, boolean buildKeyValueMap) {
 
     Range range = input.getRange();
@@ -367,7 +367,7 @@ public class TabletMetadata {
     te.sawPrevEndRow = true;
     te.prevEndRow = prevEndRow == null ? null : new Text(prevEndRow);
     te.endRow = endRow == null ? null : new Text(endRow);
-    te.fetchedCols = EnumSet.of(FetchedColumns.PREV_ROW);
+    te.fetchedCols = EnumSet.of(ColumnType.PREV_ROW);
     return te;
   }
 }

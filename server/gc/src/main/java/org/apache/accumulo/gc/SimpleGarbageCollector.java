@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.gc;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.FileNotFoundException;
@@ -235,7 +238,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     public Stream<Reference> getReferences() {
 
       Stream<TabletMetadata> tabletStream = TabletsMetadata.builder().scanTable(tableName)
-          .checkConsistency().fetchDir().fetchFiles().fetchScans().build(getContext()).stream();
+          .checkConsistency().fetch(DIR, FILES, SCANS).build(getContext()).stream();
 
       Stream<Reference> refStream = tabletStream.flatMap(tm -> {
         Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())

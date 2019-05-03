@@ -19,6 +19,8 @@ package org.apache.accumulo.server.master.balancer;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -79,8 +81,8 @@ public abstract class GroupBalancer extends TabletBalancer {
   protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {
     return () -> {
       try {
-        return TabletsMetadata.builder().forTable(tableId).fetchLocation().fetchPrev()
-            .build(context).stream().map(tm -> {
+        return TabletsMetadata.builder().forTable(tableId).fetch(LOCATION, PREV_ROW).build(context)
+            .stream().map(tm -> {
               Location loc = Location.NONE;
               if (tm.hasCurrent()) {
                 loc = new Location(new TServerInstance(tm.getLocation()));

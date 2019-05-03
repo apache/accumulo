@@ -17,6 +17,9 @@
 package org.apache.accumulo.master.tableOps.bulkVer2;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -313,7 +316,7 @@ class LoadFiles extends MasterRepo {
 
     Iterator<TabletMetadata> tabletIter =
         TabletsMetadata.builder().forTable(tableId).overlapping(startRow, null).checkConsistency()
-            .fetchPrev().fetchLocation().fetchLoaded().build(master.getContext()).iterator();
+            .fetch(PREV_ROW, LOCATION, LOADED).build(master.getContext()).iterator();
 
     Loader loader;
     if (bulkInfo.tableState == TableState.ONLINE) {

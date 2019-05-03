@@ -14,21 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.master.state;
 
-import java.util.List;
+package org.apache.accumulo.server.metadata;
 
-/**
- * An abstract version of ZooKeeper that we can write tests against.
- */
-public interface DistributedStore {
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.server.ServerContext;
 
-  List<String> getChildren(String path) throws DistributedStoreException;
+class TabletMutatorImpl extends TabletMutatorBase implements Ample.TabletMutator {
 
-  byte[] get(String path) throws DistributedStoreException;
+  private BatchWriter writer;
 
-  void put(String path, byte[] bs) throws DistributedStoreException;
+  TabletMutatorImpl(ServerContext context, KeyExtent extent, BatchWriter batchWriter) {
+    super(context, extent);
+    this.writer = batchWriter;
+  }
 
-  void remove(String path) throws DistributedStoreException;
+  @Override
+  public void mutate() {
+    try {
+      writer.addMutation(getMutation());
+
+      if (closeAfterMutate != null)
+        closeAfterMutate.close();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
 
 }

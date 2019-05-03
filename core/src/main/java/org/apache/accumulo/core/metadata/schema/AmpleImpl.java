@@ -14,28 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.master.state;
 
+package org.apache.accumulo.core.metadata.schema;
+
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata.Options;
 
-public class Assignment implements Ample.TServer {
-  public KeyExtent tablet;
-  public TServerInstance server;
+import com.google.common.collect.Iterables;
 
-  public Assignment(KeyExtent tablet, TServerInstance server) {
-    this.tablet = tablet;
-    this.server = server;
+public class AmpleImpl implements Ample {
+  private final AccumuloClient client;
+
+  public AmpleImpl(AccumuloClient client) {
+    this.client = client;
   }
 
   @Override
-  public HostAndPort getLocation() {
-    return server.getLocation();
-  }
+  public TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch) {
+    Options builder = TabletsMetadata.builder().forTablet(extent);
+    if (colsToFetch.length > 0)
+      builder.fetch(colsToFetch);
 
-  @Override
-  public String getSession() {
-    return server.getSession();
+    try (TabletsMetadata tablets = builder.build(client)) {
+      return Iterables.getOnlyElement(tablets);
+    }
   }
 }
