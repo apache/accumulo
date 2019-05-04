@@ -19,7 +19,6 @@ package org.apache.accumulo.shell.commands;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
-import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -30,7 +29,7 @@ public class EGrepCommand extends GrepCommand {
 
   @Override
   protected void setUpIterator(final int prio, final String name, final String term,
-      final BatchScanner scanner, CommandLine cl, boolean negate, final Shell shellState) throws Exception {
+      final BatchScanner scanner, CommandLine cl, boolean negate) throws Exception {
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
     }

@@ -75,7 +75,7 @@ public class GrepCommand extends ScanCommand {
 
       for (int i = 0; i < cl.getArgs().length; i++) {
         setUpIterator(Integer.MAX_VALUE - cl.getArgs().length + i, "grep" + i, cl.getArgs()[i],
-            scanner, cl, negate, shellState);
+            scanner, cl, negate);
       }
       try {
         // handle columns
@@ -94,7 +94,7 @@ public class GrepCommand extends ScanCommand {
   }
 
   protected void setUpIterator(final int prio, final String name, final String term,
-      final BatchScanner scanner, CommandLine cl, boolean negate, final Shell shellState) throws Exception {
+      final BatchScanner scanner, CommandLine cl, boolean negate) throws Exception {
 
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
