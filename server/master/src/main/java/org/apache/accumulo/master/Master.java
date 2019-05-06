@@ -83,6 +83,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
+import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -168,7 +169,7 @@ import com.google.common.collect.Iterables;
 
 /**
  * The Master is responsible for assigning and balancing tablets to tablet servers.
- *
+ * <p>
  * The master will also coordinate log recoveries and reports general status.
  */
 public class Master extends AccumuloServerContext
@@ -818,7 +819,9 @@ public class Master extends AccumuloServerContext
       this.unloadGoal = unloadGoal;
     }
 
-    /** The purpose of unloading this tablet. */
+    /**
+     * The purpose of unloading this tablet.
+     */
     public TUnloadTabletGoal howUnload() {
       return unloadGoal;
     }
@@ -1249,6 +1252,8 @@ public class Master extends AccumuloServerContext
 
     tserverSet.startListeningForTabletServerChanges();
 
+    blockForTservers();
+
     ZooReaderWriter zReaderWriter = ZooReaderWriter.getInstance();
 
     zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
@@ -1434,6 +1439,90 @@ public class Master extends AccumuloServerContext
       watcher.join(remaining(deadline));
     }
     log.info("exiting");
+  }
+
+  /**
+   * Allows property configuration to block master start-up waiting for a minimum number of tservers
+   * to register in zookeeper. It also accepts a maximum time to wait - if the time expires, the
+   * start-up will continue with any tservers available. This check is only performed at master
+   * initialization, when the master aquires the lock. The following properties are used to control
+   * the behaviour:
+   * <ul>
+   * <li>MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT - when set to 0 or less, no blocking occurs (default
+   * behaviour) otherwise will block until the number of tservers are available.</li>
+   * <li>MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT - time to wait in milliseconds. When set to 0 or
+   * less, will block indefinitely.</li>
+   * </ul>
+   *
+   * @throws InterruptedException
+   *           if interrupted while blocking, propagated for caller to handle.
+   */
+  private void blockForTservers() throws InterruptedException {
+
+    long waitStart = System.currentTimeMillis();
+
+    AccumuloConfiguration accConfig = serverConfig.getConfiguration();
+    long minTserverCount = accConfig.getCount(Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT);
+
+    if (minTserverCount <= 0) {
+      log.info(
+          "tserver availability check disabled, contining with-{} servers." + "To enable, set {}",
+          tserverSet.size(), Property.MASTER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
+      return;
+    }
+
+    long maxWait = accConfig.getTimeInMillis(Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT);
+
+    if (maxWait <= 0) {
+      log.info("tserver availability check set to block indefinitely, To change, set {} > 0.",
+          Property.MASTER_STARTUP_TSERVER_AVAIL_MAX_WAIT.getKey());
+      maxWait = Long.MAX_VALUE;
+    }
+
+    // honor Retry condition that initial wait < max wait, otherwise use small value to allow thread
+    // yield to happen
+    long initialWait = Math.min(50, maxWait / 2);
+
+    Retry tserverRetry =
+        Retry.builder().infiniteRetries().retryAfter(initialWait, TimeUnit.MILLISECONDS)
+            .incrementBy(15_000, TimeUnit.MILLISECONDS).maxWait(maxWait, TimeUnit.MILLISECONDS)
+            .logInterval(30_000, TimeUnit.MILLISECONDS).createRetry();
+
+    log.info("Checking for tserver availability - need to reach {} servers. Have {}",
+        minTserverCount, tserverSet.size());
+
+    boolean needTservers = tserverSet.size() < minTserverCount;
+
+    while (needTservers && tserverRetry.canRetry()) {
+
+      tserverRetry.waitForNextAttempt();
+
+      needTservers = tserverSet.size() < minTserverCount;
+
+      // suppress last message once threshold reached.
+      if (needTservers) {
+        log.info(
+            "Blocking for tserver availability - need to reach {} servers. Have {}"
+                + " Time spent blocking {} sec.",
+            minTserverCount, tserverSet.size(),
+            TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
+      }
+    }
+
+    if (tserverSet.size() < minTserverCount) {
+      log.warn(
+          "tserver availability check time expired - continuing. Requested {}, have {} tservers on line. "
+              + " Time waiting {} ms",
+          tserverSet.size(), minTserverCount,
+          TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
+
+    } else {
+      log.info(
+          "tserver availability check completed. Requested {}, have {} tservers on line. "
+              + " Time waiting {} ms",
+          tserverSet.size(), minTserverCount,
+          TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - waitStart));
+    }
   }
 
   private long remaining(long deadline) {
