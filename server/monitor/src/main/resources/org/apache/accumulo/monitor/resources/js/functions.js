@@ -194,12 +194,14 @@ function timeDuration(time) {
 }
 
 /**
- * Changes + to %2B in the URL
+ * Changes + to %2B
+ * and . to %2E
  *
  * @param {string} url URL to sanitize
  */
 function sanitize(url) {
-  return url.split('+').join('%2B');
+  var newUrl = url.split(".").join('%2E');
+  return newUrl.split('+').join('%2B');
 }
 
 /**
@@ -257,10 +259,19 @@ function createTableCell(index, sortValue, showValue) {
 /**
  * REST GET call for the query, stores it on a sessionStorage variable
  */
-function runQuery(tableName, value) {
-  return $.getJSON('/rest/query/' + tableName + "/" + value, function(data) {
-    QUERY = JSON.stringify(data);
+function runQuery(tableName, row) {
+  var url =  '/rest/query/' + tableName + "/" + row;
+  $.ajax({
+    type: "GET",
+    url: url,
+    contentType: "application/json; charset=utf-8",
+    dataType: "json",
+    success: function(json) { QUERY = JSON.stringify(json); },
+    error: function (xhr, textStatus, errorThrown) {
+      $("#error").html(xhr.responseText);
+    }
   });
+  //return $.getJSON(url, function(data) { QUERY = JSON.stringify(data); });
 }
 
 /**

@@ -229,18 +229,18 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
   }
 
-  public Query fetchQuery(String tableName, String value) {
+  public Query fetchQuery(String tableName, Range range) {
     if (tableName == null)
       tableName = "test_ingest";
     ServerContext context = getContext();
     Query result = new Query();
     long count = 0L;
-    log.info("MIKE query value = " + value);
+    log.info("MIKE query value = " + range);
 
     try {
       BatchScanner scanner = context.createBatchScanner(tableName, Authorizations.EMPTY);
       ArrayList<Range> ranges = new ArrayList<>();
-      ranges.add(new Range(value));
+      ranges.add(range);
       scanner.setRanges(ranges);
       for (Entry<Key, Value> entry : scanner) {
         count++;

@@ -31,6 +31,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.monitor.Monitor;
@@ -55,7 +56,7 @@ public class QueryResource {
    */
   @GET
   public Query runQuery(@PathParam("tableName") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String tableName,
-                        @PathParam("value") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String value) {
-    return monitor.fetchQuery(tableName, value);
+                        @PathParam("value") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String row) {
+    return monitor.fetchQuery(tableName, new Range(row));
   }
 }

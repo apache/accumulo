@@ -33,9 +33,13 @@
       </div>
     <div class="row">
       <div class="col-xs-12">
-        <span id="query">Quick Query:</span><input id="quick-query"></input><select id="query-select-tables" ></select>
-      <input type="button" value="GO!" onclick="doQuery()"></input></br>
-      <input type="button" value="Load Result" onclick="getQueryResult()"/>
+        <span id="query">
+          <h3>Quick Query</h3>
+          Row:<input id="quick-query" type="text"/></br>
+          <select id="query-select-tables"></select>
+          <input type="button" value="GO!" onclick="doQuery()"></br>
+          <input type="button" value="Load Result" onclick="getQueryResult()"/>
+        </span>
         <textarea id="query-output"></textarea>
       </div>
     </div>
