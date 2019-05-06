@@ -109,6 +109,7 @@ class FateServiceHandler implements FateService.Iface {
     switch (op) {
       case NAMESPACE_CREATE: {
         TableOperation tableOp = TableOperation.CREATE;
+        validateArgumentCount(arguments, tableOp, 1);
         String namespace = validateNamespaceArgument(arguments.get(0), tableOp, null);
 
         if (!master.security.canCreateNamespace(c))
@@ -121,6 +122,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case NAMESPACE_RENAME: {
         TableOperation tableOp = TableOperation.RENAME;
+        validateArgumentCount(arguments, tableOp, 2);
         String oldName = validateNamespaceArgument(arguments.get(0), tableOp,
             Namespaces.NOT_DEFAULT.and(Namespaces.NOT_ACCUMULO));
         String newName = validateNamespaceArgument(arguments.get(1), tableOp, null);
@@ -136,6 +138,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case NAMESPACE_DELETE: {
         TableOperation tableOp = TableOperation.DELETE;
+        validateArgumentCount(arguments, tableOp, 1);
         String namespace = validateNamespaceArgument(arguments.get(0), tableOp,
             Namespaces.NOT_DEFAULT.and(Namespaces.NOT_ACCUMULO));
 
@@ -150,15 +153,21 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_CREATE: {
         TableOperation tableOp = TableOperation.CREATE;
+        int SPLIT_OFFSET = 4; // offset where split data begins in arguments list
+        if (arguments.size() < SPLIT_OFFSET) {
+          throw new ThriftTableOperationException(null, null, tableOp,
+              TableOperationExceptionType.OTHER,
+              "Expected at least " + SPLIT_OFFSET + " arguments, saw :" + arguments.size());
+        }
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         TimeType timeType = TimeType.valueOf(ByteBufferUtil.toString(arguments.get(1)));
         InitialTableState initialTableState =
             InitialTableState.valueOf(ByteBufferUtil.toString(arguments.get(2)));
         int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(3)));
+        validateArgumentCount(arguments, tableOp, SPLIT_OFFSET + splitCount);
         String splitFile = null;
         String splitDirsFile = null;
         if (splitCount > 0) {
-          int SPLIT_OFFSET = 4; // offset where split data begins in arguments list
           try {
             splitFile = writeSplitsToFile(opid, arguments, splitCount, SPLIT_OFFSET);
             splitDirsFile = createSplitDirsFile(opid);
@@ -190,6 +199,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_RENAME: {
         TableOperation tableOp = TableOperation.RENAME;
+        validateArgumentCount(arguments, tableOp, 2);
         final String oldTableName =
             validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String newTableName =
@@ -239,6 +249,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_CLONE: {
         TableOperation tableOp = TableOperation.CLONE;
+        validateArgumentCount(arguments, tableOp, 2);
         TableId srcTableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
         String tableName = validateTableNameArgument(arguments.get(1), tableOp, NOT_SYSTEM);
         NamespaceId namespaceId;
@@ -290,6 +301,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_DELETE: {
         TableOperation tableOp = TableOperation.DELETE;
+        validateArgumentCount(arguments, tableOp, 1);
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
 
         final TableId tableId =
@@ -312,6 +324,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_ONLINE: {
         TableOperation tableOp = TableOperation.ONLINE;
+        validateArgumentCount(arguments, tableOp, 1);
         final TableId tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
         NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
@@ -333,6 +346,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_OFFLINE: {
         TableOperation tableOp = TableOperation.OFFLINE;
+        validateArgumentCount(arguments, tableOp, 1);
         final TableId tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
         NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
@@ -354,6 +368,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_MERGE: {
         TableOperation tableOp = TableOperation.MERGE;
+        validateArgumentCount(arguments, tableOp, 3);
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, null);
         Text startRow = ByteBufferUtil.toText(arguments.get(1));
         Text endRow = ByteBufferUtil.toText(arguments.get(2));
@@ -381,6 +396,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_DELETE_RANGE: {
         TableOperation tableOp = TableOperation.DELETE_RANGE;
+        validateArgumentCount(arguments, tableOp, 3);
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_METADATA);
         Text startRow = ByteBufferUtil.toText(arguments.get(1));
         Text endRow = ByteBufferUtil.toText(arguments.get(2));
@@ -408,6 +424,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_BULK_IMPORT: {
         TableOperation tableOp = TableOperation.BULK_IMPORT;
+        validateArgumentCount(arguments, tableOp, 4);
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String dir = ByteBufferUtil.toString(arguments.get(1));
         String failDir = ByteBufferUtil.toString(arguments.get(2));
@@ -438,6 +455,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_COMPACT: {
         TableOperation tableOp = TableOperation.COMPACT;
+        validateArgumentCount(arguments, tableOp, 5);
         TableId tableId = validateTableIdArgument(arguments.get(0), tableOp, null);
         byte[] startRow = ByteBufferUtil.toBytes(arguments.get(1));
         byte[] endRow = ByteBufferUtil.toBytes(arguments.get(2));
@@ -464,6 +482,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_CANCEL_COMPACT: {
         TableOperation tableOp = TableOperation.COMPACT_CANCEL;
+        validateArgumentCount(arguments, tableOp, 1);
         TableId tableId = validateTableIdArgument(arguments.get(0), tableOp, null);
         NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
@@ -484,6 +503,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_IMPORT: {
         TableOperation tableOp = TableOperation.IMPORT;
+        validateArgumentCount(arguments, tableOp, 2);
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String exportDir = ByteBufferUtil.toString(arguments.get(1));
         NamespaceId namespaceId;
@@ -513,6 +533,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_EXPORT: {
         TableOperation tableOp = TableOperation.EXPORT;
+        validateArgumentCount(arguments, tableOp, 2);
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String exportDir = ByteBufferUtil.toString(arguments.get(1));
 
@@ -538,6 +559,7 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_BULK_IMPORT2:
         TableOperation tableOp = TableOperation.BULK_IMPORT;
+        validateArgumentCount(arguments, tableOp, 3);
         TableId tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_ID);
         String dir = ByteBufferUtil.toString(arguments.get(1));
 
@@ -672,6 +694,14 @@ class FateServiceHandler implements FateService.Iface {
       Validator<String> userValidator) throws ThriftTableOperationException {
     String tableName = tableNameArg == null ? null : ByteBufferUtil.toString(tableNameArg);
     return _validateArgument(tableName, op, VALID_NAME.and(userValidator));
+  }
+
+  private void validateArgumentCount(List<ByteBuffer> arguments, TableOperation op, int expected)
+      throws ThriftTableOperationException {
+    if (arguments.size() != expected) {
+      throw new ThriftTableOperationException(null, null, op, TableOperationExceptionType.OTHER,
+          "Unexpected number of arguments : " + expected + " != " + arguments.size());
+    }
   }
 
   // Verify namespace arguments are valid, and match any additional restrictions
