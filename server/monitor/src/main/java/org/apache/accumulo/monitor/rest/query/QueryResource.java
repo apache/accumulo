@@ -42,7 +42,7 @@ import org.apache.accumulo.monitor.Monitor.ScanStats;
  *
  * @since 2.0.0
  */
-@Path("/query/{tableName}/{value}")
+@Path("/query/{tableId}/{value}")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class QueryResource {
 
@@ -55,8 +55,8 @@ public class QueryResource {
    * @return Scan JSON object
    */
   @GET
-  public Query runQuery(@PathParam("tableName") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String tableName,
+  public Query runQuery(@PathParam("tableId") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String tableId,
                         @PathParam("value") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX) String row) {
-    return monitor.fetchQuery(tableName, new Range(row));
+    return monitor.fetchQuery(tableId, new Range(row));
   }
 }

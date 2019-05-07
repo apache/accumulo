@@ -35,15 +35,21 @@ $(document).ready(function() {
 
   $.each(JSON.parse(sessionStorage.tables).table,function(key, value)
   {
+    var id = value.tableId;
     console.log("key = " + key);
-    console.log("value.tablename = " + value.tablename);
+    console.log("value.tableId = " + id);
 
-    $('#query-select-tables').append('<option value=' + value.tablename + '>' + value.tablename + '</option>');
+    $('#query-select-tables').append('<option value=' + id + '>' + value.tablename + '(' + id + ')</option>');
   });
 });
 
 function getQueryResult(){
   $('#query-output').val(QUERY);
+}
+
+function activateQueryLink() {
+  var id = $('#query-select-tables').val();
+  $('#query-link').attr("href", "/scans/" + id);
 }
 
 /**

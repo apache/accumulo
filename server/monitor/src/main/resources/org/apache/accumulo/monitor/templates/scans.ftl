@@ -36,8 +36,8 @@
         <span id="query">
           <h3>Quick Query</h3>
           Row:<input id="quick-query" type="text"/></br>
-          <select id="query-select-tables"></select>
-          <input type="button" value="GO!" onclick="doQuery()"></br>
+          <select id="query-select-tables" onclick="activateQueryLink()"></select>
+          <a id="query-link">Execute Query</a></br>
           <input type="button" value="Load Result" onclick="getQueryResult()"/>
         </span>
         <textarea id="query-output"></textarea>
