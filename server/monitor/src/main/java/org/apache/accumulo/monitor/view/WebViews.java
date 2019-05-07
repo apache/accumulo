@@ -21,7 +21,6 @@ import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGE
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
 import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
 import static org.apache.accumulo.monitor.util.ParameterValidator.RESOURCE_REGEX;
-import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isEmpty;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
@@ -58,7 +57,8 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Index is responsible of specifying Monitor paths and setting the templates for the HTML code
+ * This class is responsible for specifying Monitor REST Endpoints and setting the templates for the
+ * HTML code
  *
  * @since 2.0.0
  */
@@ -222,46 +222,6 @@ public class WebViews {
     model.put("title", "Garbage Collector Status");
     model.put("template", "gc.ftl");
     model.put("js", "gc.js");
-
-    return model;
-  }
-
-  /**
-   * Returns the server activity template
-   *
-   * @param shape
-   *          Shape of visualization
-   * @param size
-   *          Size of visualization
-   * @param motion
-   *          Motion of visualization
-   * @param color
-   *          Color of visualization
-   * @return Server activity model
-   */
-  @GET
-  @Path("vis")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getServerActivity(
-      @QueryParam("shape") @DefaultValue("circles") @Pattern(
-          regexp = ALPHA_NUM_REGEX_BLANK_OK) String shape,
-      @QueryParam("size") @DefaultValue("40") @Min(1) @Max(100) int size,
-      @QueryParam("motion") @DefaultValue("") @Pattern(
-          regexp = ALPHA_NUM_REGEX_BLANK_OK) String motion,
-      @QueryParam("color") @DefaultValue("allavg") @Pattern(
-          regexp = ALPHA_NUM_REGEX_BLANK_OK) String color) {
-
-    shape = isNotBlank(shape) ? shape : "circles";
-    color = isNotBlank(color) ? color : "allavg";
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Server Activity");
-    model.put("template", "vis.ftl");
-
-    model.put("shape", shape);
-    model.put("size", String.valueOf(size));
-    model.put("motion", isBlank(motion) ? "" : motion.trim());
-    model.put("color", isBlank(color) ? "allavg" : color); // Are there a set of acceptable values?
 
     return model;
   }
