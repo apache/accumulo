@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
@@ -31,7 +29,7 @@ public class EGrepCommand extends GrepCommand {
 
   @Override
   protected void setUpIterator(final int prio, final String name, final String term,
-      final BatchScanner scanner, CommandLine cl, boolean negate) throws IOException {
+      final BatchScanner scanner, CommandLine cl, boolean negate) throws Exception {
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
     }

@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
@@ -63,6 +62,7 @@ public class GrepCommand extends ScanCommand {
       if (cl.hasOption(negateOpt.getOpt())) {
         negate = true;
       }
+
       final Authorizations auths = getAuths(cl, shellState);
       final BatchScanner scanner =
           shellState.getAccumuloClient().createBatchScanner(tableName, auths, numThreads);
@@ -71,6 +71,7 @@ public class GrepCommand extends ScanCommand {
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
 
       setupSampling(tableName, cl, shellState, scanner);
+      addScanIterators(shellState, cl, scanner, "");
 
       for (int i = 0; i < cl.getArgs().length; i++) {
         setUpIterator(Integer.MAX_VALUE - cl.getArgs().length + i, "grep" + i, cl.getArgs()[i],
@@ -93,7 +94,8 @@ public class GrepCommand extends ScanCommand {
   }
 
   protected void setUpIterator(final int prio, final String name, final String term,
-      final BatchScanner scanner, CommandLine cl, boolean negate) throws IOException {
+      final BatchScanner scanner, CommandLine cl, boolean negate) throws Exception {
+
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
     }

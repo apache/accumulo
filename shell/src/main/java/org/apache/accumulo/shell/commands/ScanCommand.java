@@ -60,11 +60,11 @@ public class ScanCommand extends Command {
       formatterOpt, interpreterOpt, formatterInterpeterOpt, outputFileOpt;
 
   protected Option timestampOpt;
+  protected Option profileOpt;
   private Option optStartRowExclusive;
   private Option optStartRowInclusive;
   private Option optEndRowExclusive;
   private Option timeoutOption;
-  private Option profileOpt;
   private Option sampleOpt;
   private Option contextOpt;
   private Option executionHintsOpt;
@@ -164,7 +164,7 @@ public class ScanCommand extends Command {
     }
   }
 
-  protected void addScanIterators(final Shell shellState, CommandLine cl, final Scanner scanner,
+  protected void addScanIterators(final Shell shellState, CommandLine cl, final ScannerBase scanner,
       final String tableName) throws Exception {
 
     List<IteratorSetting> tableScanIterators;
