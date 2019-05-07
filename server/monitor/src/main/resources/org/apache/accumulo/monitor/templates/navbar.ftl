@@ -49,7 +49,6 @@
               <ul class="dropdown-menu">
                 <li><a href="/scans">Active&nbsp;Scans</a></li>
                 <li><a href="/bulkImports">Bulk&nbsp;Imports</a></li>
-                <li><a href="/vis">Server&nbsp;Activity</a></li>
                 <li><a href="/replication">Replication</a></li>
               </ul>
             </li>
