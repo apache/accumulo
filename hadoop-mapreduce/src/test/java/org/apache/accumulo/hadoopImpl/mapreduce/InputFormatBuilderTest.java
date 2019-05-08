@@ -16,14 +16,12 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce;
 
-import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import javax.inject.Inject;
 
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
 import org.apache.hadoop.mapred.JobConf;
@@ -49,7 +47,6 @@ public class InputFormatBuilderTest {
       return this;
     }
 
-    @Inject
     public InputFormatBuilder.InputFormatOptions<T> classLoaderContext(String context) {
       tableConfigMap.get(currentTable).setContext(context);
       return this;
@@ -59,7 +56,6 @@ public class InputFormatBuilderTest {
       return tableConfigMap.get(currentTable).getContext();
     }
 
-    @Inject
     public InputFormatBuilder.InputFormatOptions<T> executionHints(Map<String,String> hints) {
       this.newHints = ImmutableMap.copyOf(hints);
       tableConfigMap.get(currentTable).setExecutionHints(hints);
