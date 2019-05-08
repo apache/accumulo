@@ -218,9 +218,15 @@ public class ScanCommand extends Command {
     Class<? extends ScanInterpreter> clazz = null;
     try {
       if (cl.hasOption(interpreterOpt.getOpt())) {
+        Shell.log.warn(
+            "Scan Interpreter option is deprecated and will be removed in a future version.\n");
+
         clazz = AccumuloVFSClassLoader.loadClass(cl.getOptionValue(interpreterOpt.getOpt()),
             ScanInterpreter.class);
       } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
+        Shell.log.warn(
+            "Scan Interpreter option is deprecated and will be removed in a future version.\n");
+
         clazz = AccumuloVFSClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()),
             ScanInterpreter.class);
       }
@@ -242,9 +248,13 @@ public class ScanCommand extends Command {
 
     try {
       if (cl.hasOption(formatterOpt.getOpt())) {
+        Shell.log.warn("Formatter option is deprecated and will be removed in a future version.\n");
+
         return shellState.getClassLoader(cl, shellState)
             .loadClass(cl.getOptionValue(formatterOpt.getOpt())).asSubclass(Formatter.class);
       } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
+        Shell.log.warn("Formatter option is deprecated and will be removed in a future version.\n");
+
         return shellState.getClassLoader(cl, shellState)
             .loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()))
             .asSubclass(Formatter.class);
