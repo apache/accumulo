@@ -20,6 +20,8 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +30,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -122,10 +125,12 @@ public class SplitIT extends AccumuloClusterHarness {
   public void tabletShouldSplit() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String table = getUniqueNames(1)[0];
-      c.tableOperations().create(table);
-      c.tableOperations().setProperty(table, Property.TABLE_SPLIT_THRESHOLD.getKey(), "256K");
-      c.tableOperations().setProperty(table, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(),
-          "1K");
+
+      Map props = new HashMap<>();
+      props.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "256K");
+      props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K");
+
+      c.tableOperations().create(table, new NewTableConfiguration().setProperties(props));
       VerifyParams params = new VerifyParams(getClientProps(), table, 100_000);
       TestIngest.ingest(c, params);
       VerifyIngest.verifyIngest(c, params);
@@ -159,10 +164,13 @@ public class SplitIT extends AccumuloClusterHarness {
   public void interleaveSplit() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
-      c.tableOperations().setProperty(tableName, Property.TABLE_FILE_COMPRESSION_TYPE.getKey(),
-          "none");
+
+      Map props = new HashMap<>();
+      props.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+      props.put(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
+
+      c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props));
+
       sleepUninterruptibly(5, TimeUnit.SECONDS);
       ReadWriteIT.interleaveTest(c, tableName);
       sleepUninterruptibly(5, TimeUnit.SECONDS);
@@ -180,8 +188,8 @@ public class SplitIT extends AccumuloClusterHarness {
   public void deleteSplit() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
+      c.tableOperations().create(tableName, new NewTableConfiguration()
+          .setProperties(Collections.singletonMap(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K")));
       DeleteIT.deleteTest(c, getCluster(), tableName);
       c.tableOperations().flush(tableName, null, null, true);
       for (int i = 0; i < 5; i++) {

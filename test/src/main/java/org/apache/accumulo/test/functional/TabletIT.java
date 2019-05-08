@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
@@ -27,6 +28,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -76,10 +78,11 @@ public class TabletIT extends AccumuloClusterHarness {
       }
 
       // presplit
-      accumuloClient.tableOperations().create(tableName);
-      accumuloClient.tableOperations().setProperty(tableName,
-          Property.TABLE_SPLIT_THRESHOLD.getKey(), "200");
-      accumuloClient.tableOperations().addSplits(tableName, keys);
+      accumuloClient.tableOperations().create(tableName,
+          new NewTableConfiguration()
+              .setProperties(
+                  Collections.singletonMap(Property.TABLE_SPLIT_THRESHOLD.getKey(), "200"))
+              .withSplits(keys));
       try (BatchWriter b = accumuloClient.createBatchWriter(tableName)) {
         // populate
         for (int i = 0; i < N; i++) {

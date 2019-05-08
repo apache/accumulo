@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -88,7 +89,7 @@ public class DurabilityIT extends ConfigurableMacBase {
   }
 
   private void createTable(AccumuloClient c, String tableName) throws Exception {
-    c.tableOperations().create(tableName);
+    c.tableOperations().create(tableName, new NewTableConfiguration());
   }
 
   @Test(timeout = 2 * 60 * 1000)
@@ -199,7 +200,7 @@ public class DurabilityIT extends ConfigurableMacBase {
       c.instanceOperations().setProperty(Property.TABLE_DURABILITY.getKey(), "none");
       Map<String,String> props = map(c.tableOperations().getProperties(MetadataTable.NAME));
       assertEquals("sync", props.get(Property.TABLE_DURABILITY.getKey()));
-      c.tableOperations().create(tableName);
+      c.tableOperations().create(tableName, new NewTableConfiguration());
       props = map(c.tableOperations().getProperties(tableName));
       assertEquals("none", props.get(Property.TABLE_DURABILITY.getKey()));
       restartTServer();
