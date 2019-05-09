@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 public class VisibilityFilter extends Filter implements OptionDescriber {
 
   protected VisibilityEvaluator ve;
-  protected LRUMap cache;
+  protected LRUMap<ByteSequence,Boolean> cache;
 
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
 
@@ -66,14 +66,14 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
           : new Authorizations(auths.getBytes(UTF_8));
       this.ve = new VisibilityEvaluator(authObj);
     }
-    this.cache = new LRUMap(1000);
+    this.cache = new LRUMap<>(1000);
   }
 
   @Override
   public boolean accept(Key k, Value v) {
     ByteSequence testVis = k.getColumnVisibilityData();
     if (filterInvalid) {
-      Boolean b = (Boolean) cache.get(testVis);
+      Boolean b = cache.get(testVis);
       if (b != null)
         return b;
       try {
@@ -89,7 +89,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         return true;
       }
 
-      Boolean b = (Boolean) cache.get(testVis);
+      Boolean b = cache.get(testVis);
       if (b != null)
         return b;
 
