@@ -130,9 +130,9 @@ public class ScanCommand extends Command {
           final int length = Integer.parseInt(showLength);
           config.setShownLength(length);
         } catch (NumberFormatException nfe) {
-          shellState.getReader().println("Arg must be an integer.");
+          Shell.log.error("Arg must be an integer.", nfe);
         } catch (IllegalArgumentException iae) {
-          shellState.getReader().println("Arg must be greater than one.");
+          Shell.log.error("Arg must be greater than one.", iae);
         }
       }
       printRecords(cl, shellState, config, scanner, formatter, printFile);
@@ -218,20 +218,20 @@ public class ScanCommand extends Command {
     Class<? extends ScanInterpreter> clazz = null;
     try {
       if (cl.hasOption(interpreterOpt.getOpt())) {
-        Shell.log.warn(
-            "Scan Interpreter option is deprecated and will be removed in a future version.\n");
+        Shell.log
+            .warn("Scan Interpreter option is deprecated and will be removed in a future version.");
 
         clazz = AccumuloVFSClassLoader.loadClass(cl.getOptionValue(interpreterOpt.getOpt()),
             ScanInterpreter.class);
       } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
-        Shell.log.warn(
-            "Scan Interpreter option is deprecated and will be removed in a future version.\n");
+        Shell.log
+            .warn("Scan Interpreter option is deprecated and will be removed in a future version.");
 
         clazz = AccumuloVFSClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()),
             ScanInterpreter.class);
       }
     } catch (ClassNotFoundException e) {
-      shellState.getReader().println("Interpreter class could not be loaded.\n" + e.getMessage());
+      Shell.log.error("Interpreter class could not be loaded.", e);
     }
 
     if (clazz == null)
@@ -248,19 +248,19 @@ public class ScanCommand extends Command {
 
     try {
       if (cl.hasOption(formatterOpt.getOpt())) {
-        Shell.log.warn("Formatter option is deprecated and will be removed in a future version.\n");
+        Shell.log.warn("Formatter option is deprecated and will be removed in a future version.");
 
         return shellState.getClassLoader(cl, shellState)
             .loadClass(cl.getOptionValue(formatterOpt.getOpt())).asSubclass(Formatter.class);
       } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
-        Shell.log.warn("Formatter option is deprecated and will be removed in a future version.\n");
+        Shell.log.warn("Formatter option is deprecated and will be removed in a future version.");
 
         return shellState.getClassLoader(cl, shellState)
             .loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()))
             .asSubclass(Formatter.class);
       }
     } catch (Exception e) {
-      shellState.getReader().println("Formatter class could not be loaded.\n" + e.getMessage());
+      Shell.log.error("Formatter class could not be loaded.", e);
     }
 
     return shellState.getFormatter(tableName);
