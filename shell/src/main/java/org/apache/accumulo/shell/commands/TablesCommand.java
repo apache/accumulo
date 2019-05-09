@@ -42,7 +42,6 @@ public class TablesCommand extends Command {
   private Option sortByTableIdOption;
   private Option disablePaginationOpt;
 
-  @SuppressWarnings("unchecked")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, IOException, NamespaceNotFoundException {
@@ -56,7 +55,7 @@ public class TablesCommand extends Command {
         tableName -> namespace == null || Tables.qualify(tableName).getFirst().equals(namespace));
 
     final boolean sortByTableId = cl.hasOption(sortByTableIdOption.getOpt());
-    tables = new TreeMap<String,String>((sortByTableId ? MapUtils.invertMap(tables) : tables));
+    tables = new TreeMap<>((sortByTableId ? MapUtils.invertMap(tables) : tables));
 
     Iterator<String> it = Iterators.transform(tables.entrySet().iterator(), entry -> {
       String tableName = String.valueOf(sortByTableId ? entry.getValue() : entry.getKey());

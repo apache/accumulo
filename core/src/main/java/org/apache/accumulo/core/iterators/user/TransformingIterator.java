@@ -104,8 +104,8 @@ public abstract class TransformingIterator extends WrappingIterator implements O
   protected boolean seekColumnFamiliesInclusive;
 
   private VisibilityEvaluator ve = null;
-  private LRUMap visibleCache = null;
-  private LRUMap parsedVisibilitiesCache = null;
+  private LRUMap<ByteSequence,Boolean> visibleCache = null;
+  private LRUMap<ByteSequence,Boolean> parsedVisibilitiesCache = null;
   private long maxBufferSize;
 
   private static Comparator<Pair<Key,Value>> keyComparator = Comparator.comparing(Pair::getFirst);
@@ -119,7 +119,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
       String auths = options.get(AUTH_OPT);
       if (auths != null && !auths.isEmpty()) {
         ve = new VisibilityEvaluator(new Authorizations(auths.getBytes(UTF_8)));
-        visibleCache = new LRUMap(100);
+        visibleCache = new LRUMap<>(100);
       }
     }
 
@@ -130,7 +130,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
       maxBufferSize = DEFAULT_MAX_BUFFER_SIZE;
     }
 
-    parsedVisibilitiesCache = new LRUMap(100);
+    parsedVisibilitiesCache = new LRUMap<>(100);
   }
 
   @Override
@@ -192,12 +192,12 @@ public abstract class TransformingIterator extends WrappingIterator implements O
 
     copy.ve = ve;
     if (visibleCache != null) {
-      copy.visibleCache = new LRUMap(visibleCache.maxSize());
+      copy.visibleCache = new LRUMap<>(visibleCache.maxSize());
       copy.visibleCache.putAll(visibleCache);
     }
 
     if (parsedVisibilitiesCache != null) {
-      copy.parsedVisibilitiesCache = new LRUMap(parsedVisibilitiesCache.maxSize());
+      copy.parsedVisibilitiesCache = new LRUMap<>(parsedVisibilitiesCache.maxSize());
       copy.parsedVisibilitiesCache.putAll(parsedVisibilitiesCache);
     }
 
@@ -406,7 +406,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     // check, even if visibility is not evaluated.
     ByteSequence visibility = key.getColumnVisibilityData();
     ColumnVisibility colVis = null;
-    Boolean parsed = (Boolean) parsedVisibilitiesCache.get(visibility);
+    Boolean parsed = parsedVisibilitiesCache.get(visibility);
     if (parsed == null) {
       try {
         colVis = new ColumnVisibility(visibility.toArray());
@@ -432,7 +432,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     if (!scanning || !visible || ve == null || visibleCache == null || visibility.length() == 0)
       return visible;
 
-    visible = (Boolean) visibleCache.get(visibility);
+    visible = visibleCache.get(visibility);
     if (visible == null) {
       try {
         if (colVis == null)

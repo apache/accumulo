@@ -110,8 +110,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   private Authorizations auths;
   private VisibilityEvaluator ve;
-  @SuppressWarnings("unchecked")
-  private Map<Text,Boolean> cache = Collections.synchronizedMap(new LRUMap(1000));
+  private Map<Text,Boolean> cache = Collections.synchronizedMap(new LRUMap<>(1000));
   private final ClientContext context;
   private TabletLocator locator;
   private final TableId tableId;

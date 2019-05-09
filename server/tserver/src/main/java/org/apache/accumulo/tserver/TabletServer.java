@@ -316,9 +316,8 @@ public class TabletServer extends AbstractServer {
       Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
   private final SortedSet<KeyExtent> openingTablets =
       Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
-  @SuppressWarnings("unchecked")
   private final Map<KeyExtent,Long> recentlyUnloadedCache =
-      Collections.synchronizedMap(new LRUMap(1000));
+      Collections.synchronizedMap(new LRUMap<>(1000));
 
   private final TabletServerResourceManager resourceManager;
   private final SecurityOperation security;

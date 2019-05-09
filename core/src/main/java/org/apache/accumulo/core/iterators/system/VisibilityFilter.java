@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 public class VisibilityFilter extends SynchronizedServerFilter {
   protected VisibilityEvaluator ve;
   protected ByteSequence defaultVisibility;
-  protected LRUMap cache;
+  protected LRUMap<ByteSequence,Boolean> cache;
   protected Authorizations authorizations;
 
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
@@ -54,7 +54,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
     this.ve = new VisibilityEvaluator(authorizations);
     this.authorizations = authorizations;
     this.defaultVisibility = new ArrayByteSequence(defaultVisibility);
-    this.cache = new LRUMap(1000);
+    this.cache = new LRUMap<>(1000);
   }
 
   @Override
@@ -71,7 +71,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
     else if (testVis.length() == 0)
       testVis = defaultVisibility;
 
-    Boolean b = (Boolean) cache.get(testVis);
+    Boolean b = cache.get(testVis);
     if (b != null)
       return b;
 
