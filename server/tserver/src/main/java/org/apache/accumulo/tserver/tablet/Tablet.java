@@ -255,6 +255,11 @@ public class Tablet implements TabletCommitter {
 
   private final ConfigurationObserver configObserver;
 
+  // Files that are currently in the process of bulk importing. Access to this is protected by the
+  // tablet lock.
+  private final Set<FileRef> bulkImporting = new HashSet<>();
+
+  // Files that were successfully bulk imported.
   private final Cache<Long,List<FileRef>> bulkImported = CacheBuilder.newBuilder().build();
 
   private final int logId;
@@ -2437,6 +2442,16 @@ public class Tablet implements TabletCommitter {
           }
         }
       }
+
+      Iterator<FileRef> fiter = fileMap.keySet().iterator();
+      while (fiter.hasNext()) {
+        FileRef file = fiter.next();
+        if (bulkImporting.contains(file)) {
+          log.info("Ignoring import of bulk file currently importing: " + file);
+          fiter.remove();
+        }
+      }
+
       if (fileMap.isEmpty()) {
         return;
       }
@@ -2446,6 +2461,9 @@ public class Tablet implements TabletCommitter {
             + "increment a negative number of writes in progress " + writesInProgress + "on tablet "
             + extent);
       }
+
+      // prevent other threads from processing this file while its added to the metadata table.
+      bulkImporting.addAll(fileMap.keySet());
 
       writesInProgress++;
     }
@@ -2470,6 +2488,11 @@ public class Tablet implements TabletCommitter {
         writesInProgress--;
         if (writesInProgress == 0)
           this.notifyAll();
+
+        if (!bulkImporting.removeAll(fileMap.keySet())) {
+          throw new AssertionError(
+              "Likely bug in code, always expect to remove something.  Please open an Accumulo issue.");
+        }
 
         try {
           bulkImported.get(tid, new Callable<List<FileRef>>() {
