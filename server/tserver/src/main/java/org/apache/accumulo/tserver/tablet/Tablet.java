@@ -255,6 +255,11 @@ public class Tablet {
 
   private final ConfigurationObserver configObserver;
 
+  // Files that are currently in the process of bulk importing. Access to this is protected by the
+  // tablet lock.
+  private final Set<FileRef> bulkImporting = new HashSet<>();
+
+  // Files that were successfully bulk imported.
   private final Cache<Long,List<FileRef>> bulkImported = CacheBuilder.newBuilder().build();
 
   private final int logId;
@@ -2412,11 +2417,23 @@ public class Tablet {
           }
         }
       }
+
+      fileMap.keySet().removeIf(file -> {
+        if (bulkImporting.contains(file)) {
+          log.info("Ignoring import of bulk file currently importing: " + file);
+          return true;
+        }
+        return false;
+      });
+
       if (fileMap.isEmpty()) {
         return;
       }
 
       incrementWritesInProgress();
+
+      // prevent other threads from processing this file while its added to the metadata table.
+      bulkImporting.addAll(fileMap.keySet());
     }
     try {
       tabletServer.updateBulkImportState(files, BulkImportState.LOADING);
@@ -2432,6 +2449,11 @@ public class Tablet {
     } finally {
       synchronized (this) {
         decrementWritesInProgress();
+
+        if (!bulkImporting.removeAll(fileMap.keySet())) {
+          throw new AssertionError(
+              "Likely bug in code, always expect to remove something.  Please open an Accumulo issue.");
+        }
 
         try {
           bulkImported.get(tid, ArrayList::new).addAll(fileMap.keySet());
