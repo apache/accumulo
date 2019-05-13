@@ -16,23 +16,30 @@
  */
 package org.apache.accumulo.core.client.admin;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.SortedSet;
-import java.util.TreeSet;
-
+import org.apache.accumulo.core.client.sample.RowSampler;
+import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 public class NewTableConfigurationTest {
 
   private SortedSet<Text> splits;
+  private Map<String, String> options;
 
   @Before
+  public void setup() {
+    populateSplits();
+    populateOptions();
+  }
+
   public void populateSplits() {
     splits = new TreeSet<>();
     splits.add(new Text("ccccc"));
@@ -92,5 +99,36 @@ public class NewTableConfigurationTest {
     assertTrue(ntcOffline.getInitialTableState() == InitialTableState.OFFLINE);
     NewTableConfiguration ntcOnline = new NewTableConfiguration();
     assertTrue(ntcOnline.getInitialTableState() == InitialTableState.ONLINE);
+  }
+
+  public void populateOptions() {
+    options = new HashMap<>();
+    options.put("hasher", "murmur3_32");
+    options.put("modulus", "5");
+  }
+
+  @Test
+  public void testEnableSampling() {
+    SamplerConfiguration samplerConfig = new SamplerConfiguration("test");
+    NewTableConfiguration ntcSample1 = new NewTableConfiguration().enableSampling(samplerConfig);
+    assertTrue(ntcSample1.getProperties().containsValue("test"));
+
+    RowSampler rowSampler = new RowSampler();
+    SamplerConfiguration sha1SamplerConfig = new SamplerConfiguration(rowSampler.getClass());
+    sha1SamplerConfig.setOptions(options);
+    rowSampler.init(sha1SamplerConfig);
+    NewTableConfiguration ntcSample2 = new NewTableConfiguration().enableSampling(sha1SamplerConfig);
+    assertTrue(ntcSample2.getProperties().containsValue("murmur3_32"));
+  }
+
+  @Test
+  public void testEnableSummarization() {
+    SummarizerConfiguration summarizerConfig1 = SummarizerConfiguration.builder("test").build();
+    NewTableConfiguration ntcSummarization1 = new NewTableConfiguration().enableSummarization(summarizerConfig1);
+    assertTrue(ntcSummarization1.getProperties().containsValue("test"));
+
+    SummarizerConfiguration summarizerConfig2 = SummarizerConfiguration.builder(FamilySummarizer.class).build();
+    NewTableConfiguration ntcSummarization2 = new NewTableConfiguration().enableSummarization(summarizerConfig2);
+    assertTrue(ntcSummarization2.getProperties().containsValue(FamilySummarizer.class.getName()));
   }
 }
