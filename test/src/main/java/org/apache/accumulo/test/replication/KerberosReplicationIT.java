@@ -21,12 +21,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.security.PrivilegedExceptionAction;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
@@ -193,23 +196,23 @@ public class KerberosReplicationIT extends AccumuloITBase {
         String primaryTable1 = "primary", peerTable1 = "peer";
 
         // Create tables
-        primaryclient.tableOperations().create(primaryTable1);
-        String masterTableId1 = primaryclient.tableOperations().tableIdMap().get(primaryTable1);
-        assertNotNull(masterTableId1);
-
         peerclient.tableOperations().create(peerTable1);
         String peerTableId1 = peerclient.tableOperations().tableIdMap().get(peerTable1);
         assertNotNull(peerTableId1);
 
+        Map<String,String> props = new HashMap<>();
+        props.put(Property.TABLE_REPLICATION.getKey(), "true");
+        // Replicate this table to the peerClusterName in a table with the peerTableId table id
+        props.put(Property.TABLE_REPLICATION_TARGET.getKey() + PEER_NAME, peerTableId1);
+
+        primaryclient.tableOperations().create(primaryTable1,
+            new NewTableConfiguration().setProperties(props));
+        String masterTableId1 = primaryclient.tableOperations().tableIdMap().get(primaryTable1);
+        assertNotNull(masterTableId1);
+
         // Grant write permission
         peerclient.securityOperations().grantTablePermission(replicationUser.getPrincipal(),
             peerTable1, TablePermission.WRITE);
-
-        // Replicate this table to the peerClusterName in a table with the peerTableId table id
-        primaryclient.tableOperations().setProperty(primaryTable1,
-            Property.TABLE_REPLICATION.getKey(), "true");
-        primaryclient.tableOperations().setProperty(primaryTable1,
-            Property.TABLE_REPLICATION_TARGET.getKey() + PEER_NAME, peerTableId1);
 
         // Write some data to table1
         long masterTable1Records = 0L;

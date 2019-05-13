@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -23,7 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeSet;
@@ -32,6 +33,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -60,7 +62,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
+    cfg.setSiteConfig(singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
   }
 
   public static class SimpleCompactionStrategy extends CompactionStrategy {
@@ -93,10 +95,11 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       final String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
-          SimpleCompactionStrategy.class.getName());
+
+      c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(singletonMap(
+          Property.TABLE_COMPACTION_STRATEGY.getKey(), SimpleCompactionStrategy.class.getName())));
       runTest(c, tableName, 3);
+
       c.tableOperations().setProperty(tableName,
           Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey() + "count", "" + 5);
       runTest(c, tableName, 5);
@@ -109,17 +112,17 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
       final String tableName = getUniqueNames(1)[0];
       File destFile =
           installJar(getCluster().getConfig().getAccumuloDir(), "/TestCompactionStrat.jar");
-      c.tableOperations().create(tableName);
       c.instanceOperations().setProperty(
           Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
-      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
-      c.tableOperations().setProperty(tableName, Property.TABLE_CLASSPATH.getKey(), "context1");
+      Map props = new HashMap<>();
+      props.put(Property.TABLE_MAJC_RATIO.getKey(), "10");
+      props.put(Property.TABLE_CLASSPATH.getKey(), "context1");
       // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are
       // compacted.
-      c.tableOperations().setProperty(tableName, Property.TABLE_COMPACTION_STRATEGY.getKey(),
+      props.put(Property.TABLE_COMPACTION_STRATEGY.getKey(),
           "org.apache.accumulo.test.EfgCompactionStrat");
-
-      c.tableOperations().addSplits(tableName, new TreeSet<>(Arrays.asList(new Text("efg"))));
+      c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props)
+          .withSplits(new TreeSet<>(Arrays.asList(new Text("efg")))));
 
       for (char ch = 'a'; ch < 'l'; ch++)
         writeFlush(c, tableName, ch + "");

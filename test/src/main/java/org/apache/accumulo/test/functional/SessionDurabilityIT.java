@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -27,6 +28,7 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
@@ -55,8 +57,8 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       // table default has no durability
-      c.tableOperations().create(tableName);
-      c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "none");
+      c.tableOperations().create(tableName, new NewTableConfiguration()
+          .setProperties(singletonMap(Property.TABLE_DURABILITY.getKey(), "none")));
       // send durable writes
       BatchWriterConfig cfg = new BatchWriterConfig();
       cfg.setDurability(Durability.SYNC);
@@ -73,8 +75,8 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       // table default is durable writes
-      c.tableOperations().create(tableName);
-      c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
+      c.tableOperations().create(tableName, new NewTableConfiguration()
+          .setProperties(singletonMap(Property.TABLE_DURABILITY.getKey(), "sync")));
       // write with no durability
       BatchWriterConfig cfg = new BatchWriterConfig();
       cfg.setDurability(Durability.NONE);
@@ -105,8 +107,8 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       // table default is durable writes
-      c.tableOperations().create(tableName);
-      c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "sync");
+      c.tableOperations().create(tableName, new NewTableConfiguration()
+          .setProperties(singletonMap(Property.TABLE_DURABILITY.getKey(), "sync")));
       // write without durability
       ConditionalWriterConfig cfg = new ConditionalWriterConfig();
       cfg.setDurability(Durability.NONE);
@@ -124,8 +126,8 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       // table default is durable writes
-      c.tableOperations().create(tableName);
-      c.tableOperations().setProperty(tableName, Property.TABLE_DURABILITY.getKey(), "none");
+      c.tableOperations().create(tableName, new NewTableConfiguration()
+          .setProperties(singletonMap(Property.TABLE_DURABILITY.getKey(), "none")));
       // write with durability
       ConditionalWriterConfig cfg = new ConditionalWriterConfig();
       cfg.setDurability(Durability.SYNC);
