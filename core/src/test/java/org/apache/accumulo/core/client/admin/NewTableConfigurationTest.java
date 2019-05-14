@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.admin;
 
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.hadoop.io.Text;
@@ -107,6 +108,11 @@ public class NewTableConfigurationTest {
     options.put("modulus", "5");
   }
 
+  public void populateInvalidOptions() {}
+
+  /**
+   * Verify enableSampling returns
+   */
   @Test
   public void testEnableSampling() {
     SamplerConfiguration samplerConfig = new SamplerConfiguration("test");
@@ -121,14 +127,35 @@ public class NewTableConfigurationTest {
     assertTrue(ntcSample2.getProperties().containsValue("murmur3_32"));
   }
 
+  /**
+   * Verify enableSummarization returns either a class name as a string or as a class that's an
+   * instance of Summarizer class
+   */
   @Test
   public void testEnableSummarization() {
     SummarizerConfiguration summarizerConfig1 = SummarizerConfiguration.builder("test").build();
     NewTableConfiguration ntcSummarization1 = new NewTableConfiguration().enableSummarization(summarizerConfig1);
-    assertTrue(ntcSummarization1.getProperties().containsValue("test"));
 
-    SummarizerConfiguration summarizerConfig2 = SummarizerConfiguration.builder(FamilySummarizer.class).build();
+    Object summarizerValue = null;
+    for(Map.Entry<String, String> e : ntcSummarization1.getProperties().entrySet()) {
+      if (e.getKey().contains("table.summarizer")) {
+        summarizerValue = e.getValue();
+      }
+    }
+    assertTrue(summarizerValue instanceof String);
+
+    Class<? extends Summarizer> builderClass = FamilySummarizer.class;
+    assertTrue(Summarizer.class.isAssignableFrom(builderClass));
+
+    summarizerValue = null;
+    SummarizerConfiguration summarizerConfig2 = SummarizerConfiguration.builder(builderClass).build();
     NewTableConfiguration ntcSummarization2 = new NewTableConfiguration().enableSummarization(summarizerConfig2);
-    assertTrue(ntcSummarization2.getProperties().containsValue(FamilySummarizer.class.getName()));
+
+    for(Map.Entry<String, String> e : ntcSummarization2.getProperties().entrySet()) {
+      if (e.getKey().contains("table.summarizer")) {
+        summarizerValue = e.getValue();
+      }
+    }
+    assertTrue(summarizerValue.equals(builderClass.getName()));
   }
 }
