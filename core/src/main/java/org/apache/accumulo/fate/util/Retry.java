@@ -291,16 +291,11 @@ public class Retry {
 
   public interface NeedsBackOffFactor {
     /**
-     *
      * @param backOffFactor
      *          the number that the wait increment will be successively multiplied by to make the
      *          time between retries to be exponentially increasing. The default value will be one.
-     *
-     * @return
      */
-
     NeedsLogInterval backOffFactor(double backOffFactor);
-
   }
 
   public interface NeedsLogInterval {

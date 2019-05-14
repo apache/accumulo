@@ -126,7 +126,7 @@ public class SplitIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String table = getUniqueNames(1)[0];
 
-      Map props = new HashMap<>();
+      Map<String,String> props = new HashMap<>();
       props.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "256K");
       props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K");
 
@@ -165,7 +165,7 @@ public class SplitIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      Map props = new HashMap<>();
+      Map<String,String> props = new HashMap<>();
       props.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
       props.put(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
 
