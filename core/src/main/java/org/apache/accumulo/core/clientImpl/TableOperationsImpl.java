@@ -1745,8 +1745,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     locator.invalidateCache();
 
     Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-        .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).logInterval(3, TimeUnit.MINUTES)
-        .createRetry();
+        .incrementBy(100, MILLISECONDS).maxWait(2, SECONDS).backOffFactor(1.5)
+        .logInterval(3, TimeUnit.MINUTES).createRetry();
 
     while (!locator.binRanges(context, rangeList, binnedRanges).isEmpty()) {
 
