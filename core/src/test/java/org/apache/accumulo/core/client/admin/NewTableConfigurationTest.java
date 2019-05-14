@@ -16,16 +16,6 @@
  */
 package org.apache.accumulo.core.client.admin;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
-
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
@@ -34,6 +24,17 @@ import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class NewTableConfigurationTest {
 
@@ -134,37 +135,47 @@ public class NewTableConfigurationTest {
   }
 
   /**
-   * Verify enableSummarization returns either a class name as a string or as a class that's an
-   * instance of Summarizer class
+   * Verify enableSummarization returns SummarizerConfiguration with the expected class name.
    */
   @Test
   public void testEnableSummarization() {
     SummarizerConfiguration summarizerConfig1 = SummarizerConfiguration.builder("test").build();
     NewTableConfiguration ntcSummarization1 =
-        new NewTableConfiguration().enableSummarization(summarizerConfig1);
+            new NewTableConfiguration().enableSummarization(summarizerConfig1);
 
-    Object summarizerValue = null;
+    ArrayList<String> summarizerValues = new ArrayList<String>();
     for (Map.Entry<String,String> e : ntcSummarization1.getProperties().entrySet()) {
       if (e.getKey().contains("table.summarizer")) {
-        summarizerValue = e.getValue();
+        summarizerValues.add(e.getValue());
       }
     }
-    assertTrue(summarizerValue instanceof String);
+    assertTrue(summarizerValues.get(0) instanceof String);
 
     Class<? extends Summarizer> builderClass = FamilySummarizer.class;
     assertTrue(Summarizer.class.isAssignableFrom(builderClass));
 
-    summarizerValue = null;
+    summarizerValues.clear();
     SummarizerConfiguration summarizerConfig2 =
         SummarizerConfiguration.builder(builderClass).build();
     NewTableConfiguration ntcSummarization2 =
-        new NewTableConfiguration().enableSummarization(summarizerConfig2);
+            new NewTableConfiguration().enableSummarization(summarizerConfig2);
 
     for (Map.Entry<String,String> e : ntcSummarization2.getProperties().entrySet()) {
       if (e.getKey().contains("table.summarizer")) {
-        summarizerValue = e.getValue();
+        summarizerValues.add(e.getValue());
       }
     }
-    assertTrue(summarizerValue.equals(builderClass.getName()));
+    assertTrue(summarizerValues.get(0).equals(builderClass.getName()));
+
+    NewTableConfiguration ntcSummarization3 =
+            new NewTableConfiguration().enableSummarization(summarizerConfig1, summarizerConfig2);
+
+    summarizerValues.clear();
+    for (Map.Entry<String,String> e : ntcSummarization3.getProperties().entrySet()) {
+      if (e.getKey().contains("table.summarizer")) {
+        summarizerValues.add(e.getValue());
+      }
+    }
+    assertEquals(summarizerValues.size(), 2);
   }
 }
