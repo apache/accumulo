@@ -227,6 +227,7 @@ public class KeyTest {
         "r f:q [v%00;] " + Long.MAX_VALUE + " false");
   }
 
+  @Test
   public void testVisibilityGetters() {
     Key k = new Key("r", "f", "q", "v1|(v2&v3)");
 
