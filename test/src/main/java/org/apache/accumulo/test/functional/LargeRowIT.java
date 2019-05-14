@@ -17,6 +17,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.singletonMap;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
 
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -125,11 +127,12 @@ public class LargeRowIT extends AccumuloClusterHarness {
     }
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(REG_TABLE_NAME);
-      c.tableOperations().create(PRE_SPLIT_TABLE_NAME);
-      c.tableOperations().setProperty(PRE_SPLIT_TABLE_NAME,
-          Property.TABLE_MAX_END_ROW_SIZE.getKey(), "256K");
+      c.tableOperations().create(PRE_SPLIT_TABLE_NAME,
+          new NewTableConfiguration()
+              .setProperties(singletonMap(Property.TABLE_MAX_END_ROW_SIZE.getKey(), "256K"))
+              .withSplits(splitPoints));
+
       sleepUninterruptibly(3, TimeUnit.SECONDS);
-      c.tableOperations().addSplits(PRE_SPLIT_TABLE_NAME, splitPoints);
       test1(c);
       test2(c);
     }

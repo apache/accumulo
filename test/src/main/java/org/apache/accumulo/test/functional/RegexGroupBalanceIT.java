@@ -19,6 +19,7 @@ package org.apache.accumulo.test.functional;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -28,6 +29,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -56,7 +58,6 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
   public void testBalancing() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tablename = getUniqueNames(1)[0];
-      client.tableOperations().create(tablename);
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("01a"));
@@ -73,16 +74,14 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
       splits.add(new Text("03m"));
       splits.add(new Text("03r"));
 
-      client.tableOperations().setProperty(tablename, RegexGroupBalancer.REGEX_PROPERTY,
-          "(\\d\\d).*");
-      client.tableOperations().setProperty(tablename, RegexGroupBalancer.DEFAUT_GROUP_PROPERTY,
-          "03");
-      client.tableOperations().setProperty(tablename, RegexGroupBalancer.WAIT_TIME_PROPERTY,
-          "50ms");
-      client.tableOperations().setProperty(tablename, Property.TABLE_LOAD_BALANCER.getKey(),
-          RegexGroupBalancer.class.getName());
+      HashMap<String,String> props = new HashMap<>();
+      props.put(RegexGroupBalancer.REGEX_PROPERTY, "(\\d\\d).*");
+      props.put(RegexGroupBalancer.DEFAUT_GROUP_PROPERTY, "03");
+      props.put(RegexGroupBalancer.WAIT_TIME_PROPERTY, "50ms");
+      props.put(Property.TABLE_LOAD_BALANCER.getKey(), RegexGroupBalancer.class.getName());
 
-      client.tableOperations().addSplits(tablename, splits);
+      client.tableOperations().create(tablename,
+          new NewTableConfiguration().setProperties(props).withSplits(splits));
 
       while (true) {
         Thread.sleep(250);
