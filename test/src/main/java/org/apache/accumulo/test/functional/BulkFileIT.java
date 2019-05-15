@@ -74,8 +74,9 @@ public class BulkFileIT extends AccumuloClusterHarness {
       Configuration conf = new Configuration();
       AccumuloConfiguration aconf = getCluster().getServerContext().getConfiguration();
       FileSystem fs = getCluster().getFileSystem();
-
-      String rootPath = cluster.getTemporaryPath().toString();
+      // Add Fs.defaultFS to rootPath so importDirectory has the full path for Standalone Instance
+      String defaultFS = fs.getConf().get(FileSystem.FS_DEFAULT_NAME_KEY);
+      String rootPath = defaultFS + cluster.getTemporaryPath().toString();
 
       String dir = rootPath + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
 
@@ -89,6 +90,7 @@ public class BulkFileIT extends AccumuloClusterHarness {
       Path failPath = new Path(failDir);
       fs.delete(failPath, true);
       fs.mkdirs(failPath);
+      fs.deleteOnExit(failPath);
 
       // Ensure server can read/modify files
       c.tableOperations().importDirectory(tableName, dir, failDir, false);

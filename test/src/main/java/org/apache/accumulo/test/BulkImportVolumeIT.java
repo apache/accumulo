@@ -70,20 +70,27 @@ public class BulkImportVolumeIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(tableName);
       FileSystem fs = getFileSystem();
-      Path rootPath = new Path(cluster.getTemporaryPath(), getClass().getName());
+      // Add Fs.defaultFS to rootPath so importDirectory has the full path for Standalone Instance
+      String defaultFS = fs.getConf().get(FileSystem.FS_DEFAULT_NAME_KEY);
+      Path rootPath = new Path(defaultFS + cluster.getTemporaryPath(), getClass().getName());
+      fs.deleteOnExit(rootPath);
+
       Path bulk = new Path(rootPath, "bulk");
+      fs.deleteOnExit(bulk);
       log.info("bulk: {}", bulk);
       if (fs.exists(bulk)) {
         fs.delete(bulk, true);
       }
       assertTrue(fs.mkdirs(bulk));
       Path err = new Path(rootPath, "err");
+      fs.deleteOnExit(err);
       log.info("err: {}", err);
       if (fs.exists(err)) {
         fs.delete(err, true);
       }
       assertTrue(fs.mkdirs(err));
       Path bogus = new Path(bulk, "bogus.rf");
+      fs.deleteOnExit(bogus);
       fs.create(bogus).close();
       log.info("bogus: {}", bogus);
       assertTrue(fs.exists(bogus));
