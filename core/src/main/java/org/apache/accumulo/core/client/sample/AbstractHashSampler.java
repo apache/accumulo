@@ -99,7 +99,7 @@ public abstract class AbstractHashSampler implements Sampler {
         hashFunction = deprecatedSha1;
         break;
       default:
-        throw new IllegalArgumentException("Unknown hahser " + hasherOpt);
+        throw new IllegalArgumentException("Unknown hasher " + hasherOpt);
     }
 
     modulus = Integer.parseInt(modulusOpt);

@@ -20,10 +20,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.summary.Summarizer;
+import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,8 +37,14 @@ import org.junit.Test;
 public class NewTableConfigurationTest {
 
   private SortedSet<Text> splits;
+  private Map<String,String> options;
 
   @Before
+  public void setup() {
+    populateSplits();
+    populateOptions();
+  }
+
   public void populateSplits() {
     splits = new TreeSet<>();
     splits.add(new Text("ccccc"));
@@ -92,5 +104,60 @@ public class NewTableConfigurationTest {
     assertTrue(ntcOffline.getInitialTableState() == InitialTableState.OFFLINE);
     NewTableConfiguration ntcOnline = new NewTableConfiguration();
     assertTrue(ntcOnline.getInitialTableState() == InitialTableState.ONLINE);
+  }
+
+  public void populateOptions() {
+    options = new HashMap<>();
+    options.put("hasher", "murmur3_32");
+    options.put("modulus", "5");
+  }
+
+  /**
+   * Verify enableSampling returns
+   */
+  @Test
+  public void testEnableSampling() {
+    SamplerConfiguration sha1SamplerConfig = new SamplerConfiguration("com.mysampler");
+    sha1SamplerConfig.setOptions(options);
+    NewTableConfiguration ntcSample2 =
+        new NewTableConfiguration().enableSampling(sha1SamplerConfig);
+    assertEquals("com.mysampler", ntcSample2.getProperties().get("table.sampler"));
+    assertEquals("5", ntcSample2.getProperties().get("table.sampler.opt.modulus"));
+    assertEquals("murmur3_32", ntcSample2.getProperties().get("table.sampler.opt.hasher"));
+  }
+
+  /**
+   * Verify enableSummarization returns SummarizerConfiguration with the expected class name(s).
+   */
+  @Test
+  public void testEnableSummarization() {
+    SummarizerConfiguration summarizerConfig1 = SummarizerConfiguration
+        .builder("com.test.summarizer").setPropertyId("s1").addOption("opt1", "v1").build();
+    NewTableConfiguration ntcSummarization1 =
+        new NewTableConfiguration().enableSummarization(summarizerConfig1);
+    assertEquals("v1", ntcSummarization1.getProperties().get("table.summarizer.s1.opt.opt1"));
+    assertEquals("com.test.summarizer",
+        ntcSummarization1.getProperties().get("table.summarizer.s1"));
+
+    Class<? extends Summarizer> builderClass = FamilySummarizer.class;
+    assertTrue(Summarizer.class.isAssignableFrom(builderClass));
+
+    SummarizerConfiguration summarizerConfig2 = SummarizerConfiguration.builder(builderClass)
+        .setPropertyId("s2").addOption("opt2", "v2").build();
+    NewTableConfiguration ntcSummarization2 =
+        new NewTableConfiguration().enableSummarization(summarizerConfig2);
+    assertEquals("v2", ntcSummarization2.getProperties().get("table.summarizer.s2.opt.opt2"));
+    assertEquals(builderClass.getName(),
+        ntcSummarization2.getProperties().get("table.summarizer.s2"));
+
+    NewTableConfiguration ntcSummarization3 =
+        new NewTableConfiguration().enableSummarization(summarizerConfig1, summarizerConfig2);
+    assertEquals("v1", ntcSummarization1.getProperties().get("table.summarizer.s1.opt.opt1"));
+    assertEquals("v2", ntcSummarization2.getProperties().get("table.summarizer.s2.opt.opt2"));
+    assertEquals("com.test.summarizer",
+        ntcSummarization3.getProperties().get("table.summarizer.s1"));
+    assertEquals(builderClass.getName(),
+        ntcSummarization3.getProperties().get("table.summarizer.s2"));
+
   }
 }
