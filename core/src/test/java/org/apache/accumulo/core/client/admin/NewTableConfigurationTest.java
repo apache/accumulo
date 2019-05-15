@@ -16,16 +16,9 @@
  */
 package org.apache.accumulo.core.client.admin;
 
-import org.apache.accumulo.core.client.sample.RowSampler;
-import org.apache.accumulo.core.client.sample.SamplerConfiguration;
-import org.apache.accumulo.core.client.summary.Summarizer;
-import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
-import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
-import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -33,8 +26,13 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.summary.Summarizer;
+import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
+import org.apache.hadoop.io.Text;
+import org.junit.Before;
+import org.junit.Test;
 
 public class NewTableConfigurationTest {
 
@@ -114,68 +112,50 @@ public class NewTableConfigurationTest {
     options.put("modulus", "5");
   }
 
-  public void populateInvalidOptions() {}
-
   /**
    * Verify enableSampling returns
    */
   @Test
   public void testEnableSampling() {
-    SamplerConfiguration samplerConfig = new SamplerConfiguration("test");
-    NewTableConfiguration ntcSample1 = new NewTableConfiguration().enableSampling(samplerConfig);
-    assertTrue(ntcSample1.getProperties().containsValue("test"));
-
-    RowSampler rowSampler = new RowSampler();
-    SamplerConfiguration sha1SamplerConfig = new SamplerConfiguration(rowSampler.getClass());
+    SamplerConfiguration sha1SamplerConfig = new SamplerConfiguration("com.mysampler");
     sha1SamplerConfig.setOptions(options);
-    rowSampler.init(sha1SamplerConfig);
     NewTableConfiguration ntcSample2 =
         new NewTableConfiguration().enableSampling(sha1SamplerConfig);
-    assertTrue(ntcSample2.getProperties().containsValue("murmur3_32"));
+    assertEquals("com.mysampler", ntcSample2.getProperties().get("table.sampler"));
+    assertEquals("5", ntcSample2.getProperties().get("table.sampler.opt.modulus"));
+    assertEquals("murmur3_32", ntcSample2.getProperties().get("table.sampler.opt.hasher"));
   }
 
   /**
-   * Verify enableSummarization returns SummarizerConfiguration with the expected class name.
+   * Verify enableSummarization returns SummarizerConfiguration with the expected class name(s).
    */
   @Test
   public void testEnableSummarization() {
-    SummarizerConfiguration summarizerConfig1 = SummarizerConfiguration.builder("test").build();
+    SummarizerConfiguration summarizerConfig1 = SummarizerConfiguration
+        .builder("com.test.summarizer").setPropertyId("s1").addOption("opt1", "v1").build();
     NewTableConfiguration ntcSummarization1 =
-            new NewTableConfiguration().enableSummarization(summarizerConfig1);
+        new NewTableConfiguration().enableSummarization(summarizerConfig1);
 
-    ArrayList<String> summarizerValues = new ArrayList<String>();
-    for (Map.Entry<String,String> e : ntcSummarization1.getProperties().entrySet()) {
-      if (e.getKey().contains("table.summarizer")) {
-        summarizerValues.add(e.getValue());
-      }
-    }
-    assertTrue(summarizerValues.get(0) instanceof String);
+    Map<String,String> props = ntcSummarization1.getProperties();
+    assertEquals("v1", props.get("table.summarizer.s1.opt.opt1"));
+    assertEquals("com.test.summarizer", props.get("table.summarizer.s1"));
 
     Class<? extends Summarizer> builderClass = FamilySummarizer.class;
     assertTrue(Summarizer.class.isAssignableFrom(builderClass));
 
-    summarizerValues.clear();
-    SummarizerConfiguration summarizerConfig2 =
-        SummarizerConfiguration.builder(builderClass).build();
+    SummarizerConfiguration summarizerConfig2 = SummarizerConfiguration.builder(builderClass)
+        .setPropertyId("s2").addOption("opt2", "v2").build();
     NewTableConfiguration ntcSummarization2 =
-            new NewTableConfiguration().enableSummarization(summarizerConfig2);
-
-    for (Map.Entry<String,String> e : ntcSummarization2.getProperties().entrySet()) {
-      if (e.getKey().contains("table.summarizer")) {
-        summarizerValues.add(e.getValue());
-      }
-    }
-    assertTrue(summarizerValues.get(0).equals(builderClass.getName()));
+        new NewTableConfiguration().enableSummarization(summarizerConfig2);
+    assertEquals(builderClass.getName(),
+        ntcSummarization2.getProperties().get("table.summarizer.s2"));
 
     NewTableConfiguration ntcSummarization3 =
-            new NewTableConfiguration().enableSummarization(summarizerConfig1, summarizerConfig2);
+        new NewTableConfiguration().enableSummarization(summarizerConfig1, summarizerConfig2);
+    assertEquals("com.test.summarizer",
+        ntcSummarization3.getProperties().get("table.summarizer.s1"));
+    assertEquals(builderClass.getName(),
+        ntcSummarization3.getProperties().get("table.summarizer.s2"));
 
-    summarizerValues.clear();
-    for (Map.Entry<String,String> e : ntcSummarization3.getProperties().entrySet()) {
-      if (e.getKey().contains("table.summarizer")) {
-        summarizerValues.add(e.getValue());
-      }
-    }
-    assertEquals(summarizerValues.size(), 2);
   }
 }
