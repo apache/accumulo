@@ -78,7 +78,7 @@ public class PasswdCommand extends Command {
     if (shellState.getAccumuloClient().whoami().equals(user)) {
       shellState.updateUser(user, new PasswordToken(pass));
     }
-    Shell.log.debug("Changed password for user " + user);
+    Shell.log.debug("Changed password for user {}", user);
     return 0;
   }
 

@@ -64,7 +64,7 @@ public class CompactCommand extends TableOperation {
     if (cancel) {
       try {
         shellState.getAccumuloClient().tableOperations().cancelCompaction(tableName);
-        Shell.log.info("Compaction canceled for table " + tableName);
+        Shell.log.info("Compaction canceled for table {}", tableName);
       } catch (TableNotFoundException e) {
         throw new AccumuloException(e);
       }
@@ -81,8 +81,8 @@ public class CompactCommand extends TableOperation {
 
         shellState.getAccumuloClient().tableOperations().compact(tableName, compactionConfig);
 
-        Shell.log.info("Compaction of table " + tableName + " "
-            + (compactionConfig.getWait() ? "completed" : "started") + " for given range");
+        Shell.log.info("Compaction of table {} {} for given range", tableName,
+            compactionConfig.getWait() ? "completed" : "started");
       } catch (Exception ex) {
         throw new AccumuloException(ex);
       }
@@ -140,7 +140,7 @@ public class CompactCommand extends TableOperation {
       List<IteratorSetting> iterators =
           shellState.iteratorProfiles.get(cl.getOptionValue(profileOpt.getOpt()));
       if (iterators == null) {
-        Shell.log.error("Profile " + cl.getOptionValue(profileOpt.getOpt()) + " does not exist");
+        Shell.log.error("Profile {} does not exist", cl.getOptionValue(profileOpt.getOpt()));
         return -1;
       }
 

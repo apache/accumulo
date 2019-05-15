@@ -28,7 +28,8 @@ import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.tserver.compaction.WriteParameters;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A compaction strategy that covers the following uses cases.
@@ -61,7 +62,7 @@ import org.apache.log4j.Logger;
  */
 public class BasicCompactionStrategy extends DefaultCompactionStrategy {
 
-  private static final Logger log = Logger.getLogger(BasicCompactionStrategy.class);
+  private static final Logger log = LoggerFactory.getLogger(BasicCompactionStrategy.class);
 
   public static final String SIZE_LIMIT_OPT = "filter.size";
 
@@ -125,8 +126,8 @@ public class BasicCompactionStrategy extends DefaultCompactionStrategy {
       if (totalSize > largeThresh) {
         plan.writeParameters = new WriteParameters();
         if (log.isDebugEnabled()) {
-          log.debug("Changed compressType to " + largeCompress + ": totalSize(" + totalSize
-              + ") was greater than threshold " + largeThresh);
+          log.debug("Changed compressType to {}: totalSize({}) was greater than threshold {}",
+              largeCompress, totalSize, largeThresh);
         }
         plan.writeParameters.setCompressType(largeCompress);
       }
@@ -140,8 +141,9 @@ public class BasicCompactionStrategy extends DefaultCompactionStrategy {
     if (filterSize != null) {
       Map<FileRef,DataFileValue> filteredFiles = new HashMap<>();
       mcr.getFiles().forEach((fr, dfv) -> {
-        if (dfv.getSize() <= filterSize)
+        if (dfv.getSize() <= filterSize) {
           filteredFiles.put(fr, dfv);
+        }
       });
 
       mcr = new MajorCompactionRequest(mcr);

@@ -29,7 +29,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Syncs itself with the static collection of TabletLocators, so that when the server clears it, it
@@ -37,7 +38,7 @@ import org.apache.log4j.Logger;
  * using SyncingTabletLocator.
  */
 public class SyncingTabletLocator extends TabletLocator {
-  private static final Logger log = Logger.getLogger(SyncingTabletLocator.class);
+  private static final Logger log = LoggerFactory.getLogger(SyncingTabletLocator.class);
 
   private volatile TabletLocator locator;
   private final Callable<TabletLocator> getLocatorFunction;
@@ -58,16 +59,18 @@ public class SyncingTabletLocator extends TabletLocator {
 
   private TabletLocator syncLocator() {
     TabletLocator loc = this.locator;
-    if (!loc.isValid())
+    if (!loc.isValid()) {
       synchronized (this) {
-        if (locator == loc)
+        if (locator == loc) {
           try {
             loc = locator = getLocatorFunction.call();
           } catch (Exception e) {
             log.error("Problem obtaining TabletLocator", e);
             throw new RuntimeException(e);
           }
+        }
       }
+    }
     return loc;
   }
 

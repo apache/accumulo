@@ -39,10 +39,10 @@ public class OnlineCommand extends TableOperation {
   protected void doTableOp(final Shell shellState, final String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (tableName.equals(RootTable.NAME)) {
-      Shell.log.info("  The " + RootTable.NAME + " is always online.");
+      Shell.log.info("  The {} is always online.", RootTable.NAME);
     } else {
       shellState.getAccumuloClient().tableOperations().online(tableName, wait);
-      Shell.log.info("Online of table " + tableName + (wait ? " completed." : " initiated..."));
+      Shell.log.info("Online of table {} {}", tableName, wait ? " completed." : " initiated...");
     }
   }
 

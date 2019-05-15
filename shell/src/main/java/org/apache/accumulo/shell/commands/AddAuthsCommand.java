@@ -51,7 +51,7 @@ public class AddAuthsCommand extends Command {
     userAuths.append(scanOpts);
     shellState.getAccumuloClient().securityOperations().changeUserAuthorizations(user,
         ScanCommand.parseAuthorizations(userAuths.toString()));
-    Shell.log.debug("Changed record-level authorizations for user " + user);
+    Shell.log.debug("Changed record-level authorizations for user {}", user);
     return 0;
   }
 

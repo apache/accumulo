@@ -52,7 +52,7 @@ public class RevokeCommand extends TableOperation {
       try {
         shellState.getAccumuloClient().securityOperations().revokeSystemPermission(user,
             SystemPermission.valueOf(permission[1]));
-        Shell.log.debug("Revoked from " + user + " the " + permission[1] + " permission");
+        Shell.log.debug("Revoked from {} the {} permission", user, permission[1]);
       } catch (IllegalArgumentException e) {
         throw new BadArgumentException("No such system permission", fullCommand,
             fullCommand.indexOf(cl.getArgs()[0]));
@@ -84,8 +84,8 @@ public class RevokeCommand extends TableOperation {
     try {
       shellState.getAccumuloClient().securityOperations().revokeTablePermission(user, tableName,
           TablePermission.valueOf(permission[1]));
-      Shell.log.debug(
-          "Revoked from " + user + " the " + permission[1] + " permission on table " + tableName);
+      Shell.log.debug("Revoked from {} the {} permission on table {}", user, permission[1],
+          tableName);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException("No such table permission", e);
     }

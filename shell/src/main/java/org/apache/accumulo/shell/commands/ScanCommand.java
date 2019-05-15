@@ -79,7 +79,7 @@ public class ScanCommand extends Command {
         throw new SampleNotPresentException(
             "Table " + tableName + " does not have sampling configured");
       }
-      Shell.log.debug("Using sampling configuration : " + samplerConfig);
+      Shell.log.debug("Using sampling configuration : {}", samplerConfig);
       scanner.setSamplerConfiguration(samplerConfig);
     }
   }
@@ -187,14 +187,14 @@ public class ScanCommand extends Command {
       }
     }
 
-    Shell.log.debug("Found " + tableScanIterators.size() + " scan iterators to set");
+    Shell.log.debug("Found {} scan iterators to set", tableScanIterators.size());
 
     for (IteratorSetting setting : tableScanIterators) {
-      Shell.log.debug("Setting scan iterator " + setting.getName() + " at priority "
-          + setting.getPriority() + " using class name " + setting.getIteratorClass());
+      Shell.log.debug("Setting scan iterator {} at priority {} using class name {}",
+          setting.getName(), setting.getPriority(), setting.getIteratorClass());
       for (Entry<String,String> option : setting.getOptions().entrySet()) {
-        Shell.log.debug("Setting option for " + setting.getName() + ": " + option.getKey() + "="
-            + option.getValue());
+        Shell.log.debug("Setting option for {}: {}={}", setting.getName(), option.getKey(),
+            option.getValue());
       }
       scanner.addScanIterator(setting);
     }

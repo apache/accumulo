@@ -89,27 +89,26 @@ public class ConfigCommand extends Command {
         throw new BadArgumentException("Invalid '=' operator in delete operation.", fullCommand,
             fullCommand.indexOf('='));
       }
+      String invalidTablePropFormatString =
+          "Invalid per-table property : {}, still removing from zookeeper if it's there.";
       if (tableName != null) {
         if (!Property.isValidTablePropertyKey(property)) {
-          Shell.log.warn("Invalid per-table property : " + property
-              + ", still removing from zookeeper if it's there.");
+          Shell.log.warn(invalidTablePropFormatString, property);
         }
         shellState.getAccumuloClient().tableOperations().removeProperty(tableName, property);
         Shell.log.debug("Successfully deleted table configuration option.");
       } else if (namespace != null) {
         if (!Property.isValidTablePropertyKey(property)) {
-          Shell.log.warn("Invalid per-table property : " + property
-              + ", still removing from zookeeper if it's there.");
+          Shell.log.warn(invalidTablePropFormatString, property);
         }
         shellState.getAccumuloClient().namespaceOperations().removeProperty(namespace, property);
         Shell.log.debug("Successfully deleted namespace configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
-          Shell.log.warn("Invalid per-table property : " + property
-              + ", still removing from zookeeper if it's there.");
+          Shell.log.warn(invalidTablePropFormatString, property);
         }
         shellState.getAccumuloClient().instanceOperations().removeProperty(property);
-        Shell.log.debug("Successfully deleted system configuration option");
+        Shell.log.debug("Successfully deleted system configuration option.");
       }
     } else if (cl.hasOption(setOpt.getOpt())) {
       // set property on table
@@ -149,7 +148,7 @@ public class ConfigCommand extends Command {
               fullCommand.indexOf(property));
         }
         shellState.getAccumuloClient().instanceOperations().setProperty(property, value);
-        Shell.log.debug("Successfully set system configuration option");
+        Shell.log.debug("Successfully set system configuration option.");
       }
     } else {
       // display properties

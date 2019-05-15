@@ -22,7 +22,6 @@ import static org.junit.Assert.assertNull;
 
 import java.util.List;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -31,8 +30,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.Arbitrator;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
@@ -45,8 +42,9 @@ public class MetadataConstraintsTest {
 
         @Override
         public boolean transactionAlive(String type, long tid) {
-          if (tid == 9)
+          if (tid == 9) {
             throw new RuntimeException("txid 9 reserved for future use");
+          }
           return tid == 5 || tid == 7;
         }
 
@@ -68,7 +66,6 @@ public class MetadataConstraintsTest {
 
   @Test
   public void testCheck() {
-    Logger.getLogger(AccumuloConfiguration.class).setLevel(Level.ERROR);
     Mutation m = new Mutation(new Text("0;foo"));
     TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("1foo".getBytes()));
 

@@ -35,7 +35,6 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.categories.SunnyDayTests;
-import org.apache.log4j.Level;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -90,10 +89,11 @@ public class ShellIT extends SharedMiniClusterBase {
 
     @Override
     public int read() {
-      if (offset == source.length())
+      if (offset == source.length()) {
         return '\n';
-      else
+      } else {
         return source.charAt(offset++);
+      }
     }
 
     public void set(String other) {
@@ -129,10 +129,11 @@ public class ShellIT extends SharedMiniClusterBase {
 
   void exec(String cmd, boolean expectGoodExit) throws IOException {
     exec(cmd);
-    if (expectGoodExit)
+    if (expectGoodExit) {
       assertGoodExit("", true);
-    else
+    } else {
       assertBadExit("", true);
+    }
   }
 
   void exec(String cmd, boolean expectGoodExit, String expectString) throws IOException {
@@ -142,16 +143,16 @@ public class ShellIT extends SharedMiniClusterBase {
   void exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent)
       throws IOException {
     exec(cmd);
-    if (expectGoodExit)
+    if (expectGoodExit) {
       assertGoodExit(expectString, stringPresent);
-    else
+    } else {
       assertBadExit(expectString, stringPresent);
+    }
   }
 
   @Before
   public void setupShell() throws IOException {
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-    Shell.log.setLevel(Level.OFF);
     output = new TestOutputStream();
     input = new StringInputStream();
     config = Files.createTempFile(null, null).toFile();
@@ -172,19 +173,21 @@ public class ShellIT extends SharedMiniClusterBase {
   }
 
   void assertGoodExit(String s, boolean stringPresent) {
-    Shell.log.debug(output.get());
+    Shell.log.debug("{}", output.get());
     assertEquals(shell.getExitCode(), 0);
-    if (s.length() > 0)
+    if (s.length() > 0) {
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
           output.get().contains(s));
+    }
   }
 
   void assertBadExit(String s, boolean stringPresent) {
-    Shell.log.debug(output.get());
+    Shell.log.debug("{}", output.get());
     assertTrue(shell.getExitCode() > 0);
-    if (s.length() > 0)
+    if (s.length() > 0) {
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
           output.get().contains(s));
+    }
     shell.resetExitCode();
   }
 

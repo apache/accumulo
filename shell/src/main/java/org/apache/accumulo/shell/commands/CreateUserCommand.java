@@ -63,7 +63,7 @@ public class CreateUserCommand extends Command {
     }
 
     shellState.getAccumuloClient().securityOperations().createLocalUser(user, passwordToken);
-    Shell.log.debug("Created user " + user);
+    Shell.log.debug("Created user {}", user);
     return 0;
   }
 

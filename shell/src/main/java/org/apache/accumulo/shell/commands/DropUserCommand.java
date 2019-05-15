@@ -57,7 +57,7 @@ public class DropUserCommand extends Command {
       }
       if (operate) {
         shellState.getAccumuloClient().securityOperations().dropLocalUser(user);
-        Shell.log.debug("Deleted user " + user);
+        Shell.log.debug("Deleted user {}", user);
       }
     } catch (IOException e) {
       throw new AccumuloException(e);

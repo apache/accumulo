@@ -33,8 +33,6 @@ import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -66,8 +64,6 @@ public class TestUpgradePathForWALogs {
 
   @Before
   public void setUp() throws Exception {
-    // quiet log messages about compress.CodecPool
-    Logger.getRootLogger().setLevel(Level.ERROR);
     root.create();
     String path = root.getRoot().getAbsolutePath() + "/manyMaps";
     fs = VolumeManagerImpl.getLocal(path);
