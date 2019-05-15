@@ -135,10 +135,9 @@ public class NewTableConfigurationTest {
         .builder("com.test.summarizer").setPropertyId("s1").addOption("opt1", "v1").build();
     NewTableConfiguration ntcSummarization1 =
         new NewTableConfiguration().enableSummarization(summarizerConfig1);
-
-    Map<String,String> props = ntcSummarization1.getProperties();
-    assertEquals("v1", props.get("table.summarizer.s1.opt.opt1"));
-    assertEquals("com.test.summarizer", props.get("table.summarizer.s1"));
+    assertEquals("v1", ntcSummarization1.getProperties().get("table.summarizer.s1.opt.opt1"));
+    assertEquals("com.test.summarizer",
+        ntcSummarization1.getProperties().get("table.summarizer.s1"));
 
     Class<? extends Summarizer> builderClass = FamilySummarizer.class;
     assertTrue(Summarizer.class.isAssignableFrom(builderClass));
@@ -147,11 +146,14 @@ public class NewTableConfigurationTest {
         .setPropertyId("s2").addOption("opt2", "v2").build();
     NewTableConfiguration ntcSummarization2 =
         new NewTableConfiguration().enableSummarization(summarizerConfig2);
+    assertEquals("v2", ntcSummarization2.getProperties().get("table.summarizer.s2.opt.opt2"));
     assertEquals(builderClass.getName(),
         ntcSummarization2.getProperties().get("table.summarizer.s2"));
 
     NewTableConfiguration ntcSummarization3 =
         new NewTableConfiguration().enableSummarization(summarizerConfig1, summarizerConfig2);
+    assertEquals("v1", ntcSummarization1.getProperties().get("table.summarizer.s1.opt.opt1"));
+    assertEquals("v2", ntcSummarization2.getProperties().get("table.summarizer.s2.opt.opt2"));
     assertEquals("com.test.summarizer",
         ntcSummarization3.getProperties().get("table.summarizer.s1"));
     assertEquals(builderClass.getName(),
