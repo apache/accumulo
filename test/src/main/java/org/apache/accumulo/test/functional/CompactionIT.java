@@ -115,9 +115,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
       FileSystem fs = getFileSystem();
-      // Add Fs.defaultFS to rootPath so importDirectory has the full path for Standalone Instance
-      String defaultFS = fs.getConf().get(FileSystem.FS_DEFAULT_NAME_KEY);
-      Path root = new Path(defaultFS + cluster.getTemporaryPath(), getClass().getName());
+      Path root = new Path(fs.getUri().toString() + cluster.getTemporaryPath(), getClass().getName());
       fs.deleteOnExit(root);
       Path testrf = new Path(root, "testrf");
       fs.deleteOnExit(testrf);

@@ -90,9 +90,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
       c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "1000");
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "1G");
       FileSystem fs = cluster.getFileSystem();
-      // Add Fs.defaultFS to testDir so importDirectory has the full path for Standalone Instance
-      String defaultFS = fs.getConf().get(FileSystem.FS_DEFAULT_NAME_KEY);
-      Path testDir = new Path(defaultFS + getUsableDir(), "testmf");
+      Path testDir = new Path(fs.getUri().toString() + getUsableDir(), "testmf");
       fs.deleteOnExit(testDir);
       FunctionalTestUtils.createRFiles(c, fs, testDir.toString(), ROWS, SPLITS, 8);
       FileStatus[] stats = fs.listStatus(testDir);

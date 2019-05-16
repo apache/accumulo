@@ -92,9 +92,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       FileSystem fs = cluster.getFileSystem();
       Path tmp = cluster.getTemporaryPath();
       log.info("Using FileSystem: " + fs);
-      // Add Fs.defaultFS to baseDir so importDirectory has the full path for Standalone Instance
-      String defaultFS = fs.getConf().get(FileSystem.FS_DEFAULT_NAME_KEY);
-      Path baseDir = new Path(defaultFS + tmp, getClass().getName());
+      Path baseDir = new Path(fs.getUri().toString() + tmp, getClass().getName());
       fs.deleteOnExit(baseDir);
       if (fs.exists(baseDir)) {
         log.info("{} exists on filesystem, deleting", baseDir);

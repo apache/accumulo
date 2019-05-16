@@ -64,9 +64,7 @@ public class BulkIT extends AccumuloClusterHarness {
   static void runTest(AccumuloClient c, ClientInfo info, FileSystem fs, Path basePath,
       String tableName, String filePrefix, String dirSuffix, boolean useOld) throws Exception {
     c.tableOperations().create(tableName);
-    // Add Fs.defaultFS to base so importDirectory has the full path for Standalone Instance
-    String defaultFS = fs.getConf().get(FileSystem.FS_DEFAULT_NAME_KEY);
-    Path base = new Path(defaultFS + basePath, "testBulkFail_" + dirSuffix);
+    Path base = new Path(fs.getUri().toString() + basePath, "testBulkFail_" + dirSuffix);
     fs.delete(base, true);
     fs.mkdirs(base);
     fs.deleteOnExit(base);
