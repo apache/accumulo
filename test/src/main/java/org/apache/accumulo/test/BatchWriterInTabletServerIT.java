@@ -36,8 +36,9 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
@@ -47,7 +48,7 @@ import com.google.common.collect.Iterators;
  * @see BatchWriterIterator
  */
 public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
-  private static final Logger log = Logger.getLogger(BatchWriterInTabletServerIT.class);
+  private static final Logger log = LoggerFactory.getLogger(BatchWriterInTabletServerIT.class);
 
   @Override
   public boolean canRunTest(ClusterType type) {
@@ -122,7 +123,7 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
     try (Scanner scanner = c.createScanner(t2, Authorizations.EMPTY)) {
       // ensure entries correctly wrote to table t2
       actual = Iterators.getOnlyElement(scanner.iterator());
-      log.debug("t2 entry is " + actual.getKey().toStringNoTime() + " -> " + actual.getValue());
+      log.debug("t2 entry is {} -> {}", actual.getKey().toStringNoTime(), actual.getValue());
       assertTrue(actual.getKey().equals(k, PartialKey.ROW_COLFAM_COLQUAL));
       assertEquals(numEntriesToWritePerEntry, Integer.parseInt(actual.getValue().toString()));
     }

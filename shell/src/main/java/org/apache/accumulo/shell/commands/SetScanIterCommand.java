@@ -42,7 +42,7 @@ public class SetScanIterCommand extends SetIterCommand {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
       ShellCommandException {
-    Shell.log.warn("Deprecated, use " + new SetShellIterCommand().getName());
+    Shell.log.warn("Deprecated, use {}", new SetShellIterCommand().getName());
     return super.execute(fullCommand, cl, shellState);
   }
 
@@ -78,7 +78,7 @@ public class SetScanIterCommand extends SetIterCommand {
 
     // if no exception has been thrown, it's safe to add it to the list
     tableScanIterators.add(setting);
-    Shell.log.debug("Scan iterators :" + shellState.scanIteratorOptions.get(tableName));
+    Shell.log.debug("Scan iterators :{}", shellState.scanIteratorOptions.get(tableName));
   }
 
   @Override

@@ -44,7 +44,7 @@ public class SetAuthsCommand extends Command {
         cl.hasOption(clearOptAuths.getOpt()) ? null : cl.getOptionValue(scanOptAuths.getOpt());
     shellState.getAccumuloClient().securityOperations().changeUserAuthorizations(user,
         ScanCommand.parseAuthorizations(scanOpts));
-    Shell.log.debug("Changed record-level authorizations for user " + user);
+    Shell.log.debug("Changed record-level authorizations for user {}", user);
     return 0;
   }
 

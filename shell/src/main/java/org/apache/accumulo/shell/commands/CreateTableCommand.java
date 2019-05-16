@@ -160,8 +160,8 @@ public class CreateTableCommand extends Command {
         shellState.getAccumuloClient().tableOperations().addConstraint(tableName,
             VisibilityConstraint.class.getName());
       } catch (AccumuloException e) {
-        Shell.log
-            .warn(e.getMessage() + " while setting visibility constraint, but table was created");
+        Shell.log.warn("{} while setting visibility constraint, but table was created",
+            e.getMessage(), e);
       }
     }
 

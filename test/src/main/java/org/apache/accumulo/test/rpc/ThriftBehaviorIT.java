@@ -19,19 +19,12 @@ package org.apache.accumulo.test.rpc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.rpc.thrift.SimpleThriftService;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.thrift.ProcessFunction;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
-import org.apache.thrift.server.TSimpleServer;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.After;
 import org.junit.Before;
@@ -58,23 +51,11 @@ public class ThriftBehaviorIT {
   private SimpleThriftServiceHandler handler;
   private SimpleThriftServiceRunner serviceRunner;
   private String propName;
-  private Map<Logger,Level> oldLogLevels = new HashMap<>();
 
   private static final String KITTY_MSG = "🐈 Kitty! 🐈";
 
-  private static final boolean SUPPRESS_SPAMMY_LOGGERS = true;
-
   @Before
   public void createClientAndServer() {
-    Arrays.stream(new Class<?>[] {TSimpleServer.class, ProcessFunction.class})
-        .forEach(spammyClass -> {
-          Logger spammyLogger = Logger.getLogger(spammyClass);
-          oldLogLevels.put(spammyLogger, spammyLogger.getLevel());
-          if (SUPPRESS_SPAMMY_LOGGERS) {
-            spammyLogger.setLevel(Level.OFF);
-          }
-        });
-
     String threadName = ThriftBehaviorIT.class.getSimpleName() + "." + testName.getMethodName();
     serviceRunner = new SimpleThriftServiceRunner(threadName);
     serviceRunner.startService();
@@ -95,10 +76,6 @@ public class ThriftBehaviorIT {
   @After
   public void shutdownServer() {
     serviceRunner.stopService();
-
-    oldLogLevels.forEach((spammyLogger, oldLevel) -> {
-      spammyLogger.setLevel(oldLevel);
-    });
 
     // make sure the method was actually executed by the service handler
     assertEquals(KITTY_MSG, System.getProperty(propName));

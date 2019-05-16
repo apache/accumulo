@@ -27,7 +27,6 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 
-import org.apache.log4j.Level;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,8 +62,6 @@ public class ShellConfigTest {
 
   @Before
   public void setUp() throws Exception {
-    Shell.log.setLevel(Level.ERROR);
-
     out = System.out;
     output = new TestOutputStream();
     System.setOut(new PrintStream(output));

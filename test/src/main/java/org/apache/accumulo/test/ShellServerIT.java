@@ -501,15 +501,20 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("deletetable -f " + table);
   }
 
+  /*
+   * This test should be deleted when the debug command is removed
+   */
+  @Deprecated
   @Test
   public void debug() throws Exception {
-    ts.exec("debug", true, "off", true);
-    ts.exec("debug on", true);
-    ts.exec("debug", true, "on", true);
-    ts.exec("debug off", true);
-    ts.exec("debug", true, "off", true);
-    ts.exec("debug debug", false);
-    ts.exec("debug debug debug", false);
+    String expectMsg = "The debug command is deprecated";
+    ts.exec("debug", false, expectMsg);
+    ts.exec("debug on", false, expectMsg);
+    ts.exec("debug", false, expectMsg);
+    ts.exec("debug off", false, expectMsg);
+    ts.exec("debug", false, expectMsg);
+    ts.exec("debug debug", false, expectMsg);
+    ts.exec("debug debug debug", false, expectMsg);
   }
 
   @Test

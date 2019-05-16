@@ -38,7 +38,7 @@ public class DeleteShellIterCommand extends Command {
     if (shellState.iteratorProfiles.containsKey(profile)) {
       if (cl.hasOption(allOpt.getOpt())) {
         shellState.iteratorProfiles.remove(profile);
-        Shell.log.info("Removed profile " + profile);
+        Shell.log.info("Removed profile {}", profile);
       } else {
         List<IteratorSetting> iterSettings = shellState.iteratorProfiles.get(profile);
         String name = cl.getOptionValue(nameOpt.getOpt());
@@ -51,15 +51,15 @@ public class DeleteShellIterCommand extends Command {
           }
         }
         if (!found) {
-          Shell.log.info("No iterator named " + name + " found");
+          Shell.log.info("No iterator named {} found", name);
         } else {
-          Shell.log.info("Removed iterator " + name + " from profile " + profile + " ("
-              + iterSettings.size() + " left)");
+          Shell.log.info("Removed iterator {} from profile {} ( left)", name, profile,
+              iterSettings.size());
         }
       }
 
     } else {
-      Shell.log.info("No profile named " + profile);
+      Shell.log.info("No profile named {}", profile);
     }
 
     return 0;

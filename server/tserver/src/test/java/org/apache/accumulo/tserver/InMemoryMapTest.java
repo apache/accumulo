@@ -60,19 +60,17 @@ import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.ZooConfiguration;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -103,12 +101,6 @@ public class InMemoryMapTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
-
-  @BeforeClass
-  public static void setUp() {
-    // suppress log messages having to do with not having an instance
-    Logger.getLogger(ZooConfiguration.class).setLevel(Level.OFF);
-  }
 
   public static ServerContext getServerContext() {
     Configuration hadoopConf = new Configuration();
@@ -389,16 +381,18 @@ public class InMemoryMapTest {
 
     if (interleaving == 1) {
       imm.delete(0);
-      if (interrupt)
+      if (interrupt) {
         iflag.set(true);
+      }
     }
 
     SortedKeyValueIterator<Key,Value> dc = ski1.deepCopy(new SampleIE());
 
     if (interleaving == 2) {
       imm.delete(0);
-      if (interrupt)
+      if (interrupt) {
         iflag.set(true);
+      }
     }
 
     dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
@@ -406,8 +400,9 @@ public class InMemoryMapTest {
 
     if (interleaving == 3) {
       imm.delete(0);
-      if (interrupt)
+      if (interrupt) {
         iflag.set(true);
+      }
     }
 
     testAndCallNext(dc, "r1", "foo:cq1", 3, "bar1");
@@ -416,8 +411,9 @@ public class InMemoryMapTest {
 
     if (interleaving == 4) {
       imm.delete(0);
-      if (interrupt)
+      if (interrupt) {
         iflag.set(true);
+      }
     }
 
     testAndCallNext(ski1, "r1", "foo:cq2", 3, "bar2");
@@ -426,20 +422,23 @@ public class InMemoryMapTest {
     assertFalse(dc.hasTop());
     assertFalse(ski1.hasTop());
 
-    if (interrupt)
+    if (interrupt) {
       dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    }
   }
 
   @Test
   public void testDeepCopyAndDelete() throws Exception {
-    for (int i = 0; i <= 4; i++)
+    for (int i = 0; i <= 4; i++) {
       deepCopyAndDelete(i, false);
+    }
 
-    for (int i = 1; i <= 4; i++)
+    for (int i = 1; i <= 4; i++) {
       try {
         deepCopyAndDelete(i, true);
         fail("i = " + i);
       } catch (IterationInterruptedException iie) {}
+    }
   }
 
   @Test
@@ -504,12 +503,13 @@ public class InMemoryMapTest {
     testAndCallNext(skvi1, "r1", "foo:cq", 3, "v1");
   }
 
-  private static final Logger log = Logger.getLogger(InMemoryMapTest.class);
+  private static final Logger log = LoggerFactory.getLogger(InMemoryMapTest.class);
 
   static long sum(long[] counts) {
     long result = 0;
-    for (long count : counts)
+    for (long count : counts) {
       result += count;
+    }
     return result;
   }
 
@@ -525,17 +525,14 @@ public class InMemoryMapTest {
       ExecutorService e = Executors.newFixedThreadPool(threads);
       for (int j = 0; j < threads; j++) {
         final int threadId = j;
-        e.execute(new Runnable() {
-          @Override
-          public void run() {
-            while (System.currentTimeMillis() - now < 1000) {
-              for (int k = 0; k < 1000; k++) {
-                Mutation m = new Mutation("row");
-                m.put("cf", "cq", new Value("v".getBytes()));
-                List<Mutation> mutations = Collections.singletonList(m);
-                imm.mutate(mutations, 1);
-                counts[threadId]++;
-              }
+        e.execute(() -> {
+          while (System.currentTimeMillis() - now < 1000) {
+            for (int k = 0; k < 1000; k++) {
+              Mutation m = new Mutation("row");
+              m.put("cf", "cq", new Value("v".getBytes()));
+              List<Mutation> mutations = Collections.singletonList(m);
+              imm.mutate(mutations, 1);
+              counts[threadId]++;
             }
           }
         });
@@ -545,7 +542,7 @@ public class InMemoryMapTest {
       imm.delete(10000);
       double mutationsPerSecond = sum(counts) / ((System.currentTimeMillis() - now) / 1000.);
       timings.add(mutationsPerSecond);
-      log.info(
+      log.info("{}",
           String.format("%.1f mutations per second with %d threads", mutationsPerSecond, threads));
     }
     // verify that more threads doesn't go a lot faster, or a lot slower than one thread

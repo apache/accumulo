@@ -32,13 +32,14 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A wrapper making a list of hardcoded data into a SKVI. For testing.
  */
 public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
-  private static final Logger log = Logger.getLogger(HardListIterator.class);
+  private static final Logger log = LoggerFactory.getLogger(HardListIterator.class);
   public static final SortedMap<Key,Value> allEntriesToInject;
   static {
     SortedMap<Key,Value> t = new TreeMap<>();
@@ -57,13 +58,13 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) {
-    if (source != null)
-      log.info("HardListIterator ignores/replaces parent source passed in init(): " + source);
+    if (source != null) {
+      log.info("HardListIterator ignores/replaces parent source passed in init(): {}", source);
+    }
 
     IteratorUtil.IteratorScope scope = env.getIteratorScope();
-    log.debug(
-        this.getClass() + ": init on scope " + scope + (scope == IteratorUtil.IteratorScope.majc
-            ? " fullScan=" + env.isFullMajorCompaction() : ""));
+    log.debug("{}: init on scope {}{}", this.getClass(), scope,
+        scope == IteratorUtil.IteratorScope.majc ? " fullScan=" + env.isFullMajorCompaction() : "");
 
     // define behavior before seek as seek to start at negative infinity
     inner = new PeekingIterator<>(allEntriesToInject.entrySet().iterator());
@@ -85,8 +86,9 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
 
   @Override
   public boolean hasTop() {
-    if (!inner.hasNext())
+    if (!inner.hasNext()) {
       return false;
+    }
     Key k = inner.peek().getKey();
     return seekRng.contains(k); // do not return entries past the seek() range
   }
@@ -100,15 +102,16 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) {
     seekRng = range;
     // seek to first entry inside range
-    if (range.isInfiniteStartKey())
+    if (range.isInfiniteStartKey()) {
       inner = new PeekingIterator<>(allEntriesToInject.entrySet().iterator());
-    else if (range.isStartKeyInclusive())
+    } else if (range.isStartKeyInclusive()) {
       inner = new PeekingIterator<>(
           allEntriesToInject.tailMap(range.getStartKey()).entrySet().iterator());
-    else
+    } else {
       inner = new PeekingIterator<>(allEntriesToInject
           .tailMap(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME))
           .entrySet().iterator());
+    }
   }
 
   @Override

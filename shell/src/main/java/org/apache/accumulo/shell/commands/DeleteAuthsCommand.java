@@ -65,7 +65,7 @@ public class DeleteAuthsCommand extends Command {
       accumuloClient.securityOperations().changeUserAuthorizations(user, new Authorizations());
     }
 
-    Shell.log.debug("Changed record-level authorizations for user " + user);
+    Shell.log.debug("Changed record-level authorizations for user {}", user);
     return 0;
   }
 

@@ -28,6 +28,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.tracer.TraceDump;
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
@@ -35,7 +36,7 @@ import org.apache.htrace.Sampler;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
 
-public class TraceCommand extends DebugCommand {
+public class TraceCommand extends Command {
 
   private TraceScope traceScope = null;
 
@@ -92,9 +93,10 @@ public class TraceCommand extends DebugCommand {
         } else {
           shellState.getReader().println("Not tracing");
         }
-      } else
+      } else {
         throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand,
             fullCommand.indexOf(cl.getArgs()[0]));
+      }
     } else if (cl.getArgs().length == 0) {
       shellState.getReader().println(Trace.isTracing() ? "on" : "off");
     } else {
@@ -108,6 +110,17 @@ public class TraceCommand extends DebugCommand {
 
   @Override
   public String description() {
-    return "turns trace logging on or off";
+    return "turns tracing on or off";
   }
+
+  @Override
+  public String usage() {
+    return getName() + " [ on | off ]";
+  }
+
+  @Override
+  public int numArgs() {
+    return Shell.NO_FIXED_ARG_LENGTH_CHECK;
+  }
+
 }

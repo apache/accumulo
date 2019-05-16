@@ -39,10 +39,10 @@ public class OfflineCommand extends TableOperation {
   protected void doTableOp(final Shell shellState, final String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (tableName.equals(MetadataTable.NAME)) {
-      Shell.log.info("  You cannot take the " + MetadataTable.NAME + " offline.");
+      Shell.log.info("  You cannot take the {} offline.", MetadataTable.NAME);
     } else {
       shellState.getAccumuloClient().tableOperations().offline(tableName, wait);
-      Shell.log.info("Offline of table " + tableName + (wait ? " completed." : " initiated..."));
+      Shell.log.info("Offline of table {} {}", tableName, wait ? " completed." : " initiated...");
     }
   }
 

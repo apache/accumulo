@@ -110,8 +110,6 @@
                 <allow>org[.]apache[.]hadoop[.]mapreduce[.]lib[.]output[.]FileOutputFormat[$]Counter</allow>
                 <allow>org[.]apache[.]hadoop[.]util[.]Progressable</allow>
                 <allow>org[.]apache[.]hadoop[.]mapred[.](FileAlreadyExistsException|InvalidJobConfException)</allow>
-                <!--ugghhh-->
-                <allow>org[.]apache[.]log4j[.](Level|Logger)</allow>
               </allows>
             </configuration>
           </execution>

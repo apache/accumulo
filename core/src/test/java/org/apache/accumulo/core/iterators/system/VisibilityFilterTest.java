@@ -30,8 +30,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.junit.Test;
 
 public class VisibilityFilterTest {
@@ -44,14 +42,9 @@ public class VisibilityFilterTest {
     SortedKeyValueIterator<Key,Value> filter =
         VisibilityFilter.wrap(new SortedMapIterator(tm), new Authorizations("A"), "".getBytes());
 
-    // suppress logging
-    Level prevLevel = Logger.getLogger(VisibilityFilter.class).getLevel();
-    Logger.getLogger(VisibilityFilter.class).setLevel(Level.FATAL);
-
     filter.seek(new Range(), new HashSet<>(), false);
     assertFalse(filter.hasTop());
 
-    Logger.getLogger(VisibilityFilter.class).setLevel(prevLevel);
   }
 
   @Test

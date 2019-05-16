@@ -24,8 +24,6 @@ import java.util.Base64;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
@@ -34,8 +32,6 @@ import com.beust.jcommander.Parameter;
 public class DumpZookeeper {
 
   private static IZooReaderWriter zk = null;
-
-  private static final Logger log = Logger.getLogger(DumpZookeeper.class);
 
   private static class Encoded {
     public String encoding;
@@ -56,41 +52,40 @@ public class DumpZookeeper {
     boolean xml = false;
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws KeeperException, InterruptedException {
     Opts opts = new Opts();
     opts.parseArgs(DumpZookeeper.class.getName(), args);
 
-    Logger.getRootLogger().setLevel(Level.WARN);
     PrintStream out = System.out;
-    try {
-      zk = new ZooReaderWriter(opts.getSiteConfiguration());
-      if (opts.xml) {
-        writeXml(out, opts.root);
-      } else {
-        writeHumanReadable(out, opts.root);
-      }
-    } catch (Exception ex) {
-      log.error(ex, ex);
+    zk = new ZooReaderWriter(opts.getSiteConfiguration());
+    if (opts.xml) {
+      writeXml(out, opts.root);
+    } else {
+      writeHumanReadable(out, opts.root);
     }
   }
 
   private static void writeXml(PrintStream out, String root)
       throws KeeperException, InterruptedException {
     write(out, 0, "<dump root='%s'>", root);
-    for (String child : zk.getChildren(root, null))
-      if (!child.equals("zookeeper"))
+    for (String child : zk.getChildren(root, null)) {
+      if (!child.equals("zookeeper")) {
         childXml(out, root, child, 1);
+      }
+    }
     write(out, 0, "</dump>");
   }
 
   private static void childXml(PrintStream out, String root, String child, int indent)
       throws KeeperException, InterruptedException {
     String path = root + "/" + child;
-    if (root.endsWith("/"))
+    if (root.endsWith("/")) {
       path = root + child;
+    }
     Stat stat = zk.getStatus(path);
-    if (stat == null)
+    if (stat == null) {
       return;
+    }
     String type = "node";
     if (stat.getEphemeralOwner() != 0) {
       type = "ephemeral";
@@ -120,36 +115,42 @@ public class DumpZookeeper {
 
   private static Encoded value(String path) throws KeeperException, InterruptedException {
     byte[] data = zk.getData(path, null);
-    for (int i = 0; i < data.length; i++) {
+    for (byte element : data) {
       // does this look like simple ascii?
-      if (data[i] < ' ' || data[i] > '~')
+      if (element < ' ' || element > '~') {
         return new Encoded("base64", Base64.getEncoder().encodeToString(data));
+      }
     }
     return new Encoded(UTF_8.name(), new String(data, UTF_8));
   }
 
   private static void write(PrintStream out, int indent, String fmt, Object... args) {
-    for (int i = 0; i < indent; i++)
+    for (int i = 0; i < indent; i++) {
       out.print("  ");
+    }
     out.println(String.format(fmt, args));
   }
 
   private static void writeHumanReadable(PrintStream out, String root)
       throws KeeperException, InterruptedException {
     write(out, 0, "%s:", root);
-    for (String child : zk.getChildren(root, null))
-      if (!child.equals("zookeeper"))
+    for (String child : zk.getChildren(root, null)) {
+      if (!child.equals("zookeeper")) {
         childHumanReadable(out, root, child, 1);
+      }
+    }
   }
 
   private static void childHumanReadable(PrintStream out, String root, String child, int indent)
       throws KeeperException, InterruptedException {
     String path = root + "/" + child;
-    if (root.endsWith("/"))
+    if (root.endsWith("/")) {
       path = root + child;
+    }
     Stat stat = zk.getStatus(path);
-    if (stat == null)
+    if (stat == null) {
       return;
+    }
     String node = child;
     if (stat.getEphemeralOwner() != 0) {
       node = "*" + child + "*";
