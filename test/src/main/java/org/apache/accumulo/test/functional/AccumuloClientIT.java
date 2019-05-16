@@ -23,7 +23,9 @@ import static org.junit.Assert.fail;
 
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -40,11 +42,27 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.junit.After;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
 public class AccumuloClientIT extends AccumuloClusterHarness {
+
+  @After
+  public void deleteUsers() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      Set<String> users = client.securityOperations().listLocalUsers();
+      ClusterUser user1 = getUser(0);
+      ClusterUser user2 = getUser(1);
+      if (users.contains(user1.getPrincipal())) {
+        client.securityOperations().dropLocalUser(user1.getPrincipal());
+      }
+      if (users.contains(user2.getPrincipal())) {
+        client.securityOperations().dropLocalUser(user2.getPrincipal());
+      }
+    }
+  }
 
   private interface CloseCheck {
     void check() throws Exception;
@@ -78,11 +96,13 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
     String instanceName = getClientInfo().getInstanceName();
     String zookeepers = getClientInfo().getZooKeepers();
-    final String user = "testuser";
-    final String password = "testpassword";
-    c.securityOperations().createLocalUser(user, new PasswordToken(password));
 
-    AccumuloClient client = Accumulo.newClient().to(instanceName, zookeepers).as(user, password)
+    ClusterUser testuser1 = getUser(0);
+    final String user1 = testuser1.getPrincipal();
+    final String password1 = testuser1.getPassword();
+    c.securityOperations().createLocalUser(user1, new PasswordToken(password1));
+
+    AccumuloClient client = Accumulo.newClient().to(instanceName, zookeepers).as(user1, password1)
         .zkTimeout(1234).build();
 
     Properties props = client.properties();
@@ -90,37 +110,39 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     ClientInfo info = ClientInfo.from(client.properties());
     assertEquals(instanceName, info.getInstanceName());
     assertEquals(zookeepers, info.getZooKeepers());
-    assertEquals(user, client.whoami());
+    assertEquals(user1, client.whoami());
     assertEquals(1234, info.getZooKeepersSessionTimeOut());
 
-    props = Accumulo.newClientProperties().to(instanceName, zookeepers).as(user, password).build();
+    props =
+        Accumulo.newClientProperties().to(instanceName, zookeepers).as(user1, password1).build();
     assertTrue(props.containsKey(ClientProperty.AUTH_TOKEN.getKey()));
-    assertEquals(password, props.get(ClientProperty.AUTH_TOKEN.getKey()));
+    assertEquals(password1, props.get(ClientProperty.AUTH_TOKEN.getKey()));
     assertEquals("password", props.get(ClientProperty.AUTH_TYPE.getKey()));
     assertEquals(instanceName, props.getProperty(ClientProperty.INSTANCE_NAME.getKey()));
     info = ClientInfo.from(props);
     assertEquals(instanceName, info.getInstanceName());
     assertEquals(zookeepers, info.getZooKeepers());
-    assertEquals(user, info.getPrincipal());
+    assertEquals(user1, info.getPrincipal());
     assertTrue(info.getAuthenticationToken() instanceof PasswordToken);
 
     props = new Properties();
     props.put(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
     props.put(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zookeepers);
-    props.put(ClientProperty.AUTH_PRINCIPAL.getKey(), user);
+    props.put(ClientProperty.AUTH_PRINCIPAL.getKey(), user1);
     props.put(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(), "22s");
-    ClientProperty.setPassword(props, password);
+    ClientProperty.setPassword(props, password1);
     client.close();
     client = Accumulo.newClient().from(props).build();
 
     info = ClientInfo.from(client.properties());
     assertEquals(instanceName, info.getInstanceName());
     assertEquals(zookeepers, info.getZooKeepers());
-    assertEquals(user, client.whoami());
+    assertEquals(user1, client.whoami());
     assertEquals(22000, info.getZooKeepersSessionTimeOut());
 
-    final String user2 = "testuser2";
-    final String password2 = "testpassword2";
+    ClusterUser testuser2 = getUser(1);
+    final String user2 = testuser2.getPrincipal();
+    final String password2 = testuser2.getPassword();
     c.securityOperations().createLocalUser(user2, new PasswordToken(password2));
 
     AccumuloClient client2 = Accumulo.newClient().from(client.properties())

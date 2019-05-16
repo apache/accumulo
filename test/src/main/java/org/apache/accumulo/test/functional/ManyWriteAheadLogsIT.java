@@ -32,15 +32,19 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +52,8 @@ import org.slf4j.LoggerFactory;
 public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ManyWriteAheadLogsIT.class);
+
+  private String majcDelay, walogSize;
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -69,6 +75,38 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
   @Override
   protected int defaultTimeoutSeconds() {
     return 10 * 60;
+  }
+
+  @Before
+  public void alterConfig() throws Exception {
+    if (getClusterType() == ClusterType.MINI) {
+      return;
+    }
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      InstanceOperations iops = client.instanceOperations();
+      Map<String,String> conf = iops.getSystemConfiguration();
+      majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
+      walogSize = conf.get(Property.TSERV_WALOG_MAX_SIZE.getKey());
+
+      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1");
+      iops.setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), "1M");
+
+      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    }
+  }
+
+  @After
+  public void resetConfig() throws Exception {
+    if (majcDelay != null) {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+        InstanceOperations iops = client.instanceOperations();
+        iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
+        iops.setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), walogSize);
+      }
+      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+    }
   }
 
   /**
