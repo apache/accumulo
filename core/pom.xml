@@ -201,8 +201,6 @@
                 <allow>org[.]apache[.]hadoop[.]mapred[.](JobConf|RecordReader|InputSplit|RecordWriter|Reporter)</allow>
                 <allow>org[.]apache[.]hadoop[.]mapreduce[.](Job|JobContext|RecordReader|InputSplit|TaskAttemptContext|RecordWriter|OutputCommitter|TaskInputOutputContext)</allow>
                 <allow>org[.]apache[.]hadoop[.]util[.]Progressable</allow>
-                <!--ugghhh-->
-                <allow>org[.]apache[.]log4j[.](Level|Logger)</allow>
                 <!-- allow javax security exceptions for Authentication tokens -->
                 <allow>javax[.]security[.]auth[.]DestroyFailedException</allow>
                 <!-- allow questionable Hadoop exceptions for mapreduce -->
