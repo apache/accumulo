@@ -92,7 +92,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
       FileSystem fs = cluster.getFileSystem();
       Path tmp = cluster.getTemporaryPath();
       log.info("Using FileSystem: " + fs);
-      Path baseDir = new Path(tmp, getClass().getName());
+      Path baseDir = new Path(fs.getUri().toString() + tmp, getClass().getName());
+      fs.deleteOnExit(baseDir);
       if (fs.exists(baseDir)) {
         log.info("{} exists on filesystem, deleting", baseDir);
         assertTrue("Failed to deleted " + baseDir, fs.delete(baseDir, true));
@@ -100,7 +101,9 @@ public class ImportExportIT extends AccumuloClusterHarness {
       log.info("Creating {}", baseDir);
       assertTrue("Failed to create " + baseDir, fs.mkdirs(baseDir));
       Path exportDir = new Path(baseDir, "export");
+      fs.deleteOnExit(exportDir);
       Path importDir = new Path(baseDir, "import");
+      fs.deleteOnExit(importDir);
       for (Path p : new Path[] {exportDir, importDir}) {
         assertTrue("Failed to create " + baseDir, fs.mkdirs(p));
       }
@@ -115,6 +118,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       // Make sure the distcp.txt file that exporttable creates is available
       Path distcp = new Path(exportDir, "distcp.txt");
+      fs.deleteOnExit(distcp);
       assertTrue("Distcp file doesn't exist", fs.exists(distcp));
       FSDataInputStream is = fs.open(distcp);
       BufferedReader reader = new BufferedReader(new InputStreamReader(is));
