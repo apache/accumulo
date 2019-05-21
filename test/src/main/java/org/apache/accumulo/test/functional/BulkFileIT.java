@@ -74,7 +74,7 @@ public class BulkFileIT extends AccumuloClusterHarness {
       Configuration conf = new Configuration();
       AccumuloConfiguration aconf = getCluster().getServerContext().getConfiguration();
       FileSystem fs = getCluster().getFileSystem();
-      String rootPath = fs.getUri().toString()  + cluster.getTemporaryPath().toString();
+      String rootPath = fs.getUri().toString() + cluster.getTemporaryPath().toString();
 
       String dir = rootPath + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
 
