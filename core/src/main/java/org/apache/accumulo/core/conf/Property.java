@@ -178,10 +178,14 @@ public enum Property {
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of accumulo overall, but"
           + " do not have to be consistent throughout a cloud."),
+  @Deprecated
   GENERAL_DYNAMIC_CLASSPATHS(AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME,
       AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE, PropertyType.STRING,
-      "A list of all of the places where changes in jars or classes will force "
-          + "a reload of the classloader."),
+      "This property is deprecated since 2.0.0. A list of all of the places where changes "
+          + "in jars or classes will force a reload of the classloader. Built-in dynamic class "
+          + "loading will be removed in a future version. If this is needed, consider overriding "
+          + "the Java system class loader with one that has this feature "
+          + "(https://docs.oracle.com/javase/8/docs/api/java/lang/ClassLoader.html#getSystemClassLoader--)."),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION,
       "Time to wait on I/O for simple, short RPC calls"),
   @Experimental
