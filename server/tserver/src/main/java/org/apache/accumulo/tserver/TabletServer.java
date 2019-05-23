@@ -231,8 +231,8 @@ import org.apache.accumulo.tserver.mastermessage.MasterMessage;
 import org.apache.accumulo.tserver.mastermessage.SplitReportMessage;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.metrics.TabletServerMetricsFactory;
-import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
-import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerScanMetricsKeys;
+import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetricsKeys;
 import org.apache.accumulo.tserver.replication.ReplicationServicerHandler;
 import org.apache.accumulo.tserver.replication.ReplicationWorker;
 import org.apache.accumulo.tserver.scan.LookupTask;
@@ -416,7 +416,7 @@ public class TabletServer extends AbstractServer {
     this.resourceManager = new TabletServerResourceManager(this, fs, context);
     this.security = AuditedSecurityOperation.getInstance(context);
 
-    metricsFactory = new TabletServerMetricsFactory(aconf);
+    metricsFactory = new TabletServerMetricsFactory();
     updateMetrics = metricsFactory.createUpdateMetrics();
     scanMetrics = metricsFactory.createScanMetrics();
     mincMetrics = metricsFactory.createMincMetrics();
@@ -747,8 +747,8 @@ public class TabletServer extends AbstractServer {
         }
 
         if (scanMetrics.isEnabled()) {
-          scanMetrics.add(TabletServerScanMetrics.SCAN, t2 - ss.startTime);
-          scanMetrics.add(TabletServerScanMetrics.RESULT_SIZE, ss.entriesReturned);
+          scanMetrics.add(TabletServerScanMetricsKeys.SCAN, t2 - ss.startTime);
+          scanMetrics.add(TabletServerScanMetricsKeys.RESULT_SIZE, ss.entriesReturned);
         }
       }
     }
@@ -904,7 +904,7 @@ public class TabletServer extends AbstractServer {
       Durability durability = DurabilityImpl.fromThrift(tdurabilty);
       security.authenticateUser(credentials, credentials);
       if (updateMetrics.isEnabled()) {
-        updateMetrics.add(TabletServerUpdateMetrics.PERMISSION_ERRORS, 0);
+        updateMetrics.add(TabletServerUpdateMetricsKeys.PERMISSION_ERRORS, 0);
       }
 
       UpdateSession us = new UpdateSession(
@@ -942,7 +942,7 @@ public class TabletServer extends AbstractServer {
             // failures
             us.failures.put(keyExtent, 0L);
             if (updateMetrics.isEnabled()) {
-              updateMetrics.add(TabletServerUpdateMetrics.UNKNOWN_TABLET_ERRORS, 0);
+              updateMetrics.add(TabletServerUpdateMetricsKeys.UNKNOWN_TABLET_ERRORS, 0);
             }
           }
         } else {
@@ -952,7 +952,7 @@ public class TabletServer extends AbstractServer {
           us.currentTablet = null;
           us.authFailures.put(keyExtent, SecurityErrorCode.PERMISSION_DENIED);
           if (updateMetrics.isEnabled()) {
-            updateMetrics.add(TabletServerUpdateMetrics.PERMISSION_ERRORS, 0);
+            updateMetrics.add(TabletServerUpdateMetricsKeys.PERMISSION_ERRORS, 0);
           }
           return;
         }
@@ -963,7 +963,7 @@ public class TabletServer extends AbstractServer {
         us.currentTablet = null;
         us.authFailures.put(keyExtent, SecurityErrorCode.TABLE_DOESNT_EXIST);
         if (updateMetrics.isEnabled()) {
-          updateMetrics.add(TabletServerUpdateMetrics.UNKNOWN_TABLET_ERRORS, 0);
+          updateMetrics.add(TabletServerUpdateMetricsKeys.UNKNOWN_TABLET_ERRORS, 0);
         }
         return;
       } catch (ThriftSecurityException e) {
@@ -974,7 +974,7 @@ public class TabletServer extends AbstractServer {
         us.currentTablet = null;
         us.authFailures.put(keyExtent, e.getCode());
         if (updateMetrics.isEnabled()) {
-          updateMetrics.add(TabletServerUpdateMetrics.PERMISSION_ERRORS, 0);
+          updateMetrics.add(TabletServerUpdateMetricsKeys.PERMISSION_ERRORS, 0);
         }
         return;
       }
@@ -1055,7 +1055,8 @@ public class TabletServer extends AbstractServer {
           if (mutations.size() > 0) {
             try {
               if (updateMetrics.isEnabled()) {
-                updateMetrics.add(TabletServerUpdateMetrics.MUTATION_ARRAY_SIZE, mutations.size());
+                updateMetrics.add(TabletServerUpdateMetricsKeys.MUTATION_ARRAY_SIZE,
+                    mutations.size());
               }
 
               CommitSession commitSession = tablet.prepareMutationsForCommit(us.cenv, mutations);
@@ -1076,7 +1077,7 @@ public class TabletServer extends AbstractServer {
             } catch (TConstraintViolationException e) {
               us.violations.add(e.getViolations());
               if (updateMetrics.isEnabled()) {
-                updateMetrics.add(TabletServerUpdateMetrics.CONSTRAINT_VIOLATIONS, 0);
+                updateMetrics.add(TabletServerUpdateMetricsKeys.CONSTRAINT_VIOLATIONS, 0);
               }
 
               if (e.getNonViolators().size() > 0) {
@@ -1166,19 +1167,21 @@ public class TabletServer extends AbstractServer {
 
     private void updateWalogWriteTime(long time) {
       if (updateMetrics.isEnabled()) {
-        updateMetrics.add(TabletServerUpdateMetrics.WALOG_WRITE_TIME, time);
+        updateMetrics.add(TabletServerUpdateMetricsKeys.WALOG_WRITE_TIME, time);
       }
     }
 
     private void updateAvgCommitTime(long time, int size) {
       if (updateMetrics.isEnabled()) {
-        updateMetrics.add(TabletServerUpdateMetrics.COMMIT_TIME, (long) ((time) / (double) size));
+        updateMetrics.add(TabletServerUpdateMetricsKeys.COMMIT_TIME,
+            (long) ((time) / (double) size));
       }
     }
 
     private void updateAvgPrepTime(long time, int size) {
       if (updateMetrics.isEnabled()) {
-        updateMetrics.add(TabletServerUpdateMetrics.COMMIT_PREP, (long) ((time) / (double) size));
+        updateMetrics.add(TabletServerUpdateMetricsKeys.COMMIT_PREP,
+            (long) ((time) / (double) size));
       }
     }
 

@@ -18,6 +18,7 @@ package org.apache.accumulo.server.metrics;
 
 import javax.management.ObjectName;
 
+// LEGACY METRICS - remove?
 public class ThriftMetrics extends AbstractMetricsImpl implements ThriftMetricsMBean {
 
   static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ThriftMetrics.class);

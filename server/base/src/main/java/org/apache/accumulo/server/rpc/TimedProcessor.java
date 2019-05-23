@@ -38,7 +38,7 @@ public class TimedProcessor implements TProcessor {
 
   public TimedProcessor(AccumuloConfiguration conf, TProcessor next, String serverName,
       String threadName) {
-    this(new MetricsFactory(conf), next, serverName, threadName);
+    this(new MetricsFactory(), next, serverName, threadName);
   }
 
   public TimedProcessor(MetricsFactory factory, TProcessor next, String serverName,

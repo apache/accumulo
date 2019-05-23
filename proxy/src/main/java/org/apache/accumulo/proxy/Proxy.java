@@ -201,7 +201,7 @@ public class Proxy implements KeywordExecutable {
     // No timeout
     final long serverSocketTimeout = 0L;
     // Use the new hadoop metrics2 support
-    final MetricsFactory metricsFactory = new MetricsFactory(false);
+    final MetricsFactory metricsFactory = new MetricsFactory();
     final String serverName = "Proxy", threadName = "Accumulo Thrift Proxy";
 
     // create the implementation of the proxy interface
