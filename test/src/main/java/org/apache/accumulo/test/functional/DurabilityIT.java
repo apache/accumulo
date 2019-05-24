@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -44,14 +43,11 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 
 @Category({MiniClusterOnlyTests.class, PerformanceTests.class})
 public class DurabilityIT extends ConfigurableMacBase {
-  private static final Logger log = LoggerFactory.getLogger(DurabilityIT.class);
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -193,24 +189,16 @@ public class DurabilityIT extends ConfigurableMacBase {
   }
 
   private void writeSome(AccumuloClient c, String table, long count) throws Exception {
-    int iterations = 5;
-    long[] attempts = new long[iterations];
-    for (int attempt = 0; attempt < iterations; attempt++) {
-      long now = System.currentTimeMillis();
-      try (BatchWriter bw = c.createBatchWriter(table)) {
-        for (int i = 1; i < count + 1; i++) {
-          Mutation m = new Mutation("" + i);
-          m.put("", "", "");
-          bw.addMutation(m);
-          if (i % (Math.max(1, count / 100)) == 0) {
-            bw.flush();
-          }
+    try (BatchWriter bw = c.createBatchWriter(table)) {
+      for (int i = 1; i < count + 1; i++) {
+        Mutation m = new Mutation("" + i);
+        m.put("", "", "");
+        bw.addMutation(m);
+        if (i % (Math.max(1, count / 100)) == 0) {
+          bw.flush();
         }
       }
-      attempts[attempt] = System.currentTimeMillis() - now;
     }
-    Arrays.sort(attempts);
-    log.info("Attempt durations: {}", Arrays.toString(attempts));
   }
 
 }
