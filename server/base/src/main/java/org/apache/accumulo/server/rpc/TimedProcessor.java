@@ -19,7 +19,7 @@ package org.apache.accumulo.server.rpc;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.metrics.MetricsFactory;
-import org.apache.accumulo.server.metrics.ThriftMetrics;
+import org.apache.accumulo.server.metrics.ThriftMetricsKeys;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TProtocol;
@@ -59,14 +59,14 @@ public class TimedProcessor implements TProcessor {
     final boolean metricsEnabled = metrics.isEnabled();
     if (metricsEnabled) {
       now = System.currentTimeMillis();
-      metrics.add(ThriftMetrics.idle, (now - idleStart));
+      metrics.add(ThriftMetricsKeys.idle, (now - idleStart));
     }
     try {
       return other.process(in, out);
     } finally {
       if (metricsEnabled) {
         idleStart = System.currentTimeMillis();
-        metrics.add(ThriftMetrics.execute, idleStart - now);
+        metrics.add(ThriftMetricsKeys.execute, idleStart - now);
       }
     }
   }
