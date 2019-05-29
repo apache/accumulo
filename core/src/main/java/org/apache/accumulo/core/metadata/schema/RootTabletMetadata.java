@@ -41,6 +41,9 @@ import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+/**
+ * Serializes the root tablet metadata as Json using Accumulo's standard metadata table schema.
+ */
 public class RootTabletMetadata {
 
   private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -61,6 +64,9 @@ public class RootTabletMetadata {
     Map<String,Map<String,String>> columnValues;
   }
 
+  /**
+   * Apply a metadata table mutation to update internal json.
+   */
   public void update(Mutation m) {
     Preconditions.checkArgument(new Text(m.getRow()).equals(RootTable.EXTENT.getMetadataEntry()));
 
@@ -91,6 +97,9 @@ public class RootTabletMetadata {
 
   }
 
+  /**
+   * Convert json to tablet metadata. *
+   */
   public TabletMetadata convertToTabletMetadata() {
     return TabletMetadata.convertRow(entries.entrySet().iterator(), EnumSet.allOf(ColumnType.class),
         false);
@@ -152,6 +161,9 @@ public class RootTabletMetadata {
     return fromJson(new String(bs, UTF_8));
   }
 
+  /**
+   * Generate initial json for the root tablet metadata.
+   */
   public static byte[] getInitialJson(String dir) {
     Mutation mutation = RootTable.EXTENT.getPrevRowUpdateMutation();
     TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mutation,
