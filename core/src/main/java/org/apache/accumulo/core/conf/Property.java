@@ -216,9 +216,6 @@ public enum Property {
       "The class that will be used to select which volume will be used to create new files."),
   GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS("general.security.credential.provider.paths", "",
       PropertyType.STRING, "Comma-separated list of paths to CredentialProviders"),
-  GENERAL_LEGACY_METRICS("general.legacy.metrics", "false", PropertyType.BOOLEAN,
-      "Use the old metric infrastructure configured by accumulo-metrics.xml,"
-          + " instead of Hadoop Metrics2"),
   GENERAL_ARBITRARY_PROP_PREFIX("general.custom.", null, PropertyType.PREFIX,
       "Prefix to be used for user defined system-wide properties. This may be"
           + " particularly useful for system-wide configuration for various"

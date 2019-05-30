@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  */
 class FateMetricValues {
 
-  private static final Logger log = LoggerFactory.getLogger(FateMetrics.class);
+  private static final Logger log = LoggerFactory.getLogger(FateMetricValues.class);
 
   private final long updateTime;
   private final long currentFateOps;

@@ -16,10 +16,6 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
-import static java.util.Objects.requireNonNull;
-
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.tserver.TabletServer;
@@ -29,32 +25,20 @@ import org.apache.hadoop.metrics2.MetricsSystem;
  * Factory to create Metrics instances for various TabletServer functions.
  *
  * Necessary shim to support both the custom JMX metrics from &lt;1.7.0 and the new Hadoop Metrics2
- * implementations.
+ * implementations. Refactoring with 2.0 may make this class unnecessary - keeping for now to
+ * minimize code chages as metrics is evaluated.
  */
 public class TabletServerMetricsFactory {
-
-  private final boolean useOldMetrics;
   private final MetricsSystem metricsSystem;
 
-  public TabletServerMetricsFactory(AccumuloConfiguration conf) {
-    requireNonNull(conf);
-    useOldMetrics = conf.getBoolean(Property.GENERAL_LEGACY_METRICS);
-
-    if (useOldMetrics) {
-      metricsSystem = null;
-    } else {
-      metricsSystem = MetricsSystemHelper.getInstance();
-    }
+  public TabletServerMetricsFactory() {
+    metricsSystem = MetricsSystemHelper.getInstance();
   }
 
   /**
    * Create Metrics to track MinorCompactions
    */
   public Metrics createMincMetrics() {
-    if (useOldMetrics) {
-      return new TabletServerMinCMetrics();
-    }
-
     return new Metrics2TabletServerMinCMetrics(metricsSystem);
   }
 
@@ -62,10 +46,6 @@ public class TabletServerMetricsFactory {
    * Create Metrics to track TabletServer state
    */
   public Metrics createTabletServerMetrics(TabletServer tserver) {
-    if (useOldMetrics) {
-      return new TabletServerMBeanImpl(tserver);
-    }
-
     return new Metrics2TabletServerMetrics(tserver, metricsSystem);
   }
 
@@ -73,10 +53,6 @@ public class TabletServerMetricsFactory {
    * Create Metrics to track scans
    */
   public Metrics createScanMetrics() {
-    if (useOldMetrics) {
-      return new TabletServerScanMetrics();
-    }
-
     return new Metrics2TabletServerScanMetrics(metricsSystem);
   }
 
@@ -84,10 +60,6 @@ public class TabletServerMetricsFactory {
    * Create Metrics to track updates (writes)
    */
   public Metrics createUpdateMetrics() {
-    if (useOldMetrics) {
-      return new TabletServerUpdateMetrics();
-    }
-
     return new Metrics2TabletServerUpdateMetrics(metricsSystem);
   }
 }

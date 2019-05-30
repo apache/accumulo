@@ -135,8 +135,8 @@ import org.apache.accumulo.tserver.compaction.WriteParameters;
 import org.apache.accumulo.tserver.constraints.ConstraintChecker;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
-import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
-import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerMinCMetricsKeys;
+import org.apache.accumulo.tserver.metrics.TabletServerScanMetricsKeys;
 import org.apache.accumulo.tserver.tablet.Compactor.CompactionCanceledException;
 import org.apache.accumulo.tserver.tablet.Compactor.CompactionEnv;
 import org.apache.commons.codec.DecoderException;
@@ -654,7 +654,7 @@ public class Tablet {
           log.debug("Scan yield detected at position " + yieldPosition);
           Metrics scanMetrics = getTabletServer().getScanMetrics();
           if (scanMetrics.isEnabled())
-            scanMetrics.add(TabletServerScanMetrics.YIELD, 1);
+            scanMetrics.add(TabletServerScanMetricsKeys.YIELD, 1);
         }
       } catch (TooManyFilesException tmfe) {
         // treat this as a closed tablet, and let the client retry
@@ -855,7 +855,7 @@ public class Tablet {
       log.debug("Scan yield detected at position " + continueKey);
       Metrics scanMetrics = getTabletServer().getScanMetrics();
       if (scanMetrics.isEnabled())
-        scanMetrics.add(TabletServerScanMetrics.YIELD, 1);
+        scanMetrics.add(TabletServerScanMetricsKeys.YIELD, 1);
     } else if (!iter.hasTop()) {
       // end of tablet has been reached
       continueKey = null;
@@ -940,11 +940,11 @@ public class Tablet {
       }
       Metrics minCMetrics = getTabletServer().getMinCMetrics();
       if (minCMetrics.isEnabled())
-        minCMetrics.add(TabletServerMinCMetrics.MINC, (lastMinorCompactionFinishTime - start));
+        minCMetrics.add(TabletServerMinCMetricsKeys.MINC, (lastMinorCompactionFinishTime - start));
       if (hasQueueTime) {
         timer.updateTime(Operation.MINOR, queued, start, count, failed);
         if (minCMetrics.isEnabled())
-          minCMetrics.add(TabletServerMinCMetrics.QUEUE, (start - queued));
+          minCMetrics.add(TabletServerMinCMetricsKeys.QUEUE, (start - queued));
       } else
         timer.updateTime(Operation.MINOR, start, failed);
     }
