@@ -3145,14 +3145,6 @@ public class TabletServer extends AbstractServer {
     Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
 
     SimpleTimer.getInstance(aconf).schedule(gcDebugTask, 0, TIME_BETWEEN_GC_CHECKS);
-
-    Runnable constraintTask = () -> {
-      for (Tablet tablet : getOnlineTablets().values()) {
-        tablet.checkConstraints();
-      }
-    };
-
-    SimpleTimer.getInstance(aconf).schedule(constraintTask, 0, 1000);
   }
 
   public TabletServerStatus getStats(Map<TableId,MapCounter<ScanRunState>> scanCounts) {

@@ -21,16 +21,10 @@ import static org.junit.Assert.assertEquals;
 import java.util.Collections;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.tablets.TabletTime;
-import org.apache.accumulo.tserver.TabletServer;
-import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.WriteParameters;
-import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
@@ -42,16 +36,6 @@ public class TabletTest {
     CompactionPlan plan = EasyMock.createMock(CompactionPlan.class);
     WriteParameters writeParams = EasyMock.createMock(WriteParameters.class);
     plan.writeParameters = writeParams;
-    DatafileManager dfm = EasyMock.createMock(DatafileManager.class);
-    TabletTime time = EasyMock.createMock(TabletTime.class);
-    TabletServer tserver = EasyMock.createMock(TabletServer.class);
-    TabletResourceManager tserverResourceManager = EasyMock.createMock(TabletResourceManager.class);
-    TabletMemory tabletMemory = EasyMock.createMock(TabletMemory.class);
-    KeyExtent extent = EasyMock.createMock(KeyExtent.class);
-    ConfigurationObserver obs = EasyMock.createMock(ConfigurationObserver.class);
-
-    Tablet tablet = new Tablet(time, "", 0, new Path("/foo"), dfm, tserver, tserverResourceManager,
-        tabletMemory, tableConf, extent, obs);
 
     long hdfsBlockSize = 10000L, blockSize = 5000L, indexBlockSize = 500L;
     int replication = 5;
@@ -66,7 +50,7 @@ public class TabletTest {
 
     EasyMock.replay(tableConf, plan, writeParams);
 
-    AccumuloConfiguration aConf = tablet.createTableConfiguration(tableConf, plan);
+    AccumuloConfiguration aConf = Tablet.createCompactionConfiguration(tableConf, plan);
 
     EasyMock.verify(tableConf, plan, writeParams);
 
@@ -77,5 +61,4 @@ public class TabletTest {
     assertEquals(compressType, aConf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
     assertEquals(replication, Integer.parseInt(aConf.get(Property.TABLE_FILE_REPLICATION)));
   }
-
 }

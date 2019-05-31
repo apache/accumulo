@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.conf;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
@@ -25,9 +24,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -37,7 +34,6 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -78,8 +74,7 @@ public class NamespaceConfigurationTest {
     c.setZooCacheFactory(zcf);
 
     zc = createMock(ZooCache.class);
-    expect(zcf.getZooCache(eq(ZOOKEEPERS), eq(ZK_SESSION_TIMEOUT),
-        anyObject(NamespaceConfWatcher.class))).andReturn(zc);
+    expect(zcf.getZooCache(eq(ZOOKEEPERS), eq(ZK_SESSION_TIMEOUT))).andReturn(zc);
     replay(zcf);
   }
 
@@ -141,18 +136,6 @@ public class NamespaceConfigurationTest {
     assertEquals(2, props.size());
     assertEquals("bar", props.get("foo"));
     assertEquals("dong", props.get("ding"));
-  }
-
-  @Test
-  public void testObserver() {
-    ConfigurationObserver o = createMock(ConfigurationObserver.class);
-    c.addObserver(o);
-    Collection<ConfigurationObserver> os = c.getObservers();
-    assertEquals(1, os.size());
-    assertTrue(os.contains(o));
-    c.removeObserver(o);
-    os = c.getObservers();
-    assertEquals(0, os.size());
   }
 
   @Test

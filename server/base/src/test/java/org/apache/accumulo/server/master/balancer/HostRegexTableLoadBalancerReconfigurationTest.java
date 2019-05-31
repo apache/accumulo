@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
@@ -89,9 +90,10 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);
     assertEquals(0, migrationsOut.size());
     // Change property, simulate call by TableConfWatcher
-    DEFAULT_TABLE_PROPERTIES
-        .put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r01.*");
-    this.propertiesChanged();
+
+    ((ConfigurationCopy) factory.getSystemConfiguration())
+        .set(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r01.*");
+
     // Wait to trigger the out of bounds check and the repool check
     UtilWaitThread.sleep(10000);
     this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);

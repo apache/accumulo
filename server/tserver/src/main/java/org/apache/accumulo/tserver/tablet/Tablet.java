@@ -42,8 +42,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
@@ -54,7 +54,6 @@ import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -151,7 +150,6 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -222,7 +220,7 @@ public class Tablet {
   private final Set<MajorCompactionReason> majorCompactionQueued =
       Collections.synchronizedSet(EnumSet.noneOf(MajorCompactionReason.class));
 
-  private final AtomicReference<ConstraintChecker> constraintChecker = new AtomicReference<>();
+  private final Supplier<ConstraintChecker> constraintChecker;
 
   private int writesInProgress = 0;
 
@@ -240,7 +238,7 @@ public class Tablet {
   private final Rate ingestByteRate = new Rate(0.95);
   private long ingestBytes = 0;
 
-  private byte[] defaultSecurityLabel = new byte[0];
+  private final Supplier<byte[]> defaultSecurityLabel;
 
   private long lastMinorCompactionFinishTime = 0;
   private long lastMapFileImportTime = 0;
@@ -250,8 +248,6 @@ public class Tablet {
 
   private final Rate scannedRate = new Rate(0.95);
   private final AtomicLong scannedCount = new AtomicLong(0);
-
-  private final ConfigurationObserver configObserver;
 
   // Files that are currently in the process of bulk importing. Access to this is protected by the
   // tablet lock.
@@ -302,30 +298,6 @@ public class Tablet {
     }
   }
 
-  /**
-   * Only visible for testing
-   */
-  @VisibleForTesting
-  protected Tablet(TabletTime tabletTime, String tabletDirectory, int logId, Path location,
-      DatafileManager datafileManager, TabletServer tabletServer,
-      TabletResourceManager tabletResources, TabletMemory tabletMemory,
-      TableConfiguration tableConfiguration, KeyExtent extent,
-      ConfigurationObserver configObserver) {
-    this.tabletTime = tabletTime;
-    this.tabletDirectory = tabletDirectory;
-    this.logId = logId;
-    this.location = location;
-    this.datafileManager = datafileManager;
-    this.tabletServer = tabletServer;
-    this.context = tabletServer.getContext();
-    this.tabletResources = tabletResources;
-    this.tabletMemory = tabletMemory;
-    this.tableConfiguration = tableConfiguration;
-    this.extent = extent;
-    this.configObserver = configObserver;
-    this.splitCreationTime = 0;
-  }
-
   public Tablet(final TabletServer tabletServer, final KeyExtent extent,
       final TabletResourceManager trm, TabletData data) throws IOException {
 
@@ -372,56 +344,24 @@ public class Tablet {
     for (Entry<Long,List<FileRef>> entry : data.getBulkImported().entrySet()) {
       this.bulkImported.put(entry.getKey(), new CopyOnWriteArrayList<>(entry.getValue()));
     }
-    setupDefaultSecurityLabels(extent);
 
     final List<LogEntry> logEntries = tabletPaths.logEntries;
     final SortedMap<FileRef,DataFileValue> datafiles = tabletPaths.datafiles;
 
-    tableConfiguration.addObserver(configObserver = new ConfigurationObserver() {
+    constraintChecker = tableConfiguration.derive(conf -> new ConstraintChecker(conf));
 
-      private void reloadConstraints() {
-        log.debug("Reloading constraints for extent: " + extent);
-        constraintChecker.set(new ConstraintChecker(tableConfiguration));
-      }
+    if (extent.isMeta()) {
+      // TODO empty byte constant
+      defaultSecurityLabel = () -> new byte[0];
+    } else {
+      defaultSecurityLabel = tableConfiguration.derive(conf -> {
+        return new ColumnVisibility(conf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY))
+            .getExpression();
+      });
+    }
 
-      @Override
-      public void propertiesChanged() {
-        reloadConstraints();
-
-        try {
-          setupDefaultSecurityLabels(extent);
-        } catch (Exception e) {
-          log.error("Failed to reload default security labels for extent: {}", extent);
-        }
-      }
-
-      @Override
-      public void propertyChanged(String prop) {
-        if (prop.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())) {
-          reloadConstraints();
-        } else if (prop.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) {
-          try {
-            log.info("Default security labels changed for extent: {}", extent);
-            setupDefaultSecurityLabels(extent);
-          } catch (Exception e) {
-            log.error("Failed to reload default security labels for extent: {}", extent);
-          }
-        }
-
-      }
-
-      @Override
-      public void sessionExpired() {
-        log.trace("Session expired, no longer updating per table props...");
-      }
-
-    });
-
-    tableConfiguration.getNamespaceConfiguration().addObserver(configObserver);
     tabletMemory = new TabletMemory(this);
 
-    // Force a load of any per-table properties
-    configObserver.propertiesChanged();
     if (!logEntries.isEmpty()) {
       log.info("Starting Write-Ahead Log recovery for {}", this.extent);
       final AtomicLong entriesUsedOnTablet = new AtomicLong(0);
@@ -553,21 +493,6 @@ public class Tablet {
       }
     } catch (IOException ex) {
       log.error("Error scanning for old temp files in {}", location);
-    }
-  }
-
-  private void setupDefaultSecurityLabels(KeyExtent extent) {
-    if (extent.isMeta()) {
-      defaultSecurityLabel = new byte[0];
-    } else {
-      try {
-        ColumnVisibility cv = new ColumnVisibility(
-            tableConfiguration.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY));
-        this.defaultSecurityLabel = cv.getExpression();
-      } catch (Exception e) {
-        log.error("Error setting up default security label {}", e.getMessage(), e);
-        this.defaultSecurityLabel = new byte[0];
-      }
     }
   }
 
@@ -720,7 +645,7 @@ public class Tablet {
       AtomicBoolean iFlag) throws IOException {
 
     ScanDataSource dataSource =
-        new ScanDataSource(this, authorizations, this.defaultSecurityLabel, iFlag);
+        new ScanDataSource(this, authorizations, this.defaultSecurityLabel.get(), iFlag);
 
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
@@ -757,8 +682,9 @@ public class Tablet {
       tabletRange.clip(range);
     }
 
-    ScanDataSource dataSource = new ScanDataSource(this, authorizations, this.defaultSecurityLabel,
-        columns, ssiList, ssio, interruptFlag, samplerConfig, batchTimeOut, classLoaderContext);
+    ScanDataSource dataSource =
+        new ScanDataSource(this, authorizations, this.defaultSecurityLabel.get(), columns, ssiList,
+            ssio, interruptFlag, samplerConfig, batchTimeOut, classLoaderContext);
 
     LookupResult result = null;
 
@@ -890,8 +816,9 @@ public class Tablet {
     // then clip will throw an exception
     extent.toDataRange().clip(range);
 
-    ScanOptions opts = new ScanOptions(num, authorizations, this.defaultSecurityLabel, columns,
-        ssiList, ssio, interruptFlag, isolated, samplerConfig, batchTimeOut, classLoaderContext);
+    ScanOptions opts =
+        new ScanOptions(num, authorizations, this.defaultSecurityLabel.get(), columns, ssiList,
+            ssio, interruptFlag, isolated, samplerConfig, batchTimeOut, classLoaderContext);
     return new Scanner(this, range, opts);
   }
 
@@ -1197,15 +1124,6 @@ public class Tablet {
     return commitSession;
   }
 
-  public void checkConstraints() {
-    ConstraintChecker cc = constraintChecker.get();
-
-    if (cc.classLoaderChanged()) {
-      ConstraintChecker ncc = new ConstraintChecker(tableConfiguration);
-      constraintChecker.compareAndSet(cc, ncc);
-    }
-  }
-
   public CommitSession prepareMutationsForCommit(TservConstraintEnv cenv, List<Mutation> mutations)
       throws TConstraintViolationException {
 
@@ -1478,9 +1396,6 @@ public class Tablet {
     getTabletResources().close();
 
     log.debug("TABLET_HIST {} closed", extent);
-
-    tableConfiguration.getNamespaceConfiguration().removeObserver(configObserver);
-    tableConfiguration.removeObserver(configObserver);
 
     if (completeClose) {
       closeState = CloseState.COMPLETE;
@@ -2001,7 +1916,7 @@ public class Tablet {
             getNextMapFilename((filesToCompact.size() == 0 && !propogateDeletes) ? "A" : "C");
         FileRef compactTmpName = new FileRef(fileName.path() + "_tmp");
 
-        AccumuloConfiguration tableConf = createTableConfiguration(tableConfiguration, plan);
+        AccumuloConfiguration tableConf = createCompactionConfiguration(tableConfiguration, plan);
 
         try (TraceScope span = Trace.startSpan("compactFiles")) {
           CompactionEnv cenv = new CompactionEnv() {
@@ -2078,7 +1993,7 @@ public class Tablet {
     }
   }
 
-  protected AccumuloConfiguration createTableConfiguration(TableConfiguration base,
+  protected static AccumuloConfiguration createCompactionConfiguration(TableConfiguration base,
       CompactionPlan plan) {
     if (plan == null || plan.writeParameters == null) {
       return base;

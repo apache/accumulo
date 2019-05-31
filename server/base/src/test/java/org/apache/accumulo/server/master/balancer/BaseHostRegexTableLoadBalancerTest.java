@@ -94,15 +94,17 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   protected static class TestServerConfigurationFactory extends ServerConfigurationFactory {
 
     final ServerContext context;
+    private ConfigurationCopy config;
 
     public TestServerConfigurationFactory(ServerContext context) {
       super(context, siteConfg);
       this.context = context;
+      this.config = new ConfigurationCopy(DEFAULT_TABLE_PROPERTIES);
     }
 
     @Override
     public synchronized AccumuloConfiguration getSystemConfiguration() {
-      return new ConfigurationCopy(DEFAULT_TABLE_PROPERTIES);
+      return config;
     }
 
     @Override
@@ -114,16 +116,12 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
       return new TableConfiguration(context, tableId, dummyConf) {
         @Override
         public String get(Property property) {
-          return DEFAULT_TABLE_PROPERTIES.get(property.name());
+          return getSystemConfiguration().get(property.name());
         }
 
         @Override
         public void getProperties(Map<String,String> props, Predicate<String> filter) {
-          for (Entry<String,String> e : DEFAULT_TABLE_PROPERTIES.entrySet()) {
-            if (filter.test(e.getKey())) {
-              props.put(e.getKey(), e.getValue());
-            }
-          }
+          getSystemConfiguration().getProperties(props, filter);
         }
 
         @Override

@@ -28,9 +28,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
@@ -433,6 +436,60 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
 
     return null;
+  }
+
+  private static class RefCount<T> {
+    T obj;
+    long count;
+
+    RefCount(long c, T r) {
+      this.count = c;
+      this.obj = r;
+    }
+  }
+
+  private class Deriver<T> implements Supplier<T> {
+
+    private AtomicReference<RefCount<T>> refref;
+    private Function<AccumuloConfiguration,T> factory;
+
+    Deriver(Function<AccumuloConfiguration,T> factory) {
+      this.factory = factory;
+      refref = new AtomicReference<>();
+    }
+
+    @Override
+    public T get() {
+      RefCount<T> rc = refref.get();
+
+      long uc = getUpdateCount();
+
+      if (rc == null || rc.count != uc) {
+        T newObj = factory.apply(AccumuloConfiguration.this);
+
+        RefCount<T> nrc = new RefCount<>(uc, newObj);
+        refref.compareAndSet(rc, nrc);
+
+        return nrc.obj;
+      }
+
+      return rc.obj;
+    }
+  }
+
+  /**
+   * Enables deriving an object from configuration and automatically deriving a new object any time
+   * configuration changes.
+   *
+   * @param factory
+   *          This functions is used to create an object from configuration. A reference this
+   *          function will be kept and called by the returned supplier.
+   * @return The returned supplier will automatically re-derive the object any time this
+   *         configuration changes. When configuration is not changing, the same object is returned.
+   *
+   */
+  public <T> Supplier<T> derive(Function<AccumuloConfiguration,T> factory) {
+    return new Deriver<>(factory);
   }
 
   private static final String SCAN_EXEC_THREADS = "threads";
