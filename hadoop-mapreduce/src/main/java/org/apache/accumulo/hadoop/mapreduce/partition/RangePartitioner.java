@@ -26,7 +26,8 @@ import java.util.Base64;
 import java.util.Scanner;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.DistributedCacheHelper;
+import javax.imageio.IIOException;
+
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -38,8 +39,6 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Partitioner;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import javax.imageio.IIOException;
 
 /**
  * Hadoop partitioner that uses ranges, and optionally sub-bins based on hashing.
@@ -95,7 +94,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
       File tempFile = new File(CUTFILE_KEY);
       if (tempFile.exists()) {
         path = new Path(CUTFILE_KEY);
-        //System.out.println("Cutpoint file hdfs fragement found " + CUTFILE_KEY);
+        // System.out.println("Cutpoint file hdfs fragement found " + CUTFILE_KEY);
       } else {
         path = new Path(cutFileName);
       }
@@ -116,7 +115,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
       cutPointArray = cutPoints.toArray(new Text[cutPoints.size()]);
 
       if (cutPointArray == null)
-        throw new IIOException( "Cutpoint array not properly created from file" + path.getName());
+        throw new IIOException("Cutpoint array not properly created from file" + path.getName());
     }
     return cutPointArray;
   }
@@ -140,8 +139,8 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
     try {
       uri = new URI(file + "#" + CUTFILE_KEY);
     } catch (URISyntaxException e) {
-      throw new IllegalStateException("Unable to add split file \"" + CUTFILE_KEY
-              + "\" to distributed cache.");
+      throw new IllegalStateException(
+          "Unable to add split file \"" + CUTFILE_KEY + "\" to distributed cache.");
     }
 
     job.addCacheFile(uri);
