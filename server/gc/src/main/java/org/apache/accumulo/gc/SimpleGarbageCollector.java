@@ -623,12 +623,12 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(this.opts.getAddress(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
-      ServerAddress server =
-          TServerUtils.startTServer(getConfiguration(), getContext().getThriftServerType(),
-              processor, this.getClass().getSimpleName(), "GC Monitor Service", 2,
-              getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000,
-              maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(), 0,
-              addresses);
+      ServerAddress server = TServerUtils.startTServer(getMetricsSystem(), getConfiguration(),
+          getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
+          "GC Monitor Service", 2,
+          getConfiguration().getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE), 1000,
+          maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(), 0,
+          addresses);
       log.debug("Starting garbage collector listening on " + server.address);
       return server.address;
     } catch (Exception ex) {

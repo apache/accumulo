@@ -16,13 +16,34 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
-/**
- * Keys for referencing scan metrics
- */
-public interface TabletServerScanMetricsKeys {
+import org.apache.hadoop.metrics2.lib.MetricsRegistry;
+import org.apache.hadoop.metrics2.lib.MutableStat;
 
-  String SCAN = "scan";
-  String RESULT_SIZE = "result";
-  String YIELD = "yield";
+public class TabletServerScanMetrics extends TServerMetrics {
+
+  private final MutableStat scans;
+  private final MutableStat resultsPerScan;
+  private final MutableStat yields;
+
+  public TabletServerScanMetrics() {
+    super("Scans");
+
+    MetricsRegistry registry = super.getRegistry();
+    scans = registry.newStat("scan", "Scans", "Ops", "Count", true);
+    resultsPerScan = registry.newStat("result", "Results per scan", "Ops", "Count", true);
+    yields = registry.newStat("yield", "Yields", "Ops", "Count", true);
+  }
+
+  public void addScan(long value) {
+    scans.add(value);
+  }
+
+  public void addResult(long value) {
+    resultsPerScan.add(value);
+  }
+
+  public void addYield(long value) {
+    yields.add(value);
+  }
 
 }

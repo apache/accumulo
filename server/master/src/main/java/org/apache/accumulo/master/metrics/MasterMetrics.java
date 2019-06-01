@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.tserver.metrics;
+package org.apache.accumulo.master.metrics;
 
-/**
- * Keys to reference minor compaction metrics
- */
-public interface TabletServerMinCMetricsKeys {
+import org.apache.accumulo.server.metrics.Metrics;
 
-  String MINC = "minc";
-  String QUEUE = "queue";
+public abstract class MasterMetrics extends Metrics {
+
+  protected MasterMetrics(String subName, String description, String record) {
+    super("Master,sub=" + subName, description, "master", record);
+  }
 
 }

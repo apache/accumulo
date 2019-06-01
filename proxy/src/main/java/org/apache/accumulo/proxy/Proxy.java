@@ -35,7 +35,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
-import org.apache.accumulo.server.metrics.MetricsFactory;
+import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -153,8 +153,9 @@ public class Proxy implements KeywordExecutable {
         } catch (InterruptedException | IOException e) {
           throw new RuntimeException(e);
         } finally {
-          if (!folder.delete())
+          if (!folder.delete()) {
             log.warn("Unexpected error removing {}", folder);
+          }
         }
       }));
     } else if (clientProps == null) {
@@ -201,7 +202,6 @@ public class Proxy implements KeywordExecutable {
     // No timeout
     final long serverSocketTimeout = 0L;
     // Use the new hadoop metrics2 support
-    final MetricsFactory metricsFactory = new MetricsFactory();
     final String serverName = "Proxy", threadName = "Accumulo Thrift Proxy";
 
     // create the implementation of the proxy interface
@@ -271,8 +271,8 @@ public class Proxy implements KeywordExecutable {
     }
 
     // Hook up support for tracing for thrift calls
-    TimedProcessor timedProcessor =
-        new TimedProcessor(metricsFactory, processor, serverName, threadName);
+    TimedProcessor timedProcessor = new TimedProcessor(
+        Metrics.initSystem(Proxy.class.getSimpleName()), processor, serverName, threadName);
 
     // Create the thrift server with our processor and properties
 

@@ -56,7 +56,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -171,8 +170,9 @@ public class TraceServer implements Watcher, AutoCloseable {
         }
         writer.addMutation(spanMutation);
         writer.addMutation(indexMutation);
-        if (timeMutation != null)
+        if (timeMutation != null) {
           writer.addMutation(timeMutation);
+        }
       } catch (MutationsRejectedException exception) {
         log.warn("Unable to write mutation to table; discarding span. set log"
             + " level to DEBUG for span information and stacktrace. cause: " + exception);
@@ -382,12 +382,14 @@ public class TraceServer implements Watcher, AutoCloseable {
         if (keyTab == null || keyTab.length() == 0) {
           keyTab = acuConf.getPath(Property.GENERAL_KERBEROS_KEYTAB);
         }
-        if (keyTab == null || keyTab.length() == 0)
+        if (keyTab == null || keyTab.length() == 0) {
           return;
+        }
 
         String principalConfig = acuConf.get(Property.TRACE_USER);
-        if (principalConfig == null || principalConfig.length() == 0)
+        if (principalConfig == null || principalConfig.length() == 0) {
           return;
+        }
 
         log.info("Attempting to login as {} with {}", principalConfig, keyTab);
         SecurityUtil.serverLogin(acuConf, keyTab, principalConfig);
@@ -407,7 +409,6 @@ public class TraceServer implements Watcher, AutoCloseable {
     opts.parseArgs(app, args);
     ServerContext context = new ServerContext(opts.getSiteConfiguration());
     loginTracer(context.getConfiguration());
-    MetricsSystemHelper.configure(TraceServer.class.getSimpleName());
     ServerUtil.init(context, app);
     try (TraceServer server = new TraceServer(context, opts.getAddress())) {
       server.run();
@@ -429,8 +430,9 @@ public class TraceServer implements Watcher, AutoCloseable {
     }
     if (event.getPath() != null) {
       try {
-        if (context.getZooReaderWriter().exists(event.getPath(), this))
+        if (context.getZooReaderWriter().exists(event.getPath(), this)) {
           return;
+        }
       } catch (Exception ex) {
         log.error("{}", ex.getMessage(), ex);
       }

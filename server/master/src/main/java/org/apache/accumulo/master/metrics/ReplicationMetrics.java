@@ -27,94 +27,52 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.server.metrics.Metrics;
-import org.apache.accumulo.server.metrics.MetricsSystemHelper;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.metrics2.MetricsCollector;
-import org.apache.hadoop.metrics2.MetricsRecordBuilder;
-import org.apache.hadoop.metrics2.MetricsSource;
-import org.apache.hadoop.metrics2.MetricsSystem;
-import org.apache.hadoop.metrics2.impl.MsInfo;
-import org.apache.hadoop.metrics2.lib.Interns;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableQuantiles;
 import org.apache.hadoop.metrics2.lib.MutableStat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Metrics2ReplicationMetrics implements Metrics, MetricsSource {
-  public static final String NAME = MASTER_NAME + ",sub=Replication",
-      DESCRIPTION = "Data-Center Replication Metrics", CONTEXT = "master",
-      RECORD = "MasterReplication";
-  public static final String PENDING_FILES = "filesPendingReplication", NUM_PEERS = "numPeers",
-      MAX_REPLICATION_THREADS = "maxReplicationThreads",
-      REPLICATION_QUEUE_TIME_QUANTILES = "replicationQueue10m",
-      REPLICATION_QUEUE_TIME = "replicationQueue";
+public class ReplicationMetrics extends MasterMetrics {
 
-  private static final Logger log = LoggerFactory.getLogger(Metrics2ReplicationMetrics.class);
+  private static final Logger log = LoggerFactory.getLogger(ReplicationMetrics.class);
 
   private final Master master;
-  private final MetricsSystem system;
-  private final MetricsRegistry registry;
   private final ReplicationUtil replicationUtil;
   private final MutableQuantiles replicationQueueTimeQuantiles;
   private final MutableStat replicationQueueTimeStat;
   private final Map<Path,Long> pathModTimes;
 
-  Metrics2ReplicationMetrics(Master master, MetricsSystem system) {
+  ReplicationMetrics(Master master) {
+    super("Replication", "Data-Center Replication Metrics", "MasterReplication");
     this.master = master;
-    this.system = system;
 
     pathModTimes = new HashMap<>();
 
-    this.registry = new MetricsRegistry(Interns.info(NAME, DESCRIPTION));
-    this.registry.tag(MsInfo.ProcessName, MetricsSystemHelper.getProcessName());
     replicationUtil = new ReplicationUtil(master.getContext());
-    replicationQueueTimeQuantiles = registry.newQuantiles(REPLICATION_QUEUE_TIME_QUANTILES,
+    MetricsRegistry registry = super.getRegistry();
+    replicationQueueTimeQuantiles = registry.newQuantiles("replicationQueue10m",
         "Replication queue time quantiles in milliseconds", "ops", "latency", 600);
-    replicationQueueTimeStat = registry.newStat(REPLICATION_QUEUE_TIME,
+    replicationQueueTimeStat = registry.newStat("replicationQueue",
         "Replication queue time statistics in milliseconds", "ops", "latency", true);
   }
 
-  protected void snapshot() {
+  @Override
+  protected void prepareMetrics() {
+    final String PENDING_FILES = "filesPendingReplication";
     // Only add these metrics if the replication table is online and there are peers
     if (TableState.ONLINE == Tables.getTableState(master.getContext(), ReplicationTable.ID)
         && !replicationUtil.getPeers().isEmpty()) {
-      registry.add(PENDING_FILES, getNumFilesPendingReplication());
+      getRegistry().add(PENDING_FILES, getNumFilesPendingReplication());
       addReplicationQueueTimeMetrics();
     } else {
-      registry.add(PENDING_FILES, 0);
+      getRegistry().add(PENDING_FILES, 0);
     }
 
-    registry.add(NUM_PEERS, getNumConfiguredPeers());
-    registry.add(MAX_REPLICATION_THREADS, getMaxReplicationThreads());
-  }
-
-  @Override
-  public void getMetrics(MetricsCollector collector, boolean all) {
-    MetricsRecordBuilder builder = collector.addRecord(RECORD).setContext(CONTEXT);
-
-    snapshot();
-
-    registry.snapshot(builder, all);
-    replicationQueueTimeQuantiles.snapshot(builder, all);
-    replicationQueueTimeStat.snapshot(builder, all);
-  }
-
-  @Override
-  public void register() {
-    system.register(NAME, DESCRIPTION, this);
-  }
-
-  @Override
-  public void add(String name, long time) {
-    throw new UnsupportedOperationException("add() is not implemented");
-  }
-
-  @Override
-  public boolean isEnabled() {
-    return true;
+    getRegistry().add("numPeers", getNumConfiguredPeers());
+    getRegistry().add("maxReplicationThreads", getMaxReplicationThreads());
   }
 
   protected long getNumFilesPendingReplication() {

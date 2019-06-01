@@ -71,6 +71,7 @@ import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
+import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
@@ -296,8 +297,9 @@ public class NullTserver {
     TransactionWatcher watcher = new TransactionWatcher(context);
     ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);
-    TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor,
-        "NullTServer", "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1,
+    TServerUtils.startTServer(Metrics.initSystem(NullTserver.class.getSimpleName()),
+        context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "NullTServer",
+        "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1,
         HostAndPort.fromParts("0.0.0.0", opts.port));
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);

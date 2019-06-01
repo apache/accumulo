@@ -992,9 +992,10 @@ public class Master extends AbstractServer
     }
     ServerAddress sa;
     try {
-      sa = TServerUtils.startServer(context, getHostname(), Property.MASTER_CLIENTPORT, processor,
-          "Master", "Master Client Service Handler", null, Property.MASTER_MINTHREADS,
-          Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+      sa = TServerUtils.startServer(getMetricsSystem(), context, getHostname(),
+          Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
+          Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK,
+          Property.GENERAL_MAX_MESSAGE_SIZE);
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }
@@ -1150,9 +1151,7 @@ public class Master extends AbstractServer
     }, 0, 5000);
 
     // Register metrics modules
-    MasterMetricsFactory factory = new MasterMetricsFactory(getConfiguration(), this);
-
-    int failureCount = factory.register();
+    int failureCount = new MasterMetricsFactory(getConfiguration()).register(this);
 
     if (failureCount > 0) {
       log.info("Failed to register {} metrics modules", failureCount);
@@ -1217,7 +1216,7 @@ public class Master extends AbstractServer
         HighlyAvailableServiceWrapper.service(impl, this);
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
         new ReplicationCoordinator.Processor<>(TraceUtil.wrapService(haReplicationProxy));
-    ServerAddress replAddress = TServerUtils.startServer(context, getHostname(),
+    ServerAddress replAddress = TServerUtils.startServer(getMetricsSystem(), context, getHostname(),
         Property.MASTER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
         "Master Replication Coordinator", "Replication Coordinator", null,
         Property.MASTER_REPLICATION_COORDINATOR_MINTHREADS,

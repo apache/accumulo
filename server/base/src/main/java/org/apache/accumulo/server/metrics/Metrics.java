@@ -16,16 +16,84 @@
  */
 package org.apache.accumulo.server.metrics;
 
-public interface Metrics {
+import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.metrics2.MetricsCollector;
+import org.apache.hadoop.metrics2.MetricsRecordBuilder;
+import org.apache.hadoop.metrics2.MetricsSource;
+import org.apache.hadoop.metrics2.MetricsSystem;
+import org.apache.hadoop.metrics2.impl.MsInfo;
+import org.apache.hadoop.metrics2.lib.DefaultMetricsSystem;
+import org.apache.hadoop.metrics2.lib.Interns;
+import org.apache.hadoop.metrics2.lib.MetricsRegistry;
+import org.apache.hadoop.metrics2.source.JvmMetrics;
+import org.apache.hadoop.metrics2.source.JvmMetricsInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-  String PREFIX = "Accumulo";
-  String THRIFT_NAME = "Thrift";
-  String TSERVER_NAME = "TabletServer";
-  String MASTER_NAME = "Master";
+public abstract class Metrics implements MetricsSource {
 
-  void register() throws Exception;
+  private static String processName = "Unknown";
 
-  void add(String name, long time);
+  public static MetricsSystem initSystem(String serviceName) {
+    processName = serviceName;
+    String serviceInstance = System.getProperty("accumulo.metrics.service.instance", "");
+    if (StringUtils.isNotBlank(serviceInstance)) {
+      processName += serviceInstance;
+    }
 
-  boolean isEnabled();
+    // create a new one if needed
+    MetricsSystem ms = DefaultMetricsSystem.initialize("Accumulo");
+    if (ms.getSource(JvmMetricsInfo.JvmMetrics.name()) == null) {
+      JvmMetrics.create(processName, "", ms);
+    }
+    return ms;
+  }
+
+  private final String name;
+  private final String description;
+  private final String context;
+  private final String record;
+  private final MetricsRegistry registry;
+  private final Logger log;
+
+  protected Metrics(String name, String description, String context, String record) {
+    this.log = LoggerFactory.getLogger(getClass());
+    this.name = name;
+    this.description = description;
+    this.context = context;
+    this.record = record;
+    this.registry = new MetricsRegistry(Interns.info(name, description));
+    this.registry.tag(MsInfo.ProcessName, processName);
+  }
+
+  public void register(MetricsSystem system) {
+    system.register(name, description, this);
+  }
+
+  protected final MetricsRegistry getRegistry() {
+    return registry;
+  }
+
+  /**
+   * Runs prior to {@link #getMetrics(MetricsCollector, boolean)} in order to prepare metrics in the
+   * {@link MetricsRegistry} to be published.
+   */
+  protected void prepareMetrics() {}
+
+  /**
+   * Append any additional metrics directly to the builder when
+   * {@link #getMetrics(MetricsCollector, boolean)} is called, after any metrics in the
+   * {@link MetricsRegistry} have already been added.
+   */
+  protected void getMoreMetrics(MetricsRecordBuilder builder, boolean all) {}
+
+  @Override
+  public final void getMetrics(MetricsCollector collector, boolean all) {
+    log.trace("getMetrics called with collector: {} (all: {})", collector, all);
+    prepareMetrics();
+    MetricsRecordBuilder builder = collector.addRecord(record).setContext(context);
+    registry.snapshot(builder, all);
+    getMoreMetrics(builder, all);
+  }
+
 }
