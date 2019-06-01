@@ -21,9 +21,7 @@ import static java.util.Objects.requireNonNull;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.master.Master;
-import org.apache.accumulo.master.metrics.fate.Metrics2FateMetrics;
-import org.apache.accumulo.server.metrics.Metrics;
-import org.apache.accumulo.server.metrics.MetricsSystemHelper;
+import org.apache.accumulo.master.metrics.fate.FateMetrics;
 import org.apache.hadoop.metrics2.MetricsSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,62 +38,35 @@ public class MasterMetricsFactory {
   private final boolean enableFateMetrics;
   private final long fateMinUpdateInterval;
 
-  private final MetricsSystem metricsSystem;
-  private final Master master;
-
-  public MasterMetricsFactory(AccumuloConfiguration conf, Master master) {
+  public MasterMetricsFactory(AccumuloConfiguration conf) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
-
     enableFateMetrics = conf.getBoolean(Property.MASTER_FATE_METRICS_ENABLED);
-
     fateMinUpdateInterval = conf.getTimeInMillis(Property.MASTER_FATE_METRICS_MIN_UPDATE_INTERVAL);
-
-    this.master = master;
-
-    metricsSystem = MetricsSystemHelper.getInstance();
   }
 
-  public int register() {
+  public int register(Master master) {
+    MetricsSystem metricsSystem = master.getMetricsSystem();
 
     int failureCount = 0;
 
     try {
-
-      Metrics replicationMetrics = createReplicationMetrics();
-
-      replicationMetrics.register();
-
+      new ReplicationMetrics(master).register(metricsSystem);
       log.info("Registered replication metrics module");
-
     } catch (Exception ex) {
       failureCount++;
       log.error("Failed to register replication metrics", ex);
     }
 
     try {
-
       if (enableFateMetrics) {
-
-        Metrics fateMetrics = createFateMetrics();
-
-        fateMetrics.register();
-
+        new FateMetrics(master.getContext(), fateMinUpdateInterval).register(metricsSystem);
         log.info("Registered FATE metrics module");
       }
     } catch (Exception ex) {
       failureCount++;
       log.error("Failed to register fate metrics", ex);
     }
-
     return failureCount;
-  }
-
-  private Metrics createReplicationMetrics() {
-    return new Metrics2ReplicationMetrics(master, metricsSystem);
-  }
-
-  private Metrics createFateMetrics() {
-    return new Metrics2FateMetrics(master.getContext(), metricsSystem, fateMinUpdateInterval);
   }
 
 }

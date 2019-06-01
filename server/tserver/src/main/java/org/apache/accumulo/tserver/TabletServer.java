@@ -193,7 +193,6 @@ import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationSt
 import org.apache.accumulo.server.master.state.TabletStateStore;
 import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.master.tableOps.UserCompactionConfig;
-import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.replication.ZooKeeperInitialization;
@@ -230,9 +229,10 @@ import org.apache.accumulo.tserver.log.TabletServerLogger;
 import org.apache.accumulo.tserver.mastermessage.MasterMessage;
 import org.apache.accumulo.tserver.mastermessage.SplitReportMessage;
 import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
-import org.apache.accumulo.tserver.metrics.TabletServerMetricsFactory;
-import org.apache.accumulo.tserver.metrics.TabletServerScanMetricsKeys;
-import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetricsKeys;
+import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
 import org.apache.accumulo.tserver.replication.ReplicationServicerHandler;
 import org.apache.accumulo.tserver.replication.ReplicationWorker;
 import org.apache.accumulo.tserver.scan.LookupTask;
@@ -260,6 +260,7 @@ import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
 import org.apache.thrift.TException;
@@ -288,16 +289,15 @@ public class TabletServer extends AbstractServer {
 
   private final TabletServerLogger logger;
 
-  private final TabletServerMetricsFactory metricsFactory;
-  private final Metrics updateMetrics;
-  private final Metrics scanMetrics;
-  private final Metrics mincMetrics;
+  private final TabletServerUpdateMetrics updateMetrics;
+  private final TabletServerScanMetrics scanMetrics;
+  private final TabletServerMinCMetrics mincMetrics;
 
-  public Metrics getScanMetrics() {
+  public TabletServerScanMetrics getScanMetrics() {
     return scanMetrics;
   }
 
-  public Metrics getMinCMetrics() {
+  public TabletServerMinCMetrics getMinCMetrics() {
     return mincMetrics;
   }
 
@@ -416,10 +416,9 @@ public class TabletServer extends AbstractServer {
     this.resourceManager = new TabletServerResourceManager(this, fs, context);
     this.security = AuditedSecurityOperation.getInstance(context);
 
-    metricsFactory = new TabletServerMetricsFactory();
-    updateMetrics = metricsFactory.createUpdateMetrics();
-    scanMetrics = metricsFactory.createScanMetrics();
-    mincMetrics = metricsFactory.createMincMetrics();
+    updateMetrics = new TabletServerUpdateMetrics();
+    scanMetrics = new TabletServerScanMetrics();
+    mincMetrics = new TabletServerMinCMetrics();
     SimpleTimer.getInstance(aconf).schedule(() -> TabletLocator.clearLocators(),
         jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS), jitter(TIME_BETWEEN_LOCATOR_CACHE_CLEARS));
     walMarker = new WalStateManager(context);
@@ -746,10 +745,8 @@ public class TabletServer extends AbstractServer {
               (t2 - ss.startTime) / 1000.0, ss.runStats.toString()));
         }
 
-        if (scanMetrics.isEnabled()) {
-          scanMetrics.add(TabletServerScanMetricsKeys.SCAN, t2 - ss.startTime);
-          scanMetrics.add(TabletServerScanMetricsKeys.RESULT_SIZE, ss.entriesReturned);
-        }
+        scanMetrics.addScan(t2 - ss.startTime);
+        scanMetrics.addResult(ss.entriesReturned);
       }
     }
 
@@ -903,9 +900,7 @@ public class TabletServer extends AbstractServer {
       // Make sure user is real
       Durability durability = DurabilityImpl.fromThrift(tdurabilty);
       security.authenticateUser(credentials, credentials);
-      if (updateMetrics.isEnabled()) {
-        updateMetrics.add(TabletServerUpdateMetricsKeys.PERMISSION_ERRORS, 0);
-      }
+      updateMetrics.addPermissionErrors(0);
 
       UpdateSession us = new UpdateSession(
           new TservConstraintEnv(getContext(), security, credentials), credentials, durability);
@@ -941,9 +936,7 @@ public class TabletServer extends AbstractServer {
             // not serving tablet, so report all mutations as
             // failures
             us.failures.put(keyExtent, 0L);
-            if (updateMetrics.isEnabled()) {
-              updateMetrics.add(TabletServerUpdateMetricsKeys.UNKNOWN_TABLET_ERRORS, 0);
-            }
+            updateMetrics.addUnknownTabletErrors(0);
           }
         } else {
           log.warn("Denying access to table {} for user {}", keyExtent.getTableId(), us.getUser());
@@ -951,9 +944,7 @@ public class TabletServer extends AbstractServer {
           us.authTimes.addStat(t2 - t1);
           us.currentTablet = null;
           us.authFailures.put(keyExtent, SecurityErrorCode.PERMISSION_DENIED);
-          if (updateMetrics.isEnabled()) {
-            updateMetrics.add(TabletServerUpdateMetricsKeys.PERMISSION_ERRORS, 0);
-          }
+          updateMetrics.addPermissionErrors(0);
           return;
         }
       } catch (TableNotFoundException tnfe) {
@@ -962,9 +953,7 @@ public class TabletServer extends AbstractServer {
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = null;
         us.authFailures.put(keyExtent, SecurityErrorCode.TABLE_DOESNT_EXIST);
-        if (updateMetrics.isEnabled()) {
-          updateMetrics.add(TabletServerUpdateMetricsKeys.UNKNOWN_TABLET_ERRORS, 0);
-        }
+        updateMetrics.addUnknownTabletErrors(0);
         return;
       } catch (ThriftSecurityException e) {
         log.error("Denying permission to check user " + us.getUser() + " with user " + e.getUser(),
@@ -973,9 +962,7 @@ public class TabletServer extends AbstractServer {
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = null;
         us.authFailures.put(keyExtent, e.getCode());
-        if (updateMetrics.isEnabled()) {
-          updateMetrics.add(TabletServerUpdateMetricsKeys.PERMISSION_ERRORS, 0);
-        }
+        updateMetrics.addPermissionErrors(0);
         return;
       }
     }
@@ -1054,10 +1041,7 @@ public class TabletServer extends AbstractServer {
           List<Mutation> mutations = entry.getValue();
           if (mutations.size() > 0) {
             try {
-              if (updateMetrics.isEnabled()) {
-                updateMetrics.add(TabletServerUpdateMetricsKeys.MUTATION_ARRAY_SIZE,
-                    mutations.size());
-              }
+              updateMetrics.addMutationArraySize(mutations.size());
 
               CommitSession commitSession = tablet.prepareMutationsForCommit(us.cenv, mutations);
               if (commitSession == null) {
@@ -1076,9 +1060,7 @@ public class TabletServer extends AbstractServer {
 
             } catch (TConstraintViolationException e) {
               us.violations.add(e.getViolations());
-              if (updateMetrics.isEnabled()) {
-                updateMetrics.add(TabletServerUpdateMetricsKeys.CONSTRAINT_VIOLATIONS, 0);
-              }
+              updateMetrics.addConstraintViolations(0);
 
               if (e.getNonViolators().size() > 0) {
                 // only log and commit mutations if there were some
@@ -1166,23 +1148,15 @@ public class TabletServer extends AbstractServer {
     }
 
     private void updateWalogWriteTime(long time) {
-      if (updateMetrics.isEnabled()) {
-        updateMetrics.add(TabletServerUpdateMetricsKeys.WALOG_WRITE_TIME, time);
-      }
+      updateMetrics.addWalogWriteTime(time);
     }
 
     private void updateAvgCommitTime(long time, int size) {
-      if (updateMetrics.isEnabled()) {
-        updateMetrics.add(TabletServerUpdateMetricsKeys.COMMIT_TIME,
-            (long) ((time) / (double) size));
-      }
+      updateMetrics.addCommitTime((long) (time / (double) size));
     }
 
     private void updateAvgPrepTime(long time, int size) {
-      if (updateMetrics.isEnabled()) {
-        updateMetrics.add(TabletServerUpdateMetricsKeys.COMMIT_PREP,
-            (long) ((time) / (double) size));
-      }
+      updateMetrics.addCommitPrep((long) (time / (double) size));
     }
 
     @Override
@@ -2587,8 +2561,8 @@ public class TabletServer extends AbstractServer {
       TProcessor processor, String threadName) throws UnknownHostException {
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
         ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(getContext(), address, portHint, processor,
-        this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
+    ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), address, portHint,
+        processor, this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
         Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK, maxMessageSizeProperty);
     this.server = sp.server;
     return sp.address;
@@ -2654,10 +2628,10 @@ public class TabletServer extends AbstractServer {
     Property maxMessageSizeProperty =
         getConfiguration().get(Property.TSERV_MAX_MESSAGE_SIZE) != null
             ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE;
-    ServerAddress sp = TServerUtils.startServer(getContext(), clientAddress.getHost(),
-        Property.REPLICATION_RECEIPT_SERVICE_PORT, processor, "ReplicationServicerHandler",
-        "Replication Servicer", Property.TSERV_PORTSEARCH, Property.REPLICATION_MIN_THREADS,
-        Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
+    ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(),
+        clientAddress.getHost(), Property.REPLICATION_RECEIPT_SERVICE_PORT, processor,
+        "ReplicationServicerHandler", "Replication Servicer", Property.TSERV_PORTSEARCH,
+        Property.REPLICATION_MIN_THREADS, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
     this.replServer = sp.server;
     log.info("Started replication service on {}", sp.address);
 
@@ -2753,16 +2727,14 @@ public class TabletServer extends AbstractServer {
       throw new RuntimeException(e);
     }
 
-    Metrics tserverMetrics = metricsFactory.createTabletServerMetrics(this);
-
-    // Register MBeans
     try {
-      tserverMetrics.register();
-      mincMetrics.register();
-      scanMetrics.register();
-      updateMetrics.register();
+      MetricsSystem metricsSystem = getMetricsSystem();
+      new TabletServerMetrics(this).register(metricsSystem);
+      mincMetrics.register(metricsSystem);
+      scanMetrics.register(metricsSystem);
+      updateMetrics.register(metricsSystem);
     } catch (Exception e) {
-      log.error("Error registering with JMX", e);
+      log.error("Error registering metrics", e);
     }
 
     if (authKeyWatcher != null) {

@@ -44,6 +44,7 @@ import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.security.SaslRpcServer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TProcessor;
@@ -115,9 +116,9 @@ public class TServerUtils {
    * @throws UnknownHostException
    *           when we don't know our own address
    */
-  public static ServerAddress startServer(ServerContext service, String hostname,
-      Property portHintProperty, TProcessor processor, String serverName, String threadName,
-      Property portSearchProperty, Property minThreadProperty,
+  public static ServerAddress startServer(MetricsSystem metricsSystem, ServerContext service,
+      String hostname, Property portHintProperty, TProcessor processor, String serverName,
+      String threadName, Property portSearchProperty, Property minThreadProperty,
       Property timeBetweenThreadChecksProperty, Property maxMessageSizeProperty)
       throws UnknownHostException {
     final AccumuloConfiguration config = service.getConfiguration();
@@ -125,20 +126,24 @@ public class TServerUtils {
     final int[] portHint = config.getPort(portHintProperty);
 
     int minThreads = 2;
-    if (minThreadProperty != null)
+    if (minThreadProperty != null) {
       minThreads = config.getCount(minThreadProperty);
+    }
 
     long timeBetweenThreadChecks = 1000;
-    if (timeBetweenThreadChecksProperty != null)
+    if (timeBetweenThreadChecksProperty != null) {
       timeBetweenThreadChecks = config.getTimeInMillis(timeBetweenThreadChecksProperty);
+    }
 
     long maxMessageSize = 10 * 1000 * 1000;
-    if (maxMessageSizeProperty != null)
+    if (maxMessageSizeProperty != null) {
       maxMessageSize = config.getAsBytes(maxMessageSizeProperty);
+    }
 
     boolean portSearch = false;
-    if (portSearchProperty != null)
+    if (portSearchProperty != null) {
       portSearch = config.getBoolean(portSearchProperty);
+    }
 
     final int simpleTimerThreadpoolSize =
         config.getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
@@ -150,7 +155,8 @@ public class TServerUtils {
 
     // create the TimedProcessor outside the port search loop so we don't try to register the same
     // metrics mbean more than once
-    TimedProcessor timedProcessor = new TimedProcessor(config, processor, serverName, threadName);
+    TimedProcessor timedProcessor =
+        new TimedProcessor(metricsSystem, config, processor, serverName, threadName);
 
     HostAndPort[] addresses = getHostAndPorts(hostname, portHint);
     try {
@@ -272,24 +278,21 @@ public class TServerUtils {
       final int executorThreads, int simpleTimerThreads, long timeBetweenThreadChecks) {
     final ThreadPoolExecutor pool = new SimpleThreadPool(executorThreads, "ClientPool");
     // periodically adjust the number of threads we need by checking how busy our threads are
-    SimpleTimer.getInstance(simpleTimerThreads).schedule(new Runnable() {
-      @Override
-      public void run() {
-        // there is a minor race condition between sampling the current state of the thread pool and
-        // adjusting it
-        // however, this isn't really an issue, since it adjusts periodically anyway
-        if (pool.getCorePoolSize() <= pool.getActiveCount()) {
-          int larger = pool.getCorePoolSize() + Math.min(pool.getQueue().size(), 2);
-          log.info("Increasing server thread pool size on {} to {}", serverName, larger);
-          pool.setMaximumPoolSize(larger);
-          pool.setCorePoolSize(larger);
-        } else {
-          if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
-            int smaller = Math.max(executorThreads, pool.getCorePoolSize() - 1);
-            if (smaller != pool.getCorePoolSize()) {
-              log.info("Decreasing server thread pool size on {} to {}", serverName, smaller);
-              pool.setCorePoolSize(smaller);
-            }
+    SimpleTimer.getInstance(simpleTimerThreads).schedule(() -> {
+      // there is a minor race condition between sampling the current state of the thread pool and
+      // adjusting it
+      // however, this isn't really an issue, since it adjusts periodically anyway
+      if (pool.getCorePoolSize() <= pool.getActiveCount()) {
+        int larger = pool.getCorePoolSize() + Math.min(pool.getQueue().size(), 2);
+        log.info("Increasing server thread pool size on {} to {}", serverName, larger);
+        pool.setMaximumPoolSize(larger);
+        pool.setCorePoolSize(larger);
+      } else {
+        if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
+          int smaller = Math.max(executorThreads, pool.getCorePoolSize() - 1);
+          if (smaller != pool.getCorePoolSize()) {
+            log.info("Decreasing server thread pool size on {} to {}", serverName, smaller);
+            pool.setCorePoolSize(smaller);
           }
         }
       }
@@ -537,19 +540,20 @@ public class TServerUtils {
     return new ServerAddress(server, address);
   }
 
-  public static ServerAddress startTServer(AccumuloConfiguration conf, ThriftServerType serverType,
-      TProcessor processor, String serverName, String threadName, int numThreads, int numSTThreads,
-      long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams,
-      SaslServerConnectionParams saslParams, long serverSocketTimeout, HostAndPort... addresses)
-      throws TTransportException {
+  public static ServerAddress startTServer(MetricsSystem metricsSystem, AccumuloConfiguration conf,
+      ThriftServerType serverType, TProcessor processor, String serverName, String threadName,
+      int numThreads, int numSTThreads, long timeBetweenThreadChecks, long maxMessageSize,
+      SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
+      long serverSocketTimeout, HostAndPort... addresses) throws TTransportException {
 
     if (serverType == ThriftServerType.SASL) {
       processor = updateSaslProcessor(serverType, processor);
     }
 
-    return startTServer(serverType, new TimedProcessor(conf, processor, serverName, threadName),
-        serverName, threadName, numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize,
-        sslParams, saslParams, serverSocketTimeout, addresses);
+    return startTServer(serverType,
+        new TimedProcessor(metricsSystem, conf, processor, serverName, threadName), serverName,
+        threadName, numThreads, numSTThreads, timeBetweenThreadChecks, maxMessageSize, sslParams,
+        saslParams, serverSocketTimeout, addresses);
   }
 
   /**
@@ -631,14 +635,11 @@ public class TServerUtils {
     }
 
     final TServer finalServer = serverAddress.server;
-    Runnable serveTask = new Runnable() {
-      @Override
-      public void run() {
-        try {
-          finalServer.serve();
-        } catch (Error e) {
-          Halt.halt("Unexpected error in TThreadPoolServer " + e + ", halting.", 1);
-        }
+    Runnable serveTask = () -> {
+      try {
+        finalServer.serve();
+      } catch (Error e) {
+        Halt.halt("Unexpected error in TThreadPoolServer " + e + ", halting.", 1);
       }
     };
 
@@ -667,8 +668,9 @@ public class TServerUtils {
    *          The TServer to stop
    */
   public static void stopTServer(TServer s) {
-    if (s == null)
+    if (s == null) {
       return;
+    }
     s.stop();
     try {
       Field f = s.getClass().getDeclaredField("executorService_");

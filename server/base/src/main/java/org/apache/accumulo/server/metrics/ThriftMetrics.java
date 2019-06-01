@@ -16,18 +16,19 @@
  */
 package org.apache.accumulo.server.metrics;
 
-import org.apache.hadoop.metrics2.MetricsSystem;
+public class ThriftMetrics extends Metrics {
 
-public class MetricsFactory {
-
-  private final MetricsSystem metricsSystem;
-
-  public MetricsFactory() {
-    metricsSystem = MetricsSystemHelper.getInstance();
+  public ThriftMetrics(String serverName, String threadName) {
+    super("Thrift,sub=" + serverName, "Thrift Server Metrics - " + serverName + " " + threadName,
+        "thrift", serverName);
   }
 
-  public Metrics createThriftMetrics(String serverName, String threadName) {
-    return new Metrics2ThriftMetrics(metricsSystem, serverName, threadName);
+  public void addIdle(long time) {
+    getRegistry().add("idle", time);
+  }
+
+  public void addExecute(long time) {
+    getRegistry().add("execute", time);
   }
 
 }

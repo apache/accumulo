@@ -16,17 +16,28 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
-/**
- * Keys to identify which update metric is being altered
- */
-public interface TabletServerUpdateMetricsKeys {
+import org.apache.hadoop.metrics2.lib.MetricsRegistry;
+import org.apache.hadoop.metrics2.lib.MutableStat;
 
-  String PERMISSION_ERRORS = "permissionErrors";
-  String UNKNOWN_TABLET_ERRORS = "unknownTabletErrors";
-  String MUTATION_ARRAY_SIZE = "mutationArraysSize";
-  String COMMIT_PREP = "commitPrep";
-  String CONSTRAINT_VIOLATIONS = "constraintViolations";
-  String WALOG_WRITE_TIME = "waLogWriteTime";
-  String COMMIT_TIME = "commitTime";
+public class TabletServerMinCMetrics extends TServerMetrics {
+
+  private final MutableStat activeMinc;
+  private final MutableStat queuedMinc;
+
+  public TabletServerMinCMetrics() {
+    super("MinorCompactions");
+
+    MetricsRegistry registry = super.getRegistry();
+    activeMinc = registry.newStat("minc", "Minor compactions", "Ops", "Count", true);
+    queuedMinc = registry.newStat("queue", "Queued minor compactions", "Ops", "Count", true);
+  }
+
+  public void addActive(long value) {
+    activeMinc.add(value);
+  }
+
+  public void addQueued(long value) {
+    queuedMinc.add(value);
+  }
 
 }

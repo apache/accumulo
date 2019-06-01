@@ -24,7 +24,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.metrics2.lib.MutableQuantiles;
 import org.apache.hadoop.metrics2.lib.MutableStat;
 import org.easymock.EasyMock;
@@ -32,15 +31,15 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 
-public class Metrics2ReplicationMetricsTest {
+public class ReplicationMetricsTest {
   private long currentTime = 1000L;
 
   /**
    * Extend the class to override the current time for testing
    */
-  public class TestMetrics2ReplicationMetrics extends Metrics2ReplicationMetrics {
-    TestMetrics2ReplicationMetrics(Master master, MetricsSystem system) {
-      super(master, system);
+  public class ReplicationMetricsTestMetrics extends ReplicationMetrics {
+    ReplicationMetricsTestMetrics(Master master) {
+      super(master);
     }
 
     @Override
@@ -53,7 +52,6 @@ public class Metrics2ReplicationMetricsTest {
   public void testAddReplicationQueueTimeMetrics() throws Exception {
     Master master = EasyMock.createMock(Master.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    MetricsSystem system = EasyMock.createMock(MetricsSystem.class);
     VolumeManager fileSystem = EasyMock.createMock(VolumeManager.class);
     ReplicationUtil util = EasyMock.createMock(ReplicationUtil.class);
     MutableStat stat = EasyMock.createMock(MutableStat.class);
@@ -84,9 +82,9 @@ public class Metrics2ReplicationMetricsTest {
     stat.add(currentTime - 100);
     EasyMock.expectLastCall();
 
-    EasyMock.replay(master, system, fileSystem, util, stat, quantiles);
+    EasyMock.replay(master, fileSystem, util, stat, quantiles);
 
-    Metrics2ReplicationMetrics metrics = new TestMetrics2ReplicationMetrics(master, system);
+    ReplicationMetrics metrics = new ReplicationMetricsTestMetrics(master);
 
     // Inject our mock objects
     replaceField(metrics, "replicationUtil", util);
@@ -97,7 +95,7 @@ public class Metrics2ReplicationMetricsTest {
     metrics.addReplicationQueueTimeMetrics();
     metrics.addReplicationQueueTimeMetrics();
 
-    EasyMock.verify(master, system, fileSystem, util, stat, quantiles);
+    EasyMock.verify(master, fileSystem, util, stat, quantiles);
   }
 
   private void replaceField(Object instance, String fieldName, Object target)
