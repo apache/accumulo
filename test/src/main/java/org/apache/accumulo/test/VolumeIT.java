@@ -69,7 +69,9 @@ import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -275,12 +277,14 @@ public class VolumeIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = getUniqueNames(2);
 
-      PropertiesConfiguration conf = new PropertiesConfiguration();
+      String uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
-      String uuid = verifyAndShutdownCluster(client, conf, tableNames[0]);
-
-      conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2 + "," + v3);
-      conf.save(cluster.getAccumuloPropertiesPath());
+      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
+              new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
+      propsBuilder.getConfiguration().setProperty(Property.INSTANCE_VOLUMES.getKey(),
+          v1 + "," + v2 + "," + v3);
+      propsBuilder.save();
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
@@ -295,8 +299,7 @@ public class VolumeIT extends ConfigurableMacBase {
   }
 
   // grab uuid before shutting down cluster
-  private String verifyAndShutdownCluster(AccumuloClient c, PropertiesConfiguration conf,
-      String tableName) throws Exception {
+  private String verifyAndShutdownCluster(AccumuloClient c, String tableName) throws Exception {
     String uuid = c.instanceOperations().getInstanceID();
 
     verifyVolumesUsed(c, tableName, false, v1, v2);
@@ -304,7 +307,6 @@ public class VolumeIT extends ConfigurableMacBase {
     assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     cluster.stop();
 
-    conf.load(cluster.getAccumuloPropertiesPath());
     return uuid;
   }
 
@@ -312,13 +314,16 @@ public class VolumeIT extends ConfigurableMacBase {
   public void testNonConfiguredVolumes() throws Exception {
 
     String[] tableNames = getUniqueNames(2);
-    PropertiesConfiguration conf = new PropertiesConfiguration();
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String uuid = verifyAndShutdownCluster(client, conf, tableNames[0]);
+      String uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
-      conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3);
-      conf.save(cluster.getAccumuloPropertiesPath());
+      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
+              new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
+      propsBuilder.getConfiguration().setProperty(Property.INSTANCE_VOLUMES.getKey(),
+          v2 + "," + v3);
+      propsBuilder.save();
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
@@ -459,10 +464,12 @@ public class VolumeIT extends ConfigurableMacBase {
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       cluster.stop();
 
-      PropertiesConfiguration conf = new PropertiesConfiguration();
-      conf.load(cluster.getAccumuloPropertiesPath());
-      conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2.toString());
-      conf.save(cluster.getAccumuloPropertiesPath());
+      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
+              new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
+      propsBuilder.getConfiguration().setProperty(Property.INSTANCE_VOLUMES.getKey(),
+          v2.toString());
+      propsBuilder.save();
 
       // start cluster and verify that volume was decommissioned
       cluster.start();
@@ -514,12 +521,14 @@ public class VolumeIT extends ConfigurableMacBase {
     assertTrue("Failed to rename " + v2f + " to " + v9f, v2f.renameTo(v9f));
     Path v9 = new Path(v9f.toURI());
 
-    PropertiesConfiguration conf = new PropertiesConfiguration();
-    conf.load(cluster.getAccumuloPropertiesPath());
+    FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+        new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
+            new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
+    PropertiesConfiguration conf = propsBuilder.getConfiguration();
     conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
     conf.setProperty(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(),
         v1 + " " + v8 + "," + v2 + " " + v9);
-    conf.save(cluster.getAccumuloPropertiesPath());
+    propsBuilder.save();
 
     // start cluster and verify that volumes were replaced
     cluster.start();

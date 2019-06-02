@@ -57,9 +57,8 @@ public class RemoteShellOptions {
       justification = "code runs in same security context as user who provided input file name")
   public RemoteShellOptions() {
     properties = new Properties();
-    Properties systemProperties = System.getProperties();
 
-    String propertyFile = systemProperties.getProperty(SSH_PROPERTIES_FILE);
+    String propertyFile = System.getProperty(SSH_PROPERTIES_FILE);
 
     // Load properties from the specified file
     if (propertyFile != null) {
@@ -90,7 +89,7 @@ public class RemoteShellOptions {
     }
 
     // Let other system properties override those in the file
-    for (Entry<Object,Object> entry : systemProperties.entrySet()) {
+    for (Entry<Object,Object> entry : System.getProperties().entrySet()) {
       if (!(entry.getKey() instanceof String)) {
         continue;
       }

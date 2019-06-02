@@ -18,8 +18,6 @@
 
 package org.apache.accumulo.core.file.blockfile.cache.impl;
 
-import java.util.Properties;
-
 /**
  * Class for determining the "size" of a class, an attempt to calculate the actual bytes that an
  * object of this class will occupy in memory
@@ -63,8 +61,7 @@ public class ClassSize {
    */
   static {
     // Figure out whether this is a 32 or 64 bit machine.
-    Properties sysProps = System.getProperties();
-    String arcModel = sysProps.getProperty("sun.arch.data.model");
+    String arcModel = System.getProperty("sun.arch.data.model");
 
     // Default value is set to 8, covering the case when arcModel is unknown
     REFERENCE = arcModel.equals(THIRTY_TWO) ? 4 : 8;

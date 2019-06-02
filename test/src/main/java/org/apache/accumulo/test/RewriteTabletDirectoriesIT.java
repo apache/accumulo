@@ -45,7 +45,9 @@ import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.RandomizeVolumes;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -132,10 +134,12 @@ public class RewriteTabletDirectoriesIT extends ConfigurableMacBase {
         cluster.stop();
 
         // add the 2nd volume
-        PropertiesConfiguration conf = new PropertiesConfiguration();
-        conf.load(cluster.getAccumuloPropertiesPath());
-        conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v1 + "," + v2);
-        conf.save(cluster.getAccumuloPropertiesPath());
+        FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+            new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
+                new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
+        propsBuilder.getConfiguration().setProperty(Property.INSTANCE_VOLUMES.getKey(),
+            v1 + "," + v2);
+        propsBuilder.save();
 
         // initialize volume
         assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
