@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.conf;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -27,9 +26,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import org.apache.commons.configuration.CompositeConfiguration;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.CompositeConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,18 +88,16 @@ public class SiteConfiguration extends AccumuloConfiguration {
   private static ImmutableMap<String,String> createMap(URL accumuloPropsLocation,
       Map<String,String> overrides) {
     CompositeConfiguration config = new CompositeConfiguration();
-    config.setThrowExceptionOnMissing(false);
-    config.setDelimiterParsingDisabled(true);
-    PropertiesConfiguration propsConfig = new PropertiesConfiguration();
-    propsConfig.setDelimiterParsingDisabled(true);
     if (accumuloPropsLocation != null) {
+      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
+              .configure(new Parameters().properties().setURL(accumuloPropsLocation));
       try {
-        propsConfig.load(accumuloPropsLocation.openStream());
-      } catch (IOException | ConfigurationException e) {
+        config.addConfiguration(propsBuilder.getConfiguration());
+      } catch (ConfigurationException e) {
         throw new IllegalArgumentException(e);
       }
     }
-    config.addConfiguration(propsConfig);
 
     // Add all properties in config file
     Map<String,String> result = new HashMap<>();

@@ -32,11 +32,13 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
-import org.apache.commons.configuration.CompositeConfiguration;
-import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.MapConfiguration;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.CompositeConfiguration;
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,8 +147,6 @@ public class ClientConfiguration {
 
   private ClientConfiguration(List<? extends Configuration> configs) {
     compositeConfig = new CompositeConfiguration(configs);
-    // Don't do list interpolation; the items in configs should already have set this
-    compositeConfig.setListDelimiter('\0');
   }
 
   /**
@@ -193,11 +193,11 @@ public class ClientConfiguration {
    * @since 1.9.0
    */
   public static ClientConfiguration fromFile(File file) {
-    PropertiesConfiguration props = new PropertiesConfiguration();
-    props.setListDelimiter('\0');
+    FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+        new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
+            .configure(new Parameters().properties().setFile(file));
     try {
-      props.load(file);
-      return new ClientConfiguration(Collections.singletonList(props));
+      return new ClientConfiguration(Collections.singletonList(propsBuilder.getConfiguration()));
     } catch (ConfigurationException e) {
       throw new IllegalArgumentException("Bad configuration file: " + file, e);
     }
@@ -213,7 +213,6 @@ public class ClientConfiguration {
    */
   public static ClientConfiguration fromMap(Map<String,String> properties) {
     MapConfiguration mapConf = new MapConfiguration(properties);
-    mapConf.setListDelimiter('\0');
     return new ClientConfiguration(Collections.singletonList(mapConf));
   }
 
@@ -224,15 +223,15 @@ public class ClientConfiguration {
     for (String path : paths) {
       File conf = new File(path);
       if (conf.isFile() && conf.canRead()) {
-        PropertiesConfiguration props = new PropertiesConfiguration();
-        props.setListDelimiter('\0');
+        FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+            new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
+                .configure(new Parameters().properties().setFile(conf));
         try {
-          props.load(conf);
+          configs.add(propsBuilder.getConfiguration());
           log.info("Loaded client configuration file {}", conf);
         } catch (ConfigurationException e) {
           throw new IllegalStateException("Error loading client configuration file " + conf, e);
         }
-        configs.add(props);
       }
     }
     // We couldn't find the client configuration anywhere
@@ -245,9 +244,8 @@ public class ClientConfiguration {
 
   public static ClientConfiguration deserialize(String serializedConfig) {
     PropertiesConfiguration propConfig = new PropertiesConfiguration();
-    propConfig.setListDelimiter('\0');
     try {
-      propConfig.load(new StringReader(serializedConfig));
+      propConfig.getLayout().load(propConfig, new StringReader(serializedConfig));
     } catch (ConfigurationException e) {
       throw new IllegalArgumentException(
           "Error deserializing client configuration: " + serializedConfig, e);
@@ -306,7 +304,7 @@ public class ClientConfiguration {
     propConfig.copy(compositeConfig);
     StringWriter writer = new StringWriter();
     try {
-      propConfig.save(writer);
+      propConfig.getLayout().save(propConfig, writer);
     } catch (ConfigurationException e) {
       // this should never happen
       throw new IllegalStateException(e);

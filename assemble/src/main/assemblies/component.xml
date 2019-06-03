@@ -44,9 +44,9 @@
         <include>com.google.protobuf:protobuf-java</include>
         <include>com.sun.xml.bind:jaxb-core</include>
         <include>com.sun.xml.bind:jaxb-impl</include>
+        <include>commons-beanutils:commons-beanutils</include>
         <include>commons-cli:commons-cli</include>
         <include>commons-codec:commons-codec</include>
-        <include>commons-configuration:commons-configuration</include>
         <include>commons-io:commons-io</include>
         <include>commons-lang:commons-lang</include>
         <include>commons-logging:commons-logging</include>
@@ -60,7 +60,10 @@
         <include>jline:jline</include>
         <include>log4j:log4j</include>
         <include>org.apache.commons:commons-collections4</include>
+        <include>org.apache.commons:commons-configuration2</include>
+        <include>org.apache.commons:commons-lang3</include>
         <include>org.apache.commons:commons-math3</include>
+        <include>org.apache.commons:commons-text</include>
         <include>org.apache.commons:commons-vfs2</include>
         <include>org.apache.htrace:htrace-core4</include>
         <include>org.apache.htrace:htrace-core</include>

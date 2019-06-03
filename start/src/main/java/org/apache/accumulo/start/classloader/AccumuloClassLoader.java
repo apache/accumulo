@@ -28,7 +28,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,10 +83,10 @@ public class AccumuloClassLoader {
       return defaultValue;
     }
     try {
-      PropertiesConfiguration config = new PropertiesConfiguration();
-      config.setDelimiterParsingDisabled(true);
-      config.setThrowExceptionOnMissing(false);
-      config.load(accumuloConfigUrl);
+      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
+              .configure(new Parameters().properties().setURL(accumuloConfigUrl));
+      PropertiesConfiguration config = propsBuilder.getConfiguration();
       String value = config.getString(propertyName);
       if (value != null)
         return value;

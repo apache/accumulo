@@ -45,7 +45,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.junit.AfterClass;
@@ -233,8 +235,10 @@ public class MiniAccumuloClusterTest {
   public void testRandomPorts() throws Exception {
     File confDir = new File(testDir, "conf");
     File accumuloProps = new File(confDir, "accumulo.properties");
-    PropertiesConfiguration conf = new PropertiesConfiguration();
-    conf.load(accumuloProps);
+    FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
+        new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
+            .configure(new Parameters().properties().setFile(accumuloProps));
+    PropertiesConfiguration conf = propsBuilder.getConfiguration();
     for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,
         Property.MONITOR_LOG4J_PORT, Property.MASTER_CLIENTPORT, Property.TRACE_PORT,
         Property.GC_PORT}) {

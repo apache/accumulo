@@ -55,10 +55,6 @@
       <artifactId>commons-cli</artifactId>
     </dependency>
     <dependency>
-      <groupId>commons-configuration</groupId>
-      <artifactId>commons-configuration</artifactId>
-    </dependency>
-    <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
     </dependency>
@@ -126,6 +122,10 @@
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-tserver</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-configuration2</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>

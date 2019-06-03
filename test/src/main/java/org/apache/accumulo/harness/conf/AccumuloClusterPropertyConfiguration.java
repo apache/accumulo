@@ -50,10 +50,9 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static AccumuloClusterPropertyConfiguration get() {
-    Properties systemProperties = System.getProperties();
 
     String clusterTypeValue = null, clientConf = null;
-    String propertyFile = systemProperties.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
+    String propertyFile = System.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
 
     if (propertyFile != null) {
       // Check for properties provided in a file
@@ -91,11 +90,11 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
     }
 
     if (clusterTypeValue == null) {
-      clusterTypeValue = systemProperties.getProperty(ACCUMULO_CLUSTER_TYPE_KEY);
+      clusterTypeValue = System.getProperty(ACCUMULO_CLUSTER_TYPE_KEY);
     }
 
     if (clientConf == null) {
-      clientConf = systemProperties.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
+      clientConf = System.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
     }
 
     ClusterType type;
@@ -147,9 +146,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
     Map<String,String> configuration = new HashMap<>();
 
-    Properties systemProperties = System.getProperties();
-
-    String propertyFile = systemProperties.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
+    String propertyFile = System.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
 
     // Check for properties provided in a file
     if (propertyFile != null) {
@@ -181,7 +178,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
     }
 
     // Load any properties specified directly in the system properties
-    loadFromProperties(prefix, systemProperties, configuration);
+    loadFromProperties(prefix, System.getProperties(), configuration);
 
     return configuration;
   }
