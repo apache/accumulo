@@ -33,6 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.powermock.core.classloader.MockClassLoader;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.core.classloader.annotations.SuppressStaticInitializationFor;
@@ -62,7 +63,7 @@ public class AccumuloVFSClassLoaderTest {
   }
 
   /*
-   * Test that if enabled, but not configured, that the code creates the 2nd level classloader
+   * Test that the default (empty dynamic class paths) does not create the 2nd level loader
    */
   @Test
   public void testDefaultConfig() throws Exception {
@@ -74,6 +75,30 @@ public class AccumuloVFSClassLoaderTest {
     FileWriter out = new FileWriter(conf);
     out.append("general.classpaths=\n");
     out.append("general.vfs.classpaths=\n");
+    out.close();
+
+    Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
+    ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
+    assertTrue((acl instanceof URLClassLoader));
+    // no second level means the parent is the system loader (in this case, PowerMock's loader)
+    assertTrue((acl.getParent() instanceof MockClassLoader));
+  }
+
+  /*
+   * Test that if configured with dynamic class paths, that the code creates the 2nd level loader
+   */
+  @Test
+  public void testDynamicConfig() throws Exception {
+
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader",
+        (AccumuloReloadingVFSClassLoader) null);
+
+    File conf = folder1.newFile("accumulo.properties");
+    FileWriter out = new FileWriter(conf);
+    out.append("general.classpaths=\n");
+    out.append("general.vfs.classpaths=\n");
+    out.append("general.dynamic.classpaths=" + System.getProperty("user.dir") + "\n");
     out.close();
 
     Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());
@@ -101,6 +126,7 @@ public class AccumuloVFSClassLoaderTest {
     out.append("general.classpaths=\n");
     out.append(
         "general.vfs.classpaths=" + new File(folder1.getRoot(), "HelloWorld.jar").toURI() + "\n");
+    out.append("general.dynamic.classpaths=" + System.getProperty("user.dir") + "\n");
     out.close();
 
     Whitebox.setInternalState(AccumuloClassLoader.class, "accumuloConfigUrl", conf.toURI().toURL());

@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -39,14 +38,10 @@ import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.commons.configuration2.MapConfiguration;
-import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public enum Property {
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
@@ -185,7 +180,10 @@ public enum Property {
           + "in jars or classes will force a reload of the classloader. Built-in dynamic class "
           + "loading will be removed in a future version. If this is needed, consider overriding "
           + "the Java system class loader with one that has this feature "
-          + "(https://docs.oracle.com/javase/8/docs/api/java/lang/ClassLoader.html#getSystemClassLoader--)."),
+          + "(https://docs.oracle.com/javase/8/docs/api/java/lang/ClassLoader.html#getSystemClassLoader--). "
+          + "Additionally, this property no longer does property interpolation of environment "
+          + "variables, such as '$ACCUMULO_HOME'. Use commons-configuration syntax,"
+          + "'${env:ACCUMULO_HOME}' instead."),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION,
       "Time to wait on I/O for simple, short RPC calls"),
   @Experimental
@@ -820,14 +818,11 @@ public enum Property {
           + " `general.vfs.context.classpath.<name>.delegation=post`, where `<name>` is"
           + " your context name. If delegation is not specified, it defaults to loading"
           + " from parent classloader first."),
-  @Interpolated
   VFS_CLASSLOADER_CACHE_DIR(AccumuloVFSClassLoader.VFS_CACHE_DIR,
-      "${java.io.tmpdir}" + File.separator + "accumulo-vfs-cache-${user.name}",
-      PropertyType.ABSOLUTEPATH,
+      File.separator + "tmp" + File.separator + "accumulo-vfs-cache", PropertyType.ABSOLUTEPATH,
       "Directory to use for the vfs cache. The cache will keep a soft reference"
           + " to all of the classes loaded in the VM. This should be on local disk on"
-          + " each node with sufficient space. It defaults to"
-          + " ${java.io.tmpdir}/accumulo-vfs-cache-${user.name}"),
+          + " each node with sufficient space."),
 
   // General properties for configuring replication
   REPLICATION_PREFIX("replication.", null, PropertyType.PREFIX,
@@ -928,14 +923,11 @@ public enum Property {
 
   private String key;
   private String defaultValue;
-  private String computedDefaultValue;
   private String description;
   private boolean annotationsComputed = false;
-  private boolean defaultValueComputed = false;
   private boolean isSensitive;
   private boolean isDeprecated;
   private boolean isExperimental;
-  private boolean isInterpolated;
   private Property replacedBy = null;
   private PropertyType type;
 
@@ -961,47 +953,13 @@ public enum Property {
   }
 
   /**
-   * Gets the default value for this property exactly as provided in its definition (i.e., without
-   * interpolation or conversion to absolute paths).
-   *
-   * @return raw default value
-   */
-  public String getRawDefaultValue() {
-    return this.defaultValue;
-  }
-
-  /**
    * Gets the default value for this property. System properties are interpolated into the value if
    * necessary.
    *
    * @return default value
    */
   public String getDefaultValue() {
-    Preconditions.checkState(defaultValueComputed,
-        "precomputeDefaultValue() must be called before calling this method");
-    return computedDefaultValue;
-  }
-
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "code runs in same security context as user who providing the file")
-  private void precomputeDefaultValue() {
-    String v;
-    if (isInterpolated()) {
-      PropertiesConfiguration pconf = new PropertiesConfiguration();
-      Properties systemProperties = System.getProperties();
-      synchronized (systemProperties) {
-        pconf.append(new MapConfiguration(systemProperties));
-      }
-      pconf.addProperty("hack_default_value", this.defaultValue);
-      v = pconf.getString("hack_default_value");
-    } else {
-      v = getRawDefaultValue();
-    }
-    if (this.type == PropertyType.ABSOLUTEPATH && !(v.trim().equals("")))
-      v = new File(v).getAbsolutePath();
-
-    computedDefaultValue = v;
-    defaultValueComputed = true;
+    return this.defaultValue;
   }
 
   /**
@@ -1020,12 +978,6 @@ public enum Property {
    */
   public String getDescription() {
     return this.description;
-  }
-
-  private boolean isInterpolated() {
-    Preconditions.checkState(annotationsComputed,
-        "precomputeAnnotations() must be called before calling this method");
-    return isInterpolated;
   }
 
   /**
@@ -1074,8 +1026,6 @@ public enum Property {
         hasAnnotation(Deprecated.class) || hasPrefixWithAnnotation(getKey(), Deprecated.class);
     isExperimental =
         hasAnnotation(Experimental.class) || hasPrefixWithAnnotation(getKey(), Experimental.class);
-    isInterpolated =
-        hasAnnotation(Interpolated.class) || hasPrefixWithAnnotation(getKey(), Interpolated.class);
     if (hasAnnotation(ReplacedBy.class)) {
       ReplacedBy rb = getAnnotation(ReplacedBy.class);
       if (rb != null) {
@@ -1112,9 +1062,11 @@ public enum Property {
   private <T extends Annotation> boolean hasAnnotation(Class<T> annotationType) {
     Logger log = LoggerFactory.getLogger(getClass());
     try {
-      for (Annotation a : getClass().getField(name()).getAnnotations())
-        if (annotationType.isInstance(a))
+      for (Annotation a : getClass().getField(name()).getAnnotations()) {
+        if (annotationType.isInstance(a)) {
           return true;
+        }
+      }
     } catch (SecurityException | NoSuchFieldException e) {
       log.error("{}", e.getMessage(), e);
     }
@@ -1157,8 +1109,9 @@ public enum Property {
 
   private static boolean isKeyValidlyPrefixed(String key) {
     for (String prefix : validPrefixes) {
-      if (key.startsWith(prefix))
+      if (key.startsWith(prefix)) {
         return true;
+      }
     }
 
     return false;
@@ -1351,7 +1304,6 @@ public enum Property {
     // order is very important here the following code relies on the maps and sets populated above
     for (Property p : Property.values()) {
       p.precomputeAnnotations();
-      p.precomputeDefaultValue();
     }
   }
 }

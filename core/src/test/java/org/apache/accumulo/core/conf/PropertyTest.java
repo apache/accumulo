@@ -22,7 +22,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -40,9 +39,11 @@ public class PropertyTest {
   @Test
   public void testProperties() {
     HashSet<String> validPrefixes = new HashSet<>();
-    for (Property prop : Property.values())
-      if (prop.getType().equals(PropertyType.PREFIX))
+    for (Property prop : Property.values()) {
+      if (prop.getType().equals(PropertyType.PREFIX)) {
         validPrefixes.add(prop.getKey());
+      }
+    }
 
     HashSet<String> propertyNames = new HashSet<>();
     for (Property prop : Property.values()) {
@@ -63,11 +64,12 @@ public class PropertyTest {
 
       // make sure property starts with valid prefix
       boolean containsValidPrefix = false;
-      for (String pre : validPrefixes)
+      for (String pre : validPrefixes) {
         if (prop.getKey().startsWith(pre)) {
           containsValidPrefix = true;
           break;
         }
+      }
       assertTrue("Invalid prefix on prop " + prop, containsValidPrefix);
 
       // make sure properties aren't duplicate
@@ -81,24 +83,14 @@ public class PropertyTest {
   @Test
   public void testPorts() {
     HashSet<Integer> usedPorts = new HashSet<>();
-    for (Property prop : Property.values())
+    for (Property prop : Property.values()) {
       if (prop.getType().equals(PropertyType.PORT)) {
         int port = Integer.parseInt(prop.getDefaultValue());
         assertFalse("Port already in use: " + port, usedPorts.contains(port));
         usedPorts.add(port);
         assertTrue("Port out of range of valid ports: " + port, port > 1023 && port < 65536);
       }
-  }
-
-  @Test
-  public void testRawDefaultValues() {
-    AccumuloConfiguration conf = DefaultConfiguration.getInstance();
-    assertEquals("${java.io.tmpdir}" + File.separator + "accumulo-vfs-cache-${user.name}",
-        Property.VFS_CLASSLOADER_CACHE_DIR.getRawDefaultValue());
-    assertEquals(
-        new File(System.getProperty("java.io.tmpdir"),
-            "accumulo-vfs-cache-" + System.getProperty("user.name")).getAbsolutePath(),
-        conf.get(Property.VFS_CLASSLOADER_CACHE_DIR));
+    }
   }
 
   // This test verifies all "sensitive" properties are properly marked as sensitive

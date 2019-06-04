@@ -32,7 +32,6 @@ import org.apache.accumulo.core.constraints.VisibilityConstraint;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Mutation;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class VisibilityConstraintTest {
@@ -96,10 +95,4 @@ public class VisibilityConstraintTest {
     assertEquals("unauthorized", ENOAUTH, vc.check(env, mutation));
   }
 
-  @Test
-  @Ignore
-  public void testMalformedVisibility() {
-    // TODO: ACCUMULO-1006 Should test for returning error code 1, but not sure how since
-    // ColumnVisibility won't let us construct a bad one in the first place
-  }
 }

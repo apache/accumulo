@@ -18,10 +18,6 @@ package org.apache.accumulo.core;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-
 public class Constants {
 
   public static final String VERSION = FilteredConstants.VERSION;
@@ -118,10 +114,6 @@ public class Constants {
   public static final String EXPORT_TABLE_CONFIG_FILE = "table_config.txt";
   public static final String EXPORT_FILE = "exportMetadata.zip";
   public static final String EXPORT_INFO_FILE = "accumulo_export_info.txt";
-
-  // Variables that will be substituted with environment vars in PropertyType.PATH values
-  public static final Collection<String> PATH_PROPERTY_ENV_VARS =
-      Collections.unmodifiableCollection(Arrays.asList("ACCUMULO_HOME", "ACCUMULO_CONF_DIR"));
 
   public static final String HDFS_TABLES_DIR = "/tables";
 

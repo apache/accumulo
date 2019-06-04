@@ -112,14 +112,6 @@
       <fileMode>0755</fileMode>
     </fileSet>
     <fileSet>
-      <directory>./</directory>
-      <outputDirectory>lib/ext</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <excludes>
-        <exclude>*/**</exclude>
-      </excludes>
-    </fileSet>
-    <fileSet>
       <directory>conf</directory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
