@@ -16,11 +16,11 @@
  */
 package org.apache.accumulo.tserver;
 
+import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.powermock.api.easymock.PowerMock.createMock;
-import static org.powermock.api.easymock.PowerMock.replay;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;

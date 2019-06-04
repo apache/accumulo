@@ -110,7 +110,6 @@ public class TabletTimeTest {
   }
 
   @Test
-  @org.junit.Ignore
   public void testMaxMetadataTime_Null3() {
     assertNull(TabletTime.maxMetadataTime(null, null));
   }

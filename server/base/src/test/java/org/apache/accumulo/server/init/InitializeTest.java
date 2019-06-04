@@ -34,7 +34,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -94,7 +93,7 @@ public class InitializeTest {
     expect(zoo.exists("/")).andReturn(false);
     replay(zoo);
 
-    assertFalse(Initialize.checkInit(conf, fs, sconf, conf));
+    assertFalse(Initialize.checkInit(fs, sconf, conf));
   }
 
   @SuppressWarnings("deprecation")
@@ -109,26 +108,7 @@ public class InitializeTest {
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
     replay(fs);
 
-    assertFalse(Initialize.checkInit(conf, fs, sconf, conf));
-  }
-
-  // Cannot test, need to mock static FileSystem.getDefaultUri()
-  @SuppressWarnings("deprecation")
-  @Ignore
-  @Test
-  public void testCheckInit_AlreadyInit_DefaultUri() throws Exception {
-    expect(sconf.get(Property.INSTANCE_DFS_URI)).andReturn("").anyTimes();
-    expect(sconf.get(Property.INSTANCE_DFS_DIR)).andReturn("/bar");
-    expect(sconf.get(Property.INSTANCE_SECRET))
-        .andReturn(Property.INSTANCE_SECRET.getDefaultValue());
-    replay(sconf);
-    expect(zoo.exists("/")).andReturn(true);
-    replay(zoo);
-    // expect(fs.getUri()).andReturn(new URI("hdfs://default"));
-    expect(fs.exists(anyObject(Path.class))).andReturn(true);
-    replay(fs);
-
-    assertFalse(Initialize.checkInit(conf, fs, sconf, conf));
+    assertFalse(Initialize.checkInit(fs, sconf, conf));
   }
 
   @SuppressWarnings("deprecation")
@@ -144,7 +124,7 @@ public class InitializeTest {
     expect(fs.exists(anyObject(Path.class))).andThrow(new IOException());
     replay(fs);
 
-    Initialize.checkInit(conf, fs, sconf, conf);
+    Initialize.checkInit(fs, sconf, conf);
   }
 
   @SuppressWarnings("deprecation")
@@ -160,6 +140,6 @@ public class InitializeTest {
     expect(fs.exists(anyObject(Path.class))).andReturn(false);
     replay(fs);
 
-    assertTrue(Initialize.checkInit(conf, fs, sconf, conf));
+    assertTrue(Initialize.checkInit(fs, sconf, conf));
   }
 }

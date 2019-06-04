@@ -27,13 +27,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
@@ -64,13 +60,10 @@ import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -503,54 +496,12 @@ public class InMemoryMapTest {
     testAndCallNext(skvi1, "r1", "foo:cq", 3, "v1");
   }
 
-  private static final Logger log = LoggerFactory.getLogger(InMemoryMapTest.class);
-
   static long sum(long[] counts) {
     long result = 0;
     for (long count : counts) {
       result += count;
     }
     return result;
-  }
-
-  // - hard to get this timing test to run well on apache build machines
-  @Test
-  @Ignore
-  public void parallelWriteSpeed() throws Exception {
-    List<Double> timings = new ArrayList<>();
-    for (int threads : new int[] {1, 2, 16, /* 64, 256 */}) {
-      final long now = System.currentTimeMillis();
-      final long[] counts = new long[threads];
-      final InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
-      ExecutorService e = Executors.newFixedThreadPool(threads);
-      for (int j = 0; j < threads; j++) {
-        final int threadId = j;
-        e.execute(() -> {
-          while (System.currentTimeMillis() - now < 1000) {
-            for (int k = 0; k < 1000; k++) {
-              Mutation m = new Mutation("row");
-              m.put("cf", "cq", new Value("v".getBytes()));
-              List<Mutation> mutations = Collections.singletonList(m);
-              imm.mutate(mutations, 1);
-              counts[threadId]++;
-            }
-          }
-        });
-      }
-      e.shutdown();
-      e.awaitTermination(10, TimeUnit.SECONDS);
-      imm.delete(10000);
-      double mutationsPerSecond = sum(counts) / ((System.currentTimeMillis() - now) / 1000.);
-      timings.add(mutationsPerSecond);
-      log.info("{}",
-          String.format("%.1f mutations per second with %d threads", mutationsPerSecond, threads));
-    }
-    // verify that more threads doesn't go a lot faster, or a lot slower than one thread
-    for (Double timing : timings) {
-      double ratioFirst = timings.get(0) / timing;
-      assertTrue(ratioFirst < 3);
-      assertTrue(ratioFirst > 0.3);
-    }
   }
 
   @Test
