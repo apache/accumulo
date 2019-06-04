@@ -21,7 +21,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
@@ -147,27 +146,18 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       }
       String scheme = "http://";
       if (getCluster() instanceof StandaloneAccumuloCluster) {
-        StandaloneAccumuloCluster standaloneCluster = (StandaloneAccumuloCluster) getCluster();
-        File accumuloProps =
-            new File(standaloneCluster.getServerAccumuloConfDir(), "accumulo.properties");
-        if (accumuloProps.isFile()) {
-          Configuration conf = new Configuration(false);
-          conf.addResource(new Path(accumuloProps.toURI()));
-          String monitorSslKeystore = conf.get(Property.MONITOR_SSL_KEYSTORE.getKey());
-          if (monitorSslKeystore != null) {
-            log.info("Using HTTPS since monitor ssl keystore configuration was observed in {}",
-                accumuloProps);
-            scheme = "https://";
-            SSLContext ctx = SSLContext.getInstance("TLSv1.2");
-            TrustManager[] tm = {new TestTrustManager()};
-            ctx.init(new KeyManager[0], tm, new SecureRandom());
-            SSLContext.setDefault(ctx);
-            HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
-            HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
-          }
-        } else {
-          log.info("{} is not a normal file, not checking for monitor running with SSL",
-              accumuloProps);
+        String monitorSslKeystore =
+            getCluster().getSiteConfiguration().get(Property.MONITOR_SSL_KEYSTORE.getKey());
+        if (monitorSslKeystore != null && !monitorSslKeystore.isEmpty()) {
+          log.info(
+              "Using HTTPS since monitor ssl keystore configuration was observed in accumulo configuration");
+          scheme = "https://";
+          SSLContext ctx = SSLContext.getInstance("TLSv1.2");
+          TrustManager[] tm = {new TestTrustManager()};
+          ctx.init(new KeyManager[0], tm, new SecureRandom());
+          SSLContext.setDefault(ctx);
+          HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
+          HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
         }
       }
       URL url = new URL(scheme + monitorLocation);

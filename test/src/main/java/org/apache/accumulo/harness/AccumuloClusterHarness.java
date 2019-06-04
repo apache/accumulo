@@ -142,14 +142,19 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
         standaloneCluster.setAccumuloHome(conf.getAccumuloHome());
         standaloneCluster.setClientAccumuloConfDir(conf.getClientAccumuloConfDir());
         standaloneCluster.setHadoopConfDir(conf.getHadoopConfDir());
-        standaloneCluster.setServerCmdPrefix(conf.getServerCmdPrefix());
-        standaloneCluster.setClientCmdPrefix(conf.getClientCmdPrefix());
+        // If these were not provided then ensure they are not null
+        standaloneCluster
+            .setServerCmdPrefix(conf.getServerCmdPrefix() == null ? "" : conf.getServerCmdPrefix());
+        standaloneCluster
+            .setClientCmdPrefix(conf.getClientCmdPrefix() == null ? "" : conf.getClientCmdPrefix());
         cluster = standaloneCluster;
 
         // For SASL, we need to get the Hadoop configuration files as well otherwise UGI will log in
         // as SIMPLE instead of KERBEROS
-        Configuration hadoopConfiguration = standaloneCluster.getHadoopConfiguration();
         if (saslEnabled()) {
+          // Note that getting the Hadoop config creates a servercontext which wacks up the
+          // AccumuloClientIT test so if SASL is enabled then the testclose() will fail
+          Configuration hadoopConfiguration = standaloneCluster.getHadoopConfiguration();
           UserGroupInformation.setConfiguration(hadoopConfiguration);
           // Login as the admin user to start the tests
           UserGroupInformation.loginUserFromKeytab(conf.getAdminPrincipal(),

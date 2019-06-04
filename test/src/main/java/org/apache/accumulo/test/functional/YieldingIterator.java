@@ -118,6 +118,10 @@ public class YieldingIterator extends WrappingIterator {
             .yield(range.getStartKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME));
         log.info("end YieldingIterator.next: yielded at " + range.getStartKey());
       }
+    } else {
+      // must be a new scan so re-initialize the counters
+      log.info("reseting counters");
+      resetCounters();
     }
 
     // if not yielding, then simply pass on the call to the source
@@ -131,5 +135,13 @@ public class YieldingIterator extends WrappingIterator {
   @Override
   public void enableYielding(YieldCallback<Key> yield) {
     this.yield = Optional.of(yield);
+  }
+
+  protected void resetCounters() {
+    yieldNexts.set(0);
+    yieldSeeks.set(0);
+    rebuilds.set(0);
+    yieldNextKey.set(false);
+    yieldSeekKey.set(false);
   }
 }
