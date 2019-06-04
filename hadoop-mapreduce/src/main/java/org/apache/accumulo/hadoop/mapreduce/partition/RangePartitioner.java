@@ -94,7 +94,6 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
       File tempFile = new File(CUTFILE_KEY);
       if (tempFile.exists()) {
         path = new Path(CUTFILE_KEY);
-        // System.out.println("Cutpoint file hdfs fragement found " + CUTFILE_KEY);
       } else {
         path = new Path(cutFileName);
       }
@@ -108,7 +107,6 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
       try (Scanner in = new Scanner(inputStream)) {
         while (in.hasNextLine()) {
           cutPoints.add(new Text(Base64.getDecoder().decode(in.nextLine())));
-          System.out.println("Adding a cut point");
         }
       }
 
