@@ -66,7 +66,16 @@ public interface TableOperations {
   boolean exists(String tableName);
 
   /**
-   * Create a table with no special configuration
+   * Create a table with no special configuration. A safe way to ignore tables that do something
+   * like the following:
+   *
+   * <pre>
+   * try {
+   *   connector.tableOperations().create("mynamespace.mytable");
+   * } catch (TableExistsException e) {
+   *   // ignore or log
+   * }
+   * </pre>
    *
    * @param tableName
    *          the name of the table
@@ -131,6 +140,17 @@ public interface TableOperations {
   }
 
   /**
+   * Create a table with specified configuration. A safe way to ignore tables that do exist would be
+   * to do something like the following:
+   *
+   * <pre>
+   * try {
+   *   connector.tableOperations().create("mynamespace.mytable");
+   * } catch (TableExistsException e) {
+   *   // ignore or log
+   * }
+   * </pre>
+   *
    * @param tableName
    *          the name of the table
    * @param ntc

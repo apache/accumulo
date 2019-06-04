@@ -84,7 +84,16 @@ public interface NamespaceOperations {
 
   /**
    * Create an empty namespace with no initial configuration. Valid names for a namespace contain
-   * letters, numbers, and the underscore character.
+   * letters, numbers, and the underscore character. A safe way to ignore namespaces that do exist
+   * would be to do something like the following:
+   *
+   * <pre>
+   * try {
+   *   connector.namespaceOperations().create("mynamespace");
+   * } catch (NamespaceExistsException e) {
+   *   // ignore or log
+   * }
+   * </pre>
    *
    * @param namespace
    *          the name of the namespace
