@@ -32,7 +32,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.Pair;
@@ -325,27 +324,25 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Gets a property of type {@link PropertyType#PATH}, interpreting the value properly, replacing
-   * supported environment variables.
+   * Gets a property of type {@link PropertyType#PATH}.
    *
    * @param property
    *          property to get
    * @return property value
    * @throws IllegalArgumentException
    *           if the property is of the wrong type
-   * @see Constants#PATH_PROPERTY_ENV_VARS
    */
   public String getPath(Property property) {
     checkType(property, PropertyType.PATH);
 
     String pathString = get(property);
-    if (pathString == null)
+    if (pathString == null) {
       return null;
+    }
 
-    for (String replaceableEnvVar : Constants.PATH_PROPERTY_ENV_VARS) {
-      String envValue = System.getenv(replaceableEnvVar);
-      if (envValue != null)
-        pathString = pathString.replace("$" + replaceableEnvVar, envValue);
+    if (pathString.contains("$ACCUMULO_")) {
+      throw new IllegalArgumentException("Environment variable interpolation not supported here. "
+          + "Consider using '${env:ACCUMULO_HOME}' or similar in your configuration file.");
     }
 
     return pathString;

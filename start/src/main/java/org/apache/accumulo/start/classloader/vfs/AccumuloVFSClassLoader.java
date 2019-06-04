@@ -86,7 +86,7 @@ public class AccumuloVFSClassLoader {
 
   public static final String DYNAMIC_CLASSPATH_PROPERTY_NAME = "general.dynamic.classpaths";
 
-  public static final String DEFAULT_DYNAMIC_CLASSPATH_VALUE = "$ACCUMULO_HOME/lib/ext/[^.].*.jar";
+  public static final String DEFAULT_DYNAMIC_CLASSPATH_VALUE = "";
 
   public static final String VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY = "general.vfs.classpaths";
 
@@ -126,8 +126,9 @@ public class AccumuloVFSClassLoader {
 
   static FileObject[] resolve(FileSystemManager vfs, String uris,
       ArrayList<FileObject> pathsToMonitor) throws FileSystemException {
-    if (uris == null)
+    if (uris == null) {
       return new FileObject[0];
+    }
 
     ArrayList<FileObject> classpath = new ArrayList<>();
 
@@ -137,8 +138,9 @@ public class AccumuloVFSClassLoader {
 
       path = path.trim();
 
-      if (path.equals(""))
+      if (path.equals("")) {
         continue;
+      }
 
       path = AccumuloClassLoader.replaceEnvVars(path, System.getenv());
 
@@ -188,8 +190,9 @@ public class AccumuloVFSClassLoader {
 
     ReloadingClassLoader wrapper = () -> parent;
 
-    if (dynamicCPath == null || dynamicCPath.equals(""))
+    if (dynamicCPath == null || dynamicCPath.equals("")) {
       return wrapper;
+    }
 
     // TODO monitor time for lib/ext was 1 sec... should this be configurable? - ACCUMULO-1301
     return new AccumuloReloadingVFSClassLoader(dynamicCPath, generateVfs(), wrapper, 1000, true);
@@ -316,13 +319,16 @@ public class AccumuloVFSClassLoader {
   }
 
   private static void printJar(Printer out, String jarPath, boolean debug, boolean sawFirst) {
-    if (debug)
+    if (debug) {
       out.print("\t");
-    if (!debug && sawFirst)
+    }
+    if (!debug && sawFirst) {
       out.print(":");
+    }
     out.print(jarPath);
-    if (debug)
+    if (debug) {
       out.print("\n");
+    }
   }
 
   public static void printClassPath(Printer out, boolean debug) {
@@ -377,23 +383,26 @@ public class AccumuloVFSClassLoader {
 
         boolean sawFirst = false;
         if (classLoader instanceof URLClassLoader) {
-          if (debug)
+          if (debug) {
             out.print("Level " + classLoaderDescription + " URL classpath items are:\n");
+          }
           for (URL u : ((URLClassLoader) classLoader).getURLs()) {
             printJar(out, u.getFile(), debug, sawFirst);
             sawFirst = true;
           }
         } else if (classLoader instanceof VFSClassLoader) {
-          if (debug)
+          if (debug) {
             out.print("Level " + classLoaderDescription + " VFS classpaths items are:\n");
+          }
           VFSClassLoader vcl = (VFSClassLoader) classLoader;
           for (FileObject f : vcl.getFileObjects()) {
             printJar(out, f.getURL().getFile(), debug, sawFirst);
             sawFirst = true;
           }
         } else {
-          if (debug)
+          if (debug) {
             out.print("Unknown classloader configuration " + classLoader.getClass() + "\n");
+          }
         }
       }
       out.print("\n");

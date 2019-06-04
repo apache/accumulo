@@ -91,7 +91,7 @@ class ConfigurationDocGen {
         (depr ? "**Deprecated.** " : "") + strike(sanitize(prop.getDescription()), depr) + "<br>");
     doc.print(strike("**type:** " + prop.getType().name(), depr) + ", ");
     doc.print(strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ");
-    String defaultValue = sanitize(prop.getRawDefaultValue()).trim();
+    String defaultValue = sanitize(prop.getDefaultValue()).trim();
     if (defaultValue.length() == 0) {
       defaultValue = strike("**default value:** empty", depr);
     } else if (defaultValue.contains("\n")) {
@@ -114,8 +114,9 @@ class ConfigurationDocGen {
 
   void propertyTypeDescriptions() {
     for (PropertyType type : PropertyType.values()) {
-      if (type == PropertyType.PREFIX)
+      if (type == PropertyType.PREFIX) {
         continue;
+      }
       doc.println(
           "| " + sanitize(type.toString()) + " | " + sanitize(type.getFormatDescription()) + " |");
     }
@@ -133,10 +134,12 @@ class ConfigurationDocGen {
   }
 
   private String isZooKeeperMutable(Property prop) {
-    if (!Property.isValidZooPropertyKey(prop.getKey()))
+    if (!Property.isValidZooPropertyKey(prop.getKey())) {
       return "no";
-    if (Property.isFixedZooPropertyKey(prop))
+    }
+    if (Property.isFixedZooPropertyKey(prop)) {
       return "yes but requires restart of the " + prop.getKey().split("[.]")[0];
+    }
     return "yes";
   }
 

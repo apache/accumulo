@@ -25,7 +25,6 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.lang.math.IntRange;
 import org.apache.hadoop.fs.Path;
@@ -99,9 +98,9 @@ public enum PropertyType {
 
   PATH("path", x -> true,
       "A string that represents a filesystem path, which can be either relative"
-          + " or absolute to some directory. The filesystem depends on the property."
-          + " The following environment variables will be substituted: "
-          + Constants.PATH_PROPERTY_ENV_VARS),
+          + " or absolute to some directory. The filesystem depends on the property. "
+          + "Substitutions of the ACCUMULO_HOME environment variable can be done in the system "
+          + "config file using '${env:ACCUMULO_HOME}' or similar."),
 
   ABSOLUTEPATH("absolute path",
       x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute(),
