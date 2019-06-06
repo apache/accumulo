@@ -138,9 +138,9 @@ public interface Ample {
 
     public TabletMutator putCompactionId(long compactionId);
 
-    public TabletMutator putLocation(TServer tsi, LocationType type);
+    public TabletMutator putLocation(TServer tserver, LocationType type);
 
-    public TabletMutator deleteLocation(TServer tsi, LocationType type);
+    public TabletMutator deleteLocation(TServer tserver, LocationType type);
 
     public TabletMutator putZooLock(ZooLock zooLock);
 

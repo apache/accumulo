@@ -117,6 +117,10 @@ public class RootTabletMetadata {
     return str;
   }
 
+  /**
+   * @return a json representation of this object, use {@link #fromJson(String)} to convert the json
+   *         back to an object.
+   */
   public String toJson() {
     GSonData gd = new GSonData();
     gd.columnValues = new TreeMap<>();
@@ -133,6 +137,9 @@ public class RootTabletMetadata {
     return GSON.toJson(gd);
   }
 
+  /**
+   * Converts created by calling {@link #toJson()} back to an object.
+   */
   public static RootTabletMetadata fromJson(String json) {
     GSonData gd = GSON.fromJson(json, GSonData.class);
 
@@ -157,6 +164,10 @@ public class RootTabletMetadata {
     return rtm;
   }
 
+  /**
+   * Converts created by calling {@link #toJson()} back to an object. Assumes the json is UTF8
+   * encoded.
+   */
   public static RootTabletMetadata fromJson(byte[] bs) {
     return fromJson(new String(bs, UTF_8));
   }
