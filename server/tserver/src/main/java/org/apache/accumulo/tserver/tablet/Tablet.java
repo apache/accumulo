@@ -2395,6 +2395,10 @@ public class Tablet implements TabletCommitter {
     return this.queryCount;
   }
 
+  public long totalIngest() {
+    return this.ingestCount;
+  }
+
   // synchronized?
   public void updateRates(long now) {
     queryRate.update(now, queryCount);

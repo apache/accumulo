@@ -40,6 +40,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
@@ -358,17 +359,60 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     this.logSorter = new LogSorter(instance, fs, aconf);
     this.replWorker = new ReplicationWorker(this, fs);
     this.statsKeeper = new TabletStatsKeeper();
+    final int numTopTabletsToLog = aconf.getCount(Property.TSERV_LOG_TOP_TABLETS_COUNT);
+    final boolean logTopTablets = numTopTabletsToLog > 0;
     SimpleTimer.getInstance(aconf).schedule(new Runnable() {
       @Override
       public void run() {
+
+        Comparator<Pair<String,Long>> topTabletComparator = new Comparator<Pair<String,Long>>() {
+          @Override
+          public int compare(Pair<String,Long> first, Pair<String,Long> second) {
+            return second.getSecond().compareTo(first.getSecond());
+          }
+        };
+        PriorityQueue<Pair<String,Long>> topTabletsByIngestCount =
+            new PriorityQueue<>(numTopTabletsToLog, topTabletComparator);
+        PriorityQueue<Pair<String,Long>> topTabletsByQueryCount =
+            new PriorityQueue<>(topTabletsByIngestCount);
         synchronized (onlineTablets) {
           long now = System.currentTimeMillis();
+          topTabletsByIngestCount.clear();
+          topTabletsByQueryCount.clear();
           for (Tablet tablet : onlineTablets.values())
             try {
               tablet.updateRates(now);
+              if (logTopTablets) {
+                addToTopTablets(tablet.totalIngest(), topTabletsByIngestCount, numTopTabletsToLog);
+                addToTopTablets(tablet.totalQueries(), topTabletsByQueryCount, numTopTabletsToLog);
+              }
             } catch (Exception ex) {
               log.error("Error updating rates for {}", tablet.getExtent(), ex);
             }
+
+          if (logTopTablets) {
+            logTopTablets(topTabletsByIngestCount, "QUERY", numTopTabletsToLog);
+            logTopTablets(topTabletsByQueryCount, "INGEST", numTopTabletsToLog);
+          }
+        }
+      }
+
+      private void addToTopTablets(long count,
+          PriorityQueue<Pair<String,Long>> topTabletsByIngestCount, int numTopTabletsToLog) {
+        if (topTabletsByIngestCount.size() < numTopTabletsToLog
+            || topTabletsByIngestCount.peek().getSecond() < count) {
+          if (topTabletsByIngestCount.size() == numTopTabletsToLog) {
+            topTabletsByIngestCount.remove();
+          }
+        }
+      }
+
+      private void logTopTablets(PriorityQueue<Pair<String,Long>> topTabletsByIngestCount,
+          String label, int numTopTabletsToLog) {
+        for (int i = 0; i < numTopTabletsToLog; i++) {
+          Pair<String,Long> pair = topTabletsByIngestCount.poll();
+          log.debug("Top {} tablet by {} count -- extent: {} count: {}", i, label, pair.getFirst(),
+              pair.getSecond());
         }
       }
     }, 5000, 5000);
