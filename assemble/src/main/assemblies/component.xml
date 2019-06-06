@@ -130,36 +130,6 @@
         <include>accumulo-client.properties</include>
       </includes>
     </fileSet>
-    <!-- Lift generated thrift proxy code into its own directory -->
-    <fileSet>
-      <directory>../proxy/target</directory>
-      <outputDirectory>lib/proxy</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>gen-cpp/**</include>
-        <include>gen-py/**</include>
-        <include>gen-rb/**</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>../proxy</directory>
-      <outputDirectory>conf/templates</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>proxy.properties</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>../proxy/src/main/thrift</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <outputDirectory>lib/proxy/thrift</outputDirectory>
-      <includes>
-        <include>*.thrift</include>
-      </includes>
-    </fileSet>
     <fileSet>
       <directory>../</directory>
       <fileMode>0644</fileMode>

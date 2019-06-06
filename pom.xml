@@ -82,7 +82,6 @@
     <module>hadoop-mapreduce</module>
     <module>iterator-test-harness</module>
     <module>minicluster</module>
-    <module>proxy</module>
     <module>server/base</module>
     <module>server/gc</module>
     <module>server/master</module>
@@ -366,11 +365,6 @@
         <artifactId>accumulo-native</artifactId>
         <version>${project.version}</version>
         <type>tar.gz</type>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-proxy</artifactId>
-        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
