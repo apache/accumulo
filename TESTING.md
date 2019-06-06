@@ -40,9 +40,8 @@ mvn clean verify -Psec-bugs -DskipTests
 
 # Integration Tests
 
-The integration tests are medium length tests but are checking for regressions that were previously seen in the codebase. 
-These tests do require more memory over what Maven itself requires. As such, it's recommended to have at
-least 3-4GB of free memory and 10GB of free disk space.
+The integration tests are medium length tests that check for regressions. These tests do require more memory over what 
+Maven itself requires. As such, it's recommended to have at least 3-4GB of free memory and 10GB of free disk space.
 
 Accumulo uses JUnit Category annotations to categorize certain integration tests based on their runtime requirements.
 The different categories are listed below.  To run a single IT use the following command. This command will run just
@@ -76,7 +75,7 @@ MiniDFSCluster, as well as starting one to many tablet servers. Most tests will 
 $ACCUMULO_HOME/test/target/mini-tests
 ```
 
-The downside of using MiniAccumuloCluster is the extra time it takes to start and stop the MAC. 
+The downside of using MiniAccumuloCluster is the extra time it takes to start and stop the MAC.
 
 These tests will run by default during the `integration-test` lifecycle phase using `mvn verify`.
 To run all the Mini tests, run:
@@ -86,13 +85,13 @@ mvn clean verify -Dspotbugs.skip
 
 ## Standalone Cluster (`StandaloneCapableClusterTests`)
 
-A standalone Accumulo cluster can also be configured for use by most tests. Not all of the integration tests are good 
+A standalone Accumulo cluster can also be configured for use by most tests. Not all of the integration tests are good
 candidates to run against a standalone Accumulo cluster, these tests will still launch a MiniAccumuloCluster for their use.
 
 These tests can be run by providing a system property.  This command will run all tests against a standalone cluster:
 
 ```bash
-mvn clean verify -Dtest=foo -Daccumulo.it.properties=/home/user/my_cluster.properties -Dfailsafe.groups=org.apache.accumulo.test.categories.StandaloneCapableClusterTests -Dspotbugs.skip 
+mvn clean verify -Dtest=foo -Daccumulo.it.properties=/home/user/my_cluster.properties -Dfailsafe.groups=org.apache.accumulo.test.categories.StandaloneCapableClusterTests -Dspotbugs.skip
 ```
 
 ### Configuration for Standalone clusters
