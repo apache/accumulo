@@ -18,6 +18,10 @@
 package org.apache.accumulo.core.summary;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -163,9 +167,8 @@ public class Gatherer {
   private Map<String,Map<String,List<TRowRange>>>
       getFilesGroupedByLocation(Predicate<String> fileSelector) {
 
-    Iterable<TabletMetadata> tmi =
-        TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow).fetchFiles()
-            .fetchLocation().fetchLast().fetchPrev().build(ctx);
+    Iterable<TabletMetadata> tmi = TabletsMetadata.builder().forTable(tableId)
+        .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build(ctx);
 
     // get a subset of files
     Map<String,List<TabletMetadata>> files = new HashMap<>();
@@ -527,8 +530,8 @@ public class Gatherer {
 
   private int countFiles() {
     // TODO use a batch scanner + iterator to parallelize counting files
-    return TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow).fetchFiles()
-        .fetchPrev().build(ctx).stream().mapToInt(tm -> tm.getFiles().size()).sum();
+    return TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow)
+        .fetch(FILES, PREV_ROW).build(ctx).stream().mapToInt(tm -> tm.getFiles().size()).sum();
   }
 
   private class GatherRequest implements Supplier<SummaryCollection> {

@@ -42,7 +42,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.FetchedColumns;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -92,7 +92,7 @@ public class TabletMetadataTest {
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
-        EnumSet.allOf(FetchedColumns.class), true);
+        EnumSet.allOf(ColumnType.class), true);
 
     assertEquals("OK", tm.getCloned());
     assertEquals(5L, tm.getCompactId().getAsLong());
@@ -131,7 +131,7 @@ public class TabletMetadataTest {
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
-        EnumSet.allOf(FetchedColumns.class), false);
+        EnumSet.allOf(ColumnType.class), false);
 
     assertEquals(extent, tm.getExtent());
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
@@ -150,8 +150,7 @@ public class TabletMetadataTest {
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
-    TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.allOf(FetchedColumns.class),
-        false);
+    TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.allOf(ColumnType.class), false);
   }
 
   private SortedMap<Key,Value> toRowMap(Mutation mutation) {

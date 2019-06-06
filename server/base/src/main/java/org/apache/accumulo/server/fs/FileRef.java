@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.fs;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -26,7 +27,7 @@ import org.apache.hadoop.io.Text;
  * contain old relative file references. This class keeps track of the short file reference, so it
  * can be removed properly from the metadata tables.
  */
-public class FileRef implements Comparable<FileRef> {
+public class FileRef implements Ample.FileMeta, Comparable<FileRef> {
   private String metaReference; // something like ../2/d-00000/A00001.rf
   private Path fullReference; // something like hdfs://nn:9001/accumulo/tables/2/d-00000/A00001.rf
   private Path suffix;
@@ -50,10 +51,12 @@ public class FileRef implements Comparable<FileRef> {
     return fullReference.toString();
   }
 
+  @Override
   public Path path() {
     return fullReference;
   }
 
+  @Override
   public Text meta() {
     return new Text(metaReference);
   }

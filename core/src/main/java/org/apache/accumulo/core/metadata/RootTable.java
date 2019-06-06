@@ -33,15 +33,9 @@ public class RootTable {
   public static final String ROOT_TABLET_LOCATION = "/root_tablet";
 
   /**
-   * ZK path relative to the instance directory for information about the root tablet
+   * ZK path relative to the zookeeper node where the root tablet metadata is stored.
    */
   public static final String ZROOT_TABLET = ROOT_TABLET_LOCATION;
-  public static final String ZROOT_TABLET_LOCATION = ZROOT_TABLET + "/location";
-  public static final String ZROOT_TABLET_FUTURE_LOCATION = ZROOT_TABLET + "/future_location";
-  public static final String ZROOT_TABLET_LAST_LOCATION = ZROOT_TABLET + "/lastlocation";
-  public static final String ZROOT_TABLET_WALOGS = ZROOT_TABLET + "/walogs";
-  public static final String ZROOT_TABLET_CURRENT_LOGS = ZROOT_TABLET + "/current_logs";
-  public static final String ZROOT_TABLET_PATH = ZROOT_TABLET + "/dir";
 
   public static final KeyExtent EXTENT = new KeyExtent(ID, null, null);
   public static final KeyExtent OLD_EXTENT =

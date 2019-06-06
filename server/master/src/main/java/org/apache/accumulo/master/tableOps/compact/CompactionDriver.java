@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.master.tableOps.compact;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACT_ID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Tables;
@@ -83,8 +87,8 @@ class CompactionDriver extends MasterRepo {
     int tabletCount = 0;
 
     TabletsMetadata tablets =
-        TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow).fetchLocation()
-            .fetchPrev().fetchCompactId().build(master.getContext());
+        TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow)
+            .fetch(LOCATION, PREV_ROW, COMPACT_ID).build(master.getContext());
 
     for (TabletMetadata tablet : tablets) {
       if (tablet.getCompactId().orElse(-1) < compactId) {

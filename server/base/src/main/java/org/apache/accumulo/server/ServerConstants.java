@@ -44,10 +44,17 @@ public class ServerConstants {
   public static final String INSTANCE_ID_DIR = "instance_id";
 
   /**
+   * version (10) reflects changes to how root tablet metadata is serialized in zookeeper starting
+   * with 2.1
+   */
+  public static final int ROOT_TABLET_META_CHANGES = 10;
+
+  /**
    * version (9) reflects changes to crypto that resulted in RFiles and WALs being serialized
    * differently in version 2.0.0. Also RFiles in 2.0.0 may have summary data.
    */
   public static final int CRYPTO_CHANGES = 9;
+
   /**
    * version (8) reflects changes to RFile index (ACCUMULO-1124) AND the change to WAL tracking in
    * ZK in version 1.8.0
@@ -66,9 +73,10 @@ public class ServerConstants {
    *
    *
    */
-  public static final int DATA_VERSION = CRYPTO_CHANGES;
+  public static final int DATA_VERSION = ROOT_TABLET_META_CHANGES;
 
-  public static final Set<Integer> CAN_RUN = ImmutableSet.of(SHORTEN_RFILE_KEYS, DATA_VERSION);
+  public static final Set<Integer> CAN_RUN =
+      ImmutableSet.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, DATA_VERSION);
   public static final Set<Integer> NEEDS_UPGRADE =
       Sets.difference(CAN_RUN, ImmutableSet.of(DATA_VERSION));
 

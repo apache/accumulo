@@ -27,6 +27,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -162,7 +163,7 @@ public class VolumeUtil {
     String newLocation = switchVolume(location, FileType.TABLE,
         ServerConstants.getVolumeReplacements(context.getConfiguration(), context.getHadoopConf()));
     if (newLocation != null) {
-      MetadataTableUtil.setRootTabletDir(context, newLocation);
+      context.getAmple().mutateTablet(RootTable.EXTENT).putDir(newLocation).mutate();
       log.info("Volume replaced: {} -> {}", location, newLocation);
       return new Path(newLocation).toString();
     }
@@ -302,7 +303,7 @@ public class VolumeUtil {
 
         // only set the new location in zookeeper after a successful copy
         log.info("setting root tablet location to {}", newDir);
-        MetadataTableUtil.setRootTabletDir(context, newDir.toString());
+        context.getAmple().mutateTablet(RootTable.EXTENT).putDir(newDir.toString()).mutate();
 
         // rename the old dir to avoid confusion when someone looks at filesystem... its ok if we
         // fail here and this does not happen because the location in
@@ -313,7 +314,7 @@ public class VolumeUtil {
 
       } else {
         log.info("setting root tablet location to {}", newDir);
-        MetadataTableUtil.setRootTabletDir(context, newDir.toString());
+        context.getAmple().mutateTablet(RootTable.EXTENT).putDir(newDir.toString()).mutate();
       }
 
       return newDir.toString();

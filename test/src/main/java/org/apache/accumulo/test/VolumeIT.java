@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.test;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -45,6 +44,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -59,8 +59,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.init.Initialize;
@@ -479,10 +477,9 @@ public class VolumeIT extends ConfigurableMacBase {
       verifyVolumesUsed(client, tableNames[0], true, v2);
 
       // check that root tablet is not on volume 1
-      ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-      String zpath = ZooUtil.getRoot(client.instanceOperations().getInstanceID())
-          + RootTable.ZROOT_TABLET_PATH;
-      String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
+      String rootTabletDir =
+          ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT).getDir();
+
       assertTrue(rootTabletDir.startsWith(v2.toString()));
 
       client.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<>(),
@@ -544,10 +541,8 @@ public class VolumeIT extends ConfigurableMacBase {
     verifyVolumesUsed(client, tableNames[1], true, v8, v9);
 
     // check that root tablet is not on volume 1 or 2
-    ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-    String zpath =
-        ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + RootTable.ZROOT_TABLET_PATH;
-    String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
+    String rootTabletDir =
+        ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT).getDir();
     assertTrue(rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
 
     client.tableOperations().clone(tableNames[1], tableNames[2], true, new HashMap<>(),

@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.master.tableOps.bulkVer2;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -161,7 +162,7 @@ public class PrepBulkImport extends MasterRepo {
         BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, p -> fs.open(p))) {
 
       TabletIterFactory tabletIterFactory = startRow -> TabletsMetadata.builder()
-          .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency().fetchPrev()
+          .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency().fetch(PREV_ROW)
           .build(master.getContext()).stream().map(TabletMetadata::getExtent).iterator();
 
       checkForMerge(bulkInfo.tableId.canonical(), Iterators.transform(lmi, entry -> entry.getKey()),

@@ -120,6 +120,9 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -191,7 +194,6 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.server.master.state.TabletStateStore;
-import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.master.tableOps.UserCompactionConfig;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
@@ -2926,24 +2928,25 @@ public class TabletServer extends AbstractServer {
 
   private static Pair<Text,KeyExtent> verifyRootTablet(ServerContext context,
       TServerInstance instance) throws AccumuloException {
-    ZooTabletStateStore store = new ZooTabletStateStore(context);
-    if (!store.iterator().hasNext()) {
+
+    TabletMetadata rootMeta = context.getAmple().readTablet(RootTable.EXTENT);
+
+    if (rootMeta.getLocation() == null) {
       throw new AccumuloException("Illegal state: location is not set in zookeeper");
     }
-    TabletLocationState next = store.iterator().next();
-    if (!instance.equals(next.future)) {
-      throw new AccumuloException("Future location is not to this server for the root tablet");
+
+    Location loc = rootMeta.getLocation();
+
+    if (loc.getType() == LocationType.FUTURE && !instance.equals(new TServerInstance(loc))) {
+      throw new AccumuloException(
+          "Future location is not to this server for the root tablet " + loc);
     }
 
-    if (next.current != null) {
-      throw new AccumuloException("Root tablet already has a location set");
+    if (loc.getType() == LocationType.CURRENT) {
+      throw new AccumuloException("Root tablet already has a location set " + loc);
     }
 
-    try {
-      return new Pair<>(new Text(MetadataTableUtil.getRootTabletDir(context)), null);
-    } catch (IOException e) {
-      throw new AccumuloException(e);
-    }
+    return new Pair<>(new Text(rootMeta.getDir()), null);
   }
 
   public static Pair<Text,KeyExtent> verifyTabletInformation(ServerContext context,

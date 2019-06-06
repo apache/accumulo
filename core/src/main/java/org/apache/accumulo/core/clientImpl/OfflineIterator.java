@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -286,7 +289,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   private TabletMetadata getTabletFiles(Range nextRange) {
     try (TabletsMetadata tablets = TabletsMetadata.builder().scanMetadataTable()
-        .overRange(nextRange).fetchFiles().fetchLocation().fetchPrev().build(context)) {
+        .overRange(nextRange).fetch(FILES, LOCATION, PREV_ROW).build(context)) {
       return tablets.iterator().next();
     }
   }

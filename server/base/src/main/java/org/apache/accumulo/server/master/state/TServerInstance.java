@@ -25,6 +25,7 @@ import java.io.Serializable;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.util.AddressUtil;
@@ -37,7 +38,7 @@ import org.apache.hadoop.io.Text;
  * Therefore tablet assignments can be considered out-of-date if the tablet server instance
  * information has been changed.
  */
-public class TServerInstance implements Comparable<TServerInstance>, Serializable {
+public class TServerInstance implements Ample.TServer, Comparable<TServerInstance>, Serializable {
 
   private static final long serialVersionUID = 1L;
 
@@ -143,10 +144,12 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
     return new Value(getLocation().toString().getBytes(UTF_8));
   }
 
+  @Override
   public HostAndPort getLocation() {
     return location;
   }
 
+  @Override
   public String getSession() {
     return session;
   }
