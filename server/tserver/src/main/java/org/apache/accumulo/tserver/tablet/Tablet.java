@@ -785,7 +785,9 @@ public class Tablet implements TabletCommitter {
 
     // log.info("In nextBatch..");
 
-    long stopTime = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
+    long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
+    long startNanos = System.nanoTime();
+
     if (batchTimeOut == Long.MAX_VALUE || batchTimeOut <= 0) {
       batchTimeOut = 0;
     }
@@ -828,7 +830,7 @@ public class Tablet implements TabletCommitter {
       resultSize += kvEntry.estimateMemoryUsed();
       resultBytes += kvEntry.numBytes();
 
-      boolean timesUp = batchTimeOut > 0 && System.nanoTime() >= stopTime;
+      boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
 
       if (resultSize >= maxResultsSize || results.size() >= num || timesUp) {
         continueKey = new Key(key);
