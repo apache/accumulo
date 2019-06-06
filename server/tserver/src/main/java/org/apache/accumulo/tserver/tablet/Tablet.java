@@ -581,7 +581,9 @@ public class Tablet implements TabletCommitter {
     if (columnSet.size() > 0)
       cfset = LocalityGroupUtil.families(columnSet);
 
-    long returnTime = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
+    long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
+    long startNanos = System.nanoTime();
+
     if (batchTimeOut <= 0 || batchTimeOut == Long.MAX_VALUE) {
       batchTimeOut = 0;
     }
@@ -594,7 +596,7 @@ public class Tablet implements TabletCommitter {
 
     for (Range range : ranges) {
 
-      boolean timesUp = batchTimeOut > 0 && System.nanoTime() > returnTime;
+      boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
 
       if (exceededMemoryUsage || tabletClosed || timesUp || yielded) {
         lookupResult.unfinishedRanges.add(range);
@@ -624,7 +626,7 @@ public class Tablet implements TabletCommitter {
 
           exceededMemoryUsage = lookupResult.bytesAdded > maxResultsSize;
 
-          timesUp = batchTimeOut > 0 && System.nanoTime() > returnTime;
+          timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
 
           if (exceededMemoryUsage || timesUp) {
             addUnfinishedRange(lookupResult, range, key, false);
