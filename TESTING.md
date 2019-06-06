@@ -19,13 +19,10 @@ limitations under the License.
 
 This document is meant to serve as a quick reference to the automated test suites of Accumulo.
 
-The automated testing suite can be categorized as two sets of tests: unit tests and integration tests. These are the
-traditional unit and integrations tests as defined by the Apache Maven [lifecycle][3] phases.
-
 # Unit tests
 
 Unit tests can be run by invoking `mvn test` at the root of the Apache Accumulo source tree.  For more information see
-the [maven-surefire-plugin docs][4].  This command  will run just the unit tests:
+the [maven-surefire-plugin docs][surefire].  This command  will run just the unit tests:
 
 ```bash
 mvn clean test -Dspotbugs.skip -DskipITs
@@ -95,7 +92,7 @@ candidates to run against a standalone Accumulo cluster, these tests will still 
 These tests can be run by providing a system property.  This command will run all tests against a standalone cluster:
 
 ```bash
-mvn clean verify -Daccumulo.it.properties=/home/user/my_cluster.properties
+mvn clean verify -Dtest=foo -Daccumulo.it.properties=/home/user/my_cluster.properties -Dfailsafe.groups=org.apache.accumulo.test.categories.StandaloneCapableClusterTests -Dspotbugs.skip 
 ```
 
 ### Configuration for Standalone clusters
@@ -135,7 +132,7 @@ specified on the command line override properties set in a file.
 
 ## MapReduce job for Integration tests
 
-[ACCUMULO-3871][6] (re)introduced the ability to parallelize the execution of the Integration Test suite by the use
+[ACCUMULO-3871][issue] (re)introduced the ability to parallelize the execution of the Integration Test suite by the use
 of MapReduce/YARN. When a YARN cluster is available, this can drastically reduce the amount of time to run all tests.
 
 To run the tests, you first need a list of the tests. A simple way to get a list, is to scan the accumulo-test jar file for them.
@@ -157,11 +154,9 @@ These files do exist in the build tree, but at different locations)
 # Manual Distributed Testing
 
 Apache Accumulo has a number of tests which are suitable for running against large clusters for hours to days at a time.
-These test suites exist in the [accumulo-testing repo][2].
+These test suites exist in the [accumulo-testing repo][testing].
 
-[2]: https://github.com/apache/accumulo-testing
-[3]: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
-[4]: http://maven.apache.org/surefire/maven-surefire-plugin/
-[5]: http://maven.apache.org/surefire/maven-failsafe-plugin/
-[6]: https://issues.apache.org/jira/browse/ACCUMULO-3871
+[testing]: https://github.com/apache/accumulo-testing
+[surefire]: http://maven.apache.org/surefire/maven-surefire-plugin/
+[issue]: https://issues.apache.org/jira/browse/ACCUMULO-3871
 [SpotBugs]: https://spotbugs.github.io/
