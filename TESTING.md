@@ -73,13 +73,13 @@ mvn clean verify -Psunny
 
 These tests use MiniAccumuloCluster (MAC) which is a multi-process "implementation" of Accumulo, managed
 through Java APIs. This MiniAccumuloCluster has the ability to use the local filesystem or Apache Hadoop's
-MiniDFSCluster, as well as starting one to many tablet servers. MiniAccumuloCluster tends to be a very useful tool in
-that it can automatically provide a workable instance that mimics how an actual deployment functions.
+MiniDFSCluster, as well as starting one to many tablet servers. Most tests will be run in the local directory:
 
-The downside of using MiniAccumuloCluster is that a significant portion of each test is now devoted to starting and
-stopping the MiniAccumuloCluster.  While this is a surefire way to isolate tests from interferring with one another, it
-increases the actual runtime of the test by, on average, 10x. Some times the tests require the use of MAC because the
-test is being destructive or some special environment setup (e.g. Kerberos).
+```bash
+$ACCUMULO_HOME/test/target/mini-tests
+```
+
+The downside of using MiniAccumuloCluster is the extra time it takes to start and stop the MAC. 
 
 These tests will run by default during the `integration-test` lifecycle phase using `mvn verify`.
 To run all the Mini tests, run:
