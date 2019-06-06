@@ -48,7 +48,12 @@ These tests do require more memory over what Maven itself requires. As such, it'
 least 3-4GB of free memory and 10GB of free disk space.
 
 Accumulo uses JUnit Category annotations to categorize certain integration tests based on their runtime requirements.
-Presently there are several different categories:
+The different categories are listed below.  To run a single IT use the following command. This command will run just
+the WriteAheadLogIT:
+
+```bash
+mvn clean verify -Dit.test=WriteAheadLogIT -Dtest=foo -Dspotbugs.skip
+```
 
 ## SunnyDay (`SunnyDayTests`)
 
