@@ -359,13 +359,13 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     this.logSorter = new LogSorter(instance, fs, aconf);
     this.replWorker = new ReplicationWorker(this, fs);
     this.statsKeeper = new TabletStatsKeeper();
-    final int numBusiestTabletsToLog = aconf.getCount(Property.TSERV_LOG_BUSIEST_TABLETS_COUNT);
-    final long logBusiestTabletsDelay =
-        aconf.getTimeInMillis(Property.TSERV_LOG_BUSIEST_TABLETS_INTERVAL);
+    final int numBusyTabletsToLog = aconf.getCount(Property.TSERV_LOG_BUSY_TABLETS_COUNT);
+    final long logBusyTabletsDelay =
+        aconf.getTimeInMillis(Property.TSERV_LOG_BUSY_TABLETS_INTERVAL);
 
-    //This thread will calculate and log out the busiest tablets based on ingest count and
+    // This thread will calculate and log out the busiest tablets based on ingest count and
     // query count every #{logBusiestTabletsDelay}
-    if (numBusiestTabletsToLog > 0) {
+    if (numBusyTabletsToLog > 0) {
       SimpleTimer.getInstance(aconf).schedule(new Runnable() {
         @Override
         public void run() {
@@ -377,18 +377,18 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
                 }
               };
           PriorityQueue<Pair<String,Long>> busiestTabletsByIngestCount =
-              new PriorityQueue<>(numBusiestTabletsToLog, busiestTabletComparator);
+              new PriorityQueue<>(numBusyTabletsToLog, busiestTabletComparator);
           PriorityQueue<Pair<String,Long>> busiestTabletsByQueryCount =
-              new PriorityQueue<>(numBusiestTabletsToLog, busiestTabletComparator);
+              new PriorityQueue<>(numBusyTabletsToLog, busiestTabletComparator);
           synchronized (onlineTablets) {
             for (Tablet tablet : onlineTablets.values()) {
               addToBusiestTablets(tablet.totalIngest(), busiestTabletsByIngestCount,
-                  numBusiestTabletsToLog);
+                  numBusyTabletsToLog);
               addToBusiestTablets(tablet.totalQueries(), busiestTabletsByQueryCount,
-                  numBusiestTabletsToLog);
+                  numBusyTabletsToLog);
             }
-            logBusiestTablets(busiestTabletsByIngestCount, "QUERY", numBusiestTabletsToLog);
-            logBusiestTablets(busiestTabletsByQueryCount, "INGEST", numBusiestTabletsToLog);
+            logBusyTablets(busiestTabletsByIngestCount, "QUERY", numBusyTabletsToLog);
+            logBusyTablets(busiestTabletsByQueryCount, "INGEST", numBusyTabletsToLog);
           }
         }
 
@@ -402,15 +402,15 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
           }
         }
 
-        private void logBusiestTablets(PriorityQueue<Pair<String,Long>> busiestTabletsQueue,
-            String label, int numBusiestTabletsToLog) {
+        private void logBusyTablets(PriorityQueue<Pair<String,Long>> busyTabletsQueue, String label,
+            int numBusiestTabletsToLog) {
           for (int i = 0; i < numBusiestTabletsToLog; i++) {
-            Pair<String,Long> pair = busiestTabletsQueue.poll();
+            Pair<String,Long> pair = busyTabletsQueue.poll();
             log.debug("{} busiest tablet by {} count -- extent: {} count: {}", i, label,
                 pair.getFirst(), pair.getSecond());
           }
         }
-      }, logBusiestTabletsDelay, logBusiestTabletsDelay);
+      }, logBusyTabletsDelay, logBusyTabletsDelay);
     }
 
     SimpleTimer.getInstance(aconf).schedule(new Runnable() {
