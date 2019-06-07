@@ -386,19 +386,19 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         }
 
         private void addToTopTablets(long count,
-            PriorityQueue<Pair<String,Long>> topTabletsByIngestCount, int numTopTabletsToLog) {
-          if (topTabletsByIngestCount.size() < numTopTabletsToLog
-              || topTabletsByIngestCount.peek().getSecond() < count) {
-            if (topTabletsByIngestCount.size() == numTopTabletsToLog) {
-              topTabletsByIngestCount.remove();
+            PriorityQueue<Pair<String,Long>> topTabletsQueue, int numTopTabletsToLog) {
+          if (topTabletsQueue.size() < numTopTabletsToLog
+              || topTabletsQueue.peek().getSecond() < count) {
+            if (topTabletsQueue.size() == numTopTabletsToLog) {
+              topTabletsQueue.remove();
             }
           }
         }
 
-        private void logTopTablets(PriorityQueue<Pair<String,Long>> topTabletsByIngestCount,
+        private void logTopTablets(PriorityQueue<Pair<String,Long>> topTabletsQueue,
             String label, int numTopTabletsToLog) {
           for (int i = 0; i < numTopTabletsToLog; i++) {
-            Pair<String,Long> pair = topTabletsByIngestCount.poll();
+            Pair<String,Long> pair = topTabletsQueue.poll();
             log.debug("Top {} tablet by {} count -- extent: {} count: {}", i, label,
                 pair.getFirst(), pair.getSecond());
           }
