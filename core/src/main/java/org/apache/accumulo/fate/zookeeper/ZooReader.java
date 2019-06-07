@@ -38,7 +38,6 @@ public class ZooReader implements IZooReader {
   protected String keepers;
   protected int timeout;
   private final RetryFactory retryFactory;
-  private final ZooKeeperConnectionInfo info;
 
   protected ZooKeeper getSession(String keepers, int timeout, String scheme, byte[] auth) {
     return ZooSession.getSession(keepers, timeout, scheme, auth);
@@ -251,13 +250,12 @@ public class ZooReader implements IZooReader {
 
   @Override
   public List<ACL> getACL(String zPath, Stat stat) throws KeeperException, InterruptedException {
-    return ZooUtil.getACL(info, zPath, stat);
+    return ZooUtil.getACL(getZooKeeper(), zPath, stat);
   }
 
   public ZooReader(String keepers, int timeout) {
     this.keepers = keepers;
     this.timeout = timeout;
     this.retryFactory = ZooUtil.DEFAULT_RETRY;
-    this.info = new ZooKeeperConnectionInfo(keepers, timeout, null, null);
   }
 }
