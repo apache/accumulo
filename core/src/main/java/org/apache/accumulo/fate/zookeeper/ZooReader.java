@@ -22,7 +22,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.ZooKeeperConnectionInfo;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.Watcher;
