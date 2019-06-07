@@ -94,7 +94,7 @@ case "$cmd" in
   monitor)
     JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configuration=log4j-monitor.properties")
     ;;
-  gc|master|proxy|tserver|tracer)
+  gc|master|tserver|tracer)
     JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configuration=log4j-service.properties")
     ;;
   *)

@@ -44,7 +44,6 @@ import org.apache.accumulo.minicluster.MiniAccumuloRunner;
 import org.apache.accumulo.miniclusterImpl.MiniClusterExecutable;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.MonitorExecutable;
-import org.apache.accumulo.proxy.Proxy;
 import org.apache.accumulo.server.conf.ConfigSanityCheck;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
@@ -112,7 +111,6 @@ public class KeywordStartIT {
     expectSet.put("master", MasterExecutable.class);
     expectSet.put("minicluster", MiniClusterExecutable.class);
     expectSet.put("monitor", MonitorExecutable.class);
-    expectSet.put("proxy", Proxy.class);
     expectSet.put("rfile-info", PrintInfo.class);
     expectSet.put("shell", Shell.class);
     expectSet.put("tracer", TracerExecutable.class);
@@ -164,7 +162,6 @@ public class KeywordStartIT {
     expectSet.add(MiniAccumuloRunner.class);
     expectSet.add(Monitor.class);
     expectSet.add(PrintInfo.class);
-    expectSet.add(Proxy.class);
     expectSet.add(Shell.class);
     expectSet.add(SimpleGarbageCollector.class);
     expectSet.add(TabletServer.class);
