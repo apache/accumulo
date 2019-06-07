@@ -359,51 +359,58 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
     this.logSorter = new LogSorter(instance, fs, aconf);
     this.replWorker = new ReplicationWorker(this, fs);
     this.statsKeeper = new TabletStatsKeeper();
-    final int numTopTabletsToLog = aconf.getCount(Property.TSERV_LOG_TOP_TABLETS_COUNT);
-    final long logTopTabletsDelay = aconf.getTimeInMillis(Property.TSERV_LOG_TOP_TABLETS_INTERVAL);
-    if (numTopTabletsToLog > 0) {
+    final int numBusiestTabletsToLog = aconf.getCount(Property.TSERV_LOG_BUSIEST_TABLETS_COUNT);
+    final long logBusiestTabletsDelay =
+        aconf.getTimeInMillis(Property.TSERV_LOG_BUSIEST_TABLETS_INTERVAL);
+
+    //This thread will calculate and log out the busiest tablets based on ingest count and
+    // query count every #{logBusiestTabletsDelay}
+    if (numBusiestTabletsToLog > 0) {
       SimpleTimer.getInstance(aconf).schedule(new Runnable() {
         @Override
         public void run() {
-          Comparator<Pair<String,Long>> topTabletComparator = new Comparator<Pair<String,Long>>() {
-            @Override
-            public int compare(Pair<String,Long> first, Pair<String,Long> second) {
-              return second.getSecond().compareTo(first.getSecond());
-            }
-          };
-          PriorityQueue<Pair<String,Long>> topTabletsByIngestCount =
-              new PriorityQueue<>(numTopTabletsToLog, topTabletComparator);
-          PriorityQueue<Pair<String,Long>> topTabletsByQueryCount =
-              new PriorityQueue<>(numTopTabletsToLog, topTabletComparator);
+          Comparator<Pair<String,Long>> busiestTabletComparator =
+              new Comparator<Pair<String,Long>>() {
+                @Override
+                public int compare(Pair<String,Long> first, Pair<String,Long> second) {
+                  return second.getSecond().compareTo(first.getSecond());
+                }
+              };
+          PriorityQueue<Pair<String,Long>> busiestTabletsByIngestCount =
+              new PriorityQueue<>(numBusiestTabletsToLog, busiestTabletComparator);
+          PriorityQueue<Pair<String,Long>> busiestTabletsByQueryCount =
+              new PriorityQueue<>(numBusiestTabletsToLog, busiestTabletComparator);
           synchronized (onlineTablets) {
             for (Tablet tablet : onlineTablets.values()) {
-              addToTopTablets(tablet.totalIngest(), topTabletsByIngestCount, numTopTabletsToLog);
-              addToTopTablets(tablet.totalQueries(), topTabletsByQueryCount, numTopTabletsToLog);
+              addToBusiestTablets(tablet.totalIngest(), busiestTabletsByIngestCount,
+                  numBusiestTabletsToLog);
+              addToBusiestTablets(tablet.totalQueries(), busiestTabletsByQueryCount,
+                  numBusiestTabletsToLog);
             }
-            logTopTablets(topTabletsByIngestCount, "QUERY", numTopTabletsToLog);
-            logTopTablets(topTabletsByQueryCount, "INGEST", numTopTabletsToLog);
+            logBusiestTablets(busiestTabletsByIngestCount, "QUERY", numBusiestTabletsToLog);
+            logBusiestTablets(busiestTabletsByQueryCount, "INGEST", numBusiestTabletsToLog);
           }
         }
 
-        private void addToTopTablets(long count,
-            PriorityQueue<Pair<String,Long>> topTabletsQueue, int numTopTabletsToLog) {
-          if (topTabletsQueue.size() < numTopTabletsToLog
-              || topTabletsQueue.peek().getSecond() < count) {
-            if (topTabletsQueue.size() == numTopTabletsToLog) {
-              topTabletsQueue.remove();
+        private void addToBusiestTablets(long count,
+            PriorityQueue<Pair<String,Long>> busiestTabletsQueue, int numBusiestTabletsToLog) {
+          if (busiestTabletsQueue.size() < numBusiestTabletsToLog
+              || busiestTabletsQueue.peek().getSecond() < count) {
+            if (busiestTabletsQueue.size() == numBusiestTabletsToLog) {
+              busiestTabletsQueue.remove();
             }
           }
         }
 
-        private void logTopTablets(PriorityQueue<Pair<String,Long>> topTabletsQueue,
-            String label, int numTopTabletsToLog) {
-          for (int i = 0; i < numTopTabletsToLog; i++) {
-            Pair<String,Long> pair = topTabletsQueue.poll();
-            log.debug("Top {} tablet by {} count -- extent: {} count: {}", i, label,
+        private void logBusiestTablets(PriorityQueue<Pair<String,Long>> busiestTabletsQueue,
+            String label, int numBusiestTabletsToLog) {
+          for (int i = 0; i < numBusiestTabletsToLog; i++) {
+            Pair<String,Long> pair = busiestTabletsQueue.poll();
+            log.debug("{} busiest tablet by {} count -- extent: {} count: {}", i, label,
                 pair.getFirst(), pair.getSecond());
           }
         }
-      }, logTopTabletsDelay, logTopTabletsDelay);
+      }, logBusiestTabletsDelay, logBusiestTabletsDelay);
     }
 
     SimpleTimer.getInstance(aconf).schedule(new Runnable() {

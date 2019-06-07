@@ -485,11 +485,11 @@ public enum Property {
       "The time between adjustments of the server thread pool."),
   TSERV_MAX_MESSAGE_SIZE("tserver.server.message.size.max", "1G", PropertyType.MEMORY,
       "The maximum size of a message that can be sent to a tablet server."),
-  TSERV_LOG_TOP_TABLETS_COUNT("tserver.log.top.tablets.count", "0", PropertyType.COUNT,
-      "Number of top tablets to log when saving tablet stats. If <= 0, logging "
-          + "of top tablets is disabled"),
-  TSERV_LOG_TOP_TABLETS_INTERVAL("tserver.log.top.tablets.interval", "1h",
-      PropertyType.TIMEDURATION, "Time interval between logging out top tablets information."),
+  TSERV_LOG_BUSIEST_TABLETS_COUNT("tserver.log.busiest.tablets.count", "0", PropertyType.COUNT,
+      "Number of busiest tablets to log. Logged at interval controlled by "
+          + "tserver.log.busiest.tablets.interval. If <= 0, logging of top tablets is disabled"),
+  TSERV_LOG_BUSIEST_TABLETS_INTERVAL("tserver.log.busiest.tablets.interval", "1h",
+      PropertyType.TIMEDURATION, "Time interval between logging out busiest tablets information."),
   TSERV_HOLD_TIME_SUICIDE("tserver.hold.time.max", "5m", PropertyType.TIMEDURATION,
       "The maximum time for a tablet server to be in the \"memory full\" state."
           + " If the tablet server cannot write out memory in this much time, it will"
