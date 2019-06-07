@@ -380,25 +380,30 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
               new PriorityQueue<>(numBusyTabletsToLog, busiestTabletComparator);
           PriorityQueue<Pair<String,Long>> busiestTabletsByQueryCount =
               new PriorityQueue<>(numBusyTabletsToLog, busiestTabletComparator);
+          List<Tablet> tablets;
           synchronized (onlineTablets) {
-            for (Tablet tablet : onlineTablets.values()) {
-              addToBusiestTablets(tablet.totalIngest(), busiestTabletsByIngestCount,
+            tablets = new ArrayList<>(onlineTablets.values());
+          }
+            for (Tablet tablet : tablets) {
+              String extentString = tablet.getExtent().toString();
+              addToBusiestTablets(extentString,tablet.totalIngest(), busiestTabletsByIngestCount,
                   numBusyTabletsToLog);
-              addToBusiestTablets(tablet.totalQueries(), busiestTabletsByQueryCount,
+              addToBusiestTablets(extentString,tablet.totalQueries(), busiestTabletsByQueryCount,
                   numBusyTabletsToLog);
             }
             logBusyTablets(busiestTabletsByIngestCount, "QUERY", numBusyTabletsToLog);
             logBusyTablets(busiestTabletsByQueryCount, "INGEST", numBusyTabletsToLog);
           }
-        }
 
-        private void addToBusiestTablets(long count,
+
+        private void addToBusiestTablets(String extent, long count,
             PriorityQueue<Pair<String,Long>> busiestTabletsQueue, int numBusiestTabletsToLog) {
           if (busiestTabletsQueue.size() < numBusiestTabletsToLog
               || busiestTabletsQueue.peek().getSecond() < count) {
             if (busiestTabletsQueue.size() == numBusiestTabletsToLog) {
               busiestTabletsQueue.remove();
             }
+            busiestTabletsQueue.add(new Pair<String, Long>(extent,count));
           }
         }
 
