@@ -488,6 +488,8 @@ public enum Property {
   TSERV_LOG_TOP_TABLETS_COUNT("tserver.log.top.tablets.count", "0", PropertyType.COUNT,
       "Number of top tablets to log when saving tablet stats. If <= 0, logging "
           + "of top tablets is disabled"),
+  TSERV_LOG_TOP_TABLETS_INTERVAL("tserver.log.top.tablets.interval", "1h",
+      PropertyType.TIMEDURATION, "Time interval between logging out top tablets information."),
   TSERV_HOLD_TIME_SUICIDE("tserver.hold.time.max", "5m", PropertyType.TIMEDURATION,
       "The maximum time for a tablet server to be in the \"memory full\" state."
           + " If the tablet server cannot write out memory in this much time, it will"
