@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -70,6 +71,16 @@ public class TokenFileIT extends AccumuloClusterHarness {
 
       @Override
       public void map(Key k, Value v, OutputCollector<Text,Mutation> output, Reporter reporter) {
+        // verify cached token file is available locally
+        for (Class<?> formatClass : Arrays.asList(
+            org.apache.accumulo.core.client.mapred.AccumuloInputFormat.class,
+            org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.class)) {
+          String formatName = formatClass.getSimpleName();
+          File file = new File(formatName + ".tokenfile");
+          assertTrue(file.exists());
+          assertTrue(file.canRead());
+        }
+
         finalOutput = output;
         try {
           if (key != null)
@@ -181,7 +192,9 @@ public class TokenFileIT extends AccumuloClusterHarness {
           new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(),
           new String[] {tf.getAbsolutePath(), table1, table2}));
-
+      if (e1 != null) {
+        e1.printStackTrace();
+      }
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {

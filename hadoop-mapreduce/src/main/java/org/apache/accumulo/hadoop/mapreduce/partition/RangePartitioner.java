@@ -16,29 +16,22 @@
  */
 package org.apache.accumulo.hadoop.mapreduce.partition;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Scanner;
 import java.util.TreeSet;
 
-import javax.imageio.IIOException;
-
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.DistributedCacheHelper;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Partitioner;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Hadoop partitioner that uses ranges, and optionally sub-bins based on hashing.
@@ -68,8 +61,9 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
 
     // both conditions work with numSubBins == 1, but this check is to avoid
     // hashing, when we don't need to, for speed
-    if (numSubBins < 2)
+    if (numSubBins < 2) {
       return index;
+    }
     return (key.toString().hashCode() & Integer.MAX_VALUE) % numSubBins + index * numSubBins;
   }
 
@@ -85,26 +79,14 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
 
   private Text[] cutPointArray = null;
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "path provided by distributed cache framework, not user input")
   private synchronized Text[] getCutPoints() throws IOException {
     if (cutPointArray == null) {
-      Path path;
       String cutFileName = conf.get(CUTFILE_KEY);
-      File tempFile = new File(CUTFILE_KEY);
-      if (tempFile.exists()) {
-        path = new Path(CUTFILE_KEY);
-      } else {
-        path = new Path(cutFileName);
-      }
-
-      if (path == null)
-        throw new FileNotFoundException("Cut point file not found in distributed cache");
-
       TreeSet<Text> cutPoints = new TreeSet<>();
-      FileSystem fs = FileSystem.get(conf);
-      FSDataInputStream inputStream = fs.open(path);
-      try (Scanner in = new Scanner(inputStream)) {
+      try (
+          InputStream inputStream =
+              DistributedCacheHelper.openCachedFile(cutFileName, CUTFILE_KEY, conf);
+          Scanner in = new Scanner(inputStream, UTF_8.name())) {
         while (in.hasNextLine()) {
           cutPoints.add(new Text(Base64.getDecoder().decode(in.nextLine())));
         }
@@ -112,8 +94,9 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
 
       cutPointArray = cutPoints.toArray(new Text[cutPoints.size()]);
 
-      if (cutPointArray == null)
-        throw new IIOException("Cutpoint array not properly created from file" + path.getName());
+      if (cutPointArray == null) {
+        throw new IOException("Cutpoint array not properly created from file" + cutFileName);
+      }
     }
     return cutPointArray;
   }
@@ -133,16 +116,8 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
    * points that represent ranges for partitioning
    */
   public static void setSplitFile(Job job, String file) {
-    URI uri;
-    try {
-      uri = new URI(file + "#" + CUTFILE_KEY);
-    } catch (URISyntaxException e) {
-      throw new IllegalStateException(
-          "Unable to add split file \"" + CUTFILE_KEY + "\" to distributed cache.");
-    }
-
-    job.addCacheFile(uri);
-    job.getConfiguration().set(CUTFILE_KEY, uri.getPath());
+    DistributedCacheHelper.addCacheFile(job, file, CUTFILE_KEY);
+    job.getConfiguration().set(CUTFILE_KEY, file);
   }
 
   /**

@@ -25,12 +25,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -39,7 +36,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -73,8 +69,28 @@ public class TokenFileIT extends AccumuloClusterHarness {
       @Override
       protected void map(Key k, Value v, Context context) {
         try {
-          if (key != null)
+          // verify cached token file is available locally
+          URI[] cachedFiles;
+          try {
+            cachedFiles = context.getCacheFiles();
+          } catch (IOException e) {
+            throw new AssertionError("IOException getting cache files", e);
+          }
+          assertEquals(2, cachedFiles.length); // one for each in/out format
+          for (Class<?> formatClass : Arrays.asList(
+              org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.class,
+              org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.class)) {
+            String formatName = formatClass.getSimpleName();
+            assertTrue(Arrays.stream(cachedFiles)
+                .anyMatch(uri -> uri.toString().endsWith(formatName + ".tokenfile")));
+            File file = new File(formatName + ".tokenfile");
+            assertTrue(file.exists());
+            assertTrue(file.canRead());
+          }
+
+          if (key != null) {
             assertEquals(key.getRow().toString(), new String(v.get()));
+          }
           assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
           assertEquals(new String(v.get()), String.format("%09x", count));
         } catch (AssertionError e) {
@@ -89,28 +105,6 @@ public class TokenFileIT extends AccumuloClusterHarness {
         Mutation m = new Mutation("total");
         m.put("", "", Integer.toString(count));
         context.write(new Text(), m);
-      }
-
-      @Override
-      protected void setup(Context context) throws IOException, InterruptedException {
-        if (context.getCacheFiles() != null && context.getCacheFiles().length > 0) {
-          // At this point in the MapReduce Job you can get the cached files in HDFS if you want
-          URI[] cachedFiles = context.getCacheFiles();
-          // On the line below we access the file by the hdfs fragment name created during caching
-          // in ConfiguratorBase
-          String fileByPsuedonym = "";
-          fileByPsuedonym = getFileContents(ConfiguratorBase.cachedFileName);
-
-          assertTrue(!fileByPsuedonym.isEmpty());
-          assertTrue(cachedFiles.length > 0);
-        }
-        super.setup(context);
-      }
-
-      private String getFileContents(String filename) throws IOException {
-
-        Path filePath = Paths.get(filename);
-        return Files.lines(filePath).collect(Collectors.joining(System.lineSeparator()));
       }
 
     }
@@ -204,6 +198,9 @@ public class TokenFileIT extends AccumuloClusterHarness {
           new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(),
           new String[] {tf.getAbsolutePath(), table1, table2}));
+      if (e1 != null) {
+        e1.printStackTrace();
+      }
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {

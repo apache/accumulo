@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.shell;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -92,7 +93,7 @@ public class PasswordConverterTest {
   @Test
   public void testFile() throws FileNotFoundException {
     argv[1] = "file:pom.xml";
-    Scanner scan = new Scanner(new File("pom.xml"));
+    Scanner scan = new Scanner(new File("pom.xml"), UTF_8.name());
     String expected = scan.nextLine();
     scan.close();
     new JCommander(password).parse(argv);

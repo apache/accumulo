@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
-import java.io.File;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -30,9 +30,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.mapreduce.lib.DistributedCacheHelper;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
 
 /**
@@ -43,8 +40,6 @@ public class ConfiguratorBase {
   public enum ClientOpts {
     CLIENT_PROPS, CLIENT_PROPS_FILE, IS_CONFIGURED, STORE_JOB_CALLED
   }
-
-  public static final String clientPropsFileName = "propsfile";
 
   /**
    * Configuration keys for general configuration options.
@@ -83,16 +78,15 @@ public class ConfiguratorBase {
         + StringUtils.camelize(e.name().toLowerCase());
   }
 
+  private static String cachedClientPropsFileName(Class<?> implementingClass) {
+    return implementingClass.getSimpleName() + ".propsfile";
+  }
+
   public static void setClientProperties(Class<?> implementingClass, Configuration conf,
       Properties props, String clientPropsPath) {
     if (clientPropsPath != null) {
-      try {
-        DistributedCacheHelper.addCacheFile(new URI(clientPropsPath + "#" + clientPropsFileName),
-            conf);
-      } catch (URISyntaxException e) {
-        throw new IllegalStateException("Unable to add client properties file \"" + clientPropsPath
-            + "\" to distributed cache.");
-      }
+      DistributedCacheHelper.addCacheFile(clientPropsPath,
+          cachedClientPropsFileName(implementingClass), conf);
       conf.set(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS_FILE), clientPropsPath);
     } else {
       StringWriter writer = new StringWriter();
@@ -111,31 +105,18 @@ public class ConfiguratorBase {
     String clientPropsFile =
         conf.get(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS_FILE), "");
     if (!clientPropsFile.isEmpty()) {
-      try {
-        Path path;
-        // See if the "propsfile" symlink was created and try to open the file it points to by it.
-        File tempFile = new File(ConfiguratorBase.clientPropsFileName);
-        if (tempFile.exists()) {
-          path = new Path(ConfiguratorBase.clientPropsFileName);
-        } else {
-          path = new Path(clientPropsFile);
-        }
+      try (InputStream inputStream = DistributedCacheHelper.openCachedFile(clientPropsFile,
+          cachedClientPropsFileName(implementingClass), conf)) {
 
-        if (path == null)
-          throw new IllegalStateException("Could not initialize properties file");
-
-        FileSystem fs = FileSystem.get(conf);
-        FSDataInputStream inputStream = fs.open(path);
         StringBuilder sb = new StringBuilder();
-        try (Scanner scanner = new Scanner(inputStream)) {
+        try (Scanner scanner = new Scanner(inputStream, UTF_8.name())) {
           while (scanner.hasNextLine()) {
             sb.append(scanner.nextLine() + "\n");
           }
         }
         propString = sb.toString();
       } catch (IOException e) {
-        throw new IllegalStateException(
-            "Failed to read client properties from distributed cache: " + clientPropsFile);
+        throw new IllegalStateException("Error closing client properties file stream", e);
       }
     } else {
       propString = conf.get(enumToConfKey(implementingClass, ClientOpts.CLIENT_PROPS), "");
