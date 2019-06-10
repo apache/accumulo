@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.util;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 
 import org.apache.accumulo.core.cli.ClientOpts.Password;
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
@@ -91,8 +92,8 @@ public class CreateToken implements KeywordExecutable {
         principal = getConsoleReader().readLine("Username (aka principal): ");
       }
 
-      AuthenticationToken token =
-          Class.forName(opts.tokenClassName).asSubclass(AuthenticationToken.class).newInstance();
+      AuthenticationToken token = Class.forName(opts.tokenClassName)
+          .asSubclass(AuthenticationToken.class).getDeclaredConstructor().newInstance();
       Properties props = new Properties();
       for (TokenProperty tp : token.getProperties()) {
         String input;
@@ -111,8 +112,8 @@ public class CreateToken implements KeywordExecutable {
       System.out.println("auth.type = " + opts.tokenClassName);
       System.out.println("auth.principal = " + principal);
       System.out.println("auth.token = " + ClientProperty.encodeToken(token));
-    } catch (IOException | InstantiationException | IllegalAccessException
-        | ClassNotFoundException e) {
+    } catch (IOException | InstantiationException | IllegalAccessException | ClassNotFoundException
+        | NoSuchMethodException | InvocationTargetException e) {
       throw new RuntimeException(e);
     }
   }

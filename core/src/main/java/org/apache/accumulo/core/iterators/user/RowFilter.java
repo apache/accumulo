@@ -151,7 +151,7 @@ public abstract class RowFilter extends WrappingIterator {
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     RowFilter newInstance;
     try {
-      newInstance = getClass().newInstance();
+      newInstance = getClass().getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

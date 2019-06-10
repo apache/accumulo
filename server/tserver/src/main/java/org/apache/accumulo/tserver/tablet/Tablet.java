@@ -2719,7 +2719,7 @@ public class Tablet {
       } else {
         clazz = AccumuloVFSClassLoader.loadClass(clazzName, CompactionStrategy.class);
       }
-      CompactionStrategy strategy = clazz.newInstance();
+      CompactionStrategy strategy = clazz.getDeclaredConstructor().newInstance();
       strategy.init(strategyConfig.getOptions());
       return strategy;
     } catch (Exception e) {

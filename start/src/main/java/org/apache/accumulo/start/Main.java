@@ -57,7 +57,7 @@ public class Main {
       }
       Object conf = null;
       try {
-        conf = confClass.newInstance();
+        conf = confClass.getDeclaredConstructor().newInstance();
       } catch (Exception e) {
         log.error("Error creating new instance of Hadoop Configuration", e);
         System.exit(1);

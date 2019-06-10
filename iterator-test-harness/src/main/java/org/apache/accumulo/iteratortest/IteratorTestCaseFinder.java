@@ -17,6 +17,7 @@
 package org.apache.accumulo.iteratortest;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
@@ -70,8 +71,9 @@ public class IteratorTestCaseFinder {
       }
 
       try {
-        testCases.add((IteratorTestCase) clz.newInstance());
-      } catch (IllegalAccessException | InstantiationException e) {
+        testCases.add((IteratorTestCase) clz.getDeclaredConstructor().newInstance());
+      } catch (IllegalAccessException | InstantiationException | NoSuchMethodException
+          | InvocationTargetException e) {
         log.warn("Could not instantiate {}", clz, e);
       }
     }

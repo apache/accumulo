@@ -18,6 +18,7 @@
 package org.apache.accumulo.core.summary;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
@@ -42,23 +43,26 @@ public class SummarizerFactory {
   }
 
   private Summarizer newSummarizer(String classname)
-      throws ClassNotFoundException, IOException, InstantiationException, IllegalAccessException {
+      throws ClassNotFoundException, IOException, InstantiationException, IllegalAccessException,
+      NoSuchMethodException, InvocationTargetException {
     if (classloader != null) {
-      return classloader.loadClass(classname).asSubclass(Summarizer.class).newInstance();
+      return classloader.loadClass(classname).asSubclass(Summarizer.class).getDeclaredConstructor()
+          .newInstance();
     } else {
       if (context != null && !context.equals(""))
         return AccumuloVFSClassLoader.getContextManager()
-            .loadClass(context, classname, Summarizer.class).newInstance();
+            .loadClass(context, classname, Summarizer.class).getDeclaredConstructor().newInstance();
       else
-        return AccumuloVFSClassLoader.loadClass(classname, Summarizer.class).newInstance();
+        return AccumuloVFSClassLoader.loadClass(classname, Summarizer.class)
+            .getDeclaredConstructor().newInstance();
     }
   }
 
   public Summarizer getSummarizer(SummarizerConfiguration conf) {
     try {
       return newSummarizer(conf.getClassName());
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IOException e) {
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IOException
+        | NoSuchMethodException | InvocationTargetException e) {
       throw new RuntimeException(e);
     }
   }

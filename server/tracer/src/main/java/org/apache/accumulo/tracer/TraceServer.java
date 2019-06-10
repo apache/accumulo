@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
@@ -244,7 +245,7 @@ public class TraceServer implements Watcher, AutoCloseable {
    */
   private AccumuloClient ensureTraceTableExists(final AccumuloConfiguration conf)
       throws AccumuloSecurityException, ClassNotFoundException, InstantiationException,
-      IllegalAccessException {
+      IllegalAccessException, NoSuchMethodException, InvocationTargetException {
     AccumuloClient accumuloClient = null;
     while (true) {
       try {
@@ -266,7 +267,7 @@ public class TraceServer implements Watcher, AutoCloseable {
           Properties props = new Properties();
           AuthenticationToken token =
               AccumuloVFSClassLoader.getClassLoader().loadClass(conf.get(Property.TRACE_TOKEN_TYPE))
-                  .asSubclass(AuthenticationToken.class).newInstance();
+                  .asSubclass(AuthenticationToken.class).getDeclaredConstructor().newInstance();
 
           int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();
           for (Entry<String,String> entry : loginMap.entrySet()) {

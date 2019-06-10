@@ -27,6 +27,7 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Base64;
 import java.util.Objects;
 
@@ -65,8 +66,9 @@ public class SerializationUtil {
           classname + " is not a subclass of " + parentClass.getName(), e);
     }
     try {
-      return cm.newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+      return cm.getDeclaredConstructor().newInstance();
+    } catch (InstantiationException | IllegalAccessException | NoSuchMethodException
+        | InvocationTargetException e) {
       throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
     }
   }

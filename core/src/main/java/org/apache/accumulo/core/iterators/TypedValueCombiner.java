@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -137,8 +138,9 @@ public abstract class TypedValueCombiner<V> extends Combiner {
       @SuppressWarnings("unchecked")
       Class<? extends Encoder<V>> clazz = (Class<? extends Encoder<V>>) AccumuloVFSClassLoader
           .loadClass(encoderClass, Encoder.class);
-      encoder = clazz.newInstance();
-    } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+      encoder = clazz.getDeclaredConstructor().newInstance();
+    } catch (ClassNotFoundException | IllegalAccessException | InstantiationException
+        | NoSuchMethodException | InvocationTargetException e) {
       throw new IllegalArgumentException(e);
     }
   }

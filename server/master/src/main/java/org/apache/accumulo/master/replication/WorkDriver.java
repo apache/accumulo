@@ -18,6 +18,7 @@ package org.apache.accumulo.master.replication;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -59,8 +60,9 @@ public class WorkDriver extends Daemon {
       try {
         Class<?> clz = Class.forName(workAssignerClass);
         Class<? extends WorkAssigner> workAssignerClz = clz.asSubclass(WorkAssigner.class);
-        this.assigner = workAssignerClz.newInstance();
-      } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+        this.assigner = workAssignerClz.getDeclaredConstructor().newInstance();
+      } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+          | NoSuchMethodException | InvocationTargetException e) {
         log.error("Could not instantiate configured work assigner {}", workAssignerClass, e);
         throw new RuntimeException(e);
       }

@@ -17,6 +17,7 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -205,8 +206,8 @@ public class SetIterCommand extends Command {
     Class<? extends SortedKeyValueIterator> clazz;
     try {
       clazz = classloader.loadClass(className).asSubclass(SortedKeyValueIterator.class);
-      untypedInstance = clazz.newInstance();
-    } catch (ClassNotFoundException e) {
+      untypedInstance = clazz.getDeclaredConstructor().newInstance();
+    } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException e) {
       StringBuilder msg = new StringBuilder("Unable to load ").append(className);
       if (className.indexOf('.') < 0) {
         msg.append("; did you use a fully qualified package name?");

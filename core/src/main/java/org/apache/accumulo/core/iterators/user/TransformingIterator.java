@@ -175,7 +175,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     TransformingIterator copy;
 
     try {
-      copy = getClass().newInstance();
+      copy = getClass().getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

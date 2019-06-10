@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.conf;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -173,7 +174,7 @@ public class ConfigurationTypeHelper {
     try {
       instance = getClassInstance(context, clazzName, base);
     } catch (RuntimeException | ClassNotFoundException | IOException | InstantiationException
-        | IllegalAccessException e) {
+        | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
       log.warn("Failed to load class {}", clazzName, e);
     }
 
@@ -196,7 +197,8 @@ public class ConfigurationTypeHelper {
    * @return a new instance of the class
    */
   public static <T> T getClassInstance(String context, String clazzName, Class<T> base)
-      throws ClassNotFoundException, IOException, InstantiationException, IllegalAccessException {
+      throws ClassNotFoundException, IOException, InstantiationException, IllegalAccessException,
+      NoSuchMethodException, InvocationTargetException {
     T instance;
 
     Class<? extends T> clazz;
@@ -206,7 +208,7 @@ public class ConfigurationTypeHelper {
       clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
     }
 
-    instance = clazz.newInstance();
+    instance = clazz.getDeclaredConstructor().newInstance();
     if (loaded.put(clazzName, clazz) != clazz)
       log.debug("Loaded class : {}", clazzName);
 

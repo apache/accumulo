@@ -74,7 +74,7 @@ public class HardListIterator implements SortedKeyValueIterator<Key,Value> {
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     HardListIterator newInstance;
     try {
-      newInstance = HardListIterator.class.newInstance();
+      newInstance = HardListIterator.class.getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

@@ -30,7 +30,7 @@ public class FormatterFactory {
       Iterable<Entry<Key,Value>> scanner, FormatterConfig config) {
     Formatter formatter = null;
     try {
-      formatter = formatterClass.newInstance();
+      formatter = formatterClass.getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       log.warn("Unable to instantiate formatter. Using default formatter.", e);
       formatter = new DefaultFormatter();

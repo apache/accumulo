@@ -288,7 +288,8 @@ public abstract class TestCfCqSlice {
     firstOpts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));
     secondOpts.put(CfCqSliceOpts.OPT_MIN_CQ, new String(LONG_LEX.encode(sliceMinCq), UTF_8));
     secondOpts.put(CfCqSliceOpts.OPT_MAX_CQ, new String(LONG_LEX.encode(sliceMaxCq), UTF_8));
-    SortedKeyValueIterator<Key,Value> skvi = getFilterClass().newInstance();
+    SortedKeyValueIterator<Key,Value> skvi =
+        getFilterClass().getDeclaredConstructor().newInstance();
     skvi.init(new SortedMapIterator(data), firstOpts, null);
     loadKvs(skvi.deepCopy(null), foundKvs, secondOpts, INFINITY);
     for (int i = 0; i < LR_DIM; i++) {
@@ -373,7 +374,8 @@ public abstract class TestCfCqSlice {
   private void loadKvs(SortedKeyValueIterator<Key,Value> parent, boolean[][][] foundKvs,
       Map<String,String> options, Range range) {
     try {
-      SortedKeyValueIterator<Key,Value> skvi = getFilterClass().newInstance();
+      SortedKeyValueIterator<Key,Value> skvi =
+          getFilterClass().getDeclaredConstructor().newInstance();
       skvi.init(parent, options, null);
       skvi.seek(range, EMPTY_CF_SET, false);
 

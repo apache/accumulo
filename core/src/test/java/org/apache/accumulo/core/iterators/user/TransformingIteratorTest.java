@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -88,8 +89,9 @@ public class TransformingIteratorTest {
     ReuseIterator reuserIter = new ReuseIterator();
     reuserIter.init(visFilter, EMPTY_OPTS, null);
     try {
-      titer = clazz.newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+      titer = clazz.getDeclaredConstructor().newInstance();
+    } catch (InstantiationException | IllegalAccessException | NoSuchMethodException
+        | InvocationTargetException e) {
       throw new RuntimeException(e);
     }
 
@@ -143,7 +145,7 @@ public class TransformingIteratorTest {
       setUpTransformIterator(clazz);
 
       // All rows with visibilities reversed
-      TransformingIterator iter = clazz.newInstance();
+      TransformingIterator iter = clazz.getDeclaredConstructor().newInstance();
       TreeMap<Key,Value> expected = new TreeMap<>();
       for (int row = 1; row <= 3; ++row) {
         for (int cf = 1; cf <= 3; ++cf) {

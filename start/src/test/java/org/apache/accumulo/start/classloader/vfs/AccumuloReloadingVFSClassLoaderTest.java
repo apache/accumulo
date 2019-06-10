@@ -96,7 +96,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     arvcl.setMaxRetries(1);
 
     Class<?> clazz1 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-    Object o1 = clazz1.newInstance();
+    Object o1 = clazz1.getDeclaredConstructor().newInstance();
     assertEquals("Hello World!", o1.toString());
 
     // Check that the class is the same before the update
@@ -117,7 +117,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Thread.sleep(7000);
 
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-    Object o2 = clazz2.newInstance();
+    Object o2 = clazz2.getDeclaredConstructor().newInstance();
     assertEquals("Hello World!", o2.toString());
 
     // This is false because they are loaded by a different classloader
@@ -142,7 +142,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     arvcl.setMaxRetries(3);
 
     Class<?> clazz1 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-    Object o1 = clazz1.newInstance();
+    Object o1 = clazz1.getDeclaredConstructor().newInstance();
     assertEquals("Hello World!", o1.toString());
 
     // Check that the class is the same before the update
@@ -163,7 +163,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
     Thread.sleep(7000);
 
     Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
-    Object o2 = clazz2.newInstance();
+    Object o2 = clazz2.getDeclaredConstructor().newInstance();
     assertEquals("Hello World!", o2.toString());
 
     // This is true because they are loaded by the same classloader due to the new retry
