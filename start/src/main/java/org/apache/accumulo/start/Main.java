@@ -57,7 +57,7 @@ public class Main {
       }
       Object conf = null;
       try {
-        conf = confClass.newInstance();
+        conf = confClass.getDeclaredConstructor().newInstance();
       } catch (Exception e) {
         log.error("Error creating new instance of Hadoop Configuration", e);
         System.exit(1);
@@ -103,8 +103,7 @@ public class Main {
       try {
         classLoader = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
         Thread.currentThread().setContextClassLoader(classLoader);
-      } catch (ClassNotFoundException | IOException | IllegalAccessException
-          | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+      } catch (IOException | IllegalArgumentException | ReflectiveOperationException
           | SecurityException e) {
         log.error("Problem initializing the class loader", e);
         System.exit(1);

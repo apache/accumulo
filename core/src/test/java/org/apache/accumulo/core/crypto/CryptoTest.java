@@ -265,8 +265,7 @@ public class CryptoTest {
   }
 
   @Test
-  public void testMissingConfigProperties()
-      throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+  public void testMissingConfigProperties() throws ReflectiveOperationException {
     ConfigurationCopy aconf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     Configuration conf = new Configuration(false);
     for (Map.Entry<String,String> e : conf) {
@@ -277,7 +276,7 @@ public class CryptoTest {
     String configuredClass = aconf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
     Class<? extends CryptoService> clazz =
         AccumuloVFSClassLoader.loadClass(configuredClass, CryptoService.class);
-    CryptoService cs = clazz.newInstance();
+    CryptoService cs = clazz.getDeclaredConstructor().newInstance();
 
     exception.expect(NullPointerException.class);
     cs.init(aconf.getAllPropertiesWithPrefix(Property.TABLE_PREFIX));

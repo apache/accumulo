@@ -66,7 +66,7 @@ public class ConstraintChecker {
           Class<? extends Constraint> clazz =
               loader.loadClass(className).asSubclass(Constraint.class);
           log.debug("Loaded constraint {} for {}", clazz.getName(), conf.getTableId());
-          constrains.add(clazz.newInstance());
+          constrains.add(clazz.getDeclaredConstructor().newInstance());
         }
       }
 

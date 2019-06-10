@@ -42,7 +42,7 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     Filter newInstance;
     try {
-      newInstance = this.getClass().newInstance();
+      newInstance = this.getClass().getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

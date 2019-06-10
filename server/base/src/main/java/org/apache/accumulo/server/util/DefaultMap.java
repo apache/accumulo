@@ -50,7 +50,7 @@ public class DefaultMap<K,V> extends HashMap<K,V> {
   @SuppressWarnings("unchecked")
   private V construct() {
     try {
-      return (V) dfault.getClass().newInstance();
+      return (V) dfault.getClass().getDeclaredConstructor().newInstance();
     } catch (Exception ex) {
       return dfault;
     }

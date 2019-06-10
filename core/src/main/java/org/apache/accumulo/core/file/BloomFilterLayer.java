@@ -134,7 +134,7 @@ public class BloomFilterLayer {
         else
           clazz = AccumuloVFSClassLoader.loadClass(classname, KeyFunctor.class);
 
-        transformer = clazz.newInstance();
+        transformer = clazz.getDeclaredConstructor().newInstance();
 
       } catch (Exception e) {
         LOG.error("Failed to find KeyFunctor: " + acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR), e);
@@ -245,7 +245,7 @@ public class BloomFilterLayer {
                 KeyFunctor.class);
           else
             clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
-          transformer = clazz.newInstance();
+          transformer = clazz.getDeclaredConstructor().newInstance();
 
           /**
            * read in bloom filter
@@ -266,11 +266,8 @@ public class BloomFilterLayer {
         } catch (ClassNotFoundException e) {
           LOG.error("Failed to find KeyFunctor in config: " + sanitize(ClassName), e);
           bloomFilter = null;
-        } catch (InstantiationException e) {
+        } catch (ReflectiveOperationException e) {
           LOG.error("Could not instantiate KeyFunctor: " + sanitize(ClassName), e);
-          bloomFilter = null;
-        } catch (IllegalAccessException e) {
-          LOG.error("Illegal acess exception", e);
           bloomFilter = null;
         } catch (RuntimeException rte) {
           if (!closed)

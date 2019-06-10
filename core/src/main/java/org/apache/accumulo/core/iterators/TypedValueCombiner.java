@@ -137,8 +137,8 @@ public abstract class TypedValueCombiner<V> extends Combiner {
       @SuppressWarnings("unchecked")
       Class<? extends Encoder<V>> clazz = (Class<? extends Encoder<V>>) AccumuloVFSClassLoader
           .loadClass(encoderClass, Encoder.class);
-      encoder = clazz.newInstance();
-    } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+      encoder = clazz.getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e) {
       throw new IllegalArgumentException(e);
     }
   }

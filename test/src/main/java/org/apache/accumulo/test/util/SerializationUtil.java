@@ -65,8 +65,8 @@ public class SerializationUtil {
           classname + " is not a subclass of " + parentClass.getName(), e);
     }
     try {
-      return cm.newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+      return cm.getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e) {
       throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
     }
   }

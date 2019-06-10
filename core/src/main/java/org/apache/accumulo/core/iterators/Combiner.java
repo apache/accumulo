@@ -310,7 +310,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     // TODO test
     Combiner newInstance;
     try {
-      newInstance = this.getClass().newInstance();
+      newInstance = this.getClass().getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

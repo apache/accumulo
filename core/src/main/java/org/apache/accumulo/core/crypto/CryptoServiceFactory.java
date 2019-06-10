@@ -45,8 +45,8 @@ public class CryptoServiceFactory {
       } else {
         try {
           newCryptoService = CryptoServiceFactory.class.getClassLoader().loadClass(clazzName)
-              .asSubclass(CryptoService.class).newInstance();
-        } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+              .asSubclass(CryptoService.class).getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException e) {
           throw new RuntimeException(e);
         }
       }

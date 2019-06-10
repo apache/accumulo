@@ -111,11 +111,11 @@ public class ContextManagerTest {
     assertArrayEquals(createFileSystems(dirContents2), files2);
 
     Class<?> defaultContextClass = cl1.loadClass("test.HelloWorld");
-    Object o1 = defaultContextClass.newInstance();
+    Object o1 = defaultContextClass.getDeclaredConstructor().newInstance();
     assertEquals("Hello World!", o1.toString());
 
     Class<?> myContextClass = cl2.loadClass("test.HelloWorld");
-    Object o2 = myContextClass.newInstance();
+    Object o2 = myContextClass.getDeclaredConstructor().newInstance();
     assertEquals("Hello World!", o2.toString());
 
     assertNotEquals(defaultContextClass, myContextClass);

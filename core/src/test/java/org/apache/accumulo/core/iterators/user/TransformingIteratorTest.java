@@ -88,8 +88,8 @@ public class TransformingIteratorTest {
     ReuseIterator reuserIter = new ReuseIterator();
     reuserIter.init(visFilter, EMPTY_OPTS, null);
     try {
-      titer = clazz.newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+      titer = clazz.getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
 
@@ -143,7 +143,7 @@ public class TransformingIteratorTest {
       setUpTransformIterator(clazz);
 
       // All rows with visibilities reversed
-      TransformingIterator iter = clazz.newInstance();
+      TransformingIterator iter = clazz.getDeclaredConstructor().newInstance();
       TreeMap<Key,Value> expected = new TreeMap<>();
       for (int row = 1; row <= 3; ++row) {
         for (int cf = 1; cf <= 3; ++cf) {

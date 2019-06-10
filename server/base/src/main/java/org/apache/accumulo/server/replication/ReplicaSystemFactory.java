@@ -41,7 +41,7 @@ public class ReplicaSystemFactory {
       Class<?> clz = Class.forName(entry.getKey());
 
       if (ReplicaSystem.class.isAssignableFrom(clz)) {
-        Object o = clz.newInstance();
+        Object o = clz.getDeclaredConstructor().newInstance();
         ReplicaSystem rs = (ReplicaSystem) o;
         rs.configure(context, entry.getValue());
         return rs;
@@ -49,7 +49,7 @@ public class ReplicaSystemFactory {
 
       throw new IllegalArgumentException(
           "Class is not assignable to ReplicaSystem: " + entry.getKey());
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+    } catch (ReflectiveOperationException e) {
       log.error("Error creating ReplicaSystem object", e);
       throw new IllegalArgumentException(e);
     }

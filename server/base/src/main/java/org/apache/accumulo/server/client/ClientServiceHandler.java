@@ -368,10 +368,9 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
       Class test = AccumuloVFSClassLoader.loadClass(className, shouldMatch);
-      test.newInstance();
+      test.getDeclaredConstructor().newInstance();
       return true;
-    } catch (ClassCastException | IllegalAccessException | InstantiationException
-        | ClassNotFoundException e) {
+    } catch (ClassCastException | ReflectiveOperationException e) {
       log.warn("Error checking object types", e);
       return false;
     }
@@ -404,7 +403,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       }
 
       Class<?> test = currentLoader.loadClass(className).asSubclass(shouldMatch);
-      test.newInstance();
+      test.getDeclaredConstructor().newInstance();
       return true;
     } catch (Exception e) {
       log.warn("Error checking object types", e);
@@ -440,7 +439,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       }
 
       Class<?> test = currentLoader.loadClass(className).asSubclass(shouldMatch);
-      test.newInstance();
+      test.getDeclaredConstructor().newInstance();
       return true;
     } catch (Exception e) {
       log.warn("Error checking object types", e);

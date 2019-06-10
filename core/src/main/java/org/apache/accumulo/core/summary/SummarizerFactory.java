@@ -42,23 +42,24 @@ public class SummarizerFactory {
   }
 
   private Summarizer newSummarizer(String classname)
-      throws ClassNotFoundException, IOException, InstantiationException, IllegalAccessException {
+      throws IOException, ReflectiveOperationException {
     if (classloader != null) {
-      return classloader.loadClass(classname).asSubclass(Summarizer.class).newInstance();
+      return classloader.loadClass(classname).asSubclass(Summarizer.class).getDeclaredConstructor()
+          .newInstance();
     } else {
       if (context != null && !context.equals(""))
         return AccumuloVFSClassLoader.getContextManager()
-            .loadClass(context, classname, Summarizer.class).newInstance();
+            .loadClass(context, classname, Summarizer.class).getDeclaredConstructor().newInstance();
       else
-        return AccumuloVFSClassLoader.loadClass(classname, Summarizer.class).newInstance();
+        return AccumuloVFSClassLoader.loadClass(classname, Summarizer.class)
+            .getDeclaredConstructor().newInstance();
     }
   }
 
   public Summarizer getSummarizer(SummarizerConfiguration conf) {
     try {
       return newSummarizer(conf.getClassName());
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IOException e) {
+    } catch (ReflectiveOperationException | IOException e) {
       throw new RuntimeException(e);
     }
   }

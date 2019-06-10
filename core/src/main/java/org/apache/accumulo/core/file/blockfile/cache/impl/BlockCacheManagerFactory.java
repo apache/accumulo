@@ -44,7 +44,7 @@ public class BlockCacheManagerFactory {
     Class<? extends BlockCacheManager> clazz =
         AccumuloVFSClassLoader.loadClass(impl, BlockCacheManager.class);
     LOG.info("Created new block cache manager of type: {}", clazz.getSimpleName());
-    return clazz.newInstance();
+    return clazz.getDeclaredConstructor().newInstance();
   }
 
   /**
@@ -62,6 +62,6 @@ public class BlockCacheManagerFactory {
     Class<? extends BlockCacheManager> clazz =
         Class.forName(impl).asSubclass(BlockCacheManager.class);
     LOG.info("Created new block cache factory of type: {}", clazz.getSimpleName());
-    return clazz.newInstance();
+    return clazz.getDeclaredConstructor().newInstance();
   }
 }

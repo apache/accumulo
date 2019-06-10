@@ -240,7 +240,7 @@ public class ScanCommand extends Command {
     if (clazz == null)
       clazz = DefaultScanInterpreter.class;
 
-    return clazz.newInstance();
+    return clazz.getDeclaredConstructor().newInstance();
   }
 
   protected Class<? extends Formatter> getFormatter(final CommandLine cl, final String tableName,

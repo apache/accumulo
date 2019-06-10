@@ -172,8 +172,7 @@ public class ConfigurationTypeHelper {
 
     try {
       instance = getClassInstance(context, clazzName, base);
-    } catch (RuntimeException | ClassNotFoundException | IOException | InstantiationException
-        | IllegalAccessException e) {
+    } catch (RuntimeException | IOException | ReflectiveOperationException e) {
       log.warn("Failed to load class {}", clazzName, e);
     }
 
@@ -196,7 +195,7 @@ public class ConfigurationTypeHelper {
    * @return a new instance of the class
    */
   public static <T> T getClassInstance(String context, String clazzName, Class<T> base)
-      throws ClassNotFoundException, IOException, InstantiationException, IllegalAccessException {
+      throws IOException, ReflectiveOperationException {
     T instance;
 
     Class<? extends T> clazz;
@@ -206,7 +205,7 @@ public class ConfigurationTypeHelper {
       clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
     }
 
-    instance = clazz.newInstance();
+    instance = clazz.getDeclaredConstructor().newInstance();
     if (loaded.put(clazzName, clazz) != clazz)
       log.debug("Loaded class : {}", clazzName);
 

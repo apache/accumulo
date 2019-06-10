@@ -264,7 +264,7 @@ public class BatchWriterIterator extends WrappingIterator {
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     BatchWriterIterator newInstance;
     try {
-      newInstance = this.getClass().newInstance();
+      newInstance = this.getClass().getDeclaredConstructor().newInstance();
       newInstance.init(getSource().deepCopy(env), originalOptions, env);
       return newInstance;
     } catch (Exception e) {

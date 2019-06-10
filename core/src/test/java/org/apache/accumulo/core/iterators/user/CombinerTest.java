@@ -694,9 +694,8 @@ public class CombinerTest {
   }
 
   public static void sumArray(Class<? extends Encoder<List<Long>>> encoderClass,
-      SummingArrayCombiner.Type type)
-      throws IOException, InstantiationException, IllegalAccessException {
-    Encoder<List<Long>> encoder = encoderClass.newInstance();
+      SummingArrayCombiner.Type type) throws IOException, ReflectiveOperationException {
+    Encoder<List<Long>> encoder = encoderClass.getDeclaredConstructor().newInstance();
 
     TreeMap<Key,Value> tm1 = new TreeMap<>();
 
@@ -789,7 +788,7 @@ public class CombinerTest {
   }
 
   @Test
-  public void sumArrayTest() throws IOException, InstantiationException, IllegalAccessException {
+  public void sumArrayTest() throws IOException, ReflectiveOperationException {
     sumArray(SummingArrayCombiner.VarLongArrayEncoder.class, SummingArrayCombiner.Type.VARLEN);
     sumArray(SummingArrayCombiner.FixedLongArrayEncoder.class, SummingArrayCombiner.Type.FIXEDLEN);
     sumArray(SummingArrayCombiner.StringArrayEncoder.class, SummingArrayCombiner.Type.STRING);

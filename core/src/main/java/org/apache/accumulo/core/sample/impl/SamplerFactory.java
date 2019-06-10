@@ -40,13 +40,13 @@ public class SamplerFactory {
       else
         clazz = AccumuloVFSClassLoader.loadClass(config.getClassName(), Sampler.class);
 
-      Sampler sampler = clazz.newInstance();
+      Sampler sampler = clazz.getDeclaredConstructor().newInstance();
 
       sampler.init(config.toSamplerConfiguration());
 
       return sampler;
 
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+    } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
   }

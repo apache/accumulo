@@ -158,8 +158,7 @@ public class ConfigSanityCheck {
       Class<?> requiredBaseClass) {
     try {
       ConfigurationTypeHelper.getClassInstance(null, className, requiredBaseClass);
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | IOException e) {
+    } catch (IOException | ReflectiveOperationException e) {
       fatal(confOption + " has an invalid class name: " + className);
     } catch (ClassCastException e) {
       fatal(confOption + " must implement " + requiredBaseClass

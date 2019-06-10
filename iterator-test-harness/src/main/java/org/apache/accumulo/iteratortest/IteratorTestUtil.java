@@ -32,8 +32,8 @@ public class IteratorTestUtil {
 
   public static SortedKeyValueIterator<Key,Value> instantiateIterator(IteratorTestInput input) {
     try {
-      return requireNonNull(input.getIteratorClass()).newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+      return requireNonNull(input.getIteratorClass()).getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
   }

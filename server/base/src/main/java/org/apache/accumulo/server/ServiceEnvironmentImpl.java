@@ -127,13 +127,13 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
   @Override
   public <T> T instantiate(String className, Class<T> base)
-      throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
+      throws ReflectiveOperationException, IOException {
     return ConfigurationTypeHelper.getClassInstance(null, className, base);
   }
 
   @Override
   public <T> T instantiate(TableId tableId, String className, Class<T> base)
-      throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
+      throws ReflectiveOperationException, IOException {
     String ctx =
         srvCtx.getServerConfFactory().getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
     return ConfigurationTypeHelper.getClassInstance(ctx, className, base);

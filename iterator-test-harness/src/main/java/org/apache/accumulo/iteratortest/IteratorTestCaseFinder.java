@@ -70,8 +70,8 @@ public class IteratorTestCaseFinder {
       }
 
       try {
-        testCases.add((IteratorTestCase) clz.newInstance());
-      } catch (IllegalAccessException | InstantiationException e) {
+        testCases.add((IteratorTestCase) clz.getDeclaredConstructor().newInstance());
+      } catch (ReflectiveOperationException e) {
         log.warn("Could not instantiate {}", clz, e);
       }
     }

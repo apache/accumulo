@@ -139,7 +139,7 @@ public class AccumuloVFSClassLoaderTest {
     // We can't be sure what the authority/host will be due to FQDN mappings, so just check the path
     assertTrue(arvcl.getFileObjects()[0].getURL().toString().contains("HelloWorld.jar"));
     Class<?> clazz1 = arvcl.loadClass("test.HelloWorld");
-    Object o1 = clazz1.newInstance();
+    Object o1 = clazz1.getDeclaredConstructor().newInstance();
     assertEquals("Hello World!", o1.toString());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader",
         (AccumuloReloadingVFSClassLoader) null);

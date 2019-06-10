@@ -91,8 +91,8 @@ public class CreateToken implements KeywordExecutable {
         principal = getConsoleReader().readLine("Username (aka principal): ");
       }
 
-      AuthenticationToken token =
-          Class.forName(opts.tokenClassName).asSubclass(AuthenticationToken.class).newInstance();
+      AuthenticationToken token = Class.forName(opts.tokenClassName)
+          .asSubclass(AuthenticationToken.class).getDeclaredConstructor().newInstance();
       Properties props = new Properties();
       for (TokenProperty tp : token.getProperties()) {
         String input;
@@ -111,8 +111,7 @@ public class CreateToken implements KeywordExecutable {
       System.out.println("auth.type = " + opts.tokenClassName);
       System.out.println("auth.principal = " + principal);
       System.out.println("auth.token = " + ClientProperty.encodeToken(token));
-    } catch (IOException | InstantiationException | IllegalAccessException
-        | ClassNotFoundException e) {
+    } catch (IOException | ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
   }

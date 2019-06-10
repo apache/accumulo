@@ -47,7 +47,7 @@ public class LoginProperties implements KeywordExecutable {
       AccumuloConfiguration config = context.getServerConfFactory().getSystemConfiguration();
       Authenticator authenticator = AccumuloVFSClassLoader.getClassLoader()
           .loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR))
-          .asSubclass(Authenticator.class).newInstance();
+          .asSubclass(Authenticator.class).getDeclaredConstructor().newInstance();
 
       System.out
           .println("Supported token types for " + authenticator.getClass().getName() + " are : ");
@@ -56,7 +56,8 @@ public class LoginProperties implements KeywordExecutable {
         System.out
             .println("\t" + tokenType.getName() + ", which accepts the following properties : ");
 
-        for (TokenProperty tokenProperty : tokenType.newInstance().getProperties()) {
+        for (TokenProperty tokenProperty : tokenType.getDeclaredConstructor().newInstance()
+            .getProperties()) {
           System.out.println("\t\t" + tokenProperty);
         }
 

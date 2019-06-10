@@ -87,7 +87,7 @@ public abstract class RowEncodingIterator
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     RowEncodingIterator newInstance;
     try {
-      newInstance = this.getClass().newInstance();
+      newInstance = this.getClass().getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

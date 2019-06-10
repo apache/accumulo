@@ -62,7 +62,7 @@ public class VfsClassLoaderTest extends AccumuloDFSBase {
   @Test
   public void testGetClass() throws Exception {
     Class<?> helloWorldClass = this.cl.loadClass("test.HelloWorld");
-    Object o = helloWorldClass.newInstance();
+    Object o = helloWorldClass.getDeclaredConstructor().newInstance();
     assertEquals("Hello World!", o.toString());
   }
 
