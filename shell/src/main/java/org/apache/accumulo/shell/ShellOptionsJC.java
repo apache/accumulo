@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.shell;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -60,7 +62,7 @@ public class ShellOptionsJC {
         String process(String value) {
           Scanner scanner = null;
           try {
-            scanner = new Scanner(new File(value));
+            scanner = new Scanner(new File(value), UTF_8.name());
             return scanner.nextLine();
           } catch (FileNotFoundException e) {
             throw new ParameterException(e);

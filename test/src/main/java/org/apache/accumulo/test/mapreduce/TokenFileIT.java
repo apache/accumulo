@@ -24,6 +24,8 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -67,8 +69,28 @@ public class TokenFileIT extends AccumuloClusterHarness {
       @Override
       protected void map(Key k, Value v, Context context) {
         try {
-          if (key != null)
+          // verify cached token file is available locally
+          URI[] cachedFiles;
+          try {
+            cachedFiles = context.getCacheFiles();
+          } catch (IOException e) {
+            throw new AssertionError("IOException getting cache files", e);
+          }
+          assertEquals(2, cachedFiles.length); // one for each in/out format
+          for (Class<?> formatClass : Arrays.asList(
+              org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.class,
+              org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.class)) {
+            String formatName = formatClass.getSimpleName();
+            assertTrue(Arrays.stream(cachedFiles)
+                .anyMatch(uri -> uri.toString().endsWith(formatName + ".tokenfile")));
+            File file = new File(formatName + ".tokenfile");
+            assertTrue(file.exists());
+            assertTrue(file.canRead());
+          }
+
+          if (key != null) {
             assertEquals(key.getRow().toString(), new String(v.get()));
+          }
           assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
           assertEquals(new String(v.get()), String.format("%09x", count));
         } catch (AssertionError e) {
@@ -84,6 +106,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
         m.put("", "", Integer.toString(count));
         context.write(new Text(), m);
       }
+
     }
 
     @Override
@@ -139,7 +162,6 @@ public class TokenFileIT extends AccumuloClusterHarness {
         return 1;
       }
     }
-
   }
 
   @Rule
@@ -176,6 +198,9 @@ public class TokenFileIT extends AccumuloClusterHarness {
           new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(),
           new String[] {tf.getAbsolutePath(), table1, table2}));
+      if (e1 != null) {
+        e1.printStackTrace();
+      }
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {

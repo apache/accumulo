@@ -17,14 +17,15 @@
 package org.apache.accumulo.core.clientImpl.mapreduce.lib;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.io.InputStream;
 import java.util.Base64;
+import java.util.Scanner;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -36,9 +37,6 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -141,9 +139,10 @@ public class ConfiguratorBase {
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf,
       String principal, AuthenticationToken token) {
-    if (isConnectorInfoSet(implementingClass, conf))
+    if (isConnectorInfoSet(implementingClass, conf)) {
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
           + " can only be set once per job");
+    }
     checkArgument(principal != null, "principal is null");
     checkArgument(token != null, "token is null");
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
@@ -159,6 +158,10 @@ public class ConfiguratorBase {
           TokenSource.INLINE.prefix() + token.getClass().getName() + ":"
               + Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(token)));
     }
+  }
+
+  private static String cachedTokenFileName(Class<?> implementingClass) {
+    return implementingClass.getSimpleName() + ".tokenfile";
   }
 
   /**
@@ -181,19 +184,15 @@ public class ConfiguratorBase {
    */
   public static void setConnectorInfo(Class<?> implementingClass, Configuration conf,
       String principal, String tokenFile) {
-    if (isConnectorInfoSet(implementingClass, conf))
+    if (isConnectorInfoSet(implementingClass, conf)) {
       throw new IllegalStateException("Connector info for " + implementingClass.getSimpleName()
           + " can only be set once per job");
+    }
 
     checkArgument(principal != null, "principal is null");
     checkArgument(tokenFile != null, "tokenFile is null");
 
-    try {
-      DistributedCacheHelper.addCacheFile(new URI(tokenFile), conf);
-    } catch (URISyntaxException e) {
-      throw new IllegalStateException(
-          "Unable to add tokenFile \"" + tokenFile + "\" to distributed cache.");
-    }
+    DistributedCacheHelper.addCacheFile(tokenFile, cachedTokenFileName(implementingClass), conf);
 
     conf.setBoolean(enumToConfKey(implementingClass, ConnectorInfo.IS_CONFIGURED), true);
     conf.set(enumToConfKey(implementingClass, ConnectorInfo.PRINCIPAL), principal);
@@ -247,16 +246,19 @@ public class ConfiguratorBase {
   public static AuthenticationToken getAuthenticationToken(Class<?> implementingClass,
       Configuration conf) {
     String token = conf.get(enumToConfKey(implementingClass, ConnectorInfo.TOKEN));
-    if (token == null || token.isEmpty())
+    if (token == null || token.isEmpty()) {
       return null;
+    }
     if (token.startsWith(TokenSource.INLINE.prefix())) {
       String[] args = token.substring(TokenSource.INLINE.prefix().length()).split(":", 2);
-      if (args.length == 2)
+      if (args.length == 2) {
         return AuthenticationTokenSerializer.deserialize(args[0],
             Base64.getDecoder().decode(args[1]));
+      }
     } else if (token.startsWith(TokenSource.FILE.prefix())) {
       String tokenFileName = token.substring(TokenSource.FILE.prefix().length());
-      return getTokenFromFile(conf, getPrincipal(implementingClass, conf), tokenFileName);
+      return getTokenFromFile(implementingClass, conf, getPrincipal(implementingClass, conf),
+          tokenFileName);
     } else if (token.startsWith(TokenSource.JOB.prefix())) {
       String[] args = token.substring(TokenSource.JOB.prefix().length()).split(":", 2);
       if (args.length == 2) {
@@ -280,37 +282,26 @@ public class ConfiguratorBase {
    * @since 1.6.0
    * @see #setConnectorInfo(Class, Configuration, String, AuthenticationToken)
    */
-  public static AuthenticationToken getTokenFromFile(Configuration conf, String principal,
-      String tokenFile) {
-    FSDataInputStream in = null;
-    try {
-      URI[] uris = DistributedCacheHelper.getCacheFiles(conf);
-      Path path = null;
-      for (URI u : uris) {
-        if (u.toString().equals(tokenFile)) {
-          path = new Path(u);
+  public static AuthenticationToken getTokenFromFile(Class<?> implementingClass, Configuration conf,
+      String principal, String tokenFile) {
+
+    try (InputStream inputStream = DistributedCacheHelper.openCachedFile(tokenFile,
+        cachedTokenFileName(implementingClass), conf)) {
+
+      try (Scanner fileScanner = new Scanner(inputStream, UTF_8.name())) {
+        while (fileScanner.hasNextLine()) {
+          Credentials creds = Credentials.deserialize(fileScanner.nextLine());
+          if (principal.equals(creds.getPrincipal())) {
+            return creds.getToken();
+          }
         }
+        throw new IllegalArgumentException("No token found for " + principal);
       }
-      if (path == null) {
-        throw new IllegalArgumentException(
-            "Couldn't find password file called \"" + tokenFile + "\" in cache.");
-      }
-      FileSystem fs = FileSystem.get(conf);
-      in = fs.open(path);
+
     } catch (IOException e) {
-      throw new IllegalArgumentException(
-          "Couldn't open password file called \"" + tokenFile + "\".");
+      throw new IllegalStateException("Error closing token file stream", e);
     }
-    try (java.util.Scanner fileScanner = new java.util.Scanner(in)) {
-      while (fileScanner.hasNextLine()) {
-        Credentials creds = Credentials.deserialize(fileScanner.nextLine());
-        if (principal.equals(creds.getPrincipal())) {
-          return creds.getToken();
-        }
-      }
-      throw new IllegalArgumentException(
-          "Couldn't find token for user \"" + principal + "\" in file \"" + tokenFile + "\"");
-    }
+
   }
 
   /**
@@ -327,10 +318,11 @@ public class ConfiguratorBase {
   public static void setZooKeeperInstance(Class<?> implementingClass, Configuration conf,
       org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
     String key = enumToConfKey(implementingClass, InstanceOpts.TYPE);
-    if (!conf.get(key, "").isEmpty())
+    if (!conf.get(key, "").isEmpty()) {
       throw new IllegalStateException(
           "Instance info can only be set once per job; it has already been configured with "
               + conf.get(key));
+    }
     conf.set(key, "ZooKeeperInstance");
     if (clientConfig != null) {
       conf.set(enumToConfKey(implementingClass, InstanceOpts.CLIENT_CONFIG),
@@ -354,11 +346,12 @@ public class ConfiguratorBase {
     if ("ZooKeeperInstance".equals(instanceType)) {
       return new org.apache.accumulo.core.client.ZooKeeperInstance(
           getClientConfiguration(implementingClass, conf));
-    } else if (instanceType.isEmpty())
+    } else if (instanceType.isEmpty()) {
       throw new IllegalStateException(
           "Instance has not been configured for " + implementingClass.getSimpleName());
-    else
+    } else {
       throw new IllegalStateException("Unrecognized instance type " + instanceType);
+    }
   }
 
   /**
