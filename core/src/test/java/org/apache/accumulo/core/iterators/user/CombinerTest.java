@@ -23,7 +23,6 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -695,8 +694,7 @@ public class CombinerTest {
   }
 
   public static void sumArray(Class<? extends Encoder<List<Long>>> encoderClass,
-      SummingArrayCombiner.Type type) throws IOException, InstantiationException,
-      IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+      SummingArrayCombiner.Type type) throws IOException, ReflectiveOperationException {
     Encoder<List<Long>> encoder = encoderClass.getDeclaredConstructor().newInstance();
 
     TreeMap<Key,Value> tm1 = new TreeMap<>();
@@ -790,8 +788,7 @@ public class CombinerTest {
   }
 
   @Test
-  public void sumArrayTest() throws IOException, InstantiationException, IllegalAccessException,
-      NoSuchMethodException, InvocationTargetException {
+  public void sumArrayTest() throws IOException, ReflectiveOperationException {
     sumArray(SummingArrayCombiner.VarLongArrayEncoder.class, SummingArrayCombiner.Type.VARLEN);
     sumArray(SummingArrayCombiner.FixedLongArrayEncoder.class, SummingArrayCombiner.Type.FIXEDLEN);
     sumArray(SummingArrayCombiner.StringArrayEncoder.class, SummingArrayCombiner.Type.STRING);

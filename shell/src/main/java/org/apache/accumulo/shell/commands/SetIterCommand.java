@@ -17,7 +17,6 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -207,7 +206,7 @@ public class SetIterCommand extends Command {
     try {
       clazz = classloader.loadClass(className).asSubclass(SortedKeyValueIterator.class);
       untypedInstance = clazz.getDeclaredConstructor().newInstance();
-    } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException e) {
+    } catch (ReflectiveOperationException e) {
       StringBuilder msg = new StringBuilder("Unable to load ").append(className);
       if (className.indexOf('.') < 0) {
         msg.append("; did you use a fully qualified package name?");
@@ -215,8 +214,6 @@ public class SetIterCommand extends Command {
         msg.append("; class not found.");
       }
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, msg.toString());
-    } catch (InstantiationException | IllegalAccessException e) {
-      throw new IllegalArgumentException(e.getMessage());
     } catch (ClassCastException e) {
       String msg = className + " loaded successfully but does not implement SortedKeyValueIterator."
           + " This class cannot be used with this command.";

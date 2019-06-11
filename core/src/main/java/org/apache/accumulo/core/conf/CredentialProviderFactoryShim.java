@@ -117,8 +117,7 @@ public class CredentialProviderFactoryShim {
     try {
       hadoopCredProviderFactory =
           hadoopCredProviderFactoryClz.getDeclaredConstructor().newInstance();
-    } catch (InstantiationException | IllegalAccessException | NoSuchMethodException
-        | InvocationTargetException e) {
+    } catch (ReflectiveOperationException e) {
       log.trace("Could not instantiate class {}", HADOOP_CRED_PROVIDER_FACTORY_CLASS_NAME, e);
       return false;
     }

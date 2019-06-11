@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.client;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -371,8 +370,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       Class test = AccumuloVFSClassLoader.loadClass(className, shouldMatch);
       test.getDeclaredConstructor().newInstance();
       return true;
-    } catch (ClassCastException | IllegalAccessException | InstantiationException
-        | ClassNotFoundException | NoSuchMethodException | InvocationTargetException e) {
+    } catch (ClassCastException | ReflectiveOperationException e) {
       log.warn("Error checking object types", e);
       return false;
     }

@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.crypto;
 
-import java.lang.reflect.InvocationTargetException;
-
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -48,8 +46,7 @@ public class CryptoServiceFactory {
         try {
           newCryptoService = CryptoServiceFactory.class.getClassLoader().loadClass(clazzName)
               .asSubclass(CryptoService.class).getDeclaredConstructor().newInstance();
-        } catch (InstantiationException | IllegalAccessException | ClassNotFoundException
-            | NoSuchMethodException | InvocationTargetException e) {
+        } catch (ReflectiveOperationException e) {
           throw new RuntimeException(e);
         }
       }

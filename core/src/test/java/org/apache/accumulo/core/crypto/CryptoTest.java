@@ -30,7 +30,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -266,8 +265,7 @@ public class CryptoTest {
   }
 
   @Test
-  public void testMissingConfigProperties() throws ClassNotFoundException, InstantiationException,
-      IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+  public void testMissingConfigProperties() throws ReflectiveOperationException {
     ConfigurationCopy aconf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     Configuration conf = new Configuration(false);
     for (Map.Entry<String,String> e : conf) {

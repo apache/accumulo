@@ -20,7 +20,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
@@ -244,8 +243,7 @@ public class TraceServer implements Watcher, AutoCloseable {
    *           if the trace user has the wrong permissions
    */
   private AccumuloClient ensureTraceTableExists(final AccumuloConfiguration conf)
-      throws AccumuloSecurityException, ClassNotFoundException, InstantiationException,
-      IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+      throws AccumuloSecurityException, ReflectiveOperationException {
     AccumuloClient accumuloClient = null;
     while (true) {
       try {

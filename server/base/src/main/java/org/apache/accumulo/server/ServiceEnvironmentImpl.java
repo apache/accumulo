@@ -17,7 +17,6 @@
 package org.apache.accumulo.server;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -128,15 +127,13 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
   @Override
   public <T> T instantiate(String className, Class<T> base)
-      throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException,
-      NoSuchMethodException, InvocationTargetException {
+      throws ReflectiveOperationException, IOException {
     return ConfigurationTypeHelper.getClassInstance(null, className, base);
   }
 
   @Override
   public <T> T instantiate(TableId tableId, String className, Class<T> base)
-      throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException,
-      NoSuchMethodException, InvocationTargetException {
+      throws ReflectiveOperationException, IOException {
     String ctx =
         srvCtx.getServerConfFactory().getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
     return ConfigurationTypeHelper.getClassInstance(ctx, className, base);

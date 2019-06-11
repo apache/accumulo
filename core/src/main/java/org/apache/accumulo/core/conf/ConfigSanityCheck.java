@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.conf;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Map.Entry;
 import java.util.Objects;
 
@@ -159,8 +158,7 @@ public class ConfigSanityCheck {
       Class<?> requiredBaseClass) {
     try {
       ConfigurationTypeHelper.getClassInstance(null, className, requiredBaseClass);
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IOException
-        | NoSuchMethodException | InvocationTargetException e) {
+    } catch (IOException | ReflectiveOperationException e) {
       fatal(confOption + " has an invalid class name: " + className);
     } catch (ClassCastException e) {
       fatal(confOption + " must implement " + requiredBaseClass

@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -90,8 +89,7 @@ public class TransformingIteratorTest {
     reuserIter.init(visFilter, EMPTY_OPTS, null);
     try {
       titer = clazz.getDeclaredConstructor().newInstance();
-    } catch (InstantiationException | IllegalAccessException | NoSuchMethodException
-        | InvocationTargetException e) {
+    } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
 

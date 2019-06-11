@@ -103,8 +103,7 @@ public class Main {
       try {
         classLoader = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
         Thread.currentThread().setContextClassLoader(classLoader);
-      } catch (ClassNotFoundException | IOException | IllegalAccessException
-          | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+      } catch (IOException | IllegalArgumentException | ReflectiveOperationException
           | SecurityException e) {
         log.error("Problem initializing the class loader", e);
         System.exit(1);

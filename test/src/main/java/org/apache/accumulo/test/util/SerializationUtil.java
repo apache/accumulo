@@ -27,7 +27,6 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Base64;
 import java.util.Objects;
 
@@ -67,8 +66,7 @@ public class SerializationUtil {
     }
     try {
       return cm.getDeclaredConstructor().newInstance();
-    } catch (InstantiationException | IllegalAccessException | NoSuchMethodException
-        | InvocationTargetException e) {
+    } catch (ReflectiveOperationException e) {
       throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
     }
   }

@@ -19,7 +19,6 @@ package org.apache.accumulo.core.conf;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -228,8 +227,7 @@ public class IterConfigUtil {
         skvi.init(prev, options, iterLoad.iteratorEnvironment);
         prev = skvi;
       }
-    } catch (ClassNotFoundException | IllegalAccessException | InstantiationException
-        | NoSuchMethodException | InvocationTargetException e) {
+    } catch (ReflectiveOperationException e) {
       log.error(e.toString());
       throw new RuntimeException(e);
     }

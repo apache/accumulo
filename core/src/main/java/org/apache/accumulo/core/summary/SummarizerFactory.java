@@ -18,7 +18,6 @@
 package org.apache.accumulo.core.summary;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
@@ -43,8 +42,7 @@ public class SummarizerFactory {
   }
 
   private Summarizer newSummarizer(String classname)
-      throws ClassNotFoundException, IOException, InstantiationException, IllegalAccessException,
-      NoSuchMethodException, InvocationTargetException {
+      throws IOException, ReflectiveOperationException {
     if (classloader != null) {
       return classloader.loadClass(classname).asSubclass(Summarizer.class).getDeclaredConstructor()
           .newInstance();
@@ -61,8 +59,7 @@ public class SummarizerFactory {
   public Summarizer getSummarizer(SummarizerConfiguration conf) {
     try {
       return newSummarizer(conf.getClassName());
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IOException
-        | NoSuchMethodException | InvocationTargetException e) {
+    } catch (ReflectiveOperationException | IOException e) {
       throw new RuntimeException(e);
     }
   }

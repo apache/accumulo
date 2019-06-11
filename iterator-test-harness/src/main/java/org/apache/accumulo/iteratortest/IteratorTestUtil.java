@@ -18,8 +18,6 @@ package org.apache.accumulo.iteratortest;
 
 import static java.util.Objects.requireNonNull;
 
-import java.lang.reflect.InvocationTargetException;
-
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -35,8 +33,7 @@ public class IteratorTestUtil {
   public static SortedKeyValueIterator<Key,Value> instantiateIterator(IteratorTestInput input) {
     try {
       return requireNonNull(input.getIteratorClass()).getDeclaredConstructor().newInstance();
-    } catch (InstantiationException | IllegalAccessException | NoSuchMethodException
-        | InvocationTargetException e) {
+    } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
   }

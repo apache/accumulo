@@ -18,7 +18,6 @@
 package org.apache.accumulo.core.sample.impl;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -47,8 +46,7 @@ public class SamplerFactory {
 
       return sampler;
 
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | NoSuchMethodException | InvocationTargetException e) {
+    } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
   }

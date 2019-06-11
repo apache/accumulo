@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.iterators.conf;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -43,14 +42,12 @@ public class ColumnToClassMapping<K> {
   }
 
   public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c)
-      throws InstantiationException, IllegalAccessException, ClassNotFoundException, IOException,
-      NoSuchMethodException, InvocationTargetException {
+      throws ReflectiveOperationException, IOException {
     this(objectStrings, c, null);
   }
 
   public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c,
-      String context) throws InstantiationException, IllegalAccessException, ClassNotFoundException,
-      IOException, NoSuchMethodException, InvocationTargetException {
+      String context) throws ReflectiveOperationException, IOException {
     this();
 
     for (Entry<String,String> entry : objectStrings.entrySet()) {

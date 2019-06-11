@@ -18,7 +18,6 @@ package org.apache.accumulo.server.replication;
 
 import static java.util.Objects.requireNonNull;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.server.ServerContext;
@@ -50,8 +49,7 @@ public class ReplicaSystemFactory {
 
       throw new IllegalArgumentException(
           "Class is not assignable to ReplicaSystem: " + entry.getKey());
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-        | NoSuchMethodException | InvocationTargetException e) {
+    } catch (ReflectiveOperationException e) {
       log.error("Error creating ReplicaSystem object", e);
       throw new IllegalArgumentException(e);
     }

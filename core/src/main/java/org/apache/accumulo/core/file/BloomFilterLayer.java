@@ -24,7 +24,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.lang.reflect.InvocationTargetException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -267,11 +266,8 @@ public class BloomFilterLayer {
         } catch (ClassNotFoundException e) {
           LOG.error("Failed to find KeyFunctor in config: " + sanitize(ClassName), e);
           bloomFilter = null;
-        } catch (InstantiationException | NoSuchMethodException | InvocationTargetException e) {
+        } catch (ReflectiveOperationException e) {
           LOG.error("Could not instantiate KeyFunctor: " + sanitize(ClassName), e);
-          bloomFilter = null;
-        } catch (IllegalAccessException e) {
-          LOG.error("Illegal acess exception", e);
           bloomFilter = null;
         } catch (RuntimeException rte) {
           if (!closed)
