@@ -22,11 +22,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.singletons.SingletonManager;
@@ -49,12 +51,12 @@ public class ThriftTransportPool {
   private long killTime = 1000 * 3;
 
   private static class CachedConnections {
-    LinkedList<CachedConnection> unreserved = new LinkedList<>();
-    Map<CachedTTransport,CachedConnection> reserved = new HashMap<>();
+    Queue<CachedConnection> unreserved = new ConcurrentLinkedQueue<>();
+    Map<CachedTTransport,CachedConnection> reserved = new ConcurrentHashMap<>();
 
     public CachedConnection reserveAny() {
       if (unreserved.size() > 0) {
-        CachedConnection cachedConnection = unreserved.removeFirst();
+        CachedConnection cachedConnection = unreserved.remove();
         cachedConnection.reserve();
         reserved.put(cachedConnection.transport, cachedConnection);
         if (log.isTraceEnabled()) {
@@ -67,7 +69,7 @@ public class ThriftTransportPool {
     }
   }
 
-  private Map<ThriftTransportKey,CachedConnections> cache = new HashMap<>();
+  private Map<ThriftTransportKey,CachedConnections> cache = new ConcurrentHashMap<>();
   private Map<ThriftTransportKey,Long> errorCount = new HashMap<>();
   private Map<ThriftTransportKey,Long> errorTime = new HashMap<>();
   private Set<ThriftTransportKey> serversWarnedAbout = new HashSet<>();
@@ -413,21 +415,21 @@ public class ThriftTransportPool {
   private TTransport getTransport(ThriftTransportKey cacheKey) throws TTransportException {
     // compute hash code outside of lock, this lowers the time the lock is held
     cacheKey.precomputeHashCode();
-    synchronized (this) {
-      // atomically reserve location if it exist in cache
-      CachedConnections ccl = getCache().get(cacheKey);
+    // synchronized (this) {
+    // atomically reserve location if it exist in cache
+    CachedConnections ccl = getCache().get(cacheKey);
 
-      if (ccl == null) {
-        ccl = new CachedConnections();
-        getCache().put(cacheKey, ccl);
-      }
-
-      CachedConnection cachedConnection = ccl.reserveAny();
-      if (cachedConnection != null) {
-        log.trace("Using existing connection to {}", cacheKey.getServer());
-        return cachedConnection.transport;
-      }
+    if (ccl == null) {
+      ccl = new CachedConnections();
+      getCache().put(cacheKey, ccl);
     }
+
+    CachedConnection cachedConnection = ccl.reserveAny();
+    if (cachedConnection != null) {
+      log.trace("Using existing connection to {}", cacheKey.getServer());
+      return cachedConnection.transport;
+    }
+    // }
 
     return createNewTransport(cacheKey);
   }
@@ -441,25 +443,25 @@ public class ThriftTransportPool {
     if (preferCachedConnection) {
       HashSet<ThriftTransportKey> serversSet = new HashSet<>(servers);
 
-      synchronized (this) {
+      // synchronized (this) {
 
-        // randomly pick a server from the connection cache
-        serversSet.retainAll(getCache().keySet());
+      // randomly pick a server from the connection cache
+      serversSet.retainAll(getCache().keySet());
 
-        if (serversSet.size() > 0) {
-          ArrayList<ThriftTransportKey> cachedServers = new ArrayList<>(serversSet);
-          Collections.shuffle(cachedServers, random);
+      if (serversSet.size() > 0) {
+        ArrayList<ThriftTransportKey> cachedServers = new ArrayList<>(serversSet);
+        Collections.shuffle(cachedServers, random);
 
-          for (ThriftTransportKey ttk : cachedServers) {
-            CachedConnection cachedConnection = getCache().get(ttk).reserveAny();
-            if (cachedConnection != null) {
-              final String serverAddr = ttk.getServer().toString();
-              log.trace("Using existing connection to {}", serverAddr);
-              return new Pair<>(serverAddr, cachedConnection.transport);
-            }
+        for (ThriftTransportKey ttk : cachedServers) {
+          CachedConnection cachedConnection = getCache().get(ttk).reserveAny();
+          if (cachedConnection != null) {
+            final String serverAddr = ttk.getServer().toString();
+            log.trace("Using existing connection to {}", serverAddr);
+            return new Pair<>(serverAddr, cachedConnection.transport);
           }
         }
       }
+      // }
     }
 
     int retryCount = 0;
@@ -468,16 +470,16 @@ public class ThriftTransportPool {
       ThriftTransportKey ttk = servers.get(index);
 
       if (preferCachedConnection) {
-        synchronized (this) {
-          CachedConnections cachedConns = getCache().get(ttk);
-          if (cachedConns != null) {
-            CachedConnection cachedConnection = cachedConns.reserveAny();
-            if (cachedConnection != null) {
-              final String serverAddr = ttk.getServer().toString();
-              return new Pair<>(serverAddr, cachedConnection.transport);
-            }
+        // synchronized (this) {
+        CachedConnections cachedConns = getCache().get(ttk);
+        if (cachedConns != null) {
+          CachedConnection cachedConnection = cachedConns.reserveAny();
+          if (cachedConnection != null) {
+            final String serverAddr = ttk.getServer().toString();
+            return new Pair<>(serverAddr, cachedConnection.transport);
           }
         }
+        // }
       }
 
       try {
@@ -504,16 +506,16 @@ public class ThriftTransportPool {
     cc.reserve();
 
     try {
-      synchronized (this) {
-        CachedConnections cachedConns = getCache().get(cacheKey);
+      // synchronized (this) {
+      CachedConnections cachedConns = getCache().get(cacheKey);
 
-        if (cachedConns == null) {
-          cachedConns = new CachedConnections();
-          getCache().put(cacheKey, cachedConns);
-        }
-
-        cachedConns.reserved.put(cc.transport, cc);
+      if (cachedConns == null) {
+        cachedConns = new CachedConnections();
+        getCache().put(cacheKey, cachedConns);
       }
+
+      cachedConns.reserved.put(cc.transport, cc);
+      // }
     } catch (TransportPoolShutdownException e) {
       cc.transport.close();
       throw e;
@@ -531,58 +533,57 @@ public class ThriftTransportPool {
 
     ArrayList<CachedConnection> closeList = new ArrayList<>();
 
-    synchronized (this) {
-      CachedConnections cachedConns = getCache().get(ctsc.getCacheKey());
-      if (cachedConns != null) {
-        CachedConnection cachedConnection = cachedConns.reserved.remove(ctsc);
-        if (cachedConnection != null) {
-          if (ctsc.sawError) {
-            closeList.add(cachedConnection);
+    // synchronized (this) {
+    CachedConnections cachedConns = getCache().get(ctsc.getCacheKey());
+    if (cachedConns != null) {
+      CachedConnection cachedConnection = cachedConns.reserved.remove(ctsc);
+      if (cachedConnection != null) {
+        if (ctsc.sawError) {
+          closeList.add(cachedConnection);
 
-            log.trace("Returned connection had error {}", ctsc.getCacheKey());
+          log.trace("Returned connection had error {}", ctsc.getCacheKey());
 
-            Long ecount = errorCount.get(ctsc.getCacheKey());
-            if (ecount == null)
-              ecount = 0L;
-            ecount++;
-            errorCount.put(ctsc.getCacheKey(), ecount);
+          Long ecount = errorCount.get(ctsc.getCacheKey());
+          if (ecount == null)
+            ecount = 0L;
+          ecount++;
+          errorCount.put(ctsc.getCacheKey(), ecount);
 
-            Long etime = errorTime.get(ctsc.getCacheKey());
-            if (etime == null) {
-              errorTime.put(ctsc.getCacheKey(), System.currentTimeMillis());
-            }
-
-            if (ecount >= ERROR_THRESHOLD && !serversWarnedAbout.contains(ctsc.getCacheKey())) {
-              log.warn(
-                  "Server {} had {} failures in a short time period, will not complain anymore",
-                  ctsc.getCacheKey(), ecount);
-              serversWarnedAbout.add(ctsc.getCacheKey());
-            }
-
-            cachedConnection.unreserve();
-
-            // remove all unreserved cached connection when a sever has an error, not just the
-            // connection that was returned
-            closeList.addAll(cachedConns.unreserved);
-            cachedConns.unreserved.clear();
-
-          } else {
-            log.trace("Returned connection {} ioCount: {}", ctsc.getCacheKey(),
-                cachedConnection.transport.ioCount);
-
-            cachedConnection.lastReturnTime = System.currentTimeMillis();
-            cachedConnection.unreserve();
-            // Calling addFirst to use unreserved as LIFO queue. Using LIFO ensures that when the #
-            // of pooled connections exceeds the working set size that the
-            // idle times at the end of the list grow. The connections with large idle times will be
-            // cleaned up. Using a FIFO could continually reset the idle
-            // times of all connections, even when there are more than the working set size.
-            cachedConns.unreserved.addFirst(cachedConnection);
+          Long etime = errorTime.get(ctsc.getCacheKey());
+          if (etime == null) {
+            errorTime.put(ctsc.getCacheKey(), System.currentTimeMillis());
           }
-          existInCache = true;
+
+          if (ecount >= ERROR_THRESHOLD && !serversWarnedAbout.contains(ctsc.getCacheKey())) {
+            log.warn("Server {} had {} failures in a short time period, will not complain anymore",
+                ctsc.getCacheKey(), ecount);
+            serversWarnedAbout.add(ctsc.getCacheKey());
+          }
+
+          cachedConnection.unreserve();
+
+          // remove all unreserved cached connection when a sever has an error, not just the
+          // connection that was returned
+          closeList.addAll(cachedConns.unreserved);
+          cachedConns.unreserved.clear();
+
+        } else {
+          log.trace("Returned connection {} ioCount: {}", ctsc.getCacheKey(),
+              cachedConnection.transport.ioCount);
+
+          cachedConnection.lastReturnTime = System.currentTimeMillis();
+          cachedConnection.unreserve();
+          // Calling addFirst to use unreserved as LIFO queue. Using LIFO ensures that when the #
+          // of pooled connections exceeds the working set size that the
+          // idle times at the end of the list grow. The connections with large idle times will be
+          // cleaned up. Using a FIFO could continually reset the idle
+          // times of all connections, even when there are more than the working set size.
+          cachedConns.unreserved.add(cachedConnection);
         }
+        existInCache = true;
       }
     }
+    // }
 
     // close outside of sync block
     for (CachedConnection cachedConnection : closeList) {
@@ -669,27 +670,27 @@ public class ThriftTransportPool {
 
   private void shutdown() {
     Thread ctl;
-    synchronized (this) {
-      if (cache == null)
-        return;
+    // synchronized (this) {
+    if (cache == null)
+      return;
 
-      // close any connections in the pool... even ones that are in use
-      for (CachedConnections cachedConn : getCache().values()) {
-        for (CachedConnection cc : Iterables.concat(cachedConn.reserved.values(),
-            cachedConn.unreserved)) {
-          try {
-            cc.transport.close();
-          } catch (Exception e) {
-            log.debug("Error closing transport during shutdown", e);
-          }
+    // close any connections in the pool... even ones that are in use
+    for (CachedConnections cachedConn : getCache().values()) {
+      for (CachedConnection cc : Iterables.concat(cachedConn.reserved.values(),
+          cachedConn.unreserved)) {
+        try {
+          cc.transport.close();
+        } catch (Exception e) {
+          log.debug("Error closing transport during shutdown", e);
         }
       }
-
-      // this will render the pool unusable and cause the background thread to exit
-      this.cache = null;
-
-      ctl = checkThread;
     }
+
+    // this will render the pool unusable and cause the background thread to exit
+    this.cache = null;
+
+    ctl = checkThread;
+    // }
 
     if (ctl != null) {
       try {
