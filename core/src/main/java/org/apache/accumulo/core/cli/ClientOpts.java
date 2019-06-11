@@ -82,6 +82,16 @@ public class ClientOpts extends Help {
     }
   }
 
+  /**
+   * A catch all for older legacy options that have been dropped.  Most of them were replaced with
+   * accumulo-client.properties in 2.0.  Others have been dropped completely.
+   */
+  @Parameter(names = {"-p", "-tc", "--tokenClass", "-i", "--instance", "--debug", "-fake",
+          "--mock", "--site-file", "--keytab", "--ssl",  "--sasl"},
+          description = "Legacy options that have been dropped. Use accumulo-client.properties for" +
+                  "any connection or token options. See '-c, --config-file' option.")
+  private String legacyOpts = null;
+
   @Parameter(names = {"-u", "--user"}, description = "Connection user")
   public String principal = null;
 
