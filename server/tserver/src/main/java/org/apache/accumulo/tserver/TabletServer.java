@@ -426,10 +426,11 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         private void logBusyTablets(Map<String,PriorityQueue<Pair<String,Double>>> busyTabletsMap,
             String label, int numBusiestTabletsToLog) {
           PriorityQueue<Pair<String,Double>> busyTabletsQueue = busyTabletsMap.get(label);
-          for (int i = 0; i < numBusiestTabletsToLog; i++) {
+          int i = 0;
+          while(!busyTabletsQueue.isEmpty()) {
             Pair<String,Double> pair = busyTabletsQueue.poll();
-            log.debug("{} busiest tablet by {} -- extent: {} count: {}", i, label, pair.getFirst(),
-                pair.getSecond());
+            log.debug("{} busiest tablet by {}: {} -- extent: {} ", i, label.toLowerCase(), pair.getSecond(),
+                    pair.getFirst());
           }
         }
       }, logBusyTabletsDelay, logBusyTabletsDelay);
