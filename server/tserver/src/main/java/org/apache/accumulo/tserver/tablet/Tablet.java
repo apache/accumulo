@@ -164,6 +164,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class Tablet {
   private static final Logger log = LoggerFactory.getLogger(Tablet.class);
 
+  private static final byte[] EMPTY_BYTES = new byte[0];
+
   private final TabletServer tabletServer;
   private final ServerContext context;
   private final KeyExtent extent;
@@ -351,8 +353,7 @@ public class Tablet {
     constraintChecker = tableConfiguration.newDeriver(conf -> new ConstraintChecker(conf));
 
     if (extent.isMeta()) {
-      // TODO empty byte constant
-      defaultSecurityLabel = () -> new byte[0];
+      defaultSecurityLabel = () -> EMPTY_BYTES;
     } else {
       defaultSecurityLabel = tableConfiguration.newDeriver(conf -> {
         return new ColumnVisibility(conf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY))
