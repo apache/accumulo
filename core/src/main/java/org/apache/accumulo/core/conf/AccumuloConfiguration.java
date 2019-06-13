@@ -457,17 +457,17 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       refref = new AtomicReference<>();
     }
 
+    /**
+     * This method was written with the goal of avoiding thread contention and minimizing
+     * recomputation. Configuration can be accessed frequently by many threads. Ideally, threads
+     * working on unrelated task would not impeded each other because of accessing config.
+     *
+     * To avoid thread contention, synchronization and needless calls to compare and set were
+     * avoided. For example if 100 threads are all calling compare and set in a loop this could
+     * cause significant contention.
+     */
     @Override
     public T derive() {
-      /*
-       * This method was written with the goal of avoiding thread contention and minimizing
-       * recomputation. Configuration can be accessed frequently by many threads. Ideally, threads
-       * working on unrelated task would not impeded each other because of accessing config.
-       *
-       * To avoid thread contention, synchronization and needless calls to compare and set were
-       * avoided. For example if 100 threads are all calling compare and set in a loop this could
-       * cause significant contention.
-       */
 
       // very important to obtain this before possibly recomputing object
       long uc = getUpdateCount();
