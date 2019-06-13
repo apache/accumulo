@@ -28,8 +28,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
@@ -433,6 +435,90 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
 
     return null;
+  }
+
+  private static class RefCount<T> {
+    T obj;
+    long count;
+
+    RefCount(long c, T r) {
+      this.count = c;
+      this.obj = r;
+    }
+  }
+
+  private class DeriverImpl<T> implements Deriver<T> {
+
+    private final AtomicReference<RefCount<T>> refref = new AtomicReference<>();
+    private final Function<AccumuloConfiguration,T> converter;
+
+    DeriverImpl(Function<AccumuloConfiguration,T> converter) {
+      this.converter = converter;
+    }
+
+    /**
+     * This method was written with the goal of avoiding thread contention and minimizing
+     * recomputation. Configuration can be accessed frequently by many threads. Ideally, threads
+     * working on unrelated task would not impeded each other because of accessing config.
+     *
+     * To avoid thread contention, synchronization and needless calls to compare and set were
+     * avoided. For example if 100 threads are all calling compare and set in a loop this could
+     * cause significant contention.
+     */
+    @Override
+    public T derive() {
+
+      // very important to obtain this before possibly recomputing object
+      long uc = getUpdateCount();
+
+      RefCount<T> rc = refref.get();
+
+      if (rc == null || rc.count != uc) {
+        T newObj = converter.apply(AccumuloConfiguration.this);
+
+        // very important to record the update count that was obtained before recomputing.
+        RefCount<T> nrc = new RefCount<>(uc, newObj);
+
+        /*
+         * The return value of compare and set is intentionally ignored here. This code could loop
+         * calling compare and set inorder to avoid returning a stale object. However after this
+         * function returns, the object could immediately become stale. So in the big picture stale
+         * objects can not be prevented. Looping here could cause thread contention, but it would
+         * not solve the overall stale object problem. That is why the return value was ignored. The
+         * following line is a least effort attempt to make the result of this recomputation
+         * available to the next caller.
+         */
+        refref.compareAndSet(rc, nrc);
+
+        return nrc.obj;
+      }
+
+      return rc.obj;
+    }
+  }
+
+  /**
+   * Automatically regenerates an object whenever configuration changes. When configuration is not
+   * changing, keeps returning the same object. Implementations should be thread safe and eventually
+   * consistent. See {@link AccumuloConfiguration#newDeriver(Function)}
+   */
+  public static interface Deriver<T> {
+    public T derive();
+  }
+
+  /**
+   * Enables deriving an object from configuration and automatically deriving a new object any time
+   * configuration changes.
+   *
+   * @param converter
+   *          This functions is used to create an object from configuration. A reference to this
+   *          function will be kept and called by the returned deriver.
+   * @return The returned supplier will automatically re-derive the object any time this
+   *         configuration changes. When configuration is not changing, the same object is returned.
+   *
+   */
+  public <T> Deriver<T> newDeriver(Function<AccumuloConfiguration,T> converter) {
+    return new DeriverImpl<>(converter);
   }
 
   private static final String SCAN_EXEC_THREADS = "threads";

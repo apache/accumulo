@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
+import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -56,8 +57,7 @@ public class ServerConfigurationFactoryTest {
   public static void setUpClass() {
     zcf = createMock(ZooCacheFactory.class);
     zc = createMock(ZooCache.class);
-    expect(zcf.getZooCache(eq(ZK_HOST), eq(ZK_TIMEOUT), anyObject(NamespaceConfWatcher.class)))
-        .andReturn(zc);
+    expect(zcf.getZooCache(eq(ZK_HOST), eq(ZK_TIMEOUT), EasyMock.anyObject())).andReturn(zc);
     expectLastCall().anyTimes();
     expect(zcf.getZooCache(ZK_HOST, ZK_TIMEOUT)).andReturn(zc);
     expectLastCall().anyTimes();

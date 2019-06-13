@@ -23,19 +23,14 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationObserver;
-import org.apache.accumulo.core.conf.ObservableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class NamespaceConfiguration extends ObservableConfiguration {
-  private static final Logger log = LoggerFactory.getLogger(NamespaceConfiguration.class);
+public class NamespaceConfiguration extends AccumuloConfiguration {
 
   private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<>();
 
@@ -74,8 +69,7 @@ public class NamespaceConfiguration extends ObservableConfiguration {
       PropCacheKey key = new PropCacheKey(context.getInstanceID(), namespaceId.canonical());
       ZooCache propCache = propCaches.get(key);
       if (propCache == null) {
-        propCache = zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),
-            new NamespaceConfWatcher(context));
+        propCache = zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
         propCaches.put(key, propCache);
       }
       return propCache;
@@ -134,27 +128,6 @@ public class NamespaceConfiguration extends ObservableConfiguration {
 
   protected NamespaceId getNamespaceId() {
     return namespaceId;
-  }
-
-  @Override
-  public void addObserver(ConfigurationObserver co) {
-    if (namespaceId == null) {
-      String err = "Attempt to add observer for non-namespace configuration";
-      log.error(err);
-      throw new RuntimeException(err);
-    }
-    iterator();
-    super.addObserver(co);
-  }
-
-  @Override
-  public void removeObserver(ConfigurationObserver co) {
-    if (namespaceId == null) {
-      String err = "Attempt to remove observer for non-namespace configuration";
-      log.error(err);
-      throw new RuntimeException(err);
-    }
-    super.removeObserver(co);
   }
 
   static boolean isIteratorOrConstraint(String key) {
