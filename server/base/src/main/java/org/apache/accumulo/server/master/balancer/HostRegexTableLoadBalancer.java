@@ -32,11 +32,11 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.AccumuloConfiguration.Deriver;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -182,8 +182,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   private final Map<String,Long> tableToTimeSinceNoMigrations = new HashMap<>();
 
   // TODO volatile?
-  private Supplier<HrtlbConf> hrtlbConf;
-  private LoadingCache<TableId,Supplier<Map<String,String>>> tablesRegExCache;
+  private Deriver<HrtlbConf> hrtlbConf;
+  private LoadingCache<TableId,Deriver<Map<String,String>>> tablesRegExCache;
 
   /**
    * Group the set of current tservers by pool name. Tservers that don't match a regex are put into
@@ -238,7 +238,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
    */
   protected List<String> getPoolNamesForHost(String host) {
     String test = host;
-    if (!hrtlbConf.get().isIpBasedRegex) {
+    if (!hrtlbConf.derive().isIpBasedRegex) {
       try {
         test = getNameFromIp(host);
       } catch (UnknownHostException e1) {
@@ -248,7 +248,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       }
     }
     List<String> pools = new ArrayList<>();
-    for (Entry<String,Pattern> e : hrtlbConf.get().poolNameToRegexPattern.entrySet()) {
+    for (Entry<String,Pattern> e : hrtlbConf.derive().poolNameToRegexPattern.entrySet()) {
       if (e.getValue().matcher(test).matches()) {
         pools.add(e.getKey());
       }
@@ -264,9 +264,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   }
 
   private void checkTableConfig(TableId tableId) {
-    Map<String,String> tableRegexes = tablesRegExCache.getUnchecked(tableId).get();
+    Map<String,String> tableRegexes = tablesRegExCache.getUnchecked(tableId).derive();
 
-    if (!hrtlbConf.get().regexes.equals(tableRegexes)) {
+    if (!hrtlbConf.derive().regexes.equals(tableRegexes)) {
       LoggerFactory.getLogger(HostRegexTableLoadBalancer.class).warn(
           "Table id {} has different config than system.  The per table config is ignored.",
           tableId);
@@ -292,51 +292,54 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     if (tableName == null) {
       return DEFAULT_POOL;
     }
-    return hrtlbConf.get().poolNameToRegexPattern.containsKey(tableName) ? tableName : DEFAULT_POOL;
+    return hrtlbConf.derive().poolNameToRegexPattern.containsKey(tableName) ? tableName
+        : DEFAULT_POOL;
   }
 
   @Override
   public String toString() {
+    HrtlbConf myConf = hrtlbConf.derive();
     ToStringBuilder buf = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);
-    buf.append("\nTablet Out Of Bounds Check Interval", hrtlbConf.get().oobCheckMillis);
-    buf.append("\nMax Tablet Server Migrations", hrtlbConf.get().maxTServerMigrations);
-    buf.append("\nRegular Expressions use IPs", hrtlbConf.get().isIpBasedRegex);
-    buf.append("\nPools", hrtlbConf.get().poolNameToRegexPattern);
+    buf.append("\nTablet Out Of Bounds Check Interval", myConf.oobCheckMillis);
+    buf.append("\nMax Tablet Server Migrations", myConf.maxTServerMigrations);
+    buf.append("\nRegular Expressions use IPs", myConf.isIpBasedRegex);
+    buf.append("\nPools", myConf.poolNameToRegexPattern);
     return buf.toString();
   }
 
   public Map<String,Pattern> getPoolNameToRegexPattern() {
-    return hrtlbConf.get().poolNameToRegexPattern;
+    return hrtlbConf.derive().poolNameToRegexPattern;
   }
 
   public int getMaxMigrations() {
-    return hrtlbConf.get().maxTServerMigrations;
+    return hrtlbConf.derive().maxTServerMigrations;
   }
 
   public int getMaxOutstandingMigrations() {
-    return hrtlbConf.get().maxOutstandingMigrations;
+    return hrtlbConf.derive().maxOutstandingMigrations;
   }
 
   public long getOobCheckMillis() {
-    return hrtlbConf.get().oobCheckMillis;
+    return hrtlbConf.derive().oobCheckMillis;
   }
 
   public boolean isIpBasedRegex() {
-    return hrtlbConf.get().isIpBasedRegex;
+    return hrtlbConf.derive().isIpBasedRegex;
   }
 
   @Override
   public void init(ServerContext context) {
     super.init(context);
 
-    this.hrtlbConf = context.getServerConfFactory().getSystemConfiguration().derive(HrtlbConf::new);
+    this.hrtlbConf =
+        context.getServerConfFactory().getSystemConfiguration().newDeriver(HrtlbConf::new);
 
     tablesRegExCache = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.HOURS)
-        .build(new CacheLoader<TableId,Supplier<Map<String,String>>>() {
+        .build(new CacheLoader<TableId,Deriver<Map<String,String>>>() {
           @Override
-          public Supplier<Map<String,String>> load(TableId key) throws Exception {
+          public Deriver<Map<String,String>> load(TableId key) throws Exception {
             return context.getServerConfFactory().getTableConfiguration(key)
-                .derive(conf -> getRegexes(conf));
+                .newDeriver(conf -> getRegexes(conf));
           }
         });
 
@@ -400,7 +403,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
     long now = System.currentTimeMillis();
 
-    HrtlbConf myConf = hrtlbConf.get();
+    HrtlbConf myConf = hrtlbConf.derive();
 
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> currentGrouped =
         splitCurrentByRegex(current);

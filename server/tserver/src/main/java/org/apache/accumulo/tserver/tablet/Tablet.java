@@ -43,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
@@ -53,6 +52,7 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.AccumuloConfiguration.Deriver;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
@@ -220,7 +220,7 @@ public class Tablet {
   private final Set<MajorCompactionReason> majorCompactionQueued =
       Collections.synchronizedSet(EnumSet.noneOf(MajorCompactionReason.class));
 
-  private final Supplier<ConstraintChecker> constraintChecker;
+  private final Deriver<ConstraintChecker> constraintChecker;
 
   private int writesInProgress = 0;
 
@@ -238,7 +238,7 @@ public class Tablet {
   private final Rate ingestByteRate = new Rate(0.95);
   private long ingestBytes = 0;
 
-  private final Supplier<byte[]> defaultSecurityLabel;
+  private final Deriver<byte[]> defaultSecurityLabel;
 
   private long lastMinorCompactionFinishTime = 0;
   private long lastMapFileImportTime = 0;
@@ -348,13 +348,13 @@ public class Tablet {
     final List<LogEntry> logEntries = tabletPaths.logEntries;
     final SortedMap<FileRef,DataFileValue> datafiles = tabletPaths.datafiles;
 
-    constraintChecker = tableConfiguration.derive(conf -> new ConstraintChecker(conf));
+    constraintChecker = tableConfiguration.newDeriver(conf -> new ConstraintChecker(conf));
 
     if (extent.isMeta()) {
       // TODO empty byte constant
       defaultSecurityLabel = () -> new byte[0];
     } else {
-      defaultSecurityLabel = tableConfiguration.derive(conf -> {
+      defaultSecurityLabel = tableConfiguration.newDeriver(conf -> {
         return new ColumnVisibility(conf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY))
             .getExpression();
       });
@@ -645,7 +645,7 @@ public class Tablet {
       AtomicBoolean iFlag) throws IOException {
 
     ScanDataSource dataSource =
-        new ScanDataSource(this, authorizations, this.defaultSecurityLabel.get(), iFlag);
+        new ScanDataSource(this, authorizations, this.defaultSecurityLabel.derive(), iFlag);
 
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
@@ -683,8 +683,8 @@ public class Tablet {
     }
 
     ScanDataSource dataSource =
-        new ScanDataSource(this, authorizations, this.defaultSecurityLabel.get(), columns, ssiList,
-            ssio, interruptFlag, samplerConfig, batchTimeOut, classLoaderContext);
+        new ScanDataSource(this, authorizations, this.defaultSecurityLabel.derive(), columns,
+            ssiList, ssio, interruptFlag, samplerConfig, batchTimeOut, classLoaderContext);
 
     LookupResult result = null;
 
@@ -817,7 +817,7 @@ public class Tablet {
     extent.toDataRange().clip(range);
 
     ScanOptions opts =
-        new ScanOptions(num, authorizations, this.defaultSecurityLabel.get(), columns, ssiList,
+        new ScanOptions(num, authorizations, this.defaultSecurityLabel.derive(), columns, ssiList,
             ssio, interruptFlag, isolated, samplerConfig, batchTimeOut, classLoaderContext);
     return new Scanner(this, range, opts);
   }
@@ -1127,7 +1127,7 @@ public class Tablet {
   public CommitSession prepareMutationsForCommit(TservConstraintEnv cenv, List<Mutation> mutations)
       throws TConstraintViolationException {
 
-    ConstraintChecker cc = constraintChecker.get();
+    ConstraintChecker cc = constraintChecker.derive();
 
     List<Mutation> violators = null;
     Violations violations = new Violations();

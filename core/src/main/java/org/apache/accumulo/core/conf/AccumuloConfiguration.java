@@ -33,7 +33,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
@@ -448,18 +447,18 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
   }
 
-  private class Deriver<T> implements Supplier<T> {
+  private class DeriverImpl<T> implements Deriver<T> {
 
     private AtomicReference<RefCount<T>> refref;
-    private Function<AccumuloConfiguration,T> factory;
+    private Function<AccumuloConfiguration,T> converter;
 
-    Deriver(Function<AccumuloConfiguration,T> factory) {
-      this.factory = factory;
+    DeriverImpl(Function<AccumuloConfiguration,T> converter) {
+      this.converter = converter;
       refref = new AtomicReference<>();
     }
 
     @Override
-    public T get() {
+    public T derive() {
       /*
        * This method was written with the goal of avoiding thread contention and minimizing
        * recomputation. Configuration can be accessed frequently by many threads. Ideally, threads
@@ -476,7 +475,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       RefCount<T> rc = refref.get();
 
       if (rc == null || rc.count != uc) {
-        T newObj = factory.apply(AccumuloConfiguration.this);
+        T newObj = converter.apply(AccumuloConfiguration.this);
 
         // very important to record the update count that was obtained before recomputing.
         RefCount<T> nrc = new RefCount<>(uc, newObj);
@@ -500,18 +499,27 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
+   * Automatically regenerates an object whenever configuration changes. When configuration is not
+   * changing, keeps returning the same object. Implementations should be thread safe and eventually
+   * consistent. See {@link AccumuloConfiguration#newDeriver(Function)}
+   */
+  public static interface Deriver<T> {
+    public T derive();
+  }
+
+  /**
    * Enables deriving an object from configuration and automatically deriving a new object any time
    * configuration changes.
    *
-   * @param factory
-   *          This functions is used to create an object from configuration. A reference this
-   *          function will be kept and called by the returned supplier.
+   * @param converter
+   *          This functions is used to create an object from configuration. A reference to this
+   *          function will be kept and called by the returned deriver.
    * @return The returned supplier will automatically re-derive the object any time this
    *         configuration changes. When configuration is not changing, the same object is returned.
    *
    */
-  public <T> Supplier<T> derive(Function<AccumuloConfiguration,T> factory) {
-    return new Deriver<>(factory);
+  public <T> Deriver<T> newDeriver(Function<AccumuloConfiguration,T> converter) {
+    return new DeriverImpl<>(converter);
   }
 
   private static final String SCAN_EXEC_THREADS = "threads";

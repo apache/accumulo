@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -59,9 +58,9 @@ public class TableConfiguration extends AccumuloConfiguration {
 
   private final TableId tableId;
 
-  private final EnumMap<IteratorScope,Supplier<ParsedIteratorConfig>> iteratorConfig;
+  private final EnumMap<IteratorScope,Deriver<ParsedIteratorConfig>> iteratorConfig;
 
-  private final Supplier<ScanDispatcher> scanDispatchDeriver;
+  private final Deriver<ScanDispatcher> scanDispatchDeriver;
 
   public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
     this.context = requireNonNull(context);
@@ -70,7 +69,7 @@ public class TableConfiguration extends AccumuloConfiguration {
 
     iteratorConfig = new EnumMap<>(IteratorScope.class);
     for (IteratorScope scope : IteratorScope.values()) {
-      iteratorConfig.put(scope, derive(conf -> {
+      iteratorConfig.put(scope, newDeriver(conf -> {
         Map<String,Map<String,String>> allOpts = new HashMap<>();
         List<IterInfo> iters =
             IterConfigUtil.parseIterConf(scope, Collections.emptyList(), allOpts, conf);
@@ -79,7 +78,7 @@ public class TableConfiguration extends AccumuloConfiguration {
       }));
     }
 
-    scanDispatchDeriver = derive(conf -> createScanDispatcher(conf, context, tableId));
+    scanDispatchDeriver = newDeriver(conf -> createScanDispatcher(conf, context, tableId));
   }
 
   void setZooCacheFactory(ZooCacheFactory zcf) {
@@ -206,7 +205,7 @@ public class TableConfiguration extends AccumuloConfiguration {
   }
 
   public ParsedIteratorConfig getParsedIteratorConfig(IteratorScope scope) {
-    return iteratorConfig.get(scope).get();
+    return iteratorConfig.get(scope).derive();
   }
 
   private static ScanDispatcher createScanDispatcher(AccumuloConfiguration conf,
@@ -243,6 +242,6 @@ public class TableConfiguration extends AccumuloConfiguration {
   }
 
   public ScanDispatcher getScanDispatcher() {
-    return scanDispatchDeriver.get();
+    return scanDispatchDeriver.derive();
   }
 }
