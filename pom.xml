@@ -132,17 +132,20 @@
     <jaxb.version>2.3.0</jaxb.version>
     <jersey.version>2.27</jersey.version>
     <jetty.version>9.4.17.v20190418</jetty.version>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.release>11</maven.compiler.release>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
+    <!-- temporary until other Java 11 issues are resolved -->
+    <modernizer.skip>true</modernizer.skip>
     <powermock.version>1.7.4</powermock.version>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
     <servlet.api.version>3.1.0</servlet.api.version>
     <slf4j.version>1.7.26</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
-    <spotbugs.version>3.1.7</spotbugs.version>
+    <spotbugs.version>3.1.12</spotbugs.version>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     <surefire.groups />
@@ -778,7 +781,7 @@
         <plugin>
           <groupId>org.gaul</groupId>
           <artifactId>modernizer-maven-plugin</artifactId>
-          <version>1.6.0</version>
+          <version>1.8.0</version>
           <configuration>
             <javaVersion>${maven.compiler.target}</javaVersion>
           </configuration>
@@ -880,7 +883,7 @@
           <artifactId>maven-javadoc-plugin</artifactId>
           <configuration>
             <quiet>true</quiet>
-            <javadocVersion>1.8.0</javadocVersion>
+            <javadocVersion>11</javadocVersion>
             <additionalJOption>-J-Xmx512m</additionalJOption>
             <doclint>all,-missing</doclint>
           </configuration>
@@ -951,13 +954,6 @@
               </requireJavaVersion>
             </rules>
           </configuration>
-          <dependencies>
-            <dependency>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>animal-sniffer-enforcer-rule</artifactId>
-              <version>1.17</version>
-            </dependency>
-          </dependencies>
         </plugin>
         <plugin>
           <!-- Allows us to get the apache-ds bundle artifacts -->
@@ -1027,6 +1023,14 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
+        <dependencies>
+          <dependency>
+            <!-- needed for Java 11 until maven-dependency-plugin 3.1.2 is released -->
+            <groupId>org.apache.maven.shared</groupId>
+            <artifactId>maven-dependency-analyzer</artifactId>
+            <version>1.11.1</version>
+          </dependency>
+        </dependencies>
         <executions>
           <execution>
             <id>analyze</id>
@@ -1112,28 +1116,6 @@
               <goal>enforce</goal>
             </goals>
             <phase>validate</phase>
-          </execution>
-          <execution>
-            <id>enforce-java-signatures</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <phase>process-test-classes</phase>
-            <configuration>
-              <rules>
-                <checkSignatureRule implementation="org.codehaus.mojo.animal_sniffer.enforcer.CheckSignatureRule">
-                  <signature>
-                    <groupId>org.codehaus.mojo.signature</groupId>
-                    <artifactId>java18</artifactId>
-                    <version>1.0</version>
-                  </signature>
-                  <ignores>
-                    <ignore>org.apache.hadoop.conf.Configuration</ignore>
-                    <ignore>org.apache.hadoop.fs.FileSystem</ignore>
-                  </ignores>
-                </checkSignatureRule>
-              </rules>
-            </configuration>
           </execution>
         </executions>
       </plugin>

@@ -32,4 +32,9 @@
       <Package name="org.apache.accumulo.core.trace.thrift" />
     </Or>
   </Match>
+  <Match>
+    <!-- Must ignore these everywhere, because of a javac byte code generation bug -->
+    <!-- https://github.com/spotbugs/spotbugs/issues/756 -->
+    <Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE" />
+  </Match>
 </FindBugsFilter>
