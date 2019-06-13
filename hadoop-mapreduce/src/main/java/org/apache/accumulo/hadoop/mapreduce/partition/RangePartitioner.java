@@ -86,7 +86,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
       try (
           InputStream inputStream =
               DistributedCacheHelper.openCachedFile(cutFileName, CUTFILE_KEY, conf);
-          Scanner in = new Scanner(inputStream, UTF_8.name())) {
+          Scanner in = new Scanner(inputStream, UTF_8)) {
         while (in.hasNextLine()) {
           cutPoints.add(new Text(Base64.getDecoder().decode(in.nextLine())));
         }

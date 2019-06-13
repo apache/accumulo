@@ -18,9 +18,8 @@ package org.apache.accumulo.core.conf;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
@@ -187,10 +186,9 @@ class ClientConfigGenerate {
    * @throws IllegalArgumentException
    *           if args is invalid
    */
-  public static void main(String[] args)
-      throws FileNotFoundException, UnsupportedEncodingException {
+  public static void main(String[] args) throws IOException {
     if (args.length == 2) {
-      try (PrintStream stream = new PrintStream(args[1], UTF_8.name())) {
+      try (PrintStream stream = new PrintStream(args[1], UTF_8)) {
         ClientConfigGenerate clientConfigGenerate = new ClientConfigGenerate(stream);
         if (args[0].equals("--generate-markdown")) {
           clientConfigGenerate.generateMarkdown();

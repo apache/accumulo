@@ -18,9 +18,8 @@ package org.apache.accumulo.core.conf;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.util.TreeMap;
 
 /**
@@ -152,10 +151,9 @@ class ConfigurationDocGen {
    * @throws IllegalArgumentException
    *           if args is invalid
    */
-  public static void main(String[] args)
-      throws FileNotFoundException, UnsupportedEncodingException {
+  public static void main(String[] args) throws IOException {
     if (args.length == 2 && args[0].equals("--generate-markdown")) {
-      new ConfigurationDocGen(new PrintStream(args[1], UTF_8.name())).generate();
+      new ConfigurationDocGen(new PrintStream(args[1], UTF_8)).generate();
     } else {
       throw new IllegalArgumentException(
           "Usage: " + ConfigurationDocGen.class.getName() + " --generate-markdown <filename>");

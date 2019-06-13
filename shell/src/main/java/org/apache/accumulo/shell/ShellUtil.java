@@ -19,7 +19,7 @@ package org.apache.accumulo.shell;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -48,15 +48,13 @@ public class ShellUtil {
    * @param decode
    *          Whether to decode lines in the file
    * @return List of {@link Text} objects containing data in the given file
-   * @throws FileNotFoundException
-   *           if the given file doesn't exist
    */
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "app is run in same security context as user providing the filename")
-  public static List<Text> scanFile(String filename, boolean decode) throws FileNotFoundException {
+  public static List<Text> scanFile(String filename, boolean decode) throws IOException {
     String line;
     List<Text> result = new ArrayList<>();
-    try (Scanner file = new Scanner(new File(filename), UTF_8.name())) {
+    try (Scanner file = new Scanner(new File(filename), UTF_8)) {
       while (file.hasNextLine()) {
         line = file.nextLine();
         if (!line.isEmpty()) {

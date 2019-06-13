@@ -59,14 +59,14 @@ public class RegExFilter extends Filter {
 
   public static final String ENCODING_DEFAULT = UTF_8.name();
 
+  private Charset encoding = UTF_8;
+
   private Matcher rowMatcher;
   private Matcher colfMatcher;
   private Matcher colqMatcher;
   private Matcher valueMatcher;
   private boolean orFields = false;
   private boolean matchSubstring = false;
-
-  private Charset encoding = Charset.forName(ENCODING_DEFAULT);
 
   private Matcher copyMatcher(Matcher m) {
     if (m == null)

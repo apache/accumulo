@@ -109,7 +109,7 @@ public class ConfiguratorBase {
           cachedClientPropsFileName(implementingClass), conf)) {
 
         StringBuilder sb = new StringBuilder();
-        try (Scanner scanner = new Scanner(inputStream, UTF_8.name())) {
+        try (Scanner scanner = new Scanner(inputStream, UTF_8)) {
           while (scanner.hasNextLine()) {
             sb.append(scanner.nextLine() + "\n");
           }

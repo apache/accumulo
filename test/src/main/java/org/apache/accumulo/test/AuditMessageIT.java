@@ -120,7 +120,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     for (File file : files) {
       // We want to grab the files called .out
       if (file.getName().contains(".out") && file.isFile() && file.canRead()) {
-        try (java.util.Scanner it = new java.util.Scanner(file, UTF_8.name())) {
+        try (java.util.Scanner it = new java.util.Scanner(file, UTF_8)) {
           while (it.hasNext()) {
             String line = it.nextLine();
             // strip off prefix, because log4j.properties does
@@ -326,7 +326,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // Just grab the first rf file, it will do for now.
     String filePrefix = "file:";
 
-    try (java.util.Scanner it = new java.util.Scanner(distCpTxt, UTF_8.name())) {
+    try (java.util.Scanner it = new java.util.Scanner(distCpTxt, UTF_8)) {
       while (it.hasNext() && importFile == null) {
         String line = it.nextLine();
         if (line.matches(".*\\.rf")) {

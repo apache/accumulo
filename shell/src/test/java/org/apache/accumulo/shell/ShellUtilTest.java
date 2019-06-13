@@ -62,7 +62,7 @@ public class ShellUtilTest {
   }
 
   @Test(expected = FileNotFoundException.class)
-  public void testWithMissingFile() throws FileNotFoundException {
+  public void testWithMissingFile() throws IOException {
     ShellUtil.scanFile("missingFile.txt", false);
   }
 }

@@ -562,7 +562,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     ShellCompletor userCompletor = null;
 
     if (execFile != null) {
-      try (java.util.Scanner scanner = new java.util.Scanner(execFile, UTF_8.name())) {
+      try (java.util.Scanner scanner = new java.util.Scanner(execFile, UTF_8)) {
         while (scanner.hasNextLine() && !hasExited()) {
           execCommand(scanner.nextLine(), true, isVerbose());
         }

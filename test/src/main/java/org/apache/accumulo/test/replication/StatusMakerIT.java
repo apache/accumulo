@@ -121,7 +121,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
         TableId tableId = StatusSection.getTableId(entry.getKey());
 
         assertTrue("Found unexpected file: " + file, files.contains(file.toString()));
-        assertEquals(fileToTableId.get(file.toString()), new Integer(tableId.canonical()));
+        assertEquals(fileToTableId.get(file.toString()), Integer.valueOf(tableId.canonical()));
         timeCreated = fileToTimeCreated.get(file.toString());
         assertNotNull(timeCreated);
         assertEquals(StatusUtil.fileCreated(timeCreated), Status.parseFrom(entry.getValue().get()));

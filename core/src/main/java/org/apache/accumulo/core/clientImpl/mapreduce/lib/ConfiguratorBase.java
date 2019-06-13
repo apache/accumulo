@@ -288,7 +288,7 @@ public class ConfiguratorBase {
     try (InputStream inputStream = DistributedCacheHelper.openCachedFile(tokenFile,
         cachedTokenFileName(implementingClass), conf)) {
 
-      try (Scanner fileScanner = new Scanner(inputStream, UTF_8.name())) {
+      try (Scanner fileScanner = new Scanner(inputStream, UTF_8)) {
         while (fileScanner.hasNextLine()) {
           Credentials creds = Credentials.deserialize(fileScanner.nextLine());
           if (principal.equals(creds.getPrincipal())) {
