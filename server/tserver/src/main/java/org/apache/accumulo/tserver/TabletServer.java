@@ -406,10 +406,10 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
                 numBusyTabletsToLog);
           }
 
-          logBusyTablets(busyTabletMap, QUERY_COUNT, numBusyTabletsToLog);
-          logBusyTablets(busyTabletMap, QUERY_RATE, numBusyTabletsToLog);
-          logBusyTablets(busyTabletMap, INGEST_COUNT, numBusyTabletsToLog);
-          logBusyTablets(busyTabletMap, INGEST_RATE, numBusyTabletsToLog);
+          logBusyTablets(busyTabletMap, QUERY_COUNT);
+          logBusyTablets(busyTabletMap, QUERY_RATE);
+          logBusyTablets(busyTabletMap, INGEST_COUNT);
+          logBusyTablets(busyTabletMap, INGEST_RATE);
         }
 
         private void addToBusiestTablets(String extent, double count,
@@ -424,13 +424,14 @@ public class TabletServer extends AccumuloServerContext implements Runnable {
         }
 
         private void logBusyTablets(Map<String,PriorityQueue<Pair<String,Double>>> busyTabletsMap,
-            String label, int numBusiestTabletsToLog) {
+            String label) {
           PriorityQueue<Pair<String,Double>> busyTabletsQueue = busyTabletsMap.get(label);
-          int i = 0;
+          int i = 1;
           while(!busyTabletsQueue.isEmpty()) {
             Pair<String,Double> pair = busyTabletsQueue.poll();
             log.debug("{} busiest tablet by {}: {} -- extent: {} ", i, label.toLowerCase(), pair.getSecond(),
                     pair.getFirst());
+            i++;
           }
         }
       }, logBusyTabletsDelay, logBusyTabletsDelay);
