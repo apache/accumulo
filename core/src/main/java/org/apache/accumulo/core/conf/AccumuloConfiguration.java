@@ -449,12 +449,11 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
   private class DeriverImpl<T> implements Deriver<T> {
 
-    private AtomicReference<RefCount<T>> refref;
-    private Function<AccumuloConfiguration,T> converter;
+    private final AtomicReference<RefCount<T>> refref = new AtomicReference<>();
+    private final Function<AccumuloConfiguration,T> converter;
 
     DeriverImpl(Function<AccumuloConfiguration,T> converter) {
       this.converter = converter;
-      refref = new AtomicReference<>();
     }
 
     /**

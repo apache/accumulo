@@ -174,14 +174,11 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   private static final long ONE_HOUR = 60 * 60 * 1000;
   private static final Set<KeyExtent> EMPTY_MIGRATIONS = Collections.emptySet();
-  // private volatile Map<TableId,String> tableIdToTableName = null;
-  // private volatile Map<String,Pattern> poolNameToRegexPattern = null;
   private volatile long lastOOBCheck = System.currentTimeMillis();
   private Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = new HashMap<>();
   private final Map<KeyExtent,TabletMigration> migrationsFromLastPass = new HashMap<>();
   private final Map<String,Long> tableToTimeSinceNoMigrations = new HashMap<>();
 
-  // TODO volatile?
   private Deriver<HrtlbConf> hrtlbConf;
   private LoadingCache<TableId,Deriver<Map<String,String>>> tablesRegExCache;
 
