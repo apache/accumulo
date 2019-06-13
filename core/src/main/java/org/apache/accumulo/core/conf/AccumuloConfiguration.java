@@ -460,14 +460,36 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
     @Override
     public T get() {
-      RefCount<T> rc = refref.get();
+      /*
+       * This method was written with the goal of avoiding thread contention and minimizing
+       * recomputation. Configuration can be accessed frequently by many threads. Ideally, threads
+       * working on unrelated task would not impeded each other because of accessing config.
+       *
+       * To avoid thread contention, synchronization and needless calls to compare and set were
+       * avoided. For example if 100 threads are all calling compare and set in a loop this could
+       * cause significant contention.
+       */
 
+      // very important to obtain this before possibly recomputing object
       long uc = getUpdateCount();
+
+      RefCount<T> rc = refref.get();
 
       if (rc == null || rc.count != uc) {
         T newObj = factory.apply(AccumuloConfiguration.this);
 
+        // very important to record the update count that was obtained before recomputing.
         RefCount<T> nrc = new RefCount<>(uc, newObj);
+
+        /*
+         * The return value of compare and set is intentionally ignored here. This code could loop
+         * calling compare and set inorder to avoid returning a stale object. However after this
+         * function returns, the object could immediately become stale. So in the big picture stale
+         * objects can not be prevented. Looping here could cause thread contention, but it would
+         * not solve the overall stale object problem. That is why the return value was ignored. The
+         * following line is a least effort attempt to make the result of this recomputation
+         * available to the next caller.
+         */
         refref.compareAndSet(rc, nrc);
 
         return nrc.obj;
