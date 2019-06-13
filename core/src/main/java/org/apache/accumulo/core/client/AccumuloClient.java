@@ -54,6 +54,13 @@ import org.apache.accumulo.core.security.Authorizations;
  * creating them could perform worse than Connector. Therefore, it would be better to create an
  * AccumuloClient and pass it around.
  *
+ * <p>
+ * AccumuloClient objects are intended to be thread-safe, and can be used by multiple threads.
+ * However, care should be taken to ensure that the client is eventually closed, to clean up any
+ * resources in use in the client application when all threads are finished with the AccumuloClient
+ * object. Additionally, while the client itself is thread-safe, it is not necessarily true that all
+ * objects produced from the client (such as Scanners) are thread-safe.
+ *
  * @since 2.0.0
  * @see <a href="https://accumulo.apache.org/docs/2.x/getting-started/clients">Accumulo Client
  *      Documentation</a>
