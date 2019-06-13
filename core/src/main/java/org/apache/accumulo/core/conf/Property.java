@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.conf;
 
-import java.io.File;
 import java.lang.annotation.Annotation;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -814,6 +813,9 @@ public enum Property {
           + "constraint."),
 
   // VFS ClassLoader properties
+
+  // this property shouldn't be used directly; it exists solely to document the default value
+  // defined by its use in AccumuloVFSClassLoader when generating the property documentation
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(
       AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
       "Configuration for a system level vfs classloader. Accumulo jar can be"
@@ -829,11 +831,16 @@ public enum Property {
           + " `general.vfs.context.classpath.<name>.delegation=post`, where `<name>` is"
           + " your context name. If delegation is not specified, it defaults to loading"
           + " from parent classloader first."),
-  VFS_CLASSLOADER_CACHE_DIR(AccumuloVFSClassLoader.VFS_CACHE_DIR,
-      File.separator + "tmp" + File.separator + "accumulo-vfs-cache", PropertyType.ABSOLUTEPATH,
-      "Directory to use for the vfs cache. The cache will keep a soft reference"
-          + " to all of the classes loaded in the VM. This should be on local disk on"
-          + " each node with sufficient space."),
+
+  // this property shouldn't be used directly; it exists solely to document the default value
+  // defined by its use in AccumuloVFSClassLoader when generating the property documentation
+  VFS_CLASSLOADER_CACHE_DIR(AccumuloVFSClassLoader.VFS_CACHE_DIR, "${java.io.tmpdir}",
+      PropertyType.ABSOLUTEPATH,
+      "The base directory to use for the vfs cache. The actual cached files will be located"
+          + " in a subdirectory, `accumulo-vfs-cache-<jvmProcessName>-${user.name}`, where"
+          + " `<jvmProcessName>` is determined by the JVM's internal management engine."
+          + " The cache will keep a soft reference to all of the classes loaded in the VM."
+          + " This should be on local disk on each node with sufficient space."),
 
   // General properties for configuring replication
   REPLICATION_PREFIX("replication.", null, PropertyType.PREFIX,
