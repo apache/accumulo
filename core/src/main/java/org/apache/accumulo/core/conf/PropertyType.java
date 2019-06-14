@@ -102,8 +102,10 @@ public enum PropertyType {
           + "Substitutions of the ACCUMULO_HOME environment variable can be done in the system "
           + "config file using '${env:ACCUMULO_HOME}' or similar."),
 
+  // VFS_CLASSLOADER_CACHE_DIR's default value is a special case, for documentation purposes
   ABSOLUTEPATH("absolute path",
-      x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute(),
+      x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute()
+          || x.equals(Property.VFS_CLASSLOADER_CACHE_DIR.getDefaultValue()),
       "An absolute filesystem path. The filesystem depends on the property."
           + " This is the same as path, but enforces that its root is explicitly" + " specified."),
 
