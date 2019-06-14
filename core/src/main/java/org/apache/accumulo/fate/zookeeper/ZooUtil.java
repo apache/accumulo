@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -32,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
@@ -616,48 +614,4 @@ public class ZooUtil {
     }
   }
 
-  public static String getInstanceID(ZooCache zooCache, String instanceName) {
-    String instanceId;
-    String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
-    byte[] data = zooCache.get(instanceNamePath);
-    if (data == null) {
-      throw new RuntimeException("Instance name " + instanceName + " does not exist in zookeeper. "
-          + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
-    }
-    instanceId = new String(data, UTF_8);
-
-    if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
-      if (instanceName == null)
-        throw new RuntimeException("Instance id " + instanceId + " does not exist in zookeeper");
-      throw new RuntimeException("Instance id " + instanceId + " pointed to by the name "
-          + instanceName + " does not exist in zookeeper");
-    }
-    return instanceId;
-  }
-
-  public static List<String> getMasterLocations(ZooCache zooCache, String instanceId) {
-    String masterLocPath = ZooUtil.getRoot(instanceId) + Constants.ZMASTER_LOCK;
-
-    OpTimer timer = null;
-
-    if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up master location in zookeeper.", Thread.currentThread().getId());
-      timer = new OpTimer().start();
-    }
-
-    byte[] loc = ZooUtil.getLockData(zooCache, masterLocPath);
-
-    if (timer != null) {
-      timer.stop();
-      log.trace("tid={} Found master at {} in {}", Thread.currentThread().getId(),
-          (loc == null ? "null" : new String(loc, UTF_8)),
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
-    }
-
-    if (loc == null) {
-      return Collections.emptyList();
-    }
-
-    return Collections.singletonList(new String(loc, UTF_8));
-  }
 }

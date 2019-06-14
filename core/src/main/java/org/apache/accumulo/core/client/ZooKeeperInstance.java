@@ -17,12 +17,15 @@
 package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -122,14 +125,53 @@ public class ZooKeeperInstance implements Instance {
   @Override
   public String getInstanceID() {
     if (instanceId == null) {
-      instanceId = ZooUtil.getInstanceID(zooCache, instanceName);
+      // want the instance id to be stable for the life of this instance object,
+      // so only get it once
+      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
+      byte[] iidb = zooCache.get(instanceNamePath);
+      if (iidb == null) {
+        throw new RuntimeException(
+            "Instance name " + instanceName + " does not exist in zookeeper. "
+                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+      }
+      instanceId = new String(iidb, UTF_8);
     }
+
+    if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
+      if (instanceName == null)
+        throw new RuntimeException("Instance id " + instanceId + " does not exist in zookeeper");
+      throw new RuntimeException("Instance id " + instanceId + " pointed to by the name "
+          + instanceName + " does not exist in zookeeper");
+    }
+
     return instanceId;
   }
 
   @Override
   public List<String> getMasterLocations() {
-    return ZooUtil.getMasterLocations(zooCache, getInstanceID());
+    String masterLocPath = ZooUtil.getRoot(getInstanceID()) + Constants.ZMASTER_LOCK;
+
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Looking up master location in zookeeper.", Thread.currentThread().getId());
+      timer = new OpTimer().start();
+    }
+
+    byte[] loc = ZooUtil.getLockData(zooCache, masterLocPath);
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Found master at {} in {}", Thread.currentThread().getId(),
+          (loc == null ? "null" : new String(loc, UTF_8)),
+          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
+
+    if (loc == null) {
+      return Collections.emptyList();
+    }
+
+    return Collections.singletonList(new String(loc, UTF_8));
   }
 
   @Override

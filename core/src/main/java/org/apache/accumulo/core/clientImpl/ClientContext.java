@@ -17,9 +17,11 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
@@ -27,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -363,7 +366,29 @@ public class ClientContext implements AccumuloClient {
    */
   public List<String> getMasterLocations() {
     ensureOpen();
-    return ZooUtil.getMasterLocations(zooCache, instanceId);
+    String masterLocPath = getZooKeeperRoot() + Constants.ZMASTER_LOCK;
+
+    OpTimer timer = null;
+
+    if (log.isTraceEnabled()) {
+      log.trace("tid={} Looking up master location in zookeeper.", Thread.currentThread().getId());
+      timer = new OpTimer().start();
+    }
+
+    byte[] loc = ZooUtil.getLockData(zooCache, masterLocPath);
+
+    if (timer != null) {
+      timer.stop();
+      log.trace("tid={} Found master at {} in {}", Thread.currentThread().getId(),
+          (loc == null ? "null" : new String(loc, UTF_8)),
+          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+    }
+
+    if (loc == null) {
+      return Collections.emptyList();
+    }
+
+    return Collections.singletonList(new String(loc, UTF_8));
   }
 
   /**
@@ -375,8 +400,25 @@ public class ClientContext implements AccumuloClient {
     ensureOpen();
     final String instanceName = info.getInstanceName();
     if (instanceId == null) {
-      instanceId = ZooUtil.getInstanceID(zooCache, instanceName);
+      // want the instance id to be stable for the life of this instance object,
+      // so only get it once
+      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
+      byte[] iidb = zooCache.get(instanceNamePath);
+      if (iidb == null) {
+        throw new RuntimeException(
+            "Instance name " + instanceName + " does not exist in zookeeper. "
+                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+      }
+      instanceId = new String(iidb, UTF_8);
     }
+
+    if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
+      if (instanceName == null)
+        throw new RuntimeException("Instance id " + instanceId + " does not exist in zookeeper");
+      throw new RuntimeException("Instance id " + instanceId + " pointed to by the name "
+          + instanceName + " does not exist in zookeeper");
+    }
+
     return instanceId;
   }
 
