@@ -366,7 +366,11 @@ public class ClientContext implements AccumuloClient {
    */
   public List<String> getMasterLocations() {
     ensureOpen();
-    String masterLocPath = getZooKeeperRoot() + Constants.ZMASTER_LOCK;
+    return getMasterLocations(zooCache, instanceId);
+  }
+
+  public static List<String> getMasterLocations(ZooCache zooCache, String instanceId) {
+    String masterLocPath = ZooUtil.getRoot(instanceId) + Constants.ZMASTER_LOCK;
 
     OpTimer timer = null;
 
@@ -400,17 +404,20 @@ public class ClientContext implements AccumuloClient {
     ensureOpen();
     final String instanceName = info.getInstanceName();
     if (instanceId == null) {
-      // want the instance id to be stable for the life of this instance object,
-      // so only get it once
-      String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
-      byte[] iidb = zooCache.get(instanceNamePath);
-      if (iidb == null) {
-        throw new RuntimeException(
-            "Instance name " + instanceName + " does not exist in zookeeper. "
-                + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
-      }
-      instanceId = new String(iidb, UTF_8);
+      instanceId = getInstanceID(zooCache, instanceName);
     }
+    return instanceId;
+  }
+
+  public static String getInstanceID(ZooCache zooCache, String instanceName) {
+    String instanceId;
+    String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
+    byte[] data = zooCache.get(instanceNamePath);
+    if (data == null) {
+      throw new RuntimeException("Instance name " + instanceName + " does not exist in zookeeper. "
+          + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+    }
+    instanceId = new String(data, UTF_8);
 
     if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
       if (instanceName == null)
@@ -418,7 +425,6 @@ public class ClientContext implements AccumuloClient {
       throw new RuntimeException("Instance id " + instanceId + " pointed to by the name "
           + instanceName + " does not exist in zookeeper");
     }
-
     return instanceId;
   }
 
