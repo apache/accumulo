@@ -82,6 +82,19 @@ public class ClientOpts extends Help {
     }
   }
 
+  /**
+   * A catch all for older legacy options that have been dropped.  Most of them were replaced with
+   * accumulo-client.properties in 2.0.  Others have been dropped completely.
+   */
+  private String legacyClientOpts = "-p -tc --tokenClass -i --instance --site-file --keytab " +
+          "--debug -fake --mock --ssl --sasl";
+  @Parameter(names = {"-p", "-tc", "--tokenClass", "-i", "--instance",
+          "--site-file", "--keytab"}, hidden = true)
+  private String legacyOpts = null;
+  @Parameter(names = {"--debug", "-fake", "--mock", "--ssl",  "--sasl"}, hidden = true)
+  private boolean legacyOptsBoolean = false;
+
+
   @Parameter(names = {"-u", "--user"}, description = "Connection user")
   public String principal = null;
 
@@ -120,6 +133,17 @@ public class ClientOpts extends Help {
   @Override
   public void parseArgs(String programName, String[] args, Object... others) {
     super.parseArgs(programName, args, others);
+    if (legacyOpts != null || legacyOptsBoolean) {
+      // grab the bad options
+      StringBuilder badOptions = new StringBuilder();
+      for (String arg : args) {
+        if (legacyClientOpts.contains(arg))
+          badOptions.append(arg).append(" ");
+      }
+      throw new IllegalArgumentException("The Client options: " + badOptions.toString() +
+              "have been dropped. Use accumulo-client.properties for any connection or token " +
+              "options. See '-c, --config-file' option.");
+    }
   }
 
   private Properties cachedProps = null;
