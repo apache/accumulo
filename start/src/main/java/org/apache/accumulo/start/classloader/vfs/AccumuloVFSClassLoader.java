@@ -382,7 +382,12 @@ public class AccumuloVFSClassLoader {
         }
 
         boolean sawFirst = false;
-        if (classLoader instanceof URLClassLoader) {
+        if (classLoader.getClass().getName().startsWith("jdk.internal")) {
+          if (debug) {
+            out.print("Level " + classLoaderDescription + " " + classLoader.getClass().getName()
+                + " configuration not inspectable.\n");
+          }
+        } else if (classLoader instanceof URLClassLoader) {
           if (debug) {
             out.print("Level " + classLoaderDescription + " URL classpath items are:\n");
           }
