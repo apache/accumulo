@@ -62,6 +62,9 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not from user input")
 public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(AccumuloFileOutputFormatIT.class);
   private static final int JOB_VISIBILITY_CACHE_SIZE = 3000;

@@ -57,6 +57,9 @@ import org.junit.rules.TemporaryFolder;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not from user input")
 public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   private String PREFIX;

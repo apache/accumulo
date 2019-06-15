@@ -40,6 +40,9 @@ import org.powermock.core.classloader.annotations.SuppressStaticInitializationFo
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.powermock.reflect.Whitebox;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(AccumuloVFSClassLoader.class)
 @SuppressStaticInitializationFor({"org.apache.accumulo.start.classloader.AccumuloVFSClassLoader",
