@@ -31,6 +31,8 @@ import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Tests the Table ID class, mainly the internal cache.
  */
@@ -98,6 +100,7 @@ public class TableIdTest {
     }
   }
 
+  @SuppressFBWarnings(value = "DM_GC", justification = "gc is okay for test")
   static void tryToGc() {
     System.gc();
     try {
