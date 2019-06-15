@@ -28,22 +28,20 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Tests the Table ID class, mainly the internal cache.
  */
 public class TableIdTest {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TableIdTest.class);
+
   @Rule
   public TestName name = new TestName();
-
-  @Test
-  public void testCacheIncreases() {
-    long initialSize = TableId.cache.asMap().entrySet().stream().count();
-    String tableString = "table-" + name.getMethodName();
-    TableId table1 = TableId.of(tableString);
-    assertEquals(initialSize + 1, TableId.cache.asMap().entrySet().stream().count());
-    assertEquals(tableString, table1.canonical());
-  }
 
   @Test
   public void testCacheNoDuplicates() {
@@ -74,28 +72,41 @@ public class TableIdTest {
     assertSame(table1, table2);
   }
 
-  @Test(timeout = 60_000)
-  public void testCacheDecreasesAfterGC() {
-    Long initialSize = TableId.cache.asMap().entrySet().stream().count();
-    generateJunkCacheEntries();
-    Long postGCSize;
-    do {
-      System.gc();
-      try {
-        Thread.sleep(500);
-      } catch (InterruptedException e) {
-        fail("Thread interrupted while waiting for GC");
-      }
-      postGCSize = TableId.cache.asMap().entrySet().stream().count();
-    } while (postGCSize > initialSize);
+  @Test(timeout = 30_000)
+  public void testCacheIncreasesAndDecreasesAfterGC() {
+    long initialSize = TableId.cache.asMap().entrySet().stream().count();
+    assertTrue(initialSize < 20); // verify initial amount is reasonably low
+    LOG.info("Initial cache size: {}", initialSize);
+    LOG.info(TableId.cache.asMap().toString());
 
-    assertTrue("Cache did not decrease with GC.",
-        TableId.cache.asMap().entrySet().stream().count() < initialSize);
-  }
+    // add one and check increase
+    String tableString = "table-" + name.getMethodName();
+    TableId table1 = TableId.of(tableString);
+    assertEquals(initialSize + 1, TableId.cache.asMap().entrySet().stream().count());
+    assertEquals(tableString, table1.canonical());
 
-  private void generateJunkCacheEntries() {
-    for (int i = 0; i < 1000; i++)
+    // create a bunch more and throw them away
+    for (int i = 0; i < 999; i++) {
       TableId.of(new String("table" + i));
+    }
+    long preGCSize = TableId.cache.asMap().entrySet().stream().count();
+    LOG.info("Entries before System.gc(): {}", preGCSize);
+    assertTrue(preGCSize > 500); // verify amount increased significantly
+    long postGCSize = preGCSize;
+    while (postGCSize >= preGCSize) {
+      tryToGc();
+      postGCSize = TableId.cache.asMap().entrySet().stream().count();
+      LOG.info("Entries after System.gc(): {}", postGCSize);
+    }
   }
 
+  @SuppressFBWarnings(value = "DM_GC", justification = "gc is okay for test")
+  static void tryToGc() {
+    System.gc();
+    try {
+      Thread.sleep(100);
+    } catch (InterruptedException e) {
+      fail("Thread interrupted while waiting for GC");
+    }
+  }
 }
