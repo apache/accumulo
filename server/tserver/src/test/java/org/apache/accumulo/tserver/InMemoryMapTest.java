@@ -67,6 +67,9 @@ import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableMap;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class InMemoryMapTest {
 
   private static class SampleIE implements IteratorEnvironment {

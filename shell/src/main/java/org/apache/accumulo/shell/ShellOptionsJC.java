@@ -259,6 +259,8 @@ public class ShellOptionsJC {
     return unrecognizedOptions;
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "user-provided paths intentional")
   public String getClientPropertiesFile() {
     if (clientConfigFile == null) {
       List<String> searchPaths = new LinkedList<>();

@@ -212,6 +212,8 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
     }
   }
 
+  @SuppressFBWarnings(value = "COMMAND_INJECTION",
+      justification = "command executed is not from user input")
   private boolean makeDiskFailureLibrary() throws Exception {
     String root = System.getProperty("user.dir");
     String source = root + "/src/test/c/fake_disk_failure.c";
