@@ -196,7 +196,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
   }
 
-  @SuppressFBWarnings(value = "COMMAND_INJECTION",
+  @SuppressFBWarnings(value = {"COMMAND_INJECTION", "PATH_TRAVERSAL_IN"},
       justification = "mini runs in the same security context as user providing the args")
   private ProcessInfo _exec(Class<?> clazz, List<String> extraJvmOpts, String... args)
       throws IOException {

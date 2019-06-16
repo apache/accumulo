@@ -62,6 +62,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
     return type == ClusterType.MINI;
   }
 
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "url is not from user")
   @Test
   public void testMonitorService() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();

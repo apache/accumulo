@@ -525,6 +525,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     new Shell(new ConsoleReader()).execute(args);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "user-provided paths intentional")
   public int start() throws IOException {
     String input;
     if (isVerbose()) {

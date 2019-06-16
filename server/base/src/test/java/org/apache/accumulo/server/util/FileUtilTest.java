@@ -41,6 +41,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class FileUtilTest {
   @SuppressWarnings("deprecation")
   private static Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;

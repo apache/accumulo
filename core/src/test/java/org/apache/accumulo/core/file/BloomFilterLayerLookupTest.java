@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class BloomFilterLayerLookupTest {
 
   private static final Logger log = LoggerFactory.getLogger(BloomFilterLayerLookupTest.class);
@@ -60,8 +61,6 @@ public class BloomFilterLayerLookupTest {
   public TemporaryFolder tempDir =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "tempDir is not provided by user")
   @Test
   public void test() throws IOException {
     HashSet<Integer> valsSet = new HashSet<>();

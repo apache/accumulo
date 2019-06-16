@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class CredentialProviderFactoryShimTest {
 
   private static final Configuration hadoopConf = new Configuration();
@@ -52,7 +53,6 @@ public class CredentialProviderFactoryShimTest {
       emptyKeyStoreName = "/empty.jceks";
   private static File emptyKeyStore, populatedKeyStore;
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
   @BeforeClass
   public static void checkCredentialProviderAvailable() {
     try {
