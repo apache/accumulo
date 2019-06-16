@@ -67,9 +67,7 @@ import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.fs.FileRef;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager;
 import org.apache.accumulo.server.tabletserver.MemoryManagementActions;
 import org.apache.accumulo.server.tabletserver.MemoryManager;
@@ -133,8 +131,6 @@ public class TabletServerResourceManager {
   private final BlockCache _dCache;
   private final BlockCache _iCache;
   private final BlockCache _sCache;
-  private final TabletServer tserver;
-  private final ServerConfigurationFactory conf;
   private final ServerContext context;
 
   private Cache<String,Long> fileLenCache;
@@ -151,33 +147,41 @@ public class TabletServerResourceManager {
 
   private ExecutorService addEs(IntSupplier maxThreads, String name, final ThreadPoolExecutor tp) {
     ExecutorService result = addEs(name, tp);
-    SimpleTimer.getInstance(tserver.getConfiguration()).schedule(new Runnable() {
+    SimpleTimer.getInstance(context.getConfiguration()).schedule(new Runnable() {
       @Override
       public void run() {
         try {
           int max = maxThreads.getAsInt();
-          if (tp.getMaximumPoolSize() != max) {
-            log.info("Changing max threads for {} to {}", name, max);
-            tp.setCorePoolSize(max);
-            tp.setMaximumPoolSize(max);
+          int currentMax = tp.getMaximumPoolSize();
+          if (currentMax != max) {
+            log.info("Changing max threads for {} from {} to {}", name, currentMax, max);
+            if (max > currentMax) {
+              // increasing, increase the max first, or the core will fail to be increased
+              tp.setMaximumPoolSize(max);
+              tp.setCorePoolSize(max);
+            } else {
+              // decreasing, lower the core size first, or the max will fail to be lowered
+              tp.setCorePoolSize(max);
+              tp.setMaximumPoolSize(max);
+            }
           }
         } catch (Throwable t) {
           log.error("Failed to change thread pool size", t);
         }
       }
 
-    }, 1000, 10 * 1000);
+    }, 1000, 10_000);
     return result;
   }
 
   private ExecutorService createIdlingEs(Property max, String name, long timeout,
       TimeUnit timeUnit) {
     LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
-    int maxThreads = conf.getSystemConfiguration().getCount(max);
+    int maxThreads = context.getConfiguration().getCount(max);
     ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, timeout, timeUnit, queue,
         new NamingThreadFactory(name));
     tp.allowCoreThreadTimeOut(true);
-    return addEs(() -> conf.getSystemConfiguration().getCount(max), name, tp);
+    return addEs(() -> context.getConfiguration().getCount(max), name, tp);
   }
 
   private ExecutorService createEs(int max, String name) {
@@ -244,7 +248,7 @@ public class TabletServerResourceManager {
   }
 
   private ExecutorService createEs(Property max, String name, BlockingQueue<Runnable> queue) {
-    IntSupplier maxThreadsSupplier = () -> conf.getSystemConfiguration().getCount(max);
+    IntSupplier maxThreadsSupplier = () -> context.getConfiguration().getCount(max);
     return createEs(maxThreadsSupplier, name, queue, OptionalInt.empty());
   }
 
@@ -329,12 +333,9 @@ public class TabletServerResourceManager {
 
   @SuppressFBWarnings(value = "DM_GC",
       justification = "GC is run to get a good estimate of memory availability")
-  public TabletServerResourceManager(TabletServer tserver, VolumeManager fs,
-      ServerContext context) {
-    this.tserver = tserver;
-    this.conf = tserver.getContext().getServerConfFactory();
+  public TabletServerResourceManager(ServerContext context) {
     this.context = context;
-    final AccumuloConfiguration acuConf = conf.getSystemConfiguration();
+    final AccumuloConfiguration acuConf = context.getConfiguration();
 
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
     boolean usingNativeMap =
@@ -427,16 +428,16 @@ public class TabletServerResourceManager {
     fileLenCache =
         CacheBuilder.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
 
-    fileManager =
-        new FileManager(tserver.getContext(), fs, maxOpenFiles, fileLenCache, _dCache, _iCache);
+    fileManager = new FileManager(context, context.getVolumeManager(), maxOpenFiles, fileLenCache,
+        _dCache, _iCache);
 
     memoryManager = Property.createInstanceFromPropertyName(acuConf, Property.TSERV_MEM_MGMT,
         MemoryManager.class, new LargestFirstMemoryManager());
-    memoryManager.init(tserver.getContext().getServerConfFactory());
+    memoryManager.init(context.getServerConfFactory());
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
 
-    SimpleTimer timer = SimpleTimer.getInstance(tserver.getConfiguration());
+    SimpleTimer timer = SimpleTimer.getInstance(context.getConfiguration());
 
     // We can use the same map for both metadata and normal assignments since the keyspace (extent)
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
@@ -552,7 +553,7 @@ public class TabletServerResourceManager {
     MemoryManagementFramework() {
       tabletReports = Collections.synchronizedMap(new HashMap<>());
       memUsageReports = new LinkedBlockingQueue<>();
-      maxMem = conf.getSystemConfiguration().getAsBytes(Property.TSERV_MAXMEM);
+      maxMem = context.getConfiguration().getAsBytes(Property.TSERV_MAXMEM);
 
       Runnable r1 = new Runnable() {
         @Override
@@ -717,7 +718,7 @@ public class TabletServerResourceManager {
   void waitUntilCommitsAreEnabled() {
     if (holdCommits) {
       long timeout = System.currentTimeMillis()
-          + conf.getSystemConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
+          + context.getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
       synchronized (commitHold) {
         while (holdCommits) {
           try {
