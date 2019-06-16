@@ -71,7 +71,7 @@ public abstract class ServerFilter extends ServerWrappingIterator {
   }
 
   /**
-   * @return <tt>true</tt> if the key/value pair is accepted by the filter.
+   * @return <code>true</code> if the key/value pair is accepted by the filter.
    */
   public abstract boolean accept(Key k, Value v);
 

@@ -38,7 +38,7 @@ import java.util.Map;
 public abstract class CompactionStrategy {
   /**
    * The settings for the compaction strategy pulled from zookeeper. The
-   * <tt>table.compacations.major.strategy.opts</tt> part of the setting will be removed.
+   * <code>table.compacations.major.strategy.opts</code> part of the setting will be removed.
    */
   public void init(Map<String,String> options) {}
 

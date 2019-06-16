@@ -68,7 +68,7 @@ public class BasicCompactionStrategy extends DefaultCompactionStrategy {
 
   /**
    * Threshold memory in bytes. Files larger than this threshold will use
-   * <tt>table.majc.compaction.strategy.opts.file.large.compress.type</tt> for compression
+   * <code>table.majc.compaction.strategy.opts.file.large.compress.type</code> for compression
    */
   public static final String LARGE_FILE_COMPRESSION_THRESHOLD = "large.compress.threshold";
 

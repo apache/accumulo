@@ -86,7 +86,7 @@ public abstract class SynchronizedServerFilter implements SortedKeyValueIterator
   }
 
   /**
-   * @return <tt>true</tt> if the key/value pair is accepted by the filter.
+   * @return <code>true</code> if the key/value pair is accepted by the filter.
    */
   protected abstract boolean accept(Key k, Value v);
 

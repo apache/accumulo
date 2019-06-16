@@ -102,7 +102,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     try {
       ZooLock.deleteLock(zk, path);
     } catch (IllegalStateException e) {
-
+      log.error("Unable to delete ZooLock for mini accumulo-gc", e);
     }
 
     assertNull(getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR));
@@ -144,7 +144,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     log.info("Filling metadata table with bogus delete flags");
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       addEntries(c);
-      cluster.getConfig().setDefaultMemory(10, MemoryUnit.MEGABYTE);
+      cluster.getConfig().setDefaultMemory(16, MemoryUnit.MEGABYTE);
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
       sleepUninterruptibly(20, TimeUnit.SECONDS);
       String output = "";
@@ -152,6 +152,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         try {
           output = gc.readStdOut();
         } catch (UncheckedIOException ex) {
+          log.error("IO error reading the IT's accumulo-gc STDOUT", ex);
           break;
         }
       }

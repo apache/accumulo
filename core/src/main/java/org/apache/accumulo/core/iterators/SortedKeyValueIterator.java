@@ -36,11 +36,11 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * Initializes the iterator. Data should not be read from the source in this method.
    *
    * @param source
-   *          <tt>SortedKeyValueIterator</tt> source to read data from.
+   *          <code>SortedKeyValueIterator</code> source to read data from.
    * @param options
-   *          <tt>Map</tt> map of string option names to option values.
+   *          <code>Map</code> map of string option names to option values.
    * @param env
-   *          <tt>IteratorEnvironment</tt> environment in which iterator is being run.
+   *          <code>IteratorEnvironment</code> environment in which iterator is being run.
    * @throws IOException
    *           unused.
    * @exception IllegalArgumentException
@@ -55,7 +55,7 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * Returns true if the iterator has more elements. Note that if this iterator has yielded (@see
    * YieldingKeyValueIterator.enableYielding(YieldCallback)), this this method must return false.
    *
-   * @return <tt>true</tt> if the iterator has more elements.
+   * @return <code>true</code> if the iterator has more elements.
    * @exception IllegalStateException
    *              if called before seek.
    */
@@ -100,12 +100,12 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * ensure that data from separate locality groups is not inadvertently read.
    *
    * @param range
-   *          <tt>Range</tt> of keys to iterate over.
+   *          <code>Range</code> of keys to iterate over.
    * @param columnFamilies
-   *          <tt>Collection</tt> of column families to include or exclude.
+   *          <code>Collection</code> of column families to include or exclude.
    * @param inclusive
-   *          <tt>boolean</tt> that indicates whether to include (true) or exclude (false) column
-   *          families.
+   *          <code>boolean</code> that indicates whether to include (true) or exclude (false)
+   *          column families.
    * @throws IOException
    *           if an I/O error occurs.
    * @exception IllegalArgumentException
@@ -122,11 +122,11 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * scopes. Deletion entries are only removed during full major compactions.
    * <p>
    * For performance reasons, iterators reserve the right to reuse objects returned by
-   * <tt>getTopKey</tt> when {@link #next()} is called, changing the data that the object
-   * references. Iterators that need to save an object returned by <tt>getTopKey</tt> ought to copy
-   * the object's data into a new object in order to avoid aliasing bugs.
+   * <code>getTopKey</code> when {@link #next()} is called, changing the data that the object
+   * references. Iterators that need to save an object returned by <code>getTopKey</code> ought to
+   * copy the object's data into a new object in order to avoid aliasing bugs.
    *
-   * @return <tt>K</tt>
+   * @return <code>K</code>
    * @exception IllegalStateException
    *              if called before seek.
    * @exception NoSuchElementException
@@ -139,11 +139,11 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * hasTop().
    * <p>
    * For performance reasons, iterators reserve the right to reuse objects returned by
-   * <tt>getTopValue</tt> when {@link #next()} is called, changing the underlying data that the
-   * object references. Iterators that need to save an object returned by <tt>getTopValue</tt> ought
-   * to copy the object's data into a new object in order to avoid aliasing bugs.
+   * <code>getTopValue</code> when {@link #next()} is called, changing the underlying data that the
+   * object references. Iterators that need to save an object returned by <code>getTopValue</code>
+   * ought to copy the object's data into a new object in order to avoid aliasing bugs.
    *
-   * @return <tt>V</tt>
+   * @return <code>V</code>
    * @exception IllegalStateException
    *              if called before seek.
    * @exception NoSuchElementException
@@ -159,8 +159,8 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * either on the original or the copy. A proper implementation would call deepCopy on the source.
    *
    * @param env
-   *          <tt>IteratorEnvironment</tt> environment in which iterator is being run.
-   * @return <tt>SortedKeyValueIterator</tt> a copy of this iterator (with the same source and
+   *          <code>IteratorEnvironment</code> environment in which iterator is being run.
+   * @return <code>SortedKeyValueIterator</code> a copy of this iterator (with the same source and
    *         settings).
    * @exception UnsupportedOperationException
    *              if not supported.

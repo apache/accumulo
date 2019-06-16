@@ -415,7 +415,7 @@ public class TabletServer extends AbstractServer {
 
     logger = new TabletServerLogger(this, walogMaxSize, syncCounter, flushCounter,
         walCreationRetryFactory, walWritingRetryFactory, walogMaxAge);
-    this.resourceManager = new TabletServerResourceManager(this, fs, context);
+    this.resourceManager = new TabletServerResourceManager(context);
     this.security = AuditedSecurityOperation.getInstance(context);
 
     updateMetrics = new TabletServerUpdateMetrics();
