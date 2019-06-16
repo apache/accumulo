@@ -77,7 +77,7 @@
         <include>org.eclipse.jetty:jetty-util</include>
         <include>org.freemarker:freemarker</include>
         <include>org.glassfish.hk2.external:aopalliance-repackaged</include>
-        <include>org.glassfish.hk2.external:javax.inject</include>
+        <include>org.glassfish.hk2.external:jakarta.inject</include>
         <include>org.glassfish.hk2:hk2-api</include>
         <include>org.glassfish.hk2:hk2-locator</include>
         <include>org.glassfish.hk2:hk2-utils</include>
