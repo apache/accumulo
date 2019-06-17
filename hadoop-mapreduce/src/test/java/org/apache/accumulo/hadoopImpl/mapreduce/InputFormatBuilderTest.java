@@ -19,23 +19,25 @@ package org.apache.accumulo.hadoopImpl.mapreduce;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-
+/*
+ This unit tests ClassLoaderContext and ExecuteHints functionality
+ */
 public class InputFormatBuilderTest {
 
   private class InputFormatBuilderImplTest<T> extends InputFormatBuilderImpl<T> {
     private String currentTable;
-    private Map<String,InputTableConfig> tableConfigMap = new LinkedHashMap<>();
-    private Map<String,String> newHints;
+    private SortedMap<String,InputTableConfig> tableConfigMap = new TreeMap<>();
+    private SortedMap<String,String> newHints = new TreeMap<>();
 
     private InputFormatBuilderImplTest(Class callingClass) {
       super(callingClass);
@@ -57,12 +59,12 @@ public class InputFormatBuilderTest {
     }
 
     public InputFormatBuilder.InputFormatOptions<T> executionHints(Map<String,String> hints) {
-      this.newHints = ImmutableMap.copyOf(hints);
+      this.newHints.putAll(hints);
       tableConfigMap.get(currentTable).setExecutionHints(hints);
       return this;
     }
 
-    private Map<String,String> getExecutionHints() {
+    private SortedMap<String,String> getExecutionHints() {
       return newHints;
     }
   }
@@ -102,12 +104,14 @@ public class InputFormatBuilderTest {
 
   @Test
   public void testInputFormatBuilderImplTest_ExecuteHints() {
-    Map<String,String> hints = ImmutableMap.<String,String>builder().put("key1", "value1")
-        .put("key2", "value2").put("key3", "value3").build();
+    SortedMap<String,String> hints = new TreeMap<>();
+    hints.put("key1", "value1");
+    hints.put("key2", "value2");
+    hints.put("key3", "value3");
 
     formatBuilderTest.executionHints(hints);
 
-    Map<String,String> executionHints = formatBuilderTest.getExecutionHints();
+    SortedMap<String,String> executionHints = formatBuilderTest.getExecutionHints();
     assertEquals(executionHints.toString(), hints.toString());
   }
 }
