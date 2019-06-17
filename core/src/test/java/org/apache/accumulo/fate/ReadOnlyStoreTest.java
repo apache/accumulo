@@ -33,12 +33,10 @@ public class ReadOnlyStoreTest {
 
   @Test
   public void everythingPassesThrough() throws Exception {
-    @SuppressWarnings("unchecked")
     Repo<String> repo = EasyMock.createMock(Repo.class);
     EasyMock.expect(repo.getDescription()).andReturn("description");
     EasyMock.expect(repo.isReady(0xdeadbeefL, null)).andReturn(0x0L);
 
-    @SuppressWarnings("unchecked")
     TStore<String> mock = EasyMock.createNiceMock(TStore.class);
     EasyMock.expect(mock.reserve()).andReturn(0xdeadbeefL);
     mock.reserve(0xdeadbeefL);
