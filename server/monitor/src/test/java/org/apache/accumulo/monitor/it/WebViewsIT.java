@@ -54,6 +54,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.powermock.api.easymock.PowerMock;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -63,6 +64,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 @Category(MonitorTests.class)
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({Monitor.class, Tables.class})
+@PowerMockIgnore({"javax.xml.*"})
 public class WebViewsIT extends JerseyTest {
 
   @Override
