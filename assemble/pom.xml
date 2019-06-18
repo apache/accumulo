@@ -93,16 +93,6 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>com.sun.xml.bind</groupId>
-      <artifactId>jaxb-core</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>com.sun.xml.bind</groupId>
-      <artifactId>jaxb-impl</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
       <groupId>commons-beanutils</groupId>
       <artifactId>commons-beanutils</artifactId>
       <optional>true</optional>
@@ -134,7 +124,7 @@
     </dependency>
     <dependency>
       <groupId>javax.activation</groupId>
-      <artifactId>activation</artifactId>
+      <artifactId>javax.activation-api</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -356,6 +346,16 @@
     <dependency>
       <groupId>org.glassfish.hk2.external</groupId>
       <artifactId>jakarta.inject</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jaxb</groupId>
+      <artifactId>jaxb-core</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jaxb</groupId>
+      <artifactId>jaxb-runtime</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
