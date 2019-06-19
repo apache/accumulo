@@ -17,8 +17,6 @@
 
 package org.apache.accumulo.server.metadata;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -61,8 +59,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putDir(String dir) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mutation,
-        new Value(dir.getBytes(UTF_8)));
+    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dir));
     return this;
   }
 
@@ -91,7 +88,21 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   public Ample.TabletMutator putCompactionId(long compactionId) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     TabletsSection.ServerColumnFamily.COMPACT_COLUMN.put(mutation,
-        new Value(("" + compactionId).getBytes()));
+        new Value(Long.toString(compactionId)));
+    return this;
+  }
+
+  @Override
+  public Ample.TabletMutator putFlushId(long flushId) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(mutation, new Value(Long.toString(flushId)));
+    return this;
+  }
+
+  @Override
+  public Ample.TabletMutator putTime(String time) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mutation, new Value(time));
     return this;
   }
 
@@ -126,7 +137,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   public Ample.TabletMutator putZooLock(ZooLock zooLock) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(mutation,
-        new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/").getBytes(UTF_8)));
+        new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
     return this;
   }
 
@@ -148,6 +159,21 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   public Ample.TabletMutator deleteWal(String wal) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.putDelete(MetadataSchema.TabletsSection.LogColumnFamily.STR_NAME, wal);
+    return this;
+  }
+
+  @Override
+  public Ample.TabletMutator putBulkFile(Ample.FileMeta bulkref, long tid) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    mutation.put(TabletsSection.BulkFileColumnFamily.NAME, bulkref.meta(),
+        new Value(Long.toString(tid)));
+    return this;
+  }
+
+  @Override
+  public Ample.TabletMutator deleteBulkFile(Ample.FileMeta bulkref) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    mutation.putDelete(TabletsSection.BulkFileColumnFamily.NAME, bulkref.meta());
     return this;
   }
 

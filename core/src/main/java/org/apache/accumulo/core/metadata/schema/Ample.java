@@ -138,6 +138,8 @@ public interface Ample {
 
     public TabletMutator putCompactionId(long compactionId);
 
+    public TabletMutator putFlushId(long flushId);
+
     public TabletMutator putLocation(TServer tserver, LocationType type);
 
     public TabletMutator deleteLocation(TServer tserver, LocationType type);
@@ -151,6 +153,12 @@ public interface Ample {
     public TabletMutator deleteWal(String wal);
 
     public TabletMutator deleteWal(LogEntry logEntry);
+
+    public TabletMutator putTime(String time);
+
+    public TabletMutator putBulkFile(Ample.FileMeta bulkref, long tid);
+
+    public TabletMutator deleteBulkFile(Ample.FileMeta bulkref);
 
     /**
      * This method persist (or queues for persisting) previous put and deletes against this object.

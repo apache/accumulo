@@ -69,34 +69,33 @@ public class MasterMetadataUtil {
       TServerInstance location, Map<FileRef,DataFileValue> datafileSizes,
       Map<Long,? extends Collection<FileRef>> bulkLoadedFiles, String time, long lastFlushID,
       long lastCompactID, ZooLock zooLock) {
-    Mutation m = extent.getPrevRowUpdateMutation();
 
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(path.getBytes(UTF_8)));
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(m, new Value(time.getBytes(UTF_8)));
+    TabletMutator mutator = context.getAmple().mutateTablet(extent);
+    mutator.putPrevEndRow(extent.getPrevEndRow());
+    mutator.putZooLock(zooLock);
+    mutator.putDir(path);
+    mutator.putTime(time);
+
     if (lastFlushID > 0)
-      TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(m,
-          new Value(("" + lastFlushID).getBytes()));
+      mutator.putFlushId(lastFlushID);
+
     if (lastCompactID > 0)
-      TabletsSection.ServerColumnFamily.COMPACT_COLUMN.put(m,
-          new Value(("" + lastCompactID).getBytes()));
+      mutator.putCompactionId(lastCompactID);
 
     if (location != null) {
-      location.putLocation(m);
-      location.clearFutureLocation(m);
+      mutator.putLocation(location, LocationType.CURRENT);
+      mutator.deleteLocation(location, LocationType.FUTURE);
     }
 
-    for (Entry<FileRef,DataFileValue> entry : datafileSizes.entrySet()) {
-      m.put(DataFileColumnFamily.NAME, entry.getKey().meta(), new Value(entry.getValue().encode()));
-    }
+    datafileSizes.forEach(mutator::putFile);
 
     for (Entry<Long,? extends Collection<FileRef>> entry : bulkLoadedFiles.entrySet()) {
-      Value tidBytes = new Value(Long.toString(entry.getKey()).getBytes());
       for (FileRef ref : entry.getValue()) {
-        m.put(TabletsSection.BulkFileColumnFamily.NAME, ref.meta(), new Value(tidBytes));
+        mutator.putBulkFile(ref, entry.getKey().longValue());
       }
     }
 
-    MetadataTableUtil.update(context, zooLock, m, extent);
+    mutator.mutate();
   }
 
   public static KeyExtent fixSplit(ServerContext context, Text metadataEntry,
