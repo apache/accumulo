@@ -61,7 +61,7 @@ public class ZKPermHandler implements PermissionHandler {
   private final String ZKUserNamespacePerms = "/Namespaces";
 
   @Override
-  public void initialize(ServerContext context, boolean initialize) {
+  public void initialize(ServerContext context) {
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
     zoo = context.getZooReaderWriter();
     String instanceId = context.getInstanceID();

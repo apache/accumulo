@@ -33,6 +33,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -60,7 +61,7 @@ public class MasterReplicationCoordinator implements ReplicationCoordinator.Ifac
     this.rand = new SecureRandom();
     this.rand.setSeed(358923462L);
     this.reader = reader;
-    this.security = SecurityOperation.getInstance(master.getContext(), false);
+    this.security = AuditedSecurityOperation.getInstance(master.getContext());
   }
 
   @Override

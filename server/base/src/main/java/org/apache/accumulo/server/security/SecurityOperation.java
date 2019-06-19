@@ -79,34 +79,33 @@ public class SecurityOperation {
 
   static SecurityOperation instance;
 
-  public static synchronized SecurityOperation getInstance(ServerContext context,
-      boolean initialize) {
+  public static synchronized SecurityOperation getInstance(ServerContext context) {
     if (instance == null) {
-      instance = new SecurityOperation(context, getAuthorizor(context, initialize),
-          getAuthenticator(context, initialize), getPermHandler(context, initialize));
+      instance = new SecurityOperation(context, getAuthorizor(context), getAuthenticator(context),
+          getPermHandler(context));
     }
     return instance;
   }
 
-  protected static Authorizor getAuthorizor(ServerContext context, boolean initialize) {
+  protected static Authorizor getAuthorizor(ServerContext context) {
     Authorizor toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, new ZKAuthorizor());
-    toRet.initialize(context, initialize);
+    toRet.initialize(context);
     return toRet;
   }
 
-  protected static Authenticator getAuthenticator(ServerContext context, boolean initialize) {
+  protected static Authenticator getAuthenticator(ServerContext context) {
     Authenticator toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class, new ZKAuthenticator());
-    toRet.initialize(context, initialize);
+    toRet.initialize(context);
     return toRet;
   }
 
-  protected static PermissionHandler getPermHandler(ServerContext context, boolean initialize) {
+  protected static PermissionHandler getPermHandler(ServerContext context) {
     PermissionHandler toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_PERMISSION_HANDLER, PermissionHandler.class,
         new ZKPermHandler());
-    toRet.initialize(context, initialize);
+    toRet.initialize(context);
     return toRet;
   }
 

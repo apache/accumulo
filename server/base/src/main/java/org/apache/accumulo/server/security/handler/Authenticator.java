@@ -29,7 +29,7 @@ import org.apache.accumulo.server.ServerContext;
  */
 public interface Authenticator {
 
-  void initialize(ServerContext context, boolean initialize);
+  void initialize(ServerContext context);
 
   boolean validSecurityHandlers();
 
