@@ -42,15 +42,13 @@
         <include>com.google.guava:failureaccess</include>
         <include>com.google.guava:guava</include>
         <include>com.google.protobuf:protobuf-java</include>
-        <include>com.sun.xml.bind:jaxb-core</include>
-        <include>com.sun.xml.bind:jaxb-impl</include>
         <include>commons-beanutils:commons-beanutils</include>
         <include>commons-cli:commons-cli</include>
         <include>commons-codec:commons-codec</include>
         <include>commons-io:commons-io</include>
         <include>commons-lang:commons-lang</include>
         <include>commons-logging:commons-logging</include>
-        <include>javax.activation:activation</include>
+        <include>javax.activation:javax.activation-api</include>
         <include>javax.annotation:javax.annotation-api</include>
         <include>javax.el:javax.el-api</include>
         <include>javax.servlet:javax.servlet-api</include>
@@ -82,6 +80,8 @@
         <include>org.glassfish.hk2:hk2-locator</include>
         <include>org.glassfish.hk2:hk2-utils</include>
         <include>org.glassfish.hk2:osgi-resource-locator</include>
+        <include>org.glassfish.jaxb:jaxb-core</include>
+        <include>org.glassfish.jaxb:jaxb-runtime</include>
         <include>org.glassfish.jersey.containers:jersey-container-jetty-http</include>
         <include>org.glassfish.jersey.containers:jersey-container-servlet-core</include>
         <include>org.glassfish.jersey.containers:jersey-container-servlet</include>

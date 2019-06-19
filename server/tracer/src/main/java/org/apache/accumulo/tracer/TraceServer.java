@@ -233,12 +233,8 @@ public class TraceServer implements Watcher, AutoCloseable {
    * misconfigurations that aren't likely to change on retry).
    *
    * @return a working Connection that can be reused
-   * @throws ClassNotFoundException
-   *           if TRACE_TOKEN_TYPE is set to a class that we can't load.
-   * @throws InstantiationException
+   * @throws ReflectiveOperationException
    *           if we fail to create an instance of TRACE_TOKEN_TYPE.
-   * @throws IllegalAccessException
-   *           if the class pointed to by TRACE_TOKEN_TYPE is private.
    * @throws AccumuloSecurityException
    *           if the trace user has the wrong permissions
    */

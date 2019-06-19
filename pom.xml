@@ -111,7 +111,7 @@
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.60</bouncycastle.version>
+    <bouncycastle.version>1.62</bouncycastle.version>
     <!-- Curator version -->
     <curator.version>2.12.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
@@ -129,9 +129,9 @@
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <jackson.version>2.9.9</jackson.version>
     <javax.el.version>3.0.1-b06</javax.el.version>
-    <jaxb.version>2.3.0</jaxb.version>
-    <jersey.version>2.27</jersey.version>
-    <jetty.version>9.4.17.v20190418</jetty.version>
+    <jaxb.version>2.3.0.1</jaxb.version>
+    <jersey.version>2.28</jersey.version>
+    <jetty.version>9.4.19.v20190610</jetty.version>
     <maven.compiler.release>11</maven.compiler.release>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
@@ -142,13 +142,13 @@
     <powermock.version>2.0.2</powermock.version>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>
-    <servlet.api.version>3.1.0</servlet.api.version>
     <slf4j.version>1.7.26</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <spotbugs.version>3.1.12</spotbugs.version>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     <surefire.groups />
+    <surefire.version>3.0.0-M3</surefire.version>
     <!-- Thrift version -->
     <thrift.version>0.12.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
@@ -226,22 +226,12 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>27.1-jre</version>
+        <version>28.0-jre</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
         <version>3.7.1</version>
-      </dependency>
-      <dependency>
-        <groupId>com.sun.xml.bind</groupId>
-        <artifactId>jaxb-core</artifactId>
-        <version>${jaxb.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.sun.xml.bind</groupId>
-        <artifactId>jaxb-impl</artifactId>
-        <version>${jaxb.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-beanutils</groupId>
@@ -275,8 +265,8 @@
       </dependency>
       <dependency>
         <groupId>javax.activation</groupId>
-        <artifactId>activation</artifactId>
-        <version>1.1.1</version>
+        <artifactId>javax.activation-api</artifactId>
+        <version>1.2.0</version>
       </dependency>
       <dependency>
         <groupId>javax.annotation</groupId>
@@ -291,7 +281,7 @@
       <dependency>
         <groupId>javax.servlet</groupId>
         <artifactId>javax.servlet-api</artifactId>
-        <version>${servlet.api.version}</version>
+        <version>4.0.1</version>
       </dependency>
       <dependency>
         <groupId>javax.validation</groupId>
@@ -311,7 +301,7 @@
       <dependency>
         <groupId>javax.xml.bind</groupId>
         <artifactId>jaxb-api</artifactId>
-        <version>${jaxb.version}</version>
+        <version>2.3.1</version>
       </dependency>
       <dependency>
         <groupId>jline</groupId>
@@ -443,7 +433,6 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-vfs2</artifactId>
-        <!-- commons-vfs2 version 2.2 has defects that impacts changing Accumulo classpath contexts. -->
         <version>2.3</version>
       </dependency>
       <dependency>
@@ -621,6 +610,16 @@
         <version>${hk2.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.glassfish.jaxb</groupId>
+        <artifactId>jaxb-core</artifactId>
+        <version>${jaxb.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.jaxb</groupId>
+        <artifactId>jaxb-runtime</artifactId>
+        <version>${jaxb.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.glassfish.jersey.containers</groupId>
         <artifactId>jersey-container-jetty-http</artifactId>
         <version>${jersey.version}</version>
@@ -707,8 +706,13 @@
       </dependency>
       <dependency>
         <groupId>org.hamcrest</groupId>
+        <artifactId>hamcrest</artifactId>
+        <version>2.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hamcrest</groupId>
         <artifactId>hamcrest-core</artifactId>
-        <version>1.3</version>
+        <version>2.1</version>
       </dependency>
       <dependency>
         <groupId>org.hibernate.validator</groupId>
@@ -718,7 +722,7 @@
       <dependency>
         <groupId>org.javassist</groupId>
         <artifactId>javassist</artifactId>
-        <version>3.24.1-GA</version>
+        <version>3.25.0-GA</version>
       </dependency>
       <dependency>
         <groupId>org.jboss.logging</groupId>
@@ -776,7 +780,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.5</version>
+          <version>2.7</version>
         </plugin>
         <plugin>
           <groupId>org.gaul</groupId>
@@ -809,12 +813,12 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>3.0.0</version>
+          <version>3.1.0</version>
         </plugin>
         <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
           <artifactId>sortpom-maven-plugin</artifactId>
-          <version>2.8.0</version>
+          <version>2.10.0</version>
           <configuration>
             <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
             <createBackupFile>false</createBackupFile>
@@ -829,7 +833,7 @@
         <plugin>
           <groupId>com.github.koraktor</groupId>
           <artifactId>mavanagaiata</artifactId>
-          <version>0.8.2</version>
+          <version>0.9.4</version>
           <configuration>
             <skipNoGit>true</skipNoGit>
           </configuration>
@@ -852,6 +856,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.8.1</version>
           <configuration>
             <optimize>true</optimize>
             <showDeprecation>true</showDeprecation>
@@ -913,6 +918,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
+          <version>${surefire.version}</version>
           <configuration>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <groups>${surefire.groups}</groups>
@@ -925,6 +931,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${surefire.version}</version>
           <configuration>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
@@ -947,19 +954,12 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-enforcer-plugin</artifactId>
-          <configuration>
-            <rules>
-              <requireJavaVersion>
-                <version>[${maven.compiler.target},)</version>
-              </requireJavaVersion>
-            </rules>
-          </configuration>
         </plugin>
         <plugin>
           <!-- Allows us to get the apache-ds bundle artifacts -->
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>3.5.0</version>
+          <version>4.2.0</version>
         </plugin>
         <plugin>
           <groupId>net.revelc.code</groupId>
@@ -991,6 +991,7 @@
         <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
+          <version>0.13</version>
           <configuration>
             <excludes combine.children="append">
               <exclude>src/main/resources/META-INF/services/*</exclude>
@@ -1041,38 +1042,38 @@
               <failOnWarning>true</failOnWarning>
               <ignoredUsedUndeclaredDependencies>
                 <!-- used/undeclared child jars brought in by parents below -->
-                <usedUndeclaredDependency>org.apache.curator:curator-client:jar:${curator.version}</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.apache.hadoop:hadoop-common:jar:${hadoop.version}</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.apache.hadoop:hadoop-hdfs:*:${hadoop.version}</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.apache.hadoop:hadoop-mapreduce-client-core:jar:${hadoop.version}</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.apache.hadoop:hadoop-auth:jar:${hadoop.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.apache.curator:curator-client:jar:*</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.apache.hadoop:hadoop-common:jar:*</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.apache.hadoop:hadoop-hdfs:*:*</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.apache.hadoop:hadoop-mapreduce-client-core:jar:*</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.apache.hadoop:hadoop-auth:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.apache.httpcomponents:httpcore:jar:*</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.glassfish.jersey.ext:jersey-mvc:jar:${jersey.version}</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-server:jar:${jersey.version}</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-common:jar:${jersey.version}</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.powermock:powermock-core:jar:${powermock.version}</usedUndeclaredDependency>
-                <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:${powermock.version}</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.glassfish.jersey.ext:jersey-mvc:jar:*</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-server:jar:*</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.glassfish.jersey.core:jersey-common:jar:*</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.powermock:powermock-core:jar:*</usedUndeclaredDependency>
+                <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:*</usedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't detected as use since the annotation has retention of source -->
                 <unusedDeclaredDependency>com.google.auto.service:auto-service:jar:*</unusedDeclaredDependency>
                 <!-- unused/declared implementation jars or parent jars that bring in children -->
-                <unusedDeclaredDependency>org.apache.hadoop:hadoop-client:jar:${hadoop.version}</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.apache.hadoop:hadoop-client-runtime:jar:${hadoop.version}</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.apache.hadoop:hadoop-minicluster:jar:${hadoop.version}</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.glassfish.jersey.containers:jersey-container-jetty-http:jar:${jersey.version}</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.glassfish.jersey.ext:jersey-bean-validation:jar:${jersey.version}</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.glassfish.jersey.inject:jersey-hk2:jar:${jersey.version}</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:${jersey.version}</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:${powermock.version}</unusedDeclaredDependency>
-                <unusedDeclaredDependency>org.slf4j:slf4j-log4j12:jar:${slf4j.version}</unusedDeclaredDependency>
-                <unusedDeclaredDependency>junit:junit:jar:4.12</unusedDeclaredDependency>
-                <unusedDeclaredDependency>javax.servlet:javax.servlet-api:jar:${servlet.api.version}</unusedDeclaredDependency>
-                <unusedDeclaredDependency>javax.el:javax.el-api:jar:${javax.el.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.apache.hadoop:hadoop-client:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.apache.hadoop:hadoop-client-runtime:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.apache.hadoop:hadoop-minicluster:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.glassfish.jersey.containers:jersey-container-jetty-http:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.glassfish.jersey.ext:jersey-bean-validation:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.glassfish.jersey.inject:jersey-hk2:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.slf4j:slf4j-log4j12:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>junit:junit:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>javax.servlet:javax.servlet-api:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>javax.el:javax.el-api:jar:*</unusedDeclaredDependency>
                 <!-- spotbugs annotations may or may not be used in each module -->
-                <unusedDeclaredDependency>com.github.spotbugs:spotbugs-annotations:jar:${spotbugs.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>com.github.spotbugs:spotbugs-annotations:jar:*</unusedDeclaredDependency>
                 <!-- ignore unused native; analysis isn't possible with tar.gz dependency -->
-                <unusedDeclaredDependency>org.apache.accumulo:accumulo-native:tar.gz:${project.version}</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.apache.accumulo:accumulo-native:tar.gz:*</unusedDeclaredDependency>
                 <!-- ignore runtime dependencies of commons-configuration2 -->
                 <unusedDeclaredDependency>commons-beanutils:commons-beanutils:jar:*</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
@@ -1111,11 +1112,23 @@
         <artifactId>maven-enforcer-plugin</artifactId>
         <executions>
           <execution>
-            <id>enforce-basic-rules</id>
+            <!-- must be same id as in the apache parent pom, to override the version -->
+            <id>enforce-maven-version</id>
             <goals>
               <goal>enforce</goal>
             </goals>
             <phase>validate</phase>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <!-- org.apache.felix:maven-bundle-plugin declares that it needs 3.5.0 -->
+                  <version>[3.5.0,)</version>
+                </requireMavenVersion>
+                <requireJavaVersion>
+                  <version>[${maven.compiler.target},)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -1173,8 +1186,7 @@
                 <module name="NoLineWrap" />
                 <module name="LeftCurly" />
                 <module name="RightCurly">
-                  <property name="option" value="alone" />
-                  <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, STATIC_INIT, INSTANCE_INIT" />
+                  <property name="tokens" value="LITERAL_TRY, LITERAL_CATCH, LITERAL_FINALLY, LITERAL_IF, LITERAL_ELSE, CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO, STATIC_INIT, INSTANCE_INIT" />
                 </module>
                 <module name="SeparatorWrap">
                   <property name="tokens" value="DOT" />
@@ -1211,7 +1223,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>8.18</version>
+            <version>8.21</version>
           </dependency>
         </dependencies>
         <executions>
