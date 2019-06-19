@@ -38,19 +38,12 @@ import org.slf4j.LoggerFactory;
 
 public class ZKAuthorizor implements Authorizor {
   private static final Logger log = LoggerFactory.getLogger(ZKAuthorizor.class);
-  private static Authorizor zkAuthorizorInstance = null;
 
   private final String ZKUserAuths = "/Authorizations";
 
   private ServerContext context;
   private String ZKUserPath;
   private ZooCache zooCache;
-
-  public static synchronized Authorizor getInstance() {
-    if (zkAuthorizorInstance == null)
-      zkAuthorizorInstance = new ZKAuthorizor();
-    return zkAuthorizorInstance;
-  }
 
   @Override
   public void initialize(ServerContext context, boolean initialize) {

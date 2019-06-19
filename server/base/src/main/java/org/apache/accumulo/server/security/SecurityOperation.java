@@ -90,15 +90,14 @@ public class SecurityOperation {
 
   protected static Authorizor getAuthorizor(ServerContext context, boolean initialize) {
     Authorizor toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
-        Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, ZKAuthorizor.getInstance());
+        Property.INSTANCE_SECURITY_AUTHORIZOR, Authorizor.class, new ZKAuthorizor());
     toRet.initialize(context, initialize);
     return toRet;
   }
 
   protected static Authenticator getAuthenticator(ServerContext context, boolean initialize) {
     Authenticator toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
-        Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class,
-        ZKAuthenticator.getInstance());
+        Property.INSTANCE_SECURITY_AUTHENTICATOR, Authenticator.class, new ZKAuthenticator());
     toRet.initialize(context, initialize);
     return toRet;
   }
@@ -106,7 +105,7 @@ public class SecurityOperation {
   protected static PermissionHandler getPermHandler(ServerContext context, boolean initialize) {
     PermissionHandler toRet = Property.createInstanceFromPropertyName(context.getConfiguration(),
         Property.INSTANCE_SECURITY_PERMISSION_HANDLER, PermissionHandler.class,
-        ZKPermHandler.getInstance());
+        new ZKPermHandler());
     toRet.initialize(context, initialize);
     return toRet;
   }
