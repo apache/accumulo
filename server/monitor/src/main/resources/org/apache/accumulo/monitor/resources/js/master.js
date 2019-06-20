@@ -57,7 +57,7 @@ function recoveryList() {
   var data = sessionStorage.recoveryList === undefined ?
       [] : JSON.parse(sessionStorage.recoveryList);
 
-  $('#recoveryList tr').remove();
+  $('#recoveryList tbody tr').remove();
 
   // If there is no recovery list data, hide the table
   if (data.length === 0 || data.recoveryList.length === 0) {
@@ -70,14 +70,14 @@ function recoveryList() {
       var items = [];
       items.push(createFirstCell(val.server, val.server));
       items.push(createRightCell(val.log, val.log));
-      var date = new Date(parseInt(val.runtime));
-      var dateStr = date.toLocaleString().split(' ').join('&nbsp;');
-      items.push(createRightCell(val.runtime, dateStr));
-      items.push(createRightCell(val.progress, val.progress));
+      var duration = timeDuration(parseInt(val.time));
+      items.push(createRightCell(val.time, duration));
+      var percentProgress = (val.progress * 100).toFixed(2) + '%';
+      items.push(createRightCell(val.progress, percentProgress));
 
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#recoveryList');
+      }).appendTo('#recoveryList tbody');
     });
   }
 }
