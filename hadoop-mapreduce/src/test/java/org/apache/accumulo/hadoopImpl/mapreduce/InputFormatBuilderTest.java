@@ -39,16 +39,18 @@ public class InputFormatBuilderTest {
     private SortedMap<String,InputTableConfig> tableConfigMap = new TreeMap<>();
     private SortedMap<String,String> newHints = new TreeMap<>();
 
-    private InputFormatBuilderImplTest(Class callingClass) {
+    private InputFormatBuilderImplTest(Class<T> callingClass) {
       super(callingClass);
     }
 
+    @Override
     public InputFormatBuilder.InputFormatOptions<T> table(String tableName) {
       this.currentTable = tableName;
       tableConfigMap.put(currentTable, new InputTableConfig());
       return this;
     }
 
+    @Override
     public InputFormatBuilder.InputFormatOptions<T> classLoaderContext(String context) {
       tableConfigMap.get(currentTable).setContext(context);
       return this;
@@ -58,6 +60,7 @@ public class InputFormatBuilderTest {
       return tableConfigMap.get(currentTable).getContext();
     }
 
+    @Override
     public InputFormatBuilder.InputFormatOptions<T> executionHints(Map<String,String> hints) {
       this.newHints.putAll(hints);
       tableConfigMap.get(currentTable).setExecutionHints(hints);
@@ -70,12 +73,12 @@ public class InputFormatBuilderTest {
   }
 
   private InputTableConfig tableQueryConfig;
-  private InputFormatBuilderImplTest formatBuilderTest;
+  private InputFormatBuilderImplTest<InputFormatBuilderTest> formatBuilderTest;
 
   @Before
   public void setUp() {
     tableQueryConfig = new InputTableConfig();
-    formatBuilderTest = new InputFormatBuilderImplTest(InputFormatBuilderTest.class);
+    formatBuilderTest = new InputFormatBuilderImplTest<>(InputFormatBuilderTest.class);
     formatBuilderTest.table("test");
   }
 
@@ -99,7 +102,7 @@ public class InputFormatBuilderTest {
     formatBuilderTest.classLoaderContext(context);
 
     Optional<String> classLoaderContextStr = formatBuilderTest.getClassLoaderContext();
-    assertEquals(classLoaderContextStr.get(), context);
+    assertEquals(context, classLoaderContextStr.get());
   }
 
   @Test
@@ -112,6 +115,6 @@ public class InputFormatBuilderTest {
     formatBuilderTest.executionHints(hints);
 
     SortedMap<String,String> executionHints = formatBuilderTest.getExecutionHints();
-    assertEquals(executionHints.toString(), hints.toString());
+    assertEquals(hints.toString(), executionHints.toString());
   }
 }
