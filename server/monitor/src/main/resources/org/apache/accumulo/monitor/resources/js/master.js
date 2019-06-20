@@ -71,6 +71,9 @@ function recoveryList() {
       items.push(createFirstCell(val.server, val.server));
       items.push(createRightCell(val.log, val.log));
       var date = new Date(parseInt(val.runtime));
+      if (date.toString() === 'Invalid Date')  {
+         date = new Date();
+      }
       var dateStr = date.toLocaleString().split(' ').join('&nbsp;');
       items.push(createRightCell(val.runtime, dateStr));
       items.push(createRightCell(val.progress, val.progress));
