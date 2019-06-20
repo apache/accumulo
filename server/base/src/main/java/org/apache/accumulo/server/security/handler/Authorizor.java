@@ -34,7 +34,7 @@ public interface Authorizor {
   /**
    * Sets up the authorizor for a new instance of Accumulo
    */
-  void initialize(ServerContext context, boolean initialize);
+  void initialize(ServerContext context);
 
   /**
    * Used to validate that the Authorizor, Authenticator, and permission handler can coexist

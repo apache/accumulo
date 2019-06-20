@@ -65,14 +65,9 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   public static synchronized SecurityOperation getInstance(ServerContext context) {
-    return getInstance(context, false);
-  }
-
-  public static synchronized SecurityOperation getInstance(ServerContext context,
-      boolean initialize) {
     if (instance == null) {
-      instance = new AuditedSecurityOperation(context, getAuthorizor(context, initialize),
-          getAuthenticator(context, initialize), getPermHandler(context, initialize));
+      instance = new AuditedSecurityOperation(context, getAuthorizor(context),
+          getAuthenticator(context), getPermHandler(context));
     }
     return instance;
   }

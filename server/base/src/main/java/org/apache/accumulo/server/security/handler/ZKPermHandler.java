@@ -50,7 +50,6 @@ import org.slf4j.LoggerFactory;
 
 public class ZKPermHandler implements PermissionHandler {
   private static final Logger log = LoggerFactory.getLogger(ZKPermHandler.class);
-  private static PermissionHandler zkPermHandlerInstance = null;
 
   private ZooReaderWriter zoo;
   private String ZKUserPath;
@@ -61,14 +60,8 @@ public class ZKPermHandler implements PermissionHandler {
   private final String ZKUserTablePerms = "/Tables";
   private final String ZKUserNamespacePerms = "/Namespaces";
 
-  public static synchronized PermissionHandler getInstance() {
-    if (zkPermHandlerInstance == null)
-      zkPermHandlerInstance = new ZKPermHandler();
-    return zkPermHandlerInstance;
-  }
-
   @Override
-  public void initialize(ServerContext context, boolean initialize) {
+  public void initialize(ServerContext context) {
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
     zoo = context.getZooReaderWriter();
     String instanceId = context.getInstanceID();

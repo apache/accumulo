@@ -40,20 +40,13 @@ import org.slf4j.LoggerFactory;
 // Utility class for adding all authentication info into ZK
 public final class ZKAuthenticator implements Authenticator {
   private static final Logger log = LoggerFactory.getLogger(ZKAuthenticator.class);
-  private static Authenticator zkAuthenticatorInstance = null;
 
   private ServerContext context;
   private String ZKUserPath;
   private ZooCache zooCache;
 
-  public static synchronized Authenticator getInstance() {
-    if (zkAuthenticatorInstance == null)
-      zkAuthenticatorInstance = new ZKAuthenticator();
-    return zkAuthenticatorInstance;
-  }
-
   @Override
-  public void initialize(ServerContext context, boolean initialize) {
+  public void initialize(ServerContext context) {
     this.context = context;
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
     ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";

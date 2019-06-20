@@ -42,8 +42,8 @@ public class KerberosPermissionHandler implements PermissionHandler {
   }
 
   @Override
-  public void initialize(ServerContext context, boolean initialize) {
-    zkPermissionHandler.initialize(context, initialize);
+  public void initialize(ServerContext context) {
+    zkPermissionHandler.initialize(context);
   }
 
   @Override

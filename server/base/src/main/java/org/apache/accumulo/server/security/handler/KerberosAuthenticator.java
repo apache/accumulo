@@ -59,11 +59,11 @@ public class KerberosAuthenticator implements Authenticator {
   private UserImpersonation impersonation;
 
   @Override
-  public void initialize(ServerContext context, boolean initialize) {
+  public void initialize(ServerContext context) {
     this.context = context;
     zooCache = new ZooCache(context.getZooReaderWriter(), null);
     impersonation = new UserImpersonation(context.getConfiguration());
-    zkAuthenticator.initialize(context, initialize);
+    zkAuthenticator.initialize(context);
     zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
   }
 
