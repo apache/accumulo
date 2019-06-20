@@ -787,8 +787,8 @@ public class Initialize implements KeywordExecutable {
 
   private static void initSecurity(ServerContext context, Opts opts, String rootUser)
       throws AccumuloSecurityException {
-    AuditedSecurityOperation.getInstance(context, true).initializeSecurity(context.rpcCreds(),
-        rootUser, opts.rootpass);
+    AuditedSecurityOperation.getInstance(context).initializeSecurity(context.rpcCreds(), rootUser,
+        opts.rootpass);
   }
 
   public static void initSystemTablesConfig(ZooReaderWriter zoo, String zooKeeperRoot,

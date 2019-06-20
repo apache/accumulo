@@ -40,8 +40,8 @@ public class KerberosAuthorizor implements Authorizor {
   }
 
   @Override
-  public void initialize(ServerContext context, boolean initialize) {
-    zkAuthorizor.initialize(context, initialize);
+  public void initialize(ServerContext context) {
+    zkAuthorizor.initialize(context);
   }
 
   @Override
