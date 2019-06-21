@@ -108,10 +108,12 @@ function refreshMasterTable() {
 
     items.push(createRightCell(data.totalTabletServers,
         data.totalTabletServers));
+    var date = data.lastGC;
+    //this will be a finish time or a status of Running, Waiting, or down
+    if (!isNaN(date))
+        date = new Date(parseInt(data.lastGC)).toLocaleString().split(' ').join('&nbsp;');
 
-    var date = new Date(parseInt(data.lastGC));
-    date = date.toLocaleString().split(' ').join('&nbsp;');
-    items.push(createLeftCell(data.lasGC, '<a href="/gc">' + date + '</a>'));
+    items.push(createLeftCell(data.lastGC, '<a href="/gc">' + date + '</a>'));
 
     items.push(createRightCell(data.tablets,
         bigNumberForQuantity(data.tablets)));
