@@ -52,24 +52,26 @@ function refreshBulkImportTable() {
    */
   var data = sessionStorage.bulkImports === undefined ?
       [] : JSON.parse(sessionStorage.bulkImports);
-  var items = [];
 
   /* If the data is empty, create an empty row, otherwise,
    * create the rows for the table
    */
   if (data.length === 0 || data.bulkImport.length === 0) {
-    items.push(createEmptyRow(3, 'Empty'));
+    $('<tr/>', {
+      html: createEmptyRow(3, 'Empty')
+    }).appendTo('#masterBulkImportStatus tbody');
   } else {
     $.each(data.bulkImport, function(key, val) {
+      var items = [];
       items.push(createFirstCell(val.filename, val.filename));
-      items.push(createRightCell(val.age, val.age));
+      items.push(createRightCell(val.age, new Date(val.age)));
       items.push(createRightCell(val.state, val.state));
+      $('<tr/>', {
+        html: items.join('')
+      }).appendTo('#masterBulkImportStatus tbody');
     });
   }
 
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#masterBulkImportStatus');
 }
 
 /**
@@ -84,24 +86,26 @@ function refreshServerBulkTable() {
    */
   var data = sessionStorage.bulkImports === undefined ?
    [] : JSON.parse(sessionStorage.bulkImports);
-  var items = [];
 
   /* If the data is empty, create an empty row, otherwise
    * create the rows for the table
    */
   if (data.length === 0 || data.tabletServerBulkImport.length === 0) {
-    items.push(createEmptyRow(3, 'Empty'));
+    $('<tr/>', {
+      html: createEmptyRow(3, 'Empty')
+    }).appendTo('#bulkImportStatus tbody');
   } else {
     $.each(data.tabletServerBulkImport, function(key, val) {
+      var items = [];
       items.push(createFirstCell(val.server, '<a href="/tservers?s=' +
           val.server + '">' + val.server + '</a>'));
       items.push(createRightCell(val.importSize, val.importSize));
       items.push(createRightCell(val.oldestAge, (val.oldestAge > 0 ?
           val.oldestAge : '&mdash;')));
+      $('<tr/>', {
+        html: items.join('')
+      }).appendTo('#bulkImportStatus tbody');
     });
   }
 
-  $('<tr/>', {
-    html: items.join('')
-  }).appendTo('#bulkImportStatus');
 }
