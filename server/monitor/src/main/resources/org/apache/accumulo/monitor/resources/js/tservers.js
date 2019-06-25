@@ -97,7 +97,7 @@ function refreshBadTServersTable() {
   var data = sessionStorage.tservers === undefined ?
       [] : JSON.parse(sessionStorage.tservers);
 
-  $('#badtservers > tbody').html('');
+  clearTableBody('badtservers');
 
   if (data.length === 0 || data.badServers.length === 0) {
     $('#badtservers').hide();
@@ -110,7 +110,7 @@ function refreshBadTServersTable() {
 
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#badtservers');
+      }).appendTo('#badtservers tbody');
     });
   }
 }
@@ -122,7 +122,7 @@ function refreshDeadTServersTable() {
   var data = sessionStorage.tservers === undefined ?
       [] : JSON.parse(sessionStorage.tservers);
 
-  $('#deadtservers > tbody').html('');
+  clearTableBody('deadtservers');
 
   if (data.length === 0 || data.deadServers.length === 0) {
     $('#deadtservers').hide();
@@ -141,7 +141,7 @@ function refreshDeadTServersTable() {
 
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#deadtservers');
+      }).appendTo('#deadtservers tbody');
     });
   }
 }

@@ -38,7 +38,7 @@ function refresh() {
  * @param {string} minutes Minutes to display the trace
  */
 function refreshTypeTraceTable(minutes) {
-  clearTable('trace');
+  clearTableBody('trace');
 
   /*
    * Get the trace type value obtained earlier,
@@ -56,7 +56,7 @@ function refreshTypeTraceTable(minutes) {
         minutes + ' minute(s)'));
     $('<tr/>', {
       html: items.join('')
-    }).appendTo('#trace');
+    }).appendTo('#trace tbody');
   } else {
     $.each(data.traces, function(key, val) {
       var items = [];
@@ -70,7 +70,7 @@ function refreshTypeTraceTable(minutes) {
 
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#trace');
+      }).appendTo('#trace tbody');
     });
   }
 }

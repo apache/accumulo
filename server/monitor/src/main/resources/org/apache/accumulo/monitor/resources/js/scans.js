@@ -42,7 +42,7 @@ function refresh() {
  * Generates the scans table
  */
 function refreshScansTable() {
-  clearTable('scanStatus');
+  clearTableBody('scanStatus');
 
   var data = sessionStorage.scans === undefined ?
       [] : JSON.parse(sessionStorage.scans);
@@ -52,7 +52,7 @@ function refreshScansTable() {
 
     $('<tr/>', {
       html: items
-    }).appendTo('#scanStatus');
+    }).appendTo('#scanStatus tbody');
   } else {
     $.each(data.scans, function(key, val) {
       var items = [];
@@ -67,7 +67,7 @@ function refreshScansTable() {
 
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#scanStatus');
+      }).appendTo('#scanStatus tbody');
     });
   }
 }

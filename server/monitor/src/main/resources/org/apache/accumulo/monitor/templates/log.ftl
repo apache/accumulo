@@ -116,15 +116,17 @@
       <div><h3>${title}</h3></div>
       <div>
         <table id="logTable" class="table table-bordered table-striped table-condensed">
-            <thead><tr>
+          <thead>
+            <tr>
               <th>Timestamp</th>
               <th>Application</th>
               <th>Count</th>
               <th>Level</th>
               <th class="logevent">Message</th>
-              <th>Stacktrace</th></tr>
-            </thead>
-            <tbody></tbody>
+              <th>Stacktrace</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
         </table>
       </div>
       <div>

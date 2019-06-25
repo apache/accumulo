@@ -24,25 +24,31 @@
           <table id="badtservers" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Non-Functioning Tablet Servers</span><br/>
               <span class="table-subcaption">The following tablet servers reported a status other than Online</span></caption>
-            <thead><tr>
+            <thead>
+              <tr>
                 <th>Server</th>
-                <th>Status</th></tr>
+                <th>Status</th>
+              </tr>
             </thead>
             <tbody></tbody>
           </table>
           <table id="deadtservers" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Dead Tablet Servers</span><br/>
               <span class="table-subcaption">The following tablet servers are no longer reachable.</span><br/></caption>
-            <thead><tr>
+            <thead>
+              <tr>
                 <th>Server</th>
                 <th class="duration">Last Updated</th>
                 <th>Event</th>
-                <th>Clear</th></tr>
+                <th>Clear</th>
+              </tr>
             </thead>
             <tbody></tbody>
           </table>
           <table id="tservers" class="table table-bordered table-striped table-condensed">
-            <thead><tr><th class="firstcell">Server&nbsp;</th>
+            <thead>
+              <tr>
+                <th class="firstcell">Server&nbsp;</th>
                 <th class="big-num">Hosted&nbsp;Tablets&nbsp;</th>
                 <th class="duration">Last&nbsp;Contact&nbsp;</th>
                 <th title="The time it took for the tserver to return its status." class="duration">Response&nbsp;Time&nbsp;</th>

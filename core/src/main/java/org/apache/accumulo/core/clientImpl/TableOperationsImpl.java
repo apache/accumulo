@@ -667,7 +667,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw (AccumuloSecurityException) e.getCause();
         }
 
-        log.info("{} ... retrying ...", e.getMessage());
+        log.info("{} ... retrying ...", e, e);
         sleepUninterruptibly(3, TimeUnit.SECONDS);
       }
     }

@@ -44,7 +44,7 @@ function refresh() {
  */
 function refreshBulkImportTable() {
 
-  clearTable('masterBulkImportStatus');
+  clearTableBody('masterBulkImportStatus');
 
   /*
    * Get the bulk import value obtained earlier, if it doesn't exists,
@@ -77,7 +77,7 @@ function refreshBulkImportTable() {
  */
 function refreshServerBulkTable() {
 
-  clearTable('bulkImportStatus');
+  clearTableBody('bulkImportStatus');
 
   /* Get the bulk import value obtained earlier, if it doesn't exists,
    * create an empty array
