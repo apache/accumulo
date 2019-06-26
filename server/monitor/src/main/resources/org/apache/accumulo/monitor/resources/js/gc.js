@@ -47,7 +47,7 @@ function refreshGCTable() {
 
   // Hides the banner, removes any rows from the table and hides the table
   $('#gcBanner').hide();
-  $('#gcActivity tr:gt(0)').remove();
+  clearTableBody('gcActivity');
   $('#gcActivity').hide();
 
   /* Check if the status of the gc is an error, if so, show banner, otherwise,
@@ -68,7 +68,7 @@ function refreshGCTable() {
 
       $('<tr/>', {
         html: item
-      }).appendTo('#gcActivity');
+      }).appendTo('#gcActivity tbody');
     } else {
 
       var gc = {'File&nbsp;Collection,&nbsp;Last&nbsp;Cycle' : data.files.lastCycle,
@@ -102,7 +102,7 @@ function refreshGCTable() {
 
           $('<tr/>', {
             html: items.join('')
-          }).appendTo('#gcActivity');
+          }).appendTo('#gcActivity tbody');
         }
       });
     }

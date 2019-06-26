@@ -78,21 +78,24 @@
       </script>
       <div><h3>${tablesTitle}</h3></div>
       <div>
-          <table id="tableList" class="table table-bordered table-striped table-condensed">
+        <table id="tableList" class="table table-bordered table-striped table-condensed">
           <thead>
-            <tr><th>Table&nbsp;Name</th>
-                <th>State</th>
-                <th title="Tables are broken down into ranges of rows called tablets." class="big-num">Tablets</th>
-                <th title="Tablets unavailable for query or ingest. May be a transient condition when tablets are moved for balancing." class="big-num">Offline</th>
-                <th title="Key/value pairs over each instance, table or tablet." class="big-num">Entries</th>
-                <th title="The total number of key/value pairs stored in memory and not yet written to disk." class="big-num">In&nbsp;Mem</th>
-                <th title="The rate of Key/Value pairs inserted. (Note that deletes are considered inserted)" class="big-num">Ingest</th>
-                <th title="The rate of Key/Value pairs read on the server side. Not all key values read may be returned to client because of filtering." class="big-num">Read</th>
-                <th title="The rate of Key/Value pairs returned to clients during queries. This is not the number of scans." class="big-num">Returned</th>
-                <th title="The amount of time that ingest operations are suspended while waiting for data to be written to disk." class="big-num">Hold&nbsp;Time</th>
-                <th title="Running scans. The number queued waiting are in parentheses.">Scans</th>
-                <th title="Minor Compactions. The number of tablets waiting for compaction are in parentheses.">MinC</th>
-                <th title="Major Compactions. The number of tablets waiting for compaction are in parentheses.">MajC</th></tr>
+            <tr>
+              <th>Table&nbsp;Name</th>
+              <th>State</th>
+              <th title="Tables are broken down into ranges of rows called tablets." class="big-num">Tablets</th>
+              <th title="Tablets unavailable for query or ingest. May be a transient condition when tablets are moved for balancing." class="big-num">Offline</th>
+              <th title="Key/value pairs over each instance, table or tablet." class="big-num">Entries</th>
+              <th title="The total number of key/value pairs stored in memory and not yet written to disk." class="big-num">In&nbsp;Mem</th>
+              <th title="The rate of Key/Value pairs inserted. (Note that deletes are considered inserted)" class="big-num">Ingest</th>
+              <th title="The rate of Key/Value pairs read on the server side. Not all key values read may be returned to client because of filtering." class="big-num">Read</th>
+              <th title="The rate of Key/Value pairs returned to clients during queries. This is not the number of scans." class="big-num">Returned</th>
+              <th title="The amount of time that ingest operations are suspended while waiting for data to be written to disk." class="big-num">Hold&nbsp;Time</th>
+              <th title="Running scans. The number queued waiting are in parentheses.">Scans</th>
+              <th title="Minor Compactions. The number of tablets waiting for compaction are in parentheses.">MinC</th>
+              <th title="Major Compactions. The number of tablets waiting for compaction are in parentheses.">MajC</th>
+            </tr>
           </thead>
+          <tbody></tbody>
         </table>
       </div>

@@ -35,7 +35,7 @@ function refresh() {
  * Generates the trace show table
  */
 function refreshTraceShowTable() {
-  clearTable('trace');
+  clearTableBody('trace');
   $('#trace caption span span').remove();
   var data = sessionStorage.traceShow === undefined ?
       [] : JSON.parse(sessionStorage.traceShow);
@@ -92,14 +92,14 @@ function refreshTraceShowTable() {
 
       items.push('</tr>');
 
-      $('#trace').append(items.join(''));
+      $('#trace tbody').append(items.join(''));
     });
   } else {
       var items = [];
       items.push('<tr>');
       items.push(createEmptyRow(5, 'No trace information for ID ' + id));
       items.push('</tr>');
-      $('#trace').append(items.join(''));
+      $('#trace tbody').append(items.join(''));
   }
 
 }

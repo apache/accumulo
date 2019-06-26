@@ -66,9 +66,12 @@
         <div class="col-xs-12">
           <table id="trace" class="table table-bordered table-striped table-condensed">
             <caption><span id="caption" class="table-caption">Trace ${id} started at<br/></span></caption>
-            <tbody>
-            <tr><th>Time&nbsp;</th><th>Start&nbsp;</th><th>Service@Location&nbsp;</th><th>Name&nbsp;</th><th>Addl&nbsp;Data&nbsp;</th></tr>
-            </tbody>
+            <thead>
+              <tr>
+                <th>Time&nbsp;</th><th>Start&nbsp;</th><th>Service@Location&nbsp;</th><th>Name&nbsp;</th><th>Addl&nbsp;Data&nbsp;</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
           </table>
         </div>
       </div>

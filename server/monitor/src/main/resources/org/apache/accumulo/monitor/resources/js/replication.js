@@ -42,7 +42,7 @@ function refresh() {
  * Generates the replication table
  */
 function refreshReplicationsTable() {
-  clearTable('replicationStats');
+  clearTableBody('replicationStats');
 
   var data = sessionStorage.replication === undefined ?
       [] : JSON.parse(sessionStorage.replication);
@@ -52,7 +52,7 @@ function refreshReplicationsTable() {
     items.push(createEmptyRow(5, 'Replication table is offline'));
     $('<tr/>', {
       html: items.join('')
-    }).appendTo('#replicationStats');
+    }).appendTo('#replicationStats tbody');
   } else {
     $.each(data, function(key, val) {
       var items = [];
@@ -69,7 +69,7 @@ function refreshReplicationsTable() {
 
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#replicationStats');
+      }).appendTo('#replicationStats tbody');
 
     });
   }

@@ -90,11 +90,11 @@ function refreshZKTable() {
   var data = sessionStorage.zk === undefined ?
       [] : JSON.parse(sessionStorage.zk);
 
-  $('#zookeeper tr td:first').hide();
-  $('#zookeeper tr:gt(2)').remove();
+  $('#zookeeper thead tr:last').hide();
+  clearTableBody('zookeeper');
 
   if (data.length === 0 || data.zkServers.length === 0) {
-    $('#zookeeper tr td:first').show();
+    $('#zookeeper thead tr:last').show();
   } else {
     $.each(data.zkServers, function(key, val) {
       var cells = '<td class="left">' + val.server + '</td>';
@@ -106,7 +106,7 @@ function refreshZKTable() {
         cells += '<td class="right"></td>';
       }
       // create a <tr> element with html containing the cell data; append it to the table
-      $('<tr/>', { html: cells }).appendTo('#zookeeper table');
+      $('<tr/>', { html: cells }).appendTo('#zookeeper tbody');
     });
   }
 }

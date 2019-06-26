@@ -207,9 +207,9 @@ function sanitize(url) {
  *
  * @param {string} tableID Table to clear
  */
-function clearTable(tableID) {
+function clearTableBody(tableID) {
   // JQuery selector to select all rows except for the first row (header)
-  $('#' + tableID).find('tr:not(:first)').remove();
+  $('#' + tableID + ' tbody tr').remove();
 }
 
 function createFirstCell(sortValue, showValue) {

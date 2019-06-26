@@ -22,7 +22,7 @@
       <div class="row">
         <div class="col-sm-6" id="master">
           <table class="table table-bordered table-striped table-condensed">
-            <tbody>
+            <thead>
               <tr><th colspan="2"><a href="/master">Accumulo Master</a></th></tr>
               <tr><td colspan="2" class="center" style="display:none;"><span class="label label-danger nowrap">Master is Down</span></td></tr>
               <tr><td class="left"><a href="/tables">Tables</a></td><td class="right"></td></tr>
@@ -32,16 +32,18 @@
               <tr><td class="left">Entries</td><td class="right"></td></tr>
               <tr><td class="left">Lookups</td><td class="right"></td></tr>
               <tr><td class="left">Uptime</td><td class="right"></td></tr>
-            </tbody>
+            </thead>
+            <tbody></tbody>
           </table>
         </div>
         <div class="col-sm-6" id="zookeeper">
           <table class="table table-bordered table-striped table-condensed">
-            <tbody>
+            <thead>
               <tr><th colspan="3">Zookeeper</th></tr>
               <tr><th>Server</th><th>Mode</th><th>Clients</th></tr>
               <tr><td class="center" colspan="3"><i>No Zookeepers</i></td></tr>
-            </tbody>
+            </thead>
+            <tbody></tbody>
           </table>
         </div>
       </div>

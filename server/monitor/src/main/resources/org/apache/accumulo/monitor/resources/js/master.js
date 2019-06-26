@@ -57,7 +57,7 @@ function recoveryList() {
   var data = sessionStorage.recoveryList === undefined ?
       [] : JSON.parse(sessionStorage.recoveryList);
 
-  $('#recoveryList tbody tr').remove();
+  clearTableBody('recoveryList');
 
   // If there is no recovery list data, hide the table
   if (data.length === 0 || data.recoveryList.length === 0) {
@@ -91,7 +91,7 @@ function refreshMasterTable() {
 
   // Hide the banner and the master table
   $('#masterBanner').hide();
-  $('#masterStatus tr:gt(0)').remove();
+  clearTableBody('masterStatus');
   $('#masterStatus').hide();
 
   // If master status is error, show banner, otherwise, create master table
@@ -139,6 +139,6 @@ function refreshMasterTable() {
 
     $('<tr/>', {
      html: items.join('')
-    }).appendTo('#masterStatus');
+    }).appendTo('#masterStatus tbody');
   }
 }

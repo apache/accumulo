@@ -36,7 +36,7 @@ function refresh() {
  * Generates the table servers table
  */
 function refreshTableServersTable() {
-  $('#participatingTServers tr:gt(0)').remove();
+  clearTableBody('participatingTServers');
 
   var data = sessionStorage.tableServers === undefined ?
       [] : JSON.parse(sessionStorage.tableServers);
@@ -46,7 +46,7 @@ function refreshTableServersTable() {
     items.push(createEmptyRow(13, 'Empty'));
     $('<tr/>', {
       html: items.join('')
-    }).appendTo('#participatingTServers');
+    }).appendTo('#participatingTServers tbody');
   } else {
 
     $.each(data.servers, function(key, val) {
@@ -101,7 +101,7 @@ function refreshTableServersTable() {
 
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#participatingTServers');
+      }).appendTo('#participatingTServers tbody');
 
     });
   }

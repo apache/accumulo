@@ -22,13 +22,16 @@
       <div class="row">
         <div class="col-xs-12">
           <table id="replicationStats" class="table table-bordered table-striped table-condensed">
-            <tbody>
-              <tr><th class="firstcell">Table&nbsp;</th>
+            <thead>
+              <tr>
+                <th class="firstcell">Table&nbsp;</th>
                 <th>Peer&nbsp;</th>
                 <th>Remote&nbsp;Identifier&nbsp;</th>
                 <th>Replica&nbsp;System&nbsp;Type&nbsp;</th>
-                <th>Files&nbsp;needing&nbsp;replication&nbsp;</th></tr>
-            </tbody>
+                <th>Files&nbsp;needing&nbsp;replication&nbsp;</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
           </table>
         </div>
       </div>
