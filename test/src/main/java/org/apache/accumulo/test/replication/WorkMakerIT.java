@@ -47,7 +47,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 public class WorkMakerIT extends ConfigurableMacBase {
@@ -116,7 +115,7 @@ public class WorkMakerIT extends ConfigurableMacBase {
       expected = new ReplicationTarget("remote_cluster_1", "4", tableId);
       workMaker.setBatchWriter(bw);
       workMaker.addWorkRecord(new Text(file), StatusUtil.fileCreatedValue(timeCreated),
-          ImmutableMap.of("remote_cluster_1", "4"), tableId);
+          Map.of("remote_cluster_1", "4"), tableId);
     }
 
     // Scan over just the WorkSection
@@ -158,8 +157,8 @@ public class WorkMakerIT extends ConfigurableMacBase {
 
       MockWorkMaker workMaker = new MockWorkMaker(client);
 
-      Map<String,String> targetClusters = ImmutableMap.of("remote_cluster_1", "4",
-          "remote_cluster_2", "6", "remote_cluster_3", "8");
+      Map<String,String> targetClusters =
+          Map.of("remote_cluster_1", "4", "remote_cluster_2", "6", "remote_cluster_3", "8");
 
       for (Entry<String,String> cluster : targetClusters.entrySet()) {
         expectedTargets.add(new ReplicationTarget(cluster.getKey(), cluster.getValue(), tableId));

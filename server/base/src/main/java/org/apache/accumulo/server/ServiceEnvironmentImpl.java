@@ -31,7 +31,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 
 public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
@@ -58,8 +57,9 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
       // Get prop to check if sensitive, also looking up by prop may be more efficient.
       Property prop = Property.getPropertyByKey(key);
       if (prop != null) {
-        if (prop.isSensitive())
+        if (prop.isSensitive()) {
           return null;
+        }
         return acfg.get(prop);
       } else {
         return acfg.get(key);
@@ -68,8 +68,9 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
     @Override
     public Map<String,String> getCustom() {
-      if (customProps == null)
+      if (customProps == null) {
         customProps = buildCustom(Property.GENERAL_ARBITRARY_PROP_PREFIX);
+      }
 
       return customProps;
     }
@@ -81,8 +82,9 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
     @Override
     public Map<String,String> getTableCustom() {
-      if (tableCustomProps == null)
+      if (tableCustomProps == null) {
         tableCustomProps = buildCustom(Property.TABLE_ARBITRARY_PROP_PREFIX);
+      }
 
       return tableCustomProps;
     }
@@ -95,7 +97,7 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
     private Map<String,String> buildCustom(Property customPrefix) {
       // This could be optimized as described in #947
       Map<String,String> props = acfg.getAllPropertiesWithPrefix(customPrefix);
-      Builder<String,String> builder = ImmutableMap.builder();
+      var builder = ImmutableMap.<String,String>builder();
       props.forEach((k, v) -> {
         builder.put(k.substring(customPrefix.getKey().length()), v);
       });

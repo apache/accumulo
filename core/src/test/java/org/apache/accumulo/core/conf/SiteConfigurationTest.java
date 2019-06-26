@@ -28,8 +28,6 @@ import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SiteConfigurationTest {
@@ -60,8 +58,8 @@ public class SiteConfigurationTest {
     assertNotNull(keystore);
     String credProvPath = "jceks://file" + new File(keystore.getFile()).getAbsolutePath();
 
-    SiteConfiguration config = new SiteConfiguration(ImmutableMap
-        .of(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvPath));
+    SiteConfiguration config = new SiteConfiguration(
+        Map.of(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvPath));
 
     assertEquals("mysecret", config.get(Property.INSTANCE_SECRET));
     assertNull(config.get("ignored.property"));
@@ -100,7 +98,7 @@ public class SiteConfigurationTest {
     assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
 
     conf = new SiteConfiguration((URL) null,
-        ImmutableMap.of(Property.INSTANCE_ZK_HOST.getKey(), "myhost:2181"));
+        Map.of(Property.INSTANCE_ZK_HOST.getKey(), "myhost:2181"));
     assertEquals("myhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
 
     Map<String,String> results = new HashMap<>();

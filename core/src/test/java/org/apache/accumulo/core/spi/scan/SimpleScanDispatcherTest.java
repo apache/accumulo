@@ -30,8 +30,6 @@ import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParmaters;
 import org.apache.accumulo.core.spi.scan.ScanInfo.Type;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-
 public class SimpleScanDispatcherTest {
   @Test
   public void testProps() {
@@ -113,22 +111,21 @@ public class SimpleScanDispatcherTest {
     String dname = SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME;
 
     runTest(Collections.emptyMap(), dname, dname);
-    runTest(ImmutableMap.of("executor", "E1"), "E1", "E1");
-    runTest(ImmutableMap.of("single_executor", "E2"), "E2", dname);
-    runTest(ImmutableMap.of("multi_executor", "E3"), dname, "E3");
-    runTest(ImmutableMap.of("executor", "E1", "single_executor", "E2"), "E2", "E1");
-    runTest(ImmutableMap.of("executor", "E1", "multi_executor", "E3"), "E1", "E3");
-    runTest(ImmutableMap.of("single_executor", "E2", "multi_executor", "E3"), "E2", "E3");
-    runTest(ImmutableMap.of("executor", "E1", "single_executor", "E2", "multi_executor", "E3"),
-        "E2", "E3");
+    runTest(Map.of("executor", "E1"), "E1", "E1");
+    runTest(Map.of("single_executor", "E2"), "E2", dname);
+    runTest(Map.of("multi_executor", "E3"), dname, "E3");
+    runTest(Map.of("executor", "E1", "single_executor", "E2"), "E2", "E1");
+    runTest(Map.of("executor", "E1", "multi_executor", "E3"), "E1", "E3");
+    runTest(Map.of("single_executor", "E2", "multi_executor", "E3"), "E2", "E3");
+    runTest(Map.of("executor", "E1", "single_executor", "E2", "multi_executor", "E3"), "E2", "E3");
   }
 
   @Test
   public void testHints() {
-    runTest(ImmutableMap.of("executor", "E1"), ImmutableMap.of("scan_type", "quick"), "E1", "E1");
-    runTest(ImmutableMap.of("executor", "E1", "executor.quick", "E2"),
-        ImmutableMap.of("scan_type", "quick"), "E2", "E2");
-    runTest(ImmutableMap.of("executor", "E1", "executor.quick", "E2", "executor.slow", "E3"),
-        ImmutableMap.of("scan_type", "slow"), "E3", "E3");
+    runTest(Map.of("executor", "E1"), Map.of("scan_type", "quick"), "E1", "E1");
+    runTest(Map.of("executor", "E1", "executor.quick", "E2"), Map.of("scan_type", "quick"), "E2",
+        "E2");
+    runTest(Map.of("executor", "E1", "executor.quick", "E2", "executor.slow", "E3"),
+        Map.of("scan_type", "slow"), "E3", "E3");
   }
 }

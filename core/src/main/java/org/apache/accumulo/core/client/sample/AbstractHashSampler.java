@@ -27,7 +27,6 @@ import java.util.Set;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.sample.impl.DataoutputHasher;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
@@ -56,7 +55,7 @@ public abstract class AbstractHashSampler implements Sampler {
   private HashFunction hashFunction;
   private int modulus;
 
-  private static final Set<String> VALID_OPTIONS = ImmutableSet.of("hasher", "modulus");
+  private static final Set<String> VALID_OPTIONS = Set.of("hasher", "modulus");
 
   /**
    * Subclasses with options should override this method and return true if the option is valid for

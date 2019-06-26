@@ -36,8 +36,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.commons.lang.mutable.MutableLong;
 
-import com.google.common.collect.ImmutableSet;
-
 public class LocalityGroupIterator extends HeapIterator implements InterruptibleIterator {
 
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
@@ -104,11 +102,11 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
    * This will cache the arguments used in the seek call along with the locality groups seeked.
    */
   public static class LocalityGroupSeekCache {
-    private ImmutableSet<ByteSequence> lastColumnFamilies;
+    private Set<ByteSequence> lastColumnFamilies;
     private volatile boolean lastInclusive;
     private Collection<LocalityGroup> lastUsed;
 
-    public ImmutableSet<ByteSequence> getLastColumnFamilies() {
+    public Set<ByteSequence> getLastColumnFamilies() {
       return lastColumnFamilies;
     }
 
@@ -164,15 +162,16 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
     hiter.clear();
 
     Set<ByteSequence> cfSet;
-    if (columnFamilies.size() > 0)
+    if (columnFamilies.size() > 0) {
       if (columnFamilies instanceof Set<?>) {
         cfSet = (Set<ByteSequence>) columnFamilies;
       } else {
         cfSet = new HashSet<>();
         cfSet.addAll(columnFamilies);
       }
-    else
+    } else {
       cfSet = Collections.emptySet();
+    }
 
     // determine the set of groups to use
     Collection<LocalityGroup> groups = Collections.emptyList();
@@ -258,17 +257,18 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
   public static LocalityGroupSeekCache seek(HeapIterator hiter, LocalityGroupContext lgContext,
       Range range, Collection<ByteSequence> columnFamilies, boolean inclusive,
       LocalityGroupSeekCache lgSeekCache) throws IOException {
-    if (lgSeekCache == null)
+    if (lgSeekCache == null) {
       lgSeekCache = new LocalityGroupSeekCache();
+    }
 
     // determine if the arguments have changed since the last time
     boolean sameArgs = false;
-    ImmutableSet<ByteSequence> cfSet = null;
+    Set<ByteSequence> cfSet = null;
     if (lgSeekCache.lastUsed != null && inclusive == lgSeekCache.lastInclusive) {
       if (columnFamilies instanceof Set) {
         sameArgs = lgSeekCache.lastColumnFamilies.equals(columnFamilies);
       } else {
-        cfSet = ImmutableSet.copyOf(columnFamilies);
+        cfSet = Set.copyOf(columnFamilies);
         sameArgs = lgSeekCache.lastColumnFamilies.equals(cfSet);
       }
     }
@@ -283,8 +283,7 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
       }
     } else { // otherwise capture the parameters, and use the static seek method to locate the
              // locality groups to use.
-      lgSeekCache.lastColumnFamilies =
-          (cfSet == null ? ImmutableSet.copyOf(columnFamilies) : cfSet);
+      lgSeekCache.lastColumnFamilies = (cfSet == null ? Set.copyOf(columnFamilies) : cfSet);
       lgSeekCache.lastInclusive = inclusive;
       lgSeekCache.lastUsed = _seek(hiter, lgContext, range, columnFamilies, inclusive);
     }
@@ -304,8 +303,9 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
 
     for (int i = 0; i < lgContext.groups.size(); i++) {
       groupsCopy[i] = new LocalityGroup(lgContext.groups.get(i), env);
-      if (interruptFlag != null)
+      if (interruptFlag != null) {
         groupsCopy[i].getIterator().setInterruptFlag(interruptFlag);
+      }
     }
 
     return new LocalityGroupIterator(groupsCopy);

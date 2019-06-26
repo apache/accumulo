@@ -28,8 +28,6 @@ import org.apache.accumulo.server.ServerUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class UpgradeCoordinator {
@@ -41,7 +39,7 @@ public class UpgradeCoordinator {
   private boolean startedMetadataUpgrade = false;
   private int currentVersion;
   private Map<Integer,Upgrader> upgraders =
-      ImmutableMap.of(ServerConstants.SHORTEN_RFILE_KEYS, new Upgrader8to9());
+      Map.of(ServerConstants.SHORTEN_RFILE_KEYS, new Upgrader8to9());
 
   public UpgradeCoordinator(ServerContext ctx) {
     int currentVersion = ServerUtil.getAccumuloPersistentVersion(ctx.getVolumeManager());
@@ -60,8 +58,9 @@ public class UpgradeCoordinator {
   }
 
   public synchronized void upgradeZookeeper() {
-    if (haveUpgradedZooKeeper)
+    if (haveUpgradedZooKeeper) {
       throw new IllegalStateException("Only expect this method to be called once");
+    }
 
     try {
       if (currentVersion < ServerConstants.DATA_VERSION) {
@@ -80,8 +79,9 @@ public class UpgradeCoordinator {
   }
 
   public synchronized Future<Void> upgradeMetadata() {
-    if (startedMetadataUpgrade)
+    if (startedMetadataUpgrade) {
       throw new IllegalStateException("Only expect this method to be called once");
+    }
 
     if (!haveUpgradedZooKeeper) {
       throw new IllegalStateException("We should only attempt to upgrade"

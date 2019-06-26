@@ -32,8 +32,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSet;
-
 public class RegExTest {
 
   private static TreeMap<Key,Value> data = new TreeMap<>();
@@ -42,11 +40,13 @@ public class RegExTest {
   public static void setupTests() {
 
     ArrayList<Character> chars = new ArrayList<>();
-    for (char c = 'a'; c <= 'z'; c++)
+    for (char c = 'a'; c <= 'z'; c++) {
       chars.add(c);
+    }
 
-    for (char c = '0'; c <= '9'; c++)
+    for (char c = '0'; c <= '9'; c++) {
       chars.add(c);
+    }
 
     // insert some data into accumulo
     for (Character rc : chars) {
@@ -61,8 +61,9 @@ public class RegExTest {
   }
 
   private void check(String regex, String val) throws Exception {
-    if (regex != null && !val.matches(regex))
+    if (regex != null && !val.matches(regex)) {
       throw new Exception(" " + val + " does not match " + regex);
+    }
   }
 
   private void check(String regex, Text val) throws Exception {
@@ -112,7 +113,7 @@ public class RegExTest {
       String valRegEx, int expected) throws Exception {
 
     SortedKeyValueIterator<Key,Value> source = new SortedMapIterator(data);
-    Set<ByteSequence> es = ImmutableSet.of();
+    Set<ByteSequence> es = Set.of();
     IteratorSetting is = new IteratorSetting(50, "regex", RegExFilter.class);
     RegExFilter.setRegexs(is, rowRegEx, cfRegEx, cqRegEx, valRegEx, false);
     RegExFilter iter = new RegExFilter();

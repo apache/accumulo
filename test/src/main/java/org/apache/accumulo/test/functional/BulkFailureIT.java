@@ -76,12 +76,9 @@ import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-
 public class BulkFailureIT extends AccumuloClusterHarness {
 
-  static interface Loader {
+  interface Loader {
     void load(long txid, ClientContext context, KeyExtent extent, Path path, long size,
         boolean expectFailure) throws Exception;
   }
@@ -135,8 +132,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       // Directly ask the tablet to load the file.
       loader.load(fateTxid, asCtx, extent, bulkLoadPath, status.getLen(), false);
 
-      assertEquals(ImmutableSet.of(bulkLoadPath), getFiles(c, extent));
-      assertEquals(ImmutableSet.of(bulkLoadPath), getLoaded(c, extent));
+      assertEquals(Set.of(bulkLoadPath), getFiles(c, extent));
+      assertEquals(Set.of(bulkLoadPath), getLoaded(c, extent));
       assertEquals(testData, readTable(table, c));
 
       // Compact the bulk imported file. Subsequent request to load the file should be ignored.
@@ -145,14 +142,14 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       Set<Path> tabletFiles = getFiles(c, extent);
       assertFalse(tabletFiles.contains(bulkLoadPath));
       assertEquals(1, tabletFiles.size());
-      assertEquals(ImmutableSet.of(bulkLoadPath), getLoaded(c, extent));
+      assertEquals(Set.of(bulkLoadPath), getLoaded(c, extent));
       assertEquals(testData, readTable(table, c));
 
       // this request should be ignored by the tablet
       loader.load(fateTxid, asCtx, extent, bulkLoadPath, status.getLen(), false);
 
       assertEquals(tabletFiles, getFiles(c, extent));
-      assertEquals(ImmutableSet.of(bulkLoadPath), getLoaded(c, extent));
+      assertEquals(Set.of(bulkLoadPath), getLoaded(c, extent));
       assertEquals(testData, readTable(table, c));
 
       // this is done to ensure the tablet reads the load flags from the metadata table when it
@@ -164,7 +161,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       loader.load(fateTxid, asCtx, extent, bulkLoadPath, status.getLen(), false);
 
       assertEquals(tabletFiles, getFiles(c, extent));
-      assertEquals(ImmutableSet.of(bulkLoadPath), getLoaded(c, extent));
+      assertEquals(Set.of(bulkLoadPath), getLoaded(c, extent));
       assertEquals(testData, readTable(table, c));
 
       // After this, all load request should fail.
@@ -181,7 +178,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       loader.load(fateTxid, asCtx, extent, bulkLoadPath, status.getLen(), true);
 
       assertEquals(tabletFiles, getFiles(c, extent));
-      assertEquals(ImmutableSet.of(), getLoaded(c, extent));
+      assertEquals(Set.of(), getLoaded(c, extent));
       assertEquals(testData, readTable(table, c));
     }
   }
@@ -256,8 +253,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     TabletClientService.Iface client = getClient(context, extent);
     try {
 
-      Map<String,MapFileInfo> val = ImmutableMap.of(path.toString(), new MapFileInfo(size));
-      Map<KeyExtent,Map<String,MapFileInfo>> files = ImmutableMap.of(extent, val);
+      Map<String,MapFileInfo> val = Map.of(path.toString(), new MapFileInfo(size));
+      Map<KeyExtent,Map<String,MapFileInfo>> files = Map.of(extent, val);
 
       client.bulkImport(TraceUtil.traceInfo(), context.rpcCreds(), txid,
           Translator.translate(files, Translators.KET), false);
@@ -265,8 +262,9 @@ public class BulkFailureIT extends AccumuloClusterHarness {
         fail("Expected RPC to fail");
       }
     } catch (TApplicationException tae) {
-      if (!expectFailure)
+      if (!expectFailure) {
         throw tae;
+      }
     } finally {
       ThriftUtil.returnClient((TServiceClient) client);
     }
@@ -278,8 +276,8 @@ public class BulkFailureIT extends AccumuloClusterHarness {
     TabletClientService.Iface client = getClient(context, extent);
     try {
 
-      Map<String,MapFileInfo> val = ImmutableMap.of(path.getName(), new MapFileInfo(size));
-      Map<KeyExtent,Map<String,MapFileInfo>> files = ImmutableMap.of(extent, val);
+      Map<String,MapFileInfo> val = Map.of(path.getName(), new MapFileInfo(size));
+      Map<KeyExtent,Map<String,MapFileInfo>> files = Map.of(extent, val);
 
       client.loadFiles(TraceUtil.traceInfo(), context.rpcCreds(), txid, path.getParent().toString(),
           Translator.translate(files, Translators.KET), false);

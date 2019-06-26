@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -34,8 +35,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
 
 public class InputTableConfigTest {
 
@@ -114,9 +113,9 @@ public class InputTableConfigTest {
 
   @Test
   public void testExecutionHints() throws IOException {
-    tableQueryConfig.setExecutionHints(ImmutableMap.of("priority", "9"));
+    tableQueryConfig.setExecutionHints(Map.of("priority", "9"));
     InputTableConfig actualConfig = deserialize(serialize(tableQueryConfig));
-    assertEquals(ImmutableMap.of("priority", "9"), actualConfig.getExecutionHints());
+    assertEquals(Map.of("priority", "9"), actualConfig.getExecutionHints());
   }
 
   private byte[] serialize(InputTableConfig tableQueryConfig) throws IOException {

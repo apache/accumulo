@@ -57,7 +57,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
@@ -126,7 +125,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       }
     }
 
-    return ImmutableMap.copyOf(regexes);
+    return Map.copyOf(regexes);
   }
 
   /**
@@ -168,7 +167,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         poolNameToRegexPatternBuilder.put(k, Pattern.compile(v));
       });
 
-      poolNameToRegexPattern = ImmutableMap.copyOf(poolNameToRegexPatternBuilder);
+      poolNameToRegexPattern = Map.copyOf(poolNameToRegexPatternBuilder);
     }
   }
 
@@ -391,8 +390,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     long minBalanceTime = 20 * 1000;
     // Iterate over the tables and balance each of them
     TableOperations t = getTableOperations();
-    if (t == null)
+    if (t == null) {
       return minBalanceTime;
+    }
 
     Map<String,String> tableIdMap = t.tableIdMap();
     Map<TableId,String> tableIdToTableName = createdTableNameMap(tableIdMap);

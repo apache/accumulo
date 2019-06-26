@@ -38,7 +38,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
 
 public class UserImpersonationTest {
 
@@ -87,7 +86,7 @@ public class UserImpersonationTest {
   public void testAnyUserAndHosts() {
     String server = "server";
     setValidHosts("*");
-    setValidUsers(ImmutableMap.of(server, "*"));
+    setValidUsers(Map.of(server, "*"));
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
@@ -103,7 +102,7 @@ public class UserImpersonationTest {
   @Test
   public void testNoHostByDefault() {
     String server = "server";
-    setValidUsers(ImmutableMap.of(server, "*"));
+    setValidUsers(Map.of(server, "*"));
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
@@ -130,7 +129,7 @@ public class UserImpersonationTest {
   public void testSingleUserAndHost() {
     String server = "server", host = "single_host.domain.com", client = "single_client";
     setValidHosts(host);
-    setValidUsers(ImmutableMap.of(server, client));
+    setValidUsers(Map.of(server, client));
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
@@ -153,7 +152,7 @@ public class UserImpersonationTest {
   public void testMultipleExplicitUsers() {
     String server = "server", client1 = "client1", client2 = "client2", client3 = "client3";
     setValidHosts("*");
-    setValidUsers(ImmutableMap.of(server, Joiner.on(',').join(client1, client2, client3)));
+    setValidUsers(Map.of(server, Joiner.on(',').join(client1, client2, client3)));
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
@@ -175,7 +174,7 @@ public class UserImpersonationTest {
   public void testMultipleExplicitHosts() {
     String server = "server", host1 = "host1", host2 = "host2", host3 = "host3";
     setValidHosts(Joiner.on(',').join(host1, host2, host3));
-    setValidUsers(ImmutableMap.of(server, "*"));
+    setValidUsers(Map.of(server, "*"));
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
@@ -198,7 +197,7 @@ public class UserImpersonationTest {
     String server = "server", host1 = "host1", host2 = "host2", host3 = "host3",
         client1 = "client1", client2 = "client2", client3 = "client3";
     setValidHosts(Joiner.on(',').join(host1, host2, host3));
-    setValidUsers(ImmutableMap.of(server, Joiner.on(',').join(client1, client2, client3)));
+    setValidUsers(Map.of(server, Joiner.on(',').join(client1, client2, client3)));
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server);
@@ -228,8 +227,7 @@ public class UserImpersonationTest {
     // server1 can impersonate client1 and client2 from host1 or host2
     // server2 can impersonate only client3 from host3
     setValidHosts(Joiner.on(',').join(host1, host2), host3);
-    setValidUsers(
-        ImmutableMap.of(server1, Joiner.on(',').join(client1, client2), server2, client3));
+    setValidUsers(Map.of(server1, Joiner.on(',').join(client1, client2), server2, client3));
     UserImpersonation impersonation = new UserImpersonation(conf);
 
     UsersWithHosts uwh = impersonation.get(server1);

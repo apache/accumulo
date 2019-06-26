@@ -35,7 +35,6 @@ import org.apache.accumulo.master.tableOps.bulkVer2.PrepBulkImport.TabletIterFac
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -66,7 +65,7 @@ public class PrepBulkImportTest {
   }
 
   Iterable<List<KeyExtent>> powerSet(KeyExtent... extents) {
-    Set<Set<KeyExtent>> powerSet = Sets.powerSet(ImmutableSet.copyOf(extents));
+    Set<Set<KeyExtent>> powerSet = Sets.powerSet(Set.copyOf(Arrays.asList(extents)));
 
     return Iterables.transform(powerSet, set -> {
       List<KeyExtent> list = new ArrayList<>(set);
@@ -137,7 +136,7 @@ public class PrepBulkImportTest {
       }
 
       List<String> requiredRows = Arrays.asList("b", "m", "r", "v");
-      for (Set<String> otherRows : Sets.powerSet(ImmutableSet.of("a", "c", "q", "t", "x"))) {
+      for (Set<String> otherRows : Sets.powerSet(Set.of("a", "c", "q", "t", "x"))) {
         runTest(loadRanges, createExtents(Iterables.concat(requiredRows, otherRows)));
       }
     }
@@ -166,14 +165,14 @@ public class PrepBulkImportTest {
         Set<String> rows2 = new HashSet<>(rows);
         rows2.remove(row);
         // test will all but one of the rows in the load mapping
-        for (Set<String> otherRows : Sets.powerSet(ImmutableSet.of("a", "c", "q", "t", "x"))) {
+        for (Set<String> otherRows : Sets.powerSet(Set.of("a", "c", "q", "t", "x"))) {
           runExceptionTest(loadRanges, createExtents(Iterables.concat(rows2, otherRows)));
         }
       }
 
       if (rows.size() > 1) {
         // test with none of the rows in the load mapping
-        for (Set<String> otherRows : Sets.powerSet(ImmutableSet.of("a", "c", "q", "t", "x"))) {
+        for (Set<String> otherRows : Sets.powerSet(Set.of("a", "c", "q", "t", "x"))) {
           runExceptionTest(loadRanges, createExtents(otherRows));
         }
       }

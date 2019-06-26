@@ -41,7 +41,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 
 /**
  * A configuration object.
@@ -172,7 +171,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
           Map<String,String> propMap = new HashMap<>();
           // The reason this caching exists is to avoid repeatedly making this expensive call.
           getProperties(propMap, key -> key.startsWith(property.getKey()));
-          propMap = ImmutableMap.copyOf(propMap);
+          propMap = Map.copyOf(propMap);
 
           // So that locking is not needed when reading from enum map, always create a new one.
           // Construct and populate map using a local var so its not visible
@@ -502,8 +501,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * changing, keeps returning the same object. Implementations should be thread safe and eventually
    * consistent. See {@link AccumuloConfiguration#newDeriver(Function)}
    */
-  public static interface Deriver<T> {
-    public T derive();
+  public interface Deriver<T> {
+    T derive();
   }
 
   /**

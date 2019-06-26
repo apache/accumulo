@@ -59,8 +59,6 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableSet;
-
 /**
  * Integration Test for https://issues.apache.org/jira/browse/ACCUMULO-4148
  * <p>
@@ -272,8 +270,9 @@ public class InMemoryMapIT {
         localityGroupMapWithNative.getMapType());
 
     int count = 0;
-    for (Mutation m : mutations)
+    for (Mutation m : mutations) {
       count += m.size();
+    }
     defaultMap.mutate(mutations, count);
     nativeMapWrapper.mutate(mutations, count);
     localityGroupMap.mutate(mutations, count);
@@ -368,7 +367,7 @@ public class InMemoryMapIT {
     for (MemKey m : memKeys) {
       kvCounts.add(m.getKVCount());
     }
-    return ImmutableSet.copyOf(kvCounts).size();
+    return Set.copyOf(kvCounts).size();
   }
 
   private ConfigurationCopy updateConfigurationForLocalityGroups(ConfigurationCopy configuration) {

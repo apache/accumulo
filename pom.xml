@@ -137,8 +137,6 @@
     <maven.compiler.target>11</maven.compiler.target>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <!-- temporary until other Java 11 issues are resolved -->
-    <modernizer.skip>true</modernizer.skip>
     <powermock.version>2.0.2</powermock.version>
     <!-- surefire/failsafe plugin option -->
     <reuseForks>false</reuseForks>

@@ -55,13 +55,11 @@ import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-
 public class TransformingIteratorTest {
 
   private static Authorizations authorizations =
       new Authorizations("vis0", "vis1", "vis2", "vis3", "vis4");
-  private static final Map<String,String> EMPTY_OPTS = ImmutableMap.of();
+  private static final Map<String,String> EMPTY_OPTS = Map.of();
   private TransformingIterator titer;
 
   private TreeMap<Key,Value> data = new TreeMap<>();
@@ -104,7 +102,7 @@ public class TransformingIteratorTest {
           new Authorizations("vis0", "vis1", "vis2", "vis3"));
       opts = cfg.getOptions();
     } else {
-      opts = ImmutableMap.of();
+      opts = Map.of();
     }
     titer.init(reuserIter, opts, iterEnv);
   }
@@ -229,9 +227,11 @@ public class TransformingIteratorTest {
     // be inside the range.
 
     TreeMap<Key,Value> expected = new TreeMap<>();
-    for (int cq = 1; cq <= 3; ++cq)
-      for (int cv = 1; cv <= 3; ++cv)
+    for (int cq = 1; cq <= 3; ++cq) {
+      for (int cv = 1; cv <= 3; ++cv) {
         putExpected(expected, 1, 3, cq, cv, PartialKey.ROW);
+      }
+    }
     checkExpected(new Range(new Key("row1", "cf0"), true, new Key("row1", "cf1"), false), expected);
   }
 
@@ -276,10 +276,13 @@ public class TransformingIteratorTest {
     setUpTransformIterator(ColFamReversingKeyTransformingIterator.class);
 
     TreeMap<Key,Value> expected = new TreeMap<>();
-    for (int row = 1; row <= 3; ++row)
-      for (int cq = 1; cq <= 3; ++cq)
-        for (int cv = 1; cv <= 3; ++cv)
+    for (int row = 1; row <= 3; ++row) {
+      for (int cq = 1; cq <= 3; ++cq) {
+        for (int cv = 1; cv <= 3; ++cv) {
           putExpected(expected, row, expectedCF, cq, cv, PartialKey.ROW);
+        }
+      }
+    }
     checkExpected(expected, "cf2");
   }
 
@@ -328,10 +331,13 @@ public class TransformingIteratorTest {
     setUpTransformIterator(ColFamReversingCompactionKeyTransformingIterator.class);
 
     TreeMap<Key,Value> expected = new TreeMap<>();
-    for (int row = 1; row <= 3; ++row)
-      for (int cq = 1; cq <= 3; ++cq)
-        for (int cv = 1; cv <= 3; ++cv)
+    for (int row = 1; row <= 3; ++row) {
+      for (int cq = 1; cq <= 3; ++cq) {
+        for (int cv = 1; cv <= 3; ++cv) {
           putExpected(expected, row, expectedCF, cq, cv, PartialKey.ROW);
+        }
+      }
+    }
     checkExpected(expected, "cf2");
   }
 
@@ -604,8 +610,9 @@ public class TransformingIteratorTest {
     protected Collection<ByteSequence>
         untransformColumnFamilies(Collection<ByteSequence> columnFamilies) {
       HashSet<ByteSequence> untransformed = new HashSet<>();
-      for (ByteSequence cf : columnFamilies)
+      for (ByteSequence cf : columnFamilies) {
         untransformed.add(untransformColumnFamily(cf));
+      }
       return untransformed;
     }
 

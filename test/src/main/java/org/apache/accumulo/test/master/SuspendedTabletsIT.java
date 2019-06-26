@@ -38,7 +38,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -67,7 +66,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.SetMultimap;
 
 public class SuspendedTabletsIT extends ConfigurableMacBase {
@@ -91,19 +89,15 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   public void crashAndResumeTserver() throws Exception {
     // Run the test body. When we get to the point where we need a tserver to go away, get rid of it
     // via crashing
-    suspensionTestBody(new TServerKiller() {
-      @Override
-      public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
-          throws Exception {
-        List<ProcessReference> procs =
-            new ArrayList<>(getCluster().getProcesses().get(ServerType.TABLET_SERVER));
-        Collections.shuffle(procs);
+    suspensionTestBody((ctx, locs, count) -> {
+      List<ProcessReference> procs =
+          new ArrayList<>(getCluster().getProcesses().get(ServerType.TABLET_SERVER));
+      Collections.shuffle(procs);
 
-        for (int i = 0; i < count; ++i) {
-          ProcessReference pr = procs.get(i);
-          log.info("Crashing {}", pr.getProcess());
-          getCluster().killProcess(ServerType.TABLET_SERVER, pr);
-        }
+      for (int i = 0; i < count; ++i) {
+        ProcessReference pr = procs.get(i);
+        log.info("Crashing {}", pr.getProcess());
+        getCluster().killProcess(ServerType.TABLET_SERVER, pr);
       }
     });
   }
@@ -112,49 +106,45 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   public void shutdownAndResumeTserver() throws Exception {
     // Run the test body. When we get to the point where we need tservers to go away, stop them via
     // a clean shutdown.
-    suspensionTestBody(new TServerKiller() {
-      @Override
-      public void eliminateTabletServers(final ClientContext ctx, TabletLocations locs, int count)
-          throws Exception {
-        Set<TServerInstance> tserversSet = new HashSet<>();
-        for (TabletLocationState tls : locs.locationStates.values()) {
-          if (tls.current != null) {
-            tserversSet.add(tls.current);
-          }
+    suspensionTestBody((ctx, locs, count) -> {
+      Set<TServerInstance> tserversSet = new HashSet<>();
+      for (TabletLocationState tls : locs.locationStates.values()) {
+        if (tls.current != null) {
+          tserversSet.add(tls.current);
         }
-        List<TServerInstance> tserversList = new ArrayList<>(tserversSet);
-        Collections.shuffle(tserversList, RANDOM);
-
-        for (int i = 0; i < count; ++i) {
-          final String tserverName = tserversList.get(i).toString();
-          MasterClient.executeVoid(ctx, client -> {
-            log.info("Sending shutdown command to {} via MasterClientService", tserverName);
-            client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
-          });
-        }
-
-        log.info("Waiting for tserver process{} to die", count == 1 ? "" : "es");
-        for (int i = 0; i < 10; ++i) {
-          List<ProcessReference> deadProcs = new ArrayList<>();
-          for (ProcessReference pr : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
-            Process p = pr.getProcess();
-            if (!p.isAlive()) {
-              deadProcs.add(pr);
-            }
-          }
-          for (ProcessReference pr : deadProcs) {
-            log.info("Process {} is dead, informing cluster control about this", pr.getProcess());
-            getCluster().getClusterControl().killProcess(ServerType.TABLET_SERVER, pr);
-            --count;
-          }
-          if (count == 0) {
-            return;
-          } else {
-            Thread.sleep(MILLISECONDS.convert(2, SECONDS));
-          }
-        }
-        throw new IllegalStateException("Tablet servers didn't die!");
       }
+      List<TServerInstance> tserversList = new ArrayList<>(tserversSet);
+      Collections.shuffle(tserversList, RANDOM);
+
+      for (int i1 = 0; i1 < count; ++i1) {
+        final String tserverName = tserversList.get(i1).toString();
+        MasterClient.executeVoid(ctx, client -> {
+          log.info("Sending shutdown command to {} via MasterClientService", tserverName);
+          client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
+        });
+      }
+
+      log.info("Waiting for tserver process{} to die", count == 1 ? "" : "es");
+      for (int i2 = 0; i2 < 10; ++i2) {
+        List<ProcessReference> deadProcs = new ArrayList<>();
+        for (ProcessReference pr1 : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
+          Process p = pr1.getProcess();
+          if (!p.isAlive()) {
+            deadProcs.add(pr1);
+          }
+        }
+        for (ProcessReference pr2 : deadProcs) {
+          log.info("Process {} is dead, informing cluster control about this", pr2.getProcess());
+          getCluster().getClusterControl().killProcess(ServerType.TABLET_SERVER, pr2);
+          --count;
+        }
+        if (count == 0) {
+          return;
+        } else {
+          Thread.sleep(MILLISECONDS.convert(2, SECONDS));
+        }
+      }
+      throw new IllegalStateException("Tablet servers didn't die!");
     });
   }
 
@@ -232,7 +222,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
       log.info("Restarting " + restartedServer);
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER,
-          ImmutableMap.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
+          Map.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
               Property.TSERV_PORTSEARCH.getKey(), "false"),
           1);
 
@@ -266,12 +256,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
   @BeforeClass
   public static void init() {
-    THREAD_POOL = Executors.newCachedThreadPool(new ThreadFactory() {
-      @Override
-      public Thread newThread(Runnable r) {
-        return new Thread(r, "Scanning deadline thread #" + threadCounter.incrementAndGet());
-      }
-    });
+    THREAD_POOL = Executors.newCachedThreadPool(
+        r -> new Thread(r, "Scanning deadline thread #" + threadCounter.incrementAndGet()));
   }
 
   @AfterClass

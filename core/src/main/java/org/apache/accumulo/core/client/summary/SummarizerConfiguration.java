@@ -47,7 +47,7 @@ public class SummarizerConfiguration {
 
   private SummarizerConfiguration(String className, String configId, Map<String,String> options) {
     this.className = className;
-    this.options = ImmutableMap.copyOf(options);
+    this.options = Map.copyOf(options);
 
     if (configId == null) {
       ArrayList<String> keys = new ArrayList<>(this.options.keySet());

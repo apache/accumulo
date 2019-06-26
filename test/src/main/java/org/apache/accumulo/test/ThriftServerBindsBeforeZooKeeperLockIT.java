@@ -22,6 +22,7 @@ import java.net.Socket;
 import java.net.URL;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -43,8 +44,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -286,8 +285,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
         throw new IllegalArgumentException("Irrelevant server type for test");
     }
 
-    return cluster
-        ._exec(service, serverType, ImmutableMap.of(property.getKey(), Integer.toString(port)))
+    return cluster._exec(service, serverType, Map.of(property.getKey(), Integer.toString(port)))
         .getProcess();
   }
 }

@@ -24,8 +24,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.google.common.collect.ImmutableSet;
-
 public class CompactionPlanTest {
 
   @Rule
@@ -43,7 +41,7 @@ public class CompactionPlanTest {
     cp1.deleteFiles.add(fr1);
     cp1.deleteFiles.add(fr2);
 
-    Set<FileRef> allFiles = ImmutableSet.of(fr1, fr2);
+    Set<FileRef> allFiles = Set.of(fr1, fr2);
 
     exception.expect(IllegalStateException.class);
     cp1.validate(allFiles);
@@ -61,7 +59,7 @@ public class CompactionPlanTest {
     cp1.inputFiles.add(fr2);
     cp1.inputFiles.add(fr3);
 
-    Set<FileRef> allFiles = ImmutableSet.of(fr1, fr2);
+    Set<FileRef> allFiles = Set.of(fr1, fr2);
 
     exception.expect(IllegalStateException.class);
     cp1.validate(allFiles);
@@ -79,7 +77,7 @@ public class CompactionPlanTest {
     cp1.deleteFiles.add(fr2);
     cp1.deleteFiles.add(fr3);
 
-    Set<FileRef> allFiles = ImmutableSet.of(fr1, fr2);
+    Set<FileRef> allFiles = Set.of(fr1, fr2);
 
     exception.expect(IllegalStateException.class);
     cp1.validate(allFiles);

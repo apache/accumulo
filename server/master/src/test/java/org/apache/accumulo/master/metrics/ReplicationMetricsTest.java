@@ -17,6 +17,7 @@
 package org.apache.accumulo.master.metrics;
 
 import java.lang.reflect.Field;
+import java.util.Set;
 
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.server.ServerContext;
@@ -28,8 +29,6 @@ import org.apache.hadoop.metrics2.lib.MutableQuantiles;
 import org.apache.hadoop.metrics2.lib.MutableStat;
 import org.easymock.EasyMock;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableSet;
 
 public class ReplicationMetricsTest {
   private long currentTime = 1000L;
@@ -62,14 +61,14 @@ public class ReplicationMetricsTest {
 
     // First call will initialize the map of paths to modification time
     EasyMock.expect(master.getContext()).andReturn(context).anyTimes();
-    EasyMock.expect(util.getPendingReplicationPaths()).andReturn(ImmutableSet.of(path1, path2));
+    EasyMock.expect(util.getPendingReplicationPaths()).andReturn(Set.of(path1, path2));
     EasyMock.expect(master.getFileSystem()).andReturn(fileSystem);
     EasyMock.expect(fileSystem.getFileStatus(path1)).andReturn(createStatus(100));
     EasyMock.expect(master.getFileSystem()).andReturn(fileSystem);
     EasyMock.expect(fileSystem.getFileStatus(path2)).andReturn(createStatus(200));
 
     // Second call will recognize the missing path1 and add the latency stat
-    EasyMock.expect(util.getPendingReplicationPaths()).andReturn(ImmutableSet.of(path2));
+    EasyMock.expect(util.getPendingReplicationPaths()).andReturn(Set.of(path2));
 
     // Expect a call to reset the min/max
     stat.resetMinMax();

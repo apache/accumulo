@@ -42,9 +42,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 
 public class TableConfiguration extends AccumuloConfiguration {
 
@@ -100,8 +98,9 @@ public class TableConfiguration extends AccumuloConfiguration {
   private ZooCachePropertyAccessor getPropCacheAccessor() {
     // updateAndGet below always calls compare and set, so avoid if not null
     ZooCachePropertyAccessor zcpa = propCacheAccessor.get();
-    if (zcpa != null)
+    if (zcpa != null) {
       return zcpa;
+    }
 
     return propCacheAccessor
         .updateAndGet(pca -> pca == null ? new ZooCachePropertyAccessor(getZooCache()) : pca);
@@ -113,12 +112,14 @@ public class TableConfiguration extends AccumuloConfiguration {
 
   @Override
   public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
-    if (!cacheAndWatch)
+    if (!cacheAndWatch) {
       throw new UnsupportedOperationException(
           "Table configuration only supports checking if a property is set in cache.");
+    }
 
-    if (getPropCacheAccessor().isPropertySet(prop, getPath()))
+    if (getPropCacheAccessor().isPropertySet(prop, getPath())) {
       return true;
+    }
 
     return parent.isPropertySet(prop, cacheAndWatch);
   }
@@ -182,10 +183,10 @@ public class TableConfiguration extends AccumuloConfiguration {
 
     private ParsedIteratorConfig(List<IterInfo> ii, Map<String,Map<String,String>> opts,
         String context) {
-      this.tableIters = ImmutableList.copyOf(ii);
-      Builder<String,Map<String,String>> imb = ImmutableMap.builder();
+      this.tableIters = List.copyOf(ii);
+      var imb = ImmutableMap.<String,Map<String,String>>builder();
       for (Entry<String,Map<String,String>> entry : opts.entrySet()) {
-        imb.put(entry.getKey(), ImmutableMap.copyOf(entry.getValue()));
+        imb.put(entry.getKey(), Map.copyOf(entry.getValue()));
       }
       tableOpts = imb.build();
       this.context = context;
@@ -213,7 +214,7 @@ public class TableConfiguration extends AccumuloConfiguration {
     ScanDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
         Property.TABLE_SCAN_DISPATCHER, ScanDispatcher.class, null);
 
-    Builder<String,String> builder = ImmutableMap.builder();
+    var builder = ImmutableMap.<String,String>builder();
     conf.getAllPropertiesWithPrefix(Property.TABLE_SCAN_DISPATCHER_OPTS).forEach((k, v) -> {
       String optKey = k.substring(Property.TABLE_SCAN_DISPATCHER_OPTS.getKey().length());
       builder.put(optKey, v);

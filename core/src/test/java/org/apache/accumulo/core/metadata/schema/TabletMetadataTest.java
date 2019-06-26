@@ -27,6 +27,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -48,9 +50,6 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 public class TabletMetadataTest {
 
@@ -99,11 +98,11 @@ public class TabletMetadataTest {
     assertEquals("/a/t/6/a/", tm.getDir());
     assertEquals(extent.getEndRow(), tm.getEndRow());
     assertEquals(extent, tm.getExtent());
-    assertEquals(ImmutableSet.of("df1", "df2"), ImmutableSet.copyOf(tm.getFiles()));
-    assertEquals(ImmutableMap.of("df1", dfv1, "df2", dfv2), tm.getFilesMap());
+    assertEquals(Set.of("df1", "df2"), Set.copyOf(tm.getFiles()));
+    assertEquals(Map.of("df1", dfv1, "df2", dfv2), tm.getFilesMap());
     assertEquals(6L, tm.getFlushId().getAsLong());
     assertEquals(rowMap, tm.getKeyValues());
-    assertEquals(ImmutableSet.of("bf1", "bf2"), ImmutableSet.copyOf(tm.getLoaded()));
+    assertEquals(Set.of("bf1", "bf2"), Set.copyOf(tm.getLoaded()));
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
     assertEquals("s001", tm.getLocation().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
@@ -111,14 +110,13 @@ public class TabletMetadataTest {
     assertEquals(HostAndPort.fromParts("server2", 8555), tm.getLast().getHostAndPort());
     assertEquals("s000", tm.getLast().getSession());
     assertEquals(LocationType.LAST, tm.getLast().getType());
-    assertEquals(
-        ImmutableSet.of(le1.getName() + " " + le1.timestamp, le2.getName() + " " + le2.timestamp),
+    assertEquals(Set.of(le1.getName() + " " + le1.timestamp, le2.getName() + " " + le2.timestamp),
         tm.getLogs().stream().map(le -> le.getName() + " " + le.timestamp).collect(toSet()));
     assertEquals(extent.getPrevEndRow(), tm.getPrevEndRow());
     assertEquals(extent.getTableId(), tm.getTableId());
     assertTrue(tm.sawPrevEndRow());
     assertEquals("M123456789", tm.getTime());
-    assertEquals(ImmutableSet.of("sf1", "sf2"), ImmutableSet.copyOf(tm.getScans()));
+    assertEquals(Set.of("sf1", "sf2"), Set.copyOf(tm.getScans()));
   }
 
   @Test

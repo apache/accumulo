@@ -36,8 +36,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-
 public class TabletServerSyncCheckTest {
   private static final String DFS_SUPPORT_APPEND = "dfs.support.append";
 
@@ -47,8 +45,7 @@ public class TabletServerSyncCheckTest {
     conf.set(DFS_SUPPORT_APPEND, "false");
 
     FileSystem fs = new TestFileSystem(conf);
-    TestVolumeManagerImpl vm =
-        new TestVolumeManagerImpl(ImmutableMap.of("foo", new VolumeImpl(fs, "/")));
+    TestVolumeManagerImpl vm = new TestVolumeManagerImpl(Map.of("foo", new VolumeImpl(fs, "/")));
 
     vm.ensureSyncIsEnabled();
   }
