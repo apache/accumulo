@@ -1169,11 +1169,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     try {
       if (!fs.getFileStatus(ret).isDirectory()) {
         throw new AccumuloException(
-            kind + " import " + type + " directory " + dir + " is not a directory!");
+            kind + " import " + type + " directory " + ret + " is not a directory!");
       }
     } catch (FileNotFoundException fnf) {
       throw new AccumuloException(
-          kind + " import " + type + " directory " + dir + " does not exist!");
+          kind + " import " + type + " directory " + ret + " does not exist!");
     }
 
     if (type.equals("failure")) {
