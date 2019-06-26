@@ -22,12 +22,14 @@
       <div class="row">
         <div class="col-xs-12">
           <table id="scanStatus" class="table table-bordered table-striped table-condensed">
-            <tbody>
-              <tr><th class="firstcell">Server&nbsp;</th>
+            <thead>
+              <tr>
+                <th class="firstcell">Server&nbsp;</th>
                 <th title="Number of scans presently running">#&nbsp;</th>
                 <th title="The age of the oldest scan on this server.">Oldest&nbsp;Age&nbsp;</th>
               </tr>
-            </tbody>
+            </thead>
+            <tbody></tbody>
           </table>
         </div>
       </div>

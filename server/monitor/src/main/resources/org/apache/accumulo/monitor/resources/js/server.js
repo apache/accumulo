@@ -41,7 +41,7 @@ function refresh() {
  */
 function refreshDetailTable() {
 
-  $('#tServerDetail tr:gt(0)').remove();
+  clearTableBody('tServerDetail');
 
   var data = sessionStorage.server === undefined ?
       [] : JSON.parse(sessionStorage.server);
@@ -69,7 +69,7 @@ function refreshDetailTable() {
 
   $('<tr/>', {
     html: items.join('')
-  }).appendTo('#tServerDetail');
+  }).appendTo('#tServerDetail tbody');
 }
 
 /**
@@ -77,7 +77,7 @@ function refreshDetailTable() {
  */
 function refreshHistoryTable() {
 
-  $('#opHistoryDetails tr:gt(0)').remove();
+  clearTableBody('opHistoryDetails');
 
   var data = sessionStorage.server === undefined ?
       [] : JSON.parse(sessionStorage.server);
@@ -89,7 +89,7 @@ function refreshHistoryTable() {
 
     $('<tr/>', {
       html: row.join('')
-    }).appendTo('#opHistoryDetails');
+    }).appendTo('#opHistoryDetails tbody');
   } else {
     var totalTimeSpent = 0;
     $.each(data.allTimeTabletResults, function(key, val) {
@@ -135,7 +135,7 @@ function refreshHistoryTable() {
 
       $('<tr/>', {
         html: row.join('')
-      }).appendTo('#opHistoryDetails');
+      }).appendTo('#opHistoryDetails tbody');
 
     });
   }
@@ -146,7 +146,7 @@ function refreshHistoryTable() {
  */
 function refreshCurrentTable() {
 
-  $('#currentTabletOps tr:gt(0)').remove();
+  clearTableBody('currentTabletOps');
 
   var data = sessionStorage.server === undefined ?
       [] : JSON.parse(sessionStorage.server);
@@ -180,7 +180,7 @@ function refreshCurrentTable() {
 
   $('<tr/>', {
       html: items.join('')
-  }).appendTo('#currentTabletOps');
+  }).appendTo('#currentTabletOps tbody');
 
 }
 

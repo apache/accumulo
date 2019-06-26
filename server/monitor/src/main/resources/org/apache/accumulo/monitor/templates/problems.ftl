@@ -32,23 +32,31 @@
         <div class="col-xs-12">
           <table id="problemSummary" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Summary</span></caption>
-            <tbody><tr><th class="firstcell">Table&nbsp;</th>
+            <thead>
+              <tr>
+                <th class="firstcell">Table&nbsp;</th>
                 <th>FILE_READ&nbsp;</th>
                 <th>FILE_WRITE&nbsp;</th>
                 <th>TABLET_LOAD&nbsp;</th>
-                <th>Operations&nbsp;</th></tr>
-            </tbody>
+                <th>Operations&nbsp;</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
           </table>
           <table id="problemDetails" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Details</span></caption>
-            <tbody><tr><th class="firstcell" >Table&nbsp;</th>
+            <thead>
+              <tr>
+                <th class="firstcell" >Table&nbsp;</th>
                 <th>Problem&nbsp;Type&nbsp;</th>
                 <th>Server&nbsp;</th>
                 <th>Time&nbsp;</th>
                 <th>Resource&nbsp;</th>
                 <th>Exception&nbsp;</th>
-                <th>Operations&nbsp;</th></tr>
-            </tbody>
+                <th>Operations&nbsp;</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
           </table>
         </div>
       </div>

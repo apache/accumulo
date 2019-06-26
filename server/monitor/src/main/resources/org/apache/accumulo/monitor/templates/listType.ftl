@@ -34,12 +34,14 @@
         <div class="col-xs-12">
           <table id="trace" class="table table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Traces for masterReplicationDriver</span><br/></caption>
-            <tbody>
-              <tr><th class="firstcell" title="Start Time of selected trace type">Start</th>
+            <thead>
+              <tr>
+                <th class="firstcell" title="Start Time of selected trace type">Start</th>
                 <th title="Span Time of selected trace type">ms</th>
                 <th title="Service and Location of selected trace type">Source</th>
               </tr>
-            </tbody>
+            </thead>
+            <tbody></tbody>
           </table>
         </div>
       </div>

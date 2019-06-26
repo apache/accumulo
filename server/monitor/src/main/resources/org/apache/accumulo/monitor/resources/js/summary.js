@@ -37,7 +37,7 @@ function refresh() {
  * @param {string} minutes Minutes to display traces
  */
 function refreshTraceSummaryTable(minutes) {
-  clearTable('traceSummary');
+  clearTableBody('traceSummary');
 
   var data = sessionStorage.traceSummary === undefined ?
       [] : JSON.parse(sessionStorage.traceSummary);
@@ -48,7 +48,7 @@ function refreshTraceSummaryTable(minutes) {
         minutes + ' minute(s)'));
     $('<tr/>', {
       html: items.join('')
-    }).appendTo('#traceSummary');
+    }).appendTo('#traceSummary tbody');
   } else {
     $.each(data.recentTraces, function(key, val) {
 
@@ -74,7 +74,7 @@ function refreshTraceSummaryTable(minutes) {
 
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#traceSummary');
+      }).appendTo('#traceSummary tbody');
 
     });
   }

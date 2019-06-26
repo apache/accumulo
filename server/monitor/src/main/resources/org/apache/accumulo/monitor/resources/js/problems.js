@@ -63,7 +63,7 @@ function clearDetailsProblemsTable(table, resource, type) {
  * Generates the problem summary table
  */
 function refreshProblemSummaryTable() {
-  clearTable('problemSummary');
+  clearTableBody('problemSummary');
   var data = sessionStorage.problemSummary === undefined ?
       [] : JSON.parse(sessionStorage.problemSummary);
 
@@ -72,7 +72,7 @@ function refreshProblemSummaryTable() {
     items.push(createEmptyRow(5, 'Empty'));
     $('<tr/>', {
       html: items.join('')
-    }).appendTo('#problemSummary');
+    }).appendTo('#problemSummary tbody');
   } else {
     $.each(data.problemSummary, function(key, val) {
       var items = [];
@@ -90,7 +90,7 @@ function refreshProblemSummaryTable() {
 
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#problemSummary');
+      }).appendTo('#problemSummary tbody');
     });
   }
 }
@@ -99,7 +99,7 @@ function refreshProblemSummaryTable() {
  * Generates the problem details table
  */
 function refreshProblemDetailsTable() {
-  clearTable('problemDetails');
+  clearTableBody('problemDetails');
   var data = sessionStorage.problemDetails === undefined ?
       [] : JSON.parse(sessionStorage.problemDetails);
 
@@ -108,7 +108,7 @@ function refreshProblemDetailsTable() {
     items.push(createEmptyRow(7, 'Empty'));
     $('<tr/>', {
       html: items.join('')
-    }).appendTo('#problemDetails');
+    }).appendTo('#problemDetails tbody');
   } else {
     $.each(data.problemDetails, function(key, val) {
       var items = [];
@@ -136,7 +136,7 @@ function refreshProblemDetailsTable() {
 
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#problemDetails');
+      }).appendTo('#problemDetails tbody');
 
     });
   }
